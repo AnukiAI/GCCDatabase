@@ -188,5 +188,138 @@ namespace GCCWebApp.Services
 
             return true;
         }
+
+        public async Task<BulkImportResult> BulkImportCompaniesAsync(List<CompanyViewModel> models, int userId, string username, bool overwriteExisting = false)
+        {
+            // DEF-113: companion to DEF-112's bulk endpoint pattern.
+            // Pre-fetch existing names once → in-memory dup detection → batched SaveChanges.
+            // Replaces companyManagement.js#applySelectedImport()'s per-row POST loop, which
+            // hit AspNetCoreRateLimit's localhost 200/min cap on imports >200 rows.
+            var result = new BulkImportResult { TotalProcessed = models.Count };
+            var now = DateTime.UtcNow;
+
+            var existingCompanies = await _context.Companies
+                .Where(c => !c.IsDeleted)
+                .Select(c => new { c.Id, c.Name })
+                .ToListAsync();
+            var existingByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in existingCompanies)
+            {
+                existingByName[c.Name] = c.Id;
+            }
+
+            if (overwriteExisting)
+            {
+                var importNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var m in models)
+                {
+                    if (!string.IsNullOrWhiteSpace(m.Name)) importNames.Add(m.Name.Trim());
+                }
+                var toDeactivate = await _context.Companies
+                    .Where(c => !c.IsDeleted && c.IsActive)
+                    .ToListAsync();
+                foreach (var c in toDeactivate)
+                {
+                    if (!importNames.Contains(c.Name))
+                    {
+                        c.IsActive = false;
+                        c.UpdatedAt = now;
+                    }
+                }
+            }
+
+            var addedCount = 0;
+            foreach (var model in models)
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(model.Name))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"(blank) - Name is required");
+                        continue;
+                    }
+                    var name = model.Name.Trim();
+                    if (existingByName.ContainsKey(name))
+                    {
+                        if (overwriteExisting)
+                        {
+                            // Already exists. In overwrite mode we keep the existing row; count as success.
+                            result.SuccessCount++;
+                        }
+                        else
+                        {
+                            result.ErrorCount++;
+                            result.Errors.Add($"{name} - A company with this name already exists");
+                        }
+                        continue;
+                    }
+
+                    var entity = new Company
+                    {
+                        Name = name,
+                        Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim(),
+                        Website = string.IsNullOrWhiteSpace(model.Url) ? null : model.Url.Trim(),
+                        CreatedAt = now,
+                        UpdatedAt = now,
+                        IsActive = true,
+                        IsDeleted = false
+                    };
+
+                    _context.Companies.Add(entity);
+                    existingByName[name] = 0; // prevent within-batch dup
+                    addedCount++;
+                    result.SuccessCount++;
+                }
+                catch (Exception ex)
+                {
+                    result.ErrorCount++;
+                    result.Errors.Add($"{model.Name} - {ex.Message}");
+                }
+            }
+
+            try
+            {
+                if (_context.ChangeTracker.HasChanges())
+                {
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add($"Database save failed: {ex.Message}");
+                result.ErrorCount += result.SuccessCount;
+                result.SuccessCount = 0;
+                return result;
+            }
+
+            // Single summary audit entry — per-row audit on bulk imports adds N more saves
+            // and is rarely useful for compliance review. The shipped log is the source of truth
+            // for bulk-import decisions; per-row audit returns when individual /Company/SaveCompany
+            // is called.
+            if (addedCount > 0)
+            {
+                try
+                {
+                    await _auditService.LogEntityChangeAsync(
+                        "BULK",
+                        $"BulkImport ({addedCount} companies)",
+                        "CREATE",
+                        null,
+                        new { Count = addedCount, OverwriteExisting = overwriteExisting },
+                        userId,
+                        username,
+                        $"Bulk import: {addedCount} new, {result.ErrorCount} errors",
+                        "Web UI"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to log bulk-import audit history: {ex.Message}");
+                }
+            }
+
+            return result;
+        }
     }
 }

@@ -38,6 +38,22 @@ namespace GCCWebApp.Models
         public List<string> PartnerNames { get; set; } = new List<string>();
     }
 
+    /// <summary>
+    /// DEF-113: payload row for /Admin/BulkImportUsers. Uses name-based references
+    /// (CompanyNames as strings) — service-side resolves to FK IDs against pre-fetched
+    /// dictionaries to avoid one DB roundtrip per row.
+    /// </summary>
+    public class BulkImportUserItem
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Status { get; set; } = "active";
+        public bool RequirePasswordReset { get; set; } = true;
+        public List<string> CompanyNames { get; set; } = new();
+    }
+
     public class CreateUserViewModel
     {
         [Required]

@@ -1,5 +1,18 @@
 # Observations Log
 
+## 2026-05-07 - QC #58 answer to Carly: cert numbering + draft model + form recovery
+
+Carly's question on the cert Create timeout: *"is that draft user specific or would the draft save for all logged in internal users because that would be the next cert # available?"* Mashed together three different things; clarified each:
+
+1. **Cert numbers are not reserved at form-open.** `CertificateController.Create` (line 287) calls `_certificateRepository.GenerateNextCertificateNumberAsync()`, which is a pure read — `MAX(Number) + 1` for the current year against the `Certificates` table (`Repositories/CertificateRepository.cs:704-718`). Number is shown in the field but only locked in when the row writes on Submit. Two analysts opening Create simultaneously both see the same proposed number; first to submit wins.
+2. **Drafts are not user-specific.** A "Draft" is just `Certificate.Status = "Draft"` — a normal database row visible to all internal Admin/Analyst users. There is no per-user scratch / Save-As-Draft store. If you want something to persist before all required fields are filled, that would be a separate CR.
+3. **Form-clearing was idle session timeout.** `Program.cs:31` session `IdleTimeout = 30 min`, `Program.cs:245` auth cookie `ExpireTimeSpan = 30 min` with `SlidingExpiration = true`. "Remember Me" only persists login across browser restarts (14 days) — it does not extend idle timeout while a form sits open. After 30 min idle, the anti-forgery token is stale and POST drops the form.
+4. **There is no form recovery today.** `wwwroot/js/certificate-create.js:705` has `SHOW_RECOVERY_PROMPT: false` — banner gated off in DEF-151 with auto-save still writing silently to localStorage and stale entries GC'd at 2 hr so storage doesn't leak. Recovery banner is filed as **CR-017 (Phase 2)** per Shawn's call 2026-05-07; not a launch blocker. Originally I told Carly the banner exists — that was wrong; corrected.
+
+QC #58 stays in **Working as Designed** in `qc-sprint-3-reconciliation-2026-05-04.md:151`. CR-017 detail in `change-request-register.md:206` and `docs/tracking/CR-017-form-recovery-ux.md`.
+
+---
+
 ## 2026-05-05 - DEF-147: Product ID Manager action icons match app standard
 
 Shawn reported on `gccwebapp.com/Certificate/Edit/26-0160` that the Edit/Delete icons under Product Identifiers didn't match the standard — trash icon was not the bright `#FF5252` red used elsewhere. Two render sites had drifted to legacy Bootstrap `btn btn-outline-primary` / `btn-outline-danger` styling: the Razor partial `Views/Shared/_ProductIdManager.cshtml` (initial page load) and the JS template `wwwroot/js/product-id-manager.js` `getProductIdRowHtml` (dynamic rows). Canonical pattern lives at `wwwroot/css/admin/admin-inline-editing.css` (`.admin-inline-action-btn--edit` blue `#00AEEF`, `--delete` red `#FF5252`) and is used on Pathways, Partners, Tags, etc. CSS was also not linked from `Views/Certificate/Create.cshtml` / `Edit.cshtml`.

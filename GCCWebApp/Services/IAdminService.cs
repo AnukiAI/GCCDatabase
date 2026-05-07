@@ -11,6 +11,15 @@ namespace GCCWebApp.Services
         Task<List<UserViewModel>> GetUsersAsync();
         Task<UserViewModel?> GetUserByIdAsync(int id);
         Task<(bool Success, string ErrorMessage)> CreateUserAsync(CreateUserViewModel model, int userId, string username);
+
+        /// <summary>
+        /// DEF-113: bulk-create users in a single transaction. Pre-fetches existing emails,
+        /// companies, partners, and roles; resolves name-based references in memory.
+        /// Replaces userManagement.js#importCSV()'s per-row /Admin/CreateUser loop.
+        /// Replace-all NOT supported — too risky for users (mass-deactivation = locked-out admins).
+        /// Each row still pays for BCrypt password hashing (~50ms) — that's CPU-bound, not DB.
+        /// </summary>
+        Task<BulkImportResult> BulkImportUsersAsync(List<BulkImportUserItem> items, int userId, string username);
         Task<bool> UpdateUserAsync(int id, UserViewModel model, int userId, string username);
         Task<bool> DeleteUserAsync(int id, int userId, string username);
         
@@ -56,6 +65,13 @@ namespace GCCWebApp.Services
         Task<TagViewModel?> GetTagByIdAsync(int id);
         Task<bool> CreateTagAsync(TagViewModel model);
         Task<bool> UpdateTagAsync(int id, TagViewModel model);
+
+        /// <summary>
+        /// DEF-113: bulk-create tags in a single transaction. Pre-fetches existing
+        /// (Name, TagType) pairs for in-memory dup detection. Replaces tags.js#applySelectedImport()'s
+        /// per-row POST loop, which hit the localhost rate-limit cap on imports >200 rows.
+        /// </summary>
+        Task<BulkImportResult> BulkImportTagsAsync(List<TagViewModel> models, bool overwriteExisting = false);
         Task<bool> DeleteTagAsync(int id);
         
         // Partners
@@ -77,6 +93,14 @@ namespace GCCWebApp.Services
         Task<ProductViewModel?> GetProductByIdAsync(int id);
         Task<bool> CreateProductAsync(ProductViewModel model);
         Task<bool> UpdateProductAsync(int id, ProductViewModel model);
+
+        /// <summary>
+        /// DEF-113: bulk-create products in a single transaction. Pre-fetches Companies,
+        /// ProductTypes, and existing (Name+CompanyId) keys; replaces productManagement.js#applySelectedImport()'s
+        /// per-row /Admin/CreateProduct loop. Replace-all NOT supported here — too risky for products
+        /// (a typo in the import file would mass-deactivate inventory). Updates still go individually.
+        /// </summary>
+        Task<BulkImportResult> BulkImportProductsAsync(List<ProductViewModel> models);
         Task<bool> DeleteProductAsync(int id);
         
         // Lookup data

@@ -25,39 +25,49 @@ namespace GCCWebApp.Controllers.Api
         }
 
         /// <summary>
-        /// Get all product IDs for a certificate
+        /// Get product IDs for a certificate. CR-018: when paging params are
+        /// supplied (page>0 &amp; pageSize>0), pushes sort, filter, and search
+        /// into SQL and returns one page of rows with totals. When neither
+        /// param is supplied, returns the full list (preserved for export
+        /// and any back-compat callers).
         /// </summary>
-        /// <param name="certificateId">Certificate ID</param>
-        /// <returns>List of product IDs</returns>
         [HttpGet("certificate/{certificateId}")]
         public async Task<ActionResult> GetProductIdsByCertificate(
             int certificateId,
             [FromQuery] int page = 0,
-            [FromQuery] int pageSize = 0)
+            [FromQuery] int pageSize = 0,
+            [FromQuery] string? sort = null,
+            [FromQuery] string? dir = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? type = null,
+            [FromQuery] string? partner = null)
         {
             try
             {
-                // DEF-121: project to DTO before returning so the User entity (with credential
-                // fields) never reaches the JSON serializer for this endpoint.
-                var productIds = await _productIdService.GetProductIdsByCertificateAsync(certificateId);
-                var dtos = productIds.Select(ProductIdResponseDto.FromEntity).ToList();
-                var totalCount = dtos.Count;
+                // DEF-121: DTO projection so User credential fields never reach JSON.
 
-                // If pagination requested, apply it
+                // CR-018: Server-paged path.
                 if (page > 0 && pageSize > 0)
                 {
-                    var pagedData = dtos.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+                    var paged = await _productIdService.GetProductIdsByCertificatePagedAsync(
+                        certificateId, page, pageSize, sort, dir, search, type, partner);
+
                     return Ok(new
                     {
                         success = true,
-                        data = pagedData,
-                        totalCount,
-                        page,
-                        pageSize,
-                        totalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                        data = paged.Items.Select(ProductIdResponseDto.FromEntity).ToList(),
+                        totalCount = paged.TotalCount,
+                        page = paged.Page,
+                        pageSize = paged.PageSize,
+                        totalPages = paged.TotalPages,
                         message = "Product IDs retrieved successfully"
                     });
                 }
+
+                // Un-paged path — used by export and legacy callers. Stays in
+                // memory because the export needs the full collection anyway.
+                var productIds = await _productIdService.GetProductIdsByCertificateAsync(certificateId);
+                var dtos = productIds.Select(ProductIdResponseDto.FromEntity).ToList();
 
                 return Ok(new ApiResponse<List<ProductIdResponseDto>>
                 {
@@ -289,6 +299,53 @@ namespace GCCWebApp.Controllers.Api
         }
 
         /// <summary>
+        /// Bulk-create product IDs from a JSON payload of pre-parsed items.
+        ///
+        /// DEF-112: the previous frontend made one POST per row, hitting the
+        /// AspNetCoreRateLimit cap of 100/min for */api/* once row counts crossed
+        /// 100. This endpoint commits the whole batch in a single request.
+        /// </summary>
+        [HttpPost("certificate/{certificateId}/bulk")]
+        public async Task<ActionResult<ApiResponse<BulkImportResult>>> BulkCreateProductIds(
+            int certificateId,
+            [FromBody] BulkProductIdImportRequest request)
+        {
+            try
+            {
+                if (request?.Items == null || request.Items.Count == 0)
+                {
+                    return BadRequest(new ApiResponse<BulkImportResult>
+                    {
+                        Success = false,
+                        Message = "No items provided"
+                    });
+                }
+
+                var userId = GetCurrentUserId();
+                var result = await _productIdService.ImportProductIdsAsync(
+                    certificateId, request.Items, userId, request.OverwriteExisting);
+
+                return Ok(new ApiResponse<BulkImportResult>
+                {
+                    Success = true,
+                    Data = result,
+                    Message = $"Bulk import completed. {result.SuccessCount} succeeded, {result.ErrorCount} failed"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error bulk-importing product IDs for certificate {CertificateId}",
+                    certificateId);
+                return StatusCode(500, new ApiResponse<BulkImportResult>
+                {
+                    Success = false,
+                    Message = "Error processing bulk import"
+                });
+            }
+        }
+
+        /// <summary>
         /// Import product IDs from CSV file
         /// </summary>
         /// <param name="certificateId">Certificate ID</param>
@@ -378,7 +435,9 @@ namespace GCCWebApp.Controllers.Api
             try
             {
                 // CR-015: Status removed from sample CSV — auto-derived from parent cert.
-                var sampleCsv = "Type,Product ID,Partner,ProductName,ProductSku,Description";
+                // DEF-111: column order matches the on-screen Product ID Manager table
+                // and the in-memory export.
+                var sampleCsv = "Type,Product ID,Product Name,SKU,Partner,Description";
                 var sampleData = System.Text.Encoding.UTF8.GetBytes(sampleCsv);
                 return File(sampleData, "text/csv", "product_ids_sample.csv");
             }
@@ -435,6 +494,17 @@ namespace GCCWebApp.Controllers.Api
             }
             return null;
         }
+    }
+
+    /// <summary>
+    /// JSON body for the bulk-create endpoint. Keeps the API surface friendly to
+    /// the frontend (no multipart upload) and lets the caller honor user
+    /// per-row deselection in the import-preview modal.
+    /// </summary>
+    public class BulkProductIdImportRequest
+    {
+        public List<ProductIdImportItem> Items { get; set; } = new();
+        public bool OverwriteExisting { get; set; } = false;
     }
 
     /// <summary>

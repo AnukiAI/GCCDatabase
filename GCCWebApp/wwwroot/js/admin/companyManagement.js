@@ -881,31 +881,76 @@ class CompanyManagement {
     }
 
     async applySelectedImport() {
-        const rowsToProcess = this.importPreviewData.filter(r =>
-            r.action === 'create' || r.action === 'update'
-        );
+        // DEF-113 (companion to DEF-112): previously this looped one POST per row to
+        // /Company/SaveCompany. AspNetCoreRateLimit's localhost IP cap (200/min) blocked
+        // imports >200 rows. Creates now go through one bulk request to /Company/BulkImport;
+        // updates still PUT individually since the count is small (only "modified" rows).
+        const creates = this.importPreviewData.filter(r => r.action === 'create');
+        const updates = this.importPreviewData.filter(r => r.action === 'update' && r.existingData);
 
-        if (rowsToProcess.length === 0) {
+        if (creates.length === 0 && updates.length === 0) {
             this.showNotification('No rows selected for import', 'warning');
             return;
         }
 
         const token = this.getAntiForgeryToken();
-        let successCount = 0;
+        let createSuccess = 0;
+        let updateSuccess = 0;
         let errorCount = 0;
         const errors = [];
 
         this.showLoading(true, 'Importing companies...');
 
-        for (const row of rowsToProcess) {
+        if (creates.length > 0) {
+            try {
+                const items = creates.map(r => ({
+                    name: r.data.name,
+                    email: r.data.email || null,
+                    url: r.data.url || null
+                }));
+
+                const bulkResp = await fetch('/Company/BulkImport', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({ items, overwriteExisting: false })
+                });
+
+                if (bulkResp.ok) {
+                    const json = await bulkResp.json();
+                    const result = (json && (json.data || json.Data)) || json;
+                    createSuccess = result.successCount ?? result.SuccessCount ?? 0;
+                    const reportedErrors = result.errorCount ?? result.ErrorCount ?? 0;
+                    errorCount += reportedErrors;
+                    const serverErrors = result.errors ?? result.Errors ?? [];
+                    if (Array.isArray(serverErrors) && serverErrors.length > 0) {
+                        errors.push(...serverErrors.slice(0, 5));
+                        if (serverErrors.length > 5) {
+                            errors.push(`...and ${serverErrors.length - 5} more`);
+                        }
+                    }
+                } else {
+                    errorCount += creates.length;
+                    let bodyText = '';
+                    try { bodyText = await bulkResp.text(); } catch { /* ignore */ }
+                    errors.push(`Bulk import HTTP ${bulkResp.status}: ${bodyText.slice(0, 200) || bulkResp.statusText}`);
+                }
+            } catch (err) {
+                errorCount += creates.length;
+                errors.push(`Bulk import network error: ${err.message || err}`);
+            }
+        }
+
+        for (const row of updates) {
             try {
                 const companyData = {
-                    id: row.action === 'update' ? row.existingData.id : 0,
+                    id: row.existingData.id,
                     name: row.data.name,
                     email: row.data.email,
                     url: row.data.url
                 };
-
                 const response = await fetch('/Company/SaveCompany', {
                     method: 'POST',
                     headers: {
@@ -914,17 +959,16 @@ class CompanyManagement {
                     },
                     body: JSON.stringify(companyData)
                 });
-
                 const result = await response.json();
                 if (result.success) {
-                    successCount++;
+                    updateSuccess++;
                 } else {
                     errorCount++;
-                    errors.push(`Row ${row.rowNumber} (${row.data.name}): ${result.message || 'Unknown error'}`);
+                    errors.push(`Row ${row.rowNumber} (${row.data.name}) update: ${result.message || 'Unknown error'}`);
                 }
-            } catch (error) {
+            } catch (err) {
                 errorCount++;
-                errors.push(`Row ${row.rowNumber} (${row.data.name}): ${error.message}`);
+                errors.push(`Row ${row.rowNumber} (${row.data.name}) update: ${err.message}`);
             }
         }
 
@@ -933,13 +977,22 @@ class CompanyManagement {
         await this.loadCompanies();
         this.renderCompanies();
 
+        const totalSuccess = createSuccess + updateSuccess;
+        let summary;
+        if (createSuccess > 0 && updateSuccess > 0) {
+            summary = `Imported ${createSuccess} new, updated ${updateSuccess}`;
+        } else if (updateSuccess > 0) {
+            summary = `Updated ${updateSuccess} companies`;
+        } else {
+            summary = `Imported ${createSuccess} companies`;
+        }
         if (errorCount === 0) {
-            this.showNotification(`Import complete: ${successCount} companies processed successfully`, 'success');
-        } else if (successCount > 0) {
-            this.showNotification(`Import partial: ${successCount} succeeded, ${errorCount} failed`, 'warning');
+            this.showNotification(`Import complete: ${summary}`, 'success');
+        } else if (totalSuccess > 0) {
+            this.showNotification(`Import partial: ${summary}, ${errorCount} failed`, 'warning');
             console.error('Import errors:', errors);
         } else {
-            this.showNotification(`Import failed: ${errorCount} errors occurred`, 'error');
+            this.showNotification(`Import failed: ${errorCount} errors`, 'error');
             console.error('Import errors:', errors);
         }
     }

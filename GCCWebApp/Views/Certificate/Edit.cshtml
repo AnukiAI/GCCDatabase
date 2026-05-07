@@ -395,6 +395,15 @@
                     <span>Product Identifiers</span>
                 </div>
                 <p class="section-description">Manage ASINs, UPCs, GTINs, and other product identifiers</p>
+                @* DEF-149: Edit-page commits product ID changes immediately (independent of the cert form's Save).
+                   Surface this so users aren't surprised that Cancel doesn't revert these. *@
+                <div class="product-id-save-note" role="note" aria-label="Product ID save behavior"
+                     style="background-color: #e7f3ff; border-left: 4px solid #002B76; border-radius: 4px;
+                            padding: 10px 14px; margin-bottom: 16px; font-size: 16px; color: #002B76;
+                            display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-info-circle" aria-hidden="true" style="font-size: 18px;"></i>
+                    <span>Add, edit, and delete actions on product identifiers <strong>save immediately</strong> and apply even if you cancel the certificate edit. Use this if you need to quickly correct a wrong identifier.</span>
+                </div>
                 @{
                     ViewData["CertificateId"] = Model.Id;
                     ViewData["IsReadOnly"] = false;
@@ -850,8 +859,15 @@
                         });
                     }
 
-                    // Add Product IDs to the form (from Product ID Manager)
-                    if (typeof window.productIdManager !== 'undefined' && window.productIdManager.productIds) {
+                    // CR-018: Do NOT post product IDs through the cert form on Edit.
+                    // Product ID changes are immediate-save via /api/productids
+                    // (per DEF-149 — the user-facing hint above the manager
+                    // explains this), so the cert form's submit doesn't need to
+                    // carry them. With server-side paging the JS only holds the
+                    // currently visible page; posting that subset would tell the
+                    // controller's merge logic to delete every off-page row.
+                    // The hidden-input writer is intentionally removed.
+                    if (false && typeof window.productIdManager !== 'undefined' && window.productIdManager.productIds) {
                         form.querySelectorAll('input[name^="ProductIds"]').forEach(input => input.remove());
                         window.productIdManager.productIds.forEach((pid, index) => {
                             const fields = {

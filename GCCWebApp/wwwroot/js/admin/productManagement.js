@@ -1481,6 +1481,12 @@ class ProductManagement {
     }
 
     async applySelectedImport() {
+        // DEF-113: previously this looped one POST per row. Per-row pattern hit the
+        // localhost rate-limit cap on imports >200 rows. Creates now go in a single bulk
+        // request to /Admin/BulkImportProducts; updates still PUT individually.
+        // Bonus fix: previous payload dropped companyName + productTypeName entirely (the
+        // resolved Company and ProductType associations were lost on import). New payload
+        // sends them so server-side FK resolution succeeds.
         const rowsToProcess = this.importPreviewData.filter(r =>
             r.selected && r.action !== 'skip' && r.status !== 'error'
         );
@@ -1490,56 +1496,68 @@ class ProductManagement {
             return;
         }
 
-        // Separate by action type
-        const toCreate = rowsToProcess.filter(r => r.action === 'create');
-        const toUpdate = rowsToProcess.filter(r => r.action === 'update');
-        const toKeep = rowsToProcess.filter(r => r.action === 'keep');
+        const creates = rowsToProcess.filter(r => r.action === 'create');
+        const updates = rowsToProcess.filter(r => r.action === 'update' && r.existingData);
+        const keeps = rowsToProcess.filter(r => r.action === 'keep');
 
-        let successCount = 0;
+        let createSuccess = 0;
+        let updateSuccess = 0;
         let errorCount = 0;
         const errors = [];
 
         this.showLoading(true, 'Importing products...');
 
         try {
-            // Process creates
-            for (const row of toCreate) {
+            if (creates.length > 0) {
                 try {
-                    const productData = {
-                        name: row.data.name,
-                        description: row.data.description || '',
-                        isActive: row.data.status?.toLowerCase() !== 'inactive'
-                    };
+                    const items = creates.map(r => ({
+                        name: r.data.name,
+                        description: r.data.description || '',
+                        companyName: r.data.resolvedCompany || r.data.company || '',
+                        productTypeName: r.data.resolvedProductType || r.data.productType || '',
+                        isActive: (r.data.status || 'active').toLowerCase() !== 'inactive'
+                    }));
 
-                    const response = await fetch('/Admin/CreateProduct', {
+                    const bulkResp = await fetch('/Admin/BulkImportProducts', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'RequestVerificationToken': this.getAntiForgeryToken()
                         },
-                        body: JSON.stringify(productData)
+                        body: JSON.stringify({ items })
                     });
 
-                    const result = await response.json();
-                    if (result.success) {
-                        successCount++;
+                    if (bulkResp.ok) {
+                        const json = await bulkResp.json();
+                        const result = (json && (json.data || json.Data)) || json;
+                        createSuccess = result.successCount ?? result.SuccessCount ?? 0;
+                        const reportedErrors = result.errorCount ?? result.ErrorCount ?? 0;
+                        errorCount += reportedErrors;
+                        const serverErrors = result.errors ?? result.Errors ?? [];
+                        if (Array.isArray(serverErrors) && serverErrors.length > 0) {
+                            errors.push(...serverErrors.slice(0, 5));
+                            if (serverErrors.length > 5) errors.push(`...and ${serverErrors.length - 5} more`);
+                        }
                     } else {
-                        errorCount++;
-                        errors.push(`Row ${row.rowNumber} (${row.data.name}): ${result.message}`);
+                        errorCount += creates.length;
+                        let bodyText = '';
+                        try { bodyText = await bulkResp.text(); } catch { /* ignore */ }
+                        errors.push(`Bulk import HTTP ${bulkResp.status}: ${bodyText.slice(0, 200) || bulkResp.statusText}`);
                     }
-                } catch (error) {
-                    errorCount++;
-                    errors.push(`Row ${row.rowNumber} (${row.data.name}): ${error.message}`);
+                } catch (err) {
+                    errorCount += creates.length;
+                    errors.push(`Bulk import network error: ${err.message || err}`);
                 }
             }
 
-            // Process updates
-            for (const row of toUpdate) {
+            for (const row of updates) {
                 try {
                     const productData = {
                         name: row.data.name,
                         description: row.data.description || row.existingData?.description || '',
-                        isActive: row.data.status?.toLowerCase() !== 'inactive'
+                        companyName: row.data.resolvedCompany || row.data.company || '',
+                        productTypeName: row.data.resolvedProductType || row.data.productType || '',
+                        isActive: (row.data.status || 'active').toLowerCase() !== 'inactive'
                     };
 
                     const response = await fetch(`/Admin/UpdateProduct/${row.existingData.id}`, {
@@ -1550,34 +1568,43 @@ class ProductManagement {
                         },
                         body: JSON.stringify(productData)
                     });
-
                     const result = await response.json();
                     if (result.success) {
-                        successCount++;
+                        updateSuccess++;
                     } else {
                         errorCount++;
-                        errors.push(`Row ${row.rowNumber} (${row.data.name}): ${result.message}`);
+                        errors.push(`Row ${row.rowNumber} (${row.data.name}) update: ${result.message}`);
                     }
-                } catch (error) {
+                } catch (err) {
                     errorCount++;
-                    errors.push(`Row ${row.rowNumber} (${row.data.name}): ${error.message}`);
+                    errors.push(`Row ${row.rowNumber} (${row.data.name}) update: ${err.message}`);
                 }
             }
-
-            // Count keeps as success (they chose to keep current)
-            successCount += toKeep.length;
 
             this.closeImportPreviewModal();
             await this.loadProducts();
             this.renderProducts();
 
-            if (errorCount === 0) {
-                this.showToast(`Successfully imported ${successCount} products`, 'success');
+            const totalSuccess = createSuccess + updateSuccess + keeps.length;
+            let summary;
+            if (createSuccess > 0 && updateSuccess > 0) {
+                summary = `${createSuccess} new, ${updateSuccess} updated`;
+            } else if (updateSuccess > 0) {
+                summary = `${updateSuccess} updated`;
             } else {
-                this.showToast(`Imported ${successCount} products with ${errorCount} errors`, 'warning');
+                summary = `${createSuccess} new`;
+            }
+            if (keeps.length > 0) summary += `, ${keeps.length} kept`;
+
+            if (errorCount === 0) {
+                this.showToast(`Successfully imported: ${summary}`, 'success');
+            } else if (totalSuccess > 0) {
+                this.showToast(`Imported: ${summary}, ${errorCount} errors`, 'warning');
+                console.error('Import errors:', errors);
+            } else {
+                this.showToast(`Import failed: ${errorCount} errors`, 'error');
                 console.error('Import errors:', errors);
             }
-
         } catch (error) {
             console.error('Import error:', error);
             this.showToast('Error during import. Please try again.', 'error');

@@ -1023,14 +1023,15 @@ function closeImportPreviewModal() {
 
 // Apply selected imports
 async function applySelectedImport() {
-    // Only process rows that are creating or updating (not skip, keep, or error)
-    const rowsToProcess = importPreviewData.filter(r =>
-        r.action === 'create' || r.action === 'update'
-    );
-
+    // DEF-113: previously this looped one POST per row to /Admin/CreateTag and one PUT
+    // per row to /Admin/UpdateTag. AspNetCoreRateLimit's localhost IP cap (200/min)
+    // blocked imports >200 rows. Creates now go in a single POST to /Admin/BulkImportTags;
+    // updates still PUT individually since "modified" rows are usually a small set.
+    const creates = importPreviewData.filter(r => r.action === 'create');
+    const updates = importPreviewData.filter(r => r.action === 'update' && r.existingData);
     const keptCount = importPreviewData.filter(r => r.action === 'keep').length;
 
-    if (rowsToProcess.length === 0) {
+    if (creates.length === 0 && updates.length === 0) {
         if (keptCount > 0) {
             AdminCore.showNotification(`No changes to apply. ${keptCount} row(s) will keep current values.`, 'info');
         } else {
@@ -1040,77 +1041,102 @@ async function applySelectedImport() {
     }
 
     const token = getAntiForgeryToken();
-    let successCount = 0;
+    let createSuccess = 0;
+    let updateSuccess = 0;
     let errorCount = 0;
     const errors = [];
 
-    // Process each selected row
-    for (const row of rowsToProcess) {
+    if (creates.length > 0) {
         try {
-            let response;
+            const items = creates.map(r => ({
+                name: r.data.name,
+                tagType: r.data.tagType,
+                description: r.data.description || ''
+            }));
 
-            if (row.action === 'create') {
-                response = await fetch('/Admin/CreateTag', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': token
-                    },
-                    body: JSON.stringify({
-                        name: row.data.name,
-                        tagType: row.data.tagType,
-                        description: row.data.description,
-                        importBatchId: null // Will be set by server
-                    })
-                });
-            } else if (row.action === 'update' && row.existingData) {
-                response = await fetch(`/Admin/UpdateTag/${row.existingData.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': token
-                    },
-                    body: JSON.stringify({
-                        id: row.existingData.id,
-                        name: row.data.name,
-                        tagType: row.data.tagType,
-                        description: row.data.description
-                    })
-                });
-            }
+            const bulkResp = await fetch('/Admin/BulkImportTags', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({ items, overwriteExisting: false })
+            });
 
-            if (response) {
-                const result = await response.json();
-                if (result.success) {
-                    successCount++;
-                } else {
-                    errorCount++;
-                    errors.push(`Row ${row.rowNumber} (${row.data.name}): ${result.message || 'Unknown error'}`);
+            if (bulkResp.ok) {
+                const json = await bulkResp.json();
+                const result = (json && (json.data || json.Data)) || json;
+                createSuccess = result.successCount ?? result.SuccessCount ?? 0;
+                const reportedErrors = result.errorCount ?? result.ErrorCount ?? 0;
+                errorCount += reportedErrors;
+                const serverErrors = result.errors ?? result.Errors ?? [];
+                if (Array.isArray(serverErrors) && serverErrors.length > 0) {
+                    errors.push(...serverErrors.slice(0, 5));
+                    if (serverErrors.length > 5) errors.push(`...and ${serverErrors.length - 5} more`);
                 }
+            } else {
+                errorCount += creates.length;
+                let bodyText = '';
+                try { bodyText = await bulkResp.text(); } catch { /* ignore */ }
+                errors.push(`Bulk import HTTP ${bulkResp.status}: ${bodyText.slice(0, 200) || bulkResp.statusText}`);
             }
-        } catch (error) {
-            errorCount++;
-            errors.push(`Row ${row.rowNumber} (${row.data.name}): ${error.message}`);
+        } catch (err) {
+            errorCount += creates.length;
+            errors.push(`Bulk import network error: ${err.message || err}`);
         }
     }
 
-    // Close modal
-    closeImportPreviewModal();
+    for (const row of updates) {
+        try {
+            const response = await fetch(`/Admin/UpdateTag/${row.existingData.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    id: row.existingData.id,
+                    name: row.data.name,
+                    tagType: row.data.tagType,
+                    description: row.data.description
+                })
+            });
+            const result = await response.json();
+            if (result.success) {
+                updateSuccess++;
+            } else {
+                errorCount++;
+                errors.push(`Row ${row.rowNumber} (${row.data.name}) update: ${result.message || 'Unknown error'}`);
+            }
+        } catch (err) {
+            errorCount++;
+            errors.push(`Row ${row.rowNumber} (${row.data.name}) update: ${err.message}`);
+        }
+    }
 
-    // Reload tags
+    closeImportPreviewModal();
     await loadTags();
 
-    // Show results
     const keptMessage = keptCount > 0 ? `, ${keptCount} kept unchanged` : '';
+    const totalSuccess = createSuccess + updateSuccess;
+    let summary;
+    if (createSuccess > 0 && updateSuccess > 0) {
+        summary = `${createSuccess} new, ${updateSuccess} updated`;
+    } else if (updateSuccess > 0) {
+        summary = `${updateSuccess} updated`;
+    } else {
+        summary = `${createSuccess} new`;
+    }
+
     if (errorCount === 0) {
         await AdminCore.showSuccessModal({
             title: 'Import Successful',
-            message: `${successCount} tags processed successfully${keptMessage}`
+            message: `${summary}${keptMessage}`
         });
-    } else if (successCount > 0) {
+    } else if (totalSuccess > 0) {
         await AdminCore.showWarningModal({
             title: 'Import Partially Complete',
-            message: `${successCount} succeeded, ${errorCount} failed${keptMessage}`
+            message: `${summary}, ${errorCount} failed${keptMessage}`
         });
         console.error('Import errors:', errors);
     } else {

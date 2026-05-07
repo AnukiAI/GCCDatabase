@@ -198,6 +198,166 @@ namespace GCCWebApp.Services
             }
         }
 
+        public async Task<BulkImportResult> BulkImportUsersAsync(List<BulkImportUserItem> items, int userId, string username)
+        {
+            // DEF-113: closes the per-row POST loop in userManagement.js#importCSV().
+            // Pre-fetch reference data into dictionaries; do BCrypt hashing inline (CPU-bound,
+            // no DB cost); single SaveChanges. Per-row audit replaced with a single bulk
+            // summary entry (preserves audit trail without inflating audit-write count).
+            var result = new BulkImportResult { TotalProcessed = items.Count };
+
+            var existingEmails = await _context.Users
+                .Where(u => !u.IsDeleted)
+                .Select(u => u.Email)
+                .ToListAsync();
+            var existingEmailSet = new HashSet<string>(existingEmails, StringComparer.OrdinalIgnoreCase);
+
+            // Load full Company entities (not just projections) into the change tracker so
+            // user.Companies.Add(...) attaches without an extra Find/load per row.
+            var allCompanies = await _context.Companies
+                .Where(c => !c.IsDeleted)
+                .ToListAsync();
+            var companyByName = new Dictionary<string, Company>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in allCompanies)
+            {
+                if (!companyByName.ContainsKey(c.Name)) companyByName[c.Name] = c;
+            }
+
+            var roleByName = await _context.Roles
+                .ToDictionaryAsync(r => r.Name, r => r, StringComparer.OrdinalIgnoreCase);
+
+            // Track within-batch emails so duplicates inside the same import file are caught.
+            var batchEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var item in items)
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(item.Name))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"(blank) - Name is required");
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(item.Email))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{item.Name} - Email is required");
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(item.Password) || item.Password.Length < 8)
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{item.Email} - Password must be at least 8 characters");
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(item.Role))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{item.Email} - Role is required");
+                        continue;
+                    }
+                    if (!roleByName.TryGetValue(item.Role.Trim(), out var roleEntity))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{item.Email} - Role '{item.Role}' not found");
+                        continue;
+                    }
+
+                    var email = item.Email.Trim();
+                    if (existingEmailSet.Contains(email) || batchEmails.Contains(email))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{email} - Email already exists");
+                        continue;
+                    }
+
+                    var user = new User
+                    {
+                        Username = email,
+                        Email = email,
+                        FullName = item.Name.Trim(),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(item.Password),
+                        Status = string.IsNullOrWhiteSpace(item.Status) ? "active" : item.Status.Trim().ToLowerInvariant(),
+                        TwoFactorMethod = "Email",
+                        IsActive = true,
+                        RequirePasswordReset = item.RequirePasswordReset,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    user.Roles.Add(roleEntity);
+
+                    if (item.CompanyNames != null && item.CompanyNames.Count > 0)
+                    {
+                        var companyResolutionFailed = false;
+                        foreach (var rawName in item.CompanyNames)
+                        {
+                            var companyName = (rawName ?? string.Empty).Trim();
+                            if (string.IsNullOrEmpty(companyName)) continue;
+                            if (!companyByName.TryGetValue(companyName, out var companyEntity))
+                            {
+                                result.ErrorCount++;
+                                result.Errors.Add($"{email} - Company '{companyName}' not found");
+                                companyResolutionFailed = true;
+                                break;
+                            }
+                            user.Companies.Add(companyEntity);
+                        }
+                        if (companyResolutionFailed) continue;
+                    }
+
+                    _context.Users.Add(user);
+                    batchEmails.Add(email);
+                    result.SuccessCount++;
+                }
+                catch (Exception ex)
+                {
+                    result.ErrorCount++;
+                    result.Errors.Add($"{item.Email} - {ex.Message}");
+                    _logger.LogError(ex, "Bulk user import row error: {Email}", item.Email);
+                }
+            }
+
+            try
+            {
+                if (_context.ChangeTracker.HasChanges())
+                {
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Bulk user import SaveChanges failed");
+                result.Errors.Add($"Database save failed: {ex.Message}");
+                result.ErrorCount += result.SuccessCount;
+                result.SuccessCount = 0;
+                return result;
+            }
+
+            if (result.SuccessCount > 0)
+            {
+                try
+                {
+                    await _auditService.LogEntityChangeAsync(
+                        "BULK",
+                        $"BulkImport ({result.SuccessCount} users)",
+                        "CREATE",
+                        null,
+                        new { Count = result.SuccessCount, Errors = result.ErrorCount },
+                        userId,
+                        username,
+                        $"Bulk imported {result.SuccessCount} users, {result.ErrorCount} errors",
+                        "Web UI"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to log bulk-import audit entry");
+                }
+            }
+
+            return result;
+        }
+
         public async Task<bool> UpdateUserAsync(int id, UserViewModel model, int userId, string username)
         {
             try
@@ -1491,6 +1651,129 @@ namespace GCCWebApp.Services
             }
         }
 
+        public async Task<BulkImportResult> BulkImportTagsAsync(List<TagViewModel> models, bool overwriteExisting = false)
+        {
+            // DEF-113: companion to DEF-112's pattern.
+            // Tags are dual-classified — same Name can exist as both Internal and External — so the
+            // dup-detection key is (Name + TagType) case-insensitive. Existing CreateTagAsync didn't
+            // even dedup, so this also tightens the contract.
+            var result = new BulkImportResult { TotalProcessed = models.Count };
+
+            var existingTags = await _context.Tags
+                .Where(t => t.IsActive)
+                .Select(t => new { t.Id, t.Name, t.TagType })
+                .ToListAsync();
+
+            string KeyOf(string name, string type) =>
+                $"{(name ?? string.Empty).Trim().ToUpperInvariant()}|{(type ?? string.Empty).Trim().ToUpperInvariant()}";
+
+            var existingByKey = new HashSet<string>();
+            foreach (var t in existingTags)
+            {
+                existingByKey.Add(KeyOf(t.Name, t.TagType));
+            }
+
+            if (overwriteExisting)
+            {
+                var importKeys = new HashSet<string>();
+                foreach (var m in models)
+                {
+                    if (!string.IsNullOrWhiteSpace(m.Name) && !string.IsNullOrWhiteSpace(m.TagType))
+                    {
+                        importKeys.Add(KeyOf(m.Name, m.TagType));
+                    }
+                }
+                var toDeactivate = await _context.Tags
+                    .Where(t => t.IsActive)
+                    .ToListAsync();
+                foreach (var t in toDeactivate)
+                {
+                    if (!importKeys.Contains(KeyOf(t.Name, t.TagType)))
+                    {
+                        t.IsActive = false;
+                    }
+                }
+            }
+
+            foreach (var model in models)
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(model.Name))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"(blank) - Name is required");
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(model.TagType))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{model.Name} - TagType is required (Internal or External)");
+                        continue;
+                    }
+
+                    var name = model.Name.Trim();
+                    var type = model.TagType.Trim();
+                    // Normalize TagType casing — accept "Internal", "internal", "INTERNAL".
+                    if (string.Equals(type, "internal", StringComparison.OrdinalIgnoreCase)) type = "internal";
+                    else if (string.Equals(type, "external", StringComparison.OrdinalIgnoreCase)) type = "external";
+                    else
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{name} - TagType must be 'Internal' or 'External' (got '{model.TagType}')");
+                        continue;
+                    }
+
+                    var key = KeyOf(name, type);
+                    if (existingByKey.Contains(key))
+                    {
+                        if (overwriteExisting)
+                        {
+                            result.SuccessCount++;
+                        }
+                        else
+                        {
+                            result.ErrorCount++;
+                            result.Errors.Add($"{name} ({type}) - already exists");
+                        }
+                        continue;
+                    }
+
+                    var entity = new Tag
+                    {
+                        Name = name,
+                        TagType = type,
+                        Description = model.Description,
+                        IsActive = true
+                    };
+                    _context.Tags.Add(entity);
+                    existingByKey.Add(key);
+                    result.SuccessCount++;
+                }
+                catch (Exception ex)
+                {
+                    result.ErrorCount++;
+                    result.Errors.Add($"{model.Name} - {ex.Message}");
+                }
+            }
+
+            try
+            {
+                if (_context.ChangeTracker.HasChanges())
+                {
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add($"Database save failed: {ex.Message}");
+                result.ErrorCount += result.SuccessCount;
+                result.SuccessCount = 0;
+            }
+
+            return result;
+        }
+
         public async Task<bool> DeleteTagAsync(int id)
         {
             try
@@ -1886,6 +2169,144 @@ namespace GCCWebApp.Services
                 _logger.LogError(ex, "Error creating product: {Name}", model.Name);
                 return false;
             }
+        }
+
+        public async Task<BulkImportResult> BulkImportProductsAsync(List<ProductViewModel> models)
+        {
+            // DEF-113: companion to DEF-112 / DEF-113 pattern.
+            // Pre-fetch Companies + ProductTypes + existing products in 3 queries; resolve
+            // FK names → IDs in memory; batch-add and single SaveChanges.
+            // Dup key: Name + CompanyId (case-insensitive Name) — same name allowed across
+            // different companies.
+            var result = new BulkImportResult { TotalProcessed = models.Count };
+            var now = DateTime.UtcNow;
+
+            var companyByName = await _context.Companies
+                .Where(c => !c.IsDeleted)
+                .Select(c => new { c.Id, c.Name })
+                .ToDictionaryAsync(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase);
+
+            var productTypeByName = await _context.ProductTypes
+                .Select(pt => new { pt.Id, pt.Name, pt.CategoryId })
+                .GroupBy(pt => pt.Name, StringComparer.OrdinalIgnoreCase)
+                // Same Name can repeat across hierarchy levels (per feedback_certtypes_hierarchy);
+                // first match is good enough for import — caller can disambiguate via Edit later.
+                .ToDictionaryAsync(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            // Default category for products that don't supply a ProductType
+            var defaultCategory = await _context.ProductCategories.FirstOrDefaultAsync();
+            if (defaultCategory == null)
+            {
+                defaultCategory = new ProductCategory
+                {
+                    Name = "Default",
+                    Description = "Default product category",
+                    IsActive = true,
+                    SortOrder = 0
+                };
+                _context.ProductCategories.Add(defaultCategory);
+                await _context.SaveChangesAsync();
+            }
+
+            var existingByKey = await _context.Products
+                .Where(p => !p.IsDeleted)
+                .Select(p => new { p.Name, p.CompanyId })
+                .ToListAsync();
+            var existingKeySet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in existingByKey)
+            {
+                existingKeySet.Add($"{p.Name}|{p.CompanyId?.ToString() ?? "0"}");
+            }
+
+            foreach (var model in models)
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(model.Name))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"(blank) - Name is required");
+                        continue;
+                    }
+                    var name = model.Name.Trim();
+
+                    int? companyId = null;
+                    if (!string.IsNullOrWhiteSpace(model.CompanyName))
+                    {
+                        if (!companyByName.TryGetValue(model.CompanyName.Trim(), out var cid))
+                        {
+                            result.ErrorCount++;
+                            result.Errors.Add($"{name} - Company '{model.CompanyName}' not found");
+                            continue;
+                        }
+                        companyId = cid;
+                    }
+
+                    var key = $"{name}|{companyId?.ToString() ?? "0"}";
+                    if (existingKeySet.Contains(key))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{name} - Product already exists for company '{model.CompanyName}'");
+                        continue;
+                    }
+
+                    int? productTypeId = null;
+                    int categoryId = defaultCategory.Id;
+                    if (!string.IsNullOrWhiteSpace(model.ProductTypeName))
+                    {
+                        if (productTypeByName.TryGetValue(model.ProductTypeName.Trim(), out var pt))
+                        {
+                            productTypeId = pt.Id;
+                            categoryId = pt.CategoryId;
+                        }
+                        else
+                        {
+                            result.ErrorCount++;
+                            result.Errors.Add($"{name} - Product Type '{model.ProductTypeName}' not found");
+                            continue;
+                        }
+                    }
+
+                    var entity = new Product
+                    {
+                        Name = name,
+                        Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim(),
+                        CategoryId = categoryId,
+                        ProductTypeId = productTypeId,
+                        CompanyId = companyId,
+                        IsActive = model.IsActive,
+                        IsDeleted = false,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    };
+                    _context.Products.Add(entity);
+                    existingKeySet.Add(key);
+                    result.SuccessCount++;
+                }
+                catch (Exception ex)
+                {
+                    result.ErrorCount++;
+                    result.Errors.Add($"{model.Name} - {ex.Message}");
+                    _logger.LogError(ex, "Bulk product import row error: {Name}", model.Name);
+                }
+            }
+
+            try
+            {
+                if (_context.ChangeTracker.HasChanges())
+                {
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Bulk product import SaveChanges failed");
+                result.Errors.Add($"Database save failed: {ex.Message}");
+                result.ErrorCount += result.SuccessCount;
+                result.SuccessCount = 0;
+            }
+
+            return result;
         }
 
         public async Task<bool> UpdateProductAsync(int id, ProductViewModel model)

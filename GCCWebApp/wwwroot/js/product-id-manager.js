@@ -9,6 +9,26 @@ class ProductIdManager {
         this.productIds = [];
         this.filteredProductIds = [];
         this.currentPage = 1;
+        // DEF-150: client-side sort state, mirrors Views/Product/Management.cshtml.
+        this.sortColumn = null;
+        this.sortDirection = 'asc';
+
+        // CR-018: Server-paged mode for Edit (cert exists in DB). Sort, filter,
+        // and search round-trip to the server; only one page (≤ pageSize rows)
+        // lives in `productIds` at a time. Create page (certId === 0) stays in
+        // memory mode unchanged.
+        this.serverPaged = !!certificateId && certificateId !== 0 && certificateId !== '0';
+        this.pageSize = 50;
+        this.totalCount = 0;
+        this.totalPages = 0;
+        // Race guard — newer fetches invalidate older in-flight ones so a slow
+        // page-1 response can't clobber a fast page-2 response if the user
+        // clicks fast.
+        this.requestVersion = 0;
+        // Small client cache keyed by query string. Cleared on every mutation
+        // (Add/Edit/Delete/Import) so we never serve stale data after a write.
+        this.cache = new Map();
+        this.searchDebounceTimer = null;
 
         this.init();
     }
@@ -28,8 +48,169 @@ class ProductIdManager {
         if (importModal) document.body.appendChild(importModal);
 
         this.bindEvents();
+        this.initializeSortableHeaders();
         this.loadProductIds();
         this.initializeTypeHelp();
+    }
+
+    // DEF-150: Click-to-sort column headers. Toggle asc/desc on repeated click;
+    // switching column resets to asc. Icon ▼ default, ▲ asc, ▼ desc.
+    initializeSortableHeaders() {
+        const table = document.getElementById('productIdsTable');
+        if (!table) return;
+
+        const headers = table.querySelectorAll('th[data-sort]');
+        headers.forEach(header => {
+            header.addEventListener('click', () => {
+                const column = header.getAttribute('data-sort');
+                if (this.sortColumn === column) {
+                    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortColumn = column;
+                    this.sortDirection = 'asc';
+                }
+
+                headers.forEach(h => {
+                    h.classList.remove('active-sort');
+                    const icon = h.querySelector('.sort-icon');
+                    if (icon) icon.textContent = '▼';
+                });
+                header.classList.add('active-sort');
+
+                const sortIcon = header.querySelector('.sort-icon');
+                if (sortIcon) sortIcon.textContent = this.sortDirection === 'asc' ? '▲' : '▼';
+
+                this.currentPage = 1;
+                // CR-018: server-paged mode round-trips for the new sort.
+                if (this.serverPaged) {
+                    this.loadProductIds();
+                } else {
+                    this.applySort();
+                    this.renderTable();
+                }
+            });
+        });
+    }
+
+    // CR-018: Build query string from current sort/filter/search state and
+    // fetch one page from the API. Honors a request-version race guard and
+    // a small client cache.
+    async _loadProductIdsPaged() {
+        const params = new URLSearchParams();
+        params.set('page', String(this.currentPage || 1));
+        params.set('pageSize', String(this.pageSize || 50));
+        if (this.sortColumn) {
+            params.set('sort', this.sortColumn);
+            params.set('dir', this.sortDirection || 'asc');
+        }
+        const search = (document.getElementById('searchProductIds')?.value || '').trim();
+        const typeFilter = document.getElementById('filterByType')?.value || '';
+        const partnerFilter = document.getElementById('filterByPartner')?.value || '';
+        if (search) params.set('search', search);
+        if (typeFilter) params.set('type', typeFilter);
+        if (partnerFilter) params.set('partner', partnerFilter);
+
+        const cacheKey = params.toString();
+        if (this.cache.has(cacheKey)) {
+            this._applyServerPage(this.cache.get(cacheKey));
+            return;
+        }
+
+        const myVersion = ++this.requestVersion;
+        this.showLoading(true);
+        try {
+            const url = `/api/productids/certificate/${this.certificateId}?${cacheKey}`;
+            const response = await fetch(url);
+            // Race guard — a newer fetch already started; drop this response.
+            if (myVersion !== this.requestVersion) return;
+
+            if (!response.ok) {
+                this.showError(`Failed to load product IDs (HTTP ${response.status})`);
+                return;
+            }
+
+            const json = await response.json();
+            if (myVersion !== this.requestVersion) return;
+            this.cache.set(cacheKey, json);
+            this._applyServerPage(json);
+        } catch (error) {
+            if (myVersion !== this.requestVersion) return;
+            console.error('Error loading product IDs:', error);
+            this.showError('Error loading product IDs');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    _applyServerPage(json) {
+        const items = Array.isArray(json.data) ? json.data : [];
+        const totalCount = json.totalCount || 0;
+        const totalPages = json.totalPages || 0;
+        const pageReturned = json.page || this.currentPage || 1;
+
+        // CR-018: empty-page fallback — if a delete or filter change leaves
+        // the requested page beyond the new last page, drop to the last
+        // existing page and re-fetch. This catches e.g. "delete the only
+        // row on page 3" → land on page 2 instead of an empty table.
+        if (items.length === 0 && totalCount > 0 && pageReturned > 1) {
+            this.currentPage = totalPages > 0 ? totalPages : 1;
+            this.loadProductIds();
+            return;
+        }
+
+        this.productIds = items;
+        // In server-paged mode, productIds === filteredProductIds (server has
+        // already applied filter+sort+page).
+        this.filteredProductIds = items;
+        this.totalCount = totalCount;
+        this.totalPages = totalPages;
+        this.pageSize = json.pageSize || this.pageSize;
+        this.currentPage = pageReturned;
+        this.renderTable();
+        this.updateCount();
+    }
+
+    // DEF-150: Apply current sort to filteredProductIds. Numeric for the
+    // Created date (timestamp), alpha (locale-aware) for the rest.
+    // CR-018: in server-paged mode the server already applied the sort to
+    // the page items, so this is a no-op.
+    applySort() {
+        if (this.serverPaged) return;
+        if (!this.sortColumn) return;
+
+        const sortMap = {
+            'type': 'productIdType',
+            'value': 'productIdValue',
+            'name': 'productName',
+            'sku': 'productSku',
+            'partner': 'partner',
+            'created': 'createdAt',
+            'createdBy': 'createdByUsername'
+        };
+        const prop = sortMap[this.sortColumn] || this.sortColumn;
+        const dir = this.sortDirection === 'asc' ? 1 : -1;
+
+        this.filteredProductIds.sort((a, b) => {
+            let aValue, bValue;
+
+            if (this.sortColumn === 'created') {
+                aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                if (isNaN(aValue)) aValue = 0;
+                if (isNaN(bValue)) bValue = 0;
+                return (aValue - bValue) * dir;
+            }
+
+            if (this.sortColumn === 'createdBy') {
+                aValue = (a.createdByUser && a.createdByUser.username) || a.createdBy || '';
+                bValue = (b.createdByUser && b.createdByUser.username) || b.createdBy || '';
+            } else {
+                aValue = a[prop] || '';
+                bValue = b[prop] || '';
+            }
+
+            return aValue.toString().localeCompare(bValue.toString()) * dir;
+        });
     }
 
     bindEvents() {
@@ -88,7 +269,7 @@ class ProductIdManager {
     }
 
     async loadProductIds() {
-        // Skip loading if certificate ID is 0 (new certificate being created)
+        // Skip loading if certificate ID is 0 (new certificate being created — Create page, in-memory mode)
         if (!this.certificateId || this.certificateId === 0 || this.certificateId === '0') {
             this.productIds = [];
             this.filteredProductIds = [];
@@ -96,6 +277,11 @@ class ProductIdManager {
             this.renderTable();
             this.updateCount();
             return;
+        }
+
+        // CR-018: Server-paged mode (Edit page) — push sort/filter/search to the API.
+        if (this.serverPaged) {
+            return this._loadProductIdsPaged();
         }
 
         try {
@@ -110,6 +296,7 @@ class ProductIdManager {
                     this.productIds = [];
                 }
                 this.filteredProductIds = [...this.productIds];
+                this.applySort();
                 this.currentPage = 1;
                 this.renderTable();
                 this.updateCount();
@@ -129,8 +316,22 @@ class ProductIdManager {
         const tbody = document.getElementById('productIdsTableBody');
         if (!tbody) return;
 
+        // DEF-150: Sort here so every code path that ends in render
+        // (loadProductIds, applyFilters, in-memory add/edit/delete) gets a
+        // consistent ordering without sprinkling applySort() at every site.
+        // No-op in server-paged mode (server already sorted the page).
+        this.applySort();
+
         if (this.filteredProductIds.length === 0) {
             tbody.innerHTML = this.getEmptyStateHtml();
+            this.renderPagination();
+            return;
+        }
+
+        // CR-018: in server-paged mode, filteredProductIds IS the page —
+        // render it as-is and skip client-side windowing.
+        if (this.serverPaged) {
+            tbody.innerHTML = this.filteredProductIds.map(productId => this.getProductIdRowHtml(productId)).join('');
             this.renderPagination();
             return;
         }
@@ -154,39 +355,84 @@ class ProductIdManager {
         this.renderPagination();
     }
 
+    // DEF-152: Pagination markup mirrors Views/Product/Management.cshtml:740-793
+    // (chevron Prev / numbered pages with ellipsis / chevron Next), styled via
+    // .product-id-manager .pagination-* in product-id-manager.css. Removes the
+    // inline-styled First/Prev/Page X/Next/Last variant that didn't match the
+    // rest of the admin app.
+    // CR-018: in server-paged mode, totalItems / totalPages come from the API
+    // response, not the local filtered array.
     renderPagination() {
-        const PAGE_SIZE = 50;
-        const totalItems = this.filteredProductIds.length;
+        const PAGE_SIZE = this.pageSize || 50;
+        const totalItems = this.serverPaged ? this.totalCount : this.filteredProductIds.length;
+        const existing = document.getElementById('pid-pagination');
+
         if (totalItems <= PAGE_SIZE) {
-            // Remove pagination if it exists
-            const existing = document.getElementById('pid-pagination');
             if (existing) existing.remove();
             return;
         }
 
-        const totalPages = Math.ceil(totalItems / PAGE_SIZE);
-        const start = (this.currentPage - 1) * PAGE_SIZE + 1;
-        const end = Math.min(this.currentPage * PAGE_SIZE, totalItems);
+        const totalPages = this.serverPaged
+            ? (this.totalPages || Math.ceil(totalItems / PAGE_SIZE))
+            : Math.ceil(totalItems / PAGE_SIZE);
+        const cur = this.currentPage;
+        const start = (cur - 1) * PAGE_SIZE + 1;
+        const end = Math.min(cur * PAGE_SIZE, totalItems);
 
-        let paginationHtml = `
-            <div id="pid-pagination" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-top: 1px solid #e9ecef; font-size: 14px;">
-                <span style="color: #666;">Showing ${start}-${end} of ${totalItems}</span>
-                <div style="display: flex; gap: 4px;">
-                    <button type="button" onclick="productIdManager.goToPage(1)" ${this.currentPage === 1 ? 'disabled' : ''}
-                        style="padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: white; cursor: pointer; font-size: 13px;">First</button>
-                    <button type="button" onclick="productIdManager.goToPage(${this.currentPage - 1})" ${this.currentPage === 1 ? 'disabled' : ''}
-                        style="padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: white; cursor: pointer; font-size: 13px;">Prev</button>
-                    <span style="padding: 4px 10px; font-weight: 500;">Page ${this.currentPage} of ${totalPages}</span>
-                    <button type="button" onclick="productIdManager.goToPage(${this.currentPage + 1})" ${this.currentPage === totalPages ? 'disabled' : ''}
-                        style="padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: white; cursor: pointer; font-size: 13px;">Next</button>
-                    <button type="button" onclick="productIdManager.goToPage(${totalPages})" ${this.currentPage === totalPages ? 'disabled' : ''}
-                        style="padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: white; cursor: pointer; font-size: 13px;">Last</button>
-                </div>
+        let buttonsHtml = '';
+
+        // Previous chevron
+        buttonsHtml += `<button type="button" class="pagination-btn${cur === 1 ? ' disabled' : ''}"
+                            onclick="productIdManager.goToPage(${cur - 1})" ${cur === 1 ? 'disabled' : ''}
+                            aria-label="Previous page">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>`;
+
+        // Numbered pages with ellipsis (max 7 visible page-numbers, mirrors Product Management)
+        const maxVisible = 7;
+        let startPage = 1;
+        let endPage = totalPages;
+
+        if (totalPages > maxVisible) {
+            const half = Math.floor(maxVisible / 2);
+            startPage = Math.max(1, cur - half);
+            endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+        }
+
+        if (startPage > 1) {
+            buttonsHtml += `<button type="button" class="pagination-btn" onclick="productIdManager.goToPage(1)">1</button>`;
+            if (startPage > 2) buttonsHtml += `<span class="pagination-ellipsis">...</span>`;
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            buttonsHtml += `<button type="button" class="pagination-btn${i === cur ? ' active' : ''}"
+                                onclick="productIdManager.goToPage(${i})"
+                                ${i === cur ? 'aria-current="page"' : ''}>${i}</button>`;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) buttonsHtml += `<span class="pagination-ellipsis">...</span>`;
+            buttonsHtml += `<button type="button" class="pagination-btn" onclick="productIdManager.goToPage(${totalPages})">${totalPages}</button>`;
+        }
+
+        // Next chevron
+        buttonsHtml += `<button type="button" class="pagination-btn${cur === totalPages ? ' disabled' : ''}"
+                            onclick="productIdManager.goToPage(${cur + 1})" ${cur === totalPages ? 'disabled' : ''}
+                            aria-label="Next page">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>`;
+
+        const paginationHtml = `
+            <div id="pid-pagination" class="pid-pagination-wrapper">
+                <span class="pid-pagination-info">Showing ${start}-${end} of ${totalItems}</span>
+                <div class="pagination-controls">${buttonsHtml}</div>
             </div>`;
 
         // Insert or replace pagination after the table container
         const container = document.querySelector('.product-ids-table-container');
-        const existing = document.getElementById('pid-pagination');
         if (existing) existing.remove();
         if (container) {
             container.insertAdjacentHTML('afterend', paginationHtml);
@@ -195,8 +441,13 @@ class ProductIdManager {
 
     goToPage(page) {
         this.currentPage = page;
-        this.renderTable();
-        // Scroll table container to top
+        // CR-018: server-paged mode round-trips for the new page; in-memory
+        // mode just re-windows the existing array.
+        if (this.serverPaged) {
+            this.loadProductIds();
+        } else {
+            this.renderTable();
+        }
         const container = document.querySelector('.product-ids-table-container');
         if (container) container.scrollTop = 0;
     }
@@ -266,6 +517,20 @@ class ProductIdManager {
     }
 
     applyFilters() {
+        // CR-018: server-paged mode round-trips for filter/search changes.
+        // Search input fires per-keystroke, so debounce to 250 ms; the type
+        // and partner dropdowns fire on change and don't need debouncing,
+        // but routing them through the same debounced path keeps the logic
+        // single-track without flicker.
+        if (this.serverPaged) {
+            if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+            this.searchDebounceTimer = setTimeout(() => {
+                this.currentPage = 1;
+                this.loadProductIds();
+            }, 250);
+            return;
+        }
+
         const typeFilter = document.getElementById('filterByType')?.value || '';
         // CR-015: Status filter removed — product ID status follows parent cert.
         const partnerFilter = document.getElementById('filterByPartner')?.value || '';
@@ -282,6 +547,7 @@ class ProductIdManager {
             return typeMatch && partnerMatch && searchMatch;
         });
 
+        this.applySort();
         this.currentPage = 1;
         this.renderTable();
         this.updatePaginationInfo();
@@ -290,7 +556,9 @@ class ProductIdManager {
     updateCount() {
         const countElement = document.getElementById('productIdCount');
         if (countElement) {
-            countElement.textContent = this.productIds.length;
+            // CR-018: server-paged mode reports the full DB total, not just
+            // the visible page count.
+            countElement.textContent = this.serverPaged ? this.totalCount : this.productIds.length;
         }
     }
 
@@ -474,6 +742,7 @@ class ProductIdManager {
                 document.body.classList.remove('modal-open');
                 document.body.style.removeProperty('overflow');
                 document.body.style.removeProperty('padding-right');
+                this.cache.clear(); // CR-018: invalidate page cache after write
                 await this.loadProductIds();
                 this.showSuccess(isEdit ? 'Product ID updated successfully' : 'Product ID added successfully');
             } else {
@@ -518,6 +787,7 @@ class ProductIdManager {
             });
 
             if (response.ok) {
+                this.cache.clear(); // CR-018: invalidate page cache after delete
                 await this.loadProductIds();
                 this.showSuccess('Product ID deleted successfully');
             } else {
@@ -810,12 +1080,15 @@ class ProductIdManager {
             const sku = this.fixScientificNotation(productId.productsku || productId.sku || '');
 
             // CR-015: Status from CSV is ignored — derived from parent cert.
+            // Header lookup is tolerant of both "ProductName"/"productname" and
+            // "Product Name" (with space) so the new template order and any older
+            // downloaded templates both parse correctly.
             parsedProductIds.push({
                 rowNumber: i,
                 productIdType: type.toUpperCase(),
                 productIdValue: value,
                 partner: productId.partner || '',
-                productName: productId.productname || '',
+                productName: productId.productname || productId['product name'] || '',
                 productSku: sku,
                 description: productId.description || ''
             });
@@ -879,12 +1152,45 @@ class ProductIdManager {
         // Track values seen in this import for duplicate detection
         const valuesInImport = new Map(); // "type:value" -> rowNumber
 
+        // DEF-153: With CR-018 server-paging, this.productIds only holds the
+        // currently visible page. Pre-fetch the FULL list once so the preview
+        // can correctly classify rows as new / modified / unchanged against
+        // every existing row on the cert, not just the visible page. The
+        // un-paged endpoint already exists for the export path and returns
+        // the full list as DTOs in the standard ApiResponse wrapper.
+        let existingByKey;
+        if (this.serverPaged && this.certificateId) {
+            existingByKey = new Map();
+            try {
+                const resp = await fetch(`/api/productids/certificate/${this.certificateId}`);
+                if (resp.ok) {
+                    const json = await resp.json();
+                    const all = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+                    for (const p of all) {
+                        const key = `${(p.productIdType || '').toUpperCase()}:${(p.productIdValue || '').toUpperCase()}`;
+                        existingByKey.set(key, p);
+                    }
+                }
+            } catch (e) {
+                console.warn('[buildImportPreview] full-list fetch failed, falling back to current page only:', e);
+            }
+        }
+
         for (const importItem of parsedProductIds) {
-            // Match by type + value (unique identifier for product IDs)
-            const existingItem = this.productIds.find(p =>
-                p.productIdType?.toUpperCase() === importItem.productIdType?.toUpperCase() &&
-                p.productIdValue?.toUpperCase() === importItem.productIdValue?.toUpperCase()
-            );
+            // Match by type + value (unique identifier for product IDs).
+            // DEF-153: prefer the pre-fetched full-list map (server-paged
+            // mode); fall back to scanning this.productIds when no map was
+            // built (Create page in-memory mode, or fetch failed above).
+            let existingItem = null;
+            if (existingByKey) {
+                const key = `${(importItem.productIdType || '').toUpperCase()}:${(importItem.productIdValue || '').toUpperCase()}`;
+                existingItem = existingByKey.get(key) || null;
+            } else {
+                existingItem = this.productIds.find(p =>
+                    p.productIdType?.toUpperCase() === importItem.productIdType?.toUpperCase() &&
+                    p.productIdValue?.toUpperCase() === importItem.productIdValue?.toUpperCase()
+                ) || null;
+            }
 
             const previewRow = {
                 rowNumber: importItem.rowNumber,
@@ -1075,9 +1381,27 @@ class ProductIdManager {
     }
 
     async applyImport() {
-        const selectedRows = this.importPreviewData.filter(r => r.selected && r.status !== 'error');
+        // DEF-154: When "Replace all existing" is checked, the import file is
+        // the new source of truth — every non-error row in the file is part
+        // of the import set, regardless of per-row selection. The per-row
+        // checkboxes only have meaning in normal merge mode (toggle off).
+        // This is critical for the server-side deactivation logic: the bulk
+        // endpoint builds importKeys from the items it receives, and any
+        // existing row whose key isn't in importKeys gets deactivated. If we
+        // sent only "selectedRows" or only "creates" (the prior bug), keys for
+        // unchecked / modified rows would be missing → the server would
+        // wrongly deactivate them.
+        const overwriteToggle = document.getElementById('overwrite-existing-toggle');
+        const overwriteExisting = !!(overwriteToggle && overwriteToggle.checked);
+
+        const selectedRows = overwriteExisting
+            ? this.importPreviewData.filter(r => r.status !== 'error')
+            : this.importPreviewData.filter(r => r.selected && r.status !== 'error');
+
         if (selectedRows.length === 0) {
-            this.showError('No rows selected for import');
+            this.showError(overwriteExisting
+                ? 'Import file has no valid rows. Replace-all needs at least one valid row to define the new state.'
+                : 'No rows selected for import');
             return;
         }
 
@@ -1117,14 +1441,86 @@ class ProductIdManager {
             return;
         }
 
-        let successCount = 0;
+        // DEF-112: previously this loop fired one fetch() per row. With
+        // AspNetCoreRateLimit set to 100/min for */api/*, any import larger than
+        // 100 rows blew the budget and the rest returned 429 / "Unknown error".
+        // Now: creates go to the bulk endpoint as a single request; updates
+        // (typically a small count from preview "Modified" rows) still PUT
+        // individually. Replace-all deactivation is handled server-side via the
+        // overwriteExisting flag — no more 1000 individual DELETEs from the JS.
+        //
+        // DEF-154: When overwriteExisting is true, we MUST send every row in
+        // the import set to the bulk endpoint, not just the "creates". The
+        // server's overwrite logic deactivates any existing row whose key is
+        // not in the request's items array. If we sent only "creates", the
+        // keys for "modified" rows would be missing and those existing rows
+        // would be wrongly deactivated. The server already handles dups
+        // (silent success in overwrite mode), so sending matching rows in
+        // the bulk request is harmless on the insert path. Updates still go
+        // through PUT individually after, to apply field changes.
+        const updates = selectedRows.filter(r => r.action === 'update' && r.existingData);
+        const bulkRows = overwriteExisting
+            ? selectedRows
+            : selectedRows.filter(r => r.action !== 'update');
+
+        let createSuccess = 0;
+        let updateSuccess = 0;
         let errorCount = 0;
         const errorMessages = [];
 
-        for (const row of selectedRows) {
+        // DEF-154: also fire the bulk endpoint when overwriteExisting is true
+        // even if bulkRows is empty — never happens in practice because the
+        // overwrite branch above keeps every non-error row, but kept here so
+        // the deactivation logic can never silently drop.
+        if (bulkRows.length > 0 || overwriteExisting) {
             try {
                 // CR-015: Status omitted — backend auto-derives from parent cert.
+                const items = bulkRows.map(r => ({
+                    Type: r.data.productIdType,
+                    Value: r.data.productIdValue,
+                    Partner: r.data.partner || null,
+                    ProductName: r.data.productName || null,
+                    ProductSku: r.data.productSku || null,
+                    Description: r.data.description || null
+                }));
+
+                const bulkResp = await fetch(`/api/productids/certificate/${this.certificateId}/bulk`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items, overwriteExisting })
+                });
+
+                if (bulkResp.ok) {
+                    const json = await bulkResp.json();
+                    const result = json.data || json.Data || json;
+                    createSuccess = result.successCount ?? result.SuccessCount ?? 0;
+                    const reportedErrors = result.errorCount ?? result.ErrorCount ?? 0;
+                    errorCount += reportedErrors;
+                    const serverErrors = result.errors ?? result.Errors ?? [];
+                    if (Array.isArray(serverErrors) && serverErrors.length > 0) {
+                        errorMessages.push(...serverErrors.slice(0, 5));
+                        if (serverErrors.length > 5) {
+                            errorMessages.push(`...and ${serverErrors.length - 5} more`);
+                        }
+                    }
+                } else {
+                    errorCount += bulkRows.length;
+                    let bodyText = '';
+                    try { bodyText = await bulkResp.text(); } catch { /* ignore */ }
+                    errorMessages.push(`Bulk import HTTP ${bulkResp.status}: ${bodyText.slice(0, 200) || bulkResp.statusText}`);
+                    console.error('Bulk import failed:', bulkResp.status, bodyText);
+                }
+            } catch (err) {
+                errorCount += bulkRows.length;
+                errorMessages.push(`Bulk import network error: ${err.message || err}`);
+                console.error('Bulk import network error:', err);
+            }
+        }
+
+        for (const row of updates) {
+            try {
                 const productIdData = {
+                    Id: row.existingData.id,
                     CertificateId: this.certificateId,
                     ProductIdType: row.data.productIdType,
                     ProductIdValue: row.data.productIdValue,
@@ -1133,78 +1529,53 @@ class ProductIdManager {
                     ProductSku: row.data.productSku || '',
                     Description: row.data.description || ''
                 };
-
-                let response;
-                if (row.action === 'update' && row.existingData) {
-                    productIdData.Id = row.existingData.id;
-                    response = await fetch(`/api/productids/${row.existingData.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(productIdData)
-                    });
-                } else {
-                    response = await fetch('/api/productids', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(productIdData)
-                    });
-                }
-
+                const response = await fetch(`/api/productids/${row.existingData.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productIdData)
+                });
                 if (response.ok) {
-                    successCount++;
+                    updateSuccess++;
                 } else {
                     errorCount++;
                     let errorMsg = '';
                     try {
-                        const errorData = await response.json();
-                        errorMsg = errorData.message || errorData.Message || '';
+                        const errJson = await response.json();
+                        errorMsg = errJson.message || errJson.Message || '';
                     } catch {
-                        errorMsg = await response.text();
+                        errorMsg = response.statusText;
                     }
-                    errorMessages.push(`Row ${row.rowNumber} (${row.data.productIdValue}): ${errorMsg || 'Unknown error'}`);
-                    console.error(`Failed to import row ${row.rowNumber}:`, errorMsg);
+                    errorMessages.push(`Row ${row.rowNumber} update: ${errorMsg || `HTTP ${response.status}`}`);
                 }
-            } catch (error) {
+            } catch (err) {
                 errorCount++;
-                errorMessages.push(`Row ${row.rowNumber} (${row.data.productIdValue}): ${error.message || 'Network error'}`);
-                console.error(`Error importing row ${row.rowNumber}:`, error);
+                errorMessages.push(`Row ${row.rowNumber} update: ${err.message || 'Network error'}`);
             }
         }
 
-        // Handle "Replace all existing" — deactivate IDs not in the import
-        const overwriteToggle = document.getElementById('overwrite-existing-toggle');
-        let deactivatedCount = 0;
-        if (overwriteToggle && overwriteToggle.checked && this.certificateId && this.certificateId > 0) {
-            const importKeys = new Set(
-                this.importPreviewData
-                    .filter(r => r.status !== 'error')
-                    .map(r => `${(r.data.productIdType || '').toUpperCase()}:${(r.data.productIdValue || '').toUpperCase()}`)
-            );
-
-            for (const existing of this.productIds) {
-                const key = `${(existing.productIdType || '').toUpperCase()}:${(existing.productIdValue || '').toUpperCase()}`;
-                if (!importKeys.has(key)) {
-                    try {
-                        const resp = await fetch(`/api/productids/${existing.id}`, { method: 'DELETE' });
-                        if (resp.ok) deactivatedCount++;
-                    } catch (err) {
-                        console.error(`Error deactivating product ID ${existing.id}:`, err);
-                    }
-                }
-            }
-        }
-
-        // Close modal and refresh
         this.closeImportPreviewModal();
 
-        if (successCount > 0 || deactivatedCount > 0) {
+        const totalSuccess = createSuccess + updateSuccess;
+        if (totalSuccess > 0 || (errorCount === 0 && (bulkRows.length + updates.length) > 0)) {
+            this.cache.clear(); // CR-018: invalidate page cache after bulk import
             await this.loadProductIds();
-            let msg = `Imported ${successCount} product ID(s)`;
-            if (deactivatedCount > 0) msg += `, removed ${deactivatedCount} existing`;
-            if (errorCount > 0) msg += `. ${errorCount} failed: ${errorMessages.join('; ')}`;
+            let msg;
+            if (createSuccess > 0 && updateSuccess > 0) {
+                msg = `Imported ${createSuccess} new, updated ${updateSuccess}`;
+            } else if (updateSuccess > 0) {
+                msg = `Updated ${updateSuccess} product ID(s)`;
+            } else {
+                msg = `Imported ${createSuccess} product ID(s)`;
+            }
+            if (overwriteExisting) {
+                msg += ' (replace-all mode applied)';
+            }
+            if (errorCount > 0) {
+                msg += `. ${errorCount} failed: ${errorMessages.slice(0, 3).join('; ')}`;
+            }
             this.showSuccess(msg);
         } else {
-            this.showError(`Import failed: ${errorMessages.join('; ')}`);
+            this.showError(`Import failed: ${errorMessages.slice(0, 3).join('; ') || 'Unknown error'}`);
         }
     }
 
@@ -1280,7 +1651,10 @@ class ProductIdManager {
 
     downloadSample() {
         // CR-015: Status header removed from import template — auto-derived from parent cert.
-        const csvContent = "Type,Product ID,Partner,ProductName,ProductSku,Description";
+        // Order matches the on-screen Product ID Manager table and the in-memory export
+        // (Type, Product ID, Product Name, SKU, Partner, Description) so users see one
+        // consistent column order across UI, export, and import template.
+        const csvContent = "Type,Product ID,Product Name,SKU,Partner,Description";
 
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);

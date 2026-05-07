@@ -697,7 +697,17 @@ namespace GCCWebApp.Controllers
                     ProductSubcategoryId = certificate.ProductSubcategoryId,
                     CertificationTypeId = certificate.CertificationTypeId,
                     CertificationTypeSubcategoryId = certificate.CertificationTypeSubcategoryId,
-                    ProductIds = certificate.ProductIds?.ToList() ?? new List<CertificateProductId>(),
+                    // CR-018: Server-side pagination — only ship the first page to
+                    // the Razor partial. The JS Product ID Manager fetches the same
+                    // first page from /api/productids/certificate/{id}?page=1 on init
+                    // and replaces tbody, so the user sees a fast initial paint instead
+                    // of a multi-second server-side render of every row on certs with
+                    // 1000+ ASINs. Total count and pagination math come from the API.
+                    ProductIds = certificate.ProductIds?.OrderBy(p => p.DisplayOrder ?? int.MaxValue)
+                        .ThenBy(p => p.ProductIdType)
+                        .ThenBy(p => p.CreatedAt)
+                        .Take(50)
+                        .ToList() ?? new List<CertificateProductId>(),
                     CustomFieldValues = await _certificateFieldService.GetFieldValuesForCertificateAsync(certificate.Id) ?? new Dictionary<int, string>(),
                     CompanyEmail = certificate.Company?.Email,
                     CompanyWebsite = certificate.Company?.Website

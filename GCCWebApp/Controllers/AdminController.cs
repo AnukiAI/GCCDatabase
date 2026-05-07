@@ -67,6 +67,45 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// DEF-113: bulk-create users from a JSON payload. Replaces the per-row
+        /// /Admin/CreateUser POST loop in userManagement.js#importCSV().
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkImportUsers([FromBody] BulkUserImportRequest request)
+        {
+            if (request?.Items == null || request.Items.Count == 0)
+            {
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = false,
+                    Message = "No items provided"
+                });
+            }
+
+            try
+            {
+                var userId = GetCurrentUserId() ?? 0;
+                var username = User?.Identity?.Name ?? "Unknown";
+                var result = await _adminService.BulkImportUsersAsync(request.Items, userId, username);
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = true,
+                    Data = result,
+                    Message = $"Bulk import completed. {result.SuccessCount} succeeded, {result.ErrorCount} failed"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = false,
+                    Message = "Error processing bulk import: " + ex.Message
+                });
+            }
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserViewModel model)
@@ -943,6 +982,43 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// DEF-113: bulk-create tags from a JSON payload of pre-parsed rows. Replaces the
+        /// per-row /Admin/CreateTag POST loop in tags.js#applySelectedImport().
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkImportTags([FromBody] BulkTagImportRequest request)
+        {
+            if (request?.Items == null || request.Items.Count == 0)
+            {
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = false,
+                    Message = "No items provided"
+                });
+            }
+
+            try
+            {
+                var result = await _adminService.BulkImportTagsAsync(request.Items, request.OverwriteExisting);
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = true,
+                    Data = result,
+                    Message = $"Bulk import completed. {result.SuccessCount} succeeded, {result.ErrorCount} failed"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = false,
+                    Message = "Error processing bulk import: " + ex.Message
+                });
+            }
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateTag([FromBody] TagViewModel model)
@@ -1243,6 +1319,45 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// DEF-113: bulk-create products from a JSON payload. Replaces the per-row
+        /// /Admin/CreateProduct loop in productManagement.js#applySelectedImport().
+        /// Returns BulkImportResult with per-row errors so the UI can surface validation
+        /// failures (unknown Company, unknown Product Type, duplicate, etc.).
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkImportProducts([FromBody] BulkProductImportRequest request)
+        {
+            if (request?.Items == null || request.Items.Count == 0)
+            {
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = false,
+                    Message = "No items provided"
+                });
+            }
+
+            try
+            {
+                var result = await _adminService.BulkImportProductsAsync(request.Items);
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = true,
+                    Data = result,
+                    Message = $"Bulk import completed. {result.SuccessCount} succeeded, {result.ErrorCount} failed"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = false,
+                    Message = "Error processing bulk import: " + ex.Message
+                });
+            }
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateProduct([FromBody] ProductViewModel model)
@@ -1504,5 +1619,34 @@ namespace GCCWebApp.Controllers
     {
         public int UserId { get; set; }
         public string? TwoFactorMethod { get; set; }
+    }
+
+    /// <summary>
+    /// DEF-113: payload for /Admin/BulkImportTags. Items are TagViewModel rows from the
+    /// import-preview modal; OverwriteExisting deactivates tags not present in the file.
+    /// </summary>
+    public class BulkTagImportRequest
+    {
+        public List<TagViewModel> Items { get; set; } = new();
+        public bool OverwriteExisting { get; set; } = false;
+    }
+
+    /// <summary>
+    /// DEF-113: payload for /Admin/BulkImportProducts. No OverwriteExisting flag — replace-all
+    /// is intentionally not supported for products (mass-deactivation risk if a typo lands
+    /// in the import file).
+    /// </summary>
+    public class BulkProductImportRequest
+    {
+        public List<ProductViewModel> Items { get; set; } = new();
+    }
+
+    /// <summary>
+    /// DEF-113: payload for /Admin/BulkImportUsers. No OverwriteExisting flag —
+    /// replace-all is intentionally not supported for users (mass-deactivation = locked-out admins).
+    /// </summary>
+    public class BulkUserImportRequest
+    {
+        public List<BulkImportUserItem> Items { get; set; } = new();
     }
 }

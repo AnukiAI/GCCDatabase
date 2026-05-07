@@ -121,6 +121,48 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// DEF-113: bulk-create companies from a JSON payload. Replaces the per-row POST
+        /// loop in companyManagement.js#applySelectedImport(), which hit the localhost
+        /// rate limit at row 201. One request handles the entire batch.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkImport([FromBody] BulkCompanyImportRequest request)
+        {
+            if (request?.Items == null || request.Items.Count == 0)
+            {
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = false,
+                    Message = "No items provided"
+                });
+            }
+
+            try
+            {
+                var userId = GetCurrentUserId();
+                var username = GetCurrentUsername();
+                var result = await _companyService.BulkImportCompaniesAsync(
+                    request.Items, userId, username, request.OverwriteExisting);
+
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = true,
+                    Data = result,
+                    Message = $"Bulk import completed. {result.SuccessCount} succeeded, {result.ErrorCount} failed"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<BulkImportResult>
+                {
+                    Success = false,
+                    Message = "Error processing bulk import: " + ex.Message
+                });
+            }
+        }
+
         [HttpDelete]
         public async Task<IActionResult> DeleteCompany(int id)
         {
@@ -144,5 +186,15 @@ namespace GCCWebApp.Controllers
                 return Json(new ApiResponse<object> { Success = false, Message = "Error deleting company: " + ex.Message });
             }
         }
+    }
+
+    /// <summary>
+    /// JSON payload for the BulkImport endpoint. Items are CompanyViewModel rows from the
+    /// import-preview modal; OverwriteExisting deactivates companies not present in the file.
+    /// </summary>
+    public class BulkCompanyImportRequest
+    {
+        public List<CompanyViewModel> Items { get; set; } = new();
+        public bool OverwriteExisting { get; set; } = false;
     }
 }

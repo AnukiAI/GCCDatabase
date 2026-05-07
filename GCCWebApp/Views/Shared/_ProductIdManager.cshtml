@@ -65,14 +65,16 @@
         <table class="table table-sm table-hover" id="productIdsTable">
             <thead class="table-light">
                 <tr>
-                    <th width="80">Type</th>
-                    <th width="120">Product ID</th>
-                    <th width="150">Product Name</th>
-                    <th width="100">SKU</th>
+                    @* DEF-150: Sortable headers match Views/Product/Management.cshtml convention.
+                       Click toggles asc/desc; ▼ default, ▲ asc, ▼ desc. *@
+                    <th data-sort="type" class="admin-table-th--sortable" style="width: 80px;">Type <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="value" class="admin-table-th--sortable" style="width: 120px;">Product ID <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="name" class="admin-table-th--sortable" style="width: 150px;">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="sku" class="admin-table-th--sortable" style="width: 100px;">SKU <span class="sort-icon admin-sort-icon">▼</span></th>
                     @* CR-015: Status column removed — product ID status follows parent certificate. *@
-                    <th width="100">Partner</th>
-                    <th width="100">Created</th>
-                    <th width="100">Created By</th>
+                    <th data-sort="partner" class="admin-table-th--sortable" style="width: 100px;">Partner <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="created" class="admin-table-th--sortable" style="width: 100px;">Created <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="createdBy" class="admin-table-th--sortable" style="width: 100px;">Created By <span class="sort-icon admin-sort-icon">▼</span></th>
                     @if (!isReadOnly)
                     {
                         <th width="80">Actions</th>

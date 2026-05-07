@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CR-016 Mockup — Bulk Replace mode for Product ID import</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #e9ecef;
+    padding: 20px;
+    margin: 0;
+    color: #212529;
+    font-size: 16px;
+  }
+  .page-header {
+    max-width: 1200px;
+    margin: 0 auto 24px auto;
+    background: #002B76;
+    color: white;
+    padding: 20px 24px;
+    border-radius: 8px;
+  }
+  .page-header h1 { margin: 0 0 6px 0; font-size: 22px; }
+  .page-header p { margin: 0; font-size: 14px; opacity: 0.85; }
+  .controls {
+    max-width: 1200px;
+    margin: 0 auto 16px auto;
+    background: white;
+    padding: 16px 20px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .controls strong { font-size: 15px; color: #495057; }
+  .controls button {
+    padding: 8px 16px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .controls button.active {
+    background: #002B76;
+    color: white;
+    border-color: #002B76;
+  }
+
+  /* Import preview modal */
+  .import-modal-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+  }
+  .modal-header-bar {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header-bar h3 {
+    color: #002B76;
+    font-weight: 600;
+    margin: 0;
+    font-size: 18px;
+  }
+  .modal-header-bar h3 i { margin-right: 8px; }
+  .modal-body { padding: 20px; }
+
+  /* Mode selector — NEW in this CR */
+  .mode-selector {
+    background: #f8f9fa;
+    border: 2px solid #002B76;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .mode-selector-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #002B76;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .mode-options {
+    display: flex;
+    gap: 24px;
+  }
+  .mode-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    flex: 1;
+    border: 1px solid transparent;
+  }
+  .mode-option:hover { background: #ffffff; }
+  .mode-option input[type="radio"] {
+    margin-top: 3px;
+    cursor: pointer;
+  }
+  .mode-option-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #212529;
+    display: block;
+  }
+  .mode-option-help {
+    font-size: 13px;
+    color: #6c757d;
+    display: block;
+    margin-top: 2px;
+  }
+  .mode-option.selected {
+    background: white;
+    border-color: #002B76;
+    box-shadow: 0 1px 3px rgba(0,43,118,0.15);
+  }
+  .mode-option.replace.selected {
+    border-color: #c92a2a;
+  }
+  .mode-option.replace.selected .mode-option-label { color: #c92a2a; }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-tile {
+    padding: 14px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .stat-tile-value {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-tile-label {
+    font-size: 13px;
+    color: #495057;
+    margin-top: 6px;
+  }
+  .stat-new { background: #e8f5e1; }
+  .stat-new .stat-tile-value { color: #2f6f24; }
+  .stat-modified { background: #e6f7ff; }
+  .stat-modified .stat-tile-value { color: #002B76; }
+  .stat-unchanged { background: #f5f5f5; }
+  .stat-unchanged .stat-tile-value { color: #6c757d; }
+  .stat-toremove { background: #ffe5e5; }
+  .stat-toremove .stat-tile-value { color: #c92a2a; }
+  .stat-error { background: #ffebee; }
+  .stat-error .stat-tile-value { color: #b71c1c; }
+  .stat-toremove { display: none; }
+  body.mode-replace .stat-toremove { display: block; }
+
+  /* Warning banner */
+  .warning-banner {
+    background: #fff3cd;
+    border: 1px solid #ffe69c;
+    border-left: 4px solid #c92a2a;
+    color: #6e1818;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 500;
+    display: none;
+  }
+  body.mode-replace .warning-banner { display: block; }
+  .warning-banner i { margin-right: 8px; color: #c92a2a; }
+
+  /* Preview table */
+  .preview-table-wrap {
+    overflow-x: auto;
+    max-height: 360px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+  }
+  table.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.preview-table thead {
+    background: #f8f9fa;
+    position: sticky;
+    top: 0;
+  }
+  table.preview-table th {
+    text-align: left;
+    padding: 10px;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+  }
+  table.preview-table td {
+    padding: 10px;
+    border-bottom: 1px solid #f1f3f5;
+  }
+  .row-remove { display: none; }
+  body.mode-replace .row-remove { display: table-row; background: #fff5f5; }
+
+  /* Status badges */
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .badge-new { background: #e8f5e1; color: #2f6f24; }
+  .badge-modified { background: #e6f7ff; color: #002B76; }
+  .badge-unchanged { background: #f5f5f5; color: #6c757d; }
+  .badge-remove { background: #ffe5e5; color: #c92a2a; }
+
+  /* Footer */
+  .modal-footer-bar {
+    background: #f8f9fa;
+    border-top: 2px solid #e9ecef;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-footer-bar .left-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-weight: 500;
+  }
+  .btn-secondary { background: white; color: #495057; border-color: #ced4da; }
+  .btn-outline-secondary { background: white; color: #6c757d; border-color: #ced4da; }
+  .btn-primary { background: #002B76; color: white; }
+  .btn-primary:hover { background: #001f56; }
+  .btn-danger { background: #c92a2a; color: white; }
+  body.mode-replace .btn-apply { background: #c92a2a; }
+  body.mode-replace .btn-apply:hover { background: #a91e1e; }
+
+  .changes-cell { font-size: 12px; color: #495057; }
+  .changes-cell del { color: #adb5bd; }
+  .changes-cell strong { color: #002B76; }
+
+  .annotation {
+    max-width: 1200px;
+    margin: 24px auto 0 auto;
+    background: white;
+    border: 1px dashed #adb5bd;
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-size: 14px;
+    color: #495057;
+  }
+  .annotation h4 {
+    margin: 0 0 8px 0;
+    color: #002B76;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .annotation ul { margin: 0; padding-left: 20px; }
+  .annotation li { margin-bottom: 4px; }
+
+  .scenario-summary {
+    max-width: 1200px;
+    margin: 0 auto 16px auto;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 14px 20px;
+    font-size: 14px;
+    color: #495057;
+  }
+  .scenario-summary code {
+    background: #f1f3f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>CR-016 Mockup — Bulk Replace mode for Product ID import</h1>
+  <p>Toggle between modes to see how the import-preview modal behaves. Underlying logic (deactivate-on-missing, per-cert dup scope, within-file dup detection) already ships in production — this CR is the UX surfacing.</p>
+</div>
+
+<div class="controls">
+  <strong>Preview mode:</strong>
+  <button id="btn-add" class="active" onclick="setMode('add')">Add to existing list</button>
+  <button id="btn-replace" onclick="setMode('replace')">Replace entire list</button>
+  <span style="color:#6c757d; margin-left:auto; font-size:13px;">Click to toggle</span>
+</div>
+
+<div class="scenario-summary">
+  <strong>Scenario:</strong> Cert has <code>4 existing</code> Product IDs (B07OLDITEM01, 011111111110, MPN-OLD-44, GTIN 12345678). User uploads a CSV with <code>4 rows</code>: 3 brand-new IDs and 1 modification of an existing row. Two of the existing IDs (MPN-OLD-44, GTIN 12345678) are kept by both modes because they're in the file unchanged — the table just doesn't have rows for them in this preview snapshot for clarity.
+</div>
+
+<div class="import-modal-shell">
+
+  <div class="modal-header-bar">
+    <h3>⬇ Import Preview — Product IDs</h3>
+    <button class="btn btn-secondary" style="background:transparent; border:none; font-size:18px;">✕</button>
+  </div>
+
+  <div class="modal-body">
+
+    <!-- NEW: Mode selector at top -->
+    <div class="mode-selector">
+      <div class="mode-selector-title">Import mode</div>
+      <div class="mode-options">
+        <label class="mode-option add selected" id="opt-add" onclick="setMode('add')">
+          <input type="radio" name="mode" checked>
+          <span>
+            <span class="mode-option-label">Add to existing list</span>
+            <span class="mode-option-help">Append new rows. Skip duplicates. Existing IDs stay even if not in this file. <strong>(Default — non-destructive)</strong></span>
+          </span>
+        </label>
+        <label class="mode-option replace" id="opt-replace" onclick="setMode('replace')">
+          <input type="radio" name="mode">
+          <span>
+            <span class="mode-option-label">Replace entire list</span>
+            <span class="mode-option-help">This file becomes the complete list. Existing IDs not in the file will be permanently removed.</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Warning banner — only in replace mode -->
+    <div class="warning-banner">
+      <i>⚠</i> 2 existing product IDs not in this file will be permanently removed. Review the <strong>[Remove]</strong> rows below before applying.
+    </div>
+
+    <!-- Stats grid -->
+    <div class="stats-grid">
+      <div class="stat-tile stat-new">
+        <div class="stat-tile-value">3</div>
+        <div class="stat-tile-label">New</div>
+      </div>
+      <div class="stat-tile stat-modified">
+        <div class="stat-tile-value">1</div>
+        <div class="stat-tile-label">Modified</div>
+      </div>
+      <div class="stat-tile stat-unchanged">
+        <div class="stat-tile-value">0</div>
+        <div class="stat-tile-label">Unchanged</div>
+      </div>
+      <!-- NEW: To Remove tile, only shown in replace mode -->
+      <div class="stat-tile stat-toremove">
+        <div class="stat-tile-value">2</div>
+        <div class="stat-tile-label">To Remove</div>
+      </div>
+      <div class="stat-tile stat-error">
+        <div class="stat-tile-value">0</div>
+        <div class="stat-tile-label">Errors</div>
+      </div>
+    </div>
+
+    <!-- Preview table -->
+    <div class="preview-table-wrap">
+      <table class="preview-table">
+        <thead>
+          <tr>
+            <th style="width:40px;"><input type="checkbox" checked></th>
+            <th style="width:110px;">Status</th>
+            <th style="width:80px;">Type</th>
+            <th>Product ID</th>
+            <th>Product Name</th>
+            <th style="width:90px;">Partner</th>
+            <th>Changes / Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><input type="checkbox" checked></td>
+            <td><span class="badge badge-new">New</span></td>
+            <td>ASIN</td>
+            <td style="font-family: monospace;">B08N5WRWNW</td>
+            <td>Widget Alpha</td>
+            <td>Amazon</td>
+            <td class="changes-cell" style="color:#2f6f24;">Will be created</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" checked></td>
+            <td><span class="badge badge-new">New</span></td>
+            <td>ASIN</td>
+            <td style="font-family: monospace;">B07XJ8C8F5</td>
+            <td>Widget Beta</td>
+            <td>Amazon</td>
+            <td class="changes-cell" style="color:#2f6f24;">Will be created</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" checked></td>
+            <td><span class="badge badge-new">New</span></td>
+            <td>UPC</td>
+            <td style="font-family: monospace;">012345678901</td>
+            <td>Widget Gamma</td>
+            <td>—</td>
+            <td class="changes-cell" style="color:#2f6f24;">Will be created</td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" checked></td>
+            <td><span class="badge badge-modified">Modified</span></td>
+            <td>UPC</td>
+            <td style="font-family: monospace;">011111111110</td>
+            <td>Widget Delta</td>
+            <td>Amazon</td>
+            <td class="changes-cell">Partner: <del>(empty)</del> → <strong>Amazon</strong></td>
+          </tr>
+
+          <!-- NEW: [Remove] rows shown only in replace mode -->
+          <tr class="row-remove">
+            <td><input type="checkbox" checked></td>
+            <td><span class="badge badge-remove">Remove</span></td>
+            <td>ASIN</td>
+            <td style="font-family: monospace;">B07OLDITEM01</td>
+            <td>Old Widget A</td>
+            <td>Amazon</td>
+            <td class="changes-cell" style="color:#c92a2a;">Not in import file — will be removed</td>
+          </tr>
+          <tr class="row-remove">
+            <td><input type="checkbox" checked></td>
+            <td><span class="badge badge-remove">Remove</span></td>
+            <td>MPN</td>
+            <td style="font-family: monospace;">MPN-OLD-44</td>
+            <td>Old Widget B</td>
+            <td>—</td>
+            <td class="changes-cell" style="color:#c92a2a;">Not in import file — will be removed</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="modal-footer-bar">
+    <div class="left-group">
+      <button class="btn btn-outline-secondary">⬇ Download Template</button>
+    </div>
+    <div>
+      <button class="btn btn-secondary" style="margin-right:8px;">Cancel</button>
+      <button class="btn btn-primary btn-apply" id="apply-btn">✓ Apply Import (4)</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="annotation">
+  <h4>What changed in this mockup</h4>
+  <ul>
+    <li><strong>Mode selector at top</strong> (highlighted box, blue border) replaces the buried footer toggle. Two clear radios with help text — destructive intent is decided up front, not as an afterthought.</li>
+    <li><strong>"To Remove" stat tile</strong> appears only in Replace mode (try toggling). Count matches the [Remove] rows in the table.</li>
+    <li><strong>Warning banner</strong> appears only in Replace mode, with explicit count of records being deleted.</li>
+    <li><strong>[Remove] rows in the preview table</strong> show exactly which existing IDs will be deleted. User can deselect any of them before applying.</li>
+    <li><strong>Apply button turns red</strong> in Replace mode to reinforce the destructive action.</li>
+    <li><strong>No backend changes.</strong> The replace-deactivation logic in <code>product-id-manager.js:1175-1195</code> is unchanged. We're only making the existing capability findable and its impact explicit.</li>
+  </ul>
+</div>
+
+<script>
+  function setMode(mode) {
+    document.body.classList.toggle('mode-replace', mode === 'replace');
+    document.getElementById('opt-add').classList.toggle('selected', mode === 'add');
+    document.getElementById('opt-replace').classList.toggle('selected', mode === 'replace');
+    document.getElementById('opt-add').querySelector('input').checked = (mode === 'add');
+    document.getElementById('opt-replace').querySelector('input').checked = (mode === 'replace');
+    document.getElementById('btn-add').classList.toggle('active', mode === 'add');
+    document.getElementById('btn-replace').classList.toggle('active', mode === 'replace');
+    const applyBtn = document.getElementById('apply-btn');
+    applyBtn.textContent = mode === 'replace'
+      ? '✓ Apply Import (4 added/modified, 2 removed)'
+      : '✓ Apply Import (4)';
+  }
+</script>
+
+</body>
+</html>

@@ -18,6 +18,153 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-154 — "Replace all existing" toggle silently dropped when import has no "new" rows; partial imports could deactivate matching rows
+
+- **Date:** 2026-05-07
+- **Severity:** **High** (data integrity — could deactivate hundreds of matching rows in the partial-import case)
+- **Status:** Fixed locally (pending UAT / deploy)
+- **Reporter:** Shawn — re-imported the 1000-row CSV against cert 26-0023 with "Replace all existing" checked; the lone stray row that wasn't in the file was NOT deactivated.
+
+**Symptom:** On the cert Edit page's CSV import preview, checking "Replace all existing" was supposed to deactivate any existing product ID on the cert that wasn't in the import file. After the DEF-153 fix made dup-detection see all pages, re-importing the same file classified all matching rows as "modified" or "unchanged" with zero "new" — and the Replace-all logic silently did nothing.
+
+**Root cause:** Two failure modes in `wwwroot/js/product-id-manager.js` `applyImport()`:
+1. **All rows unchanged.** `selectedRows.length === 0` (unchanged are auto-deselected), so the function returned with "No rows selected for import" before even reading the toggle. Replace-all toggle ignored entirely.
+2. **All rows modified, zero new.** `creates = selectedRows.filter(r => r.action !== 'update')` was empty, so the bulk endpoint was never called — the `overwriteExisting` flag never reached the server, and the server's deactivation loop never ran.
+3. **Partial — some new + some modified.** This was the worst case. The bulk POST only sent "creates" (new rows), so the server's `importKeys` set contained ONLY those new keys. The server's deactivation loop then marked every existing row whose key wasn't in `importKeys` — including the modified rows the user wanted to keep — as Inactive. PUT updates ran afterwards on rows that were now deactivated.
+
+**Fix:**
+- When `overwriteExisting` is checked, the import set is now ALL non-error rows in the import file (regardless of per-row selection). The toggle implies "the file is the new source of truth," and per-row checkboxes lose meaning in that mode. The empty-selectedRows guard now returns a different error message in this branch ("Import file has no valid rows. Replace-all needs at least one valid row to define the new state.") instead of "No rows selected for import."
+- The bulk endpoint payload now includes EVERY row in the import set (including updates) when `overwriteExisting` is true, not just `creates`. This makes the server's `importKeys` set complete — the deactivation loop only deactivates rows that are truly missing from the file. The server's bulk handler already silently skips dup keys in overwrite mode (counted as success, no insert), so sending matching rows is harmless on the insert path.
+- PUT updates for "modified" rows still run individually after the bulk call, to apply field changes (the bulk endpoint silently skips dup keys without applying field updates).
+
+**Files:** `wwwroot/js/product-id-manager.js` only.
+
+**Verification:** Verified via DB inspection. Reset cert 26-0023 to 1001 active rows (1000 ASINs from import file + 1 stray row `1321321212`). Imported the 1000-row file with "Replace all existing" checked. After the apply: `SELECT COUNT(*) WHERE IsActive = 1` returns **1000** (was 1001). The stray row is now Inactive. Pre-fix behavior: would still be 1001 active.
+
+**Out of scope (for future CR if needed):** The bulk endpoint's "silent skip on dup-key in overwrite mode" semantics mean field-level changes on matching rows aren't applied via the bulk path. This CR routes those through the existing PUT-individually loop, which works but emits N requests for N modified rows. If we ever see Replace-all imports with thousands of field changes hitting the rate limiter, we should change the server-side bulk endpoint to update fields on dup-key in overwrite mode (one round-trip, not N). Not blocking launch — current scale is fine.
+
+---
+
+### DEF-153 — Import preview falsely classifies existing rows as "new" after CR-018 server-paging shipped
+
+- **Date:** 2026-05-07
+- **Severity:** High (data integrity — would create duplicate rows on re-import)
+- **Status:** Fixed locally (pending UAT / deploy)
+- **Reporter:** Shawn — re-imported `product-ids-sample-1000-asins.csv` after the first import committed, expecting all 1000 rows to flag as "Unchanged"; instead "a few were tagged unchanged, but the majority said new."
+
+**Symptom:** On the cert Edit page, the CSV import preview compared each imported row against `this.productIds` (the JS in-memory state) to classify it as new / modified / unchanged. After CR-018 introduced server-side pagination, `this.productIds` only holds the currently visible page (≤ 50 rows). So on a cert with 1001 ASINs, the dup-detection only saw the 50 rows on page 1 — every imported value not on that page was flagged "new" even though it already existed in the DB. Clicking Apply Import in that state would have created 950+ duplicate rows.
+
+**Root cause:** `wwwroot/js/product-id-manager.js` `buildImportPreview()` does `this.productIds.find(p => …)` to look up an existing row matching the import's type+value. That semantic was correct when `this.productIds` held the full list (pre-CR-018), but is wrong post-CR-018 because the array is now scoped to one page.
+
+**Fix:** When in server-paged mode (`serverPaged && certificateId`), `buildImportPreview` now pre-fetches the full list once via the existing un-paged endpoint `GET /api/productids/certificate/{id}` (no `page` param → returns all rows in `data[]`), builds a `Map` keyed by `${type.toUpperCase()}:${value.toUpperCase()}`, and looks up each import row in that map instead of scanning `this.productIds`. Falls back to the original in-memory scan if the pre-fetch fails or in non-paged mode (Create page).
+
+**Files:** `wwwroot/js/product-id-manager.js`.
+
+**Verification:** Playwright probe (`test-def153-import-dedup.mjs`) seeds 100 import items whose values match existing rows on cert 26-0023 (most are NOT on page 1). Pre-fix: all 100 would be "new". Post-fix: 0 new, 100 modified. 5/5 assertions pass.
+
+**Out of scope:** The pre-fetch loads the full list into memory in the JS — fine for 1000 rows, may need re-thinking at 100,000+. If we hit that scale, switch to a server-side `lookup-keys` endpoint that returns just `{type, value}` pairs (smaller payload). Not blocking launch.
+
+---
+
+### DEF-152 — Product Identifier pagination buttons didn't match Product Management's pagination styling
+
+- **Date:** 2026-05-06
+- **Severity:** Low (visual / UI consistency)
+- **Status:** Fixed locally (pending UAT / deploy)
+- **Reporter:** Shawn — observed on cert Create / Edit pages while comparing against `/Product/Management`.
+
+**Symptom:** The Product Identifier pagination on cert Create / Edit pages rendered as five inline-styled text buttons — `[First]` `[Prev]` `Page X of Y` `[Next]` `[Last]` — with hand-rolled CSS in the JS template (border, padding, font-size, background all written as inline `style="…"`). The Product Management page (and the rest of the admin app) uses chevron Prev / numbered pages with ellipsis / chevron Next, styled via the canonical `.pagination-btn` and `.pagination-controls` classes. Two visibly different paginations on the same admin app — Shawn called this out as a clear consistency break.
+
+**Root cause:** `wwwroot/js/product-id-manager.js` `renderPagination()` was authored before the admin pagination convention (`.pagination-btn` / `.pagination-controls` defined in `wwwroot/css/product-management.css:1556-1601`) was established, and was never retrofitted. The "First / Last" navigation also wasn't in the canonical pattern — Product Management only ships chevron Prev + numbered + chevron Next.
+
+**Fix:**
+- `wwwroot/js/product-id-manager.js` `renderPagination()` rewritten to mirror `Views/Product/Management.cshtml:740-793` — chevron-left Previous button, numbered page buttons (max 7 visible with `...` ellipsis at edges), chevron-right Next button, all using `class="pagination-btn"` (with `active` / `disabled` modifiers). Active page also gets `aria-current="page"`. Container wrapper uses `pid-pagination-wrapper` (left: "Showing N-M of T" info, right: `.pagination-controls` button row).
+- `wwwroot/css/product-id-manager.css`: Appended scoped pagination styles under `.product-id-manager .pagination-*` mirroring `wwwroot/css/product-management.css:1556-1601`. Active button hardcoded to `#002B76` rather than `var(--blue-dark)` because the var is overridden to `#002876` in some parent contexts; matching the rendered output of Product Management is the goal, so the literal wins.
+
+**Files:** `wwwroot/js/product-id-manager.js`, `wwwroot/css/product-id-manager.css`.
+
+**Verification:** Playwright test at `C:\Users\swest\AppData\Local\Temp\uitest-pidsort\test-pagination.mjs` — 20/20 pass. Pushed 51 in-memory product IDs to force pagination, then asserted: wrapper class, button class structure, no inline background styles, chevron-left Prev (disabled on p1), chevron-right Next (disabled on last page), `.active` + `aria-current="page"` on current page, "Showing N-M of T" info text updates on page change, computed background `rgb(0, 43, 118)` matches Product Management exactly, computed dimensions (36px min-width, 44px rendered height) match Product Management exactly.
+
+---
+
+### DEF-151 — "Unsaved form data recovered from HH:MM" banner hidden pending Phase 2 rework
+
+- **Date:** 2026-05-06
+- **Severity:** Low (UX clean-up)
+- **Status:** Fixed locally (pending UAT / deploy)
+- **Reporter:** Shawn — observed the false-positive banner on the cert Create page during DEF-150 testing.
+
+**Symptom:** The Create / Edit cert pages displayed a yellow recovery banner reading *"Unsaved form data recovered from HH:MM. Would you like to restore it?"* with [Restore] / [Discard] buttons. Banner fired even on freshly opened pages where the user had no real prior session — cascading dropdowns (Company → Product, Category → Type → Subcategory, Cert Type → Subcategories) retrigger `change` events on initial load and the unsaved-state tracker reads those as edits.
+
+**Root cause (current banner has multiple problems):**
+- False positives: `UnsavedChanges.rebaselineUnsavedChanges()` runs on a `setTimeout(..., 1000)` after page load, but the recovery check (`checkForRecovery()`) runs earlier in the same flow and sees the cascade-driven values as "differences" against the saved payload.
+- Partial restore: the restore handler explicitly skips `__RequestVerificationToken`, `CertificateFile`, and `ThumbnailFile` (`certificate-create.js:766`). A user who clicks Restore gets text fields back but no cert PDF, no thumbnail. They'd then click Save and either fail validation (PDF required on Create) or persist a half-edit.
+- No coverage of product IDs, custom field values, or tags — the recovery payload only includes standard form fields.
+- Time-only timestamp without a date.
+
+**Decision:** Hide the banner now, rebuild it as a trustworthy experience in Phase 2. The auto-save infrastructure stays — only the recovery prompt is suppressed — so the saved data is still there for Phase 2 to consume cleanly.
+
+**Fix:**
+- `wwwroot/js/certificate-create.js`: Added a `SHOW_RECOVERY_PROMPT: false` kill switch on the `UnsavedChanges` module. `checkForRecovery()` short-circuits when the flag is off but still GCs entries older than 2 hours from `localStorage` so storage doesn't leak indefinitely. Corrupt JSON entries are also cleared rather than crashing on parse.
+
+**Files:** `wwwroot/js/certificate-create.js`.
+
+**Phase 2 follow-up:** CR-017 — Unsaved-form recovery banner UX rework. See `docs/tracking/CR-017-form-recovery-ux.md` for full Phase 2 scope (false-positive elimination, full-surface payload, all-or-nothing restore, better copy, same-cert scoping).
+
+**Verification:** Reload `/Certificate/Create` or `/Certificate/Edit/{id}`. Banner should not appear under any condition. Open DevTools → Application → localStorage to confirm auto-save entries still write (key is set in `UnsavedChanges.storageKey`).
+
+---
+
+### DEF-150 — Product Identifier table missing column sort that other admin tables have
+
+- **Date:** 2026-05-06
+- **Severity:** Low (UX consistency)
+- **Status:** Fixed locally (pending UAT / deploy)
+- **Reporter:** Shawn — observed on cert Edit page after the DEF-149 hint shipped.
+
+**Symptom:** The Product Identifier table on `/Certificate/Create` and `/Certificate/Edit/{id}` had non-clickable column headers (`<th width="80">Type</th>` etc.) with no sort affordance. Every other admin table in the app — Product Management, Tags, Pathways, User Management, Companies — supports click-to-sort with visual chevron icons (`▼` default, `▲ / ▼` per direction). Inconsistent behavior at the same UI layer.
+
+**Root cause:** The Product ID Manager partial (`Views/Shared/_ProductIdManager.cshtml`) was authored before the `admin-table-th--sortable` convention was established and never retrofitted. The JS (`wwwroot/js/product-id-manager.js`) only handled filter + search; sort state didn't exist.
+
+**Fix:**
+- `Views/Shared/_ProductIdManager.cshtml`: Each column header (Type, Product ID, Product Name, SKU, Partner, Created, Created By) now uses `data-sort="…"` + `class="admin-table-th--sortable"` + `<span class="sort-icon admin-sort-icon">▼</span>`. Mirrors `Views/Product/Management.cshtml:106-113`. Actions column intentionally not sortable.
+- `wwwroot/js/product-id-manager.js`:
+  - Added `sortColumn` / `sortDirection` constructor state.
+  - Added `initializeSortableHeaders()` (called from `init()`) — click toggles asc/desc on same column, switches and resets to asc on different column. Updates icons and `active-sort` class.
+  - Added `applySort()` — alpha sort (locale-aware) for Type / Value / Name / SKU / Partner / Created By; numeric timestamp sort for Created. `createdBy` resolves through `createdByUser.username` first, falling back to the raw `createdBy` field for in-memory items that haven't been persisted yet.
+  - Wired into `renderTable()` so every render path picks up the active sort (load from API, in-memory add/edit/delete on Create page, filter/search, import-apply). Idempotent when no column is selected — preserves server order.
+
+**Files:** `Views/Shared/_ProductIdManager.cshtml`, `wwwroot/js/product-id-manager.js`.
+
+**Verification:** Reload `/Certificate/Edit/{any-id}`. Click column headers to confirm sort behavior matches Product Management. Type a search query — sort should persist. Add a new product ID — table re-renders honoring active sort.
+
+---
+
+### DEF-149 — Edit page: Product ID save semantics differ from Create page (no UX signal)
+
+- **Date:** 2026-05-06
+- **Severity:** Low (UX clarity)
+- **Status:** Fixed locally (pending UAT / deploy)
+- **Reporter:** Shawn — surfaced while auditing orphan-record risk between Create and Edit.
+
+**Symptom:** The Product ID Manager on `/Certificate/Create` holds Add/Edit/Delete/Import in browser memory and only commits on cert Save (single transaction with the parent cert). On `/Certificate/Edit/{id}`, the same UI commits each operation immediately to the DB via `/api/productids/*` endpoints, so clicking Cancel on the cert form does NOT revert product ID changes. Two save semantics behind the same UI surface.
+
+**Root cause:** `wwwroot/js/product-id-manager.js` branches on `certificateId === 0`: zero → in-memory mode (Create), positive → immediate-API mode (Edit). No visual indicator of which mode is active.
+
+**Decision:** Keep immediate-save behavior on Edit. The "fix a wrong ASIN quickly" workflow benefits from immediate persistence — an analyst who spots a bad identifier shouldn't have to commit unrelated cert-form changes to remove it. Refactoring to deferred-save (option #2) was started and reverted after Shawn flagged the use case. Instead, surface the behavior with a UI hint (option #1).
+
+**Fix:** Added an info note on `Views/Certificate/Edit.cshtml` directly above the Product ID Manager, styled with the app's blue accent (#002B76), 16px, with `fa-info-circle` icon. Text reads: *"Add, edit, and delete actions on product identifiers save immediately and apply even if you cancel the certificate edit. Use this if you need to quickly correct a wrong identifier."*
+
+**Orphan-risk note (verified during this audit, not a defect):** `CertificateProductId.CertificateId` is NOT NULL with `OnDelete(DeleteBehavior.Cascade)` (`ApplicationDbContextModelSnapshot.cs:2143-2149`). Schema makes FK orphans impossible — deleting a cert cascades to its product IDs.
+
+**Files:** `Views/Certificate/Edit.cshtml`.
+
+**Out of scope:** Edit submit handler still sends a hardcoded `Status: 'Active'` in hidden inputs (`Edit.cshtml:862`), which contradicts CR-015 ("Status follows cert"). Harmless because the controller's merge logic (`CertificateController.cs:869-911`) doesn't update Status from the submission, but it's stale code. Not addressing in this fix to keep scope tight.
+
+**Verification:** Reload `/Certificate/Edit/{any-id}` and confirm the blue note renders above the Product ID Manager. Behavior unchanged.
+
+---
+
 ### DEF-148 — Product ID Manager: "Product ID" column rendered in monospace and the row count was center-aligned, both inconsistent with the rest of the app
 
 - **Date:** 2026-05-06
@@ -1378,6 +1525,119 @@ The optional parameter default keeps any future caller that doesn't supply userI
 3. PUT to `/api/certificates/{id}` with an UpdateCertificateRequest body. Reload the cert detail. Confirm UpdatedBy was set (DB inspection or future audit-trail UI).
 
 **Found by:** Code-survey sweep after DEF-109 fix. Shawn asked "do we have this issue elsewhere in the views?" — this surfaced as the only remaining write path that produced null audit fields.
+
+---
+
+### DEF-111 — Product ID import-template column order didn't match the on-screen Product ID Manager table
+
+- **Date:** 2026-05-06
+- **Severity:** Low (cosmetic/UX consistency, no data loss)
+- **Status:** Fixed (pending UAT)
+- **Reporter:** Shawn — spotted on `/Certificate/Edit/26-0106`
+
+**Symptom:** Downloaded import template (`product-ids-sample.csv`) had columns in the order `Type, Product ID, Partner, ProductName, ProductSku, Description`. The on-screen Product ID Manager table and the in-memory export both use `Type, Product ID, Product Name, SKU, Partner, ...`. Users editing the template in Excel saw the columns in a different order than what they were used to in the UI, which made bulk-edit error-prone.
+
+**Root cause:** `wwwroot/js/product-id-manager.js:1283` had a hard-coded template string that predated the table redesign and was never re-aligned. The in-memory export at line 1253 was updated; the template was missed.
+
+**Fix:** `wwwroot/js/product-id-manager.js`
+- `downloadSample()` template header now: `Type,Product ID,Product Name,SKU,Partner,Description` (matches table + export order).
+- `parseAndPreviewImport()` productName lookup is now tolerant of both `productname` (legacy template, no space) and `product name` (new template, with space). Older templates users may already have on disk continue to parse correctly.
+
+**Test plan:**
+1. Open any cert with Product IDs at `/Certificate/Edit/{id}`. Click **Template** in the Product ID Manager toolbar.
+2. Open the downloaded CSV. Confirm header order: `Type, Product ID, Product Name, SKU, Partner, Description` — the same order as the table on the page.
+3. Add a row matching the new order; click **Import**, upload. Confirm the preview shows the row correctly mapped (Product Name and SKU not swapped with Partner).
+4. Take a previously-downloaded older template (`Type, Product ID, Partner, ProductName, ProductSku, Description`), populate one row, import. Confirm it still parses correctly — backward compatibility verified.
+5. Bulk test: import `C:\Users\swest\Downloads\product-ids-sample-1000-asins.csv` (1000 ASINs generated 2026-05-06) against an empty cert. Confirm all 1000 rows preview as **New**, no errors.
+
+**Found by:** Shawn during cert-edit walkthrough. Filed alongside CR-016 prep work — the column-order mismatch is a defect; the broader UX redesign of the import-preview modal is the CR.
+
+---
+
+### DEF-112 — Bulk Product ID import capped at 100 rows due to per-row HTTP requests hitting AspNetCoreRateLimit
+
+- **Date:** 2026-05-06
+- **Severity:** High (blocks the use case CR-016 was scoped around — bulk-import of partner-onboarding ASIN lists)
+- **Status:** Fixed (pending UAT — requires dev-server restart to load the C# changes)
+- **Reporter:** Shawn — `localhost:5101/Certificate/Edit/26-0106` import of 1000-row test CSV. First 100 rows imported, next 900 returned `"Unknown error"`.
+
+**Symptom:** Importing >100 product IDs into a certificate failed every row past the 100th. UI reported `Imported 100 product ID(s). 900 failed: Row 101 ... Unknown error; Row 102 ...`. Exact 100/900 split was the giveaway — that's a per-minute rate-limit cap being hit.
+
+**Root cause:** Two compounding bugs.
+
+1. **Frontend was firing one HTTP request per row.** `wwwroot/js/product-id-manager.js#applyImport()` looped over every selected row and did a separate `fetch('/api/productids', POST)` for each. For 1000 rows that's 1000 separate API calls.
+2. **AspNetCoreRateLimit caps `*/api/*` at 100 req/min per IP** (configured in `appsettings.json:96-99`). Request 101 onward returned 429. The fetch wrapper read `await response.text()` for the body but the actual error string came back empty for 429s, so the user-facing toast said `"Unknown error"` instead of `"429 Too Many Requests"`.
+
+**Fix:** Three coordinated changes.
+
+1. **New JSON-body bulk endpoint.** `Controllers/Api/ProductIdApiController.cs` adds `POST /api/productids/certificate/{certificateId}/bulk` accepting `BulkProductIdImportRequest` (`{ items: ProductIdImportItem[], overwriteExisting: bool }`). Replaces 1000 individual POSTs with one request — dodges the rate limit by design.
+2. **Frontend rewritten to use bulk.** `wwwroot/js/product-id-manager.js#applyImport()` now splits selected rows into `creates` and `updates`. Creates go in one bulk POST; modifications still PUT individually (small count, no rate-limit risk). The replace-all toggle now passes `overwriteExisting: true` to the bulk endpoint instead of looping individual DELETEs from the browser.
+3. **Service-layer pre-fetch optimization.** `Services/ProductIdService.cs#ImportProductIdsAsync` no longer calls `CreateProductIdAsync` per row (which itself fired 3 DB queries + a SaveChanges). Now: pre-fetches existing rows, parent cert status, and max display order in 3 queries total; does duplicate detection against an in-memory dictionary; queues all entities; commits a single batched SaveChanges. Improvement for 1000-row import: ~4000 DB roundtrips → ~3 + 1 batched insert. Should complete in 1-2 seconds instead of timing out.
+
+**Header tolerance (bonus, related to DEF-111):** The file-based `/api/productids/certificate/{id}/import` endpoint now accepts both legacy template headers (`Value`, `ProductName`, `ProductSku`) and new-template headers (`Product ID`, `Product Name`, `SKU`). Backend `DownloadSampleCsv` aligned to the new column order.
+
+**Files touched:**
+- `Controllers/Api/ProductIdApiController.cs` — added bulk endpoint and `BulkProductIdImportRequest` DTO; updated DownloadSampleCsv header.
+- `Services/ProductIdService.cs` — rewrote `ImportProductIdsAsync` to pre-fetch + batch insert; made `ImportFromCsvAsync` header lookup tolerant.
+- `wwwroot/js/product-id-manager.js` — rewrote `applyImport()` to use the bulk endpoint.
+
+**Test plan:**
+1. Stop the dev server (it's holding `bin/Debug/net8.0/GCCWebApp.exe` — current PID 37876). Run `dotnet build` then `dotnet run --urls "http://localhost:5101"`.
+2. Navigate to `/Certificate/Edit/26-0106`. Hard-refresh (Ctrl+F5) so the browser picks up the new JS.
+3. Click **Import** in the Product ID Manager toolbar; pick `C:\Users\swest\Downloads\product-ids-sample-1000-asins.csv`.
+4. Preview should show `1000 New, 0 Modified, 0 Errors`.
+5. Click **Apply Import**. Expect: success toast `Imported 1000 product ID(s)` (no failures, no rate-limit error). Table reloads showing 1000 rows.
+6. Inspect browser DevTools Network tab — only **one** request to `/api/productids/certificate/26-0106/bulk`, not 1000 to `/api/productids`.
+7. Inspect server log — should show `Bulk import for certificate {id}: 1000 succeeded, 0 failed`.
+8. Edge case: re-import the same file. Default mode (Add) should preview all 1000 as duplicates and report 1000 errors `already exists on this certificate`. Replace mode should silently keep them (no errors).
+
+**Found by:** Shawn during DEF-111 retest with the 1000-ASIN test file generated 2026-05-06.
+
+---
+
+### DEF-113 — Same per-row HTTP-POST anti-pattern across 4 admin imports (Companies, Tags, Products, Users)
+
+- **Date:** 2026-05-06
+- **Severity:** High (blocks bulk-onboarding workflows on every admin import surface in the app, identical root cause to DEF-112)
+- **Status:** Fixed (pending UAT — requires dev-server restart to load the C# changes)
+- **Reporter:** Shawn — proactive sweep after DEF-112 fix
+
+**Symptom:** After fixing DEF-112 on the Product ID import, an inventory of the rest of the app surfaced four more import flows using the same broken pattern: one HTTP POST per row in a `for await` loop. Affected surfaces:
+
+| Surface | URL | Old endpoint per row | Frontend |
+|---|---|---|---|
+| Companies | `/Company/Management` | `POST /Company/SaveCompany` | `companyManagement.js#applySelectedImport` |
+| Tags | `/Admin/Tags` | `POST /Admin/CreateTag` | `tags.js#applySelectedImport` |
+| Products | `/Admin/ProductManagement` | `POST /Admin/CreateProduct` | `productManagement.js#applySelectedImport` |
+| Users | `/Admin/UserManagement` | `POST /Admin/CreateUser` | `userManagement.js#importCSV` |
+
+In dev, all four were exposed to the localhost IP rate cap of 200/min (`appsettings.json:112-124`), so any import >200 rows would fail rows past 201 with empty `"Unknown error"` strings (same as DEF-112's diagnostic). Per-row pattern was also slow (~10s per 100 rows) regardless of rate-limit hits.
+
+**Root cause:** The frontend pattern of `for (const row of rows) { await fetch('/...', {body: row}) }`. Identical to DEF-112.
+
+**Fix (universal pattern):** For each surface, three coordinated changes:
+1. JSON-body bulk endpoint that accepts pre-parsed rows + replace flag (where applicable).
+2. Service-layer optimization: pre-fetch existing rows + reference data once, in-memory dup detection, batched `SaveChangesAsync`. Dropped from N×4 DB roundtrips to ~3 + 1 batched insert.
+3. Frontend `applyImport()` rewrite: collapse N requests into 1 bulk POST for creates; per-row PUT for the small "modified" set.
+
+**Per-surface specifics:**
+- **Companies** — new `POST /Company/BulkImport`, dup key `Name` (case-insensitive). Replace-all supported via `overwriteExisting` flag. Single bulk audit entry. Files: `Services/ICompanyService.cs`, `Services/CompanyService.cs`, `Controllers/CompanyController.cs`, `wwwroot/js/admin/companyManagement.js`.
+- **Tags** — new `POST /Admin/BulkImportTags`, dup key `Name + TagType` (case-insensitive — Internal/External tags are independent namespaces). Tightens contract: existing `CreateTagAsync` had no dup check. TagType normalized to lowercase to match prod data. Files: `Services/IAdminService.cs`, `Services/AdminService.cs`, `Controllers/AdminController.cs`, `wwwroot/js/tags.js`.
+- **Products** — new `POST /Admin/BulkImportProducts`, dup key `Name + CompanyId`. Pre-fetches Companies + ProductTypes as dictionaries for FK resolution. Replace-all NOT supported (mass-deactivation risk on typo). Bonus fix: the previous JS payload dropped `companyName` and `productTypeName` entirely — products imported as orphans. New JS sends them. Files: `Services/IAdminService.cs`, `Services/AdminService.cs`, `Controllers/AdminController.cs`, `wwwroot/js/admin/productManagement.js`.
+- **Users** — new `POST /Admin/BulkImportUsers`, dup key `Email` (case-insensitive). Pre-fetches Users + Companies + Roles. BCrypt password hashing kept inline (CPU-bound, ~50ms/row). Replace-all NOT supported (locked-out-admin risk). New `BulkImportUserItem` DTO uses string-based references (`CompanyNames: List<string>`) which the service resolves to FK IDs in memory. Bonus fix: `userManagement.js#importCSV` was parsing a 9-column legacy format that no longer matched the 7-column template — every column was silently mis-mapped. Aligned to template format. Files: `Services/IAdminService.cs`, `Services/AdminService.cs`, `Models/AdminModels.cs`, `Controllers/AdminController.cs`, `wwwroot/js/admin/userManagement.js`.
+
+**Tracking decision:** all 4 surfaces logged under one DEF-113 since they share root cause + fix pattern.
+
+**Test plan:**
+1. Stop the dev server; `dotnet build` then `dotnet run --urls "http://localhost:5101"`.
+2. For each test file in `C:\Users\swest\Downloads\`:
+   - `test-companies-250.csv` → `/Company/Management` → Import. Expect 250 created, 0 errors. One request to `/Company/BulkImport` in DevTools Network tab.
+   - `test-tags-250.csv` → `/Admin/Tags` → Import. Expect 250 created, 0 errors. One request to `/Admin/BulkImportTags`.
+   - `test-products-250.csv` → `/Admin/ProductManagement` → Import. Pre-req: `Amazon` company and `Personal Care` product type must exist; otherwise rows fail validation cleanly with name-resolution errors.
+   - `test-users-250.csv` → `/Admin/UserManagement` → Import. BCrypt hashing 250 passwords takes ~12s server-side. One request to `/Admin/BulkImportUsers`.
+3. Re-run any of the above. Expect all 250 to fail with "already exists" — confirms within-batch and cross-batch dup detection works.
+
+**Found by:** Shawn — "let identify them and we need to test all of them" — proactive request after DEF-112 fix.
 
 ---
 

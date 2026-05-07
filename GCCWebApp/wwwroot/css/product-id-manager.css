@@ -511,3 +511,71 @@
         color: #000 !important;
     }
 }
+
+/* DEF-152: Pagination controls — match the admin standard used by
+   Product Management, Tags, etc. Mirrors product-management.css:1556-1601
+   so the styling is identical. Scoped under .product-id-manager so it
+   doesn't bleed into other components. */
+.product-id-manager .pid-pagination-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-top: 1px solid #e9ecef;
+    font-size: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.product-id-manager .pid-pagination-info {
+    color: #666;
+}
+
+.product-id-manager .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.product-id-manager .pagination-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 4px 10px;
+    border: 1px solid #dee2e6;
+    background: white;
+    color: #495057;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.product-id-manager .pagination-btn:hover:not(.disabled):not(.active) {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.product-id-manager .pagination-btn.active {
+    /* DEF-152: Hardcode #002B76 (not var(--blue-dark)) so the active state matches
+       Product Management's pagination exactly. The --blue-dark var is overridden
+       to #002876 in some parent contexts; Product Management dodges this because
+       the cascade lands on its own copy of the fallback. Match what's on screen. */
+    background: #002B76;
+    color: white;
+    border-color: #002B76;
+}
+
+.product-id-manager .pagination-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.product-id-manager .pagination-ellipsis {
+    padding: 0 6px;
+    color: #6c757d;
+    font-size: 14px;
+}

@@ -7,9 +7,40 @@ using System.Text.Json;
 
 namespace GCCWebApp.Services
 {
+    /// <summary>
+    /// CR-018: Paged result for the Product Identifier list. The API endpoint
+    /// returns this shape when paging params are supplied.
+    /// </summary>
+    public class PagedProductIdsResult
+    {
+        public List<CertificateProductId> Items { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages { get; set; }
+    }
+
     public interface IProductIdService
     {
         Task<List<CertificateProductId>> GetProductIdsByCertificateAsync(int certificateId);
+
+        /// <summary>
+        /// CR-018: Paged variant — pushes sort, filter, and search down to SQL
+        /// so we transmit one page (≤pageSize rows) instead of the full list.
+        /// Used by the Edit page's Product Identifier widget.
+        /// </summary>
+        /// <param name="sortColumn">type | value | name | sku | partner | created | createdBy</param>
+        /// <param name="sortDirection">asc | desc</param>
+        Task<PagedProductIdsResult> GetProductIdsByCertificatePagedAsync(
+            int certificateId,
+            int page,
+            int pageSize,
+            string? sortColumn = null,
+            string? sortDirection = null,
+            string? search = null,
+            string? typeFilter = null,
+            string? partnerFilter = null);
+
         Task<CertificateProductId?> GetProductIdAsync(int id);
         Task<CertificateProductId> CreateProductIdAsync(CertificateProductId productId);
         Task<CertificateProductId> UpdateProductIdAsync(CertificateProductId productId);
@@ -65,6 +96,91 @@ namespace GCCWebApp.Services
                 .Include(p => p.CreatedByUser)
                 .Include(p => p.UpdatedByUser)
                 .ToListAsync();
+        }
+
+        public async Task<PagedProductIdsResult> GetProductIdsByCertificatePagedAsync(
+            int certificateId,
+            int page,
+            int pageSize,
+            string? sortColumn = null,
+            string? sortDirection = null,
+            string? search = null,
+            string? typeFilter = null,
+            string? partnerFilter = null)
+        {
+            // CR-018: Push sort + filter + search into SQL. Load only one page
+            // of rows (and Created/Updated user joins for that page) instead
+            // of the full collection.
+
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 50;
+            if (pageSize > 500) pageSize = 500; // cap defensively
+
+            IQueryable<CertificateProductId> q = _context.CertificateProductIds
+                .Where(p => p.CertificateId == certificateId && p.IsActive);
+
+            // Filters
+            if (!string.IsNullOrWhiteSpace(typeFilter))
+            {
+                q = q.Where(p => p.ProductIdType == typeFilter);
+            }
+            if (!string.IsNullOrWhiteSpace(partnerFilter))
+            {
+                q = q.Where(p => p.Partner == partnerFilter);
+            }
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var s = search.Trim();
+                q = q.Where(p =>
+                    EF.Functions.Like(p.ProductIdValue, $"%{s}%") ||
+                    (p.ProductName != null && EF.Functions.Like(p.ProductName, $"%{s}%")) ||
+                    (p.ProductSku != null && EF.Functions.Like(p.ProductSku, $"%{s}%")));
+            }
+
+            // Total count BEFORE paging (used for pagination math).
+            var total = await q.CountAsync();
+
+            // Sort. Default to the same order as the un-paged method so behavior
+            // is consistent when the JS hasn't picked a column yet.
+            var dirAsc = !string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            q = (sortColumn?.ToLowerInvariant()) switch
+            {
+                "type" => dirAsc ? q.OrderBy(p => p.ProductIdType) : q.OrderByDescending(p => p.ProductIdType),
+                "value" => dirAsc ? q.OrderBy(p => p.ProductIdValue) : q.OrderByDescending(p => p.ProductIdValue),
+                "name" => dirAsc ? q.OrderBy(p => p.ProductName) : q.OrderByDescending(p => p.ProductName),
+                "sku" => dirAsc ? q.OrderBy(p => p.ProductSku) : q.OrderByDescending(p => p.ProductSku),
+                "partner" => dirAsc ? q.OrderBy(p => p.Partner) : q.OrderByDescending(p => p.Partner),
+                "created" => dirAsc ? q.OrderBy(p => p.CreatedAt) : q.OrderByDescending(p => p.CreatedAt),
+                "createdby" => dirAsc
+                    ? q.OrderBy(p => p.CreatedByUser != null ? p.CreatedByUser.Username : "")
+                    : q.OrderByDescending(p => p.CreatedByUser != null ? p.CreatedByUser.Username : ""),
+                _ => q.OrderBy(p => p.DisplayOrder ?? int.MaxValue)
+                      .ThenBy(p => p.ProductIdType)
+                      .ThenBy(p => p.CreatedAt),
+            };
+
+            // Stable secondary sort by Id so equal sort keys don't shuffle
+            // between page fetches (would cause rows to skip / repeat across
+            // pages otherwise).
+            q = ((IOrderedQueryable<CertificateProductId>)q).ThenBy(p => p.Id);
+
+            var items = await q
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(p => p.CreatedByUser)
+                .Include(p => p.UpdatedByUser)
+                .ToListAsync();
+
+            var totalPages = total == 0 ? 0 : (int)Math.Ceiling(total / (double)pageSize);
+
+            return new PagedProductIdsResult
+            {
+                Items = items,
+                TotalCount = total,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+            };
         }
 
         public async Task<CertificateProductId?> GetProductIdAsync(int id)
@@ -273,81 +389,146 @@ namespace GCCWebApp.Services
 
         public async Task<BulkImportResult> ImportProductIdsAsync(int certificateId, List<ProductIdImportItem> productIds, int? userId = null, bool overwriteExisting = false)
         {
-            var result = new BulkImportResult();
-            result.TotalProcessed = productIds.Count;
+            // DEF-112: previously this method called CreateProductIdAsync per row,
+            // which itself fired 3 DB queries (duplicate-check, cert-status, MAX(DisplayOrder))
+            // plus a SaveChanges. For 1000 rows that was ~4000 roundtrips and routinely
+            // timed out. Now: pre-fetch existing rows + cert status once, do duplicate
+            // detection in memory, and commit all inserts in a single SaveChanges.
+            var result = new BulkImportResult { TotalProcessed = productIds.Count };
+            var now = DateTime.UtcNow;
 
-            // If overwrite mode, deactivate existing IDs not in the import list
+            var parentCertStatus = await _context.Certificates
+                .Where(c => c.Id == certificateId)
+                .Select(c => c.Status)
+                .FirstOrDefaultAsync();
+            var derivedStatus = CertificateProductId.DeriveStatusFromCert(parentCertStatus);
+
+            var existingRows = await _context.CertificateProductIds
+                .Where(p => p.CertificateId == certificateId)
+                .ToListAsync();
+
+            // CR-015 dup scope: per-cert. Key = upper(type) + ":" + trimmed value.
+            var existingByKey = new Dictionary<string, CertificateProductId>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in existingRows.Where(r => r.IsActive))
+            {
+                var key = $"{(row.ProductIdType ?? string.Empty).ToUpper()}:{(row.ProductIdValue ?? string.Empty).Trim()}";
+                existingByKey[key] = row;
+            }
+
+            var nextDisplayOrder = existingRows.Count > 0
+                ? (existingRows.Max(p => p.DisplayOrder) ?? 0) + 1
+                : 1;
+
             if (overwriteExisting)
             {
-                var existingIds = await _context.CertificateProductIds
-                    .Where(p => p.CertificateId == certificateId && p.IsActive)
-                    .ToListAsync();
-
-                var importKeys = productIds
-                    .Where(i => !string.IsNullOrWhiteSpace(i.Type) && !string.IsNullOrWhiteSpace(i.Value))
-                    .Select(i => $"{i.Type.ToUpper()}:{i.Value.Trim()}")
-                    .ToHashSet();
-
-                foreach (var existing in existingIds)
+                var importKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var item in productIds)
                 {
-                    var key = $"{existing.ProductIdType}:{existing.ProductIdValue}";
+                    if (string.IsNullOrWhiteSpace(item.Type) || string.IsNullOrWhiteSpace(item.Value)) continue;
+                    importKeys.Add($"{item.Type.ToUpper()}:{item.Value.Trim()}");
+                }
+                foreach (var existing in existingRows.Where(e => e.IsActive))
+                {
+                    var key = $"{(existing.ProductIdType ?? string.Empty).ToUpper()}:{(existing.ProductIdValue ?? string.Empty).Trim()}";
                     if (!importKeys.Contains(key))
                     {
                         existing.IsActive = false;
                         existing.UpdatedBy = userId;
-                        existing.UpdatedAt = DateTime.UtcNow;
+                        existing.UpdatedAt = now;
                     }
                 }
-
-                await _context.SaveChangesAsync();
             }
 
             foreach (var item in productIds)
             {
                 try
                 {
-                    // Validate the item (scoped to this certificate)
-                    var validationErrors = await GetValidationErrorsAsync(item, certificateId);
-                    if (validationErrors.Any())
+                    if (string.IsNullOrWhiteSpace(item.Type))
                     {
-                        // If duplicate on this certificate and we're in overwrite mode, skip silently (already exists)
-                        if (overwriteExisting && validationErrors.Count == 1 && validationErrors[0].Contains("already exists"))
-                        {
-                            result.SuccessCount++;
-                            continue;
-                        }
-                        item.ValidationErrors.AddRange(validationErrors);
                         result.ErrorCount++;
-                        result.Errors.Add($"{item.Type}:{item.Value} - {string.Join(", ", validationErrors)}");
+                        result.Errors.Add($":{item.Value} - Type is required");
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(item.Value))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{item.Type}: - Value is required");
                         continue;
                     }
 
-                    // Create the product ID
-                    // CR-015: Status is auto-derived from parent cert by CreateProductIdAsync, ignore item.Status.
-                    var productId = new CertificateProductId
+                    if (!await ValidateProductIdAsync(item.Type, item.Value))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{item.Type}:{item.Value} - Invalid {item.Type} format");
+                        continue;
+                    }
+
+                    var key = $"{item.Type.ToUpper()}:{item.Value.Trim()}";
+                    if (existingByKey.ContainsKey(key))
+                    {
+                        // Match prior contract: in overwrite mode, dup = silent success (kept).
+                        if (overwriteExisting)
+                        {
+                            result.SuccessCount++;
+                        }
+                        else
+                        {
+                            result.ErrorCount++;
+                            result.Errors.Add($"{item.Type}:{item.Value} - Product ID already exists on this certificate");
+                        }
+                        continue;
+                    }
+
+                    var entity = new CertificateProductId
                     {
                         CertificateId = certificateId,
                         ProductIdType = item.Type.ToUpper(),
                         ProductIdValue = item.Value.Trim(),
+                        Status = derivedStatus,
                         Partner = item.Partner,
                         ProductName = item.ProductName,
                         ProductSku = item.ProductSku,
                         Description = item.Description,
                         CreatedBy = userId,
+                        CreatedAt = now,
+                        UpdatedAt = now,
                         IsActive = true,
-                        IsPublic = true
+                        IsPublic = true,
+                        DisplayOrder = nextDisplayOrder++
                     };
 
-                    await CreateProductIdAsync(productId);
+                    _context.CertificateProductIds.Add(entity);
+                    existingByKey[key] = entity; // prevent within-batch dup
                     result.SuccessCount++;
                 }
                 catch (Exception ex)
                 {
                     result.ErrorCount++;
                     result.Errors.Add($"{item.Type}:{item.Value} - {ex.Message}");
-                    _logger.LogError(ex, "Error importing product ID {Type}:{Value}", item.Type, item.Value);
+                    _logger.LogError(ex, "Error queuing bulk import row {Type}:{Value}", item.Type, item.Value);
                 }
             }
+
+            try
+            {
+                if (_context.ChangeTracker.HasChanges())
+                {
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Bulk SaveChanges failed for certificate {CertificateId}", certificateId);
+                // Pessimistic: if the batched save blew up, every queued insert is gone.
+                // Move all "successes" into errors so the caller sees the truth.
+                result.Errors.Add($"Database save failed: {ex.Message}");
+                result.ErrorCount += result.SuccessCount;
+                result.SuccessCount = 0;
+            }
+
+            _logger.LogInformation(
+                "Bulk import for certificate {CertificateId}: {Success} succeeded, {Errors} failed",
+                certificateId, result.SuccessCount, result.ErrorCount);
 
             return result;
         }
@@ -365,13 +546,17 @@ namespace GCCWebApp.Services
 
             var headers = headerLine.Split(',').Select(h => h.Trim('"').Trim()).ToList();
 
-            // Expected headers: Type, Value, Status, Partner, ProductName, ProductSku, Description
-            var requiredHeaders = new[] { "Type", "Value" };
-            var missingHeaders = requiredHeaders.Where(h => !headers.Contains(h, StringComparer.OrdinalIgnoreCase)).ToList();
-
-            if (missingHeaders.Any())
+            // DEF-111: accept either "Value" (legacy) or "Product ID" (new template) for the value column.
+            if (!headers.Contains("Type", StringComparer.OrdinalIgnoreCase))
             {
-                throw new ArgumentException($"Missing required headers: {string.Join(", ", missingHeaders)}");
+                throw new ArgumentException("Missing required header: Type");
+            }
+            var hasValueColumn = headers.Contains("Value", StringComparer.OrdinalIgnoreCase)
+                || headers.Contains("Product ID", StringComparer.OrdinalIgnoreCase)
+                || headers.Contains("ProductId", StringComparer.OrdinalIgnoreCase);
+            if (!hasValueColumn)
+            {
+                throw new ArgumentException("Missing required header: Product ID (or Value)");
             }
 
             string? line;
@@ -385,14 +570,23 @@ namespace GCCWebApp.Services
                 {
                     var values = line.Split(',').Select(v => v.Trim('"').Trim()).ToList();
 
+                    // DEF-111: header lookup is tolerant of both legacy ("ProductName"/"ProductSku")
+                    // and new-template ("Product Name"/"SKU") column names so older templates on
+                    // disk continue to import correctly. "Product ID" also accepted as a synonym
+                    // for "Value" since the displayed column reads "Product ID" not "Value".
                     var item = new ProductIdImportItem
                     {
                         Type = GetValueByHeader(headers, values, "Type") ?? "",
-                        Value = GetValueByHeader(headers, values, "Value") ?? "",
+                        Value = GetValueByHeader(headers, values, "Value")
+                            ?? GetValueByHeader(headers, values, "Product ID")
+                            ?? GetValueByHeader(headers, values, "ProductId")
+                            ?? "",
                         // CR-015: Status header from CSV is ignored; status auto-derives from parent cert.
                         Partner = GetValueByHeader(headers, values, "Partner"),
-                        ProductName = GetValueByHeader(headers, values, "ProductName"),
-                        ProductSku = GetValueByHeader(headers, values, "ProductSku"),
+                        ProductName = GetValueByHeader(headers, values, "ProductName")
+                            ?? GetValueByHeader(headers, values, "Product Name"),
+                        ProductSku = GetValueByHeader(headers, values, "ProductSku")
+                            ?? GetValueByHeader(headers, values, "SKU"),
                         Description = GetValueByHeader(headers, values, "Description")
                     };
 

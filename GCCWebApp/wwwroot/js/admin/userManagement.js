@@ -1052,6 +1052,15 @@ async function enable2FA(user, method) {
 
 // Function to handle CSV import
 async function importCSV() {
+    // DEF-113: previously this looped one POST per row to /Admin/CreateUser. AspNetCoreRateLimit's
+    // localhost IP cap (200/min) blocked imports >200 users. Now: parse CSV, send all rows
+    // in one bulk POST to /Admin/BulkImportUsers.
+    //
+    // CSV-format alignment: header order now matches userManagement.js#downloadImportTemplate()
+    // (Name, Email, Role, Password, Status, RequirePasswordReset, User Company). The previous
+    // parser expected a different 9-column shape (Name, Company, Partners, Email, Role, Status,
+    // LastLogin, Password, RequirePasswordReset) that no longer matched the template — silently
+    // mis-mapping every column. Aligning to the template fixes that latent bug at the same time.
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.csv';
@@ -1065,33 +1074,38 @@ async function importCSV() {
             const contents = e.target.result;
             const lines = contents.split('\n');
 
-            // Skip header row and process data
-            const usersToImport = [];
-
+            const items = [];
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                // Parse CSV properly handling quoted fields
                 const fields = parseCSVLine(line);
-                if (fields.length < 5) continue;  // Must have at least name, company, email, role, status
+                if (fields.length < 3) continue; // need at least Name, Email, Role
 
-                const name = fields[0]?.trim();
-                if (!name) continue;
+                const name = (fields[0] || '').trim();
+                const email = (fields[1] || '').trim();
+                if (!name || !email) continue;
 
-                usersToImport.push({
-                    name: name,
-                    company: fields[1] ? fields[1].trim().split(';').filter(c => c) : [],
-                    partners: fields[2] ? fields[2].trim().split(';').filter(p => p) : [],
-                    email: fields[3]?.trim() || '',
-                    role: fields[4]?.trim().toLowerCase() || 'external',
-                    status: fields[5]?.trim().toLowerCase() || 'active',
-                    password: fields[7]?.trim() || 'TestPass123!',
-                    requirePasswordReset: fields[8] ? fields[8].trim().toLowerCase() === 'true' : true
+                const role = (fields[2] || '').trim();
+                const password = (fields[3] || '').trim() || 'TestPass123!';
+                const status = (fields[4] || '').trim() || 'active';
+                const requirePasswordResetField = (fields[5] || '').trim().toLowerCase();
+                const requirePasswordReset = requirePasswordResetField === 'yes' || requirePasswordResetField === 'true';
+                const companyField = (fields[6] || '').trim();
+                const companyNames = companyField ? companyField.split(';').map(s => s.trim()).filter(Boolean) : [];
+
+                items.push({
+                    name,
+                    email,
+                    role,
+                    password,
+                    status,
+                    requirePasswordReset,
+                    companyNames
                 });
             }
 
-            if (usersToImport.length === 0) {
+            if (items.length === 0) {
                 await AdminCore.showWarningModal({
                     title: 'No Data Found',
                     message: 'No valid users found in CSV file.'
@@ -1099,41 +1113,44 @@ async function importCSV() {
                 return;
             }
 
-            // Save each user to the database
             const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
             let successCount = 0;
             let errorCount = 0;
             const errors = [];
 
-            for (const userData of usersToImport) {
-                try {
-                    const response = await fetch('/Admin/CreateUser', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'RequestVerificationToken': token || ''
-                        },
-                        body: JSON.stringify(userData)
-                    });
+            try {
+                const bulkResp = await fetch('/Admin/BulkImportUsers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token || ''
+                    },
+                    body: JSON.stringify({ items })
+                });
 
-                    const result = await response.json();
-
-                    if (result.success) {
-                        successCount++;
-                    } else {
-                        errorCount++;
-                        errors.push(`${userData.name}: ${result.message || 'Unknown error'}`);
+                if (bulkResp.ok) {
+                    const json = await bulkResp.json();
+                    const result = (json && (json.data || json.Data)) || json;
+                    successCount = result.successCount ?? result.SuccessCount ?? 0;
+                    errorCount = result.errorCount ?? result.ErrorCount ?? 0;
+                    const serverErrors = result.errors ?? result.Errors ?? [];
+                    if (Array.isArray(serverErrors)) {
+                        errors.push(...serverErrors.slice(0, 5));
+                        if (serverErrors.length > 5) errors.push(`...and ${serverErrors.length - 5} more`);
                     }
-                } catch (error) {
-                    errorCount++;
-                    errors.push(`${userData.name}: ${error.message}`);
+                } else {
+                    errorCount = items.length;
+                    let bodyText = '';
+                    try { bodyText = await bulkResp.text(); } catch { /* ignore */ }
+                    errors.push(`Bulk import HTTP ${bulkResp.status}: ${bodyText.slice(0, 200) || bulkResp.statusText}`);
                 }
+            } catch (err) {
+                errorCount = items.length;
+                errors.push(`Bulk import network error: ${err.message || err}`);
             }
 
-            // Reload users from database
             await loadUsers();
 
-            // Show result
             if (errorCount === 0) {
                 await AdminCore.showSuccessModal({
                     title: 'Import Complete',
@@ -1143,13 +1160,13 @@ async function importCSV() {
                 console.error('Import errors:', errors);
                 await AdminCore.showWarningModal({
                     title: 'Partial Import',
-                    message: `Imported ${successCount} users. ${errorCount} failed.`
+                    message: `Imported ${successCount}. ${errorCount} failed: ${errors.slice(0, 3).join('; ')}`
                 });
             } else {
                 console.error('Import errors:', errors);
                 await AdminCore.showErrorModal({
                     title: 'Import Failed',
-                    message: `Import failed. ${errorCount} errors occurred.`
+                    message: `${errorCount} errors: ${errors.slice(0, 3).join('; ') || 'Unknown error'}`
                 });
             }
         };

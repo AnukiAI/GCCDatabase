@@ -693,9 +693,40 @@
             }
         },
 
+        // DEF-151 / CR-017: Recovery prompt suppressed pending Phase 2 UX rework.
+        // The current banner fires on minor field-level diffs (cascading dropdowns
+        // re-firing change events on initial load can trigger it), and the
+        // Restore button doesn't replay file uploads or the cert PDF, so a
+        // partial restore puts the form into an inconsistent state. Hiding the
+        // banner is a one-line gate; auto-save to localStorage continues so the
+        // data is still there for Phase 2 to consume cleanly. Stale entries
+        // older than 2 hours are GC'd on each page load (existing logic below)
+        // so localStorage doesn't accumulate forever while this is hidden.
+        SHOW_RECOVERY_PROMPT: false,
+
         // Check for recovered data on page load
         checkForRecovery: function() {
             if (!this.storageKey || !this.form) return;
+
+            // DEF-151: hide the recovery banner. Continue to GC stale entries
+            // so we don't leak localStorage while disabled.
+            if (!this.SHOW_RECOVERY_PROMPT) {
+                try {
+                    const saved = localStorage.getItem(this.storageKey);
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        const twoHours = 2 * 60 * 60 * 1000;
+                        if (Date.now() - data.timestamp > twoHours) {
+                            localStorage.removeItem(this.storageKey);
+                        }
+                    }
+                } catch (e) {
+                    // Corrupt entry — clear it so it doesn't keep failing parse on every load.
+                    localStorage.removeItem(this.storageKey);
+                }
+                return;
+            }
+
             try {
                 const saved = localStorage.getItem(this.storageKey);
                 if (!saved) return;

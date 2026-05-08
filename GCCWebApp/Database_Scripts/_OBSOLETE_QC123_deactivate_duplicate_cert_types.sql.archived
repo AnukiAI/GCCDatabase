@@ -1,3 +1,52 @@
+-- ============================================================================
+-- OBSOLETE — DO NOT RUN
+-- ============================================================================
+--
+-- Originally authored 2026-04-23 to "deactivate 10 duplicate CertificationType
+-- rows" flagged by Carly on the public filter API. The diagnosis was wrong.
+--
+-- Re-verified against prod (`gccwebap_certificates`) on 2026-05-07:
+--   - 7 of the 10 target Ids (49, 50, 53, 54, 55, 59, 65) DO NOT EXIST on prod.
+--   - The 3 surviving target Ids (71, 73, 78) are NOT duplicates. They are
+--     Level-2 child rows under ParentId=6 ("Certified Sustainability Facts"):
+--         71  Closed Loop Product           Level=2  ParentId=6
+--         73  Recycled Content              Level=2  ParentId=6
+--         78  Waste Diversion from Landfill Level=2  ParentId=6
+--
+-- These L2 rows are part of the cert-type HIERARCHY by design. Certificates
+-- reference them via `Certificates.CertificationTypeSubcategoryId` (the
+-- subcategory FK), NOT via `CertificationTypeId`. The script's safety check
+-- ("CertCount=0 via c.CertificationTypeId=ct.Id") is the wrong join — it
+-- returns 0 because subcategory references go through a different column,
+-- not because the rows are unused.
+--
+-- 12 cert-type names share L1+L2 pairs by design (see prod check 2026-05-07).
+-- Deactivating the L2s would break the subcategory cascade on every cert
+-- whose CertificationTypeSubcategoryId points at one of them.
+--
+-- Per memory rule `feedback_certtypes_hierarchy.md` (saved 2026-05-01):
+--   "CertificationTypes is hierarchical — same Name at different `Level`s
+--    is by design, not a duplicate. Always include `Level` + `ParentId` in
+--    queries; don't propose cleanup SQL without checking hierarchy first."
+--
+-- The original surface defect (filter API returning duplicate names in the
+-- public dropdown) was solved purely by the code-side change in
+-- `Controllers/Api/CertificateTilesApiController.cs:253-257` adding
+-- `.Where(ct => ct.IsActive)` plus appropriate Level filtering. No data
+-- deactivation is or was needed.
+--
+-- File renamed from `QC123_deactivate_duplicate_cert_types.sql` to
+-- `_OBSOLETE_QC123_deactivate_duplicate_cert_types.sql.archived` on
+-- 2026-05-07 so it does not match `*.sql` globs in deploy scripts and so
+-- the filename itself signals the archived/do-not-run status.
+--
+-- The original SQL is preserved BELOW INSIDE A BLOCK COMMENT for reference.
+-- Do not uncomment. Do not run.
+--
+-- ============================================================================
+
+/*  ORIGINAL SQL — PRESERVED FOR REFERENCE — DO NOT RUN
+
 -- QC #123: Deactivate duplicate CertificationType rows
 -- Database QC Log 4.22.26 — Carly flagged public filter /api/certificate-tiles/filters
 -- returning duplicate certification type names.
@@ -42,3 +91,5 @@ GO
 
 -- ROLLBACK (if needed):
 -- UPDATE CertificationTypes SET IsActive = 1 WHERE Id IN (49,50,53,54,55,59,65,71,73,78);
+
+*/

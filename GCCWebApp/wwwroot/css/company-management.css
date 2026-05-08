@@ -512,6 +512,27 @@
     text-decoration: underline;
 }
 
+/* Long URLs/emails/names must break inside their cell, not overflow horizontally
+   past the column boundary. Applies at all viewport widths. */
+#company-table .company-url,
+#company-table .company-email,
+#company-table .url-link,
+#company-table .company-name {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+#company-table .url-link {
+    display: inline-block;
+    max-width: 100%;
+}
+
+#company-table td {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
 /* Toast notification */
 .company-toast {
     position: fixed;

@@ -2186,12 +2186,21 @@ namespace GCCWebApp.Services
                 .Select(c => new { c.Id, c.Name })
                 .ToDictionaryAsync(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase);
 
-            var productTypeByName = await _context.ProductTypes
+            // Pull all ProductTypes then group client-side. Same Name can repeat across
+            // hierarchy levels (per feedback_certtypes_hierarchy.md); first match is good
+            // enough for import — caller can disambiguate via Edit later.
+            // (Can't push GroupBy with StringComparer.OrdinalIgnoreCase to SQL.)
+            var productTypeRows = await _context.ProductTypes
                 .Select(pt => new { pt.Id, pt.Name, pt.CategoryId })
-                .GroupBy(pt => pt.Name, StringComparer.OrdinalIgnoreCase)
-                // Same Name can repeat across hierarchy levels (per feedback_certtypes_hierarchy);
-                // first match is good enough for import — caller can disambiguate via Edit later.
-                .ToDictionaryAsync(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+                .ToListAsync();
+            var productTypeByName = new Dictionary<string, (int Id, string Name, int CategoryId)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pt in productTypeRows)
+            {
+                if (!productTypeByName.ContainsKey(pt.Name))
+                {
+                    productTypeByName[pt.Name] = (pt.Id, pt.Name, pt.CategoryId);
+                }
+            }
 
             // Default category for products that don't supply a ProductType
             var defaultCategory = await _context.ProductCategories.FirstOrDefaultAsync();
@@ -2230,16 +2239,20 @@ namespace GCCWebApp.Services
                     }
                     var name = model.Name.Trim();
 
+                    // Match existing CreateProductAsync's lenient behavior: unmatched Company
+                    // and ProductType names produce a Warning + null FK, not a hard error.
+                    // Strict-fail would be a behavior change vs the single-create endpoint.
                     int? companyId = null;
                     if (!string.IsNullOrWhiteSpace(model.CompanyName))
                     {
-                        if (!companyByName.TryGetValue(model.CompanyName.Trim(), out var cid))
+                        if (companyByName.TryGetValue(model.CompanyName.Trim(), out var cid))
                         {
-                            result.ErrorCount++;
-                            result.Errors.Add($"{name} - Company '{model.CompanyName}' not found");
-                            continue;
+                            companyId = cid;
                         }
-                        companyId = cid;
+                        else
+                        {
+                            result.Warnings.Add($"{name} - Company '{model.CompanyName}' not found, imported without company");
+                        }
                     }
 
                     var key = $"{name}|{companyId?.ToString() ?? "0"}";
@@ -2261,9 +2274,7 @@ namespace GCCWebApp.Services
                         }
                         else
                         {
-                            result.ErrorCount++;
-                            result.Errors.Add($"{name} - Product Type '{model.ProductTypeName}' not found");
-                            continue;
+                            result.Warnings.Add($"{name} - Product Type '{model.ProductTypeName}' not found, imported without type");
                         }
                     }
 

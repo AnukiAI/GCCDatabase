@@ -658,11 +658,15 @@ class ProductIdManager {
 
         // Collect form data from individual fields (form is a div, not a <form>)
         // CR-015: Status omitted — backend auto-derives from parent cert.
+        // DEF-161: normalise the value to canonical case before save so a
+        // lowercase ASIN entered as `b08n5wrwnw` saves as `B08N5WRWNW`.
+        const _type = document.getElementById('productIdType').value;
+        const _rawValue = document.getElementById('productIdValue').value.trim();
         const productId = {
             Id: parseInt(document.getElementById('productIdId').value) || 0,
             CertificateId: parseInt(document.getElementById('certificateId').value) || this.certificateId,
-            ProductIdType: document.getElementById('productIdType').value,
-            ProductIdValue: document.getElementById('productIdValue').value.trim(),
+            ProductIdType: _type,
+            ProductIdValue: this.normalizeProductIdValue(_type, _rawValue),
             Partner: document.getElementById('productIdPartner').value || '',
             ProductName: document.getElementById('productName').value.trim(),
             ProductSku: document.getElementById('productSku').value.trim(),
@@ -857,8 +861,10 @@ class ProductIdManager {
     }
 
     isValidProductId(type, value) {
+        // DEF-161: ASIN regex is case-insensitive (`/i`) so users can type
+        // lowercase Amazon ASINs like `b08n5wrwnw`. Save path uppercases.
         const patterns = {
-            'ASIN': /^[A-Z0-9]{10}$/,
+            'ASIN': /^[A-Z0-9]{10}$/i,
             'UPC': /^[0-9]{12}$/,
             'GTIN': /^[0-9]{8}$|^[0-9]{12}$|^[0-9]{13}$|^[0-9]{14}$/,
             'EAN': /^[0-9]{13}$/,
@@ -874,6 +880,14 @@ class ProductIdManager {
 
         const pattern = patterns[type];
         return pattern ? pattern.test(value) : value.length <= 50;
+    }
+
+    // DEF-161: Normalise to the format the standard mandates before save / dup check.
+    // ASIN/UPC/GTIN/EAN/ISBN/SKU/MPN are uppercase by spec; OTHER is freeform.
+    normalizeProductIdValue(type, value) {
+        if (!value) return value;
+        const upperTypes = ['ASIN', 'UPC', 'GTIN', 'EAN', 'ISBN', 'SKU', 'MPN'];
+        return upperTypes.includes(type) ? value.toUpperCase() : value;
     }
 
     /**

@@ -1,5 +1,35 @@
 # Observations Log
 
+## 2026-05-07 — DEF-161 /Certificate/Create Product ID validation: lowercase ASIN blocked + server skipped format validation on save
+
+Shawn flagged "validation issues" on `https://gccwebapp.com/Certificate/Create` — couldn't enter a Product ID that passed validation, suspected the issue was global. Reproduced on localhost with a Playwright pass against every Product ID type (`B08N5WRWNW`, `b08n5wrwnw`, `036000291452`, `4006381333931`, `9780306406157`, `SKU-12345`, etc.). Two defects under the one symptom:
+
+1. **Client ASIN regex was case-sensitive** (`product-id-manager.js:861`). Typing `b08n5wrwnw` got "ASIN must be exactly 10 alphanumeric characters" — the message didn't say *uppercase*, so users had no recovery hint. SKU and MPN regexes already had the `/i` flag; ASIN was the lone outlier. Server `ProductIdService.ValidateAsin` had the same case-sensitive pattern.
+2. **`CertificateController.Create` POST persisted Product IDs without running format validation** at all — only the Edit-time `/api/productids` round-trip called `ProductIdService.ValidateProductIdAsync`. `Edit` POST had the same gap. Net effect: a malformed Product ID could be saved through the form path even if the client check were bypassed.
+
+Fix is a single normalisation rule applied at every save boundary:
+- Client: ASIN regex now case-insensitive; new `normalizeProductIdValue` uppercases ASIN/UPC/GTIN/EAN/ISBN/SKU/MPN values before push to in-memory list.
+- Server: new `ProductIdService.NormalizeValueForType` helper, applied inside `ValidateProductIdAsync`, `CreateProductIdAsync`, `UpdateProductIdAsync`, and `ImportProductIdsAsync` (bulk CSV).
+- Server: Create POST and Edit POST both run a pre-validation pass — canonicalise type+value, then `ValidateProductIdAsync` each row, raising `ModelState["ProductIds[i].ProductIdValue"]` errors for invalid entries so the form re-renders with inline errors instead of silently saving.
+
+Verified locally:
+- Validation truth table (`verify-isbn.mjs`): `asin_lower` and `asin_mixed` flipped from `false` to `true` after fix; all other types unchanged.
+- Server `/api/productids/validate` (`verify-server.mjs`): lowercase ASIN now returns `data: true`; bad value still `data: false`.
+- End-to-end Create (`e2e-create.mjs`): submitted `b08abc1234` (lowercase) on a new cert; redirect to `/Certificate/CertificateInternalView/26-0158`. Direct SQL: `ASIN | B08ABC1234` — canonicalised on save.
+
+Files: `wwwroot/js/product-id-manager.js`, `Services/ProductIdService.cs`, `Controllers/CertificateController.cs`. DEF-161 in `docs/tracking/defect-register.md`. Entry in `docs/tracking/shipped-2026-05.md`.
+
+---
+
+## 2026-05-07 - Database_Scripts/ prod audit + QC123 script archived
+
+Audited all 5 scripts in `Database_Scripts/` against prod (`gccwebap_certificates`) for run status:
+- `20260504_DEF134_RetargetProductSubcategoryFK.sql` — ✅ applied (EF history row present, FK retargeted to ProductTypes, 5 products now carry non-null subcat IDs).
+- `AddPartnerRole.sql` — ✅ applied (Partner Id=6, IsActive=1, 4 perms; matches memory 5/01).
+- `FixMojibakeProductNames.sql` — ✅ applied. Verified via `CONVERT(VARBINARY, Name)` showing 0x2122 (™) and 0x00AE (®) at the expected positions on Ids 62, 71, 73, 76, 80. sqlcmd's default codepage was mangling display; underlying NVARCHAR is clean.
+- `RemoveManageWorkflowPermission.sql` — ✅ applied (`certificate.workflow` row count = 0; matches memory 5/01).
+- `QC123_deactivate_duplicate_cert_types.sql` — ❌ NOT applied AND **must not be applied**. Original 2026-04-23 diagnosis predates the cert-type-hierarchy rule. 7 of 10 target Ids don't exist on prod; the 3 surviving (71/73/78) are L2 children of ParentId=6 ("Certified Sustainability Facts") — by design, not dups. They're referenced by certs via `CertificationTypeSubcategoryId` (not `CertificationTypeId`), so the script's CertCount=0 safety check joined the wrong column. **Renamed to `_OBSOLETE_QC123_deactivate_duplicate_cert_types.sql.archived`** with a DO-NOT-RUN header. The original SQL is preserved inside a block comment for reference. The 2026-04-23 observations entry below has been amended with a retraction note.
+
 ## 2026-05-07 - QC #58 answer to Carly: cert numbering + draft model + form recovery
 
 Carly's question on the cert Create timeout: *"is that draft user specific or would the draft save for all logged in internal users because that would be the next cert # available?"* Mashed together three different things; clarified each:
@@ -3973,6 +4003,8 @@ Carly flagged `/api/certificate-tiles/filters` returning 43 cert types with ~10 
 ### Fix
 - **Data:** Deactivated 10 duplicate records: IDs 49, 50, 53, 54, 55, 59, 65, 71, 73, 78. SQL saved to `Database_Scripts/QC123_deactivate_duplicate_cert_types.sql` for prod deploy (includes rollback).
 - **Code:** `Controllers/Api/CertificateTilesApiController.cs:253-257` — added `.Where(ct => ct.IsActive)` to filter query.
+
+> **2026-05-07 RETRACTION:** the data-side diagnosis above is **wrong** and the SQL was never run on prod. Per `feedback_certtypes_hierarchy.md` (saved 2026-05-01) those rows are L1/L2 hierarchy pairs by design, not duplicates; certs reference the L2s via `CertificationTypeSubcategoryId` not `CertificationTypeId`, so the script's CertCount=0 safety check joined the wrong column. Prod re-verify on 2026-05-07: 7 of 10 target Ids don't exist; the 3 surviving rows (71/73/78) are L2 children of "Certified Sustainability Facts" (ParentId=6, Level=2). The code-side `.Where(ct => ct.IsActive)` change above was the real fix and is sufficient. SQL renamed to `_OBSOLETE_QC123_deactivate_duplicate_cert_types.sql.archived` so it can't be run by accident.
 
 ### Verified
 API now returns 52 unique certification types (down from 62, removed 10 dup rows).

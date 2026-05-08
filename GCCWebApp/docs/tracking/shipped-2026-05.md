@@ -6,6 +6,94 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-161 — /Certificate/Create now accepts lowercase Amazon ASINs and validates Product IDs server-side on save (2026-05-07, fix in working tree pending deploy)
+
+Shawn reported on the `/Certificate/Create` page that he could not get a Product ID to pass validation. Reproducing on localhost surfaced two real defects under that one symptom. First, the Product ID modal's ASIN check was case-sensitive — typing a real Amazon ASIN in lowercase (e.g. `b08n5wrwnw`, the form people commonly paste from URLs or notes) was rejected with the unhelpful message "ASIN must be exactly 10 alphanumeric characters", giving the user no clue that the only thing wrong was case. Every other letter-bearing type (SKU, MPN) was already case-insensitive, and ASIN was the lone exception. Second, even when a value did pass the in-page check, the server's `Certificate/Create` POST persisted the Product ID without ever running format validation — the format regex only ran when Product IDs were saved through the Edit-time `/api/productids` round-trip. So a JS bypass or client regression could silently store malformed Product IDs on certs created through the main authoring flow. The Edit-time form POST had the same gap.
+
+The fix is a single canonicalisation rule applied at every save boundary, plus a server-side pre-validation pass on both Create and Edit. On the client, the ASIN regex is now case-insensitive and `handleFormSubmit` uppercases the value before pushing it into the in-memory list — so a lowercase entry is accepted and stored as the canonical uppercase form. On the server, `ProductIdService.NormalizeValueForType` is applied inside `ValidateProductIdAsync`, `CreateProductIdAsync`, `UpdateProductIdAsync`, and the bulk-CSV import path, so the database never stores a lowercase ASIN regardless of caller. The Create and Edit POST handlers now run the same normalisation + format-validation pass over each `model.ProductIds` entry, raising `ModelState` errors keyed `ProductIds[i].ProductIdValue` for invalid rows so the form re-renders with inline errors instead of silently saving bad data. Verified end-to-end on localhost: typing `b08abc1234` into the modal, saving the cert, then querying SQL directly returns `ASIN | B08ABC1234` — value canonicalised on save. Genuinely-bad inputs (wrong length, bad ISBN prefix, etc.) are still correctly rejected.
+
+Files: `wwwroot/js/product-id-manager.js`, `Services/ProductIdService.cs`, `Controllers/CertificateController.cs`, `docs/tracking/defect-register.md` (DEF-161 entry).
+
+---
+
+## DEF-114 — Main nav bar now aligns with page content on every authenticated page (2026-05-07, fix in working tree pending deploy)
+
+Shawn flagged via the cert single-view screenshot that the main navigation bar (`Certificates`, `Products`, etc.) was rendering flush against the left viewport edge while the page title and content sat further inset inside the centered `.page-container`. The misalignment was visible on every authenticated page — every role saw the same broken layout — but only obvious when there was a clear h1/content reference like the cert single view to compare against. Root cause was a single missing `>` on the `<div class="nav-wrapper …">` opening tag in the shared layout: with the tag never properly closed, the browser parsed the entire `<nav class="main-nav">` element as junk attributes on the div, dropping the nav element from the DOM. The `<ul class="nav-links">` then sat directly inside `.nav-wrapper`, which has no `max-width` or horizontal padding, so the links extended to the viewport edge. Fixing the markup restores the `<nav class="main-nav">` element, whose `max-width: 1800px; padding: 0 40px` exactly matches `.page-container`, so the nav bar now lines up with the page title and body content on every page.
+
+Files: `Views/Shared/_Layout.cshtml`, `docs/tracking/defect-register.md` (DEF-114 entry).
+
+---
+
+## DEF-160 — Login now lands users on their role-appropriate certificates page (2026-05-07, fix in working tree pending deploy)
+
+Shawn reported that every successful login dropped users on the same generic certificates page regardless of role. The intent has always been role-based landing: External and Partner users should land on the External certificates tile view (the public-by-partner view they have access to), Analyst and Admin users should land on the Internal certificates tile view (the workflow-bearing view with full lifecycle data). What was actually shipped was inconsistent: External did route correctly, Partner had no entry in the role switch and silently fell through to the public Certificate tile view, and Analyst/Admin landed on the legacy Dashboard page instead of the Internal cert view. Net effect: only one of the four authenticated roles was hitting its intended landing page.
+
+The fix is a one-screen change in `Controllers/AccountController.cs` (`RedirectToLocal`, the post-login dispatch) and a matching update in `Controllers/HomeController.cs` (the bookmark/root-URL dispatch). Both switch tables now route Partner and External to `CertificateTileViewExternal`, and Analyst and Admin to `CertificateTileViewInternal`. The Public role still goes to the public `CertificateTileView`. Auth policies were already correct — `ExternalAccess` permits External/Partner/Admin/Analyst, and `AnalystOrAdmin` permits Admin/Analyst — so no policy or seed-data change was needed. The `Url.IsLocalUrl(returnUrl)` short-circuit is preserved, so deep-link returns after a session-timeout still go to the original page.
+
+Files: `Controllers/AccountController.cs`, `Controllers/HomeController.cs`.
+
+---
+
+## DEF-159 — Internal cert tile view: tablet "Template" button no longer stretches to 100% width when wrapped (2026-05-07, fix in working tree pending deploy)
+
+On tablet portrait (~768px), the Internal cert tile view's action button row was wrapping the trailing "Template" button onto its own line and inflating it to span 100% of the row, while the four buttons above it (Add Certificate, Download Selected, Export All to CSV, Import) sat at content width on row 1. The visual result was a thin row of four buttons with one giant Template button stretched across underneath — clearly broken on a tablet, even if functional. Shawn caught it on `gccwebapp.com` and pasted the offending markup as confirmation: the lone `<a class="btn btn-outline">…Template</a>` admin-only button is the wrapped element. External tile view was unaffected because external users see only two buttons in this row, and they fit on a single line at tablet width.
+
+The bug was in a single `@media (max-width: 768px)` block in `main.css` that combined two intents: `flex: 1` on the buttons (intended for phones, to give each wrapped button a full-width tap target) and `min-width: 140px` (intended for tablet, to keep buttons readable when wrapped). At true phone widths every button wraps onto its own row and `flex: 1` is desirable. At tablet widths only one button wraps, and `flex: 1` makes that lone button inflate to fill the row — exactly the symptom. The fix splits the rule by breakpoint: at `≤768px` keep `min-width: 140px` only (no flex grow, no stretch); at `≤480px` re-apply `flex: 1` + `justify-content: stretch` for the phone-only full-width behavior. Net effect: on tablet, Template now wraps at content width (~110px); on phone, the full-width-button layout is preserved exactly as before.
+
+This is a CSS-only change with a narrow blast radius — only `.export-options .btn` selectors are affected, and they appear on the cert tile views (Internal + External) and a couple of certificate landing pages that already passed QC. No JS, no view markup, no controller changes.
+
+Files: `wwwroot/css/main.css`, `docs/tracking/defect-register.md` (DEF-159 entry).
+
+---
+
+## DEF-158 — Partner and External users can now click into cert detail from the tile view (2026-05-07, fix in working tree pending deploy)
+
+A High-severity functional break for Partner role: logged in as Partner on `gccwebapp.com`, every click on a certificate tile in the External tile view dead-ended at `/Account/AccessDenied`. Same failure for External users. The tile view itself was reachable (the `ExternalAccess` policy admits External, Partner, Admin, and Analyst), but the JavaScript that handles a tile click hardcoded the wrong destination — `/Certificate/CertificateInternalView/{number}` instead of `/Certificate/CertificateExternalView/{number}`. The Internal route is gated by `AnalystOrAdmin` policy (Admin and Analyst only), so any non-Admin/Analyst user clicking a tile got bounced to AccessDenied with the Internal route in the ReturnUrl. The bug applied to both entry points the JS exposes — `viewCertificate(num)` (button + context menu) and `viewCertificateDetails(num)` (tile click) — both opened the wrong URL.
+
+The fix is two route swaps in `wwwroot/js/certificate-tile-view-external.js` to point both `window.open` calls at the External detail route. That route is gated by the same `ExternalAccess` policy as the tile view itself, so all four roles (External, Partner, Admin, Analyst) succeed at the click-through. The Internal tile view's JS (`certificate-tile-view-internal.js`) is unchanged — Admin and Analyst still route to the Internal detail view from their own tile view as before. No change to controllers or auth policies; the policy contract was already correct, only the JS was inconsistent with it.
+
+A second, unrelated file in the same folder — `certificateTileViewExternal.js` (camelCase) — already had the correct External route. It is not referenced by any view and is effectively orphaned. Left it alone for this fix; cleaning up dead JS files is out of scope and would broaden the change.
+
+Verification: reproduced Shawn's exact symptom on localhost. As an External user (same `ExternalAccess` policy as Partner), the pre-fix JS opened `/Certificate/CertificateInternalView/26-0146` and the page redirected to `/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateInternalView%2F26-0146` — byte-for-byte the URL Shawn pasted. Post-fix, both JS entry points open `/Certificate/CertificateExternalView/26-0146` and the External detail view returns 200. No Partner-role users exist in the local dev DB so the actual Partner login path is verified by way of the shared policy + shared JS, not a live Partner session — flagging that for prod smoke testing.
+
+Files: `wwwroot/js/certificate-tile-view-external.js`, `docs/tracking/defect-register.md` (DEF-158 entry).
+
+---
+
+## DEF-157 — Cert preview no longer forces portrait shape on landscape thumbnails (2026-05-07, fix in working tree pending deploy)
+
+Reviewing `gccwebapp.com` on desktop, Shawn caught cert 26-0157 displaying with a tall portrait preview box and the landscape cert image squished into a tiny strip in the middle, surrounded by whitespace top and bottom. The same behavior reproduced on cert 26-0146 — both have landscape-orientation thumbnails (~600×464 PNG). Cause turned out to be the `aspect-ratio: 8.5/11` constraint on `.certificate-preview-box` in `main.css` — a rule that had been deployed earlier to solve DEF-156 (raw images overflowing the column on tablet landscape). The portrait-box rule fixed the overflow case for portrait certs but applied the same portrait shape to landscape certs, which forced `object-fit: contain` to letterbox them down to a fraction of the container's height. Cert PDFs in the GCC dataset come in both orientations, so a single fixed aspect-ratio could never be right for both.
+
+The fix drops the rigid aspect-ratio constraint and lets the box size to whatever the actual image is. The img now uses `width: 100%; height: auto` (natural sizing) instead of `position: absolute; width: 100%; height: 100%; object-fit: contain` (forced filling of a fixed-shape parent). The container retains its border, rounded corners, overflow:hidden, and a 200px min-height so the no-PDF placeholder still has somewhere to sit. Net result: portrait certs render at portrait shape, landscape certs render at landscape shape, both without whitespace and without overflowing the column. Verified locally at desktop 1440, tablet landscape 1024, tablet portrait 768, and mobile 390 — 0 overflowing elements at every viewport, and the cert image now fills its container at natural aspect ratio.
+
+One thing worth calling out from the diagnosis: today's earlier `DEF-156 fix` (adding the same preview-box base rules to main.css) was effectively a no-op duplicate. Pulling `https://gccwebapp.com/css/main.css` showed exactly 133,563 bytes — byte-for-byte identical to the local file post-edit — meaning the rules I "added" had already been deployed (likely via a recent build that wasn't reflected in the local working tree). The portrait-shape behavior on the live site was already the result of those rules running. DEF-157 is the real fix.
+
+Files: `wwwroot/css/main.css`, `docs/tracking/defect-register.md` (DEF-157 entry).
+
+---
+
+## DEF-156 — Certificate image no longer overflows on tablet landscape in cert detail views (2026-05-07, fix in working tree pending deploy)
+
+While reviewing `https://gccwebapp.com/Certificate/CertificateInternalView/26-0146` on a tablet in landscape orientation, Shawn saw the certificate preview image rendering outside the card and not wrapping. The same break reproduced locally at the standard 1024×768 tablet-landscape viewport: a Playwright overflow scan found the bare `<img>` element inside the right-column preview box at width 612px with its right edge at x=1252 — 228px past the 1024px viewport. Mobile (≤768px) and full desktop both rendered correctly, which is why the issue had slipped through prior testing.
+
+Root cause was a stylesheet wiring gap that has been latent for some time. `wwwroot/css/certificates.css` contains the base `.certificate-preview-box` rules — the `aspect-ratio: 8.5/11` shape, `overflow: hidden` clipping, and `position: absolute; width: 100%; height: 100%; object-fit: contain` on the inner `<img>` — but `Views/Shared/_Layout.cshtml` only links `main.css`. The certificates.css file is referenced in `appsettings.Performance.json` as part of a bundle but never linked from the layout, so its rules never reach the browser. main.css carried only a `≤768px` `@media` override for the preview-box img; at any viewport above 768px, the bare `<img>` had no styling at all and rendered at its intrinsic pixel size.
+
+Fix is to copy the missing base `.certificate-preview-box`, `.certificate-preview-box img`, and `.preview-placeholder` rules into `wwwroot/css/main.css` (placed above the existing tablet `@media (max-width: 1024px) and (min-width: 769px)` block) so they apply at every viewport. We deliberately did NOT add a `<link>` to certificates.css — pulling in an entire stylesheet that has been unloaded for an unknown amount of time would risk surfacing other unrelated rules that could conflict with current main.css. Targeted inline of the specific rules keeps the blast radius equal to the bug.
+
+Verification: re-ran the overflow scan post-fix on both internal and external cert detail views at 768 (tablet portrait), 1024 (tablet landscape), 1180 (iPad Air landscape), and 1280 (small desktop). Pre-fix: 1 overflowing element at 1024px (the bare img). Post-fix: 0 overflowing elements at every tested viewport. Image sits inside the 8.5×11 aspect-ratio box with `object-fit: contain` and the action icons (zoom + download) align below the box on the right edge as designed.
+
+Files: `wwwroot/css/main.css`, `docs/tracking/defect-register.md` (DEF-156 entry).
+
+---
+
+## DEF-155 — Database Listing URL no longer overflows the card on mobile in cert detail views (2026-05-07, fix in working tree pending deploy)
+
+Reviewing `https://gccwebapp.com/Certificate/CertificateInternalView/26-0146` on a phone, Shawn noticed the rendered Database Listing URL — `https://gccwebapp.com/Certificate/Verify/26-0146` — extended past the right edge of the card. URLs without spaces or hyphens won't wrap by default, so on narrow viewports the anchor stretched its container and pushed content offscreen. Added inline `word-break: break-all; overflow-wrap: anywhere;` to the verify-URL anchor in both the internal and external cert detail views so the URL wraps mid-string on mobile while still remaining a single clickable link.
+
+Files: `Views/Certificate/CertificateInternalView.cshtml`, `Views/Certificate/CertificateExternalView.cshtml`, `docs/tracking/defect-register.md` (DEF-155 entry).
+
+---
+
 ## DEF-154 — "Replace all existing" toggle on CSV import now actually deactivates orphan rows (2026-05-07, fix in working tree pending deploy)
 
 The same testing session that surfaced DEF-153 also surfaced DEF-154: with the dup-detection now correctly identifying matching rows on every page, Shawn re-imported a 1000-row CSV against cert 26-0023, checked "Replace all existing," and clicked Apply — and the lone stray row on the cert that wasn't in the file did not get deactivated. The toggle was visually checked, the import committed without error, but server state was unchanged. Worse, in a partial-import scenario (some new rows + some modified) the existing implementation could have deactivated rows the user explicitly wanted to keep.

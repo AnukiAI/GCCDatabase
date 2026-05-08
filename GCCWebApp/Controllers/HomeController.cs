@@ -25,8 +25,9 @@ namespace GCCWebApp.Controllers
                 return userRole switch
                 {
                     "External" => RedirectToAction("CertificateTileViewExternal", "Certificate"),
-                    "Analyst" => RedirectToAction("Index", "Dashboard"),
-                    "Admin" => RedirectToAction("Index", "Dashboard"),
+                    "Partner" => RedirectToAction("CertificateTileViewExternal", "Certificate"),
+                    "Analyst" => RedirectToAction("CertificateTileViewInternal", "Certificate"),
+                    "Admin" => RedirectToAction("CertificateTileViewInternal", "Certificate"),
                     _ => RedirectToAction("CertificateTileViewInternal", "Certificate")
                 };
             }

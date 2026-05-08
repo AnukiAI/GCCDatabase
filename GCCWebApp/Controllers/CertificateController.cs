@@ -401,6 +401,34 @@ namespace GCCWebApp.Controllers
                     _logger.LogWarning("No ProductIds received in model");
                 }
 
+                // DEF-161: Create POST was persisting Product IDs with no format
+                // validation — only the /api/productids POST path validated. Run
+                // the same checks here so a cert created from /Certificate/Create
+                // can't store malformed ASIN/UPC/GTIN/EAN/ISBN.
+                if (model.ProductIds != null && model.ProductIds.Any())
+                {
+                    for (int i = 0; i < model.ProductIds.Count; i++)
+                    {
+                        var pid = model.ProductIds[i];
+                        // Canonicalise so the regex sees uppercase form (matches client save path).
+                        pid.ProductIdType = (pid.ProductIdType ?? string.Empty).Trim().ToUpperInvariant();
+                        pid.ProductIdValue = Services.ProductIdService.NormalizeValueForType(pid.ProductIdType, pid.ProductIdValue ?? string.Empty).Trim();
+
+                        if (string.IsNullOrWhiteSpace(pid.ProductIdType) || string.IsNullOrWhiteSpace(pid.ProductIdValue))
+                        {
+                            ModelState.AddModelError($"ProductIds[{i}].ProductIdValue", "Product ID type and value are required.");
+                            continue;
+                        }
+                        var ok = await _productIdService.ValidateProductIdAsync(pid.ProductIdType, pid.ProductIdValue);
+                        if (!ok)
+                        {
+                            ModelState.AddModelError(
+                                $"ProductIds[{i}].ProductIdValue",
+                                $"Invalid {pid.ProductIdType} format: '{pid.ProductIdValue}'.");
+                        }
+                    }
+                }
+
                 if (ModelState.IsValid)
                 {
                     var certificate = new Certificate
@@ -791,6 +819,32 @@ namespace GCCWebApp.Controllers
 
             try
             {
+                // DEF-161: same pre-validation pass as Create POST. Edit was relying on
+                // the /api/productids round-trip during the modal save, but a direct
+                // form post (or a JS regression) can land lowercase ASIN here too.
+                if (model.ProductIds != null && model.ProductIds.Any())
+                {
+                    for (int i = 0; i < model.ProductIds.Count; i++)
+                    {
+                        var pid = model.ProductIds[i];
+                        pid.ProductIdType = (pid.ProductIdType ?? string.Empty).Trim().ToUpperInvariant();
+                        pid.ProductIdValue = Services.ProductIdService.NormalizeValueForType(pid.ProductIdType, pid.ProductIdValue ?? string.Empty).Trim();
+
+                        if (string.IsNullOrWhiteSpace(pid.ProductIdType) || string.IsNullOrWhiteSpace(pid.ProductIdValue))
+                        {
+                            ModelState.AddModelError($"ProductIds[{i}].ProductIdValue", "Product ID type and value are required.");
+                            continue;
+                        }
+                        var ok = await _productIdService.ValidateProductIdAsync(pid.ProductIdType, pid.ProductIdValue);
+                        if (!ok)
+                        {
+                            ModelState.AddModelError(
+                                $"ProductIds[{i}].ProductIdValue",
+                                $"Invalid {pid.ProductIdType} format: '{pid.ProductIdValue}'.");
+                        }
+                    }
+                }
+
                 if (ModelState.IsValid)
                 {
                     var certificate = await _certificateRepository.GetByIdAsync(id);

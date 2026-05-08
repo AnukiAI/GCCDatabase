@@ -351,10 +351,10 @@ These are the items where Anuki marks Sprint 2 as "Ready for UAT" with **High pr
   - Type-ahead "Mat" → narrows to "Material Ingredient Reporting".
   - Open Edit page for an existing cert with Cert Type "Manufacturer Inventory Verification" — does it still display, or has migration converted to new name?
 - **Negative cases:**
-  - **CRITICAL: Has the migration actually been run against prod DB?** Per QC #45 dev notes: "This script needs to be run against the database manually." Verify before declaring PASS. Pull current row count for these types from DB.
+  - ~~CRITICAL: Has the migration actually been run against prod DB?~~ **Re-verified 2026-05-07.** Direct query against `gccwebap_certificates` (`68.71.129.120,1533`) confirms the desired end state is in place: 4 L1 adds present and Active (`Carbon Footprint Reduction` Id=3, `Sustainable Energy Practices` Id=17, `Sustainable Manufacturing Practices` Id=18, `Product Optimization: Carbon Footprint Reduction` Id=119); 2 deactivate targets absent entirely (`Renewable Resource Content`, `Biobased` — never seeded at L1, so the UPDATE was moot); rename complete (`Manufacturer Inventory Verification` absent, `Material Ingredient Reporting` Id=13 Active). Idempotent script — re-running today would change zero rows.
   - Existing certs that referenced "Renewable Resource Content" — what status are they in? Did they get reassigned?
 - **Cross-role:** Analyst (Create + Edit). Admin (CertificateTypes management page).
-- **Status:** **PASS — 2026-05-01.** Prod (`gccwebap_certificates`) has the migration applied cleanly: all 5 expected L1 types Active, 3 deprecated L1 types removed, 14 L2 subcategories under "Certified Sustainability Facts" by design (referenced via `Certificates.CertificationTypeSubcategoryId`). Dev DB is stale by spec but Shawn confirmed dev data hygiene isn't a priority; DEF-105 closed Won't Fix. **No prod-side issue here.** Schema lesson saved as `feedback_certtypes_hierarchy.md` (always include `Level` + `ParentId` when comparing).
+- **Status:** **PASS — 2026-05-01, re-verified 2026-05-07 against prod DB.** Prod (`gccwebap_certificates`) has the migration's desired end state: all 5 expected L1 types Active, 3 deprecated L1 types removed, 14 L2 subcategories under "Certified Sustainability Facts" by design (referenced via `Certificates.CertificationTypeSubcategoryId`). Dev DB is stale by spec but Shawn confirmed dev data hygiene isn't a priority; DEF-105 closed Won't Fix. **No prod-side issue here.** Schema lesson saved as `feedback_certtypes_hierarchy.md` (always include `Level` + `ParentId` when comparing).
 
 ---
 
@@ -489,7 +489,7 @@ These are `Open` + `High priority`. Each gets a full card. Stubs for the other 4
 
 These are items 50, 51, 60, 104, 123-134 (excl 135/136), 137-142, 144-149 (excl 143), 152-163 — Open without High priority. Stubs in Section E.1; flagging here the ones with known risk:
 
-- **QC-050 / QC-051** — DEFECT/DATA Open: certificate types data + cert type dropdown. Linked to QC #45 (cert type SQL migration). If migration didn't run on prod, these all FAIL together.
+- **QC-050 / QC-051** — DEFECT/DATA Open: certificate types data + cert type dropdown. Linked to QC #45 (cert type SQL migration). **2026-05-07: prod DB re-verified — desired end state present; this dependency is no longer a risk.**
 - **QC-104** — DEFECT Open: per memory 2026-03-24, breadcrumb fixes shipped. Verify breadcrumb on every admin page is correct (not "#" links).
 - **QC-148** — CR Open: Excel template hint headers. Confirm every admin page's CSV/Excel template has parenthetical hints (e.g. "Status (Active, Inactive)").
 - **QC-150 / QC-151** — Forgot Password / Duo MFA. **CR-009 / CR-010 approved 2026-04-29.** Test cards to be authored once implementation is in flight (need B2C plan tier confirmation first to know what's actually being built).

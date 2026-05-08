@@ -2098,6 +2098,60 @@ body.theme-option4 .certificate-single-card .card-body {
     font-size: 18px; /* Increased from 16px */
 }
 
+/* Certificate preview box — base rules (apply at all viewports).
+   No fixed aspect-ratio: GCC cert thumbnails come in both portrait
+   (Letter 8.5/11) and landscape orientations. A rigid portrait box
+   correctly sized portrait certs but letterboxed landscape certs
+   into tiny centered images with huge whitespace top/bottom. Letting
+   the box size to the natural image dimensions handles both. The
+   placeholder (no-PDF case) gets min-height so it has somewhere to sit. */
+.certificate-preview-box {
+    width: 100%;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    cursor: pointer;
+    position: relative;
+    display: block;
+    min-height: 200px;
+}
+
+.certificate-preview-box img {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.certificate-preview-box .preview-placeholder {
+    text-align: center;
+    padding: 20px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.certificate-preview-box .preview-placeholder i {
+    font-size: 48px;
+    color: #adb5bd;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.certificate-preview-box .preview-placeholder p {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6c757d;
+    margin: 0 0 4px 0;
+}
+
+.certificate-preview-box .preview-placeholder small {
+    color: #adb5bd;
+    font-size: 11px;
+}
+
 /* Tablet responsive adjustments for single view */
 @media (max-width: 1024px) and (min-width: 769px) {
     .certificate-details-grid .certificate-image-column {
@@ -2111,6 +2165,7 @@ body.theme-option4 .certificate-single-card .card-body {
 
     .certificate-download-action {
         width: 100%;
+        justify-content: flex-end;
     }
 }
 
@@ -2183,7 +2238,7 @@ body.theme-option4 .certificate-single-card .card-body {
 
     .certificate-download-action {
         max-width: 100%;
-        justify-content: center;
+        justify-content: flex-end;
     }
 
     .certificate-internal-actions {
@@ -5781,25 +5836,33 @@ input[type="checkbox"] {
     min-height: 200px; /* Ensure minimum height for content */
 }
 
-/* Mobile responsiveness for controls */
+/* Tablet responsiveness for controls — buttons wrap at content width, no stretching */
 @media (max-width: 768px) {
     .export-controls-row,
     .view-controls-row {
         padding: 0 8px;
     }
 
-    .export-options {
-        justify-content: stretch;
-    }
-
         .export-options .btn {
-            flex: 1;
             min-width: 140px;
         }
 
     .view-toggle-container {
         justify-content: center;
     }
+}
+
+/* Phone-only: stretch wrapped buttons full-width for larger tap targets.
+   Scoped to ≤480px so a lone wrapped button at tablet width (e.g. "Template"
+   on Internal view) does NOT inflate to 100% of the row. */
+@media (max-width: 480px) {
+    .export-options {
+        justify-content: stretch;
+    }
+
+        .export-options .btn {
+            flex: 1;
+        }
 }
 
 /* Enhanced table header spacing */

@@ -1143,7 +1143,7 @@
         }
         // Encode URI to handle certificate numbers with special chars like "24-0366"
         // Opens in new window so user doesn't lose their place in the tile view
-        window.open(`/Certificate/CertificateInternalView/${encodeURIComponent(certificateNumber)}`, '_blank');
+        window.open(`/Certificate/CertificateExternalView/${encodeURIComponent(certificateNumber)}`, '_blank');
     };
 
     function viewCertificate(certificateNumber) {
@@ -1152,7 +1152,7 @@
             return;
         }
         // Encode URI to handle certificate numbers with special chars like "24-0366"
-        window.open(`/Certificate/CertificateInternalView/${encodeURIComponent(certificateNumber)}`, '_blank');
+        window.open(`/Certificate/CertificateExternalView/${encodeURIComponent(certificateNumber)}`, '_blank');
     }
 
     function editCertificate(certificateNumber) {

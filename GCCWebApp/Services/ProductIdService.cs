@@ -196,6 +196,10 @@ namespace GCCWebApp.Services
         {
             try
             {
+                // DEF-161: canonicalise type + value so DB never stores e.g. lowercase ASIN.
+                productId.ProductIdType = (productId.ProductIdType ?? string.Empty).ToUpperInvariant();
+                productId.ProductIdValue = NormalizeValueForType(productId.ProductIdType, productId.ProductIdValue).Trim();
+
                 // Validate the product ID
                 if (!await ValidateProductIdAsync(productId.ProductIdType, productId.ProductIdValue))
                 {
@@ -253,6 +257,10 @@ namespace GCCWebApp.Services
                 {
                     throw new ArgumentException("Product ID not found");
                 }
+
+                // DEF-161: canonicalise type + value before comparison and persist.
+                productId.ProductIdType = (productId.ProductIdType ?? string.Empty).ToUpperInvariant();
+                productId.ProductIdValue = NormalizeValueForType(productId.ProductIdType, productId.ProductIdValue).Trim();
 
                 // Validate the product ID if it changed
                 if (existing.ProductIdType != productId.ProductIdType || existing.ProductIdValue != productId.ProductIdValue)
@@ -364,6 +372,9 @@ namespace GCCWebApp.Services
             }
 
             type = type.ToUpper();
+            // DEF-161: normalise value before regex match so lowercase Amazon
+            // ASINs (e.g. `b08n5wrwnw`) pass — same fix as the client side.
+            value = NormalizeValueForType(type, value).Trim();
 
             // Special validation for specific types
             switch (type)
@@ -385,6 +396,21 @@ namespace GCCWebApp.Services
                 default:
                     return Task.FromResult(!string.IsNullOrWhiteSpace(value) && value.Length <= 50);
             }
+        }
+
+        /// <summary>
+        /// DEF-161: Canonicalise a Product ID value for its type. ASIN, UPC, GTIN,
+        /// EAN, ISBN, SKU, and MPN are uppercase by spec; OTHER is freeform and
+        /// preserved as the user typed it.
+        /// </summary>
+        public static string NormalizeValueForType(string? type, string? value)
+        {
+            if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
+            var upperTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "ASIN", "UPC", "GTIN", "EAN", "ISBN", "SKU", "MPN"
+            };
+            return type != null && upperTypes.Contains(type) ? value.ToUpperInvariant() : value;
         }
 
         public async Task<BulkImportResult> ImportProductIdsAsync(int certificateId, List<ProductIdImportItem> productIds, int? userId = null, bool overwriteExisting = false)
@@ -483,7 +509,8 @@ namespace GCCWebApp.Services
                     {
                         CertificateId = certificateId,
                         ProductIdType = item.Type.ToUpper(),
-                        ProductIdValue = item.Value.Trim(),
+                        // DEF-161: canonicalise on bulk import too — same rule as single create.
+                        ProductIdValue = NormalizeValueForType(item.Type.ToUpper(), item.Value).Trim(),
                         Status = derivedStatus,
                         Partner = item.Partner,
                         ProductName = item.ProductName,

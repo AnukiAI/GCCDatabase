@@ -18,6 +18,200 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-161 — Lowercase ASIN rejected on /Certificate/Create; Create POST persisted unvalidated Product IDs
+
+- **Date:** 2026-05-07
+- **Severity:** High (go-live blocker — primary cert authoring path; data-integrity hole on save)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Shawn — "https://gccwebapp.com/Certificate/Create — validation issues. I'm unable to enter a product ID that meets validation requirements."
+
+**Symptom:** In the Product Identifier modal on the Certificate Create form, typing a real Amazon ASIN in lowercase (e.g. `b08n5wrwnw`) was rejected with "ASIN must be exactly 10 alphanumeric characters" with no clue that the issue was case. The user had no way to know to retype in upper case, since the official Amazon ASIN format is uppercase but lowercase entries are common when users paste from URLs or notes. Compounding this: even when a value did pass the client check, the server-side `CertificateController.Create` POST persisted Product IDs **without ever calling `ProductIdService.ValidateProductIdAsync`** — only the Edit-time `/api/productids` round-trip ran format validation. So a JS bypass or client regression would silently store malformed Product IDs.
+
+**Root cause:**
+1. `wwwroot/js/product-id-manager.js:861` — ASIN regex was `/^[A-Z0-9]{10}$/` (case-sensitive). All other type regexes that involve letters (`SKU`, `MPN`) already used the `i` flag; ASIN was the lone exception.
+2. `Services/ProductIdService.cs:712` (`ValidateAsin`) — same case-sensitive regex on the server. The `type.ToUpper()` call in `ValidateProductIdAsync` only normalised the type, not the value.
+3. `Controllers/CertificateController.cs` Create POST (line 480-495) — added each `model.ProductIds` entry directly to `certificate.ProductIds` and saved via `_unitOfWork`, skipping `_productIdService.ValidateProductIdAsync` entirely. The Edit POST had the same gap.
+
+**Fix:**
+- **Client (`wwwroot/js/product-id-manager.js`):**
+  - ASIN regex now `/^[A-Z0-9]{10}$/i`.
+  - New `normalizeProductIdValue(type, value)` uppercases the value for the seven typed-code formats (ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN); `OTHER` stays freeform.
+  - `handleFormSubmit` runs the value through the normaliser before pushing to in-memory list / posting to API.
+- **Server (`Services/ProductIdService.cs`):**
+  - New `public static NormalizeValueForType(string? type, string? value)` helper mirrors the client rule.
+  - `ValidateProductIdAsync` normalises the value before regex match, so direct API calls with lowercase ASIN now pass.
+  - `CreateProductIdAsync` and `UpdateProductIdAsync` canonicalise type + value at the top of the method, so the DB never stores a lowercase ASIN regardless of caller.
+  - `ImportProductIdsAsync` (CSV bulk path) normalises `ProductIdValue` on insert.
+- **Server (`Controllers/CertificateController.cs`):**
+  - Both Create POST and Edit POST run a pre-validation pass over `model.ProductIds`: canonicalise type + value via `ProductIdService.NormalizeValueForType`, then `_productIdService.ValidateProductIdAsync` each row, adding `ModelState` errors keyed `ProductIds[i].ProductIdValue` for invalid entries. Submission falls back to the same View with errors surfaced inline.
+
+**Files changed (4):**
+- `wwwroot/js/product-id-manager.js`
+- `Services/ProductIdService.cs`
+- `Controllers/CertificateController.cs`
+- `docs/tracking/defect-register.md` (this entry)
+
+**Verification (localhost, http://localhost:5101):**
+1. **Validation function truth table** (`verify-isbn.mjs`): Before fix — `asin_lower=false`, `asin_mixed=false`. After fix — `asin_lower=true`, `asin_mixed=true`, all other types unchanged.
+2. **Server `/api/productids/validate`** (`verify-server.mjs`): lowercase ASIN now returns `data: true`; mixed-case + lowercase type returns `data: true`; genuinely bad ASIN (`TOO_SHORT`) still returns `data: false`.
+3. **End-to-end Create** (`e2e-create.mjs`): Form filled with company, product, cert type, dates, tiny PDF, and a Product ID with **lowercase** value `b08abc1234`. Submit succeeded; redirect to `/Certificate/CertificateInternalView/26-0158`. Direct SQL confirmation: `SELECT ProductIdType, ProductIdValue FROM CertificateProductIds WHERE CertificateId IN (SELECT Id FROM Certificates WHERE Number='26-0158')` returned `ASIN | B08ABC1234` — value canonicalised on save, not stored as the lowercase form the user typed.
+4. **Genuinely-bad inputs still rejected:** `B08N5WR` (short), `12345` (UPC short), `1234567` (GTIN short), `1234567890123` (ISBN bad prefix), `AB` (SKU short), 60-char MPN.
+
+**Audit table (severity ranked):**
+
+| # | Defect | Where | Severity | Status |
+|---|--------|-------|----------|--------|
+| A | ASIN regex case-sensitive (client) | product-id-manager.js:861 | High | Fixed |
+| B | ASIN regex case-sensitive (server) | ProductIdService.cs:712 | High | Fixed (via NormalizeValueForType pre-pass) |
+| C | Create POST persists Product IDs without format validation | CertificateController.cs Create POST | High | Fixed (pre-validation pass added) |
+| D | Edit POST persists Product IDs without format validation (same gap) | CertificateController.cs Edit POST | High | Fixed (same pre-validation pass) |
+| E | UPC/EAN client-side missing checksum (length-only) | product-id-manager.js:862,864 | Medium | **Deferred** — server now enforces on Create + Edit + API + bulk import; client length check is fast feedback. Adding checksum to client is a UX-only enhancement and risks blocking valid UPCs the user has already verified externally. |
+| F | Bulk CSV import didn't normalise value | ProductIdService.cs:511 | Medium | Fixed (uses NormalizeValueForType) |
+
+**Deploy:** Pending. Restart required (server-side changes).
+
+---
+
+### DEF-160 — Login does not route users to their role-appropriate certificates page
+
+- **Date:** 2026-05-07
+- **Severity:** Medium (functional — every authenticated session lands on a generic page; correct page is one extra click away)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Shawn — testing login flow on `gccwebapp.com`. Reported "When you login, for example external, partner should go to external certificates. Analyst and Admin should go to internal certificates. Currently, it just goes to certificates."
+
+**Symptom:** Successful login dropped users on a generic certs page regardless of role. Specifically: External landed on the External tile view (correct), Partner landed on the public `CertificateTileView` (wrong — should be External tile view), Analyst and Admin landed on the legacy Dashboard `Index` (wrong — should be Internal tile view).
+
+**Root cause:** Two switch tables were out of sync with the intended landing-page mapping:
+1. `Controllers/AccountController.cs` `RedirectToLocal` — had no `"Partner"` case, so Partner fell through to the default (`CertificateTileView`, public). Analyst and Admin cases routed to `Dashboard/Index` rather than `CertificateTileViewInternal`.
+2. `Controllers/HomeController.cs` `Index` — same issue. No Partner case, Analyst/Admin routed to Dashboard.
+
+**Fix:** Updated both switch tables. Final mapping for authenticated roles:
+- `Public` → `CertificateTileView`
+- `External` → `CertificateTileViewExternal`
+- `Partner` → `CertificateTileViewExternal`
+- `Analyst` → `CertificateTileViewInternal`
+- `Admin` → `CertificateTileViewInternal`
+
+Auth policies are already correct — `ExternalAccess` permits External/Partner/Admin/Analyst, `AnalystOrAdmin` permits Admin/Analyst — so the redirect targets are reachable by their respective roles. The `Url.IsLocalUrl(returnUrl)` short-circuit in `RedirectToLocal` is preserved, so deep-link returns after session timeout still work.
+
+**Files:** `Controllers/AccountController.cs`, `Controllers/HomeController.cs`.
+
+**Verification (pending — please QC after deploy):** Log in fresh (no `returnUrl`) as each role. External and Partner should land on `/Certificate/CertificateTileViewExternal`. Analyst and Admin should land on `/Certificate/CertificateTileViewInternal`. With a `returnUrl` (deep-link forced through login), users still return to the original URL.
+
+---
+
+### DEF-159 — Tablet: "Template" import button stretches to 100% width on the row beneath the other action buttons (Internal cert tile view)
+
+- **Date:** 2026-05-07
+- **Severity:** Medium (visible layout — primary cert listing page, Admin role, tablet portrait)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Shawn — viewing `https://gccwebapp.com/Certificate/CertificateTileViewInternal` on tablet (≤768px). Action button row above the tile grid was wrapping the trailing "Template" button onto its own line and the wrapped button was inflating to fill 100% of the row width while every other button remained content-sized.
+
+**Symptom:** The Internal tile view shows five action buttons in `.export-options` for Admin: Add Certificate / Download Selected / Export All to CSV / Import / Template. At ~768px viewport width, four buttons fit on row 1 and "Template" wraps onto row 2 alone — but instead of staying at its content width (~110px), it stretched to 100% of the container. External tile view was unaffected because that view has only two buttons in `.export-options` and they fit on a single row even at tablet width.
+
+**Root cause:** `wwwroot/css/main.css` had a single `@media (max-width: 768px)` block that applied both `.export-options { justify-content: stretch; }` and `.export-options .btn { flex: 1; min-width: 140px; }`. The `flex: 1` on a flex item that wraps onto a row by itself causes that item to grow to the full available row width — exactly the observed behavior. The intent of `flex: 1` was to make buttons full-width on phones (single column layout, larger tap targets), which is fine at phone widths where every button wraps; the bug only surfaces at tablet widths where exactly one button wraps alone.
+
+**Fix:** Split the rule by breakpoint in `wwwroot/css/main.css`:
+- Tablet `≤768px`: keep `min-width: 140px` on the buttons but drop `flex: 1` and `justify-content: stretch`. Wrapped buttons now stay at content width.
+- Phone `≤480px`: re-introduce `flex: 1` and `justify-content: stretch` for the full-width tap-target behavior on phones.
+
+This preserves the phone UX while removing the tablet inflation. Internal view's "Template" button now sits at content width on row 2 instead of spanning full width. External view is unchanged by the fix because its two buttons still fit on row 1 at tablet width.
+
+**Files:** `wwwroot/css/main.css` only (one media-query block split into two).
+
+**Verification (pending — please QC after deploy):** Open `/Certificate/CertificateTileViewInternal` as Admin on iPad portrait (~768px). Action button row should show Add Certificate / Download Selected / Export All to CSV on row 1, and Import + Template both at content width on row 2 (or all on row 1 at slightly wider tablets). On phone (~375px) buttons should still stack full-width as before.
+
+---
+
+### DEF-158 — External tile view sends Partner/External users to AccessDenied when clicking a cert tile
+
+- **Date:** 2026-05-07
+- **Severity:** **High** (functional break — Partner role cannot view any cert detail page from the tile view)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Shawn — logged in as Partner role on `gccwebapp.com`, clicked into cert 26-0157, landed on `/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateInternalView%2F26-0157`. Same break for any External user.
+
+**Symptom:** Both External and Partner roles can reach the External tile view (`/Certificate/CertificateTileViewExternal`) per the `ExternalAccess` policy (External + Partner + Admin + Analyst). But clicking a tile opens `/Certificate/CertificateInternalView/{number}` in a new tab — and that route is gated by `AnalystOrAdmin` policy. Partner + External fail the policy check and get redirected to AccessDenied.
+
+**Root cause:** `wwwroot/js/certificate-tile-view-external.js` had hardcoded the wrong route in two places (lines 1146 and 1155):
+```js
+window.open(`/Certificate/CertificateInternalView/${encodeURIComponent(certificateNumber)}`, '_blank');
+```
+Both `viewCertificate(num)` (button click / context menu) and `viewCertificateDetails(num)` (tile click) pointed at the Internal route. The External route (`CertificateExternalView`) is the correct target — it's gated by `ExternalAccess`, which all four roles satisfy.
+
+There is also a stale orphan file `wwwroot/js/certificateTileViewExternal.js` (camelCase) that already had the correct external route. It is not loaded by any view. Did not touch it as part of this fix.
+
+**Fix:** Changed both `window.open(...)` calls in `wwwroot/js/certificate-tile-view-external.js` to point at `/Certificate/CertificateExternalView/{number}`. The Internal tile view's JS (`certificate-tile-view-internal.js`) is unchanged — it still routes to InternalView correctly for Admin/Analyst.
+
+**Files:** `wwwroot/js/certificate-tile-view-external.js` only.
+
+**Verification:** Reproduced Shawn's exact symptom locally. Logged in as External user (same `ExternalAccess` policy as Partner), navigated to External tile view, called `window.viewCertificate('26-0146')` and `window.viewCertificateDetails('26-0146')` with `window.open` stubbed — both returned `/Certificate/CertificateExternalView/26-0146` post-fix (was `CertificateInternalView` pre-fix). Direct GET on `/Certificate/CertificateInternalView/26-0146` as External user reproduced the AccessDenied redirect Shawn hit; direct GET on `/Certificate/CertificateExternalView/26-0146` returns 200.
+
+**Note on dev DB:** No Partner-role users exist in the local dev DB (Roles table has Partner at id 7 but UserRoles has no rows for it). Verified via External which shares the same `ExternalAccess` policy and the same JS path.
+
+---
+
+### DEF-157 — Cert detail view forces portrait box on landscape cert images (squished/letterboxed thumbnails)
+
+- **Date:** 2026-05-07
+- **Severity:** Medium (visible layout — primary cert detail page)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Shawn — viewing cert 26-0157 on `gccwebapp.com` desktop, the cert preview was showing in a tall portrait container with the landscape cert image squished into a tiny letterboxed strip surrounded by whitespace. "Why did this break?"
+
+**Symptom:** GCC cert thumbnails come in both portrait (Letter 8.5×11) and landscape orientations. The `.certificate-preview-box` rule in `wwwroot/css/main.css` was applying `aspect-ratio: 8.5 / 11` to every preview box. With `object-fit: contain` on the inner img, that meant: portrait certs filled the box correctly, but landscape certs (e.g., 26-0157's 600×464 thumbnail, 26-0146's 600×462 thumbnail) were scaled down to fit the box width and centered vertically with huge whitespace top and bottom.
+
+**Why "did this break":** The `aspect-ratio: 8.5 / 11` constraint and the matching base `.certificate-preview-box img` rules were added to main.css recently to fix DEF-156 (image rendering at natural pixel size and overflowing the column on tablet landscape). The first fix solved the overflow but introduced the new shape constraint, which is wrong for landscape certs. Net effect on tablet landscape:
+
+| State | Portrait certs | Landscape certs |
+|---|---|---|
+| Before portrait-box rule | OK | Image overflowed column ❌ |
+| After portrait-box rule (current live) | OK | Image squished into tiny letterbox ❌ |
+
+**Root cause:** Forced portrait `aspect-ratio` is wrong for the dataset — cert thumbnails do not all have the same orientation. A rigid container shape can never simultaneously match both. Earlier today's "DEF-156 fix" today was a no-op duplicate against rules already deployed live (verified by pulling `https://gccwebapp.com/css/main.css` — 133,563 bytes match, rules already present).
+
+**Fix:** Removed `aspect-ratio: 8.5 / 11`, `display: flex`, and `align-items/justify-content: center` from `.certificate-preview-box`. Switched img from `position: absolute; width:100%; height:100%; object-fit: contain` to `position: relative; display: block; width:100%; height: auto`. Container now sizes itself to the natural aspect ratio of whatever image loads. Added `min-height: 200px` so the no-PDF placeholder still has somewhere to sit.
+
+**Files:** `wwwroot/css/main.css` only.
+
+**Verification:** Reproduced and re-tested cert 26-0146 (600×462 landscape thumbnail) on localhost at desktop (1440×900), tablet landscape (1024×768), tablet portrait (768×1024), and mobile (390×844) via Playwright. Pre-fix: container was 8.5/11 portrait shape (e.g., 316×471 at tablet landscape), image rendered at 314×244 in the middle with letterbox whitespace. Post-fix: container = image natural aspect (e.g., 316×244), image fills container, 0 overflowing elements at every viewport. Screenshots: `C:\Users\swest\AppData\Local\Temp\uitest-pidsort\screenshots\fix-26-0146-*.png`.
+
+---
+
+### DEF-156 — Certificate image overflows viewport on tablet landscape (1024px) in cert detail views
+
+- **Date:** 2026-05-07
+- **Severity:** Medium (visible layout break on a primary tablet viewport)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Shawn — `https://gccwebapp.com/Certificate/CertificateInternalView/26-0146` on tablet landscape, certificate preview image was rendering outside the card and not wrapping.
+
+**Symptom:** On the cert detail page (Internal AND External views) at tablet landscape ~1024px, the bare `<img>` inside the right-column preview box rendered at its natural pixel size (~612px wide) and overflowed the column / viewport. Layout was correct on mobile (≤768px) and on full desktop, which masked the bug.
+
+**Root cause:** `wwwroot/css/certificates.css` defines the base `.certificate-preview-box` and `.certificate-preview-box img` rules (`aspect-ratio: 8.5/11`, `overflow: hidden`, `position: absolute; width: 100%; height: 100%; object-fit: contain`), but `Views/Shared/_Layout.cshtml` only links `main.css`. The certificates.css bundle is referenced in `appsettings.Performance.json` but never linked in the layout. main.css only had a `≤768px` `@media` override for the preview-box img — at any viewport above 768px the img was unstyled and rendered at its intrinsic pixel size.
+
+**Fix:** Added the missing base `.certificate-preview-box`, `.certificate-preview-box img`, and `.preview-placeholder` rules to `wwwroot/css/main.css` (above the existing tablet `@media (max-width: 1024px) and (min-width: 769px)` block), so they apply at every viewport. Did NOT add the `<link>` to certificates.css to avoid pulling in unrelated rules.
+
+**Files:** `wwwroot/css/main.css` only.
+
+**Verification:** Played through `/Certificate/CertificateInternalView/26-0146` and `/Certificate/CertificateExternalView/26-0146` at 768 (portrait), 1024 (landscape), 1180 (iPad Air landscape), 1280 (small desktop) via Playwright. Pre-fix: 1 element overflowing at 1024px (the bare `<img>`, width 612, right edge at x=1252). Post-fix: 0 overflowing elements at every tested viewport. Image now sits in the aspect-ratio box with `object-fit: contain`. Screenshots in `C:\Users\swest\AppData\Local\Temp\uitest-pidsort\screenshots\26-0146-*.png`.
+
+---
+
+### DEF-155 — Database Listing URL overflows viewport on mobile in cert detail views
+
+- **Date:** 2026-05-07
+- **Severity:** Low (cosmetic / mobile layout)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Shawn — reviewing `https://gccwebapp.com/Certificate/CertificateInternalView/26-0146` on mobile; the rendered Database Listing URL anchor (`https://gccwebapp.com/Certificate/Verify/26-0146`) extended past the right edge of the card.
+
+**Symptom:** Long URL displayed as anchor text has no natural break points; on narrow viewports it stretched the container and pushed content off-screen.
+
+**Root cause:** Anchor element had no wrapping rule. URLs without spaces or hyphens won't wrap by default — they need explicit `word-break` or `overflow-wrap` to break mid-string.
+
+**Fix:** Added inline `word-break: break-all; overflow-wrap: anywhere;` to the verify-URL anchor in both `Views/Certificate/CertificateInternalView.cshtml` and `Views/Certificate/CertificateExternalView.cshtml`.
+
+**Files:** `Views/Certificate/CertificateInternalView.cshtml`, `Views/Certificate/CertificateExternalView.cshtml`.
+
+---
+
 ### DEF-154 — "Replace all existing" toggle silently dropped when import has no "new" rows; partial imports could deactivate matching rows
 
 - **Date:** 2026-05-07
@@ -1638,6 +1832,38 @@ In dev, all four were exposed to the localhost IP rate cap of 200/min (`appsetti
 3. Re-run any of the above. Expect all 250 to fail with "already exists" — confirms within-batch and cross-batch dup detection works.
 
 **Found by:** Shawn — "let identify them and we need to test all of them" — proactive request after DEF-112 fix.
+
+---
+
+### DEF-114 — Main nav bar misaligned with page content (flush left edge instead of inside `.page-container`)
+
+- **Date:** 2026-05-07
+- **Severity:** Medium (cosmetic, but global — affects every authenticated page across all roles)
+- **Status:** Fixed
+- **Reporter:** Shawn — Cert single view screenshot, `https://gccwebapp.com/Certificate/CertificateSingleView/26-0157`
+
+**Symptom:** The main navigation bar (`Certificates`, `Products`, etc.) renders flush against the left viewport edge instead of aligning with the `<h1 class="page-title">` and the rest of `.page-container` content. Visible on every page that uses `_Layout.cshtml`.
+
+**Root cause:** `Views/Shared/_Layout.cshtml:155` was missing the closing `>` on the `<div class="nav-wrapper …">` opening tag:
+
+```cshtml
+<div class="nav-wrapper @(User.Identity?.IsAuthenticated != true ? "nav-anon" : "")"
+    <nav class="main-nav" aria-label="Main navigation">
+```
+
+Browser parsers treat `<nav`, `class="main-nav"`, `aria-label="Main navigation"` as junk attributes on the div until they hit the first `>`, then drop the `<nav>` entirely. The `.nav-links <ul>` ends up directly inside `.nav-wrapper`, which has no `max-width` or horizontal padding — so links extend to viewport edge while `.page-container` (max-width 1800px, padding 0 40px) and `.main-nav` (same) sit further inset.
+
+**Fix:** Closed the `nav-wrapper` div tag. One-character change. With the `<nav class="main-nav">` element actually rendering, its `max-width: 1800px; padding: 0 40px` matches `.page-container` exactly, so the nav links now align with `.page-title` on every page.
+
+**File:** `Views/Shared/_Layout.cshtml:155`.
+
+**Test plan:**
+1. Hard-refresh `/Certificate/CertificateSingleView/26-0157` while signed in as `external` (or any authenticated role).
+2. Confirm `Certificates` link aligns horizontally with the `Certificate Details` h1.
+3. Spot-check a page in each role: `/Certificate/CertificateTileViewExternal` (External), `/Certificate/CertificateTileViewInternal` (Analyst/Admin), `/Admin/UserManagement` (Admin).
+4. View source — confirm `<nav class="main-nav">` opens correctly and is a child of `.nav-wrapper`.
+
+**Found by:** Shawn — single view screenshot.
 
 ---
 

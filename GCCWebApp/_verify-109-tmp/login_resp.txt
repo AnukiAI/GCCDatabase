@@ -1,0 +1,22 @@
+HTTP/1.1 302 Found
+Content-Length: 0
+Date: Fri, 08 May 2026 03:48:36 GMT
+Server: Kestrel
+Cache-Control: no-cache,no-store
+Expires: Thu, 01 Jan 1970 00:00:00 GMT
+Location: /Certificate/CertificateTileViewInternal
+Pragma: no-cache
+Set-Cookie: GCC.Auth=CfDJ8CbbvcMMNUFEl6No72Mfi92x8TDyf0Qa3_o3lAecyf1QRR7vzHA0opeWrwSoHrhfVWQ5Xyc2pVA3bIDnMIwn-FEWnif1M1I93lxi2jXlzYqaGeBLhNeLHxYTDQfubkdjyKpyFmrHCwvaRQ2MVfZ5TbkasajX2NKBtaykb8VWAcEDom7b4c_mnm_Wk4rKpSzpZxblpZcJuakYcnf-7umX3VvzsGdi92rMzQ3xl15p5HQ-bGE50Q2WIHzfwN2AjFoQ_VlzeC0Y3u77xJ4kq4GYPBq6NTZ108XTIbwpimeHArFNajVvE5sVGErrnGSkrTICxHZg0-Cs-qPOd0z5VX_qQYGFsOtzYwg9TsHOdbVbZWhX7eQ0LKWvYIMc2rN4C17vSjBu4ilIGlU--S1qSGVapYK7p2E8I4Pe60GMVFiAempJ2v4b6LDqu7i7doU3j64XyPylfiTKGUA5r8qRDIiDG8RGaIxAaRrTIQSkErQSVGw-EeHOlx3oqAFFT03fUOx5uyW4yHs_XwGGq7Os8zIvPlYc9jOPTCtws2x3QQVKypJjoeGy8yv2J3Jp22qCrTP48rAlCkV-LSk9oFr4VN9TVvH4CxaCbmGRjubIsq1PeOz87gudUopJKaaja3QuFKhgtDuQd6Ws1o_yqIrhKh_LLDv23fay0b2MKaBXBdBswAe718mxMGyARNCy9m5XVCo-lh67a2HjatMs6tdUM9SwG1Eiaw8WO9yreVdWXse2bDUZZL_mdzXUxcqXNHrNxSR5R_zUrnKQs8AOpN4BqbCyIlY; path=/; samesite=lax; httponly
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.redoc.ly; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.greencirclecertified.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://stats.g.doubleclick.net https://www.googletagmanager.com https://cdn.jsdelivr.net; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+Cross-Origin-Resource-Policy: same-origin
+Cross-Origin-Embedder-Policy: unsafe-none
+Cross-Origin-Opener-Policy: same-origin
+X-Permitted-Cross-Domain-Policies: none
+X-Security-Policy: enforced
+X-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.redoc.ly; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.greencirclecertified.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://stats.g.doubleclick.net https://www.googletagmanager.com https://cdn.jsdelivr.net; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+

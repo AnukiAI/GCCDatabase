@@ -16,11 +16,19 @@ Files: `wwwroot/js/product-id-manager.js`, `Services/ProductIdService.cs`, `Cont
 
 ---
 
-## DEF-114 — Main nav bar now aligns with page content on every authenticated page (2026-05-07, fix in working tree pending deploy)
+## DEF-163 — Certificate import template now matches the table & exported CSV; export-edit-import round-trip works (2026-05-07, fix in working tree pending deploy)
+
+Shawn flagged that the certificate import template downloaded from the import page didn't match the columns shown in the certificate management table. We confirmed that three different column sets had drifted apart over time: the internal certificate tile-view table showed 24 columns, the export CSV produced by "Export to CSV" used those same 24 friendly labels, but the import template used a 25-column SCREAMING_SNAKE format that was both missing fields the table has (Status, Product Category/Subcategory, Pathway, Cert Subcategories, separate Internal/External tags) and carrying legacy fields the table doesn't show (PRODUCT_ID_TYPE, PRODUCT_ID_VALUE, PRODUCT_SKU, AMAZON_CODE, PDF_FILE_PATH, COMPANY_LOCATION, COMPANY_COUNTRY). The most user-visible consequence: the natural workflow of "export current data → fix a few rows in Excel → re-upload" silently failed every column match because the export header read "Certificate #" while the import REQUIRED CERTIFICATE_NUMBER. Fix replaces the template with the export's column set so the headers match exactly, and teaches the import service to accept both the new friendly headers AND the legacy SCREAMING_SNAKE headers in parallel — so existing CSVs the client team already produced under the old format keep importing without changes, while the new template enables direct round-trip. Some columns (Product Category, Product Subcategory, Pathway, Cert Subcategories, Internal Tag) are accepted by the import but not yet ingested into the certificate record; those are deferred to a future CR rather than expanded here. Build clean: 0 errors.
+
+Files: `Controllers/CertificateImportController.cs`, `Services/Import/CertificateImportService.cs`, `docs/tracking/defect-register.md` (DEF-163 entry).
+
+---
+
+## DEF-162 — Main nav bar now aligns with page content on every authenticated page (2026-05-07, fix in working tree pending deploy)
 
 Shawn flagged via the cert single-view screenshot that the main navigation bar (`Certificates`, `Products`, etc.) was rendering flush against the left viewport edge while the page title and content sat further inset inside the centered `.page-container`. The misalignment was visible on every authenticated page — every role saw the same broken layout — but only obvious when there was a clear h1/content reference like the cert single view to compare against. Root cause was a single missing `>` on the `<div class="nav-wrapper …">` opening tag in the shared layout: with the tag never properly closed, the browser parsed the entire `<nav class="main-nav">` element as junk attributes on the div, dropping the nav element from the DOM. The `<ul class="nav-links">` then sat directly inside `.nav-wrapper`, which has no `max-width` or horizontal padding, so the links extended to the viewport edge. Fixing the markup restores the `<nav class="main-nav">` element, whose `max-width: 1800px; padding: 0 40px` exactly matches `.page-container`, so the nav bar now lines up with the page title and body content on every page.
 
-Files: `Views/Shared/_Layout.cshtml`, `docs/tracking/defect-register.md` (DEF-114 entry).
+Files: `Views/Shared/_Layout.cshtml`, `docs/tracking/defect-register.md` (DEF-162 entry).
 
 ---
 

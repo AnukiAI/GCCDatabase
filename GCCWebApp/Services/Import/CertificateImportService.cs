@@ -48,25 +48,32 @@ namespace GCCWebApp.Services.Import
             _productIdService = productIdService;
         }
 
-        #region Column Name Mappings (supports both UPPERCASE_WITH_UNDERSCORES and PascalCase formats)
+        #region Column Name Mappings
+        // Each array supports three header conventions so the same import service can ingest:
+        //   1. Legacy SCREAMING_SNAKE templates (e.g. CERTIFICATE_NUMBER) — older client CSVs
+        //   2. PascalCase property names (e.g. CertificateNumber) — programmatic exports
+        //   3. Friendly human labels matching the cert tile table + export CSV (e.g. "Certificate #")
+        //      — so /Certificate/ExportCertificates → edit in Excel → /CertificateImport round-trips.
 
-        private static readonly string[] CertificateNumberColumns = { "CERTIFICATE_NUMBER", "CertificateNumber", "certificate_number" };
-        private static readonly string[] CompanyNameColumns = { "COMPANY_NAME", "CompanyName", "company_name" };
+        private static readonly string[] CertificateNumberColumns = { "CERTIFICATE_NUMBER", "CertificateNumber", "certificate_number", "Certificate #", "Cert #" };
+        private static readonly string[] CompanyNameColumns = { "COMPANY_NAME", "CompanyName", "company_name", "Company" };
         private static readonly string[] CompanyLocationColumns = { "COMPANY_LOCATION", "CompanyLocation", "company_location" };
         private static readonly string[] CompanyCountryColumns = { "COMPANY_COUNTRY", "CompanyCountry", "company_country" };
-        private static readonly string[] CompanyEmailColumns = { "COMPANY_EMAIL", "CompanyEmail", "company_email" };
-        private static readonly string[] CompanyWebsiteColumns = { "COMPANY_WEBSITE", "CompanyWebsite", "company_website" };
-        private static readonly string[] ProductNameColumns = { "PRODUCT_NAME", "ProductName", "product_name" };
-        private static readonly string[] ProductTypeColumns = { "PRODUCT_TYPE", "ProductType", "product_type" };
-        private static readonly string[] CertificationTypeColumns = { "CERTIFICATION_TYPE", "CertificationType", "certification_type" };
+        private static readonly string[] CompanyEmailColumns = { "COMPANY_EMAIL", "CompanyEmail", "company_email", "Company Email", "Company Contact Email/URL" };
+        private static readonly string[] CompanyWebsiteColumns = { "COMPANY_WEBSITE", "CompanyWebsite", "company_website", "Company URL", "Company Website", "Contact URL" };
+        private static readonly string[] ProductNameColumns = { "PRODUCT_NAME", "ProductName", "product_name", "Product Name", "Product" };
+        private static readonly string[] ProductTypeColumns = { "PRODUCT_TYPE", "ProductType", "product_type", "Product Type", "Prod Type" };
+        private static readonly string[] CertificationTypeColumns = { "CERTIFICATION_TYPE", "CertificationType", "certification_type", "Certification Type", "Cert Type" };
         private static readonly string[] StatusColumns = { "STATUS", "Status", "status" };
-        private static readonly string[] EffectiveDateColumns = { "EFFECTIVE_DATE", "EffectiveDate", "effective_date" };
-        private static readonly string[] ExpirationDateColumns = { "EXPIRATION_DATE", "ExpirationDate", "expiration_date" };
+        private static readonly string[] EffectiveDateColumns = { "EFFECTIVE_DATE", "EffectiveDate", "effective_date", "Effective Date", "Eff Date" };
+        private static readonly string[] ExpirationDateColumns = { "EXPIRATION_DATE", "ExpirationDate", "expiration_date", "Expiration Date", "Exp Date" };
         private static readonly string[] CertificateLocationColumns = { "CERTIFICATE_LOCATION", "Location", "certificate_location", "location" };
         private static readonly string[] CertificateCountryColumns = { "CERTIFICATE_COUNTRY", "Country", "certificate_country", "country" };
         private static readonly string[] PartnerColumns = { "PARTNER", "Partner", "partner" };
-        private static readonly string[] CertificationResultsColumns = { "CERTIFICATION_RESULTS", "CertificationResults", "certification_results" };
-        private static readonly string[] TagsColumns = { "TAGS", "Tags", "tags" };
+        private static readonly string[] CertificationResultsColumns = { "CERTIFICATION_RESULTS", "CertificationResults", "certification_results", "Certification Results", "Cert Results" };
+        // External Tag preferred (matches export column 19); generic TAGS kept for legacy clients.
+        // "Internal Tag" column from exports is silently ignored by the import data model (single Tags field).
+        private static readonly string[] TagsColumns = { "External Tag", "ExternalTag", "EXTERNAL_TAG", "TAGS", "Tags", "tags" };
         private static readonly string[] AsinColumns = { "ASIN", "Asin", "asin" };
         private static readonly string[] UpcColumns = { "UPC", "Upc", "upc" };
         private static readonly string[] GtinColumns = { "GTIN", "Gtin", "gtin" };

@@ -1835,7 +1835,7 @@ In dev, all four were exposed to the localhost IP rate cap of 200/min (`appsetti
 
 ---
 
-### DEF-114 — Main nav bar misaligned with page content (flush left edge instead of inside `.page-container`)
+### DEF-162 — Main nav bar misaligned with page content (flush left edge instead of inside `.page-container`)
 
 - **Date:** 2026-05-07
 - **Severity:** Medium (cosmetic, but global — affects every authenticated page across all roles)
@@ -1864,6 +1864,51 @@ Browser parsers treat `<nav`, `class="main-nav"`, `aria-label="Main navigation"`
 4. View source — confirm `<nav class="main-nav">` opens correctly and is a child of `.nav-wrapper`.
 
 **Found by:** Shawn — single view screenshot.
+
+---
+
+### DEF-163 — Certificate import template doesn't match the table or export columns; round-trip is broken
+
+- **Date:** 2026-05-07
+- **Severity:** Medium (functional — silently corrupts the obvious workflow of "export → edit → re-import")
+- **Status:** Fixed
+- **Reporter:** Shawn — `https://gccwebapp.com/Certificate/Create` flagged that the import template doesn't match the table
+
+**Symptom:** Three different column sets for the same data:
+
+- **Internal cert tile table** (24 cols): Cert #, Cert Type, Status, Eff Date, Exp Date, Company, Product, Prod Cat, Prod Type, Prod Subcat, Location, Country, Ext Tag, Int Tag, Partner, ASIN, UPC, GTIN, EAN, Cert Results, Pathway, Cert Subcategories, Company Email, Company URL.
+- **Export CSV** (`Services/CertificateService.cs:1023`): matches the table — friendly labels like `"Certificate #"`, `"Company"`, `"Effective Date"`.
+- **Import template** (`Controllers/CertificateImportController.cs:321` — broken state): `CERTIFICATE_NUMBER,COMPANY_NAME,COMPANY_LOCATION,COMPANY_COUNTRY,COMPANY_EMAIL,COMPANY_WEBSITE,PRODUCT_NAME,PRODUCT_TYPE,CERTIFICATION_TYPE,EFFECTIVE_DATE,EXPIRATION_DATE,CERTIFICATE_LOCATION,CERTIFICATE_COUNTRY,PARTNER,CERTIFICATION_RESULTS,TAGS,ASIN,UPC,GTIN,EAN,PRODUCT_ID_TYPE,PRODUCT_ID_VALUE,PRODUCT_SKU,AMAZON_CODE,PDF_FILE_PATH`.
+
+**Mismatches:**
+
+- **Missing from old template, present in table & export:** Status, Product Category, Product Subcategory, Pathway, Cert Subcategories, External Tag (separate), Internal Tag (separate).
+- **Extra in old template, not in table:** COMPANY_LOCATION, COMPANY_COUNTRY, PRODUCT_ID_TYPE, PRODUCT_ID_VALUE, PRODUCT_SKU, AMAZON_CODE, PDF_FILE_PATH, generic TAGS.
+- **Naming style:** Export uses `"Certificate #"`; old import REQUIRED `CERTIFICATE_NUMBER`. Editing an exported CSV and re-uploading silently failed every column match.
+
+**Root cause:** `DownloadTemplate` in `CertificateImportController.cs` and the alias arrays in `Services/Import/CertificateImportService.cs` evolved separately from the export, with no schema-of-record. They drifted apart over time as table columns were added (Pathway, Cert Subcategories, separate Internal/External tags via CR-007) without backfilling the import side.
+
+**Fix (round-trip):**
+
+1. **`Controllers/CertificateImportController.cs:DownloadTemplate`** — replaced the SCREAMING_SNAKE template with the export's friendly headers (24 columns, mirrors `Services/CertificateService.cs:1023`).
+2. **`Services/Import/CertificateImportService.cs:53-78`** — added friendly-label aliases (`"Certificate #"`, `"Company"`, `"Effective Date"`, `"Cert Results"`, `"Company Email"`, `"Company URL"`, `"Contact URL"`, `"Company Contact Email/URL"`, `"Cert Type"`, etc.) alongside the existing legacy/PascalCase aliases. Existing legacy CSVs continue to import unchanged.
+3. **External Tag column** in the export now feeds the existing single `Tags` ingest field. Internal Tag column is read into the CSV but silently ignored at the data layer (the import row model exposes only one Tags field today).
+
+**Known gaps (outside round-trip scope, deferred to future CRs):**
+
+- Product Category, Product Subcategory, Pathway, Cert Subcategories, Internal Tag columns are present in the new template but not yet ingested into the certificate record. Re-importing an exported CSV preserves Cert #, Cert Type, Status, Company, Email, URL, Product Name, Product Type, Effective/Expiration Date, Location, Country, External Tag, Partner, Cert Results, ASIN/UPC/GTIN/EAN. The remaining columns are accepted (no validation error) but not yet written.
+- The CSV column header "Company Contact Email/URL" in the export is itself a misleading label (only carries the email). Aliased on the import side; not renamed on the export side to avoid breaking any client tooling already keyed off it.
+
+**Files:** `Controllers/CertificateImportController.cs:321`, `Services/Import/CertificateImportService.cs:53-78`.
+
+**Test plan:**
+
+1. `/CertificateImport` → click "Download Template". Open the CSV — header should exactly match the export-with-internal-tags column list (`"Certificate #","Certification Type","Cert Subcategories","Status","Company","Company Email","Company URL","Product Name","Product Category","Product Type","Subcategory","Partner","Pathway","Cert Results","Effective Date","Expiration Date","Location","Country","External Tag","Internal Tag","ASIN","UPC","GTIN","EAN"`).
+2. **Round-trip:** From `/Certificate/CertificateTileViewInternal` → Export. Open the CSV in Excel, edit one row's `Cert Results` value, save. Upload via `/CertificateImport` → preview should classify the row as "Modified" and show the updated value.
+3. **Legacy regression:** Upload a CSV using the OLD `CERTIFICATE_NUMBER,COMPANY_NAME,...,TAGS` headers — should still import cleanly, no validation errors. (Old CSVs Carly's team already produced must keep working.)
+4. Build: `dotnet build` → 0 errors.
+
+**Found by:** Shawn — single-line UAT note "the import template doesn't match the table".
 
 ---
 

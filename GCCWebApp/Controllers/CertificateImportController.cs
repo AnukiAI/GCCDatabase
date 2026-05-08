@@ -312,13 +312,17 @@ namespace GCCWebApp.Controllers
 
         /// <summary>
         /// GET: /CertificateImport/DownloadTemplate
-        /// Downloads a CSV template with example data
+        /// Downloads a CSV template with headers matching the export columns and the
+        /// internal certificate tile-view table labels. Re-importing an exported CSV
+        /// works directly; the import service accepts these friendly headers via aliases.
         /// </summary>
         [HttpGet]
         public IActionResult DownloadTemplate()
         {
-            // Headers only - no sample data rows to avoid accidental import of fake data
-            var templateCsv = @"CERTIFICATE_NUMBER,COMPANY_NAME,COMPANY_LOCATION,COMPANY_COUNTRY,COMPANY_EMAIL,COMPANY_WEBSITE,PRODUCT_NAME,PRODUCT_TYPE,CERTIFICATION_TYPE,EFFECTIVE_DATE,EXPIRATION_DATE,CERTIFICATE_LOCATION,CERTIFICATE_COUNTRY,PARTNER,CERTIFICATION_RESULTS,TAGS,ASIN,UPC,GTIN,EAN,PRODUCT_ID_TYPE,PRODUCT_ID_VALUE,PRODUCT_SKU,AMAZON_CODE,PDF_FILE_PATH";
+            // Headers only — no sample data, to avoid accidental import of fake data.
+            // Column set mirrors Services/CertificateService.cs GenerateCsvExport (with includeInternalTags=true)
+            // so the table → export → edit → re-import round-trip works end-to-end.
+            var templateCsv = "\"Certificate #\",\"Certification Type\",\"Cert Subcategories\",\"Status\",\"Company\",\"Company Email\",\"Company URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"";
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(templateCsv);
             return File(bytes, "text/csv", $"GCC_Certificate_Import_Template.csv");

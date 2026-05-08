@@ -1444,7 +1444,7 @@ Count: 46
 
 **Cross-role / Cross-viewport:** TODO during execution
 
-**Status:** **CODE-LEVEL VERIFIED - 2026-05-01.** Per QC #159 fix summary: two bugs fixed in ProductIdService.cs (GetValidationErrorsAsync called CheckDuplicateAsync without passing certificate id; replace-all option added for bulk import). Manual UAT: import a CSV with thousands of product IDs against an existing cert, verify replace-all option appears and works without spurious duplicate errors.
+**Status:** **UAT PASS — 2026-05-08 on localhost:5101 / GCCDatabase_Dev.** Carly's repro reproduced and resolved end-to-end via Playwright. Cert 26-0001 seeded with 2 active ASINs (B08N5WRWNW, B07XJ8C8F5). Logged in as analyst → opened Edit → Import → uploaded CSV with 1 different ASIN (B09KMVN3R8) → preview showed `1 New / 0 Modified / 0 Unchanged / 0 Errors` (no spurious global-duplicate flag) → toggled "Replace all existing" → Apply Import. **Result:** cert 26-0001 ended with 1 active row (B09KMVN3R8) + 2 soft-deleted (IsActive=0). **Per-cert dup scope:** posting same ASIN B09KMVN3R8 to cert 26-0003 returned 200 success (cross-cert allowed). **Intra-cert dup still rejected:** re-posting B09KMVN3R8 to cert 26-0001 returned `"Product ID already exists on this certificate"` (correct). Screenshots: `C:\Users\swest\AppData\Local\Temp\uitest\qc159-shots\` (01–06). Test rows cleaned post-run. Earlier 2026-05-01 status was code-level only; this supersedes it.
 
 ### TC-QC-160 [QUESTION / Pri: - / Status: Open]
 - **Page:** Cert Detail Page

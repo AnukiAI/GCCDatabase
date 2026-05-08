@@ -1519,6 +1519,21 @@ namespace GCCWebApp.Controllers
                     return NotFound($"Certificate {id} not found");
                 }
 
+                // Block anonymous downloads for non-public certificates. Mirrors the gate in
+                // CertificateSingleView so cert numbers (which are sequential) cannot be iterated
+                // to harvest Draft / Hold / Suspended / Revoked / Expired PDFs.
+                if (User.Identity?.IsAuthenticated != true)
+                {
+                    var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
+                    var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
+
+                    if (!isPublicStatus || isExpired)
+                    {
+                        _logger.LogWarning("Anonymous download denied for non-public certificate: {CertificateNumber}, Status: {Status}, Expired: {Expired}", id, certificate.Status, isExpired);
+                        return NotFound($"Certificate {id} is not currently available for public download.");
+                    }
+                }
+
                 // Check if an uploaded certificate file exists
                 if (!string.IsNullOrEmpty(certificate.CertificateFile))
                 {
@@ -1579,6 +1594,21 @@ namespace GCCWebApp.Controllers
                 if (certificate == null)
                 {
                     return NotFound();
+                }
+
+                // Block anonymous inline-view of non-public certificate files. Integer IDs are
+                // trivially enumerable, so without this guard any visitor can scrape every cert PDF
+                // regardless of Draft / Hold / Expired status.
+                if (User.Identity?.IsAuthenticated != true)
+                {
+                    var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
+                    var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
+
+                    if (!isPublicStatus || isExpired)
+                    {
+                        _logger.LogWarning("Anonymous file view denied for non-public certificate Id: {CertificateId}, Status: {Status}, Expired: {Expired}", id, certificate.Status, isExpired);
+                        return NotFound();
+                    }
                 }
 
                 // Check if an uploaded certificate file exists
@@ -1661,6 +1691,21 @@ namespace GCCWebApp.Controllers
                 if (certificate == null)
                 {
                     return NotFound();
+                }
+
+                // Explicit guard so this entry point cannot regress if Download() is ever refactored
+                // to drop its own anonymous-status check. DEF-103 showed that trusting downstream
+                // helpers to enforce the contract is fragile.
+                if (User.Identity?.IsAuthenticated != true)
+                {
+                    var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
+                    var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
+
+                    if (!isPublicStatus || isExpired)
+                    {
+                        _logger.LogWarning("Anonymous download-by-number denied for non-public certificate: {CertificateNumber}, Status: {Status}, Expired: {Expired}", number, certificate.Status, isExpired);
+                        return NotFound();
+                    }
                 }
 
                 return await Download(certificate.Number);

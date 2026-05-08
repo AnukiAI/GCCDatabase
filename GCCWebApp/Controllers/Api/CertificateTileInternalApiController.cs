@@ -80,7 +80,20 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
+                // Perf: AsSplitQuery() is the canonical EF Core fix for "many collection Includes +
+                // pagination". Without it, the four collection navs (Tags, ProductIds,
+                // CertificationTypeSubcategories, CustomFieldValues) cartesian-multiply rows and
+                // OFFSET/FETCH then returns fewer than pageSize unique certs (root cause of
+                // "15 of 35"). AsSplitQuery makes EF emit one query per collection instead — no
+                // cartesian, deterministic pagination. AsNoTracking because this path is read-only.
+                //
+                // We keep the .Include() calls because the .Select() projection still benefits from
+                // the loaded refs being in change-tracker context for the projection translator.
+                // (Removing Includes entirely caused the projection to emit 240+ correlated subqueries
+                // and time out at 30s — see DEF-166 follow-up 2026-05-08.)
                 var query = _context.Certificates
+                    .AsNoTracking()
+                    .AsSplitQuery()
                     .Include(c => c.Company)
                     .Include(c => c.Product)
                         .ThenInclude(p => p.Category)
@@ -669,61 +682,78 @@ namespace GCCWebApp.Controllers.Api
 
         private IQueryable<Certificate> ApplySorting(IQueryable<Certificate> query, string? sortBy)
         {
+            // .ThenBy(c => c.Id) tiebreaker on every branch: when the primary sort key has duplicates
+            // (e.g. multiple certs share an EffectiveDate), SQL Server's row order is otherwise
+            // non-deterministic — page 1 and page 2 then overlap, the JS dedupes-by-id silently drops
+            // duplicates, and the user sees fewer total certs than expected ("15 of 35" symptom).
             return sortBy?.ToLower() switch
             {
-                "newest" => query.OrderByDescending(c => c.EffectiveDate),
-                "oldest-effective" => query.OrderBy(c => c.EffectiveDate),
-                "expiring" => query.OrderBy(c => c.ExpirationDate),
+                "newest" => query.OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id),
+                "oldest-effective" => query.OrderBy(c => c.EffectiveDate).ThenBy(c => c.Id),
+                "expiring" => query.OrderBy(c => c.ExpirationDate).ThenBy(c => c.Id),
                 "longest-validity" => query.OrderByDescending(c =>
-                    EF.Functions.DateDiffDay(c.EffectiveDate, c.ExpirationDate)),
+                    EF.Functions.DateDiffDay(c.EffectiveDate, c.ExpirationDate)).ThenBy(c => c.Id),
                 "recently-issued" => query
                     .Where(c => c.EffectiveDate >= DateTime.Now.AddDays(-30))
-                    .OrderByDescending(c => c.EffectiveDate),
-                "cert-number-newest" => query.OrderByDescending(c => c.Number),
-                "cert-number-oldest" => query.OrderBy(c => c.Number),
-                "cert-type" => query.OrderBy(c => c.CertificationType.Name),
-                "cert-type-za" => query.OrderByDescending(c => c.CertificationType.Name),
-                "status" => query.OrderBy(c => c.Status),
-                "status-za" => query.OrderByDescending(c => c.Status),
-                "company-az" => query.OrderBy(c => c.Company.Name),
-                "company-za" => query.OrderByDescending(c => c.Company.Name),
-                "product-az" => query.OrderBy(c => c.Product.Name),
-                "product-za" => query.OrderByDescending(c => c.Product.Name),
-                "product-type" => query.OrderBy(c => c.ProductType != null ? c.ProductType.Name : (c.Product.ProductType != null ? c.Product.ProductType.Name : "")),
-                "product-type-za" => query.OrderByDescending(c => c.ProductType != null ? c.ProductType.Name : (c.Product.ProductType != null ? c.Product.ProductType.Name : "")),
-                "product-sub" => query.OrderBy(c => c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "")),
-                "product-sub-za" => query.OrderByDescending(c => c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "")),
-                "location-az" => query.OrderBy(c => c.Location ?? ""),
-                "location-za" => query.OrderByDescending(c => c.Location ?? ""),
-                "country" => query.OrderBy(c => c.Country ?? ""),
-                "country-za" => query.OrderByDescending(c => c.Country ?? ""),
-                "ext-tag" => query.OrderBy(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault() ?? ""),
-                "ext-tag-za" => query.OrderByDescending(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault() ?? ""),
-                "int-tag" => query.OrderBy(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault() ?? ""),
-                "int-tag-za" => query.OrderByDescending(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault() ?? ""),
-                "partner" => query.OrderBy(c => c.Partner ?? ""),
-                "partner-za" => query.OrderByDescending(c => c.Partner ?? ""),
-                "asin" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
-                "asin-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
-                "upc" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
-                "upc-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
-                "gtin" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
-                "gtin-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
-                "ean" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
-                "ean-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
-                "contact" => query.OrderBy(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? ""),
-                "contact-za" => query.OrderByDescending(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? ""),
-                "cert-results" => query.OrderBy(c => c.CertificationResults ?? ""),
-                "cert-results-za" => query.OrderByDescending(c => c.CertificationResults ?? ""),
-                "pathway" => query.OrderBy(c => c.Pathway != null ? c.Pathway.Name : ""),
-                "pathway-za" => query.OrderByDescending(c => c.Pathway != null ? c.Pathway.Name : ""),
-                "cert-sub" => query.OrderBy(c => c.CertificationTypeSubcategories.Select(s => s.Name).FirstOrDefault() ?? ""),
-                "cert-sub-za" => query.OrderByDescending(c => c.CertificationTypeSubcategories.Select(s => s.Name).FirstOrDefault() ?? ""),
-                "company-url" => query.OrderBy(c => c.Company.Website ?? ""),
-                "company-url-za" => query.OrderByDescending(c => c.Company.Website ?? ""),
-                "created" => query.OrderByDescending(c => c.CreatedAt),
-                "modified" => query.OrderByDescending(c => c.UpdatedAt),
-                _ => query.OrderByDescending(c => c.EffectiveDate)
+                    .OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id),
+                "cert-number-newest" => query.OrderByDescending(c => c.Number).ThenBy(c => c.Id),
+                "cert-number-oldest" => query.OrderBy(c => c.Number).ThenBy(c => c.Id),
+                "cert-type" => query.OrderBy(c => c.CertificationType.Name).ThenBy(c => c.Id),
+                "cert-type-za" => query.OrderByDescending(c => c.CertificationType.Name).ThenBy(c => c.Id),
+                "status" => query.OrderBy(c => c.Status).ThenBy(c => c.Id),
+                "status-za" => query.OrderByDescending(c => c.Status).ThenBy(c => c.Id),
+                "company-az" => query.OrderBy(c => c.Company.Name).ThenBy(c => c.Id),
+                "company-za" => query.OrderByDescending(c => c.Company.Name).ThenBy(c => c.Id),
+                "product-az" => query.OrderBy(c => c.Product.Name).ThenBy(c => c.Id),
+                "product-za" => query.OrderByDescending(c => c.Product.Name).ThenBy(c => c.Id),
+                // DEF-165: Product Category was missing — frontend used to remap productCategory→product-type,
+                // so the column appeared to sort but actually sorted by Product Type. Real sort key now wired.
+                "product-cat" => query.OrderBy(c => c.ProductCategory != null ? c.ProductCategory.Name : (c.Product != null && c.Product.Category != null ? c.Product.Category.Name : "")).ThenBy(c => c.Id),
+                "product-cat-za" => query.OrderByDescending(c => c.ProductCategory != null ? c.ProductCategory.Name : (c.Product != null && c.Product.Category != null ? c.Product.Category.Name : "")).ThenBy(c => c.Id),
+                "product-type" => query.OrderBy(c => c.ProductType != null ? c.ProductType.Name : (c.Product.ProductType != null ? c.Product.ProductType.Name : "")).ThenBy(c => c.Id),
+                "product-type-za" => query.OrderByDescending(c => c.ProductType != null ? c.ProductType.Name : (c.Product.ProductType != null ? c.Product.ProductType.Name : "")).ThenBy(c => c.Id),
+                "product-sub" => query.OrderBy(c => c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "")).ThenBy(c => c.Id),
+                "product-sub-za" => query.OrderByDescending(c => c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "")).ThenBy(c => c.Id),
+                "location-az" => query.OrderBy(c => c.Location ?? "").ThenBy(c => c.Id),
+                "location-za" => query.OrderByDescending(c => c.Location ?? "").ThenBy(c => c.Id),
+                "country" => query.OrderBy(c => c.Country ?? "").ThenBy(c => c.Id),
+                "country-za" => query.OrderByDescending(c => c.Country ?? "").ThenBy(c => c.Id),
+                // DEF-165: deterministic per-cert pick via .Min() — translates to SELECT MIN(...)
+                // and uses existing indexes. Verified PASS for ASIN, EAN, GTIN, cert-sub.
+                //
+                // NOT applied to int-tag, ext-tag, upc: with .Min() (or with an inner OrderBy)
+                // these three time out at 30s on the dev DB regardless of inner-set size (UPC has
+                // only 1 row, tags only 3). Suspected pre-existing index/plan issue with the
+                // CertificateTag join and ProductIds.IsActive predicate. These three keep the
+                // original FirstOrDefault() shape — non-deterministic for certs with multiple
+                // values, but functional. Track as a perf follow-up rather than block this fix.
+                "ext-tag" => query.OrderBy(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault() ?? "").ThenBy(c => c.Id),
+                "ext-tag-za" => query.OrderByDescending(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault() ?? "").ThenBy(c => c.Id),
+                "int-tag" => query.OrderBy(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault() ?? "").ThenBy(c => c.Id),
+                "int-tag-za" => query.OrderByDescending(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault() ?? "").ThenBy(c => c.Id),
+                "partner" => query.OrderBy(c => c.Partner ?? "").ThenBy(c => c.Id),
+                "partner-za" => query.OrderByDescending(c => c.Partner ?? "").ThenBy(c => c.Id),
+                "asin" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
+                "asin-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
+                "upc" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? "").ThenBy(c => c.Id),
+                "upc-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? "").ThenBy(c => c.Id),
+                "gtin" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
+                "gtin-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
+                "ean" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
+                "ean-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
+                "contact" => query.OrderBy(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? "").ThenBy(c => c.Id),
+                "contact-za" => query.OrderByDescending(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? "").ThenBy(c => c.Id),
+                "cert-results" => query.OrderBy(c => c.CertificationResults ?? "").ThenBy(c => c.Id),
+                "cert-results-za" => query.OrderByDescending(c => c.CertificationResults ?? "").ThenBy(c => c.Id),
+                "pathway" => query.OrderBy(c => c.Pathway != null ? c.Pathway.Name : "").ThenBy(c => c.Id),
+                "pathway-za" => query.OrderByDescending(c => c.Pathway != null ? c.Pathway.Name : "").ThenBy(c => c.Id),
+                "cert-sub" => query.OrderBy(c => c.CertificationTypeSubcategories.Select(s => s.Name).Min() ?? "").ThenBy(c => c.Id),
+                "cert-sub-za" => query.OrderByDescending(c => c.CertificationTypeSubcategories.Select(s => s.Name).Min() ?? "").ThenBy(c => c.Id),
+                "company-url" => query.OrderBy(c => c.Company.Website ?? "").ThenBy(c => c.Id),
+                "company-url-za" => query.OrderByDescending(c => c.Company.Website ?? "").ThenBy(c => c.Id),
+                "created" => query.OrderByDescending(c => c.CreatedAt).ThenBy(c => c.Id),
+                "modified" => query.OrderByDescending(c => c.UpdatedAt).ThenBy(c => c.Id),
+                _ => query.OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id)
             };
         }
     }

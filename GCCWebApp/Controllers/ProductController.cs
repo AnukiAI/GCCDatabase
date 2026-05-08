@@ -875,9 +875,9 @@ namespace GCCWebApp.Controllers
         [HttpGet]
         public IActionResult DownloadProductImportTemplate()
         {
-            // Headers only — no sample data rows (QC #102/#103)
-            // Status is optional; defaults to Active when blank. Accepts: Active, Inactive (case-insensitive)
-            var csv = "Name,Company,Description,Category,Product Type,Subcategory,Status";
+            // Headers only — no sample data rows. 6 columns matching the Add New Product modal
+            // (QC #92 removed Status/SKU/Model from the modal; the template now mirrors that).
+            var csv = "Name,Company,Description,Category,Product Type,Subcategory";
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
             return File(bytes, "text/csv", "product_import_template.csv");

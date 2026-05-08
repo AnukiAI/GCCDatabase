@@ -18,6 +18,43 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-166 — Internal tile view slow load + only 15 of 35 certs showing
+
+- **Date:** 2026-05-08
+- **Severity:** High (perf + visible data-loss-on-render on the primary internal browse page)
+- **Status:** Fixed locally (pending second deploy — first deploy made it WORSE; see "First-attempt regression" below)
+- **Reporter:** Shawn — "https://gccwebapp.com/Certificate/CertificateTileViewInternal — is taking a long time to load certificates" + "why is only 15 of 35 certificates showing?"
+
+**Symptom:** Internal certificate tile view loaded slowly and rendered fewer rows than the database actually contained (e.g., 15 visible when 35+ existed). Same root cause produces both symptoms.
+
+**Root cause:** `Controllers/Api/CertificateTileInternalApiController.GetCertificateTiles` had 14 `.Include()` calls and **four of them were collection navs** (`Tags`, `ProductIds`, `CertificationTypeSubcategories`, `CustomFieldValues`). EF Core's default single-query mode flattens those into one big LEFT JOIN, producing a cartesian product (5 tags × 3 productIds × 2 customFields × 2 certSubcategories ≈ 60 rows per cert). Two consequences:
+1. **Slow load** — every page query paid the cartesian materialization cost.
+2. **Missing certs** — `Skip(offset).Take(limit)` then operates on cartesian rows, not unique certs, so `Take(20)` could return only 5–10 distinct certs. Pagination instability was further compounded by sort branches (e.g. `OrderByDescending(c => c.EffectiveDate)`) with no tiebreaker — when two certs share an EffectiveDate, SQL Server's row order is non-deterministic, page 1 and page 2 overlapped, and the JS dedupe-by-id step (`certificate-tile-view-internal.js:222-225`) silently dropped duplicates.
+
+**First-attempt regression (worth recording so we don't repeat):** I initially reasoned that because the controller does `.Select(c => new {...})` after the Includes, the Includes were redundant — projection-driven navigation access generates its own JOINs/subqueries. So the first fix removed every `.Include()` and added `.AsNoTracking()`. Local build was clean, deployed to gccwebapp.com. Result: API timed out at 30s on the dev DB (40 certs) before returning anything. Hypothesis on why: the `.Select()` had ~12 collection sub-projections (`c.Tags.Where(...).Select(...)`, eight `c.ProductIds.Where(...)`, `c.CertificationTypeSubcategories.Select(...)`, `c.CustomFieldValues.Where(...).Select(...)`). Without the Includes pulling those collections in advance, EF Core 9's projection translator emits all of them as inline correlated subqueries against the outer paginated query — which the SQL Server query optimizer apparently couldn't handle within 30s. So the first fix turned a "slow + drops rows" problem into a "doesn't return at all" problem.
+
+**Actual fix (verified on localhost before redeploy):**
+- **`Controllers/Api/CertificateTileInternalApiController.cs`:**
+  - Restored all the original `.Include()` calls (the projection translator wants them present).
+  - Added **`.AsSplitQuery()`** — the canonical EF Core fix for "collection includes + pagination". EF emits one query for the principal entity (Certificates), then one extra query per collection nav. No cartesian product, deterministic pagination, fast on every page.
+  - Added `.AsNoTracking()` because this is a read-only path.
+  - `ApplySorting` — added `.ThenBy(c => c.Id)` tiebreaker on every one of the 50+ sort branches so pagination is deterministic when the primary sort key has duplicates.
+- **`Controllers/Api/CertificateTileExternalApiController.cs`:** Same shape (Includes + AsSplitQuery + AsNoTracking + ThenBy tiebreaker) applied — same Tags-collection cartesian + non-deterministic-sort pattern existed there.
+
+**Files changed (3):**
+- `Controllers/Api/CertificateTileInternalApiController.cs`
+- `Controllers/Api/CertificateTileExternalApiController.cs`
+- `docs/tracking/defect-register.md` (this entry)
+
+**Verification (localhost, http://localhost:5101, admin login):**
+- Page 1 (`?page=1&pageSize=20`): HTTP 200 in **0.51s**. `totalCount=41`, returned 20 unique cert IDs.
+- Page 2 (`?page=2&pageSize=20`): HTTP 200 in **0.058s**. 20 unique cert IDs.
+- **Zero overlap** between page 1 and page 2; **40 of 41 unique combined** (the 41st falls on page 3 — math is correct).
+- Compare to first-attempt regression: same query timed out at 30s before AsSplitQuery was added.
+- `dotnet build` — 0 CS errors. Pre-existing warnings unchanged.
+
+---
+
 ### DEF-161 — Lowercase ASIN rejected on /Certificate/Create; Create POST persisted unvalidated Product IDs
 
 - **Date:** 2026-05-07
@@ -1909,6 +1946,108 @@ Browser parsers treat `<nav`, `class="main-nav"`, `aria-label="Main navigation"`
 4. Build: `dotnet build` → 0 errors.
 
 **Found by:** Shawn — single-line UAT note "the import template doesn't match the table".
+
+---
+
+### DEF-164 — Anonymous certificate file endpoints serve PDFs of non-public certs (Draft / Hold / Suspended / Revoked / Expired)
+
+- **Date:** 2026-05-08
+- **Severity:** Critical (information disclosure — internal lifecycle PDFs harvestable by unauthenticated callers)
+- **Status:** Fixed
+- **Reporter:** Internal security audit (`audit/role-management-audit-2026-05-08.md` finding F-C-002 / F-C-003)
+
+**Symptom:** Three `[AllowAnonymous]` endpoints on `CertificateController` served any certificate's uploaded PDF without checking whether the certificate was in a publicly visible status:
+
+- `GET /Certificate/Download/{number}` (line 1506) — by certificate number
+- `GET /Certificate/ViewCertificateFile/{id}` (line 1573) — by integer ID, inline display
+- `GET /Certificate/DownloadByNumber/{number}` (line 1655) — by certificate number, delegates to `Download`
+
+Certificate numbers are sequential (`YY-NNNN`) and integer IDs are trivially enumerable. An anonymous attacker iterating those identifiers could pull every Draft, Hold, Suspended, Revoked, or Expired certificate PDF — none of which the business considers publicly viewable.
+
+**Why this slipped through:** The companion entry point `CertificateSingleView` (line 200) DOES correctly enforce `CertificateStatusHelper.IsPubliclyVisible(...) && !isExpired` for unauthenticated callers, but the three file-serving endpoints below it never received the same guard. Same vulnerability class as DEF-103 (Partner API status leak) — a contract enforced on the "list" surface but missed on a parallel "single resource" surface.
+
+**Root cause:** Direct file-serve endpoints were originally written before the `PublicStatuses` concept formalised, and were never revisited when `IsPubliclyVisible` was added to `CertificateStatusHelper`. `[AllowAnonymous]` was kept (correctly) so verifiers without accounts can still download *publicly visible* certs from the Verify URL — but the status filter that makes that decision was missing.
+
+**Fix:** Mirror the `CertificateSingleView` guard at all three endpoints. For unauthenticated callers only, check `IsPubliclyVisible(certificate.Status) && certificate.ExpirationDate >= BusinessToday`. Authenticated callers (Admin / Analyst / External / Partner) keep their existing access — they retain the legitimate need to view non-public certs through their respective workflows. `DownloadByNumber` gets its own explicit guard even though it delegates to `Download`, so the protection cannot be quietly lost in a future refactor (DEF-103 history).
+
+**Files:** `Controllers/CertificateController.cs` (3 edits — lines 1506, 1573, 1655 region).
+
+**Test plan:**
+
+1. **Anonymous, public cert:** `GET /Certificate/Download/24-0001` (or any cert in `Active` / `Client Approved - Paid` etc. with a future expiration) — still downloads.
+2. **Anonymous, Draft cert:** find a Draft cert number in dev (e.g. via `SELECT TOP 5 Number FROM Certificates WHERE Status = 'Draft'`) → request `GET /Certificate/Download/{that-number}` in incognito → expect `404 — Certificate {n} is not currently available for public download.`
+3. **Anonymous, Expired cert:** find a cert with `ExpirationDate < TODAY` → expect 404 with same message.
+4. **Authenticated Analyst, Draft cert:** sign in as `analyst / TestPass123!`, hit the same Draft cert URL → still serves the PDF (no regression for internal workflows).
+5. **Anonymous, ViewCertificateFile by integer ID:** `GET /Certificate/ViewCertificateFile/{id-of-Draft-cert}` → expect 404 (NOT placeholder image — placeholder is only for missing-file case).
+6. **Anonymous, DownloadByNumber:** same as #2 but via `/Certificate/DownloadByNumber/...` — expect 404 even though the inner `Download()` would also block.
+7. Build: `dotnet build` → 0 C# errors (file-lock errors from a running `dotnet run` instance are not compile errors).
+
+**Out of scope (separate audit findings):**
+
+- F-C-001 (`TestController` missing auth), F-C-004 (`CertificatesApiController` accepts `?userRole=` from query string), F-H-001..F-H-005 — tracked as separate items in the audit report; will be addressed in follow-up DEFs.
+
+**Found by:** Internal security audit run on 2026-05-08, before next UAT cycle.
+
+---
+
+### DEF-165 — Usability-contract batch: Product Management template, Cert table sort (Product Category + multi-value cols), Replace All toggle discoverability
+
+- **Date:** 2026-05-08
+- **Severity:** High (functional — controls don't do what their labels promise; erodes user trust)
+- **Status:** Fixed
+- **Reporter:** Shawn (verifying QC log items pre-UAT) + Carly (DEF-159 originally)
+
+Four sub-items grouped because they're all the same defect class — the UI says X but the control does Y. Fixed in one batch.
+
+**Sub-item A — Product Management import template doesn't match the Add New Product modal**
+
+Verifying the QC item's "Fixed" claim showed it wasn't actually fixed. Three problems:
+
+1. `Controllers/ProductController.cs:880` server endpoint emitted 7 columns including `Status` — but the Add New Product modal had `Status` removed back in QC #92.
+2. `wwwroot/js/admin/productManagement.js:538` class method emitted a *different* 5-column CSV (`Name, Company, Description, Product Type, Status (Active, Inactive)`) — missing Category and Subcategory entirely.
+3. Both fired on a single click — `Views/Product/Management.cshtml:35` had inline `onclick="downloadImportTemplate()"` (server endpoint) AND productManagement.js auto-bound the class method via `addEventListener`. Same duplicate-handler pattern that was fixed earlier this month for the Export button.
+
+Fix: server endpoint now emits the 6-column header that mirrors the modal (`Name,Company,Description,Category,Product Type,Subcategory`). The JS class method is now a one-line `window.location.href = '/Product/DownloadProductImportTemplate'` — single source of truth, both pages get the same template, the duplicate handler becomes a no-op (browser dedupes the navigation).
+
+Files: `Controllers/ProductController.cs:880`, `wwwroot/js/admin/productManagement.js:538`.
+
+**Sub-item B — Internal cert tile: Product Category column sorts by Product Type**
+
+`wwwroot/js/certificate-tile-view-internal.js:636-637` had both `productCategory` and `productType` mapped to the backend key `'product-type'`. The backend never had a `'product-cat'` case at all, so even a corrected frontend would fall through to the default sort. Carly's report: "Carly Test and Electronics randomly show in middle of list" when sorting Product Category — exactly what you'd expect when the column is actually sorting by Product Type.
+
+Fix: frontend `productCategory` now maps to `'product-cat'`, with a corresponding `'product-cat-za'` in the reverse-sort map. Backend `Controllers/Api/CertificateTileInternalApiController.cs` adds `'product-cat'` and `'product-cat-za'` cases sorting by `c.ProductCategory.Name` with a fallback to `c.Product.Category.Name` (matches the existing pattern used by `product-type` and `product-sub`).
+
+Files: `wwwroot/js/certificate-tile-view-internal.js:636,684`, `Controllers/Api/CertificateTileInternalApiController.cs:692-695`.
+
+**Sub-item C — Internal cert tile: multi-value sort columns return arbitrary "first value"**
+
+The backend cases for `int-tag`, `ext-tag`, `asin`, `upc`, `gtin`, `ean`, `cert-sub` all used the shape:
+```csharp
+c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault() ?? ""
+```
+No `OrderBy` inside the subquery. EF returned whatever the DB picked first — usually physical-row order. Two certs with the same internal-tag set inserted in different orders sorted differently. Same defect for ASIN/UPC/etc when a cert has multiple Product IDs of the same type.
+
+Fix: every multi-value subquery now has an inner `.OrderBy(...)` before `.FirstOrDefault()`, so the per-cert "first" value is deterministic (alphabetic). Direction of the column sort is unchanged — only the inner-pick is now stable.
+
+File: `Controllers/Api/CertificateTileInternalApiController.cs:700-721` (7 subqueries hardened: `ext-tag`, `int-tag`, `asin`, `upc`, `gtin`, `ean`, `cert-sub`, plus their `-za` reverse counterparts).
+
+**Sub-item D (DEF-159 reframe) — Replace All Product IDs toggle was invisible to the user**
+
+DEF-159 was opened by Carly as "build a Replace All UX" — but the feature already existed: `wwwroot/js/product-id-manager.js:1408+` reads `#overwrite-existing-toggle` and runs the replace-all path. The defect was discoverability: a small unstyled checkbox with the text "Replace all existing" sat in the modal footer next to the Download Template button. Carly imported a 1-row file in default (append) mode, hit a duplicate-key collision, and concluded "Replace all doesn't work."
+
+Fix: in `Views/Shared/_ProductIdManager.cshtml:315-317` the toggle is now a pill-shaped chip with an amber border and `fa-exchange-alt` icon, label expanded to "Replace all existing IDs with this file", and the tooltip explains the two modes explicitly: "When checked: this import file is the new full list. Existing Product IDs not in the file will be deactivated. When unchecked (default): rows in the file are added or updated; nothing is deactivated." No JS or behavior change — the underlying replace-all logic is unchanged.
+
+File: `Views/Shared/_ProductIdManager.cshtml:310-322`.
+
+**Test plan:**
+
+1. **Template (sub-item A)** — Sign in as `analyst`. `/Product/Management` → click Template. Open the CSV in a text editor: header should be exactly `Name,Company,Description,Category,Product Type,Subcategory` (single line, no trailing newline expected, no sample rows). `/Admin/ProductManagement` → click Template. Same file. Both pages now produce one identical download per click.
+2. **Sort Product Category (sub-item B)** — `/Certificate/CertificateTileViewInternal` as analyst. Click Product Category column header. Rows should sort A→Z by Product *Category* (not Type). Click again → Z→A. Click Product Type column → resets, sorts by Type. Verifies the two columns are now distinct.
+3. **Multi-value sort (sub-item C)** — Find a cert with two internal tags (e.g. via SQL: `SELECT TOP 1 CertificateId FROM CertificateTags WHERE TagType ...`). Click Internal Tag header — order should be deterministic across repeated page reloads. Same for ASIN if any cert has multiple ASINs.
+4. **Replace All toggle visibility (sub-item D)** — Open `/Certificate/Edit/{any-cert}`, scroll to Product Identifiers, click Import, choose a CSV. In the preview modal, the Replace All toggle should now visibly stand out (amber/cream pill in modal footer). Hover the label — tooltip should explain both modes. Toggle off → import adds rows. Toggle on → import deactivates anything not in the file.
+5. Build: clean (0 errors, 61 pre-existing warnings).
+
+**Found by:** Shawn during pre-UAT QC verification (2026-05-08). Sub-item D originally raised by Carly as DEF-159.
 
 ---
 

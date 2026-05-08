@@ -77,7 +77,12 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
+                // Perf: AsSplitQuery() prevents cartesian on the Tags collection include while
+                // keeping all the reference Includes the .Select() projection benefits from. See
+                // CertificateTileInternalApiController for full rationale (DEF-166 follow-up).
                 var query = _context.Certificates
+                    .AsNoTracking()
+                    .AsSplitQuery()
                     .Include(c => c.Company)
                     .Include(c => c.Product)
                         .ThenInclude(p => p.Category)
@@ -816,31 +821,34 @@ namespace GCCWebApp.Controllers.Api
 
         private IQueryable<Certificate> ApplySorting(IQueryable<Certificate> query, string? sortBy)
         {
+            // .ThenBy(c => c.Id) tiebreaker on every branch — see Internal controller for full rationale.
+            // Without it, ties on the primary sort key produce non-deterministic SQL row order, page 1
+            // and page 2 overlap, and the JS dedupe-by-id silently drops rows ("15 of 35" symptom).
             return sortBy?.ToLower() switch
             {
-                "newest" => query.OrderByDescending(c => c.EffectiveDate),
-                "oldest-effective" => query.OrderBy(c => c.EffectiveDate),
-                "expiring" => query.OrderBy(c => c.ExpirationDate),
-                "longest-validity" => query.OrderByDescending(c => 
-                    EF.Functions.DateDiffDay(c.EffectiveDate, c.ExpirationDate)),
+                "newest" => query.OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id),
+                "oldest-effective" => query.OrderBy(c => c.EffectiveDate).ThenBy(c => c.Id),
+                "expiring" => query.OrderBy(c => c.ExpirationDate).ThenBy(c => c.Id),
+                "longest-validity" => query.OrderByDescending(c =>
+                    EF.Functions.DateDiffDay(c.EffectiveDate, c.ExpirationDate)).ThenBy(c => c.Id),
                 "recently-issued" => query
                     .Where(c => c.EffectiveDate >= DateTime.Now.AddDays(-30))
-                    .OrderByDescending(c => c.EffectiveDate),
-                "cert-number-newest" => query.OrderByDescending(c => c.Number),
-                "cert-number-oldest" => query.OrderBy(c => c.Number),
-                "cert-type" => query.OrderBy(c => c.CertificationType.Name),
-                "cert-type-za" => query.OrderByDescending(c => c.CertificationType.Name),
-                "company-az" => query.OrderBy(c => c.Company.Name),
-                "company-za" => query.OrderByDescending(c => c.Company.Name),
-                "product-az" => query.OrderBy(c => c.Product.Name),
-                "product-za" => query.OrderByDescending(c => c.Product.Name),
-                "location-az" => query.OrderBy(c => c.Location),
-                "location-za" => query.OrderByDescending(c => c.Location),
-                "country" => query.OrderBy(c => c.Country),
-                "country-za" => query.OrderByDescending(c => c.Country),
-                "product-type" => query.OrderBy(c => c.Product.ProductType != null ? c.Product.ProductType.Name : ""),
-                "partner" => query.OrderBy(c => c.Partner ?? "None"),
-                _ => query.OrderByDescending(c => c.EffectiveDate)
+                    .OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id),
+                "cert-number-newest" => query.OrderByDescending(c => c.Number).ThenBy(c => c.Id),
+                "cert-number-oldest" => query.OrderBy(c => c.Number).ThenBy(c => c.Id),
+                "cert-type" => query.OrderBy(c => c.CertificationType.Name).ThenBy(c => c.Id),
+                "cert-type-za" => query.OrderByDescending(c => c.CertificationType.Name).ThenBy(c => c.Id),
+                "company-az" => query.OrderBy(c => c.Company.Name).ThenBy(c => c.Id),
+                "company-za" => query.OrderByDescending(c => c.Company.Name).ThenBy(c => c.Id),
+                "product-az" => query.OrderBy(c => c.Product.Name).ThenBy(c => c.Id),
+                "product-za" => query.OrderByDescending(c => c.Product.Name).ThenBy(c => c.Id),
+                "location-az" => query.OrderBy(c => c.Location).ThenBy(c => c.Id),
+                "location-za" => query.OrderByDescending(c => c.Location).ThenBy(c => c.Id),
+                "country" => query.OrderBy(c => c.Country).ThenBy(c => c.Id),
+                "country-za" => query.OrderByDescending(c => c.Country).ThenBy(c => c.Id),
+                "product-type" => query.OrderBy(c => c.Product.ProductType != null ? c.Product.ProductType.Name : "").ThenBy(c => c.Id),
+                "partner" => query.OrderBy(c => c.Partner ?? "None").ThenBy(c => c.Id),
+                _ => query.OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id)
             };
         }
     }

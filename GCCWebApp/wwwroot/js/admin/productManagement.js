@@ -536,27 +536,11 @@ class ProductManagement {
     }
     
     downloadImportTemplate() {
-        try {
-            // Create CSV content with headers only (no sample data) — QC #103/#148: aligned with import fields, hints added
-            const headers = ['Name', 'Company', 'Description', 'Product Type', 'Status (Active, Inactive)'];
-            const csvContent = headers.join(',');
-
-            // Download file
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `products_import_template_${new Date().toISOString().split('T')[0]}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            this.showToast('Import template downloaded successfully', 'success');
-        } catch (error) {
-            console.error('Error downloading template:', error);
-            this.showToast('Error downloading template. Please try again.', 'error');
-        }
+        // Single source of truth: the server endpoint at /Product/DownloadProductImportTemplate.
+        // Previously this method built its own 5-column CSV in JS while the Razor pages also wired
+        // an inline onclick that hit the server endpoint, so clicking Template downloaded two files
+        // with different headers (5 vs 7 cols, neither matching the Add New Product modal).
+        window.location.href = '/Product/DownloadProductImportTemplate';
     }
 
     showImportModal() {

@@ -288,7 +288,10 @@ const AdminCore = {
     },
 
     isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // QC #181 alignment: same pattern as the server-side [RegularExpression] on the
+        // admin User/Company ViewModels and CertificateEditViewModel.CompanyEmail.
+        // Requires name@domain.tld with a 2+ char TLD.
+        const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
         return emailRegex.test(email);
     },
 

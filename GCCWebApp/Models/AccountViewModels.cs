@@ -20,7 +20,12 @@ namespace GCCWebApp.Models
     public class ForgotPasswordViewModel
     {
         [Required]
-        [EmailAddress]
+        // QC #181 alignment: same strict pattern as Admin User/Company ViewModels and
+        // CertificateEditViewModel.CompanyEmail. Forgot-password needs a real deliverable
+        // email (to receive the reset link), so [EmailAddress]'s "a@b" tolerance is wrong here.
+        [RegularExpression(
+            @"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$",
+            ErrorMessage = "Enter a valid email address (e.g., name@example.com).")]
         [Display(Name = "Email")]
         public string Email { get; set; } = string.Empty;
     }
@@ -31,7 +36,14 @@ namespace GCCWebApp.Models
         public string Token { get; set; } = string.Empty;
 
         [Required]
-        [EmailAddress]
+        // QC #181 alignment: same strict pattern. The Email here comes from the reset link
+        // (carrying the user's account email) and is verified against the stored user record;
+        // if a stored email isn't in this format the user couldn't have received the link in
+        // the first place, so the constraint is safe. Audit DB users with the SQL in DEF-172
+        // before deploying to a new environment.
+        [RegularExpression(
+            @"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$",
+            ErrorMessage = "Enter a valid email address (e.g., name@example.com).")]
         public string Email { get; set; } = string.Empty;
 
         [Required]

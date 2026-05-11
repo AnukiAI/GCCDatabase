@@ -6,6 +6,22 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-173 — User Management table & CSV: "Company" → "Company Access" + show "All" when user has every company (2026-05-11, in working tree pending deploy)
+
+Client UAT follow-up on the 5/8/26 QC log against the QC #106 row: *"No popup, table, and import/export/template. The current 'Company' in table should be called 'Company Access' since that is what it is related to? If they have access to All just put all otherwise the list is massive (like my new user example)."* The Add/Edit User modal already used the label "Company Access" from the original QC #106 fix (2026-03-24), but the table header, CSV export, and import template hadn't been brought along. A user associated with every company in the system rendered as a multi-line comma list that broke the row layout — exactly what Carly was reporting.
+
+Aligned all four surfaces to the modal: table header now reads "Company Access" (`Views/Admin/UserManagement.cshtml`); CSV export's column header key is now "Company Access"; the import template's last column is now `Company Access (semicolon-separated names, or "All")`; import preview's "changed field" label says "Company Access" instead of "Company". Added a small `getCompanyAccessDisplay(user)` helper that returns the literal string "All" when the user's company IDs cover every entry in the loaded company set, and falls back to the comma-joined name list otherwise — so both the table render and the CSV export collapse the long list to one word when applicable.
+
+Taught the import resolver two things it didn't know: (1) the header normalizer now recognizes both `Company Access` (new) and `User Company` (legacy header from the prior template — was previously unmapped, a latent round-trip bug we hadn't caught), and (2) `resolveCompanyIds` expands the literal `"All"` to every company ID, so an exported "All" can be re-imported with no manual editing.
+
+No backend change. No schema change. The User entity still stores discrete `UserCompany` join rows; "All" is purely a display + import-time convenience.
+
+Files: `Views/Admin/UserManagement.cshtml`, `wwwroot/js/userManagement.js`, `docs/tracking/defect-register.md` (DEF-173 entry), `docs/tracking/shipped-2026-05.md` (this entry).
+
+Build clean (0 CS errors, 61 pre-existing warnings unrelated to this change). Smoke verification pending on next app restart — running instance is holding the .exe lock.
+
+---
+
 ## DEF-167 — Cert tile filter dropdown showed certification-type subcategories as separate checkboxes (2026-05-11, fix in deploy zip pending upload)
 
 Client reported via QC #169 (4/30) that the public Certificate Tile View's "Certification Type" filter pane was listing Certified Sustainability Facts subcategories (Biobased Content, Closed Loop, Embodied Carbon Disclosures, and ~28 more) as their own filter checkboxes alongside the top-level certification types. Her direction: subcategories should not appear in the filter box at all. The login view shows the desired behavior — only top-level types with visible certs — and was the standard the public view should match.

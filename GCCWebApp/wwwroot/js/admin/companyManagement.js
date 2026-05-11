@@ -309,10 +309,11 @@ class CompanyManagement {
             return;
         }
         
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // Email validation — QC #181 alignment with CompanyViewModel.Email server regex.
+        // Requires name@domain.tld with a 2+ char TLD; rejects "a@b" and "a@b.c".
+        const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(formData.email)) {
-            this.showNotification('Please enter a valid email address', 'error');
+            this.showNotification('Enter a valid email address (e.g., name@example.com).', 'error');
             return;
         }
         

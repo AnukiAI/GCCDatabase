@@ -12,21 +12,26 @@ namespace GCCWebApp.Models
         public string Name { get; set; } = string.Empty;
         
         [Required]
-        [EmailAddress]
+        // QC #181 alignment: stricter than [EmailAddress] (which accepts "a@b"). Requires
+        // name@domain.tld with a 2+ char TLD. Matches the pattern used in CertificateEditViewModel
+        // and CompanyViewModel.
+        [RegularExpression(
+            @"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$",
+            ErrorMessage = "Enter a valid email address (e.g., name@example.com).")]
         [StringLength(255)]
         public string Email { get; set; } = string.Empty;
-        
+
         [Required]
         public string Role { get; set; } = string.Empty;
-        
+
         public string Status { get; set; } = "active";
-        
+
         public List<int> CompanyIds { get; set; } = new List<int>();
-        
+
         public List<int> PartnerIds { get; set; } = new List<int>();
-        
+
         public DateTime? LastLogin { get; set; }
-        
+
         public bool RequirePasswordReset { get; set; }
 
         // 2FA Fields
@@ -59,9 +64,13 @@ namespace GCCWebApp.Models
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [Required]
-        [EmailAddress]
+        // QC #181 alignment: stricter than [EmailAddress]. Matches the pattern used in
+        // CertificateEditViewModel, CompanyViewModel, and UserViewModel above.
+        [RegularExpression(
+            @"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$",
+            ErrorMessage = "Enter a valid email address (e.g., name@example.com).")]
         [StringLength(255)]
         public string Email { get; set; } = string.Empty;
         

@@ -3415,7 +3415,7 @@ Count: 114. For these, the test card is shorter - confirm the original fix still
 
 **Cross-role / Cross-viewport:** TODO during execution
 
-**Status:** NOT YET RUN
+**Status:** **PARTIAL PASS — 2026-05-11 via Playwright on deployed gccwebapp.com (template download only; export step not yet verified).** Logged in as `admin` (test-env Basic Auth + app session), fetched `GET /Product/DownloadProductImportTemplate` through authenticated context. Response: HTTP 200, `Content-Type: text/csv`, `Content-Disposition: attachment; filename=product_import_template.csv`, body = `Name,Company,Description,Category,Product Type,Subcategory` (58 bytes, headers-only, no sample rows). Matches the fix shipped in commit `786dc55` (2026-03-24, sprint 1 closeout) and the controller code at `Controllers/ProductController.cs:876-884`. Re-raised by client on 5/8 QC log as "Not fixed" — likely browser cache or pre-deploy test; the deployed endpoint is correct. **Steps 1–5 covered; steps 6–7 (Export CSV alignment) not yet re-verified — defer until next batch.** Verification script: `%TEMP%\verify-template.mjs`.
 
 ### TC-QC-105 [QUESTION / Pri: - / Status: Complete]
 - **Page:** Admin - Role

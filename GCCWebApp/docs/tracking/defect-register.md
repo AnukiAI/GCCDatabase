@@ -18,6 +18,128 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-173 — User Management: rename "Company" column to "Company Access" + show "All" when user has every company (QC #106 UAT retest, 5/8/26 log)
+
+- **Date:** 2026-05-11
+- **Severity:** Low (UI/UX clarity)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client UAT comment on the 5/8/26 QC log against the QC #106 row: *"No popup, table, and import/export/template. The current 'Company' in table should be called 'Company Access' since that is what it is related to? If they have access to All just put all otherwise the list is massive (like my new user example)."*
+
+**Root cause:** The Add/Edit User modal already labels the field **Company Access** (set when DEF-106-era work landed), but the table header, CSV export, and import template still said **Company** / **User Company**. The table cell also rendered the full comma-joined list of company names regardless of selection size, so a user assigned every company in the system produced a multi-line wrap that broke the row layout.
+
+**Fix:**
+
+1. **Label rename to "Company Access"** across all four surfaces flagged by the client:
+   - Table header (`Views/Admin/UserManagement.cshtml:95`)
+   - CSV export header key (`wwwroot/js/userManagement.js` `exportUsers`)
+   - Import template header (`wwwroot/js/userManagement.js` `downloadImportTemplate`)
+   - Import preview "changed field" label (`wwwroot/js/userManagement.js` `buildImportPreview`)
+   - Modal label was already "Company Access" (no change needed there)
+
+2. **"All" display logic** — added `getCompanyAccessDisplay(user)` helper. Returns the literal string `"All"` when the user's `companyIds` cover every company currently in `this.companies` (the same set the Add/Edit modal renders as checkboxes). Otherwise returns the comma-joined names (existing behavior preserved). Used by table render AND CSV export, so both surfaces collapse the long list to one word when applicable.
+
+3. **Import round-trip** — taught `normalizeUserHeaderName` to recognize both `Company Access` (new template header) and `User Company` (legacy header from prior template — was previously unmapped, a latent round-trip bug). Taught `resolveCompanyIds` to expand the literal `"All"` (case-insensitive) to every company ID, so an exported "All" can be re-imported without manual editing.
+
+**Files changed (2):**
+- `Views/Admin/UserManagement.cshtml` — table header text
+- `wwwroot/js/userManagement.js` — new helper, table render, CSV export, template header, import header normalizer, `resolveCompanyIds` "All" handling, import preview field label
+
+**Backend impact:** None. No schema change, no API change. Existing `/Admin/GetCompanies`, `/Admin/CreateUser`, `/Admin/UpdateUser` contracts unchanged. The "All" string is purely a display + import-time convenience — the User entity still stores discrete `UserCompany` join rows.
+
+**Local verification (2026-05-11):** Build clean (0 CS errors, 61 pre-existing warnings). Manual smoke pending — running app instance is holding the .exe lock so a fresh `dotnet run` couldn't start; verify after next restart:
+1. Table header reads "Company Access"; user assigned to every active company renders as "All"; user assigned to some shows comma list.
+2. Export CSV — header column reads "Company Access"; the "All" user's row contains literal "All".
+3. Template download — header column reads `Company Access (semicolon-separated names, or "All")`.
+4. Import a CSV with `Company Access = All` — preview shows the user with every company ID resolved; apply persists correctly.
+
+**Cross-ref:** This is UAT follow-up on the QC #106 row that originally shipped under the 2026-03-24 batch. Not a regression of DEF-106 — that fix's scope was modal-side visibility. This is additive surface alignment.
+
+---
+
+### DEF-172 — Cert Create/Edit "Company Email" field accepted non-email values (QC #181)
+
+- **Date:** 2026-05-11
+- **Severity:** Low–Medium (data quality issue; doesn't block use but pollutes Company records)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client — QC #181 (5/11/26): *"Can you add rule to the Company Email field that it needs to be in an email format. See image 74 where something went through and its not email."* — Create Cert flow.
+
+**Root cause:** `CertificateEditViewModel.CompanyEmail` was annotated with `[EmailAddress]` only. The built-in .NET `EmailAddressAttribute` validator is very permissive — it accepts any string with exactly one `@` that isn't first or last, e.g. `"a@b"` validates. No TLD requirement, no character-class enforcement. Combined with the form's `novalidate` attribute disabling HTML5 native feedback, anything with a single `@` in it passed silently. The client observed something patently non-email-shaped persisting and (correctly) called it out.
+
+**Fix:** Replaced `[EmailAddress]` with a stricter `[RegularExpression]` pattern requiring `local@domain.tld` with a 2+ character TLD. Since `RegularExpressionAttribute` is emitted by ASP.NET MVC's unobtrusive validation as `data-val-regex`, jquery.validate enforces it client-side too — so users get immediate inline feedback on blur/submit, not just on round-trip.
+
+Pattern: `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`
+
+Field remains optional (null/empty still passes — only non-null values are validated).
+
+**Files changed (9):**
+
+*Cert Create/Edit form (Carly's original report):*
+- `Models/CertificateEditViewModel.cs` — replaced `[EmailAddress]` with `[RegularExpression]` on `CompanyEmail`. Both `Views/Certificate/Create.cshtml` and `Views/Certificate/Edit.cshtml` consume this ViewModel via `asp-for="CompanyEmail"`, so a single annotation change covers both forms.
+
+*Admin Companies management (proactive — same pattern):*
+- `Models/CompanyViewModel.cs` — server-side. Existing annotation was `[EmailAddress] + [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$")]` — the regex required *a* dot after `@` but accepted single-char TLDs (e.g., `"a@b.c"`). Tightened to the same `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$` pattern. Dropped the redundant `[EmailAddress]`.
+- `wwwroot/js/admin/companyManagement.js:313` — admin modal's pre-submit JS check had the same one-char-TLD weakness. Aligned to the new server pattern.
+
+*Admin Users management (proactive — same pattern):*
+- `Models/AdminModels.cs:15, :64` — server-side. `UserViewModel.Email` and `CreateUserViewModel.Email` both had `[Required] [EmailAddress]` only. Replaced `[EmailAddress]` with the same `[RegularExpression]`. Kept `[Required]` since users can't exist without email. Pattern is safe for Azure AD B2C-style addresses (`user@tenant.onmicrosoft.com`, custom domains all match).
+- `wwwroot/js/userManagement.js:677` — admin Users modal pre-submit check, tightened regex.
+- `wwwroot/js/admin/admin-core.js:290` — shared `AdminCore.isValidEmail()` helper used by `validateForm` for every `input[type="email"]` across all admin forms. Tightened once here = consistent validation everywhere downstream.
+
+*CSV Import paths (proactive — same pattern):*
+- `Services/Import/CertificateImportService.cs:131` — `IsValidEmail` used `System.Net.Mail.MailAddress`, which is permissive enough to accept `"a@b"`. Replaced with a compiled regex matching the strict pattern. Existing caller at line 789 (`if (!IsValidEmail(csvRow.CompanyEmail))`) now flags bad-format rows in `ValidationMessages` so the user sees `"Invalid Company Email format: ..."` in the import preview/result UI before any DB writes happen.
+- `Services/AdminService.cs:201` (`BulkImportUsersAsync`) — bulk user CSV import had NO email format validation at all. It checked for blank, length, duplicates, role — but happily persisted any string with an `@`. Added a regex check between the blank-check and the password-check using the same compiled regex (declared at the class level for performance). Per-row error message: *"{email} - Email is not a valid format (expected name@example.com)"*. Existing per-row error reporting surfaces it to the UI.
+
+*Forgot Password / Reset Password (proactive — same pattern):*
+- `Models/AccountViewModels.cs:23` (`ForgotPasswordViewModel.Email`) and `:34` (`ResetPasswordViewModel.Email`) — both had `[Required] [EmailAddress]`. Replaced `[EmailAddress]` with the strict `[RegularExpression]`.
+- **Pre-deploy audit query** (run before deploying to a new env to confirm no existing user emails would fail the new regex on reset):
+  ```sql
+  SELECT Id, Email FROM Users
+  WHERE Email NOT LIKE '%@%' OR Email NOT LIKE '%@%.%'
+     OR LEN(RIGHT(Email, CHARINDEX('.', REVERSE(Email)) - 1)) < 2;
+  ```
+  Dev DB returned 0 rows; safe to deploy. Same audit must be run against prod-test before deploy (gccwebapp.com user table).
+- **NOT touched:** `Models/AccountViewModels.cs:9` (`LoginViewModel.Email`) has no `[EmailAddress]` annotation by design — login accepts username OR email. Leave permissive.
+
+**Verification — form path (localhost http://localhost:5101, Playwright on Edit page for cert 26-0002, 2026-05-11):**
+
+| Test | Input | Result |
+|---|---|---|
+| Client validation, no `@` | `"asdfqwer"` | Error span: *"Please enter a valid email address."* ✓ (jquery.validate's built-in `email` rule from `type="email"` fires first) |
+| Client validation, no TLD | `"a@b"` | Error span: *"Enter a valid email address (e.g., name@example.com)."* ✓ (this is the new regex catching what `[EmailAddress]` would have allowed) |
+| Client validation, valid | `"name@example.com"` | No error ✓ |
+| Server-side bypass via `HTMLFormElement.prototype.submit` with `"asdfqwer"` | (forced past client check) | DB unchanged — `Companies.Email` did NOT receive the bad value, cert `UpdatedAt` did not advance. Server `ModelState.IsValid` rejected the save as expected ✓ |
+
+**Verification — CSV cert-import path (Playwright admin login + POST /api/CertificateImport/Preview, 2026-05-11):**
+
+CSV uploaded — 4 rows, 1 valid header + 3 designed-to-fail emails:
+
+| Cert# | Email submitted | Old `MailAddress` validator | New strict regex | Preview result |
+|---|---|---|---|---|
+| QC181-TEST-A | `good@example.com` | pass | pass | newRows ✓ |
+| QC181-TEST-B | `bad-email-no-at` | fail | fail | errorRows: *"Invalid Company Email format: bad-email-no-at"* ✓ |
+| QC181-TEST-C | `a@b` | **pass (this was Carly's original complaint)** | fail | errorRows: *"Invalid Company Email format: a@b"* ✓ |
+| QC181-TEST-D | `a@b.c` | pass | fail | errorRows: *"Invalid Company Email format: a@b.c"* ✓ |
+
+Preview summary: `totalRows=4, validRows=1, invalidRows=3, hasCriticalErrors=false`. Bad rows are surfaced in the import preview UI; no DB write attempted for them.
+
+**Verification — CSV user-import path (Playwright admin login + POST /Admin/BulkImportUsers, 2026-05-11):**
+
+4 user rows posted, 1 valid + 3 designed-to-fail:
+
+| Name | Email submitted | Pre-fix (no email format check) | Post-fix (strict regex) | Result |
+|---|---|---|---|---|
+| QC181 Good A | `qc181.good.a.<ts>@example.com` | accept | accept | created in DB ✓ |
+| QC181 Bad NoAt | `bad-email-no-at` | **would have persisted** | rejected | error: *"Email is not a valid format (expected name@example.com)"* ✓ |
+| QC181 Bad NoTLD | `a@b` | **would have persisted** | rejected | error: same ✓ |
+| QC181 Bad OneCharTLD | `a@b.c` | **would have persisted** | rejected | error: same ✓ |
+
+Response: `totalProcessed=4, successCount=1, errorCount=3`. Post-test DB query confirmed `Email IN ('bad-email-no-at','a@b','a@b.c')` returned 0 rows — none of the bad emails landed in the Users table. The one successful test user was cleaned up after verification.
+
+**Other email surfaces still using the permissive `[EmailAddress]`-only validator (not part of this QC; track if flagged later):**
+- `Models/Company.cs:16` — the underlying `Company` entity. Left as `[EmailAddress]` because direct entity writes happen on many paths (programmatic backfills, seed data). The ViewModel/Import-service layers are the right places to enforce user-input validation; the entity layer should remain forgiving for migration scenarios.
+
+---
+
 ### DEF-171 — Cert auto-expire silently waited on a user login; status didn't flip in test (QC #167)
 
 - **Date:** 2026-05-11

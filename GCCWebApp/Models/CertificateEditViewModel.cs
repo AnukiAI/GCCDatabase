@@ -87,7 +87,14 @@ namespace GCCWebApp.Models
         public int CompanyId { get; set; }
 
         [Display(Name = "Company Email")]
-        [EmailAddress]
+        // QC #181: built-in [EmailAddress] is too permissive (accepts "a@b" with no TLD and
+        // some other obviously-bad inputs). Stricter regex requires name@domain.tld with a
+        // 2+ character TLD. Regex is emitted as data-val-regex by unobtrusive validation, so
+        // it enforces client-side too (the form sets novalidate to disable HTML5 feedback,
+        // but jquery.validate still runs). Optional field — null/empty still passes.
+        [RegularExpression(
+            @"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$",
+            ErrorMessage = "Enter a valid email address (e.g., name@example.com).")]
         [MaxLength(255)]
         public string? CompanyEmail { get; set; }
 

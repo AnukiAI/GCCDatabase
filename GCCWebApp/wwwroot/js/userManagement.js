@@ -310,10 +310,22 @@ class UserManagement {
         this.bindActionEvents();
     }
     
+    getCompanyAccessDisplay(user) {
+        const ids = user.companyIds || [];
+        if (ids.length === 0) {
+            return user.company || '';
+        }
+        if (this.companies && this.companies.length > 0 &&
+            this.companies.every(c => ids.includes(c.id))) {
+            return 'All';
+        }
+        return user.companyNames ? user.companyNames.join(', ') : (user.company || '');
+    }
+
     createUserRow(user) {
         const statusClass = user.status?.toLowerCase() === 'active' ? 'admin-badge--success' : 'admin-badge--inactive';
         const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never';
-        const companyDisplay = user.companyNames ? user.companyNames.join(', ') : (user.company || '');
+        const companyDisplay = this.getCompanyAccessDisplay(user);
 
         return `
             <tr class="admin-table-row" data-id="${user.id}">
@@ -673,10 +685,11 @@ class UserManagement {
             return;
         }
         
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // Email validation — QC #181 alignment with UserViewModel/CreateUserViewModel server regex.
+        // Requires name@domain.tld with a 2+ char TLD; rejects "a@b" and "a@b.c".
+        const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(formData.email)) {
-            this.showNotification('Please enter a valid email address', 'error');
+            this.showNotification('Enter a valid email address (e.g., name@example.com).', 'error');
             return;
         }
 
@@ -784,16 +797,21 @@ class UserManagement {
         }
 
         try {
-            // CSV columns must match UI table headers exactly: Name, Company, Email, Role, Status, Last Login, 2FA
-            const exportData = this.filteredUsers.map(user => ({
-                Name: user.name || '',
-                Company: user.companyNames ? user.companyNames.join('; ') : (user.company || ''),
-                Email: user.email || '',
-                Role: user.role || '',
-                Status: user.status || '',
-                'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never',
-                '2FA': user.twoFactorEnabled ? 'Enabled' : 'Disabled'
-            }));
+            // CSV columns must match UI table headers exactly: Name, Company Access, Email, Role, Status, Last Login, 2FA
+            const exportData = this.filteredUsers.map(user => {
+                const access = this.getCompanyAccessDisplay(user);
+                return {
+                    Name: user.name || '',
+                    'Company Access': access === 'All'
+                        ? 'All'
+                        : (user.companyNames ? user.companyNames.join('; ') : (user.company || '')),
+                    Email: user.email || '',
+                    Role: user.role || '',
+                    Status: user.status || '',
+                    'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never',
+                    '2FA': user.twoFactorEnabled ? 'Enabled' : 'Disabled'
+                };
+            });
 
             // Create CSV content
             const headers = Object.keys(exportData[0]);
@@ -831,9 +849,8 @@ class UserManagement {
     
     downloadImportTemplate() {
         try {
-            // QC #108: Template headers aligned with import parser and Carly's feedback.
-            // "User Company" per Carly. Status: Active/Inactive. RequirePasswordReset: Yes/No.
-            // Multiple companies separated by semicolons (company names, not IDs).
+            // Template headers aligned with table/export. Status: Active/Inactive. RequirePasswordReset: Yes/No.
+            // Multiple companies separated by semicolons (company names, not IDs); use literal "All" to grant access to every company.
             const headers = [
                 'Name',
                 'Email',
@@ -841,7 +858,7 @@ class UserManagement {
                 'Password',
                 'Status (Active/Inactive)',
                 'RequirePasswordReset (Yes/No)',
-                'User Company (semicolon-separated if multiple)'
+                'Company Access (semicolon-separated names, or "All")'
             ];
             const csvContent = headers.join(',');
 
@@ -960,6 +977,8 @@ class UserManagement {
             // Company variations
             'company': 'company',
             'companyname': 'company',
+            'companyaccess': 'company',
+            'usercompany': 'company',
             'organization': 'company',
 
             // Role variations
@@ -1025,9 +1044,12 @@ class UserManagement {
                 }
                 // Compare company if provided
                 if (importUser.company && importUser.company.trim()) {
-                    const existingCompany = existingUser.company || existingUser.companyNames?.join(', ') || '';
+                    const existingAccess = this.getCompanyAccessDisplay(existingUser);
+                    const existingCompany = existingAccess === 'All'
+                        ? 'All'
+                        : (existingUser.company || existingUser.companyNames?.join(', ') || '');
                     if (existingCompany.toLowerCase() !== importUser.company.trim().toLowerCase()) {
-                        changes.push({ field: 'Company', oldValue: existingCompany, newValue: importUser.company });
+                        changes.push({ field: 'Company Access', oldValue: existingCompany, newValue: importUser.company });
                     }
                 }
 
@@ -1443,8 +1465,13 @@ class UserManagement {
     resolveCompanyIds(companyValue) {
         if (!companyValue || !companyValue.trim()) return [];
 
+        const trimmed = companyValue.trim();
+        if (trimmed.toLowerCase() === 'all') {
+            return this.companies.map(c => c.id);
+        }
+
         // Support semicolon-separated multiple companies
-        const parts = companyValue.split(';').map(p => p.trim()).filter(p => p);
+        const parts = trimmed.split(';').map(p => p.trim()).filter(p => p);
         const ids = [];
 
         for (const part of parts) {

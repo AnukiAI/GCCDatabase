@@ -126,20 +126,19 @@ namespace GCCWebApp.Services.Import
         }
 
         /// <summary>
-        /// Validates email format
+        /// Validates email format. QC #181 alignment: same strict regex as the ViewModel
+        /// annotations (CertificateEditViewModel, CompanyViewModel, AdminModels,
+        /// AccountViewModels) and the JS validators (admin-core, userManagement,
+        /// companyManagement). Previous implementation used System.Net.Mail.MailAddress,
+        /// which is permissive enough to accept "a@b" — and CSV imports were silently
+        /// landing those values in Companies.Email rows.
         /// </summary>
-        private static bool IsValidEmail(string email)
-        {
-            try
-            {
-                var addr = new System.Net.Mail.MailAddress(email);
-                return addr.Address == email;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+        private static readonly System.Text.RegularExpressions.Regex EmailFormatRegex =
+            new(@"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$",
+                System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static bool IsValidEmail(string email) =>
+            !string.IsNullOrWhiteSpace(email) && EmailFormatRegex.IsMatch(email);
 
         #endregion
 

@@ -10,8 +10,13 @@ namespace GCCWebApp.Models
         [MaxLength(255)]
         public string Name { get; set; } = string.Empty;
 
-        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
-        [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Please enter a valid email address (e.g., user@example.com)")]
+        // QC #181 alignment: same strictness as CertificateEditViewModel.CompanyEmail.
+        // Built-in [EmailAddress] is too permissive (accepts "a@b" with no TLD); the
+        // previous regex here allowed "a@b.c" (1-char TLD). New pattern requires
+        // name@domain.tld with a 2+ char TLD.
+        [RegularExpression(
+            @"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$",
+            ErrorMessage = "Enter a valid email address (e.g., name@example.com).")]
         [MaxLength(255)]
         public string? Email { get; set; }
 

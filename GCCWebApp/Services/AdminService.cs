@@ -13,6 +13,14 @@ namespace GCCWebApp.Services
         private readonly ILogger<AdminService> _logger;
         private readonly IAuditService _auditService;
 
+        // QC #181: same strict pattern as the ViewModel [RegularExpression] annotations
+        // (UserViewModel.Email, CreateUserViewModel.Email, etc.) and the admin-core.js
+        // client helper. Used in BulkImportUsersAsync to keep the CSV path consistent
+        // with the form-submit path.
+        private static readonly System.Text.RegularExpressions.Regex UserEmailFormatRegex =
+            new(@"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$",
+                System.Text.RegularExpressions.RegexOptions.Compiled);
+
         public AdminService(ApplicationDbContext context, ILogger<AdminService> logger, IAuditService auditService)
         {
             _context = context;
@@ -243,6 +251,16 @@ namespace GCCWebApp.Services
                     {
                         result.ErrorCount++;
                         result.Errors.Add($"{item.Name} - Email is required");
+                        continue;
+                    }
+                    // QC #181 alignment: same strict pattern as UserViewModel.Email / CreateUserViewModel.Email
+                    // server annotations and the admin-core.js client helper. Pre-this-fix the bulk user
+                    // import had no email-format check at all, so CSV rows with garbage in the email
+                    // column persisted as-is.
+                    if (!UserEmailFormatRegex.IsMatch(item.Email.Trim()))
+                    {
+                        result.ErrorCount++;
+                        result.Errors.Add($"{item.Email} - Email is not a valid format (expected name@example.com)");
                         continue;
                     }
                     if (string.IsNullOrWhiteSpace(item.Password) || item.Password.Length < 8)

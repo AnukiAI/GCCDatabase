@@ -111,20 +111,20 @@ namespace GCCWebApp.Controllers.Api
                 var certTypeFilter = certType ?? certTypes;
                 if (!string.IsNullOrEmpty(certTypeFilter))
                 {
-                    filter.CertificationTypeNames = certTypeFilter.Split(',').ToList();
+                    filter.CertificationTypeNames = certTypeFilter.Split('|').ToList();
                 }
 
                 var countryFilter = country ?? countries;
                 if (!string.IsNullOrEmpty(countryFilter))
                 {
-                    filter.Countries = countryFilter.Split(',').ToList();
+                    filter.Countries = countryFilter.Split('|').ToList();
                 }
 
                 var companyFilter = company;
                 if (!string.IsNullOrEmpty(companyFilter))
                 {
                     // Convert company IDs to filter
-                    var companyIds = companyFilter.Split(',')
+                    var companyIds = companyFilter.Split('|')
                         .Where(id => int.TryParse(id, out _))
                         .Select(int.Parse)
                         .ToList();
@@ -136,14 +136,14 @@ namespace GCCWebApp.Controllers.Api
                     else
                     {
                         // If not numeric IDs, treat as company names
-                        filter.CompanyNames = companyFilter.Split(',').ToList();
+                        filter.CompanyNames = companyFilter.Split('|').ToList();
                     }
                 }
 
                 var productCategoryFilter = productCategory ?? productCat;
                 if (!string.IsNullOrEmpty(productCategoryFilter))
                 {
-                    filter.ProductCategories = productCategoryFilter.Split(',').ToList();
+                    filter.ProductCategories = productCategoryFilter.Split('|').ToList();
                 }
 
                 var tagsFilter = tags ?? certTags;
@@ -170,7 +170,7 @@ namespace GCCWebApp.Controllers.Api
 
                 if (!string.IsNullOrEmpty(additional))
                 {
-                    filter.AdditionalFilters = additional.Split(',').ToList();
+                    filter.AdditionalFilters = additional.Split('|').ToList();
                 }
 
                 var (certificates, totalCount) = await _certificateRepository.GetAdvancedFilteredCertificatesAsync(filter);
@@ -303,7 +303,15 @@ namespace GCCWebApp.Controllers.Api
                     .GroupBy(pt => pt.ParentId!.Value)
                     .ToDictionary(g => g.Key, g => g.ToList());
 
-                // Trim hierarchy: keep a node if itself is visible OR a descendant is visible.
+                // Trim hierarchy:
+                //   - Category: kept ONLY if a public cert's Product.CategoryId points at it.
+                //     (DEF-168: the previous `|| c.types.Any()` fallback leaked orphan parent
+                //     categories — e.g. a category that admins assigned a Product Type under,
+                //     but no Product directly lives in. Find side at
+                //     CertificateRepository.GetAdvancedFilteredCertificatesAsync doesn't
+                //     traverse Product.ProductType.Category, so the click was a dead-click.)
+                //   - Type: kept if directly used OR has a visible subcategory child.
+                //     Safe because the find side has parent-cascade on ProductType.Parent.Name.
                 var productCategoriesHierarchy = categories
                     .Select(pc => new
                     {
@@ -328,7 +336,7 @@ namespace GCCWebApp.Controllers.Api
                             .Where(t => visibleProductTypeIds.Contains(t.id) || t.subcategories.Any())
                             .ToList()
                     })
-                    .Where(c => visibleCategoryIds.Contains(c.id) || c.types.Any())
+                    .Where(c => visibleCategoryIds.Contains(c.id))
                     .ToList();
 
                 var filters = new

@@ -818,10 +818,27 @@ namespace GCCWebApp.Services
                 existingCertificate.UpdatedBy = userId;
                 existingCertificate.UpdatedAt = DateTime.UtcNow;
 
+                // DEF-171 Option A: save-time auto-expire enforcement via shared helper.
+                // See CertificateExpirationService.TryApplySaveTimeAutoExpire — daily BG sweep
+                // catches naturally-aging certs; this catches the save event so a cert can't
+                // sit in an inconsistent "active + past-date" state.
+                var (autoExpired, historyRow) = CertificateExpirationService.TryApplySaveTimeAutoExpire(
+                    existingCertificate,
+                    userId,
+                    userId.HasValue ? $"User#{userId}" : "System",
+                    workflowStep: "Save-Time-Expiration");
+                if (autoExpired && historyRow != null)
+                {
+                    _context.CertificateStatusHistory.Add(historyRow);
+                }
+
                 await _context.SaveChangesAsync();
 
-                // CR-015: cascade product-ID statuses if cert status changed.
-                if (!string.Equals(previousStatus, certificate.Status, StringComparison.Ordinal))
+                // CR-015: cascade product-ID statuses if cert status actually changed.
+                // Compare against the original DB status so the save-time auto-expire above
+                // also triggers the cascade.
+                var finalStatus = existingCertificate.Status;
+                if (!string.Equals(previousStatus, finalStatus, StringComparison.Ordinal))
                 {
                     await _productIdService.SyncProductIdStatusesForCertificateAsync(id);
                 }

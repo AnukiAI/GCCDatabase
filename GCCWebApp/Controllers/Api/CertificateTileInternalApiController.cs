@@ -137,7 +137,7 @@ namespace GCCWebApp.Controllers.Api
                 // Apply certification type filter
                 if (!string.IsNullOrWhiteSpace(certType))
                 {
-                    var types = certType.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var types = certType.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => types.Contains(c.CertificationType.Name));
                 }
 
@@ -145,7 +145,7 @@ namespace GCCWebApp.Controllers.Api
                 // Checks both Product's hierarchy and Certificate's direct fields
                 if (!string.IsNullOrWhiteSpace(productCategory))
                 {
-                    var categories = productCategory.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var categories = productCategory.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c =>
                         // Product's hierarchy (Category → ProductType → ProductSubcategory)
                         categories.Contains(c.Product.Category.Name) ||
@@ -161,35 +161,35 @@ namespace GCCWebApp.Controllers.Api
                 // Apply company filter
                 if (!string.IsNullOrWhiteSpace(company))
                 {
-                    var companies = company.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var companies = company.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => companies.Contains(c.Company.Id.ToString()));
                 }
 
                 // Apply country filter
                 if (!string.IsNullOrWhiteSpace(country))
                 {
-                    var countries = country.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var countries = country.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => countries.Contains(c.Country));
                 }
 
                 // Apply tags filter
                 if (!string.IsNullOrWhiteSpace(tags))
                 {
-                    var tagsList = tags.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var tagsList = tags.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => c.Tags.Any(t => tagsList.Contains(t.Name)));
                 }
 
                 // Apply status filter (Internal view specific)
                 if (!string.IsNullOrWhiteSpace(status))
                 {
-                    var statuses = status.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var statuses = status.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => statuses.Contains(c.Status.ToString()));
                 }
 
                 // Apply partner filter (Internal view specific)
                 if (!string.IsNullOrWhiteSpace(partner))
                 {
-                    var partners = partner.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var partners = partner.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => partners.Contains(c.Partner ?? "None"));
                 }
 

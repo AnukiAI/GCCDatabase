@@ -296,26 +296,26 @@
         }
 
         if (state.filters.certType.length > 0) {
-            params.append('certType', state.filters.certType.join(','));
+            params.append('certType', state.filters.certType.join('|'));
         }
 
         if (state.filters.productCategory.length > 0) {
-            params.append('productCategory', state.filters.productCategory.join(','));
+            params.append('productCategory', state.filters.productCategory.join('|'));
         }
 
         if (state.filters.company.length > 0) {
-            params.append('company', state.filters.company.join(','));
+            params.append('company', state.filters.company.join('|'));
         }
 
         if (state.filters.country.length > 0) {
-            params.append('country', state.filters.country.join(','));
+            params.append('country', state.filters.country.join('|'));
         }
 
         // Combine tags and additional into one 'tags' parameter
         // The 'tags' API parameter validates external tags and works on all deployments
         const allTags = [...state.filters.tags, ...state.filters.additional];
         if (allTags.length > 0) {
-            params.append('tags', allTags.join(','));
+            params.append('tags', allTags.join('|'));
         }
 
         params.append('sortBy', state.filters.sortBy);
@@ -783,23 +783,23 @@
         }
 
         if (params.has('certType')) {
-            state.filters.certType = params.get('certType').split(',');
+            state.filters.certType = params.get('certType').split('|');
         }
 
         if (params.has('category')) {
-            state.filters.productCategory = params.get('category').split(',');
+            state.filters.productCategory = params.get('category').split('|');
         }
 
         if (params.has('company')) {
-            state.filters.company = params.get('company').split(',');
+            state.filters.company = params.get('company').split('|');
         }
 
         if (params.has('country')) {
-            state.filters.country = params.get('country').split(',');
+            state.filters.country = params.get('country').split('|');
         }
 
         if (params.has('additional')) {
-            state.filters.additional = params.get('additional').split(',');
+            state.filters.additional = params.get('additional').split('|');
         }
 
         if (params.has('sort')) {
@@ -839,23 +839,23 @@
         }
         
         if (state.filters.certType.length > 0) {
-            params.set('certType', state.filters.certType.join(','));
+            params.set('certType', state.filters.certType.join('|'));
         }
         
         if (state.filters.productCategory.length > 0) {
-            params.set('category', state.filters.productCategory.join(','));
+            params.set('category', state.filters.productCategory.join('|'));
         }
         
         if (state.filters.company.length > 0) {
-            params.set('company', state.filters.company.join(','));
+            params.set('company', state.filters.company.join('|'));
         }
         
         if (state.filters.country.length > 0) {
-            params.set('country', state.filters.country.join(','));
+            params.set('country', state.filters.country.join('|'));
         }
         
         if (state.filters.additional.length > 0) {
-            params.set('additional', state.filters.additional.join(','));
+            params.set('additional', state.filters.additional.join('|'));
         }
 
         if (state.filters.sortBy !== 'cert-number-newest') {

@@ -3341,7 +3341,7 @@ footer {
 
     .main-logo {
         height: 180px;
-        max-width: 180px;
+        width: auto;
     }
 
     .logo-text {

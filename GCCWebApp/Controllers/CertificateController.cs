@@ -1103,6 +1103,23 @@ namespace GCCWebApp.Controllers
                             model.CustomFieldValues.Count, certificate.Number);
                     }
 
+                    // DEF-171 Option A: save-time auto-expire enforcement. Runs before
+                    // the repository.UpdateAsync below so the flip + audit row are part of the
+                    // same SaveChanges transaction as the rest of the user's edits.
+                    var actingUserId = GetCurrentUserId();
+                    var actingUsername = User?.FindFirst("Name")?.Value
+                        ?? User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                        ?? (actingUserId.HasValue ? $"User#{actingUserId}" : "System");
+                    var (autoExpired, historyRow) = Services.CertificateExpirationService.TryApplySaveTimeAutoExpire(
+                        certificate,
+                        actingUserId,
+                        actingUsername,
+                        workflowStep: "Save-Time-Expiration");
+                    if (autoExpired && historyRow != null)
+                    {
+                        _context.CertificateStatusHistory.Add(historyRow);
+                    }
+
                     await _certificateRepository.UpdateAsync(certificate);
                     await _unitOfWork.CompleteAsync();
 

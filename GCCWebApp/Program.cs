@@ -541,8 +541,12 @@ builder.Services.AddScoped<GCCWebApp.Services.ETL.IETLMonitor, GCCWebApp.Service
 builder.Services.AddHostedService<GCCWebApp.Services.ETL.ETLSchedulerService>();
 
 // ===== CERTIFICATE EXPIRATION SERVICE =====
-// Registered as scoped — triggered on login or page load, throttled to once per 24 hours
+// Scoped service implements the sweep. Two triggers:
+//   1. Login (AccountController.SignInUser) — throttled to once per 24h
+//   2. CertificateExpirationBackgroundService — periodic timer, runs whether anyone is logged in
+//      or not. Interval via Jobs:CertificateExpiration:IntervalMinutes (default 60).
 builder.Services.AddScoped<GCCWebApp.Services.ICertificateExpirationService, GCCWebApp.Services.CertificateExpirationService>();
+builder.Services.AddHostedService<GCCWebApp.Services.CertificateExpirationBackgroundService>();
 
 // ===== BASIC SERVICES =====
 builder.Services.AddHttpContextAccessor();

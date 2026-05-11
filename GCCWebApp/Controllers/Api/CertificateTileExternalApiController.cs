@@ -133,7 +133,7 @@ namespace GCCWebApp.Controllers.Api
                 // Apply additional partner filter if specified (for Partner role users to narrow results)
                 if (!string.IsNullOrWhiteSpace(partner) && userRole == "Partner")
                 {
-                    var partners = partner.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var partners = partner.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => partners.Contains(c.Partner ?? "None"));
                 }
 
@@ -163,7 +163,7 @@ namespace GCCWebApp.Controllers.Api
                 // Apply certification type filter
                 if (!string.IsNullOrWhiteSpace(certType))
                 {
-                    var types = certType.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var types = certType.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => types.Contains(c.CertificationType.Name));
                 }
 
@@ -171,7 +171,7 @@ namespace GCCWebApp.Controllers.Api
                 // Checks both Product's hierarchy and Certificate's direct fields
                 if (!string.IsNullOrWhiteSpace(productCategory))
                 {
-                    var categories = productCategory.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var categories = productCategory.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c =>
                         // Product's hierarchy (Category → ProductType → ProductSubcategory)
                         categories.Contains(c.Product.Category.Name) ||
@@ -187,21 +187,21 @@ namespace GCCWebApp.Controllers.Api
                 // Apply company filter
                 if (!string.IsNullOrWhiteSpace(company))
                 {
-                    var companies = company.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var companies = company.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => companies.Contains(c.Company.Id.ToString()));
                 }
 
                 // Apply country filter
                 if (!string.IsNullOrWhiteSpace(country))
                 {
-                    var countries = country.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var countries = country.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => countries.Contains(c.Country));
                 }
 
                 // Apply tags filter - EXTERNAL TAGS ONLY for external users
                 if (!string.IsNullOrWhiteSpace(tags))
                 {
-                    var tagsList = tags.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    var tagsList = tags.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => c.Tags.Any(t => tagsList.Contains(t.Name) && t.TagType == "external"));
                 }
 
@@ -496,7 +496,13 @@ namespace GCCWebApp.Controllers.Api
                     .GroupBy(pt => pt.ParentId!.Value)
                     .ToDictionary(g => g.Key, g => g.ToList());
 
-                // Trim hierarchy: keep a node if itself is visible OR a descendant is visible.
+                // Trim hierarchy (DEF-168): Category kept ONLY if a cert's Product.CategoryId
+                // directly points at it. Previous `|| c.types.Any()` fallback leaked orphan
+                // parent categories (e.g. a category referenced only as the administrative
+                // parent of a Product Type) because the find-side in CertificateRepository
+                // doesn't traverse Product.ProductType.Category — clicking such a category
+                // returned zero. Type-level fallback stays; safe because find side has
+                // parent-cascade on ProductType.Parent.Name.
                 var productCategoriesHierarchy = prodCategories
                     .Select(pc => new
                     {
@@ -521,7 +527,7 @@ namespace GCCWebApp.Controllers.Api
                             .Where(t => visibleProductTypeIds.Contains(t.id) || t.subcategories.Any())
                             .ToList()
                     })
-                    .Where(c => visibleCategoryIds.Contains(c.id) || c.types.Any())
+                    .Where(c => visibleCategoryIds.Contains(c.id))
                     .ToList();
 
                 // Get unique certification type IDs from active certificates

@@ -18,6 +18,255 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-171 — Cert auto-expire silently waited on a user login; status didn't flip in test (QC #167)
+
+- **Date:** 2026-05-11
+- **Severity:** Medium (no public-view leak — date filter already hid expired certs — but admin views and audit history lagged until someone logged in, which client correctly flagged as "feels broken")
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client — QC #167 (4/30/26): *"I updated 25-0246 to have an expiration in the past but left the Client Approved - Paid status. It correctly removed the cert from public view... Would the system eventually auto change the status to Expired too? When and how would this work?"*
+
+**Root problems before this fix:**
+1. Auto-expire ran only post-`SignInAsync` in `AccountController.SignInUser`, throttled to once per 24h. If the throttle was hot, or no one logged in fresh, or the user used B2C SSO, the sweep never fired.
+2. Cert save handlers (UI Edit POST + Admin API PUT) would happily persist an `ExpirationDate < today` cert with Status = `Client Approved - Paid`. The "inconsistent state" was a thing the system allowed to exist in the first place.
+
+**Fix — Option A: save-time enforcement + daily midnight-UTC sweep.**
+
+The principled fix splits the problem into the two cases that actually exist:
+- **Manual edits / imports / API saves**: catch the bad state at the moment of save. Cert can no longer leave the save path in a "past date + active status" combination.
+- **Naturally aging certs** (no one touches them, but their expiration date crosses today): catch via a daily timer at 00:00 UTC, the moment expiration date logically "happens."
+
+**Pieces:**
+
+1. **Shared helper** — `CertificateExpirationService.TryApplySaveTimeAutoExpire(cert, userId, username, workflowStep)` (static method). Pure on the cert side (mutates Status, no DB call); returns the audit-row object for the caller to add to its own DbContext before SaveChanges. Lets both the controller and the API service share identical logic without DI restructuring.
+
+2. **Save-time call sites (two)** — both UI Edit POST and Admin API PUT now invoke the helper before persisting:
+   - `Controllers/CertificateController.cs` (UI form post, calls `_certificateRepository.UpdateAsync` + `_unitOfWork.CompleteAsync`)
+   - `Services/CertificateService.UpdateCertificateAsync` (called by `Controllers/Api/CertificatesApiController.cs` Admin API PUT)
+
+3. **Background timer changed from "every 10 min" to "daily at 00:00 UTC"** — `Services/CertificateExpirationBackgroundService.cs`. Computes next-midnight-UTC delay each loop. Override available via `Jobs:CertificateExpiration:IntervalMinutes` (set to a positive int = use that as a fixed PeriodicTimer interval instead of midnight; used in Dev for fast iteration on the BG code path).
+
+4. **`bypassThrottle` parameter on `ICertificateExpirationService.CheckAndExpireAsync`** — login path keeps the 24h throttle; BG timer passes `true` because the timer cadence is itself the throttle.
+
+5. **appsettings** — Prod removes `IntervalMinutes` (default = midnight). Dev keeps `IntervalMinutes: 1` for quick BG-path verification.
+
+**Files changed (6):**
+- `Services/CertificateExpirationService.cs` — `bypassThrottle` parameter + new static helper `TryApplySaveTimeAutoExpire`
+- `Services/CertificateService.cs` — `UpdateCertificateAsync` calls the helper before SaveChanges
+- `Controllers/CertificateController.cs` — UI Edit POST calls the helper before repository.UpdateAsync
+- `Services/CertificateExpirationBackgroundService.cs` — switched to midnight-UTC scheduling
+- `appsettings.Production.json` — removed IntervalMinutes (default midnight); kept StartupDelaySeconds=30
+- `appsettings.Development.json` — IntervalMinutes=1, StartupDelaySeconds=5
+
+**Verification (localhost http://localhost:5101, 2026-05-11):**
+
+*BG sweep path (independent of any login):*
+
+| Step | Result |
+|---|---|
+| Backdate cert 26-0001 to `ExpirationDate='2026-05-01'`, keep `Status='Client Approved - Paid'` | DB confirmed |
+| Start app, no logins, dev `IntervalMinutes=1` | Log: `CertificateExpirationBackgroundService starting. Mode=Interval=00:01:00, StartupDelay=00:00:05` ✓ |
+| @ T+5s | Log: `Successfully expired 1 certificates`; cert flipped to `Expired`; audit row with `WorkflowStep='Auto-Expiration'`, `ChangedByUsername='System'`, `ChangeSource='Automated'` ✓ |
+| @ T+6s | Log: `CertificateExpiration next sweep scheduled at 2026-05-11 20:53:33 UTC (in 00:01:00)` — proves the loop continues ✓ |
+
+*Save-time enforcement (the user case Carly hit):*
+
+| Step | Result |
+|---|---|
+| Restored cert 26-0002 to clean future state (`ExpirationDate='2027-02-01'`, `Status='Client Approved - Paid'`). Bumped dev `IntervalMinutes` high so BG can't interfere. | DB confirmed |
+| Playwright: log in as `admin`/`TestPass123!`, navigate to `/Certificate/Edit/26-0002`, set ExpirationDate to `2026-05-01`, leave Status dropdown at `Client Approved - Paid`, submit form via `form.requestSubmit(saveButton)` | Redirected to `/Certificate/CertificateInternalView/26-0002` ✓ |
+| Post-save DB query | Cert `Status='Expired'`, `UpdatedAt=21:11:25`, `UpdatedBy=1` (admin) ✓ |
+| `CertificateStatusHistory` row | `ChangedByUsername='admin'`, `PreviousStatus='Client Approved - Paid'`, `NewStatus='Expired'`, `Reason='Save-time auto-expire: expiration date is in the past'`, `WorkflowStep='Save-Time-Expiration'`, `ChangeSource='Automated'`, `IsAutomatedTransition=1`, Notes captures the override ✓ |
+| Dev data restored to pristine state | ✓ |
+
+**Test plan for prod-test (gccwebapp.com) after deploy:**
+
+*Save-time path (instant):*
+1. Edit any cert in prod-test, change ExpirationDate to a past date, leave Status as anything non-Expired, click Save.
+2. On the cert detail page that loads next, Status reads **Expired**. Status History shows an `admin`-authored row labelled `Save-Time-Expiration` with `Reason="Save-time auto-expire..."`.
+
+*BG midnight sweep (natural aging):*
+1. Watch Plesk log on startup for `CertificateExpirationBackgroundService starting. Mode=Daily at 00:00 UTC, StartupDelay=00:00:30`.
+2. After the next 00:00 UTC, Plesk log will show `Found N certificates past expiration date... Successfully expired N certificates` for whatever crossed expiration that day. If N=0 (most days), log line: `No certificates to expire`.
+3. The startup catch-up sweep also runs on each pool recycle — handles certs that aged during downtime.
+
+**Login-trigger preserved as belt-and-suspenders:** AccountController still invokes `CheckAndExpireAsync(bypassThrottle: false)` post-SignIn so burst logins don't all hammer the DB but at least one login per day also forces a sweep. Cheap insurance.
+
+**Plesk note:** BackgroundService dies with the app pool and restarts on the next request. The startup catch-up sweep covers any certs that aged during the idle window. If keeping the pool always-warm becomes important (e.g., the midnight sweep firing at midnight regardless of traffic, not 30s after the next morning request wakes the pool), set "Start Mode: AlwaysRunning" on the Plesk app pool + `applicationInitialization` in `web.config` — separate config change, not part of this defect.
+
+---
+
+### DEF-170 — Tile filter multi-select delimiter collides with commas in names (QC #177)
+
+- **Date:** 2026-05-11
+- **Severity:** High (filter selection returns 0 for any value containing a comma — affected ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division and any other company/cert-type/etc. with a comma)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client — QC #177 (5/8/26): *"I selected ASSA and it says no certs found... I swear this was right prior but is now not. Then during later testing I found there is a cert showing with this -- but then the filter selection is not working right. Same happened with another company name."*
+- **Confirmed via screenshot:** `C:\Users\swest\Downloads\Screenshot_11-5-2026_16237_gccwebapp.com.jpeg` — Public view Company sidebar lists `ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbi...`, two commas in the name. Cert tile 26-0149 (Commercial Door Closer - DC300) for that company is visible in the public list, so the company has a `PublicStatuses` cert in scope and the dropdown is correctly listing it.
+
+**Root cause:** Multi-select tile filters were comma-joined in JS and comma-split on the backend:
+
+```js
+// wwwroot/js/certificate-tile-view.js — before
+params.append('company', state.filters.company.join(','));
+```
+
+```csharp
+// Controllers/Api/CertificateTilesApiController.cs — before
+filter.CompanyNames = companyFilter.Split(',').ToList();
+```
+
+When a single selected company name itself contained a comma (very common: `Inc.`, `Ltd.`, `Co., Ltd.`, the ASSA division above, etc.), `Split(',')` shredded the value into fragments that matched no row. Carly's symptom: dropdown shows the company (strict-scoping is correct), ticking it sends `company=ASSA ABLOY..., Inc. - Corbin...`, backend splits into `['ASSA ABLOY... ', ' Inc. - Corbin...']`, neither matches → 0 results.
+
+The same pattern existed on all three tile views and every multi-select filter dimension (certType, productCategory, company, country, tags, partner, status, additional).
+
+**Fix:** Swapped delimiter from `,` to `|` end-to-end. Pipe is illegal-by-convention in business names and URL-encodes cleanly as `%7C`.
+
+**Files changed (6):**
+
+Controllers — `Split(',')` / `Split(',', StringSplitOptions.RemoveEmptyEntries)` → pipe variants:
+- `Controllers/Api/CertificateTilesApiController.cs` — 6 lines (certType, productCategory, company × 2, country, tags, additional)
+- `Controllers/Api/CertificateTileExternalApiController.cs` — 6 lines (certType, productCategory, company, country, tags, partner)
+- `Controllers/Api/CertificateTileInternalApiController.cs` — 7 lines (certType, productCategory, company, country, tags, status, partner)
+
+JS — `join(',')` / `split(',')` on filter dimensions → pipe variants:
+- `wwwroot/js/certificate-tile-view.js` (Public) — 10 joins + 5 splits (buildApiParams, updateUrl, URL-param load)
+- `wwwroot/js/certificate-tile-view-internal.js` — 9 joins + 2 splits (status + partner URL-load only; the other splits in this file at lines 1716 and 2118 parse CSV-style display fields and were left as `,`)
+- `wwwroot/js/certificate-tile-view-external.js` — 9 joins + 2 splits (same scope as Internal; non-filter splits at 1683 and 1999 left alone)
+
+Not touched: `wwwroot/js/certificateExternalService.js` (no view references it — dead code from older implementation). CSV export `.join(',')` calls across admin pages (those produce CSV files, not filter URLs).
+
+**Backward compat:** Shareable URLs generated before this fix use `?company=A,B` and will, after the fix, be read as one literal company name `"A,B"` (returns 0). The shareable-link feature is pre-launch and not documented for client use yet, so existing bookmarks are unlikely. If any persist, the user just unticks and re-ticks.
+
+**Verification (localhost http://localhost:5101, 2026-05-11):**
+
+| Test | URL | Result | Expected |
+|---|---|---|---|
+| Single name | `company=Acme%20Corporation` | 1 cert | 1 ✓ |
+| Pipe multi-select | `company=Acme%20Corporation%7CHenkel` | 4 certs | 1 Acme + 3 Henkel ✓ |
+| Comma-bearing name | `company=ASSA%20ABLOY...%2C%20Inc.` | 0 (no matching DB row in dev) | passed through as one string, no split error ✓ |
+| Legacy comma URL | `company=Acme%2CHenkel` | 0 | now treated as one literal name "Acme,Henkel" — expected regression ✓ |
+| Category filter unchanged | `productCategory=Chemicals%20and%20Raw%20Materials` | 22 certs | 22 ✓ |
+
+End-to-end browser test (Playwright at 1400×900): ticked Acme + Amazon checkboxes, captured request URL → `?company=Acme+Corporation%7CAmazon`, UI showed "Showing 9 of 9 certificates" (1 Acme + 8 Amazon). Pipe delimiter survives JS → URL → backend → SQL round-trip.
+
+**Pre-deploy note:** Once shipped, Carly's ASSA ABLOY click should immediately return cert 26-0149 (and any other ASSA ABLOY certs in `PublicStatuses`). The dropdown contents won't change — it was already correct; only the selection mechanism was broken.
+
+---
+
+### DEF-169 — Logo squeezed/distorted at tablet/reduced-desktop widths (769–1024px)
+
+- **Date:** 2026-05-11
+- **Severity:** Low–Medium (cosmetic but customer-visible on every page header)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Shawn (in-session, 2026-05-11)
+
+**Symptom:** When the browser is reduced to tablet width or a narrow desktop window (769–1024px), the GCC circular logo in the header renders horizontally compressed — looks like a slightly-stretched ellipse instead of a circle.
+
+**Root cause:** `wwwroot/css/main.css` line 3342-3345, the tablet-only rule for `.main-logo` applied both `height: 180px` AND `max-width: 180px` to an image with natural aspect 1.123 (337×300 px). At `height: 180px` the natural rendered width is ~202px, but `max-width: 180px` clamps it to 180px. With `object-fit` unset (defaults to `fill`), the browser stretches the image to satisfy both constraints — producing a 180×180 square render of a non-square source.
+
+Mobile (`@media (max-width: 768px)`) has the same `height/max-width` pattern but adds `object-fit: contain`, which letterboxes instead of stretching — hence no mobile distortion was reported.
+
+Base/desktop has no width constraint, only `height: 280px` — aspect preserved, no issue.
+
+**Fix:** Replace `max-width: 180px` with `width: auto` in the tablet rule. Height drives the rendered width via the image's natural aspect; no clamp, no stretch.
+
+```css
+/* Before */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .main-logo { height: 180px; max-width: 180px; }
+}
+/* After */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .main-logo { height: 180px; width: auto; }
+}
+```
+
+**Files changed:**
+- `wwwroot/css/main.css` (line 3342-3345)
+
+**Verification (localhost http://localhost:5101, Playwright, 2026-05-11):**
+
+| Viewport | Rendered | Aspect | Natural Aspect | Verdict |
+|---|---|---|---|---|
+| 900 × 700 (tablet) | 202 × 180 | 1.123 | 1.123 | ✓ matches |
+| 1100 × 700 (reduced desktop) | 315 × 280 | 1.123 | 1.123 | ✓ matches (base rule) |
+| 1400 × 800 (desktop) | 315 × 280 | 1.123 | 1.123 | ✓ matches |
+
+Screenshot at 900px in `C:\Users\swest\AppData\Local\Temp\logo-900-tablet.png` — logo renders as a true circle, not an ellipse.
+
+**Mobile not changed:** Mobile rule (`max-width: 768px`) already uses `object-fit: contain` which preserves aspect by letterboxing; cosmetically smaller than possible but not distorted. Not part of this defect; leave for a future cleanup pass if Shawn flags it.
+
+---
+
+### DEF-168 — Cert-tile Product Category filter leaks orphan parent categories on Public view
+
+- **Date:** 2026-05-11
+- **Severity:** Medium (public-facing filter UX; dead-click filter selection, client trust impact)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client — QC #170 (5/1/26): *"I was trying to clean up the product type options... [Filter] would filter by Carly Test but the actual type doesn't have that option... Why is Carly Test showing up if the certificate isn't public?"* (image 59)
+- **Related:** DEF-167 (cert-type subcategory leak — same controller family), QC #149 (L2/L3 Product Category options don't filter)
+
+**Symptom:** On the Public tile view (`/Certificate/CertificateTileView`), the **Product Categories** filter dropdown surfaces "Carly Test" (and similar test categories). Selecting it returns zero certificates. The cert(s) associated with that category are not in `PublicStatuses`, so the user expects the category to not appear at all.
+
+**Scope** — what each tile view *should* show in the Product Category filter:
+
+| View | Filter API | Cert-scope feeding the dropdown | Expected behavior |
+|---|---|---|---|
+| Public | `GET /api/certificate-tiles/filters` | `Status ∈ PublicStatuses` AND not expired | Show only categories that have ≥1 cert in scope. Picking one must return ≥1 result. |
+| External (role=External) | `GET /api/CertificateTileExternal/filters` | Public-scope AND `cert.CompanyId ∈ user's companies` | Same — no dead clicks. |
+| External (role=Partner) | `GET /api/CertificateTileExternal/filters` | Public-scope AND `cert.Partner ∈ user's partners` | Same. |
+| Internal (Analyst/Admin) | `GET /api/certificate-tiles-internal/filters` | No scope — all certs | All active categories shown (intentional). |
+
+**"Distinct from scope"** = `SELECT DISTINCT <col>` over the in-scope cert set. The dropdown should always satisfy: "if I tick this value, I get ≥1 row back."
+
+**Root cause:** `Controllers/Api/CertificateTilesApiController.cs:241-380` — the hierarchy build is scoped strictly at the leaf level but uses a permissive parent-fallback at the Category level. Specifically:
+
+1. `visibleCategoryIds` is collected from `c.Product.CategoryId` (line 259-262) — strict.
+2. `visibleProductTypeIds` is collected from `c.Product.ProductTypeId` (line 264-268) — strict.
+3. The category trim (line 331): `.Where(c => visibleCategoryIds.Contains(c.id) || c.types.Any())` — a category is kept if **any descendant Product Type passed the type-level trim**, regardless of whether the cert's `Product.CategoryId` actually points at this category.
+
+A Product can have `CategoryId = X` (real category) and `ProductTypeId = Y` where `Y.CategoryId = "Carly Test"` (a different category — administrative parent of Y). The product itself sits in X. The cert is public. But the dropdown walks the hierarchy from "Carly Test" downward, finds Y in `visibleProductTypeIds`, and keeps "Carly Test" as a visible category. Then `CertificateRepository.GetAdvancedFilteredCertificatesAsync` (line 312-330) does name-match against `Product.Category.Name`, `Product.ProductType.Name`, and `Product.ProductType.Parent.Name` — but **not** `Product.ProductType.Category.Name`. So the filter find-side doesn't reverse-traverse the orphan relationship, and the dropdown click is a dead click.
+
+**Files involved (no edits yet):**
+- `Controllers/Api/CertificateTilesApiController.cs` — Public endpoint, primary location of the leak
+- `Controllers/Api/CertificateTileExternalApiController.cs:462-525` — same hierarchy-build pattern; same latent bug
+- `Repositories/CertificateRepository.cs:312-330` — filter-apply side that doesn't traverse `Product.ProductType.Category`
+
+**Recommended fix options (choose one):**
+
+- **Option A — Stricter dropdown (recommended).** Drop the `|| c.types.Any()` fallback in the Public + External hierarchy builds. Categories appear only when a cert's `Product.CategoryId` directly references them. Lowest risk; aligns with "no dead clicks." Selection still works because the find-side name match covers all the documented paths.
+- **Option B — Match dropdown to find-side.** Expand `visibleCategoryIds` to also include `Product.ProductType.CategoryId` (and `Product.ProductType.Parent.CategoryId`). Then update `CertificateRepository.cs` to also match `Product.ProductType.Category.Name`. Larger change, but preserves the parent-rollup behavior the original code intended.
+
+**Note on the previously-listed "Option C / subcategory-table mismatch":** retracted 2026-05-11. On re-verification, `Product.ProductSubcategoryId` is a FK to `ProductTypes(ParentId != null)` — see `Models/Product.cs:44-46` and `Data/ApplicationDbContext.cs:203-209` (retargeted under DEF-134, 2026-05-04). The `visibleSubcategoryIds.Contains(sub.Id)` comparison at `CertificateTilesApiController.cs:319-320` is therefore apples-to-apples and works correctly. No fix needed; my earlier note was based on pre-DEF-134 state.
+
+**Decision:** Option A applied 2026-05-11 (Shawn's direction). Strictly bound the category list to direct `Product.CategoryId` references — no traversal up from Product Type. "Carly Test" stops appearing in the dropdown without code accommodating bad taxonomy data; cleanup remains visible.
+
+**Files changed:**
+- `Controllers/Api/CertificateTilesApiController.cs` — line 331 trim Where: removed `|| c.types.Any()` fallback. Comment block added explaining rationale + DEF-168 reference.
+- `Controllers/Api/CertificateTileExternalApiController.cs` — line 524 same change.
+- Internal controller untouched — Admin/Analyst sees the full taxonomy by design (no scoping), so the leak doesn't manifest there.
+- Type-level fallback (`|| t.subcategories.Any()`) preserved — safe because find side in `CertificateRepository.GetAdvancedFilteredCertificatesAsync` has parent-cascade on `ProductType.Parent.Name` (lines 322-328).
+
+**Trade-off:** A Product Type whose administrative parent Category has zero directly-categorized products will now disappear from the dropdown along with that orphan parent. The cert itself stays findable via the Product's actual `CategoryId` or via search. This is intentional — signals that orphan-parent data exists and needs cleanup, rather than masking it.
+
+**Verification (localhost http://localhost:5101, 2026-05-11):**
+- `dotnet build` — 0 errors, 53 pre-existing warnings.
+- `GET /api/certificate-tiles/filters` (anonymous) → hierarchy returns 1 category (`Chemicals and Raw Materials`), matches the flat `productCategories` list 1:1. No orphan parents.
+- `GET /api/certificate-tiles?page=1` → 22 public certs total (cert query untouched).
+- `GET /api/certificate-tiles?productCategory=Chemicals%20and%20Raw%20Materials` → 22 hits. Filter selection still works.
+- `GET /api/certificate-tiles?productCategory=Carly%20Test` → 0 hits, no exception. Confirms find-side has no path that would have matched a hidden category — A is internally consistent.
+- External endpoint not curl-tested (cookie auth + antiforgery); code shape is identical to public, structurally guaranteed.
+
+**Pre-deploy note:** Dev DB has no orphan parents (all 41 certs are in a single category). The fix's behavioral impact will only manifest on prod, where Carly's test data introduced the orphan-parent state. Expected result on prod after deploy: "Carly Test" stops appearing in the Public + External filter dropdowns. Test categories Carly leaves around will be silently hidden until she deletes or repoints them — making cleanup observable for the first time.
+
+**Verification once chosen:** localhost (`http://localhost:5101`) + a seeded "orphan parent" cert (Product.CategoryId = food, Product.ProductTypeId points at a type whose Category = "Test"). Then:
+- Hit `GET /api/certificate-tiles/filters` and confirm "Test" is **absent** under Option A.
+- Tick the parent category in the rendered hierarchy and confirm ≥1 cert returns OR the category is hidden — never the dead-click middle state.
+
+**Related QC entry:** Carly's same screenshot reports "Products is showing 0 for all" — that's a separate ProductController count rendering question, not part of this defect. Tracked separately if it persists after page reload.
+
+---
+
 ### DEF-167 — Cert-tile filter: subcategories rendered as separate checkboxes; missing IsActive guard
 
 - **Date:** 2026-05-11

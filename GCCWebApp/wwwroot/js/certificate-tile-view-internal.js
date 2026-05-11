@@ -259,31 +259,31 @@
         }
         
         if (state.filters.certType.length > 0) {
-            params.append('certType', state.filters.certType.join(','));
+            params.append('certType', state.filters.certType.join('|'));
         }
         
         if (state.filters.productCategory.length > 0) {
-            params.append('productCategory', state.filters.productCategory.join(','));
+            params.append('productCategory', state.filters.productCategory.join('|'));
         }
         
         if (state.filters.company.length > 0) {
-            params.append('company', state.filters.company.join(','));
+            params.append('company', state.filters.company.join('|'));
         }
         
         if (state.filters.country.length > 0) {
-            params.append('country', state.filters.country.join(','));
+            params.append('country', state.filters.country.join('|'));
         }
         
         if (state.filters.tags.length > 0) {
-            params.append('tags', state.filters.tags.join(','));
+            params.append('tags', state.filters.tags.join('|'));
         }
         
         if (state.filters.status.length > 0) {
-            params.append('status', state.filters.status.join(','));
+            params.append('status', state.filters.status.join('|'));
         }
         
         if (state.filters.partner.length > 0) {
-            params.append('partner', state.filters.partner.join(','));
+            params.append('partner', state.filters.partner.join('|'));
         }
         
         params.append('sortBy', state.filters.sortBy);
@@ -939,11 +939,11 @@
         }
 
         if (params.has('status')) {
-            state.filters.status = params.get('status').split(',');
+            state.filters.status = params.get('status').split('|');
         }
 
         if (params.has('partner')) {
-            state.filters.partner = params.get('partner').split(',');
+            state.filters.partner = params.get('partner').split('|');
         }
 
         if (params.has('sort')) {
@@ -970,8 +970,8 @@
         const params = new URLSearchParams();
         
         if (state.filters.search) params.set('search', state.filters.search);
-        if (state.filters.status.length > 0) params.set('status', state.filters.status.join(','));
-        if (state.filters.partner.length > 0) params.set('partner', state.filters.partner.join(','));
+        if (state.filters.status.length > 0) params.set('status', state.filters.status.join('|'));
+        if (state.filters.partner.length > 0) params.set('partner', state.filters.partner.join('|'));
         // ... other parameters
         
         const newUrl = params.toString() 

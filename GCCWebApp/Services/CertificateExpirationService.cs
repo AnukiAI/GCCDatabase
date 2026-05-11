@@ -7,10 +7,13 @@ namespace GCCWebApp.Services
     public interface ICertificateExpirationService
     {
         /// <summary>
-        /// Checks and expires overdue certificates. Throttled to run at most once per day.
-        /// Safe to call on every login — skips if already ran today.
+        /// Checks and expires overdue certificates.
+        /// When bypassThrottle=false (default), skips if already ran in the last 24h — safe for
+        /// login-triggered calls that may fire many times per day.
+        /// When bypassThrottle=true, runs unconditionally — used by the background timer,
+        /// which is its own throttle.
         /// </summary>
-        Task CheckAndExpireAsync();
+        Task CheckAndExpireAsync(bool bypassThrottle = false);
     }
 
     /// <summary>
@@ -20,6 +23,55 @@ namespace GCCWebApp.Services
     /// </summary>
     public class CertificateExpirationService : ICertificateExpirationService
     {
+        /// <summary>
+        /// Save-time enforcement helper (DEF-171 Option A): if <paramref name="cert"/> has an
+        /// expiration date in the past and its Status isn't already an expired-flavor, this
+        /// mutates Status to Expired and returns a pre-built audit row that the caller should
+        /// add to its DbContext (via _context.CertificateStatusHistory.Add(row)) before
+        /// SaveChanges. Pure on the cert mutation side, no DB access here — keeps the helper
+        /// safe to call from any controller/service whose own DbContext owns the save.
+        /// Returns (false, null) when no flip was needed.
+        /// </summary>
+        public static (bool AutoExpired, CertificateStatusHistory? HistoryRow) TryApplySaveTimeAutoExpire(
+            Certificate cert,
+            int? actingUserId,
+            string actingUsername,
+            string workflowStep)
+        {
+            var today = DateTime.UtcNow.Date;
+            var expiredStatuses = new[]
+            {
+                CertificateStatusHelper.StatusExpired,
+                CertificateStatusHelper.StatusExpiredNoAnnualVerification
+            };
+
+            if (cert.ExpirationDate.Date >= today || expiredStatuses.Contains(cert.Status))
+            {
+                return (false, null);
+            }
+
+            var statusBefore = cert.Status;
+            cert.Status = CertificateStatusHelper.StatusExpired;
+
+            var row = new CertificateStatusHistory
+            {
+                CertificateId = cert.Id,
+                CertificateNumber = cert.Number,
+                PreviousStatus = statusBefore,
+                NewStatus = CertificateStatusHelper.StatusExpired,
+                Reason = "Save-time auto-expire: expiration date is in the past",
+                Notes = $"Caller submitted Status='{statusBefore}' with ExpirationDate={cert.ExpirationDate:yyyy-MM-dd}; system overrode to Expired.",
+                ChangedBy = actingUserId ?? 1,
+                ChangedByUsername = actingUsername,
+                ChangedAt = DateTime.UtcNow,
+                ChangeSource = AuditChangeSource.Automated,
+                IsAutomatedTransition = true,
+                WorkflowStep = workflowStep
+            };
+
+            return (true, row);
+        }
+
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CertificateExpirationService> _logger;
         private readonly IProductIdService _productIdService;
@@ -38,16 +90,20 @@ namespace GCCWebApp.Services
             _productIdService = productIdService;
         }
 
-        public async Task CheckAndExpireAsync()
+        public async Task CheckAndExpireAsync(bool bypassThrottle = false)
         {
-            // Throttle: only run once per 24 hours
-            lock (_lock)
+            // Throttle (login-triggered path only): skip if a sweep ran in the last 24h.
+            // The background timer passes bypassThrottle=true because the timer itself is the cadence.
+            if (!bypassThrottle)
             {
-                if ((DateTime.UtcNow - _lastRunUtc).TotalHours < 24)
+                lock (_lock)
                 {
-                    return;
+                    if ((DateTime.UtcNow - _lastRunUtc).TotalHours < 24)
+                    {
+                        return;
+                    }
+                    _lastRunUtc = DateTime.UtcNow;
                 }
-                _lastRunUtc = DateTime.UtcNow;
             }
 
             try
@@ -57,8 +113,11 @@ namespace GCCWebApp.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in certificate expiration check");
-                // Reset so it retries on next login
-                lock (_lock) { _lastRunUtc = DateTime.MinValue; }
+                if (!bypassThrottle)
+                {
+                    // Reset so the next login retries.
+                    lock (_lock) { _lastRunUtc = DateTime.MinValue; }
+                }
             }
         }
 

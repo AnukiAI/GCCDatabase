@@ -1,0 +1,43 @@
+flowchart TD
+    A[Data Operation Request] --> B{Operation Type}
+    
+    B --> C[Import Certificates]
+    B --> D[Export Certificates]
+    B --> E[Bulk Operations]
+    
+    C --> C1[Upload File]
+    C1 --> C2{File Format Valid?}
+    C2 -->|No| C3[Format Error]
+    C2 -->|Yes| C4[Parse Data]
+    C4 --> C5{Data Valid?}
+    C5 -->|No| C6[Validation Errors]
+    C5 -->|Yes| C7[Process Records]
+    C7 --> C8[Save to Database]
+    C8 --> C9[Import Summary]
+    
+    D --> D1[Select Export Criteria]
+    D1 --> D2[Query Database]
+    D2 --> D3[Format Data]
+    D3 --> D4{Export Format}
+    D4 --> D5[CSV Export]
+    D4 --> D6[Excel Export]
+    D4 --> D7[PDF Report]
+    D5 --> D8[Download File]
+    D6 --> D8
+    D7 --> D8
+    
+    E --> E1[Select Records]
+    E1 --> E2{Bulk Operation}
+    E2 --> E3[Bulk Update]
+    E2 --> E4[Bulk Delete]
+    E2 --> E5[Bulk Status Change]
+    E3 --> E6[Validate Changes]
+    E4 --> E7[Confirm Deletion]
+    E5 --> E8[Update Status]
+    E6 --> E9[Apply Changes]
+    E7 --> E9
+    E8 --> E9
+    E9 --> E10[Operation Summary]
+    
+    style C3 fill:#ffebee
+    style C6 fill:#ffebee

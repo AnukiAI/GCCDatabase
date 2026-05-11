@@ -273,25 +273,16 @@ namespace GCCWebApp.Controllers.Api
                     .Distinct()
                     .ToListAsync();
 
-                // Certification types: include if directly used by a visible cert, or a parent whose child is used.
-                var allCertTypes = await _context.CertificationTypes
-                    .Where(ct => ct.IsActive && (visibleCertTypeIds.Contains(ct.Id) || ct.Children.Any(child => visibleCertTypeIds.Contains(child.Id))))
+                // DEF-167: Filter dropdown shows Level-1 (top-level) cert types only.
+                // Subcategories should not appear as filter options; certs tagged at Level-2
+                // must be repointed at their Level-1 parent via
+                // Database_Scripts/20260511_DEF167_AuditL2TaggedCerts.sql before they will be
+                // reachable through this dropdown.
+                var hierarchicalCertTypes = await _context.CertificationTypes
+                    .Where(ct => ct.IsActive && ct.ParentId == null && visibleCertTypeIds.Contains(ct.Id))
                     .OrderBy(ct => ct.SortOrder)
-                    .Select(ct => new { ct.Id, ct.Name, ct.Level, ct.ParentId, ct.SortOrder })
+                    .Select(ct => new { name = ct.Name, level = ct.Level })
                     .ToListAsync();
-
-                // Build hierarchical list (parent followed by children)
-                var hierarchicalCertTypes = new List<dynamic>();
-                foreach (var certType in allCertTypes.Where(ct => ct.ParentId == null))
-                {
-                    hierarchicalCertTypes.Add(new { name = certType.Name, level = certType.Level });
-                    // Add children immediately after parent
-                    var children = allCertTypes.Where(ct => ct.ParentId == certType.Id).OrderBy(ct => ct.SortOrder);
-                    foreach (var child in children)
-                    {
-                        hierarchicalCertTypes.Add(new { name = child.Name, level = child.Level });
-                    }
-                }
 
                 // Build hierarchy matching Admin page: Category → Type (ParentId=null) → Subcategory (ParentId!=null)
                 var categories = await _context.Set<ProductCategory>()

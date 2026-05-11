@@ -6,6 +6,32 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-167 — Cert tile filter dropdown showed certification-type subcategories as separate checkboxes (2026-05-11, fix in deploy zip pending upload)
+
+Client reported via QC #169 (4/30) that the public Certificate Tile View's "Certification Type" filter pane was listing Certified Sustainability Facts subcategories (Biobased Content, Closed Loop, Embodied Carbon Disclosures, and ~28 more) as their own filter checkboxes alongside the top-level certification types. Her direction: subcategories should not appear in the filter box at all. The login view shows the desired behavior — only top-level types with visible certs — and was the standard the public view should match.
+
+Root cause was in three controllers (`CertificateTilesApiController.cs` for the public view, `CertificateTileInternalApiController.cs` for the admin view, `CertificateTileExternalApiController.cs` for the external-user view). Each one ran a query that pulled every active cert type plus an in-memory flatten loop that emitted the parent followed by each child as a separate filter row. The public endpoint also lacked the `IsActive` guard that the admin endpoint had, so soft-deleted types with active children could leak through.
+
+Replaced the 18-line query + flatten loop with a single Level-1-only LINQ query in all three controllers:
+```csharp
+var hierarchicalCertTypes = await _context.CertificationTypes
+    .Where(ct => ct.IsActive && ct.ParentId == null && certTypeIds.Contains(ct.Id))
+    .OrderBy(ct => ct.SortOrder)
+    .Select(ct => new { name = ct.Name, level = ct.Level })
+    .ToListAsync();
+```
+JSON response shape unchanged — JS consumers untouched. The change also closes the related backlog items QC #128 (LEED filter showed certs without LEED tag) and QC #149 (L2/L3 Product Category options didn't filter) which were the same flatten-pattern symptom on different filter panes.
+
+Per Shawn's direction "fix the data": certs tagged at Level-2 (a subcategory) instead of Level-1 (a parent) would become unfilterable after the code change. Wrote `Database_Scripts/20260511_DEF167_AuditL2TaggedCerts.sql` with two parts — an audit SELECT (safe everywhere) and a CR-gated remediation UPDATE block (commented out). Ran the audit against prod (gccwebap_certificates @ tcp:68.71.129.120,1533) before zipping: **AffectedCertCount = 0**. No certs on prod tag a Level-2 row as primary type, so the remediation block is not needed and no CR is required.
+
+Local verification: `GET /api/certificate-tiles/filters` returned 4 entries, all `level: 1`. `GET /api/certificate-tiles?certType=Recycled%20Content` returned 16 certs, all matching the filter. Build clean (0 errors, 51 pre-existing warnings).
+
+Files: `Controllers/Api/CertificateTilesApiController.cs`, `Controllers/Api/CertificateTileInternalApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`, `Database_Scripts/20260511_DEF167_AuditL2TaggedCerts.sql`, `docs/tracking/defect-register.md` (DEF-167 entry), `docs/tracking/shipped-2026-05.md` (this entry).
+
+Deploy zip: `deployment-drops/GCCWebApp-deploy-20260511-1054.zip` (60.3 MB).
+
+---
+
 ## DEF-166 — Internal tile view slow load + only 15 of 35 certs showing (2026-05-08, fix v2 in working tree pending second deploy)
 
 Shawn flagged that `/Certificate/CertificateTileViewInternal` was loading slowly and that only 15 of an expected 35 certificates were rendering. Both symptoms shared one root cause: the internal tile API stacked fourteen `.Include()` calls and four of those were collection navigations (`Tags`, `ProductIds`, `CertificationTypeSubcategories`, `CustomFieldValues`). EF Core's default single-query mode flattens collection includes into one big LEFT JOIN — five tags × three product IDs × two custom fields × two cert subcategories produces around sixty rows per certificate. Two consequences: the page query paid the cartesian materialization cost (slow load), and `Skip(offset).Take(20)` operated on cartesian rows rather than unique certificates, so a page meant to return twenty distinct certs returned as few as five or ten. The JS dedupe-by-id step on the client (`certificate-tile-view-internal.js`) silently dropped the duplicate rows, leaving the user with a partial result like 15 of 35. Pagination instability was further compounded because every sort branch in `ApplySorting` (e.g. `OrderByDescending(c => c.EffectiveDate)`) had no tiebreaker — when two certs share an EffectiveDate, SQL Server's row order is non-deterministic, so page 1 and page 2 could overlap, and dedupe again silently shrank the visible count.

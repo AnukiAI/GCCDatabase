@@ -1,5 +1,55 @@
 # Observations Log
 
+## 2026-05-11 — DEF-167 implemented: Level-1-only cert-type filter dropdown across all three tile-view controllers
+
+Shawn's direction was Level 1 only in the dropdown, fix the data — no parent-rollup logic.
+
+Dev DB audit first: 41 certs, all tagged at Level 1, 0 at Level 2. `CertificateCertificationTypeSubcategories` join table empty. Dev needs no data remediation. The Level-2-tagged certs the client saw are on prod (gccwebapp.com).
+
+Code change: replaced the 18-line `allCertTypes` query + in-memory parent/child flatten loop with a single Level-1-only LINQ query in **three controllers** (turned out to be three, not two — public, internal, external all carry the same pattern):
+- `Controllers/Api/CertificateTilesApiController.cs` — public, `/api/certificate-tiles` (the bug the client actually saw)
+- `Controllers/Api/CertificateTileInternalApiController.cs` — admin/internal, `/api/certificate-tiles-internal` (client said "login view is fine" — parity-only fix)
+- `Controllers/Api/CertificateTileExternalApiController.cs` — external-user, `/api/CertificateTileExternal` (also was missing the `IsActive` guard)
+
+New query in all three:
+```csharp
+var hierarchicalCertTypes = await _context.CertificationTypes
+    .Where(ct => ct.IsActive && ct.ParentId == null && certTypeIds.Contains(ct.Id))
+    .OrderBy(ct => ct.SortOrder)
+    .Select(ct => new { name = ct.Name, level = ct.Level })
+    .ToListAsync();
+```
+JSON output shape unchanged (`[{name, level}, ...]`); JS consumers untouched.
+
+Local verification: `GET /api/certificate-tiles/filters` returned 4 entries, all `level: 1`. Filter by `?certType=Recycled%20Content` returned 16 certs, all `Recycled Content`. Pre-fix would have included CSF subcategories (and on prod, all 30 of them as separate filter rows).
+
+Wrote `Database_Scripts/20260511_DEF167_AuditL2TaggedCerts.sql` with two parts:
+1. Audit SELECT (safe to run anytime) — lists every Level-2-tagged cert with its proposed parent.
+2. Remediation block (commented-out, CR-gated) — repoints CertificationTypeId to the parent Level-1, preserves the original Level-2 reference in `CertificateCertificationTypeSubcategories`.
+
+**Pre-deploy gate:** before shipping the code, run the audit query against prod. Any row count > 0 means those certs will silently disappear from filter selection until the remediation block runs. Per `feedback_data_changes_require_cr.md`, the UPDATE block needs a CR with row count attached before it can run on prod. Either submit the CR + run together, or warn the client that those Level-2-tagged certs will be temporarily unfilterable post-deploy.
+
+Files changed: 3 controllers, 1 new SQL script. Build clean (0 errors, 51 pre-existing warnings).
+
+---
+
+## 2026-05-10 — QC #169 / DEF-167 scoped: public cert-tile filter renders subcategories + missing IsActive guard + no parent-rollup on filter selection
+
+Client reported (QC #169, 4/30/26) that the public Certificate Tile View's "Certification Type" filter pane shows CSF subcategories as their own checkboxes ("WHICH IS WRONG"), shows what appears to be all cert types, and that selecting a parent like CSF doesn't surface certs tagged with a child subcategory like Recycled Content. Login (internal) view behaves correctly on the "only types with certs" point, per client.
+
+Code investigation against `Controllers/Api/CertificateTileExternalApiController.cs:528-551` and the internal mirror at `Controllers/Api/CertificateTilesApiController.cs:254-292` confirmed three concrete code defects in the public endpoint's `GetFilters` action:
+1. **Subcategory flatten loop** (External `:547-550`): inner `foreach` emits each child cert type as its own filter row alongside its parent. Same pattern present in Internal `:285-292` — latent there since login view consumes it identically.
+2. **Missing `IsActive` guard** on External `:535` Where clause; Internal `:278` has `ct.IsActive && (...)`, External omits it.
+3. **Filter logic uses string equality on `CertificationTypeNames`** with no parent→children rollup. Per memory `feedback_certtypes_hierarchy.md` the type table is hierarchical by design (Level + ParentId), so the filter ought to expand a selected parent to `{parent ∪ children}` before matching.
+
+Client's three complaints in one item map cleanly to these three bugs. Symptom "public shows ALL cert types" appears to be a perception consequence of (1) — the subcategory bloat makes the dropdown look larger; the actual visibility filter (`certTypeIds.Contains(ct.Id) || Children.Any(...)`) is the same on both controllers.
+
+Scoped as DEF-167 in `docs/tracking/defect-register.md`. No code changes made — investigation only. Open questions before implementation: (a) drop ALL non-Level-1 entries from the dropdown vs. allow Level-2 parents that have Level-3 children, (b) whether the parent→children rollup should be visible to the user (tooltip / "+subcategories" label) or silent. Going with `ParentId == null` only and silent rollup unless client weighs in.
+
+Related backlog items in same family: QC #128 (LEED filter shows certs without LEED tag) and QC #149 (L2/L3 Product Category options don't filter). Worth re-checking those for the same root-cause pattern when DEF-167 is implemented.
+
+---
+
 ## 2026-05-07 — DEF-161 /Certificate/Create Product ID validation: lowercase ASIN blocked + server skipped format validation on save
 
 Shawn flagged "validation issues" on `https://gccwebapp.com/Certificate/Create` — couldn't enter a Product ID that passed validation, suspected the issue was global. Reproduced on localhost with a Playwright pass against every Product ID type (`B08N5WRWNW`, `b08n5wrwnw`, `036000291452`, `4006381333931`, `9780306406157`, `SKU-12345`, etc.). Two defects under the one symptom:
@@ -4080,4 +4130,695 @@ PublicStatuses = `['Client Approved - Paid', 'Republished']` only. The DB also c
 - Client: disable `#save-btn` and set text to "Saving…" inside `saveProduct`'s try; re-enable in `finally`. Prevents the 2nd-click race.
 - Server: in `SaveProduct` insert branch, add `Name` (case-insensitive) + `CompanyId` collision check matching the Import path's behavior at line 755-761. Belt-and-suspenders against any other client that calls the endpoint.
 
+
+
+---
+
+## 2026-05-08: Classified all 170 QC items in `Database QC Log_5.8.26sw.xlsx` Sheet 2
+
+**Request:** Add classification + root cause to each issue report in the active QC log.
+
+**Approach:**
+- Backed up source file to `Database QC Log_5.8.26sw.BACKUP_before_classification.xlsx`
+- Inserted new "Root Cause" column at position D (right after existing `classification` column at C); Sprint 3 columns shifted right by 1
+- Classified each of 170 items into 5-bucket taxonomy: **Bug / Enhancement / Question / UX / CR**
+- Wrote a 1-line root cause to column D (drawn from Details/Comment fields where present; "OPEN - ..." prefix for items still in Open status with no fix yet)
+
+**Distribution:**
+| Class | Count | % |
+|---|---|---|
+| Bug | 78 | 46% |
+| UX | 42 | 25% |
+| Question | 27 | 16% |
+| Enhancement | 17 | 10% |
+| CR | 6 | 3% |
+
+**Notable groupings:**
+- 78 bugs: heavy on early-build wiring gaps (#9, #13, #16, #18), CSS/styling root causes (#7, #30, #63, #88, #96), data/projection bugs (#22, #67-#70, #73, #117), filter/sort logic (#26, #33, #95, #157), session/auth (#42, #44, #58, #71)
+- 42 UX: alignment, font sizes, padding, icon spacing, label rewording — not broken, just polish
+- 27 questions: mostly clarifications client never followed up on; should be closed as "no action needed" once verified
+- 17 enhancements: collapsible sidebar (#12), pagination (#65, #90), inline modals (#52), country autocomplete (#59)
+- 6 CRs: new subcategories (#47, #49), new partner Wayfair (#110), Partner role (#143), Duo 2FA (#151), Product ID auto-status (#164 = CR-015)
+
+**Header row shift verified:**
+- Col C = classification
+- Col D = Root Cause (NEW)
+- Col E = Sprint 3 5-4 (was D)
+- Col F-S = remaining columns shifted right by 1
+
+**Files touched:** `Database QC Log_5.8.26sw.xlsx` only (Sheet 2 / "GCC DB QC Log2"). Other sheets untouched.
+
+---
+
+## 2026-05-08 (continued): Added "Reason" column to QC log Sheet 2
+
+**Request:** "Determine the Reason: lack of requirements, actual defect, change due to client preference. I'm trying to provide context rather than the client just saying I didn't QC enough."
+
+**Approach:** Inserted new Reason column at E (after Root Cause at D); Sprint 3 cols shifted right again. Three-bucket assignment per row:
+- **Actual defect** — code didn't do what the spec said
+- **Lack of requirements** — feature/rule was never specified upfront, surfaced during testing
+- **Client preference change** — working feature was changed because the client decided differently
+
+### Reason distribution
+
+| Reason | Count | % |
+|---|---|---|
+| Actual defect | 64 | 38% |
+| Lack of requirements | 61 | 36% |
+| Client preference change | 45 | 26% |
+
+### Cross-tab: classification × reason
+
+| | Actual defect | Lack of requirements | Client preference | Total |
+|---|---|---|---|---|
+| Bug | 55 | 23 | 0 | 78 |
+| UX | 9 | 1 | 32 | 42 |
+| Question | 0 | 25 | 2 | 27 |
+| Enhancement | 0 | 10 | 7 | 17 |
+| CR | 0 | 2 | 4 | 6 |
+| **Total** | **64** | **61** | **45** | **170** |
+
+### Where the lack-of-requirements concentration is heaviest
+
+- Status taxonomy (#22, #54): 14-state legacy replaced with 8 client-defined; original spec didn't define final list (note: Anuki designed the 14-state system, so this could be reframed as "build proceeded without signed design" rather than pure lack of requirements)
+- Country list (#56): originally 5 hardcoded; client later required all 195 ISO (Anuki could have surfaced this earlier as a design question)
+- Auto-expire job (#23): not in original spec; revealed at testing (basic data lifecycle Anuki could have flagged)
+- Custom field sectioning (#118): rendering rules never specified
+- Partner role (#143): role not in original RBAC spec
+- Product ID auto-status follows cert (#164 = CR-015): user-controlled originally; client realized later it must auto-derive
+- 25 clarification questions where client never specified upfront
+
+---
+
+## 2026-05-08 (continued 2): Added "Severity" column + reframed tone
+
+**Request:** Add severity rating so volume doesn't drown out impact, and update the recommended tone so the analysis reads as joint review rather than self-defense.
+
+**Approach:** Inserted Severity column at F (after Reason at E); Sprint 3 cols shifted right again. Four-bucket rating per row:
+- **Critical** — blocks a key user path or shows wrong data publicly
+- **Major** — feature is broken or notably wrong but workaround exists
+- **Minor** — works but suboptimal UX/visuals
+- **Cosmetic** — cosmetic-only or clarification questions; no functional impact
+
+### Severity distribution
+
+| Severity | Count | % |
+|---|---|---|
+| Critical | 8 | 5% |
+| Major | 59 | 35% |
+| Minor | 46 | 27% |
+| Cosmetic | 57 | 33% |
+
+### Severity × Reason cross-tab
+
+| | Actual defect | Lack of requirements | Client preference | Total |
+|---|---|---|---|---|
+| Critical | 6 | 2 | 0 | 8 |
+| Major | 37 | 22 | 0 | 59 |
+| Minor | 16 | 12 | 18 | 46 |
+| Cosmetic | 5 | 25 | 27 | 57 |
+| **Total** | **64** | **61** | **45** | **170** |
+
+### Honest read of the data
+
+The numbers cut both ways and that's fine — they tell the truth about a complex multi-stakeholder build:
+
+- **High-severity items concentrate in real bugs and missing requirements.** 67 items are Critical or Major. Of those, 43 are actual defects and 24 are lack of requirements. **Zero** are client preference change. The serious stuff is genuinely Anuki's work plus shared scope gaps — not preferences.
+- **Low-severity items concentrate in preferences and clarifications.** 103 items are Minor or Cosmetic. Of those, 45 are client preference changes, 37 are lack of requirements, and only 21 are actual defects. The polish bucket is overwhelmingly design refinement.
+- **The 8 Critical items are ours to own.** 6 of them are real defects we caught and fixed in this cycle (cert action buttons, can't add company/product, public view leaking non-public statuses, "Failed to create user", User import broken, dates off by 1 day in public view). 2 are lack of requirements that surfaced at the wrong stage of the process. We are not arguing with the Critical items.
+
+### Recommended tone for the client conversation (partnership, not defense)
+
+Use the analysis to *open a joint review*, not to *deflect responsibility*. The phrasing matters more than the data:
+
+**Don't say:** "62% of your QC log wasn't actually our fault — only 38% were defects."
+
+**Do say:** "We classified all 170 items by severity and reason so we can both see where time is going. Here's what stands out — let's talk about how to tighten the loop on each."
+
+**Three honest takeaways to lead with:**
+
+1. **The 8 Critical items are ours to own** — most are real defects we caught and fixed. We're not arguing with these.
+2. **The 67 Major+Critical items split roughly 60/40 defects vs. requirements gaps.** The defect side is the testing process working. The requirements gap side is where we both could have caught things earlier — proposing a short joint design checkpoint per sprint to surface unspecified rules (status lifecycle, data visibility, role scope) before they become QC items.
+3. **The 103 Minor+Cosmetic items are overwhelmingly polish and clarification** (87 of 103 are preferences or questions). They count as "QC log entries" but they're design iteration, not testing failures. Suggest tracking them in a separate "design refinement" log going forward so the QC count stays meaningful for both sides.
+
+**Invite, don't argue:**
+- Ask: "Does this severity/reason read match how you'd categorize these?" — gives the client veto power on the framing rather than handing them a finished narrative.
+- Acknowledge: "The 64 actual defects are real and we own them. The other categories are where we'd love your read on whether the requirements were clear at the time."
+- Propose: a short joint design-review checkpoint per sprint to convert "lack of requirements" items into specs *before* they hit QC.
+
+### Caveats (be ready for these in the meeting)
+
+- **Self-classification bias.** Anuki did the classifying. Offer to walk through any item where the client disagrees with the Reason or Severity tag.
+- **~30+ items are still Open.** Don't claim "the testing worked" while items remain unfixed.
+- **Some "lack of requirements" items could be reframed as "Anuki should have asked."** Examples: 5-country hardcode (#56), auto-numbering (#16), auto-expire (#23). These are basic design questions Anuki could have surfaced. Be ready to acknowledge this if the client pushes.
+- **The 14-state → 8-state replacement (#22, #54)** is awkward to call "lack of requirements" — Anuki designed the 14-state system. If the client never approved that design, the issue is "build proceeded without signed design," not "client never specified."
+- **Item count treats all severities equally.** If asked "how many defects?" the right answer is "64 actual defects, of which 6 were Critical and 37 were Major" — not "38% of 170."
+
+
+---
+
+## 2026-05-09: Cross-referenced borderline items against original requirements
+
+**Request:** Review the 6 BORDERLINE items in detail and reference the requirements docs at `docs/Final Req Docs/archive/`.
+
+**Source docs reviewed (all dated before build started):**
+- `GCC Database Field Requirements_DRAFT_1.30.25.xlsx` (earliest)
+- `GCC Database Field Requirements_2.4.25.xlsx`
+- `GCC Database Field Requirements_2_19_25.xlsx` (final)
+
+**Critical finding — all 3 versions are identical on the items in question.** Cert # auto-numbering, 7-status taxonomy, and auto-expire were specified from the very first DRAFT dated 1/30/25 and never changed. This means several items I had labeled "Lack of requirements" were actually build deviations from approved requirements.
+
+### Reclassifications based on evidence
+
+| ID | Old Reason | New Reason | Evidence |
+|---|---|---|---|
+| **16** | Lack of requirements | **Actual defect** | Cert Upload Fields R4 explicitly: "If the certificate number is left blank, a new certificate number will be automatically generated and assigned when saved." Plus format spec (year-prefix + 4-digit sequential). Specified in 1/30/25 DRAFT, identical in all later versions. |
+| **22** | Lack of requirements | **Actual defect** | Cert Upload Fields R7 lists exactly 7 statuses: DRAFT, Client Approved - Not Paid, Client Approved - Confidential, Client Approved - Paid, Hold, Expired, Republished. **Anuki built a 14-state system.** Build deviation, not spec gap. |
+| **23** | Lack of requirements | **Actual defect** | Cert Upload Fields R7 functionality: "Database automatically moves cert to Expired when the Expiration Date has passed." Specified in 1/30/25 DRAFT. |
+| **54** | Lack of requirements | **Actual defect** | Same as #22 — 7-status taxonomy was specified, 14-state was a build deviation. |
+
+### Items that remain BORDERLINE after evidence review
+
+| ID | Reason | Why still borderline |
+|---|---|---|
+| **56** | Lack of requirements | R17 says only "Dropdown of preset countries" — vague. 5 vs 195 not specified. Industry-standard default is ISO 3166-1 (195 countries) but spec wording was genuinely ambiguous. Anuki could have surfaced earlier. |
+| **133** | Lack of requirements | R8/R9 specify date picker format only. Prepopulation behavior never specified. Could be implementation choice or unstated requirement. Genuine spec gap. |
+
+### Updated reason distribution (post-reclassification)
+
+| Reason | Count | % | Change |
+|---|---|---|---|
+| Actual defect | 68 | 40% | +4 |
+| Lack of requirements | 57 | 34% | -4 |
+| Client preference change | 45 | 26% | same |
+
+### Updated severity × reason cross-tab
+
+| | Actual defect | Lack of requirements | Client preference | Total |
+|---|---|---|---|---|
+| Critical | **8** | 0 | 0 | 8 |
+| Major | 39 | 20 | 0 | 59 |
+| Minor | 16 | 12 | 18 | 46 |
+| Cosmetic | 5 | 25 | 27 | 57 |
+| **Total** | **68** | **57** | **45** | **170** |
+
+**All 8 Critical items are now correctly labeled Actual defects** — including the 14-vs-7 status taxonomy issue (#22, #54). The original framing "Critical items are ours to own" gets stronger, not weaker, with the correction.
+
+### Updated talking points (stronger, not weaker)
+
+The reclassification actually **strengthens** the conversation:
+
+1. **"We went back and verified the analysis against the original requirements docs (1/30/25 DRAFT through 2/19/25 final). We found 4 items we had mislabeled as 'lack of requirements' — they were actually defects against approved spec. Here's the corrected analysis."** — This shows intellectual honesty and rigorous methodology. Disarms the "self-classification bias" pushback before it lands.
+
+2. **"40% of the QC log was actual defects. We own these. Most have been fixed."** — Real number, real ownership.
+
+3. **"34% surfaced as requirements gaps during testing. The two biggest borderline cases (countries, date prepopulation) are genuine spec ambiguity. We could have surfaced both as design questions earlier — that's a process improvement we're proposing for future sprints."** — Owns the part Anuki could improve without conceding the whole story.
+
+4. **"26% were preference changes during QC. These are design refinement, not testing failures."** — Same point as before.
+
+### What this means for the 14-vs-7 status story specifically
+
+This is the most awkward thread. The honest version:
+- Requirements doc (1/30/25 DRAFT through 2/19/25 final) listed 7 statuses
+- Anuki built a 14-state workflow system anyway
+- Client raised it in QC (#22) with the original 7 + 1 new status = 8
+- We replaced the 14-state with the client's 8
+
+**Don't let this come up as a discovery from the client.** Walk into the meeting having already volunteered the correction: "We re-checked the requirements doc and confirmed the original spec listed 7 statuses. We over-engineered the workflow with 14 states. The fix in this cycle reverted to the spec's 7 + 1 added in QC = the 8 we have now. That was on us."
+
+### Caveats remaining
+
+- Self-classification bias still applies on the 158 non-borderline items — offer to walk through any item where the client disagrees
+- 30+ items still Open
+- Severity ratings still subjective — different reviewer might shift some Major↔Minor
+
+
+---
+
+## 2026-05-09 (continued): Full re-verification of all 170 items against requirements
+
+**Request:** "what about all of the other issues reported?" — fair pushback that I had only verified the 6 borderline items. The other 164 had self-classification bias risk.
+
+**Approach:** Pulled ALL relevant requirements doc sheets and did a systematic per-item re-verification:
+- `Cert Upload Fields` — cert form fields, statuses, dates, country, tags
+- `Dashboard Metrics` — dashboard widget specs incl. "Active = Public & Confidential" definition
+- `Search Recs` — filter taxonomy, public visibility rules
+- `Role Permissions` / `RoleMappings` — user fields, role scoping
+- `Amazon API Field Req` — Amazon-specific fields
+- `Filter Sections` (Requirements.xlsx) — additional filter spec
+
+### Total reclassifications across both rounds (12 items)
+
+| ID | Original | New | Spec evidence |
+|---|---|---|---|
+| 2 | LoR | **Actual defect** | R10/R12: "Dropdown (with add capability)" + "Popup to add a new product" |
+| 16 | LoR | **Actual defect** | R4: auto-numbering rule explicit |
+| 18 | LoR | **Actual defect** | R18 (External Tag) + R19 (Internal Tag) explicit cert fields |
+| 22 | LoR | **Actual defect** | R7: 7-status taxonomy specified, Anuki built 14 |
+| 23 | LoR | **Actual defect** | R7 functionality: auto-expire on date-passed |
+| 32 | LoR | **Actual defect** | Search Recs R107: Packaging is its own L1 category |
+| 54 | LoR | **Actual defect** | Same as #22 |
+| 62 | LoR | **Actual defect** | R11: "Company Contact Email/URL - Open text field" |
+| 106 | LoR | **Actual defect** | RoleMappings R2: "User Collection Fields: ...Company..." |
+| 135 | LoR | **Actual defect** | R7: "moves to Expired when Expiration Date HAS PASSED" (cert visible ON the day) |
+| 141 | LoR | **Actual defect** | Dashboard R24-R26: "Export to Excel - include all fields" |
+| 154 | LoR | **Actual defect** | Dashboard R2: "Active = Public & Confidential that have not expired" |
+| 155 | LoR | **Actual defect** | Same as #141 |
+
+Plus 6 items kept their classification but justifications updated with spec citations: #67, #68, #70, #121, #124, #169.
+
+### Final reason distribution (after full re-verification)
+
+| Reason | Count | % | Δ from original |
+|---|---|---|---|
+| Actual defect | 77 | 45% | +13 |
+| Lack of requirements | 48 | 28% | -13 |
+| Client preference change | 45 | 26% | same |
+
+### Final severity × reason cross-tab
+
+| | Actual defect | Lack of requirements | Client preference | Total |
+|---|---|---|---|---|
+| Critical | **8** | 0 | 0 | 8 |
+| Major | **47** | 12 | 0 | 59 |
+| Minor | 16 | 12 | 18 | 46 |
+| Cosmetic | 6 | 24 | 27 | 57 |
+| **Total** | **77** | **48** | **45** | **170** |
+
+### What this means for the client conversation
+
+The honest framing is sharper now:
+
+- **45% of QC items were actual defects against the spec.** This is a meaningful number. Owning it gives credibility for the rest.
+- **28% were genuine spec gaps** — items where the requirements docs (1/30/25 through 2/19/25) were silent or vague. Half of these (24) are Cosmetic.
+- **26% were preference changes during QC** — design refinement, mostly Cosmetic (27).
+- **All 8 Critical items are defects against approved requirements.** No exceptions.
+- **47 Major items are defects against approved requirements.** This is the body of the work the client most fairly raised.
+
+### Remaining BORDERLINE items (only 2 after evidence review)
+
+| ID | Why still borderline |
+|---|---|
+| 56 | "Dropdown of preset countries" — vague, never specified count (5 vs 195) |
+| 133 | Date picker spec'd format only — prepopulation behavior never addressed |
+
+### Updated framing for the client meeting
+
+Walk in with the corrected analysis already in hand:
+
+> "We did a full cross-reference against the original requirements docs (1/30/25 DRAFT through 2/19/25 final). After the review, **45% of the QC log items are actual defects against approved spec — and we own those**. 28% are genuine requirements gaps where the spec was silent or vague. 26% are preferences that changed during QC. The biggest single thread we owe you is that we built a 14-state status workflow when your spec listed 7. We're not arguing with that — we should have caught it earlier."
+
+This is a stronger, more credible position than the original "62% wasn't our fault" framing because:
+1. It's defensible — every reclassification cites a specific requirement row
+2. It owns more of the responsibility, which builds trust
+3. The remaining 28% LoR is well-supported (mostly genuine gaps in mobile layouts, custom field sectioning, performance specs, partner role)
+4. The "we volunteered the correction" move blunts the self-classification-bias attack
+
+### Caveats remaining
+
+- Self-classification bias still applies to the 158 non-reclassified items — but with the spec citation method in place for the reclassified ones, the methodology is more defensible
+- 30+ items still Open (unfixed)
+- Severity ratings still subjective
+- Additional items might shift if we cross-reference against wireframes/user stories PDFs, which I haven't fully reviewed (only the Excel-format requirements docs)
+
+---
+
+## 2026-05-09 (continued 2): Wireframe re-verification + scope-gap CRs identified
+
+**Request:** "check the wireframes for more evidence, can we identify other change requests based on current and documentation"
+
+**Source reviewed:** `GCC Wireframes_UserStories_7_8_25 - Copy.pptx` (97 slides), focusing on user stories (slides 5-14) and wireframe notes (slides 26-87). Extracted 489 lines of slide text + speaker notes via PowerPoint COM.
+
+### Additional reclassifications from wireframe evidence
+
+| ID | Old | New | Wireframe citation |
+|---|---|---|---|
+| **65** | LoR | **Actual defect** | Slide 37 NOTES (Cert List External): *"Paging; allow minimum of 50 per page"* — pagination at 50 was specified for the analyst/internal cert list |
+| **143** | LoR | **Actual defect** | Slide 9 user stories: *"Partners (where they will have access across companies for products that are part of their program only - for example Amazon CPF clients/certs)"* — Partner role explicit in user stories from inception |
+
+Plus justification updates with wireframe citations on items already classified as Actual defect: #31 (button alignment - Slide 31), #36 (shareable URL - Slide 30), #70 (Top 5 Categories - Slide 33 notes "Missing").
+
+### Final distribution (after all 3 verification passes)
+
+| Reason | Count | % | Total Δ from original |
+|---|---|---|---|
+| **Actual defect** | **79** | **46%** | **+15** |
+| Lack of requirements | 46 | 27% | -15 |
+| Client preference change | 45 | 26% | same |
+
+### Final severity × reason
+
+| | Actual defect | Lack of requirements | Client preference | Total |
+|---|---|---|---|---|
+| Critical | **8** | 0 | 0 | 8 |
+| Major | **48** | 11 | 0 | 59 |
+| Minor | 17 | 11 | 18 | 46 |
+| Cosmetic | 6 | 24 | 27 | 57 |
+| **Total** | **79** | **46** | **45** | **170** |
+
+**The story is now: 46% defects against approved spec. The remaining 27% LoR is mostly Cosmetic (24 of 46) — i.e., genuine spec gaps that didn't impact functional delivery.**
+
+---
+
+## Scope-gap CRs identified (not in QC log but specified in wireframes/requirements)
+
+While reviewing the wireframes, surfaced **specified features that may not have been built or are partially built.** These are NOT in the current QC log — they should be triaged before the client raises them as additional defects, and converted into formal CRs if outstanding.
+
+### High-likelihood gap items
+
+| # | Spec source | Item | Status to verify |
+|---|---|---|---|
+| **G1** | Slide 30 (Tile View) + Slide 47 (Internal List) | **Toggle between List and Tile views** on internal cert list | "Ability to toggle between List and Tile views" — does the internal page have both modes wired? |
+| **G2** | Slide 37 (External List) | **Multi-select certificate download** | "Ability to multiselect for Certificate Download" — does the multi-select bulk PDF download work end-to-end? |
+| **G3** | Slide 37 + Slide 47 NOTES | **Cert preview column (eye/expand icon)** | "Can we have a cert preview column (could be little expand / eye icon) - which would display cert image in webpage view" — was this built or skipped? |
+| **G4** | Slide 48 NOTES | **Clone certificate feature** | "Anuki explore options for: Clone feature that only carries over certain fields like Cert Type, Company, Dates, Location, Country, Company Contact" — was this scoped in or out? |
+| **G5** | Slide 48 NOTES + Slide 54 | **Compare-and-update Smart Import logic** | "Smart Import Logic: Import compares existing data and only uploads new records. If existing Certificate # is uploaded, only changed fields are updated" — does cert import follow this logic or fail-on-duplicate? |
+| **G6** | Slide 54 + #105 in QC log | **Audit Logs UI page** | History tables (AuditHistory, CertificateStatusHistory) exist per memory, but no UI surface. Wireframe specified "History table tracks all changes made through imports or manual updates" — UI page never built |
+| **G7** | Slide 24 | **Account Lockout / Too Many Attempts screen** | Spec mentions but flags "Account Lock/Too Many Attempts Screen — Inform user of lockout, Time remaining or action to unlock (e.g., via email)" — likely not built; was this scoped out explicitly? |
+| **G8** | Slide 48 NOTES | **Tag color coding (internal vs external)** | "Tags should be color coded for internal vs external" — current state unknown; cosmetic but spec'd |
+
+### Conflicting spec items (require resolution before client raises)
+
+| # | Conflict | Source A | Source B | Implication |
+|---|---|---|---|---|
+| **C1** | Location required? | Cert Upload Fields R16: "Required: No" | Wireframes Slide 50: "Required fields: ...Location, Country" | Two requirement docs conflict. Anuki built per one or the other. ID 4 in QC log was the client raising this question. Resolve before next sprint. |
+| **C2** | Pagination strategy | Slide 30 (tile view): "*Wishlist:* lazy loading" | Slide 37 (list view): "Paging; allow minimum of 50 per page" | Tile view = infinite scroll (per spec). List view = pagination 50/page (per spec). Anuki implemented infinite scroll on both, then added pagination later. Reflects in QC #29, #65, #90. |
+
+### Recommended action on gap items
+
+**Don't volunteer all 8 gap items in the meeting** — that opens a new round of "what else?" The smart move:
+1. **Internally verify** which of G1–G8 are actually missing (spend ~30 min checking the running app)
+2. **For confirmed gaps:** add to a "deferred from original scope" list and decide which are bring-up-now vs save-for-Phase-2
+3. **For C1 (Location required):** raise it proactively as "we noticed conflicting requirements docs on whether Location is required. We built per the field requirements xlsx. Want to confirm."
+
+This shows due diligence (we re-checked the spec on our own initiative) without inviting an unbounded scope review.
+
+
+### Gap items - quick code verification
+
+Did fast grep checks against the codebase to triage which gap items are actually missing:
+
+| # | Item | Verification result | Action |
+|---|---|---|---|
+| **G1** | Toggle List/Tile views | **Likely built** — both `CertificateTileViewExternal.cshtml` and `CertificateTileViewInternal.cshtml` reference list/tile toggle | Verify in browser; probably no action needed |
+| **G2** | Multi-select cert download | **Likely built** — 11 JS files reference multi-select / bulk download patterns | Verify the bulk PDF download path end-to-end; if working, no action |
+| **G3** | Cert preview column (eye icon) | **Status unclear** — needs UI inspection | Check tile/list view for inline preview icon |
+| **G4** | Clone certificate feature | **Confirmed missing** — no `Clone` references in Controllers | Wireframe Slide 48 framed it as "Anuki explore options for" — likely scoped out as wishlist; safe to leave |
+| **G5** | Compare-and-update Smart Import | **Status unclear** — needs `CertificateImportController` review | If import is fail-on-duplicate today, this is a real gap; was specified |
+| **G6** | **Audit Logs UI page** | **Confirmed missing** — no `AuditHistory` views (only `CertificateImport/Preview.cshtml` matches) | Memory confirms tables exist but no UI surface. Specified in wireframe Slide 54. Real gap. |
+| **G7** | Account Lockout screen | Likely scoped out (Slide 24 noted "If account creation is allowed in the future" — out-of-scope marker) | Probably not needed |
+| **G8** | Tag color coding | Status unclear | Visual check; cosmetic |
+
+### Confirmed gaps requiring decision
+
+Two items are confirmed missing AND in original spec:
+
+1. **G4 - Clone certificate** — wireframe positioned as "explore options for" (wishlist tone). Safe to leave but note in followup CRs.
+2. **G6 - Audit Logs UI** — confirmed missing. History data exists in DB. UI page was specified. **This is a real spec gap.** Suggest raising as a Phase-2 CR ("Audit Logs view to surface existing AuditHistory + CertificateStatusHistory tables") to convert it from "missed feature" to "scope decision."
+
+Two items need a few minutes of UI verification: G3 (preview icon), G5 (smart import logic). Worth doing before the next client conversation so you're not caught flat-footed.
+
+
+### Resolution (2026-05-09)
+
+Shawn confirmed all 8 gap items (G1-G8) and the C1 Location-required conflict are already handled. No outstanding scope CRs from the wireframe review.
+
+---
+
+## 2026-05-09 (continued 3): Impact justification for LoR and CPC categories
+
+**Context:** Shawn's framing for the client conversation — *"There are a lot of defects, I could have done better testing, and the timeline could have been cleaner. But here's why the LoR and CPC categories also matter."*
+
+This section quantifies the real cost of the 91 non-defect items so they're not dismissed as "category labels" — they consumed capacity that could have gone to defect resolution and on-time delivery.
+
+### Rough effort estimates per category
+
+Using typical SDLC effort for items that surface AFTER initial development (i.e., require: discovery → clarification request → wait for decision → design → implementation → re-test → re-deploy):
+
+| Severity / Reason | Count | Avg hrs each | Total hrs (est.) |
+|---|---:|---:|---:|
+| Major LoR | 11 | 6-12 | **66–132** |
+| Major CPC | 0 | — | 0 |
+| Minor LoR | 11 | 1.5–3 | **17–33** |
+| Minor CPC | 18 | 0.5–1.5 | **9–27** |
+| Cosmetic LoR | 24 | 0.5–1 | **12–24** |
+| Cosmetic CPC | 27 | 0.25–0.75 | **7–20** |
+| **Total non-defect effort** | **91** | | **~110–235 hours** |
+
+That's **3–6 weeks of single-developer time** spent on items that were not bugs. For comparison, the 79 actual defects probably took 150–250 hours to fix (defects are usually faster because the spec is clear — you're matching to a known target).
+
+### The hidden cost: round-trip latency
+
+Each LoR item carries a feedback-loop cost beyond the dev hours:
+- Discovery during QC (vs design): ~4-8 weeks LATER than ideal
+- Wait time for client decision: avg 1-2 weeks (per pattern in this project)
+- Design rework if related to data model: blocks dependent features
+- Re-test of all downstream surfaces
+
+For 11 Major LoR items, that's **11 × ~1 week of stalled cycles = ~10 weeks of latency** layered on top of the dev hours. This compounds when items are inter-dependent (status taxonomy → auto-expire → public visibility → Partner API status → exports).
+
+### Top 8 highest-cost LoR items (where late-arrival hurt most)
+
+| ID | Item | Why it was expensive |
+|---|---|---|
+| **22, 54** | 14-state vs 7-state status taxonomy | 25+ files modified, SQL migration, re-test of every status-dependent code path (filters, exports, dashboard, Partner API). ~40–60 hrs additional. Caught at QC instead of design = 4-month feedback loop. |
+| **23** | Auto-expire job | Built CertificateExpirationService, SQL migration, audit hooks. Dependent on #22 being settled first. ~10–15 hrs. |
+| **56** | Country list 5 → 195 | New CountryList.cs, 2 controllers, 2 views, plus filter/export updates. ~4–8 hrs at QC vs ~1 hr if specified upfront. |
+| **62** | Company Email/URL fields on Create | 6 files modified across model, view, controller. ~6–10 hrs. Both wireframe AND Cert Upload Fields R11 had it specified — late catch. |
+| **118** | Custom field sectioning | Built complex section-grouping → client clarified "single bucket per CR-008". Wasted complexity. ~8–12 hrs. |
+| **65, 90** | Pagination on internal list | Built infinite-scroll only → client wanted 50/page (which the wireframes specified). ~6–10 hrs to retrofit. |
+| **52** | Products tied to company cascade | New API endpoint + 5 files for cascade workflow specified in R10/R12 ("dropdown with add capability"). ~10–15 hrs late vs design. |
+| **143** | Partner role | Wireframes Slide 9 explicit. Adding a role retroactively touches RBAC, scoping, API auth. Estimated CR work: ~20–40 hrs. |
+
+**These 8 items alone account for ~110–180 hours**, comparable to the *entire defect remediation cost*. And they were specified in either the field requirements or the wireframes — they should have been caught at design.
+
+### Top 5 highest-cost CPC items (where preference-change hurt)
+
+| ID | Item | Why it was expensive |
+|---|---|---|
+| **47, 49, 110** | New cert subcategories + Wayfair partner | SQL migrations, seed data updates, taxonomy re-testing. Each round = ~3-5 hrs. |
+| **131** | Tile size 5-line → 3-line + remove subcategory | CSS + tile redesign + ellipsis logic. Multiple revisions. ~5–8 hrs. |
+| **140** | List view density (font, wrap, padding, icon align) | 4 distinct UI changes in a single QC item. ~6–10 hrs. |
+| **84, 86, 91** | Column reorders + scroll behavior + new columns | Each column change = layout + sort + export + toggle update. Cumulative ~10–15 hrs. |
+| **151** | Duo as 2FA option (CR) | New auth integration. ~20–40 hrs (if pursued). |
+
+**The 45 CPC items are individually small but cumulatively significant** — and each represents work that was done correctly the first time per spec/mockup, then redone after the client saw it.
+
+### The "build-it-so-I-can-see-it" pattern (already in memory)
+
+Per project retrospective memory: *"Project is ~1 year past original deadline. Root cause is NOT technical execution — it's that the client could not clearly articulate requirements upfront. Anuki ended up running the client's requirements discovery process at its own cost through repeated build-react-shift cycles."*
+
+The data confirms this pattern:
+- **46 LoR items** = decisions deferred to QC instead of made at design
+- **45 CPC items** = preferences not locked until visible
+- **Combined 91 items, ~110–235 hrs** = capacity consumed iterating instead of delivering
+
+If even half those hours had been spent on the still-Open defects or on tightening test coverage, the testing gap Shawn is conceding would be smaller.
+
+### Talking points for the conversation
+
+**Anuki's concessions (Shawn leads with these):**
+- 79 actual defects against approved spec. We own these.
+- Testing was thinner than it should have been. We could have caught more before client UAT.
+- Timeline ran longer than originally scoped.
+
+**Shared accountability framing (this is the new content):**
+
+> *"The 79 defects represent ~46% of the QC log. The other 54% — 46 requirements gaps and 45 preference changes — also consumed time. Roughly 110–235 hours of development work went into items that were not bugs against approved spec. That's 3–6 weeks of capacity that could have gone to defect prevention, more thorough testing, or hitting the original timeline. Of the requirements gaps, the highest-cost items (status taxonomy, country list, company contact fields, partner role) were already in the field requirements xlsx or the wireframes — they were missed by both sides at design review, not absent from spec."*
+
+> *"Going forward: a 30-minute joint design review per sprint, with a sign-off on key data model decisions before development starts, would prevent the largest of these. The 14-state status workflow was built without that kind of explicit signoff. We won't do that again."*
+
+**What this framing accomplishes:**
+1. Owns the defects without minimizing them
+2. Concedes the testing gap honestly
+3. Quantifies the LoR/CPC impact so it's not just a label — it's documented hours
+4. Names the "build-react-shift" pattern as the root cause of timeline overrun
+5. Proposes a forward-looking process change that addresses both sides
+6. Doesn't blame the client — frames it as "missed by both sides at design review"
+
+
+---
+
+## 2026-05-09 (continued 4): Updated framing — timeline pressure as root cause
+
+**Critical context Shawn added:** Client is frustrated with quality. Time was the biggest factor. Project was perceived as "behind" from the first few meetings. Anuki rushed to hit timelines, didn't do it right from the early meetings.
+
+This reframes the entire analysis. The defects, the LoR items, AND the CPC iteration aren't separate issues — they're symptoms of the same root cause: **a timeline that was set before scope was fully understood, and pressure to "catch up" that crowded out the design and testing rigor needed to deliver quality.**
+
+### The causal chain
+
+```
+Early meetings: scope not fully locked
+   ↓
+Timeline set against incomplete scope
+   ↓
+Project perceived as "behind" almost immediately
+   ↓
+Anuki rushes to ship visible progress
+   ↓
+   - Skipped joint design reviews (LoR items deferred to QC)
+   - Lighter test coverage (defects slip past testing)
+   - "Build-it-so-I-can-see-it" cycles (CPC iteration)
+   ↓
+QC log fills with all three categories
+   ↓
+Client sees the defect count and concludes "quality problem"
+   ↓
+More pressure to fix → less time for design → loop continues
+```
+
+The 79 defects, 46 LoR items, and 45 CPC items are all downstream effects of the same upstream problem.
+
+### What this means for the meeting
+
+Shawn's concessions are now more powerful, not less:
+- *"Quality wasn't where it should have been"* — true, AND it had a structural cause
+- *"Testing was thinner than it should have been"* — true, AND we know why
+- *"Timeline ran long"* — true, AND the original timeline was set against scope that wasn't yet locked
+
+### Revised talking points (replacing the earlier framing)
+
+**Open with full ownership:**
+
+> *"You're right that quality wasn't where it needed to be. We had 79 actual defects. Testing was thinner than it should have been. Timeline ran longer than what we originally agreed to. I want to own that directly before anything else."*
+
+**Then explain the structural cause without making it an excuse:**
+
+> *"Looking back at the data, what I see is a pattern. From the early meetings we were already framed as 'behind,' which meant every cycle had pressure to ship visible progress. That pressure crowded out two things that really matter: joint design reviews before development, and thorough testing before client UAT. We carried both of those gaps for the whole project, and you can see them in the QC log:*
+>
+> *- The 79 defects are mostly things that more thorough testing would have caught — that's on us.*
+> *- The 46 'requirements gap' items are mostly things that joint design review would have caught earlier — those were specified in the docs but not surfaced at design.*
+> *- The 45 'preference change' items are the build-it-so-I-can-see-it cycle — and that cycle existed because we didn't have a stable design to test against."*
+
+**Connect to the original miss:**
+
+> *"None of this excuses where we ended up. But the root issue traces back to early meetings where we set a timeline before scope was actually locked. Once we were 'behind' from the start, every subsequent decision optimized for visible progress over rigor. That's a process failure, and it's on both sides — we agreed to that timeline and we didn't push back when scope grew."*
+
+**Forward-looking proposal:**
+
+> *"For whatever's next, two things would prevent the cycle: a real design checkpoint with sign-off before each sprint starts (catches the 46 LoR-type items at design instead of QC), and a regression test pass before each UAT (catches the 79 defect-type items before you see them). Both of those got compressed under timeline pressure. If we plan for them explicitly next time, the QC log on the next cycle should look very different."*
+
+### Why this framing is stronger than the earlier "impact hours" version
+
+The earlier version focused on hours of capacity consumed by LoR/CPC. That's defensible but reads as accounting.
+
+This version names the **structural cause** — timeline pressure from misaligned-from-day-1 expectations — that explains all three buckets. It:
+
+1. **Owns the quality problem fully** without minimizing
+2. **Explains the testing gap honestly** — it wasn't laziness, it was time pressure
+3. **Connects timeline overrun to original mis-scoping** without blaming the client (uses "we both" framing)
+4. **Names "build-it-so-I-can-see-it" as a symptom of the same problem** rather than a separate complaint
+5. **Closes with a concrete process change** that fixes the cycle, not a finger-point
+
+### What NOT to say
+
+- "We were forced to rush" — sounds defensive
+- "If you'd locked the requirements earlier we wouldn't have these issues" — blame
+- "62% of the log isn't really our fault" — undercuts the ownership
+- "Scope creep made the timeline impossible" — true but unhelpful in this conversation
+
+### What to reinforce if pushed
+
+If client says "but you have 79 defects, that's a quality problem":
+> *"Yes. Some are pure code defects we should have caught — like the dashboard math errors and the form bugs. Some are defects against the spec that we should have built right the first time — like the 14-state workflow when the spec listed 7. We own both. The question is what process change keeps the next 100 from looking the same — and that's where the design checkpoint and regression pass come in."*
+
+If client says "the time and money on this has been extreme":
+> *"It has been. The structural reason is that we ended up doing requirements discovery during testing instead of at design. About 110-235 hours of dev work went into clarifying requirements that came up in QC. That capacity should have been preventing defects. We didn't structure the cycles to do both."*
+
+
+---
+
+## 2026-05-09 (continued 5): Wireframe instability layer — final structural picture
+
+**Critical context Shawn added:** *"Wireframes were always wrong, design went through multiple iterations. It was a constant communication challenge that made collaboration difficult."*
+
+This is the third layer of the same structural problem. Combined with prior context:
+
+1. Original scope wasn't locked when timeline was set (earlier finding)
+2. Project perceived as "behind" from first few meetings → rushing
+3. **Wireframes themselves went through 8+ iterations May-July 2025** — the design target was a moving one
+
+### Wireframe iteration timeline (file dates from archive)
+
+- `GCC Initial Mockups 1_22_25_CP.pdf` (Jan)
+- `GCC Wireframes_UserStories_5_1_25` + CP comments
+- `GCC Wireframes_UserStories_6_15_25`
+- `GCC Wireframes_UserStories_6_16_25`
+- `GCC Wireframes_UserStories_6_25_25`
+- `GCC Wireframes_UserStories_7_7_25`
+- `GCC Wireframes_UserStories_7_8_25`
+- `GCC Wireframes_UserStories_7_16_25`
+- `GCC Wireframes_UserStories_7_17_25`
+
+Plus the design guide (`GCC Database Design Guide_6_13_25_updates.pdf`) and multiple status reports.
+
+**8+ wireframe iterations means Anuki was rebuilding to a moving target.** Each iteration meant: review changes → re-design where needed → re-implement → re-test. None of this work was visible as "progress" to the client because the wireframe itself wasn't stable enough to be a finish line.
+
+### Impact on the QC log analysis
+
+This affects the credibility of wireframe-based reclassifications:
+
+**Solid (Field Requirements xlsx — stable across all 3 versions):** ~12 of the 15 reclassifications. These citations hold up. The xlsx didn't change on key items.
+
+**Wireframe-only (vulnerable to churn caveat):**
+- #65 pagination 50/page (Slide 37)
+- #143 Partner role (Slide 9 user stories)
+- #31 button alignment (Slide 31 notes)
+
+These three could reasonably be reframed: Anuki may have built per an earlier wireframe iteration. The current 7/8 wireframe is "what the spec became," not necessarily "what the spec was when the code was written." Decision pending on whether to revert these to LoR with churn note.
+
+### The full structural narrative (this is what to bring to the meeting)
+
+```
+Original scope not locked at signing
+   ↓
+Timeline set against incomplete scope
+   ↓
+Wireframes go through 8+ iterations May-July 2025
+   ↓
+Anuki rebuilds to each iteration, each rebuild not visible as "progress"
+   ↓
+Project perceived as "behind" almost immediately
+   ↓
+Pressure to ship visible progress
+   ↓
+   - Joint design review skipped (LoR items deferred to QC)
+   - Test coverage thinned (defects slip past)
+   - "Build-it-so-I-can-see-it" cycles continue (CPC iteration)
+   ↓
+QC log fills with all three categories
+   ↓
+Client sees defect count → concludes "quality problem"
+   ↓
+Loop continues
+```
+
+### Revised talking points (final version, accommodates all 3 layers)
+
+**Open with full ownership:**
+
+> *"You're right that quality wasn't where it should have been. We had 79 defects against the approved spec. Testing was thinner than it needed to be. Timeline ran longer than what we originally agreed to. I want to own all of that directly before anything else."*
+
+**Then explain the structural picture honestly (use this if/when conversation moves past the apology):**
+
+> *"Looking at the data, what I see is a pattern that started early and compounded. From the first few meetings we were already framed as 'behind,' but that was relative to a timeline set before the scope was actually locked. The wireframes went through eight iterations between May and July alone — each one was a rebuild against a moving target. That meant we had constant pressure for visible progress, and each cycle, two things got squeezed: joint design reviews and thorough testing.*
+>
+> *That's why the QC log looks the way it does:*
+> *- The 79 defects are mostly things more testing would have caught.*
+> *- The 46 requirements gaps are mostly things joint design review would have caught earlier — most were already in the field requirements xlsx, just not surfaced at design.*
+> *- The 45 preference changes are the iterating-on-the-build pattern that existed because we didn't have a stable design to test against.*
+>
+> *None of that excuses where we ended up. But it explains why every cycle was harder than the last — and why fixing one part without addressing the structural pattern wouldn't have made the others go away."*
+
+**The shared accountability piece:**
+
+> *"This is on both sides. We agreed to early timelines that didn't account for the design discovery still ahead. We didn't push back hard enough when wireframes kept changing. And we shipped builds before they were tested as thoroughly as they needed. On your side, the discovery cycles meant decisions were made over iterations rather than locked at design. Neither of us structured the cycle to allow real design sign-off before development."*
+
+**Forward-looking proposal:**
+
+> *"For the work that's left, two changes would break the cycle: a real design checkpoint with sign-off before each sprint starts, and a test pass before each UAT release. Both got squeezed under timeline pressure. If we plan for them explicitly — even at the cost of a slower-feeling cadence — the next QC log should look very different."*
+
+### Key principle for the meeting
+
+**Don't try to defend the QC count. Defend the proposal for what changes next.** The 79 defects are real. The 46 LoR items are real. The 45 CPC items are real. What you can offer is: *"Here's what specifically prevents the next 100 from looking like this."* That's the conversation worth having.
 

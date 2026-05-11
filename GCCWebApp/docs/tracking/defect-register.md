@@ -18,6 +18,84 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-167 — Cert-tile filter: subcategories rendered as separate checkboxes; missing IsActive guard
+
+- **Date:** 2026-05-11
+- **Severity:** Medium (public-facing filter UX; affects discoverability)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client — QC #169 (4/30/26): *"The public view is showing all cert types. And it's showing the CSF subcategories (WHICH IS WRONG). The subcategories are not meant to show up in this filter box."*
+- **Related:** QC #128 (LEED filter shows certs without LEED tag), QC #149 (L2/L3 Product Category options don't filter) — likely same root cause family.
+
+**Direction (Shawn, 2026-05-11):** Level 1 should be visible only. Fix the data. **No parent-rollup logic** — if a cert is tagged at Level 2, that's a data bug to repair on the cert, not a code bug to accommodate in the filter.
+
+**Data state (dev DB, GCCDatabase_Dev on ANUKI01):**
+- 41 certs total, **all tagged at Level 1**.
+- 0 certs tagged at Level 2.
+- `CertificateCertificationTypeSubcategories` join table is empty.
+- Dev needs no data fix. **Prod (gccwebapp.com) is the place the data bug lives** — client was testing there when she saw the subcategory bleed.
+
+**Code root cause (External controller — primary; Internal has the same latent bug):**
+
+1. **Subcategory flatten loop** — `Controllers/Api/CertificateTileExternalApiController.cs:541-551`:
+   ```csharp
+   foreach (var certType in allCertTypes.Where(ct => ct.ParentId == null)) {
+       hierarchicalCertTypes.Add(new { name = certType.Name, level = certType.Level });
+       var children = allCertTypes.Where(ct => ct.ParentId == certType.Id).OrderBy(ct => ct.SortOrder);
+       foreach (var child in children) {
+           hierarchicalCertTypes.Add(new { name = child.Name, level = child.Level });  // BUG
+       }
+   }
+   ```
+   Inner `foreach` emits each Level-2 child as its own filter checkbox. Same pattern in `CertificateTilesApiController.cs:285-292`.
+
+2. **Missing `IsActive` guard on public** — `CertificateTileExternalApiController.cs:535`:
+   ```csharp
+   .Where(ct => certTypeIds.Contains(ct.Id) || (ct.Children.Any(child => certTypeIds.Contains(child.Id))))
+   ```
+   Internal at `:278` has `ct.IsActive && (...)`; External omits it.
+
+**Planned fix (code — 2 files):**
+
+1. **Remove the inner `foreach`** that emits children in External (`:541-551`) and Internal (`:285-292`). Replace with just the parent `Add`. Net effect: dropdown emits only `ParentId == null` rows.
+2. **Add `IsActive` guard** to External's Where (`:535`) so it matches Internal at `:278`.
+3. **No parent-rollup logic** — keep the existing `CertificationTypeNames` string-equality match as-is. Level-2-tagged certs become un-filterable in the dropdown, which is the correct outcome once data is repaired.
+
+**Planned fix (data — 1 SQL script):**
+
+- Add `Database_Scripts/20260511_DEF167_AuditL2TaggedCerts.sql`:
+  - Audit query: list every cert whose `CertificationTypeId` points at a Level-2 row, with the proposed parent the cert should be re-pointed at.
+  - Conditional UPDATE (commented-out by default): re-point those certs to the Level-2's parent, and optionally insert the original Level-2 reference into `CertificateCertificationTypeSubcategories` join table to preserve the subcategory association on the cert detail view.
+- **CR-gated for prod execution** per `feedback_data_changes_require_cr.md`. Run the audit query first to scope; if prod returns rows, submit a CR with the row count and proposed remediation before running the UPDATE.
+
+**Files changed (4):**
+- `Controllers/Api/CertificateTilesApiController.cs` (the public anonymous `/api/certificate-tiles` endpoint — primary visible bug)
+- `Controllers/Api/CertificateTileInternalApiController.cs` (the admin/internal `/api/certificate-tiles-internal` endpoint — same latent pattern; client said "login view is fine" so this is parity-only)
+- `Controllers/Api/CertificateTileExternalApiController.cs` (the external-user `/api/CertificateTileExternal` endpoint — same latent pattern; was also missing `IsActive` guard)
+- `Database_Scripts/20260511_DEF167_AuditL2TaggedCerts.sql` — new
+
+**Code change shape (identical in all three controllers):** replaced the 18-line `allCertTypes` query + in-memory parent/child flatten loop with a single Level-1-only LINQ query:
+```csharp
+var hierarchicalCertTypes = await _context.CertificationTypes
+    .Where(ct => ct.IsActive && ct.ParentId == null && certTypeIds.Contains(ct.Id))
+    .OrderBy(ct => ct.SortOrder)
+    .Select(ct => new { name = ct.Name, level = ct.Level })
+    .ToListAsync();
+```
+JSON response shape unchanged (array of `{name, level}` objects); JS consumers need no change.
+
+**Verification (localhost, http://localhost:5101, 2026-05-11):**
+- `dotnet build` — 0 errors, 51 warnings (all pre-existing).
+- `GET /api/certificate-tiles/filters` (anonymous, public view) — returned 4 entries, all `level: 1` (`Biobased`, `Certified Energy Savings`, `Certified Environmental Facts`, `Recycled Content`). No subcategory rows. Match to dev DB's 4 Level-1 parents with direct visible certs (`Public` statuses only).
+- `GET /api/certificate-tiles?page=1&pageSize=20` — returned 20 of 22 public certs cleanly.
+- `GET /api/certificate-tiles?certType=Recycled%20Content` — returned 16 certs, all with `certificationType: "Recycled Content"`. Filter still narrows correctly.
+- Internal endpoint not curl-tested (cookie auth + antiforgery); code shape is identical to public, so structurally guaranteed.
+
+**Trade-off acknowledged:** Level-2-tagged certs on prod will not match any filter selection until data is repaired. This is intentional per direction — the cert's primary type tag should be a Level-1; subcategory information lives on a different column (`CertificationTypeSubcategoryId` or the join table). Keeping subcategories visible in the filter as a workaround would mask the underlying data issue.
+
+**Pre-deploy data check (CR-gated):** Before deploying, run Section 1 of `Database_Scripts/20260511_DEF167_AuditL2TaggedCerts.sql` against prod. If any rows return, those certs will silently disappear from filter selection until the remediation block is run (which needs a CR). Submit the CR with the audit row count before deploying the code, OR coordinate the code deploy and data fix as one sequence.
+
+---
+
 ### DEF-166 — Internal tile view slow load + only 15 of 35 certs showing
 
 - **Date:** 2026-05-08

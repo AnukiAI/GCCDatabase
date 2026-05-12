@@ -83,7 +83,21 @@ namespace GCCWebApp.Data
                 entity.HasIndex(e => new { e.Country, e.Status });
                 entity.HasIndex(e => new { e.CertificationTypeId, e.Status });
                 entity.HasIndex(e => new { e.ExpirationDate, e.Status, e.CompanyId });
-                
+
+                // DEF-178: persisted computed column for numeric-aware sort on CertificationResults.
+                // See Certificate.CertificationResultsNumeric for the why. Matches DisplayFormatters
+                // logic so the sort order tracks what users see. NULL when the raw value isn't parseable
+                // — non-numeric values fall out of the numeric sort dimension.
+                entity.Property(e => e.CertificationResultsNumeric)
+                    .HasComputedColumnSql(@"
+                        CASE
+                          WHEN [CertificationResults] IS NULL OR [CertificationResults] = N'' THEN NULL
+                          WHEN [CertificationResults] LIKE N'%[%]%' THEN TRY_CAST(REPLACE([CertificationResults], N'%', N'') AS DECIMAL(18,4))
+                          WHEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) < 1 THEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) * 100
+                          ELSE TRY_CAST([CertificationResults] AS DECIMAL(18,4))
+                        END", stored: true);
+                entity.HasIndex(e => e.CertificationResultsNumeric);
+
                 // Relationships
                 entity.HasOne(e => e.Company)
                     .WithMany(c => c.Certificates)

@@ -67,6 +67,27 @@ namespace GCCWebApp.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// QC #141: every cert across every status with the full taxonomy nav properties loaded.
+        /// Used by the dashboard "Certificates by Status" export so legacy literal statuses
+        /// (e.g. "Active" used by KAO certs) are not silently dropped.
+        /// </summary>
+        public async Task<IEnumerable<Certificate>> GetAllCertificatesWithDetailsAsync()
+        {
+            return await _dbSet
+                .Include(c => c.Company)
+                .Include(c => c.Product).ThenInclude(p => p!.Category)
+                .Include(c => c.Product).ThenInclude(p => p!.ProductType)
+                .Include(c => c.Product).ThenInclude(p => p!.ProductSubcategory)
+                .Include(c => c.ProductCategory)
+                .Include(c => c.ProductType)
+                .Include(c => c.ProductSubcategory)
+                .Include(c => c.CertificationType)
+                .OrderBy(c => c.Status)
+                .ThenBy(c => c.Number)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Certificate>> GetExpiringCertificatesAsync(DateTime beforeDate)
         {
             return await _dbSet
@@ -370,10 +391,19 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<Certificate>> GetCertificatesByStatusAsync(string status)
         {
+            // QC #141: Includes expanded so DashboardController.GenerateCertificateCsv can
+            // populate the Product Category / Type / Subcategory columns regardless of which
+            // status the cert is in. Prior to this the cert-status export had blank values for
+            // those columns even though the data existed.
             return await _dbSet
                 .Where(c => c.Status == status)
                 .Include(c => c.Company)
-                .Include(c => c.Product)
+                .Include(c => c.Product).ThenInclude(p => p!.Category)
+                .Include(c => c.Product).ThenInclude(p => p!.ProductType)
+                .Include(c => c.Product).ThenInclude(p => p!.ProductSubcategory)
+                .Include(c => c.ProductCategory)
+                .Include(c => c.ProductType)
+                .Include(c => c.ProductSubcategory)
                 .Include(c => c.CertificationType)
                 .ToListAsync();
         }
@@ -413,10 +443,17 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<Certificate>> GetCertificatesByDateRangeAsync(DateTime startDate, DateTime endDate)
         {
+            // QC #141: same Include expansion as GetCertificatesByStatusAsync — the
+            // certs-published/expired-last-month exports need the full taxonomy nav properties.
             return await _dbSet
                 .Where(c => c.EffectiveDate >= startDate && c.EffectiveDate <= endDate)
                 .Include(c => c.Company)
-                .Include(c => c.Product)
+                .Include(c => c.Product).ThenInclude(p => p!.Category)
+                .Include(c => c.Product).ThenInclude(p => p!.ProductType)
+                .Include(c => c.Product).ThenInclude(p => p!.ProductSubcategory)
+                .Include(c => c.ProductCategory)
+                .Include(c => c.ProductType)
+                .Include(c => c.ProductSubcategory)
                 .Include(c => c.CertificationType)
                 .OrderBy(c => c.EffectiveDate)
                 .ToListAsync();

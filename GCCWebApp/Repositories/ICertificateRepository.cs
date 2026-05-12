@@ -5,6 +5,12 @@ namespace GCCWebApp.Repositories
     public interface ICertificateRepository : IRepository<Certificate>
     {
         Task<IEnumerable<Certificate>> GetActiveCertificatesAsync();
+        /// <summary>
+        /// QC #141: every cert across every status with full taxonomy nav properties loaded.
+        /// Used by the dashboard "Certificates by Status" export so legacy literal statuses
+        /// (e.g. "Active" used by KAO certs) aren't silently dropped.
+        /// </summary>
+        Task<IEnumerable<Certificate>> GetAllCertificatesWithDetailsAsync();
         Task<IEnumerable<Certificate>> GetExpiringCertificatesAsync(DateTime beforeDate);
         Task<IEnumerable<Certificate>> GetCertificatesByCompanyAsync(int companyId);
         Task<IEnumerable<Certificate>> GetCertificatesByProductAsync(int productId);

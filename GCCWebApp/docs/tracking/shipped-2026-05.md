@@ -6,6 +6,22 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-179 — Dashboard "Active Certs Published" exports now match the count cards (no more Draft/Hold/Expired leaking into the CSV) (QC #156 5/1/26 follow-up) (2026-05-11, in working tree pending deploy)
+
+QC #156's original 4/7 ask was a label rename — change "# Certs Published Last Month / Year / This Year" to "# Active Certs Published…" so the title matches what the count actually represents. That part shipped cleanly and was verified PASS on 5/1. On 5/1 the client added a follow-up on the same QC row: *"When I export now it has Expired, etc. Just not right."* That second comment was a different defect — the renamed labels said "Active" but the download buttons next to those count cards were emitting CSVs containing every status, including Expired, Draft, Hold, and Republished. The card said one thing; the file said another.
+
+Root cause was a clean filter-asymmetry between the count query and the export query. The count widgets in the dashboard repository call `_dbSet.CountAsync(c => dashboardStatuses.Contains(c.Status) && c.EffectiveDate >= ...)` — they filter both by date range and by the canonical "Dashboard" active-status set. The download buttons route through `DashboardController.GetCertificatesForStat`, which calls `_certificateRepository.GetCertificatesByDateRangeAsync(start, end)` — that method filters by date range only and intentionally has no status filter (other callers may want unfiltered results). The result was that "12 Active Certs Published This Year" on the card could correspond to a 30-row CSV download.
+
+Fix is one file, three case statements. The dashboard's `certs-published-last-month`, `certs-published-this-year`, and `certs-published-last-year` cases now apply `Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status))` to the date-range result before returning, exactly matching the count widget's filter. CSV row count and card count will reconcile one-to-one going forward. Each case is wrapped in a block scope so the local `certs` variable doesn't collide with the existing `expiringNext` / `filtered` locals in adjacent cases. Report titles in those three exports also flip from "Certificates Published…" to "Active Certificates Published…" so the CSV header phrasing matches what the user clicked.
+
+Three sibling cases were intentionally left alone: `certs-expired-last-month` (the corresponding card is "Expired Last Month," not "Active" — the user *wants* to see expired certs there), and the two "expiring" cases (`certs-expiring-this-month`, `certs-expiring-next-month`), which already route through `GetExpiringCertificatesAsync` and pick up an active-status guard from a different code path. The repository method `GetCertificatesByDateRangeAsync` is also unchanged — the filter is applied at the dashboard case-statement layer so the repository stays general-purpose for other future callers.
+
+This is a sibling fix to DEF-178 (Dashboard exports missing taxonomy columns + cert-status legacy-Active dropping). DEF-178 expanded `GetCertificatesByDateRangeAsync` to `Include` Product Category / Product Type / Subcategory / Partner nav properties, so the now-filtered published-certs CSVs will also benefit from those richer columns.
+
+Files: `Controllers/DashboardController.cs` (three case statements + titles). `dotnet build` clean — 0 errors. Live in-browser smoke deferred to next dev-server restart (running instance is holding the .exe lock); will verify via Playwright after the deploy lands and update TC-QC-156 to confirm the export side.
+
+---
+
 ## DEF-176 — Logged-in cert tile views (Internal + External) now match Public for filter chips and Company filter (QC #127 5/1/26 + 5/8/26 re-raise) (2026-05-11, in working tree pending deploy)
 
 Client flagged on 5/1 and again on 5/8 that the Public certificate listing was fixed but the logged-in views (Internal admin/analyst view and External partner view) still showed the old behavior: Company filter chips displayed numeric IDs ("Company: 131") instead of the company name, and every chip carried a redundant `Type:` / `Company:` / `Search:` label prefix. Public was visibly correct ("3M ×"); the two logged-in views were not. Playwright capture against the deployed environment reproduced exactly what the client described — three views, three different behaviors, two of them broken.

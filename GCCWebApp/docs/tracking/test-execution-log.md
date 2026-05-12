@@ -1394,7 +1394,15 @@ The original March fix only patched `wwwroot/js/certificate-tile-view.js`; the n
 
 **Cross-role / Cross-viewport:** TODO during execution
 
-**Status:** **PASS - 2026-05-01 via Playwright.** /Dashboard body text matches new pattern '# Active Certs Published Last Month/Year/This Year' per QC #156 fix. No old '# Certs Published' label remains.
+**Status:** **PARTIAL — labels PASS (2026-05-01); export FIX LANDED (2026-05-11 DEF-179, pending deploy).**
+
+**Label rename — PASS 2026-05-01 via Playwright.** /Dashboard body text matches new pattern '# Active Certs Published Last Month/Year/This Year' per QC #156 fix. No old '# Certs Published' label remains.
+
+**Export contradiction — DEFECT IDENTIFIED 2026-05-11.** Client's 5/1 follow-up on the QC #156 row (*"When I export now it has Expired, etc. Just not right"*) is a separate defect from the label rename. The three count cards (`# Active Certs Published Last Month / This Year / Last Year`) compute via `_dbSet.CountAsync` filtered by `dashboardStatuses.Contains(c.Status)`, but the corresponding download buttons route through `GetCertificatesByDateRangeAsync` which has no status filter — so CSVs leak Draft / Hold / Expired / Republished rows the count card excluded. Card count and CSV row count diverge.
+
+**Fix landed in working tree (DEF-179, 2026-05-11):** `Controllers/DashboardController.cs:384-411` — three case statements (`certs-published-last-month`, `certs-published-this-year`, `certs-published-last-year`) wrap the date-range result in a `Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status))` filter, mirroring the count-card logic exactly. Report titles also flip from "Certificates Published…" to "Active Certificates Published…". `dotnet build` 0 errors.
+
+**Verify-after-deploy:** Sign in as `analyst`. `/Dashboard` → note each of the three "# Active Certs Published…" counts. Click each download icon. CSV row count must equal the card count (one-to-one). Every status value in the CSV must be in the dashboard active set (`Client Approved - Paid`, `Client Approved - Not Paid`, `Client Approved - Confidential`, `Republished`) — no Draft / Hold / Expired / Suspended / Revoked rows. Flip this card to PASS (full) once verified.
 
 ### TC-QC-157 [DEFECT / Pri: - / Status: Open]
 - **Page:** Login - Cert List View
@@ -1456,7 +1464,20 @@ The original March fix only patched `wwwroot/js/certificate-tile-view.js`; the n
 
 **Cross-role / Cross-viewport:** TODO during execution
 
-**Status:** **UAT PASS — 2026-05-08 on localhost:5101 / GCCDatabase_Dev.** Carly's repro reproduced and resolved end-to-end via Playwright. Cert 26-0001 seeded with 2 active ASINs (B08N5WRWNW, B07XJ8C8F5). Logged in as analyst → opened Edit → Import → uploaded CSV with 1 different ASIN (B09KMVN3R8) → preview showed `1 New / 0 Modified / 0 Unchanged / 0 Errors` (no spurious global-duplicate flag) → toggled "Replace all existing" → Apply Import. **Result:** cert 26-0001 ended with 1 active row (B09KMVN3R8) + 2 soft-deleted (IsActive=0). **Per-cert dup scope:** posting same ASIN B09KMVN3R8 to cert 26-0003 returned 200 success (cross-cert allowed). **Intra-cert dup still rejected:** re-posting B09KMVN3R8 to cert 26-0001 returned `"Product ID already exists on this certificate"` (correct). Screenshots: `C:\Users\swest\AppData\Local\Temp\uitest\qc159-shots\` (01–06). Test rows cleaned post-run. Earlier 2026-05-01 status was code-level only; this supersedes it.
+**Status:** **UAT PASS — 2026-05-08 on localhost:5101 / GCCDatabase_Dev. PROD-VERIFIED 2026-05-11 on gccwebapp.com.**
+
+**Localhost UAT (2026-05-08):** Client's repro reproduced and resolved end-to-end via Playwright. Cert 26-0001 seeded with 2 active ASINs (B08N5WRWNW, B07XJ8C8F5). Logged in as analyst → opened Edit → Import → uploaded CSV with 1 different ASIN (B09KMVN3R8) → preview showed `1 New / 0 Modified / 0 Unchanged / 0 Errors` (no spurious global-duplicate flag) → toggled "Replace all existing" → Apply Import. **Result:** cert 26-0001 ended with 1 active row (B09KMVN3R8) + 2 soft-deleted (IsActive=0). **Per-cert dup scope:** posting same ASIN B09KMVN3R8 to cert 26-0003 returned 200 success (cross-cert allowed). **Intra-cert dup still rejected:** re-posting B09KMVN3R8 to cert 26-0001 returned `"Product ID already exists on this certificate"` (correct). Screenshots: `C:\Users\swest\AppData\Local\Temp\uitest\qc159-shots\` (01–06). Test rows cleaned post-run. Earlier 2026-05-01 status was code-level only; this supersedes it.
+
+**Prod re-verify (2026-05-11):** 5/8/26 QC log row shows status "Did not check" against this item — needed to confirm DEF-165D is actually shipped. Playwright on `gccwebapp.com` Edit page for cert 26-0163 (live prod data, dynamically pulled from internal tile DOM):
+
+- `#overwrite-existing-toggle` present in DOM ✓
+- Label text: `"Replace all existing IDs with this file"` ✓
+- Tooltip: `"When checked: this import file is the new full list. Existing Product IDs not in the file will be deactivated. When unchecked (default): rows in the file are added or updated; nothing is deactivated."` ✓ (full explainer per DEF-165D fix)
+- Pill style: background `rgb(255, 248, 230)` (amber `#fff8e6`) + `border-radius: 16px` ✓
+- `fa-exchange-alt` icon present ✓
+- `#import-preview-modal` and `#importProductIds` button present ✓
+
+End-to-end Replace-All round-trip on prod was NOT exercised (would create/destroy live cert data — violates the "Data Changes Require CR" rule). Code parity verified: prod DOM matches the localhost UAT-passing build. Verification script: `%TEMP%\verify-qc159v3.mjs`.
 
 ### TC-QC-160 [QUESTION / Pri: - / Status: Open]
 - **Page:** Cert Detail Page

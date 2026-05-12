@@ -381,9 +381,15 @@ namespace GCCWebApp.Controllers
                 case "products-with-active-certs":
                     return (await _certificateRepository.GetActiveCertificatesAsync(), "Products with Active Certificates");
 
+                // QC #156 5/1 follow-up: the three "published" exports must filter by DashboardStatuses
+                // to match the display count's "# Active Certs Published…" label. Without this filter,
+                // the export leaks Draft / Hold / Expired / Republished certs the count card excluded.
                 case "certs-published-last-month":
-                    return (await _certificateRepository.GetCertificatesByDateRangeAsync(startOfLastMonth, endOfLastMonth),
-                        "Certificates Published Last Month");
+                {
+                    var certs = await _certificateRepository.GetCertificatesByDateRangeAsync(startOfLastMonth, endOfLastMonth);
+                    return (certs.Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status)),
+                        "Active Certificates Published Last Month");
+                }
 
                 case "certs-expiring-this-month":
                     return (await _certificateRepository.GetExpiringCertificatesAsync(startOfNextMonth),
@@ -399,12 +405,18 @@ namespace GCCWebApp.Controllers
                     return (filtered, "Certificates Expiring Next Month");
 
                 case "certs-published-this-year":
-                    return (await _certificateRepository.GetCertificatesByDateRangeAsync(startOfYear, today),
-                        "Certificates Published This Year");
+                {
+                    var certs = await _certificateRepository.GetCertificatesByDateRangeAsync(startOfYear, today);
+                    return (certs.Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status)),
+                        "Active Certificates Published This Year");
+                }
 
                 case "certs-published-last-year":
-                    return (await _certificateRepository.GetCertificatesByDateRangeAsync(startOfLastYear, endOfLastYear),
-                        "Certificates Published Last Year");
+                {
+                    var certs = await _certificateRepository.GetCertificatesByDateRangeAsync(startOfLastYear, endOfLastYear);
+                    return (certs.Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status)),
+                        "Active Certificates Published Last Year");
+                }
 
                 default:
                     return (Enumerable.Empty<Certificate>(), null);
@@ -424,24 +436,14 @@ namespace GCCWebApp.Controllers
                         "Top 10 Companies by Active Cert Count");
 
                 case "cert-status":
-                    // All certificates with navigation properties
-                    var allStatuses = new[] {
-                        CertificateStatusHelper.StatusDraft,
-                        CertificateStatusHelper.StatusClientApprovedNotPaid,
-                        CertificateStatusHelper.StatusClientApprovedConfidential,
-                        CertificateStatusHelper.StatusClientApprovedPaid,
-                        CertificateStatusHelper.StatusHold,
-                        CertificateStatusHelper.StatusExpired,
-                        CertificateStatusHelper.StatusRepublished,
-                        CertificateStatusHelper.StatusExpiredNoAnnualVerification
-                    };
-                    var statusCerts = new List<Certificate>();
-                    foreach (var status in allStatuses)
-                    {
-                        var byCerts = await _certificateRepository.GetCertificatesByStatusAsync(status);
-                        statusCerts.AddRange(byCerts);
-                    }
-                    return (statusCerts, "Certificates by Status");
+                    // QC #141: pull EVERY certificate regardless of status. The prior hardcoded
+                    // loop iterated only the 8 canonical CertificateStatusHelper constants and
+                    // silently dropped certs carrying the legacy literal "Active" status (KAO
+                    // certs) that pre-dated the canonical taxonomy. One repo call to fetch all
+                    // certs is both simpler and naturally future-proof against further status
+                    // drift.
+                    return (await _certificateRepository.GetAllCertificatesWithDetailsAsync(),
+                        "Certificates by Status");
 
                 case "product-types":
                     return (await _certificateRepository.GetActiveCertificatesAsync(),
@@ -532,11 +534,36 @@ namespace GCCWebApp.Controllers
             csv.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             csv.AppendLine($"Total Certificates: {certList.Count}");
             csv.AppendLine();
-            csv.AppendLine("Certificate Number,Status,Company,Product,Certification Type,Effective Date,Expiration Date,Location,Country");
+            // QC #141 / R24-R26 (Dashboard Metrics — Prebuilt List Export: "include all fields").
+            // Added Product Category / Product Type / Product Subcategory / Partner columns so
+            // the dashboard tile and table exports actually carry the taxonomy that the on-screen
+            // tables are aggregating over. Resolution follows the same cert-direct-then-product
+            // fallback used in CertificateTileInternalApiController so we match what users see
+            // in the cert detail view.
+            csv.AppendLine("Certificate Number,Status,Company,Product,Product Category,Product Type,Product Subcategory,Certification Type,Effective Date,Expiration Date,Location,Country,Partner");
 
             foreach (var cert in certList)
             {
-                csv.AppendLine($"{EscapeCsvValue(cert.Number)},{EscapeCsvValue(cert.Status)},{EscapeCsvValue(cert.Company?.Name ?? "")},{EscapeCsvValue(cert.Product?.Name ?? "")},{EscapeCsvValue(cert.CertificationType?.Name ?? "")},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{EscapeCsvValue(cert.Location ?? "")},{EscapeCsvValue(cert.Country ?? "")}");
+                var productCategory = cert.ProductCategory?.Name ?? cert.Product?.Category?.Name ?? "";
+                var productType = cert.ProductType?.Name ?? cert.Product?.ProductType?.Name ?? "";
+                var productSubcategory = cert.ProductSubcategory?.Name ?? cert.Product?.ProductSubcategory?.Name ?? "";
+
+                csv.AppendLine(string.Join(",", new[]
+                {
+                    EscapeCsvValue(cert.Number),
+                    EscapeCsvValue(cert.Status),
+                    EscapeCsvValue(cert.Company?.Name ?? ""),
+                    EscapeCsvValue(cert.Product?.Name ?? ""),
+                    EscapeCsvValue(productCategory),
+                    EscapeCsvValue(productType),
+                    EscapeCsvValue(productSubcategory),
+                    EscapeCsvValue(cert.CertificationType?.Name ?? ""),
+                    cert.EffectiveDate.ToString("yyyy-MM-dd"),
+                    cert.ExpirationDate.ToString("yyyy-MM-dd"),
+                    EscapeCsvValue(cert.Location ?? ""),
+                    EscapeCsvValue(cert.Country ?? ""),
+                    EscapeCsvValue(cert.Partner ?? "")
+                }));
             }
 
             return csv.ToString();

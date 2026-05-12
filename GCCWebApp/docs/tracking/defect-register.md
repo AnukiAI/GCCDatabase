@@ -18,6 +18,160 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-180 — QC #159 (Replace-all CSV import for Product IDs) — already satisfied, no code change needed
+
+- **Date:** 2026-05-11 (audited)
+- **Severity:** N/A — review-only
+- **Status:** Closed — already implemented
+- **Reporter:** Client — QC #159 (4/7/26): *"What if someone wanted to replace all the existing with a new list... So it would remove those not included and add those new and keep existing still on list? I tried a version of this and got an error. There were 2 listed from a prior import. I tried to import a doc with only 1 product."*
+
+**Finding:** The replace-all workflow Carly described was built between her 4/7/26 ask and today. Two related work items already landed:
+
+1. **DEF-154 (shipped 2026-05-07)** — `"Replace all existing IDs with this file"` toggle in the Product ID import modal footer. When checked, the import CSV becomes the new source of truth: existing rows not in the import set are deactivated server-side, rows in the import are added or updated, rows already matching are kept. Server-side handling in `ProductIdApiController.cs` (line 359, `overwriteExisting` form parameter) and `ProductIdService.cs` (`ImportProductIdsAsync` + `ImportFromCsvAsync` overloads). JS wiring in `wwwroot/js/product-id-manager.js` (around line 1397, `applyImport()`). Spec match exactly:
+   - "Remove those not included" → orphan rows get `IsActive=false` server-side
+   - "Add those new" → fresh rows inserted via bulk endpoint
+   - "Keep existing still on list" → matching rows preserved
+
+2. **Visual discoverability polish** (already in `Views/Shared/_ProductIdManager.cshtml:315-325`): the toggle is pill-shaped with a yellow `#fff8e6` background, an exchange-icon, and a hover tooltip. Comment block in the view explicitly references Carly's "I imported a 1-row file and 2 prior IDs stayed" confusion as the rationale for the styling.
+
+**Carly's "got an error" complaint** from 4/7/26 was on the **pre-DEF-154 code**, where:
+- The toggle either didn't exist or wasn't wired through correctly
+- Importing fewer rows than already existed could have hit a per-row PUT loop that errored partway through
+
+That code path is gone. Current flow: bulk endpoint accepts the full import set + the `overwriteExisting` flag in one POST.
+
+**Recommendation:** Carly should retest the scenario on the next deploy. Expected behavior:
+1. Cert has 2 Product IDs from a prior import.
+2. She opens the Product ID Manager, clicks Import, picks a CSV with 1 product.
+3. **Ticks "Replace all existing IDs with this file"** in the modal footer.
+4. Clicks Apply Import.
+5. Result: cert now has 1 Active Product ID. The 2 prior rows are deactivated (still in the DB for audit, but `IsActive=false`).
+
+If she runs the same flow WITHOUT ticking the toggle, the import behaves additively: the 1 new row is added or merged, the 2 prior rows stay Active.
+
+**No code change in this entry.** Closing per `feedback_qc_review_no_changes.md` review pattern.
+
+---
+
+### DEF-179 — Dashboard "Active Certs Published" exports leak Draft / Hold / Expired / Republished rows (QC #156 5/1/26 follow-up)
+
+- **Date:** 2026-05-11
+- **Severity:** Medium (data integrity — export contradicts the count-card label; client cannot trust the Excel feed)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client. QC #156 was originally a label-rename request (4/7) that was completed and verified PASS on 5/1. The 5/1 follow-up comment opened a new defect on the same row: *"When I export now it has Expired, etc. Just not right."*
+
+**Root cause:** The display widgets `# Active Certs Published Last Month / This Year / Last Year` count via `_dbSet.CountAsync` filtered by `dashboardStatuses.Contains(c.Status)` (`Repositories/CertificateRepository.cs:555-584`). The corresponding download buttons route through `Controllers/DashboardController.cs` `GetCertificatesForStat`, which calls `_certificateRepository.GetCertificatesByDateRangeAsync(start, end)`. That repository method (`Repositories/CertificateRepository.cs:444`) filters strictly by `EffectiveDate`; it has no status filter at all. Net effect: the count card shows e.g. "12 Active Certs Published This Year" but the CSV download contains every cert with EffectiveDate in the year — including Draft, Hold, Expired, Republished. Mismatch is large for any partner whose lifecycle includes drafts or paused statuses.
+
+**Fix:** Filtered the three published-cert export cases by `CertificateStatusHelper.DashboardStatuses` after the date-range fetch, in `Controllers/DashboardController.cs` (case statements `certs-published-last-month`, `certs-published-this-year`, `certs-published-last-year`). Wrapped each case in a block scope so the local variable doesn't conflict with the existing `expiringNext` / `filtered` locals. Also renamed the report titles to match the display labels:
+
+- `"Certificates Published Last Month"` → `"Active Certificates Published Last Month"`
+- `"Certificates Published This Year"` → `"Active Certificates Published This Year"`
+- `"Certificates Published Last Year"` → `"Active Certificates Published Last Year"`
+
+The "Active" filter is identical to the count-card filter, so display count and exported row count will now reconcile exactly.
+
+**Deliberately not changed:**
+
+- `certs-expired-last-month` — the corresponding count card is `Expired Last Month` (not "Active"); leaving it as full date-range is correct since the user wants to see expired certs in that export.
+- `certs-expiring-this-month`, `certs-expiring-next-month` — these route through `GetExpiringCertificatesAsync` which already applies its own DashboardStatuses-equivalent guard (only certs that *can* expire are still active). No change needed.
+- `GetCertificatesByDateRangeAsync` itself — still returns the unfiltered date range; other callers (e.g. potential audit reports) may want non-Active rows. Filter is applied at the dashboard case-statement layer, not in the repository, to keep the repository general-purpose.
+
+**Files changed (1):** `Controllers/DashboardController.cs:384-411` (three case statements rewritten as block scopes with the `Where` filter and updated titles).
+
+**Backend impact:** None for non-published exports. The three published-cert exports will now return fewer rows on average — the difference equals the count of Draft/Hold/Expired/Republished certs whose EffectiveDate fell in the target window. Display count is unchanged.
+
+**Local verification:** `dotnet build` — 0 errors. Same dev-server lock prevents an in-place restart for live click-through; verify after next clean restart or after the deploy.
+
+**Verify-after-deploy:**
+
+1. Sign in as `analyst`. `/Dashboard` → look at the three count cards `# Active Certs Published Last Month / This Year / Last Year`. Note each count.
+2. Click the download icon on each card. Open the CSV.
+3. Number of data rows in the CSV should equal the count shown on the card (one-to-one).
+4. Every row in the CSV should have a status value in the dashboard "Active" set: `Client Approved - Paid`, `Client Approved - Not Paid`, `Client Approved - Confidential`, `Republished`. **No** `Draft`, `Hold`, `Expired`, `Suspended`, `Revoked` rows should appear.
+5. Filename / report title in the CSV header (if present) should now read "Active Certificates Published…" rather than "Certificates Published…".
+
+**Cross-ref:** Sibling fix to DEF-178, which expanded `GetCertificatesByDateRangeAsync` to include taxonomy nav properties — the published-certs CSVs will now also show Product Category / Product Type / Subcategory / Partner columns properly. DEF-179 is purely the status-filter half. QC #156's label-rename half (the original 4/7 request) was closed via the existing 5/1 PASS in TC-QC-156; this DEF closes the 5/1 export comment on the same row.
+
+---
+
+### DEF-178 — Dashboard exports missing taxonomy columns + cert-status dropping legacy "Active" rows (QC #141)
+
+- **Date:** 2026-05-11
+- **Severity:** Medium (functional — Dashboard exports didn't carry "all fields" per spec; "# Certs by Status" silently omitted KAO-era Active certs)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client — QC #141, originally 4/3/26, re-flagged 5/1/26: *"The export for # of product categories, # product types, subcategories don't have that column/info... # certs by status export only shows list of Client Approved - Paid and Republished but should show all. Top 10 product types and Top 5 product categories don't have these fields in export. 5/1: It's worse now where no fields are showing."*
+- **Spec reference:** Dashboard Metrics R24-R26 (Prebuilt List Export) — *"Export to Excel file - include all fields."*
+
+**Root causes — three separate gaps:**
+
+1. **`GenerateCertificateCsv` was 9-column** (`Cert#, Status, Company, Product, CertType, Eff Date, Exp Date, Location, Country`) — no `Product Category`, `Product Type`, `Product Subcategory`, or `Partner` columns. Every dashboard table-section download (cert-types, top-companies, product-types, product-categories) and several stat-button downloads (certs-expiring-this-month, certs-expired-last-month, etc.) routed through this method, so all of them shipped without taxonomy columns.
+
+2. **`GetCertificatesByStatusAsync` and `GetCertificatesByDateRangeAsync` didn't `.Include` the taxonomy nav properties** — even with the new columns, status-bound and date-bound exports would emit blanks. `GetActiveCertificatesAsync` already loaded them; only these two paths lagged behind.
+
+3. **The `cert-status` case in `GetCertificatesForTable` looped over an 8-element hardcoded list** of canonical `CertificateStatusHelper` constants. The DB contains a legacy literal status `"Active"` (KAO-era certs, see `observations_log.md` 2026-04-23) that pre-dates the canonical taxonomy and isn't in the constants — so 6 KAO certs were silently dropped from the "# Certs by Status" export. Client's "only shows Client Approved - Paid and Republished" complaint was the same shape — the hardcoded loop dropping rows for statuses outside the constants list.
+
+**Fix — three pieces:**
+
+1. **`Controllers/DashboardController.cs` `GenerateCertificateCsv`**: header extended to 13 columns (added Product Category, Product Type, Product Subcategory, Partner). Cert-direct override → product-level fallback, same pattern as the tile views (`cert.ProductCategory?.Name ?? cert.Product?.Category?.Name ?? ""`).
+2. **`Repositories/CertificateRepository.cs`**: expanded the `.Include` chain on `GetCertificatesByStatusAsync` and `GetCertificatesByDateRangeAsync` to match `GetActiveCertificatesAsync`.
+3. **Added `GetAllCertificatesWithDetailsAsync()`** on the repository (interface signature added too). The dashboard's `cert-status` case now calls this single method instead of looping the constants list — every cert in the DB is returned, regardless of what status string it carries. Future status-name drift won't silently drop rows again.
+
+**Files changed (3):**
+- `Controllers/DashboardController.cs` — CSV column expansion + cert-status case refactor
+- `Repositories/CertificateRepository.cs` — Include expansion on 2 methods + new `GetAllCertificatesWithDetailsAsync`
+- `Repositories/ICertificateRepository.cs` — interface signature for the new method
+
+**Verification (localhost http://localhost:5101, Playwright admin-auth + fetch on every dashboard download endpoint, 2026-05-11):**
+
+| Endpoint | Header columns | Data rows | Notes |
+|---|---|---|---|
+| `/Dashboard/DownloadStat?type=companies-with-active-certs` | 2 (Company, Count) | 10 | Aggregate stat — unchanged. Amazon=8 top result ✓ |
+| `/Dashboard/DownloadStat?type=product-categories-with-active-certs` | 2 (Product Category, Count) | 2 | Aggregate stat — unchanged ✓ |
+| `/Dashboard/DownloadStat?type=certs-expiring-this-month` | **13** | 1 | New cert-detail columns populated ✓ |
+| `/Dashboard/DownloadTable?type=cert-types` | **13** | 23 | Example row: `"26-0001","Client Approved - Paid","Acme Corporation","Widget Pro","Chemicals and Raw Materials","","","Recycled Content",...,"Amazon"` ✓ |
+| `/Dashboard/DownloadTable?type=top-companies` | **13** | 23 | Same shape ✓ |
+| `/Dashboard/DownloadTable?type=cert-status` | **13** | **42** | **Distinct statuses now: `Active \| Client Approved - Paid \| Draft \| Expired`** — legacy "Active" included (pre-fix was 3 statuses, 36 rows) ✓ |
+| `/Dashboard/DownloadTable?type=product-types` | **13** | 23 | Taxonomy columns present ✓ |
+| `/Dashboard/DownloadTable?type=product-categories` | **13** | 23 | Taxonomy columns present ✓ |
+
+Pre-fix vs post-fix on the most-affected report:
+- `cert-status` data rows: **36 → 42** (legacy "Active" rows recovered)
+- `cert-status` distinct statuses: **3 → 4**
+- All cert-detail exports: **9 → 13 columns** including the three taxonomy fields client called out
+
+The "no fields showing" 5/1 complaint did not reproduce in dev — every endpoint tested returns non-empty data. Either prod was momentarily empty at her test time, or it was a stale build. Current state ships populated rows.
+
+**Out of scope (intentional):**
+- Aggregate stat-card exports (Companies/Categories/Types/Subcategories with-active-certs) — these intentionally emit `Name, Active Certificate Count` per QC #155. They match the stat-card semantics and were already correct.
+
+---
+
+### DEF-177 — QC #148 (Excel template headers should include allowed values in parens) — already satisfied, no code change needed
+
+- **Date:** 2026-05-11 (audited)
+- **Severity:** Low (documentation/UX enhancement)
+- **Status:** Closed — already implemented; pending client UAT verification
+- **Reporter:** Client UAT — QC #148 (4/6/26): *"For standard fields in Excel template can you include in header name what options are where appropriate: For example Status (Active, Inactive)"*. Carly's 5/1 follow-up: *"Did not check since not ready for UAT."*
+
+**Audit (2026-05-11):** Reviewed every import-template generator in the codebase against Carly's "where appropriate" criterion (enumerated/boolean fields, not free-text or lookup-by-name fields).
+
+| Template | Source | Enumerated fields | State |
+|---|---|---|---|
+| User Import | `wwwroot/js/userManagement.js:854` | Role, Status, RequirePasswordReset, Company Access | ✅ `Role (Admin/Analyst/External)`, `Status (Active/Inactive)`, `RequirePasswordReset (Yes/No)`, `Company Access (semicolon-separated names, or "All")` — three of four shipped under DEF-173 (2026-05-11); the fourth (Role) was already in the template from an earlier batch. |
+| Tags Import | `wwwroot/js/tags.js:546` | TagType | ✅ `TagType (Internal, External)` — landed in a prior cycle. |
+| Product Import | `Controllers/ProductController.cs:880` (server endpoint, single source of truth post-DEF-165) | none — `Name, Company, Description, Category, Product Type, Subcategory` are all lookup-by-name or free-text | n/a — no enumerated fields to annotate. |
+| Companies Import | `Views/Company/Index.cshtml:673` | none — `Name, Email, Website` are all free-text | n/a — no enumerated fields to annotate. |
+
+**No code change.** The two import templates with enumerated fields both already follow Carly's requested convention. The two import templates without enumerated fields have nothing to annotate.
+
+**Recommendation:** Mark QC #148 as "Ready for UAT" in the QC log on the client's next pass. If client UAT surfaces a specific column where they expect parens hints but don't see them, reopen as a follow-up. Otherwise close on confirmation.
+
+**Out of scope for this DEF (could re-open as separate items if requested):**
+- CSV *export* surfaces (export tables emit raw values, not enumerated labels — different concern from import templates and not what QC #148 asked for).
+- Whether free-text lookup fields like `Company`, `Category`, `Product Type` should carry hints like "(must match existing record name)" — Carly's example was enumerated values; lookup fields weren't called out.
+
+---
+
 ### DEF-176 — Internal & External cert tile views: Company filter shows numeric ID + chips have "Type:/Company:/Search:" prefix (QC #127 5/1/26 + 5/8/26 re-raise)
 
 - **Date:** 2026-05-11

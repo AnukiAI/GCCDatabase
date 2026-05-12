@@ -719,33 +719,61 @@ namespace GCCWebApp.Controllers.Api
                 "location-za" => query.OrderByDescending(c => c.Location ?? "").ThenBy(c => c.Id),
                 "country" => query.OrderBy(c => c.Country ?? "").ThenBy(c => c.Id),
                 "country-za" => query.OrderByDescending(c => c.Country ?? "").ThenBy(c => c.Id),
-                // DEF-165: deterministic per-cert pick via .Min() — translates to SELECT MIN(...)
-                // and uses existing indexes. Verified PASS for ASIN, EAN, GTIN, cert-sub.
+                // DEF-178: ID-column sort keys must mirror the display logic. The display falls back
+                // from `ProductIds` (collection) to the legacy `Certificate.{Asin|Upc|Gtin|Ean}` column
+                // when no active ProductIds exist (see line 314 of this file). The old sort comparator
+                // only looked at ProductIds, so certs whose only ASIN was stored in the legacy column
+                // got sort key "" and bunched together by Id while still displaying real values — Carly's
+                // "ASIN/UPC not sorting right" complaint in QC #157.
                 //
-                // NOT applied to int-tag, ext-tag, upc: with .Min() (or with an inner OrderBy)
-                // these three time out at 30s on the dev DB regardless of inner-set size (UPC has
-                // only 1 row, tags only 3). Suspected pre-existing index/plan issue with the
-                // CertificateTag join and ProductIds.IsActive predicate. These three keep the
-                // original FirstOrDefault() shape — non-deterministic for certs with multiple
-                // values, but functional. Track as a perf follow-up rather than block this fix.
+                // Fix: if any active ProductId exists, sort by Min/First of that subquery; otherwise fall
+                // back to the legacy column. Same shape applied to all four ID columns.
+                //
+                // Note on int-tag/ext-tag/upc: per DEF-165 these three still use FirstOrDefault() instead
+                // of .Min() because .Min() (or an inner OrderBy) caused 30s timeouts on the dev DB. Tags
+                // have no legacy fallback column (they're collection-only), so the comparator shape is
+                // unchanged for them and the existing FirstOrDefault non-determinism remains a perf
+                // follow-up. The legacy-fallback fix here applies only to the four ID columns.
                 "ext-tag" => query.OrderBy(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault() ?? "").ThenBy(c => c.Id),
                 "ext-tag-za" => query.OrderByDescending(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault() ?? "").ThenBy(c => c.Id),
                 "int-tag" => query.OrderBy(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault() ?? "").ThenBy(c => c.Id),
                 "int-tag-za" => query.OrderByDescending(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault() ?? "").ThenBy(c => c.Id),
                 "partner" => query.OrderBy(c => c.Partner ?? "").ThenBy(c => c.Id),
                 "partner-za" => query.OrderByDescending(c => c.Partner ?? "").ThenBy(c => c.Id),
-                "asin" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
-                "asin-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
-                "upc" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? "").ThenBy(c => c.Id),
-                "upc-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? "").ThenBy(c => c.Id),
-                "gtin" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
-                "gtin-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
-                "ean" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
-                "ean-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).Min() ?? "").ThenBy(c => c.Id),
+                "asin" => query.OrderBy(c => (c.ProductIds.Any(p => p.ProductIdType == "ASIN" && p.IsActive)
+                            ? c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).Min()
+                            : c.Asin) ?? "").ThenBy(c => c.Id),
+                "asin-za" => query.OrderByDescending(c => (c.ProductIds.Any(p => p.ProductIdType == "ASIN" && p.IsActive)
+                            ? c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).Min()
+                            : c.Asin) ?? "").ThenBy(c => c.Id),
+                "upc" => query.OrderBy(c => (c.ProductIds.Any(p => p.ProductIdType == "UPC" && p.IsActive)
+                            ? c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault()
+                            : c.Upc) ?? "").ThenBy(c => c.Id),
+                "upc-za" => query.OrderByDescending(c => (c.ProductIds.Any(p => p.ProductIdType == "UPC" && p.IsActive)
+                            ? c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault()
+                            : c.Upc) ?? "").ThenBy(c => c.Id),
+                "gtin" => query.OrderBy(c => (c.ProductIds.Any(p => p.ProductIdType == "GTIN" && p.IsActive)
+                            ? c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).Min()
+                            : c.Gtin) ?? "").ThenBy(c => c.Id),
+                "gtin-za" => query.OrderByDescending(c => (c.ProductIds.Any(p => p.ProductIdType == "GTIN" && p.IsActive)
+                            ? c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).Min()
+                            : c.Gtin) ?? "").ThenBy(c => c.Id),
+                "ean" => query.OrderBy(c => (c.ProductIds.Any(p => p.ProductIdType == "EAN" && p.IsActive)
+                            ? c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).Min()
+                            : c.Ean) ?? "").ThenBy(c => c.Id),
+                "ean-za" => query.OrderByDescending(c => (c.ProductIds.Any(p => p.ProductIdType == "EAN" && p.IsActive)
+                            ? c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).Min()
+                            : c.Ean) ?? "").ThenBy(c => c.Id),
                 "contact" => query.OrderBy(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? "").ThenBy(c => c.Id),
                 "contact-za" => query.OrderByDescending(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? "").ThenBy(c => c.Id),
-                "cert-results" => query.OrderBy(c => c.CertificationResults ?? "").ThenBy(c => c.Id),
-                "cert-results-za" => query.OrderByDescending(c => c.CertificationResults ?? "").ThenBy(c => c.Id),
+                // DEF-178: Sort by the persisted computed numeric column instead of the raw text field.
+                // Raw values are mixed format ("95%", "100", "0.69", etc.); lex sort produced unintuitive
+                // output (e.g. DESC returned "95% > 87% > 100% > 1%"). The computed column normalizes
+                // everything to a percent decimal. Non-numeric values land in NULL — default SQL Server
+                // NULL placement: NULLs first in ASC, last in DESC, which surfaces populated values where
+                // a sorting user is most likely looking.
+                "cert-results" => query.OrderBy(c => c.CertificationResultsNumeric).ThenBy(c => c.Id),
+                "cert-results-za" => query.OrderByDescending(c => c.CertificationResultsNumeric).ThenBy(c => c.Id),
                 "pathway" => query.OrderBy(c => c.Pathway != null ? c.Pathway.Name : "").ThenBy(c => c.Id),
                 "pathway-za" => query.OrderByDescending(c => c.Pathway != null ? c.Pathway.Name : "").ThenBy(c => c.Id),
                 "cert-sub" => query.OrderBy(c => c.CertificationTypeSubcategories.Select(s => s.Name).Min() ?? "").ThenBy(c => c.Id),

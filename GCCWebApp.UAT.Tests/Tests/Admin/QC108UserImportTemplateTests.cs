@@ -22,12 +22,18 @@ public class QC108UserImportTemplateTests : BaseTest
     private async Task GotoUserManagementAsAdmin()
     {
         await LoginAsRole("Admin");
-        await NavigateToPage("/Admin/UserManagement");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // BaseTest.NavigateToPage waits for NetworkIdle, but UserManagement makes continuous
+        // background XHRs (autosave, status polling) so NetworkIdle never settles. Use
+        // DOMContentLoaded + an explicit wait for the userManagement JS object instead.
+        await Page.GotoAsync(BaseUrl + "/Admin/UserManagement", new PageGotoOptions
+        {
+            WaitUntil = WaitUntilState.DOMContentLoaded,
+            Timeout = 30000,
+        });
         await Page.WaitForFunctionAsync(
-            "() => window.userManagement && Array.isArray(window.userManagement.companies)",
+            "() => window.userManagement && Array.isArray(window.userManagement.companies) && window.userManagement.companies.length > 0",
             null,
-            new PageWaitForFunctionOptions { Timeout = 15000 });
+            new PageWaitForFunctionOptions { Timeout = 30000 });
     }
 
     /// <summary>
@@ -138,18 +144,29 @@ public class QC108UserImportTemplateTests : BaseTest
         var lines = csv.Split('\n').Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
         Assert.That(lines.Length, Is.EqualTo(1), $"Template should be headers-only (no sample data rows); got {lines.Length} non-empty lines.");
 
-        var headers = lines[0].Split(',').Select(h => h.Trim()).ToArray();
-        var expected = new[]
+        // Spec-verbatim header (whole line) assertion — independent of CSV parsing semantics.
+        var expectedHeaderLine = "Name,Email,Role (Admin/Analyst/External),Password,Status (Active/Inactive),RequirePasswordReset (Yes/No),Company Access (semicolon-separated names, or \"All\")";
+        Assert.That(lines[0].Trim(), Is.EqualTo(expectedHeaderLine),
+            "Template header line does not match the spec verbatim.");
+
+        // DEFECT FLAG: The 7th header value contains an unescaped comma — when parsed as CSV
+        // (RFC 4180), it splits into 2 fields, yielding 8 columns. Excel users will see an
+        // extra phantom header. Quote-aware split below detects this and surfaces the defect.
+        var headerLine = lines[0];
+        var parsed = new List<string>();
+        var sb = new StringBuilder();
+        var inQuotes = false;
+        foreach (var ch in headerLine)
         {
-            "Name",
-            "Email",
-            "Role (Admin/Analyst/External)",
-            "Password",
-            "Status (Active/Inactive)",
-            "RequirePasswordReset (Yes/No)",
-            "User Company (semicolon-separated if multiple)",
-        };
-        Assert.That(headers, Is.EqualTo(expected), "Template headers do not match the spec verbatim or are out of order.");
+            if (ch == '"') inQuotes = !inQuotes;
+            else if (ch == ',' && !inQuotes) { parsed.Add(sb.ToString().Trim()); sb.Clear(); }
+            else sb.Append(ch);
+        }
+        parsed.Add(sb.ToString().Trim());
+
+        Assert.That(parsed.Count, Is.EqualTo(7),
+            $"CSV-parsed header column count should be 7. Got {parsed.Count} → unescaped comma in field 7 breaks CSV parsing. " +
+            "Fix: quote header fields containing commas in downloadImportTemplate() (e.g., headers.map(h => h.includes(',') ? `\"${h.replace(/\"/g,'\"\"')}\"` : h).join(','))");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -178,7 +195,7 @@ public class QC108UserImportTemplateTests : BaseTest
     {
         await GotoUserManagementAsAdmin();
         var templateCsv = await CaptureTemplateCsvAsync();
-        Assert.That(templateCsv, Does.Contain("User Company"), "Pre-condition: template should expose the User Company column");
+        Assert.That(templateCsv, Does.Contain("Company Access"), "Pre-condition: template should expose the Company Access column");
 
         var email = $"{RunTag}-valid-{_runStamp}@gcc-test.local";
         var csv = templateCsv.TrimEnd() + "\n" +
@@ -212,7 +229,7 @@ public class QC108UserImportTemplateTests : BaseTest
 
         var email = $"{RunTag}-multi-{_runStamp}@gcc-test.local";
         var csv =
-            "Name,Email,Role (Admin/Analyst/External),Password,Status (Active/Inactive),RequirePasswordReset (Yes/No),User Company (semicolon-separated if multiple)\n" +
+            "Name,Email,Role (Admin/Analyst/External),Password,Status (Active/Inactive),RequirePasswordReset (Yes/No),Company Access\n" +
             $"QC108 Multi {_runStamp},{email},External,TestPass123!,Active,Yes,{companies[0]};{companies[1]}";
 
         var response = await ImportCsvAsync(csv);
@@ -243,7 +260,7 @@ public class QC108UserImportTemplateTests : BaseTest
 
         var email = $"{RunTag}-bad-co-{_runStamp}@gcc-test.local";
         var csv =
-            "Name,Email,Role (Admin/Analyst/External),Password,Status (Active/Inactive),RequirePasswordReset (Yes/No),User Company (semicolon-separated if multiple)\n" +
+            "Name,Email,Role (Admin/Analyst/External),Password,Status (Active/Inactive),RequirePasswordReset (Yes/No),Company Access\n" +
             $"QC108 Bad Co {_runStamp},{email},External,TestPass123!,Active,Yes,Nonexistent-Co-{_runStamp}";
 
         var response = await ImportCsvAsync(csv);
@@ -263,7 +280,7 @@ public class QC108UserImportTemplateTests : BaseTest
         await GotoUserManagementAsAdmin();
 
         var csv =
-            "Name,Email,Role (Admin/Analyst/External),Password,Status (Active/Inactive),RequirePasswordReset (Yes/No),User Company (semicolon-separated if multiple)\n" +
+            "Name,Email,Role (Admin/Analyst/External),Password,Status (Active/Inactive),RequirePasswordReset (Yes/No),Company Access\n" +
             $"QC108 NoEmail {_runStamp},,External,TestPass123!,Active,Yes,";
 
         var response = await ImportCsvAsync(csv);
@@ -293,8 +310,48 @@ public class QC108UserImportTemplateTests : BaseTest
         var csv = await CaptureExportCsvAsync();
         TestContext.WriteLine($"Export CSV header line: {csv.Split('\n').FirstOrDefault()}");
 
-        // Soft assertion: template uses "User Company"; export should match to avoid client confusion.
-        Assert.That(csv, Does.Contain("User Company"),
-            "Export header should use 'User Company' to match the import template (Carly QC #108, 5/1 feedback).");
+        // Template + UI + export all standardized on 'Company Access' per QC #108 5/1 feedback.
+        Assert.That(csv, Does.Contain("Company Access"),
+            "Export header should use 'Company Access' to match the import template and UI table.");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TC108-08 (Contract): Template hints "All" as a valid value — verify backend honors it.
+    // The template literally says: Company Access (semicolon-separated names, or "All").
+    // If the parser doesn't have special handling, this test exposes the gap.
+    // ─────────────────────────────────────────────────────────────────────────
+    [Test]
+    public async Task TC108_08_Import_LiteralAllGrantsAllCompanyAccess()
+    {
+        await GotoUserManagementAsAdmin();
+        var companyCount = await Page.EvaluateAsync<int>("() => window.userManagement.companies.length");
+        Assert.That(companyCount, Is.GreaterThan(0), "Need at least 1 company in dev DB");
+
+        var email = $"{RunTag}-all-{_runStamp}@gcc-test.local";
+        var csv =
+            "Name,Email,Role (Admin/Analyst/External),Password,Status (Active/Inactive),RequirePasswordReset (Yes/No),Company Access\n" +
+            $"QC108 All {_runStamp},{email},External,TestPass123!,Active,Yes,All";
+
+        var response = await ImportCsvAsync(csv);
+        var text = await response.TextAsync();
+        TestContext.WriteLine($"Import response: {text}");
+
+        // The template hint advertises 'All' — backend must either grant all-company access
+        // or surface a helpful error. A generic "Company 'All' not found" indicates a
+        // hint/implementation mismatch (template lies about supported values).
+        Assert.That(text.ToLowerInvariant(), Does.Not.Contain("company 'all' not found"),
+            "Template hints 'All' as valid but parser rejects it — hint/parser mismatch.");
+
+        // If accepted, verify the user got at least one (and ideally all) company assignments.
+        await Page.EvaluateAsync("async () => await window.userManagement.loadUsers()");
+        var assignedCount = await Page.EvaluateAsync<int>(
+            @"(email) => {
+                const u = window.userManagement.users.find(x => x.email && x.email.toLowerCase() === email.toLowerCase());
+                if (!u) return -1;
+                return (u.companyIds || []).length;
+            }", email);
+
+        Assert.That(assignedCount, Is.GreaterThan(0),
+            "'All' should grant access to every company; user shows zero assignments.");
     }
 }

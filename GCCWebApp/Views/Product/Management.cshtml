@@ -1054,44 +1054,58 @@
         }
 
         function exportProducts() {
-            // CSV header text matches the per-company products UI table:
-            // Product Name, Company, Category, Product Type, Subcategory, Status, Certs, IDs
-            const headers = ['Product Name', 'Company', 'Category', 'Product Type', 'Subcategory', 'Status', 'Certs', 'IDs'];
+            // Headers align with the import template (Controllers/ProductController.cs DownloadProductImportTemplate)
+            // so the export round-trips through Import. Identifier Type / Identifier Value are appended so
+            // analysts retain identifier visibility; one row per identifier (empty pair if none).
+            const headers = ['Name', 'Company', 'Description', 'Category', 'Product Type', 'Subcategory', 'Identifier Type', 'Identifier Value'];
             const rows = [];
 
             products.forEach(p => {
-                const identifiers = p.identifiers || {};
-                const idTokens = [];
-                Object.keys(identifiers).forEach(type => {
-                    (identifiers[type] || []).forEach(val => {
-                        if (val) idTokens.push(`${type.toUpperCase()}: ${val}`);
-                    });
-                });
-                if (p.sku) idTokens.push(`SKU: ${p.sku}`);
-                if (p.model) idTokens.push(`Model: ${p.model}`);
-
-                rows.push([
+                const baseCols = [
                     p.name || '',
                     p.companyName || p.company || '',
+                    p.description || '',
                     p.categoryName || p.category || '',
                     p.productTypeName || '',
-                    p.productSubcategoryName || '',
-                    (p.isActive === false) ? 'Inactive' : 'Active',
-                    p.certificateCount ?? 0,
-                    idTokens.join('; ')
-                ]);
+                    p.productSubcategoryName || ''
+                ];
+
+                const identifierPairs = [];
+                const seen = new Set();
+                const pushPair = (type, value) => {
+                    if (!value) return;
+                    const key = `${type}:${value}`;
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    identifierPairs.push([type, value]);
+                };
+
+                const identifiers = p.identifiers || {};
+                Object.keys(identifiers).forEach(type => {
+                    (identifiers[type] || []).forEach(val => pushPair(type.toUpperCase(), val));
+                });
+                if (p.sku) pushPair('SKU', p.sku);
+                if (p.model) pushPair('Model', p.model);
+
+                if (identifierPairs.length === 0) {
+                    rows.push([...baseCols, '', '']);
+                } else {
+                    identifierPairs.forEach(([type, value]) => rows.push([...baseCols, type, value]));
+                }
             });
 
-            const escapeCell = (val) => {
+            // Force-quote Identifier Value so Excel doesn't convert long numeric IDs (UPC/EAN) to scientific notation
+            const escapeCell = (val, forceQuote = false) => {
                 const str = String(val ?? '');
-                if (str.includes(',') || str.includes('"') || str.includes('\n') || /^\d{10,}$/.test(str))
+                if (forceQuote || str.includes(',') || str.includes('"') || str.includes('\n') || /^\d{10,}$/.test(str))
                     return `"${str.replace(/"/g, '""')}"`;
                 return `"${str}"`;
             };
+            const idValueIdx = headers.indexOf('Identifier Value');
 
             const csvContent = [
                 headers.map(h => `"${h}"`).join(','),
-                ...rows.map(row => row.map(cell => escapeCell(cell)).join(','))
+                ...rows.map(row => row.map((cell, i) => escapeCell(cell, i === idValueIdx)).join(','))
             ].join('\n');
 
             const blob = new Blob([csvContent], { type: 'text/csv' });

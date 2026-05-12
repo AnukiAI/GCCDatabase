@@ -3415,7 +3415,23 @@ Count: 114. For these, the test card is shorter - confirm the original fix still
 
 **Cross-role / Cross-viewport:** TODO during execution
 
-**Status:** **PARTIAL PASS — 2026-05-11 via Playwright on deployed gccwebapp.com (template download only; export step not yet verified).** Logged in as `admin` (test-env Basic Auth + app session), fetched `GET /Product/DownloadProductImportTemplate` through authenticated context. Response: HTTP 200, `Content-Type: text/csv`, `Content-Disposition: attachment; filename=product_import_template.csv`, body = `Name,Company,Description,Category,Product Type,Subcategory` (58 bytes, headers-only, no sample rows). Matches the fix shipped in commit `786dc55` (2026-03-24, sprint 1 closeout) and the controller code at `Controllers/ProductController.cs:876-884`. Re-raised by client on 5/8 QC log as "Not fixed" — likely browser cache or pre-deploy test; the deployed endpoint is correct. **Steps 1–5 covered; steps 6–7 (Export CSV alignment) not yet re-verified — defer until next batch.** Verification script: `%TEMP%\verify-template.mjs`.
+**Status:** **FAIL — 2026-05-11 via Playwright on deployed gccwebapp.com (template OK; export does NOT match template — client was right).**
+
+Steps 1–5 (Template): PASS. Logged in as `admin` (test-env Basic Auth + app session), fetched `GET /Product/DownloadProductImportTemplate` through authenticated context. Response: HTTP 200, `Content-Type: text/csv`, body = `Name,Company,Description,Category,Product Type,Subcategory` (58 bytes, headers-only, no sample rows). Template fix shipped in commit `786dc55` is intact at `Controllers/ProductController.cs:876-884`.
+
+Steps 6–7 (Export alignment): FAIL. Triggered `#export-btn` on `/Product/Management` and captured `products_export_2026-05-11.csv`. Export header row:
+`"Product Name","Company","Category","Product Type","Subcategory","Status","Certs","IDs"` (8 cols).
+Template is `Name,Company,Description,Category,Product Type,Subcategory` (6 cols). Diffs:
+- `Name` vs `Product Name` (different label)
+- Template has `Description`; export does NOT
+- Export still has `Status` (per QC #92, removed from Add Product modal)
+- Export adds `Certs` and `IDs` (not in template)
+
+**Root cause of regression:** the "fix" recorded in this card's `Fix summary (4/10 SP2 comment)` was applied to the class method `exportProducts()` at `wwwroot/js/admin/productManagement.js:2054-2161` (which adds `Description`, removes `Status`, etc.) — but the export button is wired to the **inline** function `exportProducts()` at `Views/Product/Management.cshtml:1056-1081` (via `exportBtn.addEventListener('click', exportProducts)` at line 557, where `exportBtn = document.getElementById('export-btn')` from line 342). The inline function was never updated. Two `exportProducts` definitions exist; only the unused one was fixed. The class-level comment at `productManagement.js:38-40` even acknowledges that "Export button is wired up by each consuming page's inline handler" — the consuming page's inline handler is what needs the fix.
+
+Verification scripts: `%TEMP%\verify-template.mjs`, `%TEMP%\verify-export.mjs`. Captured CSV: `%TEMP%\products_export_2026-05-11.csv` (30079 bytes, 107 product rows).
+
+**Action required:** update `Views/Product/Management.cshtml:1059` headers + row mapping to match the template (Name, Company, Description, Category, Product Type, Subcategory). Decide separately whether to keep `Status / Certs / IDs / Identifier Type / Identifier Value` columns (the user-facing export view shows them; if we want export to round-trip through import, they should be omitted to mirror the template). NOT FIXED in this verification pass per QC review rule (no changes).
 
 ### TC-QC-105 [QUESTION / Pri: - / Status: Complete]
 - **Page:** Admin - Role

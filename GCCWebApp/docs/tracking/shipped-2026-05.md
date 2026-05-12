@@ -6,6 +6,20 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-174 — Product Management Export CSV now matches the Import Template (round-trip restored, QC #103 5/8/26 re-raise) (2026-05-11, in working tree pending deploy)
+
+Client re-raised QC #103 on the 5/8/26 log as "Not fixed." Verification via Playwright against the deployed gccwebapp.com confirmed her read: the **template** download was correct (`Name, Company, Description, Category, Product Type, Subcategory` — that part was fixed back in March under commit `786dc55`), but the **Export** button on `/Product/Management` was still emitting the old eight-column header (`Product Name, Company, Category, Product Type, Subcategory, Status, Certs, IDs`), so the two CSVs didn't align and an exported product list could not be re-imported.
+
+Root cause was a duplicate-function trap. Two `exportProducts` definitions exist in the codebase: an inline one in the Razor view (`Views/Product/Management.cshtml`) and a class method in `wwwroot/js/admin/productManagement.js`. The Export button on the page is wired to the inline one, but the prior sprint's "fix" landed on the class method — adding Description, removing Status, etc. — which never ran. Every prior round of testing the client logged "still broken" was actually correct; we kept editing dead code. (Same anti-pattern surfaced last week as DEF-165A, where the Template button had duplicate handlers; resolved there by collapsing to a single source of truth.)
+
+Fix is a single-file change to the wired-up inline function. The export now emits 8 columns: `Name, Company, Description, Category, Product Type, Subcategory, Identifier Type, Identifier Value`. The first six match the import template character-for-character so a round-trip is finally clean. The two trailing columns preserve identifier visibility for analyst use — one row per identifier (deduplicated by type+value), or a single row with empty identifier cells for products with no identifiers. `Status`, `Certs`, and the bundled `IDs` semicolon-blob column are removed; status comes from the certificate workflow, not the product, so it didn't belong here anyway. The Identifier Value column is force-quoted in CSV output so Excel doesn't convert long numeric UPCs/EANs to scientific notation.
+
+Verification evidence captured before and after: deployed-prod Playwright dump of the broken export (`%TEMP%\products_export_2026-05-11.csv`, 30,079 bytes, old 8-col header) is the receipt for the client's re-raise. The local re-verify is pending — dev server is `dotnet run --no-build` and the running `GCCWebApp.exe` is holding the .exe lock; a clean rebuild + restart is needed before `%TEMP%\verify-export-local.mjs` can confirm the fix on `http://localhost:5101`. Will re-run against `gccwebapp.com` after the next deploy zip lands and update TC-QC-103 in `docs/tracking/test-execution-log.md` from FAIL → PASS.
+
+Files: `Views/Product/Management.cshtml` (export function rewritten), `docs/tracking/defect-register.md` (DEF-174 entry), `docs/tracking/test-execution-log.md` (TC-QC-103 marked FAIL with evidence; will flip to PASS after deploy), `docs/tracking/shipped-2026-05.md` (this entry).
+
+---
+
 ## DEF-173 — User Management table & CSV: "Company" → "Company Access" + show "All" when user has every company (2026-05-11, in working tree pending deploy)
 
 Client UAT follow-up on the 5/8/26 QC log against the QC #106 row: *"No popup, table, and import/export/template. The current 'Company' in table should be called 'Company Access' since that is what it is related to? If they have access to All just put all otherwise the list is massive (like my new user example)."* The Add/Edit User modal already used the label "Company Access" from the original QC #106 fix (2026-03-24), but the table header, CSV export, and import template hadn't been brought along. A user associated with every company in the system rendered as a multi-line comma list that broke the row layout — exactly what Carly was reporting.

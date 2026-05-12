@@ -860,7 +860,11 @@ class UserManagement {
                 'RequirePasswordReset (Yes/No)',
                 'Company Access (semicolon-separated names, or "All")'
             ];
-            const csvContent = headers.join(',');
+            // Quote any header that contains a comma or quote so the row parses as 7 columns
+            // (RFC 4180). Otherwise the 7th header's internal comma yields a phantom 8th column.
+            const csvContent = headers
+                .map(h => /[",]/.test(h) ? `"${h.replace(/"/g, '""')}"` : h)
+                .join(',');
 
             // Download file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

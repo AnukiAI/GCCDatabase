@@ -18,6 +18,48 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-174 — Product Management Export CSV doesn't match Import Template (round-trip broken; QC #103 5/8/26 re-raise)
+
+- **Date:** 2026-05-11
+- **Severity:** Medium (functional — Export → Import round-trip broken; client called this out by re-raising QC #103 as "Not fixed" on the 5/8/26 log)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client (5/8/26 QC log re-raised QC #103 as "Not fixed"). Verification by Shawn via Playwright on deployed `gccwebapp.com` confirmed the export still emitted the old 8-column header.
+
+**Root cause:** Two `exportProducts` functions exist with the same name. The actual button (`#export-btn` on `/Product/Management`) is wired to the **inline** function at `Views/Product/Management.cshtml:1056` via `exportBtn.addEventListener('click', exportProducts)` (line 557, where `exportBtn = document.getElementById('export-btn')` from line 342). The class method at `wwwroot/js/admin/productManagement.js:2054` is unused — the comment at line 38–40 even acknowledges "Export button is wired up by each consuming page's inline handler so CSV columns can match that page's UI table."
+
+The fix recorded in the prior sprint's TC-QC-103 card was applied to the unused class method (added Description, removed Status, etc.) but left the wired-up inline function untouched. Net effect: every "fix" landed in code that never ran, and the deployed export kept emitting the broken header.
+
+**Verified-broken evidence (Playwright on prod, 2026-05-11):**
+
+```
+Template (correct):  Name, Company, Description, Category, Product Type, Subcategory
+Export   (broken):   Product Name, Company, Category, Product Type, Subcategory, Status, Certs, IDs
+```
+
+Diffs: `Name` vs `Product Name` (different label), missing `Description`, retains `Status` (removed from Add Product modal per QC #92), adds `Certs` / `IDs` columns not in template.
+
+**Fix:** Updated the inline `exportProducts()` at `Views/Product/Management.cshtml:1056-1116` to emit 8 columns matching the documented intent: `Name, Company, Description, Category, Product Type, Subcategory, Identifier Type, Identifier Value`. First six columns now match the import template exactly so an exported CSV round-trips through Import. Identifiers are now emitted as one row per identifier (with deduplication by type+value), or a single row with empty identifier columns if the product has none — same row-multiplication pattern the unused class method already had. `Status`, `Certs`, and the bundled `IDs` semicolon-blob column are removed.
+
+The unused class method at `productManagement.js:2054-2161` is left in place for now — removing it is a separate cleanup with risk of breaking some future caller that grabs `window.productManagement.exportProducts()`.
+
+**Files changed (1):** `Views/Product/Management.cshtml:1056-1116`.
+
+**Backend impact:** None. Pure client-side CSV emit.
+
+**Local verification (2026-05-11):** Cannot fully verify locally — dev server is `dotnet run --no-build` (no Razor runtime compilation) and the running `GCCWebApp.exe` is holding the .exe lock; a sibling `dotnet test --filter QC108` is also active. A clean rebuild + restart is required to re-run the local Playwright check (`%TEMP%\verify-export-local.mjs` is ready).
+
+**Verify-after-deploy:**
+
+1. Sign in as `analyst`. `/Product/Management` → click Export.
+2. Open the downloaded CSV. Header row should be exactly: `"Name","Company","Description","Category","Product Type","Subcategory","Identifier Type","Identifier Value"`.
+3. A product with no identifiers → one row, last two columns empty. A product with three ASINs → three rows, identical first six columns, ASIN type/value pair varying.
+4. Cross-check vs `/Product/DownloadProductImportTemplate`: first six column names of export match template exactly (round-trip ready).
+5. Re-run `%TEMP%\verify-export.mjs` against gccwebapp.com after the deploy lands and update TC-QC-103 in `docs/tracking/test-execution-log.md` from FAIL → PASS.
+
+**Cross-ref:** Closes the export half of QC #103 (the template half was correctly fixed in commit `786dc55`, 2026-03-24). Same anti-pattern as DEF-165A (duplicate handler wiring on Product Management's Template button — fixed by collapsing to a single source of truth). Consider a follow-up cleanup to remove or rename the unused class method to prevent the same trap a third time.
+
+---
+
 ### DEF-173 — User Management: rename "Company" column to "Company Access" + show "All" when user has every company (QC #106 UAT retest, 5/8/26 log)
 
 - **Date:** 2026-05-11

@@ -241,28 +241,38 @@ namespace GCCWebApp.Controllers
                             }
 
                             // QC #108: CSV Format aligned with template:
-                            // Name, Email, Role, Password, Status, RequirePasswordReset, User Company (semicolon-separated names)
+                            // Name, Email, Role, Password, Status, RequirePasswordReset, Company Access (semicolon-separated names, or "All")
                             var statusVal = values.Length > 4 ? values[4].Trim() : "Active";
                             var resetVal = values.Length > 5 ? values[5].Trim() : "Yes";
-                            var companyNames = values.Length > 6 && !string.IsNullOrWhiteSpace(values[6])
-                                ? values[6].Split(';').Select(c => c.Trim()).Where(c => c.Length > 0).ToList()
-                                : new List<string>();
+                            var companyAccessRaw = values.Length > 6 ? values[6].Trim() : string.Empty;
 
-                            // Resolve company names to IDs
+                            // Resolve company access to IDs. Literal "All" (case-insensitive) grants
+                            // every company — must match the JS preview's resolveCompanyIds().
                             var companyIds = new List<int>();
-                            foreach (var companyName in companyNames)
+                            if (companyAccessRaw.Equals("All", StringComparison.OrdinalIgnoreCase))
                             {
-                                var company = await _context.Companies
-                                    .FirstOrDefaultAsync(c => c.Name.ToLower() == companyName.ToLower());
-                                if (company != null)
+                                companyIds = await _context.Companies.Select(c => c.Id).ToListAsync();
+                            }
+                            else if (!string.IsNullOrWhiteSpace(companyAccessRaw))
+                            {
+                                var companyNames = companyAccessRaw.Split(';')
+                                    .Select(c => c.Trim())
+                                    .Where(c => c.Length > 0)
+                                    .ToList();
+                                foreach (var companyName in companyNames)
                                 {
-                                    companyIds.Add(company.Id);
-                                }
-                                else
-                                {
-                                    errors.Add($"Line {lineNumber}: Company '{companyName}' not found");
-                                    errorCount++;
-                                    continue;
+                                    var company = await _context.Companies
+                                        .FirstOrDefaultAsync(c => c.Name.ToLower() == companyName.ToLower());
+                                    if (company != null)
+                                    {
+                                        companyIds.Add(company.Id);
+                                    }
+                                    else
+                                    {
+                                        errors.Add($"Line {lineNumber}: Company '{companyName}' not found");
+                                        errorCount++;
+                                        continue;
+                                    }
                                 }
                             }
 

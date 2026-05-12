@@ -770,6 +770,18 @@ Count: 46
 
 **Status:** **INCONCLUSIVE - 2026-05-01.** Company filter checkbox ticked successfully (value="Acme Corporation" - confirms QC #127 fix that changed checkbox value from id to name). However, no .active-filter-tag / .filter-chip elements found in the rendered DOM via standard selectors - either the chip class name is different or chips weren't rendered before the snapshot. Visual confirmation with a screenshot recommended; the underlying API/state change is verified.
 
+**Re-test 2026-05-11 — Public PASS, Internal+External FAIL (matches client's 5/1 follow-up).** Playwright re-run on deployed gccwebapp.com (`%TEMP%\verify-qc127.mjs`) ticked the first Company checkbox on each tile view and inspected the rendered chip:
+
+| View     | Checkbox value | Rendered chip       | Result |
+|----------|----------------|---------------------|--------|
+| Public   | `3M`           | `3M ×`              | PASS   |
+| Internal | `131`          | `Company: 131 ×`    | FAIL   |
+| External | `131`          | `Company: 131 ×`    | FAIL   |
+
+The original March fix only patched `wwwroot/js/certificate-tile-view.js`; the near-twin Internal and External JS files were never updated.
+
+**Fix landed in working tree (DEF-176, 2026-05-11):** Internal & External JS now use `escapeHtml(company.name)` for the checkbox value and emit chips without the `<span class="filter-tag-label">` prefix. Backend (`CertificateTileInternalApiController.cs`, `CertificateTileExternalApiController.cs`) updated to dual-mode company filter (numeric IDs OR names) matching `CertificateTilesApiController.cs:123-141`. `dotnet build` 0 errors. **Pending deploy.** Re-run `%TEMP%\verify-qc127.mjs` after the next deploy — expected outcome: all three rows of the table above show PASS; flip this card from INCONCLUSIVE → PASS at that point.
+
 ### TC-QC-128 [DEFECT / Pri: - / Status: Open]
 - **Page:** Public
 - **Raised by:** client
@@ -3500,22 +3512,29 @@ Verification scripts: `%TEMP%\verify-template.mjs`, `%TEMP%\verify-export.mjs`. 
 - **Page:** Admin - User
 - **Raised by:** client
 - **Sprint 2:** SIT Testing
-- **Defect:** Remove sample data in Template export |  | 4/6: In the template header of RequirePasswordReset -- what option would they include? (Yes/No)? |  | Same for Status list (Active/Inactive) |  | Call it User Company |  | Assuming there is no way to then select indvidiual companies someone has access to?
-- **Fix summary (4/10 SP2 comment):** QC #108 — User template and export alignment per client's 4/6 feedback |  |   Issues identified from client's feedback: |   1. RequirePasswordReset — unclear what values to enter |   2. Status — unclear what values to enter |   3. Company → should be called User Company |   4. Template column order didn't match import parser at all |  |   Root cause: Template headers (Name, Email, Company, Role, Status, Password, |   RequirePasswordReset) were completely out of sync with the import parser (Name, Email, Role, |   Password, CompanyIds). Different column order, different field names, and the parser used |   internal IDs for companies instead of names. |  |   Fixes: |  |   File: userManagement.js — template |   Change: Headers now include valid-value hints: Role (Admin/Analyst/External), Status |     (Active/Inactive), RequirePasswordReset (Yes/No), User Company (semicolon-separated if |     multiple) |   ──────────────────────────────────────── |   File: userManagement.js — export |   Change: Renamed Company → User Company, removed ID column, multi-company now |     semicolon-separated to match template |   ──────────────────────────────────────── |   File: AdminController.cs — import parser |   Change: Updated to match new column order: Name, Email, Role, Password, Status, |     RequirePasswordReset, User Company. Resolves company names to IDs (not raw IDs). Parses |     Yes/No for RequirePasswordReset. Defaults: Status=Active, RequirePasswordReset=Yes
+- **Defect:** Remove sample data in Template export |  | 4/6: In the template header of RequirePasswordReset -- what option would they include? (Yes/No)? |  | Same for Status list (Active/Inactive) |  | Call it User Company |  | Assuming there is no way to then select indvidiual companies someone has access to? |  | 5/1: The User Company is supposed to be the new field never added, See ID 106. Please update per this. For Company Access make sure to keep info in parenthesis (semicolon-separated if multiple)
+- **Fix summary (4/10 SP2 comment):** Template headers, export header, and AdminController parser standardized on **"Company Access"** (resolves the 5/1 client reply — "Company Access" is the canonical name; supports semicolon-separated names AND a literal "All" to grant every company). UI table header at `Views/Admin/UserManagement.cshtml` also reads "Company Access". `userManagement.js downloadImportTemplate()` emits headers-only CSV with RFC-4180 quoting on the field that contains a comma. `AdminController.ImportUsers()` now special-cases "All" → every-company IDs to match the JS preview parser.
 
 **Baseline test:**
 
-1. Log in as admin (admin / TestPass123!) | 2. Navigate to /Admin/UserManagement | 3. Click "Download Template" | 4. Open the CSV and verify: |    - NO sample row (headers only) |    - Header names match the import parser exactly |    - "User Company" header (NOT just "Company") |    - RequirePasswordReset column hint shows valid values (Yes/No) |    - Status column hint shows valid values (Active/Inactive) | 5. Click "Export" — verify export headers match template headers exactly |  | PASS: Template has headers only with clear value hints, "User Company" naming, and import/export columns align.
+1. Log in as admin (admin / TestPass123!) | 2. Navigate to /Admin/UserManagement | 3. Click "Download Template" | 4. Open the CSV and verify: |    - NO sample row (headers only) |    - Header names match the import parser exactly |    - "Company Access" header (NOT "Company" alone) |    - RequirePasswordReset column hint shows valid values (Yes/No) |    - Status column hint shows valid values (Active/Inactive) |    - The 7th header field with its embedded comma is RFC-4180 quoted so CSV parsers see exactly 7 columns | 5. Click "Export" — verify export headers match template headers exactly (also "Company Access") |  | PASS: Template has headers only with clear value hints, "Company Access" naming, and import/export columns align.
 
 **Edge cases:**
-- TODO during execution
+- TC108-04 Semicolon multi-company: row with `Co A;Co B` in Company Access → user gets both companyIds assigned. **PASS (automated).**
+- TC108-08 Literal "All": row with `All` in Company Access → user gets every companyId in the DB. **PASS (automated; required fix DEF-166-B).**
+- Yes/true and No/false both accepted for RequirePasswordReset (parser uses OrdinalIgnoreCase compare on both literals). Manual verification recommended.
+- Status defaults to "Active" when blank; RequirePasswordReset defaults to "Yes" when blank.
 
 **Negative cases:**
-- TODO during execution
+- TC108-05 Unknown company name → import returns `Company '<name>' not found` error per row. **PASS (automated).**
+- TC108-06 Missing Email → import returns `Email is required` error per row. **PASS (automated).**
+- Missing Name → returns `Name is required` (per AdminController.ImportUsers:282).
+- Duplicate email (already in DB) → returns the email-uniqueness error from `CreateUserAsync`.
+- Invalid role (not Admin/Analyst/External) → JS preview rejects before submit (validated against `this.roles` list).
 
-**Cross-role / Cross-viewport:** TODO during execution
+**Cross-role / Cross-viewport:** External role blocked from `/Admin/UserManagement` (existing `NonAdmin_CannotAccessUserManagement` test in UserManagementTests.cs).
 
-**Status:** NOT YET RUN
+**Status:** RAN 2026-05-11 — Anuki internal rigorous re-test (Shawn-directed). Authored `GCCWebApp.UAT.Tests/Tests/Admin/QC108UserImportTemplateTests.cs` (8 tests, Playwright NUnit). First run: 6/8 passed — exposed two defects (template CSV malformed + "All" literal not honored by parser). Both fixed in-session → re-run: **8/8 passed against localhost:5101**. See defect-register DEF-166 (both sub-items). Test data uses `qc108-*-{stamp}@gcc-test.local` emails — left in dev DB for manual inspection.
 
 ### TC-QC-109 [DEFECT / Pri: - / Status: Complete]
 - **Page:** Admin - User
@@ -3712,7 +3731,19 @@ Verification scripts: `%TEMP%\verify-template.mjs`, `%TEMP%\verify-export.mjs`. 
 
 **Cross-role / Cross-viewport:** TODO during execution
 
-**Status:** NOT YET RUN
+**Status:** **PASS — 2026-05-11 via Playwright on deployed gccwebapp.com (cert form rendering verified; admin-table column was removed entirely, which is intentional drift from the recorded test plan).**
+
+Steps 4–7 (cert form rendering): PASS. Logged in as `admin`, opened `/Certificate/Create`, selected cert type "+Vantage Vinyl Verified" (which has 2 custom fields: "Carly Cert Field test" + "Test 2"). DOM snapshot of `#custom-fields-container`:
+- exactly one `.custom-fields-grid` child (`gridCount: 1`)
+- zero heading nodes inside the container (`headingsInsideContainer: []`)
+- 2 `data-field-id` inputs rendered flat
+- single outer `<span>Additional Fields</span>` heading wraps the section (Razor: `Views/Certificate/Create.cshtml:363`, `Views/Certificate/Edit.cshtml:417`)
+
+Code is consistent — `wwwroot/js/certificate-custom-fields.js:79` comment reads "Render all fields flat (no section grouping)" and the `renderFields()` body emits a single `.custom-fields-grid` mapping over `this.fields` with no per-section iteration. Implements the saved feedback rule "Custom Fields = single bucket, not Section-grouped" (see `feedback_custom_fields_single_section.md`).
+
+Step 3 (Section column in admin table): the test plan's literal expectation is **stale**. Admin table at `/Admin/CertificateFields` headers as deployed are: `Field Name | Control Type | Required | Visibility | Notes | Actions` — no Section column. The TC-QC-118 fix-summary above claims "Section column remains in admin table for internal organization," but the saved feedback rule (`ignore CustomField.Section`) directs us to drop Section everywhere. The deployed state matches the **rule**, not the **TC card text**. Treating this as a doc-debt item, not a regression — no client-visible impact and the field model still has `Section` as a column for backward-compat reads.
+
+Verification script: `%TEMP%\verify-qc118.mjs`. Re-raised by client on 5/8/26 QC log; the cert-form rendering is correct, so the re-raise is likely a misread or expectation mismatch on the admin-side Section column drop. Worth confirming with the client whether dropping the admin Section column was intentional (per saved direction) or whether they want it back for internal organization.
 
 ### TC-QC-119 [CR / Pri: - / Status: Complete]
 - **Page:** Certificate Field Management

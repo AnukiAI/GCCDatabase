@@ -278,9 +278,14 @@ namespace GCCWebApp.Controllers.Api
                 // must be repointed at their Level-1 parent via
                 // Database_Scripts/20260511_DEF167_AuditL2TaggedCerts.sql before they will be
                 // reachable through this dropdown.
+                // QC #124: sort alphabetically by Name. SortOrder column is not manageable from
+                // the admin Cert Types page, so its values drift from alpha order over time —
+                // newly-added types end up at the top or in arbitrary positions. Alpha sort is
+                // predictable for the client and means new admin-added types slot into the right
+                // place automatically without any sort-order tuning.
                 var hierarchicalCertTypes = await _context.CertificationTypes
                     .Where(ct => ct.IsActive && ct.ParentId == null && visibleCertTypeIds.Contains(ct.Id))
-                    .OrderBy(ct => ct.SortOrder)
+                    .OrderBy(ct => ct.Name)
                     .Select(ct => new { name = ct.Name, level = ct.Level })
                     .ToListAsync();
 

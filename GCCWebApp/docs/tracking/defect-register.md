@@ -18,6 +18,95 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-176 — Internal & External cert tile views: Company filter shows numeric ID + chips have "Type:/Company:/Search:" prefix (QC #127 5/1/26 + 5/8/26 re-raise)
+
+- **Date:** 2026-05-11
+- **Severity:** Medium (functional + UX; user-visible regression on every logged-in cert listing)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client. The 4/3/26 QC #127 was about the Public view; verified fixed in March. Client's 5/1 follow-up: *"Another inconsistency b/w public and login view. Public is fixed, login still shows titles (Type, etc.) and Company Numbers."* Re-raised on 5/8/26 as still open.
+
+**Root cause:** When QC #127 was originally fixed in March, the patch only touched the Public tile view (`wwwroot/js/certificate-tile-view.js`). The Internal and External views are separate JS files (`certificate-tile-view-internal.js`, `certificate-tile-view-external.js`) with the same defect — the patch was never ported. Same anti-pattern as DEF-174 (template fix landed on the wrong file): three near-identical JS implementations, fix applied to one, two left untouched.
+
+Two distinct sub-defects in both Internal and External:
+
+1. **Company filter checkbox `value` attribute was the company ID, not the name.** Public was changed to `value="${escapeHtml(company.name)}"` in the March fix. Internal (line 131) and External (line 130) still emit `value="${company.id}"`, so the filter chip shows e.g. `"131"` for 3M instead of `"3M"`.
+
+2. **Filter chip rendering still wrapped each value in a `<span class="filter-tag-label">${label}:</span>` prefix.** Public removed it; Internal (lines 1046, 1057) and External (lines 1026, 1037) still emit chips like `Company: 131 ×` and `Search: foo ×`.
+
+**Verified-broken evidence (Playwright on prod, 2026-05-11):**
+
+| View     | Checkbox value | Chip rendered            |
+|----------|---------------|--------------------------|
+| PUBLIC   | `3M`          | `3M ×`                   |
+| INTERNAL | `131`         | `Company: 131 ×`         |
+| EXTERNAL | `131`         | `Company: 131 ×`         |
+
+(Receipt: `%TEMP%\verify-qc127.mjs` script + run output.)
+
+**Fix:** Three pieces, all matching Public's pattern:
+
+1. **JS — Internal & External**: checkbox `value` switched from `company.id` to `escapeHtml(company.name)`; both files (1 line each).
+2. **JS — Internal & External**: chip rendering loop drops the `<span class="filter-tag-label">${label}:</span> ` prefix from both the Search chip and the generic checkbox-filter chip; aria-label simplified from `Remove ${label}: ${val} filter` to `Remove ${val} filter`. The `labelMap` constant is left in place — still used as the iteration key set, so removing it now would be a separate cleanup.
+3. **C# — `CertificateTileInternalApiController.cs:161` and `CertificateTileExternalApiController.cs:187`**: company filter rewritten from ID-only `companies.Contains(c.Company.Id.ToString())` to dual-mode "if all tokens parse as int → match by ID, else → match by name." Mirrors the existing dual-mode logic in `CertificateTilesApiController.cs:123-141` so all three controllers behave identically. Either-or, not mixed (matches Public's limitation).
+
+**Files changed (4):**
+- `wwwroot/js/certificate-tile-view-internal.js` — checkbox value + chip render
+- `wwwroot/js/certificate-tile-view-external.js` — checkbox value + chip render
+- `Controllers/Api/CertificateTileInternalApiController.cs` — dual-mode company filter
+- `Controllers/Api/CertificateTileExternalApiController.cs` — dual-mode company filter
+
+**Backend impact:** None for clients passing numeric IDs (still supported). Adds name-token support so the new JS payload works. Partner API unaffected (different controller; no contract change per `feedback_amazon_api_immutable.md`).
+
+**Local verification:** `dotnet build` — 0 errors. Same dev-server lock prevents an in-place restart for live click-through; verify after next clean restart or after the deploy.
+
+**Verify-after-deploy:**
+
+1. Sign in as `analyst`. `/Certificate/CertificateTileViewInternal` → tick a Company checkbox (e.g. 3M). The filter chip above results should read `3M ×`, not `Company: 131 ×`. Same for Type/Country/Tag chips — value only, no label prefix.
+2. Sign in as `external`. `/Certificate/CertificateTileViewExternal` → repeat. Same expected behavior.
+3. Result grid should still filter correctly to certs from the selected company (proves backend dual-mode parses the name token).
+4. Re-run `%TEMP%\verify-qc127.mjs` against gccwebapp.com after deploy; flip TC-QC-127 in `docs/tracking/test-execution-log.md` from INCONCLUSIVE → PASS.
+
+**Cross-ref:** Closes the login-view half of QC #127 (Public half was correctly fixed in the 4/10 SP2 batch). Same anti-pattern as DEF-174 (multiple near-identical implementations, fix touches only one). Worth a follow-up CR or refactor: the three tile views share ~95% of their code by line count; consolidating to one view + role-based config would prevent the next round of "fixed in one, broken in two."
+
+---
+
+### DEF-175 — Cert type filter dropdown sorted by stale SortOrder column instead of alpha (QC #124)
+
+- **Date:** 2026-05-11
+- **Severity:** Low–Medium (cosmetic but client-visible; client flagged twice across 30 days)
+- **Status:** Fixed locally (pending deploy)
+- **Reporter:** Client — QC #124, originally 3/30/26, re-flagged 5/1/26: *"Why are Product Opt and RM now showing at the top of filter box and things are in alpha order? There is no sort ability under Cert Types to fix which is issue when we add new."*
+- **Spec reference:** Search Recs R11 — *"Code that if no certs are active in cert type it does not appear in public DB. When Admin adds new cert type they need to be visible in filter."*
+
+**Root cause:** The three filter endpoints (Public, External, Internal) ordered `CertificationTypes` by the `SortOrder` column. Admin Cert Types page (`Views/Admin/CertificateTypes.cshtml`) has **no UI to manage SortOrder** — confirmed via grep, the column is read-only from the admin perspective. SortOrder values come from initial seed data and migration scripts only; as new types are added (e.g. via `UpdateCertificationTypes.sql` adding Carbon Footprint Reduction at Id=3, SortOrder=3) their relative SortOrder ends up arbitrary versus alphabetical. Client sees newly-added types jumping to the top with no way to fix from the admin UI.
+
+R11 rule-one (*hide types with zero public certs*) was already working — `.Where(... certTypeIds.Contains(ct.Id))` filters to types referenced by certs in scope. That part wasn't broken.
+
+R11 rule-two (*new admin-added types appear in filter*) is preserved by the fix — alpha order means a new type slots into its correct position automatically, no admin intervention needed.
+
+**Fix:** Changed `OrderBy(ct.SortOrder)` → `OrderBy(ct.Name)` in all three filter endpoints. Comment at each site references both DEF-167 (the upstream Level-1-only filter) and QC #124 (the alpha rationale).
+
+**Files changed (3):**
+- `Controllers/Api/CertificateTilesApiController.cs` — Public filter
+- `Controllers/Api/CertificateTileExternalApiController.cs` — External filter
+- `Controllers/Api/CertificateTileInternalApiController.cs` — Internal filter
+
+**Not touched** (intentional scope):
+- `Models/CertificationType.cs` — `SortOrder` column kept for backwards-compat with any non-filter consumer
+- `Views/Admin/CertificateTypes.cshtml` — adding a sort-order UI here would be a separate CR (would let admins override alpha if they ever need to). Not requested.
+
+**Verification (localhost http://localhost:5101, 2026-05-11):**
+
+| Test | Result |
+|---|---|
+| `dotnet build` | 0 errors |
+| `GET /api/certificate-tiles/filters` (baseline) | Returns `[Biobased, Certified Energy Savings, Certified Environmental Facts, Recycled Content]` — alphabetical ✓ |
+| R11 rule-one preserved | 4 returned, matching dev DB's 4 cert types with `PublicCertCount > 0` (out of 21 total Level-1 types) ✓ |
+| **Stress test**: `UPDATE CertificationTypes SET SortOrder = 0 WHERE Name = 'Recycled Content'` (would float Recycled Content to top under old SortOrder sort) | API still returns Recycled Content **last** alphabetically. Confirms sort key is Name, not SortOrder ✓ |
+| Restored SortOrder | Clean dev state ✓ |
+
+---
+
 ### DEF-174 — Product Management Export CSV doesn't match Import Template (round-trip broken; QC #103 5/8/26 re-raise)
 
 - **Date:** 2026-05-11
@@ -2539,6 +2628,35 @@ File: `Views/Shared/_ProductIdManager.cshtml:310-322`.
 5. Build: clean (0 errors, 61 pre-existing warnings).
 
 **Found by:** Shawn during pre-UAT QC verification (2026-05-08). Sub-item D originally raised by Carly as DEF-159.
+
+---
+
+### DEF-166 — QC #108 self-test surfaced two defects in the User import template/parser
+
+**Date:** 2026-05-11 | **Status:** FIXED 2026-05-11 | **Severity:** Medium | **QC Ref:** #108 (rigorous re-test)
+
+Shawn asked for rigorous testing of QC #108 after it was marked resolved. Authored a new Playwright NUnit suite (`GCCWebApp.UAT.Tests/Tests/Admin/QC108UserImportTemplateTests.cs`, 8 tests) and ran it against `localhost:5101`. First run: 6 passed, 2 failed — both real defects, both fixed in the same session.
+
+**Sub-item A — Template CSV header was malformed (8 columns when parsed)**
+
+The 7th header `Company Access (semicolon-separated names, or "All")` contains an unescaped comma. `headers.join(',')` produced a row that any RFC-4180-compliant parser (Excel included) splits into 8 columns, surfacing a phantom 8th header to the user.
+
+Fix: `wwwroot/js/userManagement.js` — `downloadImportTemplate()` now wraps any header field containing a comma or quote in RFC-4180 quotes with internal quotes doubled. The header line still reads identically when un-escaped, but CSV parsers now see exactly 7 columns.
+
+**Sub-item B — Template advertised "All" as a valid value, but parser rejected it**
+
+The template hint says `Company Access (semicolon-separated names, or "All")`. The JS preview parser (`resolveCompanyIds`) already short-circuits `"All"` → every-company-IDs, but the server-side parser at `Controllers/AdminController.cs` `ImportUsers()` didn't. A row with `Company Access = All` hit the company-name-lookup path → no match → 0 companies assigned (or `Company 'All' not found` error). The template hint lied.
+
+Fix: `Controllers/AdminController.cs` — `ImportUsers()` now special-cases `companyAccessRaw.Equals("All", OrdinalIgnoreCase)` → assigns every `Company.Id`. Matches the JS preview behavior. Same `Company Access` semantics now apply whether the user uses the UI import flow (JS preview → batch `/CreateUser` calls) or POSTs the file directly to `/Admin/ImportUsers`.
+
+**Test plan:**
+
+1. **Template malformation (sub-item A)** — `/Admin/UserManagement` → click Template. Open in Excel: should see exactly 7 columns (Name, Email, Role, Password, Status, RequirePasswordReset, Company Access). Pre-fix: 8 columns with a phantom `or "All")` last header.
+2. **"All" semantics (sub-item B)** — Modify template: add 1 row with `Company Access = All`. Click Import → preview shows the row assigned to all companies → confirm → user is created with company-checkboxes for every company. POST the same file directly to `/Admin/ImportUsers` (e.g., curl with auth cookie + antiforgery): user is also assigned to every company. No `Company 'All' not found` error.
+3. **Regression** — Repeat TC-QC-108 baseline test plan (headers-only template, no sample row, "Company Access" column on UI/export/template, 5/1 client reply satisfied).
+4. **Automated:** `dotnet test --filter QC108` against TEST_BASE_URL=http://localhost:5101 → 8/8 passing.
+
+**Found by:** Anuki internal QA — Shawn-directed rigorous re-test of QC #108 (2026-05-11). Did NOT come from client.
 
 ---
 

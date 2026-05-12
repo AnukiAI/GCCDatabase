@@ -158,11 +158,19 @@ namespace GCCWebApp.Controllers.Api
                     );
                 }
 
-                // Apply company filter
+                // Apply company filter — accept numeric IDs OR company names (parity with Public per QC #127)
                 if (!string.IsNullOrWhiteSpace(company))
                 {
-                    var companies = company.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => companies.Contains(c.Company.Id.ToString()));
+                    var companyTokens = company.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                    var companyIds = companyTokens.Where(t => int.TryParse(t, out _)).Select(int.Parse).ToList();
+                    if (companyIds.Any())
+                    {
+                        query = query.Where(c => companyIds.Contains(c.Company.Id));
+                    }
+                    else
+                    {
+                        query = query.Where(c => companyTokens.Contains(c.Company.Name));
+                    }
                 }
 
                 // Apply country filter
@@ -490,9 +498,11 @@ namespace GCCWebApp.Controllers.Api
                 // must be repointed at their Level-1 parent via
                 // Database_Scripts/20260511_DEF167_AuditL2TaggedCerts.sql before they will be
                 // reachable through this dropdown.
+                // QC #124: alpha-sort by Name (SortOrder column has no admin UI, so its values
+                // are stale config). See CertificateTilesApiController for the rationale.
                 var hierarchicalCertTypes = await _context.CertificationTypes
                     .Where(ct => ct.IsActive && ct.ParentId == null && certTypeIds.Contains(ct.Id))
-                    .OrderBy(ct => ct.SortOrder)
+                    .OrderBy(ct => ct.Name)
                     .Select(ct => new { name = ct.Name, level = ct.Level })
                     .ToListAsync();
 

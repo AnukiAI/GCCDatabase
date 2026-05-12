@@ -14,9 +14,20 @@ public class QC108UserImportTemplateTests : BaseTest
     private string _runStamp = string.Empty;
 
     [SetUp]
-    public void StampRun()
+    public async Task StampRun()
     {
         _runStamp = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
+        // gccwebapp.com sits behind an HTTP Basic Auth test-env gate. /api/* bypasses, but the
+        // Admin/UserManagement page and /Admin/ImportUsers endpoint do not — so prime the page
+        // and its APIRequest context with the gate credentials when targeting the live test env.
+        if (BaseUrl.Contains("gccwebapp.com", StringComparison.OrdinalIgnoreCase))
+        {
+            var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("gcc:Cert-Test-Access-2026!"));
+            await Context.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
+            {
+                ["Authorization"] = "Basic " + b64,
+            });
+        }
     }
 
     private async Task GotoUserManagementAsAdmin()
@@ -144,10 +155,12 @@ public class QC108UserImportTemplateTests : BaseTest
         var lines = csv.Split('\n').Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
         Assert.That(lines.Length, Is.EqualTo(1), $"Template should be headers-only (no sample data rows); got {lines.Length} non-empty lines.");
 
-        // Spec-verbatim header (whole line) assertion — independent of CSV parsing semantics.
-        var expectedHeaderLine = "Name,Email,Role (Admin/Analyst/External),Password,Status (Active/Inactive),RequirePasswordReset (Yes/No),Company Access (semicolon-separated names, or \"All\")";
+        // Spec-verbatim header (whole line) assertion. The 7th header value contains a comma
+        // and internal quotes, so the template wraps it in RFC-4180-quoted form with embedded
+        // quotes doubled (""All"" → "All"). This is what makes the CSV parse to exactly 7 columns.
+        var expectedHeaderLine = "Name,Email,Role (Admin/Analyst/External),Password,Status (Active/Inactive),RequirePasswordReset (Yes/No),\"Company Access (semicolon-separated names, or \"\"All\"\")\"";
         Assert.That(lines[0].Trim(), Is.EqualTo(expectedHeaderLine),
-            "Template header line does not match the spec verbatim.");
+            "Template header line does not match the spec verbatim (with RFC-4180 quoting on the 7th field).");
 
         // DEFECT FLAG: The 7th header value contains an unescaped comma — when parsed as CSV
         // (RFC 4180), it splits into 2 fields, yielding 8 columns. Excel users will see an

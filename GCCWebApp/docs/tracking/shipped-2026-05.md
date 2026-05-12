@@ -6,6 +6,22 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-176 — Logged-in cert tile views (Internal + External) now match Public for filter chips and Company filter (QC #127 5/1/26 + 5/8/26 re-raise) (2026-05-11, in working tree pending deploy)
+
+Client flagged on 5/1 and again on 5/8 that the Public certificate listing was fixed but the logged-in views (Internal admin/analyst view and External partner view) still showed the old behavior: Company filter chips displayed numeric IDs ("Company: 131") instead of the company name, and every chip carried a redundant `Type:` / `Company:` / `Search:` label prefix. Public was visibly correct ("3M ×"); the two logged-in views were not. Playwright capture against the deployed environment reproduced exactly what the client described — three views, three different behaviors, two of them broken.
+
+Root cause was that the original QC #127 fix in March only updated the Public view's JS file. The Internal and External views are separate JS files that share roughly 95% of the same code by line count, including their own copies of the company-checkbox renderer and the active-filter chip renderer. Neither got the patch. Same pattern as DEF-174 last week — multiple near-identical implementations, fix lands on one, two get left behind.
+
+Two surgical changes per JS file. First, the Company filter checkbox `value` attribute is now the company name (escaped for HTML safety) instead of the numeric ID, matching what Public does so chips show "3M" rather than "131" the moment the user ticks a box. Second, the active-filter chip rendering loop drops the `<span class="filter-tag-label">${label}:</span>` prefix from both the Search chip and every checkbox-based filter chip; `aria-label` on the remove button is simplified the same way ("Remove 3M filter" instead of "Remove Company: 3M filter"). The `labelMap` constant stays in place since it's still used as the iteration key set; removing it would be a separate cleanup with no functional effect.
+
+Backend matched in parallel so the new payload doesn't break filtering. The Internal and External tile API controllers each had a single-mode company filter that called `companies.Contains(c.Company.Id.ToString())`; both are now dual-mode, mirroring the existing logic in the Public controller — if every token parses as an int, treat them as IDs and join on `c.Company.Id`; otherwise treat them as names and join on `c.Company.Name`. Either-or, not mixed, same as Public's contract. Numeric-ID callers (e.g., direct API consumers, bookmarked deep-links from before the fix) continue to work unchanged.
+
+Files: `wwwroot/js/certificate-tile-view-internal.js` (checkbox value + chip render), `wwwroot/js/certificate-tile-view-external.js` (same), `Controllers/Api/CertificateTileInternalApiController.cs` (dual-mode company filter), `Controllers/Api/CertificateTileExternalApiController.cs` (same). `dotnet build` clean — 0 errors. Local in-browser smoke deferred to next dev-server restart (running instance is holding the .exe lock); the Playwright before/after script (`%TEMP%\verify-qc127.mjs`) will re-run against gccwebapp.com after the deploy lands and TC-QC-127 will flip from INCONCLUSIVE → PASS at that point.
+
+Worth flagging: this is the second QC item in the past week (DEF-174 was the first) where a previously-claimed fix turned out to live in dead or non-deployed code while a near-twin file kept the bug. The three tile views are a known shared-95% triplicate; consolidating to a single view with role-based config would prevent the same re-raise pattern on the next round and should be considered as a separate refactor CR.
+
+---
+
 ## DEF-174 — Product Management Export CSV now matches the Import Template (round-trip restored, QC #103 5/8/26 re-raise) (2026-05-11, in working tree pending deploy)
 
 Client re-raised QC #103 on the 5/8/26 log as "Not fixed." Verification via Playwright against the deployed gccwebapp.com confirmed her read: the **template** download was correct (`Name, Company, Description, Category, Product Type, Subcategory` — that part was fixed back in March under commit `786dc55`), but the **Export** button on `/Product/Management` was still emitting the old eight-column header (`Product Name, Company, Category, Product Type, Subcategory, Status, Certs, IDs`), so the two CSVs didn't align and an exported product list could not be re-imported.
@@ -983,3 +999,22 @@ Fix derives four "visible" ID sets from the controller's baseQuery — visible c
 Net effect: every dropdown option in Public and External now corresponds to at least one cert the user can actually open. New cert types and product categories added via admin will not appear in the Public filter sidebar until a public cert is approved with them — this is intentional UX per Shawn's call.
 
 Files: `Controllers/Api/CertificateTilesApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`.
+
+---
+
+## DEF-166 — QC #108 (User import template) rigorous re-test surfaced 2 defects (2026-05-11)
+
+QC #108 was marked resolved after the 5/1 client reply ("Company Access" naming standardized across template, UI table, export). Shawn asked for rigorous re-testing before pushing back to client UAT. Authored an 8-test Playwright NUnit suite specifically for QC #108 covering the template content, round-trip import with valid data, semicolon multi-company, the literal "All" hint, unknown-company rejection, missing-Email rejection, and export header alignment.
+
+First run against `localhost:5101` was 6/8 — two real defects under the marked-complete surface:
+
+**Defect A — Template CSV was malformed.** The 7th header `Company Access (semicolon-separated names, or "All")` contained an unescaped comma. Any RFC-4180-compliant parser, Excel included, split it into 8 columns. Users opening the template would see a phantom 8th header (`or "All")`) sitting outside the expected schema. `headers.join(',')` in `downloadImportTemplate()` had no quoting logic. Fix: any header field containing a comma or quote is now RFC-4180 quoted with internal quotes doubled. The visible text is unchanged when un-escaped, but CSV parsers now see exactly 7 columns.
+
+**Defect B — Template hint advertised "All" but the parser rejected it.** The hint reads `Company Access (semicolon-separated names, or "All")`. The JS preview parser (`resolveCompanyIds`) had short-circuited `"All"` → every-company-IDs months ago, but the server-side parser at `AdminController.ImportUsers()` had not. A row with `Company Access = All` going through the direct `/Admin/ImportUsers` path (no preview) hit the company-name-lookup path → no match → either 0 companies assigned (silent) or a `Company 'All' not found` error. The template was lying about what was supported. Fix: `AdminController.ImportUsers` now special-cases `companyAccessRaw.Equals("All", OrdinalIgnoreCase)` → assigns every `Company.Id`. Behavior is now identical whether the user goes through the JS preview flow or POSTs the file directly.
+
+Re-run after both fixes: **8/8 passing.**
+
+Files: `wwwroot/js/userManagement.js` (template quoting), `Controllers/AdminController.cs` (parser "All" handling), `GCCWebApp.UAT.Tests/Tests/Admin/QC108UserImportTemplateTests.cs` (new test suite, 8 tests).
+
+---
+

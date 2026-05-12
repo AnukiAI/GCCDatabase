@@ -128,7 +128,7 @@
             companyList.innerHTML = state.filterOptions.companies.map(company => `
                 <li class="filter-item">
                     <label>
-                        <input type="checkbox" name="company" value="${company.id}">
+                        <input type="checkbox" name="company" value="${escapeHtml(company.name)}">
                         ${escapeHtml(company.name)}
                     </label>
                 </li>
@@ -1040,22 +1040,22 @@
 
         let html = '';
 
-        // Search tag
+        // Search tag (no label prefix — chips show value only, matches Public view per QC #127)
         if (state.filters.search) {
             html += `<span class="filter-tag" role="listitem">
-                <span class="filter-tag-label">Search:</span> ${escapeHtml(state.filters.search)}
+                ${escapeHtml(state.filters.search)}
                 <button class="filter-tag-remove" data-filter-type="search" aria-label="Remove search filter" title="Remove">&times;</button>
             </span>`;
         }
 
-        // Checkbox-based filter tags
-        for (const [key, label] of Object.entries(labelMap)) {
+        // Checkbox-based filter tags (no Type:/Company:/etc. label prefix per QC #127)
+        for (const key of Object.keys(labelMap)) {
             const values = state.filters[key];
             if (values && values.length > 0) {
                 values.forEach(val => {
                     html += `<span class="filter-tag" role="listitem">
-                        <span class="filter-tag-label">${label}:</span> ${escapeHtml(val)}
-                        <button class="filter-tag-remove" data-filter-type="${key}" data-filter-value="${escapeHtml(val)}" aria-label="Remove ${label}: ${escapeHtml(val)} filter" title="Remove">&times;</button>
+                        ${escapeHtml(val)}
+                        <button class="filter-tag-remove" data-filter-type="${key}" data-filter-value="${escapeHtml(val)}" aria-label="Remove ${escapeHtml(val)} filter" title="Remove">&times;</button>
                     </span>`;
                 });
             }

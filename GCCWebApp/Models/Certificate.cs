@@ -43,7 +43,7 @@ namespace GCCWebApp.Models
         [MaxLength(1000)]
         public string? CertificationResults { get; set; } // Optional: Test results/scores for partner requirements (e.g., Amazon threshold verification)
 
-        // DEF-178: persisted computed column that normalizes CertificationResults to a numeric percentage
+        // DEF-181: persisted computed column that normalizes CertificationResults to a numeric percentage
         // so sorting orders values the way users intuitively read them. Raw values are mixed format
         // (e.g. "95%", "100", "0.69") and lex sort produced unintuitive output ("95%" > "100" > "1" > "0.69").
         // Mirrors DisplayFormatters.FormatCertificationResults: contains % → strip and use; [0,1) → ×100;

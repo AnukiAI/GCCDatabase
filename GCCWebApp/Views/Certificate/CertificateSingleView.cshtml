@@ -231,16 +231,41 @@
 </div>
 
 <script>
-    // Make downloadCertificate available globally for this page
-    window.downloadCertificate = function(certificateNumber) {
+    // QC #168: fetch + toast pattern (matches tile view) so a missing PDF surfaces as a clean
+    // toast instead of opening a new tab that renders the raw NotFound response body.
+    window.downloadCertificate = async function(certificateNumber) {
+        if (!certificateNumber) {
+            return;
+        }
         try {
-            if (!certificateNumber) {
-                console.error('Certificate number is required');
+            const response = await fetch(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`);
+            if (!response.ok) {
+                if (typeof showToast === 'function') {
+                    showToast('Certificate PDF not available', 'error');
+                }
                 return;
             }
-            window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
+            const blob = await response.blob();
+            let filename = `Certificate_${certificateNumber}.pdf`;
+            const contentDisposition = response.headers.get('Content-Disposition');
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
         } catch (error) {
-            console.error('Error downloading certificate:', error);
+            if (typeof showToast === 'function') {
+                showToast('Failed to download certificate', 'error');
+            }
         }
     };
 

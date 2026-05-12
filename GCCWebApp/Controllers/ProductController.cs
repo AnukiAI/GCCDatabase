@@ -359,6 +359,11 @@ namespace GCCWebApp.Controllers
                 return Json(new ApiResponse<object> { Success = false, Message = "Company is required. Please select a company." });
             }
 
+            if (model.CategoryId <= 0)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Category is required. Please select a category." });
+            }
+
             try
             {
                 Product product;
@@ -876,8 +881,8 @@ namespace GCCWebApp.Controllers
         public IActionResult DownloadProductImportTemplate()
         {
             // Headers only — no sample data rows. 6 columns matching the Add New Product modal
-            // (QC #92 removed Status/SKU/Model from the modal; the template now mirrors that).
-            var csv = "Name,Company,Description,Category,Product Type,Subcategory";
+            // and the Product Management table (QC #103: template/table/popup must be "level").
+            var csv = "Product Name,Company,Description,Category,Product Type,Subcategory";
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
             return File(bytes, "text/csv", "product_import_template.csv");

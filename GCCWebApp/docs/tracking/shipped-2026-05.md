@@ -6,6 +6,110 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-185 — Certificate Create/Edit now reject zero FKs with a clean error instead of letting them reach EF (2026-05-12, in working tree pending deploy)
+
+This is the audit follow-up Shawn scoped in DEF-184. After fixing the missing-Category bug on Product Add, the question was whether other create/edit forms had the same gap. A focused audit of the three forms with non-nullable FKs — Product Add/Edit, Certificate Create, Certificate Edit — found that the Product form was now fully covered (DEF-184 fix plus the long-standing Company pattern) but both Certificate forms had a latent gap on three FKs each: `CompanyId`, `ProductId`, and `CertificationTypeId`.
+
+The reason the gap was latent rather than actively broken: `[Required]` on a non-nullable `int` does not reject `0` — only `null`. Normal user flow was incidentally protected by the model binder's behavior on an empty `<option value="">`, which posts as an empty string, fails int binding, and produces a ModelState error. That's a coincidence, not a guarantee. A scripted POST that sets `CompanyId=0` directly would have passed ModelState and crashed at the EF `AddAsync` call with the same FK violation class as DEF-184. Verified by direct POST in the regression: before the fix, the response would have been a 500-class FK exception; after the fix, the form re-renders with three clean validation messages and zero FK exceptions in the app log.
+
+Fix is six identical lines in two controller actions — `CertificateController.Create` (line 432 region) and `CertificateController.Edit` (line 848 region). Each adds `if (model.X <= 0) ModelState.AddModelError(nameof(model.X), "X is required...");` for the three FKs, placed immediately before the existing `if (ModelState.IsValid)` gate so the existing MVC form re-render path picks the new errors up alongside any others. No JS changes on the cert views — the Create and Edit submit handlers were intentionally left alone for this pass since unobtrusive-validation plus the now-enforced server gate cover the actual hole. The schema stays as-is; making these FKs nullable would have a large blast radius across the cert form's product picker, dashboard counts, and ETL extractor.
+
+Verified locally with a Playwright regression that harvests the antiforgery token, scripts a POST with all three FKs zeroed, and asserts the response contains the three error messages, no FK violation text, and no new cert row in the DB. Ran identical assertions for both Create and Edit paths — 14/14 PASS. Re-ran the DEF-182 (10/10) and DEF-184 (9/9) regressions to confirm no impact on Product Management. App log `grep -c "FK_Certificates_\|FOREIGN KEY constraint"` returns 0 across the full test run.
+
+Files: `Controllers/CertificateController.cs` (Create and Edit POST actions), `docs/tracking/defect-register.md` (DEF-185 entry), `docs/tracking/shipped-2026-05.md` (this entry).
+
+Deliberately not in scope this cycle: JS-side guards on the cert form submit handlers (UX polish — unobtrusive-validation already catches normal user flow); other nullable FKs on these forms (can't FK-violate from null by definition).
+
+---
+
+## QC #164 — Product Identifier Status removal + auto-cascade re-verified through Playwright (2026-05-12, validation only — no code change)
+
+The client's 4/10/26 comment on QC #164 still showed it as **Pending** with notes that the Status field needed to be removed from the Import Template and Add popup, and that product status should follow the cert automatically for Amazon badging. The implementation actually shipped 2026-05-06 under DEF-097 / CR-015 and the defect register marked it verified. To close the loop with paste-ready evidence rather than a written claim, the validation was re-run end-to-end on localhost using Playwright + SQL against the local dev DB.
+
+Three test drivers were authored under `docs/tracking/screenshots/qc164/`. The UI capture (`qc164_capture.py`) logs in as the analyst, opens cert 26-0002 in Edit, and screenshots both the Product ID Manager surface and the Add Product ID modal across the five-viewport standard (desktop 1920, desktop 1366, tablet-landscape 1024, tablet-portrait 768, mobile 375). Every viewport shows the filter row with only the Type, Partner, and Search controls, the table headers with only Type, Product ID, Product Name, SKU, Partner, Created, Created By, and Actions, and the Add modal with only Type, Product ID, Partner, Product Name, SKU, and Description. No Status filter, no Status column, no Status field. The same script downloads the Import Template CSV and confirms the header line reads exactly `Type,Product ID,Product Name,SKU,Partner,Description` — no Status column.
+
+The cascade driver (`qc164_cascade.py`) exercises the actual production code path by editing cert 26-0002 four times through the analyst form. Baseline showed CAP / two Inactive PIDs (a stale local-dev artifact from before CR-015 was wired). The four transitions and their observed DB states were: Hold (no-op cascade, both already Inactive), Client Approved - Paid (UP-cascade fired, both PIDs flipped to Active), Hold (DOWN-cascade fired, both PIDs flipped back to Inactive), Client Approved - Paid (restored, both Active). The transitions through Save trigger `SyncProductIdStatusesForCertificateAsync` at `Services/CertificateService.cs:843`, which writes the derived status atomically with the cert save. As a side effect the run also corrected the stale dev-DB state.
+
+The Partner API contract test (`qc164_partner_api.py`) calls `GET /api/v1/certificates` with the Amazon partner key. The local dev DB has eleven Amazon-partnered certs total — four in CAP (no PIDs), six in legacy `Active` (with PIDs but non-public per CR-015), and one Draft. The response correctly returns exactly four certs, each with `status: "Active"` as a literal mapping (not the internal `"Client Approved - Paid"` lifecycle string), and the six legacy-`Active` certs and the Draft are filtered out by the `CertificateStatusHelper.PublicStatuses` guard at `Controllers/Api/v1/CertificatesController.cs:160`. A bonus attempt to promote one legacy-Active cert to CAP to also exercise the `productIds[]` array in the response was blocked by the workflow service (legacy `Active` → CAP isn't an allowed transition in the modern 14-state taxonomy); that's out of scope for QC #164 and noted in `EVIDENCE.md` for traceability. The cert touched in that attempt was not mutated, confirmed via post-test SQL.
+
+All six contract guarantees on the QC #164 line are now backed by artifacts: ten viewport screenshots, the template CSV, a transition log showing cascade fired in both directions, a Partner API JSON dump, and an `EVIDENCE.md` summary. Nothing in the codebase was modified — this is validation evidence on top of the 2026-05-06 ship.
+
+Files (evidence-only): `docs/tracking/screenshots/qc164/EVIDENCE.md`, ten PNG screenshots, `B_import_template.csv`, `cascade_log.txt`, `partner_api_log.txt`, `D_step1_baseline.json`, `D_step2_promoted.json`, three Playwright Python scripts.
+
+---
+
+## DEF-184 — Adding a product without a Category no longer throws a database error (2026-05-12, in working tree pending deploy)
+
+Shawn caught this during the manual UAT pass right after DEF-182 shipped. Open the Add Product modal, fill Product Name and Company, leave Category blank, click Save — the controller swallowed the EF exception and returned a generic "Error saving product" toast, while the app log filled with a SQL `FK_Products_ProductCategories_CategoryId` violation. The user had no way to tell the failure was specifically about Category.
+
+Root cause was a long-standing validation gap. `Products.CategoryId` is non-nullable both in the EF model and at the DB level. Add Product's modal had Product Name and Company marked required (HTML attribute + JS guard + server check), but Category was treated as optional in the UI even though the schema treats it as mandatory. Saving with no Category meant the JS sent `categoryId: 0`, EF tried to INSERT with FK target 0, and SQL Server rejected it. Same defect class as the missing-Company validation that was already covered — Category had just never received the same treatment.
+
+Fix is the same three-layer pattern Company uses. The label now reads "Category *" and the `<select>` carries the `required` attribute, so the browser fires a focused validation tooltip ("Please select an item in the list.") before the form submit event runs. A redundant JS guard in `saveProduct()` covers the case where someone bypasses HTML validation through a scripted submit. And a server-side `if (model.CategoryId <= 0)` early-out in `ProductController.SaveProduct` now returns a clean `{success:false, message:"Category is required..."}` JSON instead of letting EF crash on the FK. The schema stays as-is — making `CategoryId` nullable would touch every query, projection, and filter that assumes Category is set (cert form's product picker, dashboard counts, ETL extractor) for what is fundamentally a validation gap, not a schema problem.
+
+Verified locally with a Playwright regression covering all three layers — 9/9 PASS, including a direct POST to `/Product/SaveProduct` with `categoryId:0` that now returns the clean JSON rejection instead of an FK exception. Re-ran the DEF-182 smoke (10/10) to confirm no Status-flow regression. App log shows no more FK exceptions on the missing-Category path.
+
+Files: `Views/Product/Management.cshtml` (label + select `required`, JS guard), `Controllers/ProductController.cs` (server-side check before the create/update branch), `docs/tracking/defect-register.md` (DEF-184 entry), `docs/tracking/shipped-2026-05.md` (this entry).
+
+Follow-up worth scoping: audit other non-nullable FKs on the product and certificate forms (`Certificate.PathwayId`, `Certificate.CompanyId`, etc.) and confirm they all use the same three-layer pattern. This is the second time the "client field is loose but schema is strict" mismatch has produced an unhelpful red toast — would be good to flush them out proactively rather than one defect at a time.
+
+---
+
+## DEF-183 — Public cert detail page no longer leaks internal-process error text when a PDF is missing (QC #168) (2026-05-12, in working tree pending deploy)
+
+Carly flagged on 4/30 that after removing a default cert PDF, clicking the download icon on the public cert detail page opened a new browser tab showing the raw text *"No certificate PDF has been uploaded for 26-0006. Download is unavailable until an analyst uploads the certificate file."* The second sentence — internal workflow language about analysts uploading — is not language we'd ever want on a public surface, and the endpoint is `[AllowAnonymous]` so any visitor can hit it. Her preferred outcome: either trim the text, or grey out the button. She also asked the right architectural question — *"why are they built as different experiences?"* — because the public tile view's download icon handles missing PDFs cleanly with a toast and the single view did not.
+
+The answer to her question is that the public tile view is a JS-rendered grid where each tile's download icon goes through a `fetch()` handler that swallows the response body and shows a toast on non-ok. The public single view is server-rendered Razor where the download icon was wired to a one-line `window.open('/Certificate/Download/...', '_blank')`. `window.open` doesn't read the response — it just navigates a new tab to whatever the server returns. So the same `NotFound` response that the tile view politely catches gets rendered raw as a new-tab page on the single view. The greying logic on the single view does exist (`hasFile = !string.IsNullOrEmpty(Model.Certificate?.CertificateFile)`) but it only catches the **DB-null** case. It doesn't catch the **DB-set-but-file-missing-on-disk** case, which is exactly what triggered Carly's report.
+
+This ships two changes that work together. First, the controller's error body is now exactly *"No certificate PDF has been uploaded for {id}."* and nothing more — the internal-process clause is gone, with a comment at the call site flagging the public-safety constraint so it doesn't grow back. Second, the single view's `downloadCertificate` was rewritten to use the same `fetch()` + blob + anchor-click pattern the tile view uses, with `showToast('Certificate PDF not available', 'error')` as the fallback. Now even when a cert has `CertificateFile` set in DB but the file is gone from disk, the user sees a clean toast on the same page instead of a new tab with a raw response body.
+
+We deliberately did not add a per-request `File.Exists()` check to the view's `hasFile` calculation. That would add a disk hit to every public cert detail page load to handle a rare edge case; the toast covers it with no per-request cost.
+
+Carly's closing clause — *"We shouldn't really have certs added without a cert so in reality this should not ever happen but we need solution if it does"* — reinforces the 2026-04-25 business rule that analysts must upload a real PDF when creating a certificate (we never auto-generate a placeholder). This fix is the graceful-degradation path for the case that rule fails to prevent (manual file removal, or a Plesk deploy that wipes uploads as happened on 4/23).
+
+Files: `Controllers/CertificateController.cs` (public-safe error body + comment at line 1590-1594), `Views/Certificate/CertificateSingleView.cshtml` (downloadCertificate rewritten to fetch + toast at lines 233-269), `docs/tracking/defect-register.md` (DEF-183 entry), `docs/tracking/shipped-2026-05.md` (this entry).
+
+Smoke test (local): build is clean — the only build error is MSB3027 file-lock because the dev server (PID 28756) is holding the exe. Restart needed before manual verification: `taskkill /F /PID 28756` then `dotnet run --urls "http://localhost:5101"`. Then on the public cert detail page for a cert whose file is missing from disk, clicking the download icon should produce the toast and no new tab; hitting `/Certificate/Download/{number}` directly in the browser bar should return exactly the trimmed message; a cert with a real PDF should still download normally.
+
+---
+
+## DEF-182 — Product Management: template, popup, and table now agree on the same field set (QC #103 3/13/26 close-out) (2026-05-12, in working tree pending deploy)
+
+QC #103 has a long tail. Carly's 3/13 note was that the CSV template's column names and the Product Management table's column names weren't "level" with each other or with the Add New Product popup. The previous fix cycle (3/24) trimmed the template to match the popup; that resolved one half. The 5/8 retest re-raised it because the **Export** CSV still emitted the old eight-column header, which DEF-174 (5/11) closed. That left one remaining gap: the table showed a **Status** column that didn't exist on the popup, and the template still said "Name" where the table said "Product Name."
+
+The temptation was to just delete the Status column to make the three surfaces identical. That would have been wrong. `Product.IsActive` is a real soft-delete flag — every certificate Create and Edit form filters its product picker to `IsActive && !IsDeleted`, in eight places in `CertificateController.cs` alone (plus the Admin product service and the ETL exporter). Setting a product Inactive is how an analyst retires it without losing the cert history that already references it. Before this fix the **only** way to flip the flag was a CSV import line, and the Product Management table was the only place to see the state. Removing the column would have orphaned a live business behavior.
+
+The correct call was the inverse: add Status to the popup so it can be edited inline, and align the wording everywhere else. The popup now has a Status dropdown (Active / Inactive) sitting next to Subcategory on the bottom row. Add defaults to Active. Edit pre-fills from the listing API's existing `IsActive ? "Active" : "Inactive"` projection. Save sends the value to the backend, which already binds `model.IsActive` on both create and update paths — no controller change needed. The CSV template header changed from `Name` to `Product Name`. The Export header did the same so round-trip stays clean. Import parsing is positional and skips the header row, so the rename is header-only and doesn't break legacy CSV imports.
+
+Description stays on the popup and template but not the table, by intent — table omits it for column-width reasons. Description is still visible on the expandable row detail and on the Product detail page.
+
+Files: `Controllers/ProductController.cs` (template header), `Views/Product/Management.cshtml` (modal Status select + showAddProductModal reset + editProduct prefill + saveProduct payload + export header rename), `docs/tracking/defect-register.md` (DEF-182 entry), `docs/tracking/shipped-2026-05.md` (this entry).
+
+Smoke test (local): built 0 errors, app comes up on http://localhost:5101, `/Product/Management` returns the expected 302 to login. Manual UI verification (Add → Status defaults Active; Edit → Status pre-filled; Save → table reflects; Inactive product drops out of Cert Create's product picker) is the next step before deploy.
+
+---
+
+## DEF-181 — Cert tile internal: ASIN/UPC/GTIN/EAN sorts now respect legacy columns; Cert Results sorts numerically (QC #157 5/1/26 close-out) (2026-05-11, in working tree pending deploy)
+
+QC #157's 4/7 batch flagged sort issues across Status, Location, Tags, Partner, and the four product-ID columns. DEF-165 closed most of them last week. Carly's 5/1 retest narrowed the remaining gripes to "ASIN is off" and "Cert Results is off." Both root causes turned out to be different from what was assumed.
+
+The ASIN/UPC/GTIN/EAN problem was a mismatch between the column's DISPLAY logic and its SORT logic. The display falls back from `Certificate.ProductIds` (the typed collection) to the legacy `Certificate.{Asin|Upc|Gtin|Ean}` string columns when no active ProductIds rows exist for that type. The sort comparator only looked at `ProductIds`. So a cert whose ASIN lived in the legacy `c.Asin` column showed "B08X7N9MRQ" in the cell but got sort key "" — falling to the Id tiebreaker. From the user's seat that looked like "the column has values but isn't sorting." Verified by capturing the EF-emitted SQL via a one-off `ToQueryString()` log and running it directly against the dev DB — got back 25 rows with empty sort keys despite many having real ASIN values in the display.
+
+Fix: the sort comparator now mirrors the display — `c.ProductIds.Any(...) ? Min(c.ProductIds...) : c.Asin) ?? ""`. EF translates the conditional to a SQL `CASE WHEN EXISTS(...) THEN (SELECT MIN(...)) ELSE c.Asin END` and the order finally matches what the user sees in the column. Same shape applied to all eight ID-column branches.
+
+The Cert Results problem was different: the raw stored values are a mix of formats ("95%", "100", "1", "0.69", "0.27", "0.17"). The field is free-text by design (per the original CR for Amazon threshold scores), and the sort was doing a plain SQL Server string comparison. Lex sort on those mixed-format strings produces the order Carly saw: 95% > 87% > 100% > 1% > 69% > 27% > 17%. The sort was working as coded; the data shape just doesn't lend itself to lex compare.
+
+Fix: added a persisted computed column `CertificationResultsNumeric DECIMAL(18,4)` on the Certificates table. The CASE expression mirrors `DisplayFormatters.FormatCertificationResults`: contains `%` → strip and use; `[0,1)` → ×100; `≥1` → as-is; non-numeric → NULL. Indexed. SQL Server maintains it automatically on every insert/update. The sort comparator now reads from that column. NULL placement defers to SQL Server defaults (nulls first in ASC, last in DESC), which surfaces populated values where a sorting user is most likely looking.
+
+Verified locally with a Playwright sort harness covering 9 columns × 2 directions = 19 assertions — all pass. ASIN ASC now shows "" first then non-empty values; ASIN DESC walks from "B0GJRV3MZC" down to "B0BQN8R7JJ"; Cert Results DESC walks 100 → 95 → 87 → 69 → 27 → 17 → 17 → 1 then NULLs. Build clean.
+
+This deploy includes one EF schema migration (`AddCertificationResultsNumeric`). It adds one nullable computed column plus its index — non-destructive, no data movement. Apply via `dotnet ef database update` or extract SQL via `dotnet ef migrations script`.
+
+Files: `Controllers/Api/CertificateTileInternalApiController.cs`, `Models/Certificate.cs`, `Data/ApplicationDbContext.cs`, `Migrations/20260512011258_AddCertificationResultsNumeric.cs`, `docs/tracking/defect-register.md` (DEF-181 entry), `docs/tracking/shipped-2026-05.md` (this entry).
+
+Out-of-scope follow-up: the Internal-tag / External-tag / UPC `FirstOrDefault()` non-determinism documented in DEF-165 is still open. It needs an SQL Server index/plan tune; low priority unless certs grow many tags/UPCs each.
+
+---
+
 ## DEF-179 — Dashboard "Active Certs Published" exports now match the count cards (no more Draft/Hold/Expired leaking into the CSV) (QC #156 5/1/26 follow-up) (2026-05-11, in working tree pending deploy)
 
 QC #156's original 4/7 ask was a label rename — change "# Certs Published Last Month / Year / This Year" to "# Active Certs Published…" so the title matches what the count actually represents. That part shipped cleanly and was verified PASS on 5/1. On 5/1 the client added a follow-up on the same QC row: *"When I export now it has Expired, etc. Just not right."* That second comment was a different defect — the renamed labels said "Active" but the download buttons next to those count cards were emitting CSVs containing every status, including Expired, Draft, Hold, and Republished. The card said one thing; the file said another.
@@ -91,6 +195,8 @@ Local verification: `GET /api/certificate-tiles/filters` returned 4 entries, all
 Files: `Controllers/Api/CertificateTilesApiController.cs`, `Controllers/Api/CertificateTileInternalApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`, `Database_Scripts/20260511_DEF167_AuditL2TaggedCerts.sql`, `docs/tracking/defect-register.md` (DEF-167 entry), `docs/tracking/shipped-2026-05.md` (this entry).
 
 Deploy zip: `deployment-drops/GCCWebApp-deploy-20260511-1054.zip` (60.3 MB).
+
+Follow-up confirmation (2026-05-12): QC #169 has a second paragraph in Carly's log asking that the public view also hide cert types when no certs are tagged to them — match the login view she'd already validated as "fine." That parity was already inside this same fix. The public endpoint's `visibleCertTypeIds` is derived from a baseQuery filtered to `PublicStatuses + non-expired`, and the dropdown query then filters cert types by `visibleCertTypeIds.Contains(ct.Id)` — so a type defined in the `CertificationTypes` table but lacking any visible cert never appears in the dropdown. The External (logged-in non-admin) controller uses the same pattern. Live API call against gccwebapp.com on 2026-05-12 returned 11 Level-1 types, all of which have at least one publicly-visible cert. No additional code change needed; QC #169 is fully closed by this DEF-167 ship.
 
 ---
 
@@ -1018,7 +1124,7 @@ Files: `Controllers/Api/CertificateTilesApiController.cs`, `Controllers/Api/Cert
 
 ---
 
-## DEF-166 — QC #108 (User import template) rigorous re-test surfaced 2 defects (2026-05-11)
+## DEF-181 — QC #108 (User import template) rigorous re-test surfaced 2 defects (2026-05-11)
 
 QC #108 was marked resolved after the 5/1 client reply ("Company Access" naming standardized across template, UI table, export). Shawn asked for rigorous re-testing before pushing back to client UAT. Authored an 8-test Playwright NUnit suite specifically for QC #108 covering the template content, round-trip import with valid data, semicolon multi-company, the literal "All" hint, unknown-company rejection, missing-Email rejection, and export header alignment.
 

@@ -3542,7 +3542,7 @@ Verification scripts: `%TEMP%\verify-template.mjs`, `%TEMP%\verify-export.mjs`. 
 
 **Edge cases:**
 - TC108-04 Semicolon multi-company: row with `Co A;Co B` in Company Access → user gets both companyIds assigned. **PASS (automated).**
-- TC108-08 Literal "All": row with `All` in Company Access → user gets every companyId in the DB. **PASS (automated; required fix DEF-166-B).**
+- TC108-08 Literal "All": row with `All` in Company Access → user gets every companyId in the DB. **PASS (automated; required fix DEF-181-B).**
 - Yes/true and No/false both accepted for RequirePasswordReset (parser uses OrdinalIgnoreCase compare on both literals). Manual verification recommended.
 - Status defaults to "Active" when blank; RequirePasswordReset defaults to "Yes" when blank.
 
@@ -3555,7 +3555,7 @@ Verification scripts: `%TEMP%\verify-template.mjs`, `%TEMP%\verify-export.mjs`. 
 
 **Cross-role / Cross-viewport:** External role blocked from `/Admin/UserManagement` (existing `NonAdmin_CannotAccessUserManagement` test in UserManagementTests.cs).
 
-**Status:** RAN 2026-05-11 — Anuki internal rigorous re-test (Shawn-directed). Authored `GCCWebApp.UAT.Tests/Tests/Admin/QC108UserImportTemplateTests.cs` (8 tests, Playwright NUnit). First run: 6/8 passed — exposed two defects (template CSV malformed + "All" literal not honored by parser). Both fixed in-session → re-run: **8/8 passed against localhost:5101**. See defect-register DEF-166 (both sub-items). Test data uses `qc108-*-{stamp}@gcc-test.local` emails — left in dev DB for manual inspection.
+**Status:** RAN 2026-05-11 — Anuki internal rigorous re-test (Shawn-directed). Authored `GCCWebApp.UAT.Tests/Tests/Admin/QC108UserImportTemplateTests.cs` (8 tests, Playwright NUnit). First run: 6/8 passed — exposed two defects (template CSV malformed + "All" literal not honored by parser). Both fixed in-session → re-run: **8/8 passed against localhost:5101**. See defect-register DEF-181 (both sub-items; originally numbered DEF-166 in error, renumbered 2026-05-11). Test data uses `qc108-*-{stamp}@gcc-test.local` emails — soft-deleted on dev + prod test DB the same day.
 
 ### TC-QC-109 [DEFECT / Pri: - / Status: Complete]
 - **Page:** Admin - User

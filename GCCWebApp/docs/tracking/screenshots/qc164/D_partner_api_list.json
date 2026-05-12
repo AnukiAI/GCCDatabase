@@ -1,0 +1,77 @@
+{
+  "success": true,
+  "pagination": {
+    "totalCount": 4,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  },
+  "data": [
+    {
+      "certificateNumber": "EXT-AMZ-003",
+      "status": "Active",
+      "issueDate": "2026-02-17T03:12:40Z",
+      "expirationDate": "2027-02-17T03:12:40Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": null,
+      "pathway": null,
+      "company": "ExtTest-AmazonCo",
+      "productName": "ExtTest Amazon Product",
+      "certificationType": "Recycled Content",
+      "amazonCode": "greencircle_recycled_content",
+      "issuer": "GreenCircle Certified",
+      "pdfDownloadUrl": "/api/v1/certificates/EXT-AMZ-003/download"
+    },
+    {
+      "certificateNumber": "26-0001",
+      "status": "Active",
+      "issueDate": "2026-01-01T00:00:00Z",
+      "expirationDate": "2027-01-01T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "95%",
+      "pathway": null,
+      "company": "Acme Corporation",
+      "productName": "Widget Pro",
+      "certificationType": "Recycled Content",
+      "amazonCode": "greencircle_recycled_content",
+      "issuer": "GreenCircle Certified",
+      "pdfDownloadUrl": "/api/v1/certificates/26-0001/download"
+    },
+    {
+      "certificateNumber": "EXT-AMZ-002",
+      "status": "Active",
+      "issueDate": "2025-12-17T03:12:40Z",
+      "expirationDate": "2026-12-17T03:12:40Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": null,
+      "pathway": null,
+      "company": "ExtTest-AmazonCo",
+      "productName": "ExtTest Amazon Product",
+      "certificationType": "Recycled Content",
+      "amazonCode": "greencircle_recycled_content",
+      "issuer": "GreenCircle Certified",
+      "pdfDownloadUrl": "/api/v1/certificates/EXT-AMZ-002/download"
+    },
+    {
+      "certificateNumber": "EXT-AMZ-001",
+      "status": "Active",
+      "issueDate": "2025-09-17T03:12:40Z",
+      "expirationDate": "2026-09-17T03:12:40Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": null,
+      "pathway": null,
+      "company": "ExtTest-AmazonCo",
+      "productName": "ExtTest Amazon Product",
+      "certificationType": "Recycled Content",
+      "amazonCode": "greencircle_recycled_content",
+      "issuer": "GreenCircle Certified",
+      "pdfDownloadUrl": "/api/v1/certificates/EXT-AMZ-001/download"
+    }
+  ]
+}

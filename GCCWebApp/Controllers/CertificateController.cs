@@ -429,6 +429,22 @@ namespace GCCWebApp.Controllers
                     }
                 }
 
+                // DEF-185: explicit non-nullable FK guards. `[Required]` on `int` does NOT
+                // reject 0; without these, a scripted/tampered POST with 0 passes ModelState
+                // and crashes at EF with an FK violation (same class as DEF-184).
+                if (model.CompanyId <= 0)
+                {
+                    ModelState.AddModelError(nameof(model.CompanyId), "Company is required. Please select a company.");
+                }
+                if (model.ProductId <= 0)
+                {
+                    ModelState.AddModelError(nameof(model.ProductId), "Product is required. Please select a product.");
+                }
+                if (model.CertificationTypeId <= 0)
+                {
+                    ModelState.AddModelError(nameof(model.CertificationTypeId), "Certification Type is required. Please select a certification type.");
+                }
+
                 if (ModelState.IsValid)
                 {
                     var certificate = new Certificate
@@ -843,6 +859,22 @@ namespace GCCWebApp.Controllers
                                 $"Invalid {pid.ProductIdType} format: '{pid.ProductIdValue}'.");
                         }
                     }
+                }
+
+                // DEF-185: explicit non-nullable FK guards. `[Required]` on `int` does NOT
+                // reject 0; without these, a scripted/tampered POST with 0 passes ModelState
+                // and crashes at EF with an FK violation (same class as DEF-184).
+                if (model.CompanyId <= 0)
+                {
+                    ModelState.AddModelError(nameof(model.CompanyId), "Company is required. Please select a company.");
+                }
+                if (model.ProductId <= 0)
+                {
+                    ModelState.AddModelError(nameof(model.ProductId), "Product is required. Please select a product.");
+                }
+                if (model.CertificationTypeId <= 0)
+                {
+                    ModelState.AddModelError(nameof(model.CertificationTypeId), "Certification Type is required. Please select a certification type.");
                 }
 
                 if (ModelState.IsValid)
@@ -1589,7 +1621,9 @@ namespace GCCWebApp.Controllers
 
                 // No uploaded file → no download. Per business rule (2026-04-25): analysts must upload a real
                 // PDF when creating a certificate; we never auto-generate a placeholder.
-                return NotFound($"No certificate PDF has been uploaded for {id}. Download is unavailable until an analyst uploads the certificate file.");
+                // Public-safe message only — see QC #168. The internal-process detail (analyst upload workflow)
+                // must never reach a public response body since this endpoint is [AllowAnonymous].
+                return NotFound($"No certificate PDF has been uploaded for {id}.");
             }
             catch (Exception ex)
             {

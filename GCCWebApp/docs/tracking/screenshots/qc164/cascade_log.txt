@@ -1,0 +1,44 @@
+
+--- T0 baseline ---
+CertStatus|PidId|ProductIdValue|PidStatus
+----------|-----|--------------|---------
+Client Approved - Paid|3|B08N5WRWNW|Inactive
+Client Approved - Paid|4|123456789012|Inactive
+
+>> T1: change Status to Hold (cascade should set PIDs Inactive — no visible change, both Inactive)
+   -> Status set to 'Hold', save clicked, landed on: http://localhost:5101/Certificate/CertificateInternalView/26-0002
+
+--- T1 after Hold ---
+CertStatus|PidId|ProductIdValue|PidStatus
+----------|-----|--------------|---------
+Hold|3|B08N5WRWNW|Inactive
+Hold|4|123456789012|Inactive
+
+>> T2: change Status to Client Approved - Paid (UP-cascade: PIDs should flip to Active)
+   -> Status set to 'Client Approved - Paid', save clicked, landed on: http://localhost:5101/Certificate/CertificateInternalView/26-0002
+
+--- T2 after CAP — EXPECTED Active ---
+CertStatus|PidId|ProductIdValue|PidStatus
+----------|-----|--------------|---------
+Client Approved - Paid|3|B08N5WRWNW|Active
+Client Approved - Paid|4|123456789012|Active
+
+>> T3: change Status to Hold (DOWN-cascade: PIDs should flip to Inactive)
+   -> Status set to 'Hold', save clicked, landed on: http://localhost:5101/Certificate/CertificateInternalView/26-0002
+
+--- T3 after Hold — EXPECTED Inactive ---
+CertStatus|PidId|ProductIdValue|PidStatus
+----------|-----|--------------|---------
+Hold|3|B08N5WRWNW|Inactive
+Hold|4|123456789012|Inactive
+
+>> T4: restore Status to Client Approved - Paid (final: PIDs Active)
+   -> Status set to 'Client Approved - Paid', save clicked, landed on: http://localhost:5101/Certificate/CertificateInternalView/26-0002
+
+--- T4 final restore — EXPECTED Active ---
+CertStatus|PidId|ProductIdValue|PidStatus
+----------|-----|--------------|---------
+Client Approved - Paid|3|B08N5WRWNW|Active
+Client Approved - Paid|4|123456789012|Active
+
+DONE

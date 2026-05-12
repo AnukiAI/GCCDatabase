@@ -719,7 +719,7 @@ namespace GCCWebApp.Controllers.Api
                 "location-za" => query.OrderByDescending(c => c.Location ?? "").ThenBy(c => c.Id),
                 "country" => query.OrderBy(c => c.Country ?? "").ThenBy(c => c.Id),
                 "country-za" => query.OrderByDescending(c => c.Country ?? "").ThenBy(c => c.Id),
-                // DEF-178: ID-column sort keys must mirror the display logic. The display falls back
+                // DEF-181: ID-column sort keys must mirror the display logic. The display falls back
                 // from `ProductIds` (collection) to the legacy `Certificate.{Asin|Upc|Gtin|Ean}` column
                 // when no active ProductIds exist (see line 314 of this file). The old sort comparator
                 // only looked at ProductIds, so certs whose only ASIN was stored in the legacy column
@@ -766,7 +766,7 @@ namespace GCCWebApp.Controllers.Api
                             : c.Ean) ?? "").ThenBy(c => c.Id),
                 "contact" => query.OrderBy(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? "").ThenBy(c => c.Id),
                 "contact-za" => query.OrderByDescending(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? "").ThenBy(c => c.Id),
-                // DEF-178: Sort by the persisted computed numeric column instead of the raw text field.
+                // DEF-181: Sort by the persisted computed numeric column instead of the raw text field.
                 // Raw values are mixed format ("95%", "100", "0.69", etc.); lex sort produced unintuitive
                 // output (e.g. DESC returned "95% > 87% > 100% > 1%"). The computed column normalizes
                 // everything to a percent decimal. Non-numeric values land in NULL — default SQL Server

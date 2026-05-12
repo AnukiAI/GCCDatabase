@@ -1,0 +1,51 @@
+
+=== STEP 1: BASELINE (cert in legacy Active, should NOT appear) (D_step1_baseline.json) ===
+totalCount: 4
+  EXT-AMZ-003: status='Active', productIds=0
+  26-0001: status='Active', productIds=0
+  EXT-AMZ-002: status='Active', productIds=0
+  EXT-AMZ-001: status='Active', productIds=0
+Target '26-0146' present in response: False
+
+--- STEP 1 DB (DB) ---
+Number|CertStatus|ProductIdValue|PidStatus
+------|----------|--------------|---------
+26-0146|Active|B0BRNN8BKS|Inactive
+26-0146|Active|B005PMYJBO|Inactive
+
+>> STEP 2: promote cert to Client Approved - Paid
+   -> cert 26-0146 Status set to 'Client Approved - Paid'
+
+--- STEP 2 DB (after promote) (DB) ---
+Number|CertStatus|ProductIdValue|PidStatus
+------|----------|--------------|---------
+26-0146|Active|B0BRNN8BKS|Inactive
+26-0146|Active|B005PMYJBO|Inactive
+
+=== STEP 2 API (cert SHOULD appear with productIds[], all status=Active) (D_step2_promoted.json) ===
+totalCount: 4
+  EXT-AMZ-003: status='Active', productIds=0
+  26-0001: status='Active', productIds=0
+  EXT-AMZ-002: status='Active', productIds=0
+  EXT-AMZ-001: status='Active', productIds=0
+Target '26-0146' present in response: False
+
+>> STEP 3: restore cert to legacy 'Active' status
+FAIL: Page.select_option: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("#Status")
+    - locator resolved to <select required="" id="Status" name="Status" data-val="true" class="form-control" aria-required="true" data-val-required="The Status field is required.">…</select>
+  - attempting select option action
+    2 × waiting for element to be visible and enabled
+      - did not find some options
+    - retrying select option action
+    - waiting 20ms
+    2 × waiting for element to be visible and enabled
+      - did not find some options
+    - retrying select option action
+      - waiting 100ms
+    58 × waiting for element to be visible and enabled
+       - did not find some options
+     - retrying select option action
+       - waiting 500ms
+

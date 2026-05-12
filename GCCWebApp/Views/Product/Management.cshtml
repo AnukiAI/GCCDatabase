@@ -253,8 +253,8 @@
 
                 <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <div class="form-group">
-                        <label for="product-category" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Category</label>
-                        <select id="product-category" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                        <label for="product-category" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Category *</label>
+                        <select id="product-category" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
                             <option value="">Select Category</option>
                         </select>
                     </div>
@@ -266,11 +266,20 @@
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label for="product-subcategory" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Subcategory</label>
-                    <select id="product-subcategory" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-                        <option value="">Select Subcategory</option>
-                    </select>
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group">
+                        <label for="product-subcategory" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Subcategory</label>
+                        <select id="product-subcategory" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                            <option value="">Select Subcategory</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-status" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Status</label>
+                        <select id="product-status" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
                 </div>
 
             </form>
@@ -831,6 +840,7 @@
             modalTitle.innerHTML = '<i class="fas fa-box" style="margin-right: 8px;"></i> Add New Product';
             document.getElementById('product-id').value = '';
             productForm.reset();
+            document.getElementById('product-status').value = 'true';
             productModal.style.display = 'flex';
             productModal.style.alignItems = 'center';
             productModal.style.justifyContent = 'center';
@@ -859,6 +869,8 @@
                 await populateSubcategoryDropdown(product.productTypeId);
                 document.getElementById('product-subcategory').value = product.productSubcategoryId || '';
             }
+
+            document.getElementById('product-status').value = (product.status && product.status.toLowerCase() === 'inactive') ? 'false' : 'true';
 
             productModal.style.display = 'flex';
             productModal.style.alignItems = 'center';
@@ -940,6 +952,13 @@
                 return;
             }
 
+            const categoryVal = document.getElementById('product-category').value;
+            if (!categoryVal) {
+                AdminCore.showNotification('Category is required. Please select a category.', 'error');
+                document.getElementById('product-category').focus();
+                return;
+            }
+
             const formData = {
                 id: parseInt(document.getElementById('product-id').value) || 0,
                 name: document.getElementById('product-name').value,
@@ -948,7 +967,7 @@
                 productTypeId: parseInt(document.getElementById('product-type').value) || null,
                 productSubcategoryId: parseInt(document.getElementById('product-subcategory').value) || null,
                 companyId: parseInt(companyVal),
-                isActive: true
+                isActive: document.getElementById('product-status').value !== 'false'
             };
 
             try {
@@ -1057,7 +1076,7 @@
             // Headers align with the import template (Controllers/ProductController.cs DownloadProductImportTemplate)
             // so the export round-trips through Import. Identifier Type / Identifier Value are appended so
             // analysts retain identifier visibility; one row per identifier (empty pair if none).
-            const headers = ['Name', 'Company', 'Description', 'Category', 'Product Type', 'Subcategory', 'Identifier Type', 'Identifier Value'];
+            const headers = ['Product Name', 'Company', 'Description', 'Category', 'Product Type', 'Subcategory', 'Identifier Type', 'Identifier Value'];
             const rows = [];
 
             products.forEach(p => {

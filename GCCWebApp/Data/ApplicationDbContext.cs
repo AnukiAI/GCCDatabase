@@ -84,7 +84,7 @@ namespace GCCWebApp.Data
                 entity.HasIndex(e => new { e.CertificationTypeId, e.Status });
                 entity.HasIndex(e => new { e.ExpirationDate, e.Status, e.CompanyId });
 
-                // DEF-178: persisted computed column for numeric-aware sort on CertificationResults.
+                // DEF-181: persisted computed column for numeric-aware sort on CertificationResults.
                 // See Certificate.CertificationResultsNumeric for the why. Matches DisplayFormatters
                 // logic so the sort order tracks what users see. NULL when the raw value isn't parseable
                 // — non-numeric values fall out of the numeric sort dimension.

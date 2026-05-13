@@ -1,6 +1,7 @@
 using GCCWebApp.Data;
 using GCCWebApp.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 using System.Text;
 using ClosedXML.Excel;
 using GCCWebApp.Services.Audit;
@@ -121,18 +122,35 @@ namespace GCCWebApp.Services
                 return (false, $"A user with email '{model.Email}' already exists");
             }
 
+            // DEF-186: minimum-length enforcement at the service layer. Previously
+            // [StringLength(MinimumLength=8)] on the view model caught this — we relaxed
+            // that to let bulk-import callers send "" so the service can generate one.
+            // Caller-provided passwords still must be >=8.
+            if (!string.IsNullOrWhiteSpace(model.Password) && model.Password.Length < 8)
+            {
+                return (false, "Password must be at least 8 characters");
+            }
+
             try
             {
+                // DEF-186: any empty/whitespace password reaching the service gets a
+                // cryptographically random one and forces RequirePasswordReset=true.
+                // Closes the path where bulk-import CSVs (or any future caller) leave
+                // password blank and silently land users on a well-known default.
+                var passwordWasProvided = !string.IsNullOrWhiteSpace(model.Password);
+                var effectivePassword = passwordWasProvided ? model.Password : GenerateSecurePassword();
+                var effectiveRequireReset = model.RequirePasswordReset || !passwordWasProvided;
+
                 var user = new User
                 {
                     Username = model.Email,
                     Email = model.Email,
                     FullName = model.Name,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(effectivePassword),
                     Status = "active",
                     TwoFactorMethod = "Email",
                     IsActive = true,
-                    RequirePasswordReset = model.RequirePasswordReset,
+                    RequirePasswordReset = effectiveRequireReset,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -404,6 +422,22 @@ namespace GCCWebApp.Services
                 user.IsActive = model.Status == "active";
                 user.UpdatedAt = DateTime.UtcNow;
 
+                // DEF-187: honor admin-typed password on Edit. Blank/null = no change
+                // (admin opened modal but didn't set a new password). Non-blank = set
+                // new hash. The controller already validated >=8 chars before reaching here.
+                var passwordChanged = !string.IsNullOrWhiteSpace(model.Password);
+                if (passwordChanged)
+                {
+                    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
+                }
+
+                // DEF-187 (rolled-in scope): also honor the "Require Password Reset"
+                // checkbox state, which was previously silently dropped here in the same
+                // way Password was — Edit modal toggled it, but UpdateUserAsync never
+                // assigned it. Now always synced from the admin's checkbox, regardless
+                // of whether they also changed the password.
+                user.RequirePasswordReset = model.RequirePasswordReset;
+
                 // Update role
                 user.Roles.Clear();
                 if (!string.IsNullOrEmpty(model.Role))
@@ -461,6 +495,26 @@ namespace GCCWebApp.Services
                         $"Updated user{roleChange}",
                         "Web UI"
                     );
+
+                    // DEF-187: password change gets its own dedicated audit row.
+                    // LogEntityChangeAsync's field-diff path returns 0 rows when nothing
+                    // else differs (PasswordHash is in the AuditService skip list to avoid
+                    // logging bcrypt hashes). A password-only change must still produce an
+                    // audit trail — security auditors need the record of admin password resets.
+                    if (passwordChanged)
+                    {
+                        await _auditService.LogAuditEventAsync(
+                            "User",
+                            user.Id.ToString(),
+                            user.Email,
+                            "UPDATE",
+                            userId,
+                            username,
+                            details: "Password changed by admin",
+                            reason: "Password changed",
+                            changeSource: "Web UI"
+                        );
+                    }
                 }
                 catch (Exception auditEx)
                 {
@@ -2792,6 +2846,25 @@ namespace GCCWebApp.Services
                 _logger.LogError(ex, "Error enabling 2FA for user {UserId}", userId);
                 return false;
             }
+        }
+
+        // DEF-186: cryptographically random temporary password for users created
+        // without an explicit one (CSV import path). The user never sees it — they
+        // must hit forgot-password on first login because RequirePasswordReset is
+        // forced to true by the caller in this branch.
+        private static string GenerateSecurePassword(int length = 24)
+        {
+            const string alphabet =
+                "ABCDEFGHJKLMNPQRSTUVWXYZ" +     // no I/O — visually ambiguous
+                "abcdefghijkmnpqrstuvwxyz" +     // no l/o
+                "23456789" +                      // no 0/1
+                "!@#$%^&*-_=+";                   // safe symbols; no quotes/backslash
+            var buffer = new char[length];
+            for (int i = 0; i < length; i++)
+            {
+                buffer[i] = alphabet[RandomNumberGenerator.GetInt32(alphabet.Length)];
+            }
+            return new string(buffer);
         }
     }
 }

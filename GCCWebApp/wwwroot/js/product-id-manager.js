@@ -1473,9 +1473,19 @@ class ProductIdManager {
         // the bulk request is harmless on the insert path. Updates still go
         // through PUT individually after, to apply field changes.
         const updates = selectedRows.filter(r => r.action === 'update' && r.existingData);
+        // DEF-191: filter must be `action === 'create'`, not `!== 'update'`.
+        // The looser `!== 'update'` form let `action === 'skip'` rows (CSV rows
+        // whose type+value already match an existing PID with identical fields)
+        // through into the bulk POST. The server then rejects them as
+        // "already exists" and the user sees "Import failed" even though they
+        // didn't actually request any change. Now skip rows are treated as
+        // no-ops in non-overwrite mode and surfaced in the success toast.
         const bulkRows = overwriteExisting
             ? selectedRows
-            : selectedRows.filter(r => r.action !== 'update');
+            : selectedRows.filter(r => r.action === 'create');
+        const skippedExisting = overwriteExisting
+            ? []
+            : selectedRows.filter(r => r.action === 'skip');
 
         let createSuccess = 0;
         let updateSuccess = 0;
@@ -1570,7 +1580,11 @@ class ProductIdManager {
         this.closeImportPreviewModal();
 
         const totalSuccess = createSuccess + updateSuccess;
-        if (totalSuccess > 0 || (errorCount === 0 && (bulkRows.length + updates.length) > 0)) {
+        // DEF-191: skippedExisting (rows the user checked that already exist
+        // with identical fields) counts as a successful no-op. Include it in
+        // the "we did something useful" condition so the result toast is
+        // accurate when the only selected rows were skips.
+        if (totalSuccess > 0 || (errorCount === 0 && (bulkRows.length + updates.length + skippedExisting.length) > 0)) {
             this.cache.clear(); // CR-018: invalidate page cache after bulk import
             await this.loadProductIds();
             let msg;
@@ -1578,11 +1592,17 @@ class ProductIdManager {
                 msg = `Imported ${createSuccess} new, updated ${updateSuccess}`;
             } else if (updateSuccess > 0) {
                 msg = `Updated ${updateSuccess} product ID(s)`;
+            } else if (createSuccess > 0) {
+                msg = `Imported ${createSuccess} product ID(s)`;
+            } else if (skippedExisting.length > 0) {
+                msg = `${skippedExisting.length} row(s) already on this certificate — nothing to change`;
             } else {
                 msg = `Imported ${createSuccess} product ID(s)`;
             }
             if (overwriteExisting) {
                 msg += ' (replace-all mode applied)';
+            } else if (skippedExisting.length > 0 && (createSuccess > 0 || updateSuccess > 0)) {
+                msg += `; ${skippedExisting.length} already on file`;
             }
             if (errorCount > 0) {
                 msg += `. ${errorCount} failed: ${errorMessages.slice(0, 3).join('; ')}`;

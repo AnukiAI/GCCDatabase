@@ -1,5 +1,35 @@
 # Observations Log
 
+## 2026-05-12 — Product ID Import: partial-select with a no-change row → "Import failed"
+
+URL: `http://localhost:5101/Certificate/Edit/26-0023`. Shawn observed that selecting a subset of rows in the Import Preview without enabling Replace-all caused the import to fail.
+
+Reproduced locally with Playwright on cert `26-0023`: upload a one-row CSV whose `Type,Product ID` already exist on the cert with identical other fields → preview classifies it as `status='unchanged', action='skip', selected=false`. User manually checks the row → JS includes it in `bulkRows` because the filter was `r.action !== 'update'`. Server rejects on the duplicate check with `"Product ID already exists on this certificate"`. Toast: `Import failed: ASIN:B08N5W0001 - Product ID already exists on this certificate`.
+
+Root cause: `applyImport()` in `wwwroot/js/product-id-manager.js` partitioned `selectedRows` using a `!== 'update'` filter, which let `'skip'` rows reach the bulk endpoint as create attempts. They should have been treated as no-ops in non-overwrite mode.
+
+Fix: changed the bulk filter to `r.action === 'create'`, added a `skippedExisting` partition, and updated the success-message branch so a skip-only selection ends with `"X row(s) already on this certificate — nothing to change"` instead of the generic failure. Mixed selections that include skips append `"; X already on file"` to the success message. Replace-all behavior unchanged. Tracked as DEF-191.
+
+Verified by re-running the four-scenario repro against localhost — all four end in a success toast that accurately describes the outcome.
+
+File: `wwwroot/js/product-id-manager.js`.
+
+## 2026-05-12 — Duplicate Download Template button in Product ID Import Preview modal
+
+URL: `http://localhost:5101/Certificate/Edit/26-0023`. Shawn flagged that the Import Preview modal footer had a "Download Template" button when the same control already exists on the Product ID Manager's main toolbar.
+
+Root cause: `Views/Shared/_ProductIdManager.cshtml` rendered the template-download affordance twice — once in the toolbar (`#downloadSample`, line 19) and once in the import preview modal footer's left cluster (calling the same `productIdManager.downloadSample()` JS handler). Two paths to the same action in one workflow.
+
+Fix: Removed the duplicate button from the modal footer. Kept the DEF-159 Replace-All toggle (the actual unique control that belongs in this footer) and the right-side Cancel + Apply Import buttons. File: `Views/Shared/_ProductIdManager.cshtml`. Tracked as DEF-190.
+
+## 2026-05-12 — Certificate Edit preview regressed from square to portrait
+
+URL: `http://localhost:5101/Certificate/Edit/26-0023`. Sidebar preview box was rendering portrait (US Letter) instead of square.
+
+Root cause: commit `6b37530` (2026-04-13, "defect resolulution") added `.certificate-create-preview { aspect-ratio: 8.5 / 11; ... }` to `wwwroot/css/certificate-create.css` — new rule that didn't exist before. The mobile media query at ≤1024px also pinned the same 8.5/11 ratio. Pre-April-13, the container had no aspect-ratio constraint and rendered closer to square via its content.
+
+Fix: changed `aspect-ratio: 8.5 / 11` → `aspect-ratio: 1 / 1` in both places. `object-fit: contain` on the inner `<img>` still prevents cropping regardless of container shape, so portrait snapshots just letterbox top/bottom inside the square frame. Files: `wwwroot/css/certificate-create.css`. Both Edit and Create pages affected (shared class).
+
 ## 2026-05-11 — DEF-167 implemented: Level-1-only cert-type filter dropdown across all three tile-view controllers
 
 Shawn's direction was Level 1 only in the dropdown, fix the data — no parent-rollup logic.
@@ -4822,3 +4852,68 @@ Loop continues
 
 **Don't try to defend the QC count. Defend the proposal for what changes next.** The 79 defects are real. The 46 LoR items are real. The 45 CPC items are real. What you can offer is: *"Here's what specifically prevents the next 100 from looking like this."* That's the conversation worth having.
 
+
+---
+
+## 2026-05-12 — UI rename: "Company Access" → "User Company" on UserManagement table + CSV templates
+
+Shawn request: on `/Admin/UserManagement`, change the **table column header** and both the **import** and **export** CSV templates from "Company Access" to "User Company". Modal field label left as "Company Access" per [only-make-requested-changes](feedback_only_requested_changes.md) rule (Shawn did not ask for the modal).
+
+Files edited:
+- `Views/Admin/UserManagement.cshtml:95` — `<th>` header
+- `wwwroot/js/userManagement.js:800,805` — export CSV column key + comment
+- `wwwroot/js/userManagement.js:861` — import template CSV header
+- `wwwroot/js/userManagement.js:1056` — import-preview "changes diff" display label
+- `Controllers/AdminController.cs:244` — comment alignment with template
+
+Server-side import is positional (reads by column **index**, not header name), so the rename is display-only; existing CSVs with the old header still parse.
+
+---
+
+## 2026-05-12 — DEF-186: User import template leaked plaintext passwords; blank cells defaulted to public `TestPass123!`
+
+Shawn raised during DEF-186 review of the Company Access → User Company rename: "password is in the import template. Is this best practice?" Answered: no, it's a high-severity security issue across 3 layers, and the blank-cell fallback compounded it with a publicly-published default.
+
+Filed as DEF-186 in `docs/tracking/defect-register.md`. Severity High (security). Fixed locally on http://localhost:5101 in one cycle:
+
+- New cryptographically-random password generator in `AdminService.CreateUserAsync` is the single safety net — any empty/whitespace password from any caller gets a 24-char random + `RequirePasswordReset=true` forced.
+- Template trimmed to 5 columns (`Name, Email, Role, Status, User Company`); Password and RequirePasswordReset columns gone.
+- Both JS bulk-import flow and server-side `/Admin/ImportUsers` parser updated to send/use empty password — relies on the service safety net.
+- `CreateUserViewModel.Password` `[Required]`/`MinimumLength=8` relaxed; min-length check moved to service for caller-supplied passwords only.
+
+End-to-end verified: imported user has `RequirePasswordReset=True`, BCrypt hash present, login with `TestPass123!` rejected, admin login still works (regression clear).
+
+**Open follow-ups (not in DEF-186 scope):**
+- Email-the-user "set your password" at import time so admin doesn't have to coordinate the forgot-password flow out-of-band.
+- Move the publicly-documented `TestPass123!` strings out of `.claude/CLAUDE.md` and `CLAUDE.md` into a dev-only secrets file. The default password being literally checked into project docs is what made DEF-186 a credential-stuffing layup.
+
+Per [feedback_no_commits.md](feedback_no_commits.md): changes left in working tree; Shawn commits.
+
+---
+
+## 2026-05-12 — User Management pagination right-aligned
+
+Shawn: `/Admin/UserManagement` pagination should be right-aligned.
+
+Root cause: shared `.pagination-wrapper` uses `justify-content: space-between`, which collapses to left-alignment because the wrapper only has one flex child (`.pagination-controls`). The `pagination-info` div was removed previously (the count display moved to `.admin-footer-info` outside the pagination container), so `space-between` no longer has anything to push apart.
+
+Fix: scoped one rule in `wwwroot/css/pages/user-management.css`:
+```css
+#user-pagination .pagination-wrapper { justify-content: flex-end; }
+```
+
+Scoped to the UserManagement-specific container ID. Product Management uses the same admin-pagination component with a different container ID (`product-pagination`) and was intentionally left untouched per `feedback_only_requested_changes.md` — Shawn asked about UserManagement only.
+
+Verified: rule served via `/css/pages/user-management.css`; shared `admin-tables.css` `.pagination-wrapper` unchanged (still `space-between`); 279 active users in dev DB so pagination renders (12 pages at pageSize=25).
+
+## 2026-05-12 — DEF-187 logged: Edit User modal password field is non-functional
+
+Surfaced while writing `docs/training/user-management.md`. Shawn asked how the admin can give a password to a user who was created via the import template, given that outbound email isn't configured yet and the Forgot Password flow is therefore dead-ended.
+
+Audit found that the Edit User modal renders a password input (`Views/Admin/UserManagement.cshtml:292-294`) that is wired in JS to send `userData.password` on save (`wwwroot/js/admin/userManagement.js:784-785`) — but the receiving model on the server, `UserViewModel` (`Models/AdminModels.cs:14-44`), has no `Password` property. The model binder silently drops the field; `AdminService.UpdateUserAsync` (`Services/AdminService.cs:397`) never touches `user.PasswordHash`. Admins who use Edit to "reset" a password get a green success toast and an unchanged DB. The new user then can't log in with the password the admin just gave them, with no visible error linking the two events.
+
+This is a pre-existing latent defect, not a DEF-186 regression. DEF-186's scope was Create + Import paths only. The Create path works correctly because it uses `CreateUserViewModel` (which does have `Password`).
+
+**Workaround documented in `docs/training/user-management.md` §3 and §4:** delete the user and recreate via Add New User. That doc should have the workaround rows removed once DEF-187 is fixed.
+
+**Fix is small** (~10 lines): add `Password` to `UserViewModel`, honor it in `UpdateUserAsync` when non-blank, hash with BCrypt, set `RequirePasswordReset=false`, log audit entry with "Password changed" redacted comment (never log the value or the hash). Full proposal in defect-register DEF-187 entry. Severity Medium — admin-only path, no security weakening, but high confusion cost pre-launch.

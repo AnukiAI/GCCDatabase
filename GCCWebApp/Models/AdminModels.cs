@@ -34,6 +34,14 @@ namespace GCCWebApp.Models
 
         public bool RequirePasswordReset { get; set; }
 
+        // DEF-187: Edit User modal password field was previously dead UI — the JS sent
+        // userData.password but UserViewModel had no Password property, so the model
+        // binder silently dropped it and UpdateUserAsync never touched user.PasswordHash.
+        // Nullable + no [Required]: blank/null = "no change", non-blank = set new password.
+        // Min-length validation lives in the controller (matches CreateUserAsync's 8-char rule).
+        [StringLength(100)]
+        public string? Password { get; set; }
+
         // 2FA Fields
         public bool TwoFactorEnabled { get; set; }
         public string? TwoFactorMethod { get; set; }
@@ -77,8 +85,12 @@ namespace GCCWebApp.Models
         [Required]
         public string Role { get; set; } = string.Empty;
         
-        [Required]
-        [StringLength(100, MinimumLength = 8)]
+        // DEF-186: Password is no longer [Required] at the model-binder layer.
+        // Bulk-import callers send "" so AdminService.CreateUserAsync can generate
+        // a cryptographically random one and force RequirePasswordReset=true.
+        // Minimum-length enforcement moved to the service (only when a password is
+        // explicitly provided by the caller; generated passwords are always 24 chars).
+        [StringLength(100)]
         public string Password { get; set; } = string.Empty;
         
         public List<int> CompanyIds { get; set; } = new List<int>();

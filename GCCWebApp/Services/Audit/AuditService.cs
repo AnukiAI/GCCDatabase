@@ -407,7 +407,12 @@ namespace GCCWebApp.Services.Audit
                 return true;
 
             // Skip internal tracking fields
-            var skipFields = new[] { "UpdatedAt", "UpdatedBy", "UpdatedByUser", "CreatedByUser", "User" };
+            // DEF-187: PasswordHash added to skip list. BCrypt hashes are still credentials
+            // — logging old/new hash pairs in AuditHistory creates an offline-cracking
+            // target if the table is ever leaked, and leaks rotation patterns. The fact
+            // that a password was changed is recorded in the audit reason string by the
+            // calling service (see AdminService.UpdateUserAsync); the hash itself is not.
+            var skipFields = new[] { "UpdatedAt", "UpdatedBy", "UpdatedByUser", "CreatedByUser", "User", "PasswordHash" };
             if (skipFields.Contains(prop.Name))
                 return true;
 

@@ -222,6 +222,15 @@
     gap: 4px;
 }
 
+/* Uniform indicator size so labels are the same height regardless of
+   whether they carry a required asterisk (*) or an (Optional) hint.
+   Without this, mixed-indicator rows (e.g. "Company *" vs "Company Email
+   (Optional)") render the main text at slightly different y. */
+.form-group label > span {
+    font-size: 12px;
+    line-height: 1;
+}
+
 .form-group input,
 .form-group select,
 .form-group textarea {
@@ -315,7 +324,7 @@
 /* ===== CERTIFICATE CREATE PREVIEW ===== */
 .certificate-create-preview {
     max-width: 350px;
-    aspect-ratio: 8.5 / 11;
+    aspect-ratio: 1 / 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -861,7 +870,7 @@
     /* Certificate preview — scale down */
     .certificate-create-preview {
         max-width: 100%;
-        aspect-ratio: 8.5 / 11;
+        aspect-ratio: 1 / 1;
     }
 
     /* Card style sections — reduce padding */

@@ -452,6 +452,18 @@ tr[role="row"]:hover {
 }
 
 /* =============================================================================
+   PAGINATION ALIGNMENT
+   ============================================================================= */
+
+/* Right-align the User Management pagination controls. The shared
+   .pagination-wrapper uses justify-content: space-between, which collapses to
+   left-alignment when there's only one child (.pagination-controls). Scoping
+   to #user-pagination keeps Product Management's pagination unchanged. */
+#user-pagination .pagination-wrapper {
+    justify-content: flex-end;
+}
+
+/* =============================================================================
    RESPONSIVE
    ============================================================================= */
 

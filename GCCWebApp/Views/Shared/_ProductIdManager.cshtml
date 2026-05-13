@@ -69,7 +69,7 @@
                        Click toggles asc/desc; ▼ default, ▲ asc, ▼ desc. *@
                     <th data-sort="type" class="admin-table-th--sortable" style="width: 80px;">Type <span class="sort-icon admin-sort-icon">▼</span></th>
                     <th data-sort="value" class="admin-table-th--sortable" style="width: 120px;">Product ID <span class="sort-icon admin-sort-icon">▼</span></th>
-                    <th data-sort="name" class="admin-table-th--sortable" style="width: 150px;">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="name" class="admin-table-th--sortable" style="width: 250px;">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
                     <th data-sort="sku" class="admin-table-th--sortable" style="width: 100px;">SKU <span class="sort-icon admin-sort-icon">▼</span></th>
                     @* CR-015: Status column removed — product ID status follows parent certificate. *@
                     <th data-sort="partner" class="admin-table-th--sortable" style="width: 100px;">Partner <span class="sort-icon admin-sort-icon">▼</span></th>
@@ -77,7 +77,7 @@
                     <th data-sort="createdBy" class="admin-table-th--sortable" style="width: 100px;">Created By <span class="sort-icon admin-sort-icon">▼</span></th>
                     @if (!isReadOnly)
                     {
-                        <th width="80">Actions</th>
+                        <th width="70">Actions</th>
                     }
                 </tr>
             </thead>
@@ -309,9 +309,6 @@
 
             <div class="admin-modal-footer" style="background-color: #f8f9fa; border-top: 2px solid #e9ecef; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 0 0 8px 8px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <button type="button" class="btn btn-outline-secondary" onclick="productIdManager.downloadSample()">
-                        <i class="fas fa-file-download me-1"></i> Download Template
-                    </button>
                     @* DEF-159: Replace-All toggle styled to be visually obvious. Carly didn't know
                        this control existed; she imported a 1-row file and got confused when 2 prior
                        IDs stayed. The pill-shaped highlight + explicit label + tooltip make the two

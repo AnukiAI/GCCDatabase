@@ -219,7 +219,14 @@
     white-space: nowrap;
 }
 
-.product-name, .product-sku {
+.product-name {
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.product-sku {
     max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;

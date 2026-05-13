@@ -18,6 +18,220 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-191 — Product ID Import: per-row selection of an "unchanged" row failed with "already exists"
+
+- **Date:** 2026-05-12
+- **Severity:** Medium (user-facing import failure on a reasonable workflow)
+- **Status:** Fixed locally — pending deploy
+- **Reporter:** Shawn — `http://localhost:5101/Certificate/Edit/26-0023`, "on the import if I just selected a few to overwrite but not check the replace all, the import fails."
+
+**Root cause:** `applyImport()` in `wwwroot/js/product-id-manager.js` partitioned the user-selected preview rows with the filter `r.action !== 'update'` for the bulk-POST payload. That filter let rows with `action === 'skip'` (CSV rows whose type+value already match an existing PID with identical field values) into the bulk endpoint as create attempts. The server then correctly rejected them with `"Product ID already exists on this certificate"` and the user saw `Import failed: ...`. The skip rows are no-ops by definition and should never have been sent.
+
+Reproduction (Playwright against localhost on cert `26-0023`): upload a one-row CSV that exactly matches an existing PID, manually check the preview row (default is unchecked for `unchanged`), leave Replace-all OFF, click Apply Import. Before fix: toast `Import failed: ASIN:B08N5W0001 - Product ID already exists on this certificate`. Server returned HTTP 200 with `successCount: 0, errorCount: 1`.
+
+**Fix:** Two changes in `wwwroot/js/product-id-manager.js` `applyImport()`:
+1. Tightened the bulk-POST filter from `r.action !== 'update'` to `r.action === 'create'` so only true new rows reach the bulk endpoint. Skip rows are now partitioned into a new `skippedExisting` list.
+2. Updated the success/failure decision so skip-only selections show a friendly no-op toast (`X row(s) already on this certificate — nothing to change`) instead of falling through to the generic `Import failed: Unknown error` branch. Mixed selections that include skips append `; X already on file` to the success message for transparency.
+
+Replace-all mode is unchanged — every non-error row still participates, and the server's deactivation logic still drives off the import keys.
+
+**Verification:** Playwright repro at `C:\Users\swest\AppData\Local\Temp\repro_import_bug.py` runs four scenarios (skip-only, modified-only, new-only, and mixed skip+update). Before fix: scenario A failed. After fix: all four scenarios end in a success toast that accurately describes the outcome.
+
+**Files:** `wwwroot/js/product-id-manager.js`
+
+---
+
+### DEF-190 — Product ID Import Preview modal had duplicate "Download Template" button
+
+- **Date:** 2026-05-12
+- **Severity:** Low (UX cleanup)
+- **Status:** Fixed locally — pending deploy
+- **Reporter:** Shawn — `http://localhost:5101/Certificate/Edit/26-0023`, "Import Preview — remove download template, it is already on the main page."
+
+**Root cause:** The Product ID Manager partial renders a Template button in the main toolbar (`#downloadSample`, line 19) for downloading the CSV import template. The Import Preview modal footer redundantly rendered a second "Download Template" button calling the same `productIdManager.downloadSample()`. Two affordances for the same action in the same workflow.
+
+**Fix:** Removed the duplicate `<button>` from the Import Preview modal footer in `Views/Shared/_ProductIdManager.cshtml`. The DEF-159 Replace-All toggle remains the only control in the footer's left cluster; the right cluster keeps Cancel + Apply Import. The main-toolbar Template button is unchanged and remains the canonical way to download the template.
+
+**Files:** `Views/Shared/_ProductIdManager.cshtml`
+
+---
+
+### DEF-189 — Certificate Edit/Create sidebar preview regressed to portrait (was square)
+
+- **Date:** 2026-05-12
+- **Severity:** Low (cosmetic)
+- **Status:** Fixed locally — pending deploy
+- **Reporter:** Shawn — `http://localhost:5101/Certificate/Edit/26-0023`, "certificate preview is showing portrait, this was square before?"
+
+**Root cause:** Commit `6b37530` (2026-04-13, "defect resolulution") introduced a new `.certificate-create-preview` CSS rule with `aspect-ratio: 8.5 / 11` (US Letter portrait) plus a duplicate at the ≤1024px breakpoint. Before that commit the class did not exist; the preview container had no aspect-ratio constraint and rendered approximately square via its content.
+
+**Fix:** Changed `aspect-ratio: 8.5 / 11` → `aspect-ratio: 1 / 1` in both occurrences (main rule + 1024px mobile rule). `object-fit: contain` on the inner `<img>` is already in place, so the snapshot is letterboxed inside the square frame without cropping. Affects both `/Certificate/Create` and `/Certificate/Edit/{id}` (shared class).
+
+**Files:** `wwwroot/css/certificate-create.css` (2 edits).
+
+---
+
+### DEF-188 — QC #169 (Cert type filter: missing types + "Product Opt / RM at top" re-raise) — by design + duplicate of DEF-175
+
+- **Date:** 2026-05-12 (audited)
+- **Severity:** N/A — review-only
+- **Status:** Closed — no new code change. Sub-claims resolve to (a) intentional R11 behavior, (b) duplicate of DEF-175 awaiting deploy.
+- **Reporter:** Client — QC #169 (5/1/26 entry, paste-quoted): *"Missing Certified Water Savings, LCA Opt, RM, WD as a certification type. CP NOTE: Anuki please confirm is it only showing certs with active listing for sorting? Is that why they aren't there? 5/1: I had made some edits to clean list. Why are Product Opt and RM now showing at the top of filter box and things are in alpha order? There is no sort ability under Cert Types to fix which is issue when we add new. See ID 169 for additional items - would just show options with applicable certs available."*
+- **Spec reference:** Search Recs R11 — *"Code that if no certs are active in cert type it does not appear in public DB. When Admin adds new cert type they need to be visible in filter."*
+
+**Sub-claim audit:**
+
+**1. "Missing Certified Water Savings, LCA Opt, RM, WD" — by design, working correctly.**
+
+`Controllers/Api/CertificateTilesApiController.cs:286-290` filters cert types via `visibleCertTypeIds.Contains(ct.Id)`, where `visibleCertTypeIds` is the distinct set of `CertificationTypeId`s referenced by certs in `baseQuery` (only `CertificateStatusHelper.PublicStatuses` — `Client Approved - Paid`, `Republished` — and not expired). Comment at lines 252-253 is explicit: *"Strict scoping: only surface filter options that have at least one cert in baseQuery. Picking any dropdown option must always return >= 1 result (no dead clicks)."* This is R11 rule-one verbatim.
+
+Carly's own follow-up question in the CP NOTE — *"is it only showing certs with active listing for sorting? Is that why they aren't there?"* — **is correct**. The 4 named types (Certified Water Savings, LCA Opt, RM, WD) currently have zero certs in `PublicStatuses` tagged to them in the live data set, so they are correctly hidden. As soon as one Client-Approved-Paid cert is tagged to any of those types, it appears in the filter automatically.
+
+This is **not a defect** — it's R11 working as specified. If client wants ALL admin-defined cert types to show regardless of cert presence, that is a CR (would break R11 rule-one and reintroduce dead clicks).
+
+**2. "Product Opt and RM showing at the top of filter box" + "things are in alpha order" + "no sort ability under Cert Types" — duplicate of DEF-175 (fixed locally, pending deploy).**
+
+Word-for-word the same quote that opened DEF-175 (5/11/26). DEF-175 changed `OrderBy(ct.SortOrder)` → `OrderBy(ct.Name)` across all three filter endpoints (Public / External / Internal). Status: Fixed locally — pending deploy. Once that build ships, "Product Opt" sorts between "Other" / "Recycled Content" alphabetically and "RM" sorts after "Recycled Content" / before "WD" — i.e. neither appears "at the top."
+
+The "no sort ability under Cert Types" piece is accurate — confirmed via `Grep` of `Views/Admin/CertificateTypes.cshtml` for `SortOrder|sortOrder|drag|reorder`, no matches. DEF-175 made this irrelevant by switching to alpha; admin-added types auto-slot into the correct alpha position without any sort-order UI.
+
+**3. "See ID 169 for additional items — would just show options with applicable certs available."**
+
+Already the behavior — covered under sub-claim 1.
+
+**Verification path post-DEF-175 deploy.**
+
+1. Client opens `/Certificate/CertificateTileViewExternal` (or any tile view) on the new build.
+2. Expand the "Certification Type" filter pane.
+3. **Expected order** (Level-1, IsActive=1, with ≥1 public cert): strict alphabetical by Name. "Product Opt" and "RM" appear in their correct alpha positions, not at the top.
+4. **Expected exclusions**: Cert types with zero current public certs are absent (Certified Water Savings, LCA Opt, RM, WD per Carly's note). This is R11 rule-one. **Caveat: if any of those four were re-tagged to a public cert between 5/1 and the deploy date, they will reappear in the filter — that is correct R11 behavior, not a regression.**
+
+**No code change in this entry.** Closing per `feedback_qc_review_no_changes.md` pattern. Carly's questions about the four missing types should be answered in the QC log response: *"R11 by design — those types have zero certs in public status. Will populate as soon as a public cert is tagged."*
+
+**Files audited (no edits):**
+
+- `Controllers/Api/CertificateTilesApiController.cs` (Public filter endpoint, lines 240-369)
+- `Models/CertificateStatus.cs` (`PublicStatuses` definition, lines 64-68)
+- `Models/CertificationType.cs` (`SortOrder` column lives on entity but read-only from UI, line 20)
+- `Views/Admin/CertificateTypes.cshtml` (confirmed no sort UI)
+
+**Cross-references:** DEF-175 (alpha sort fix), DEF-167 (Level-1-only filter), DEF-168 (orphan parent category trim).
+
+---
+
+### DEF-187 — Edit User modal: Password field is dead UI; admin-typed passwords are silently discarded
+
+- **Date:** 2026-05-12
+- **Severity:** Medium (admin-only path; no security regression vs. current state — passwords aren't *weakened*, they just don't change. But the field looks functional, so an admin who "resets" a user's password and tells them the new one will leave the user unable to log in with no error feedback. Pre-launch.)
+- **Status:** Open
+- **Reporter:** Shawn — surfaced 2026-05-12 while writing `docs/training/user-management.md`. We were documenting the password workflow for admins, hit "an imported user can't log in because email isn't configured yet, can the admin just edit the password?" and the audit found the field is non-functional.
+
+**Root cause.**
+
+The Edit User modal in `Views/Admin/UserManagement.cshtml:292-294` renders an `<input id="user-password">` that is wired through the JS layer:
+
+- `wwwroot/js/admin/userManagement.js:59` captures the input ref as `userPasswordInput`
+- `wwwroot/js/admin/userManagement.js:690-691` clears the field and sets `required = false` when the modal opens in Edit mode
+- `wwwroot/js/admin/userManagement.js:784-785` conditionally adds the value to the save payload: `if (userPasswordInput.value) { userData.password = userPasswordInput.value; }`
+
+The save payload is POSTed to `AdminController.UpdateUser` (line 144) which model-binds to `UserViewModel` (`Models/AdminModels.cs:14-44`).
+
+**`UserViewModel` does not declare a `Password` property.** The JSON field is silently dropped by the model binder. The controller calls `_adminService.UpdateUserAsync(id, model, ...)` (`Services/AdminService.cs:397`). That method updates `FullName`, `Email`, `IsActive`, `Roles`, `Companies`, `Partners` — it never reads `model.Password` (there is no such property) and never touches `user.PasswordHash`. SaveChangesAsync succeeds, audit log records "Updated user", admin sees success toast, **password unchanged.**
+
+The modal's password field, the show/hide eye toggle, and the surrounding "Security" section header are pure decoration in Edit mode. In Create mode the same control works correctly because the Create path uses `CreateUserViewModel` (which *does* have a `Password` property) and `AdminService.CreateUserAsync` honors it.
+
+This is a pre-existing latent defect — not a DEF-186 regression. DEF-186's scope was the import / create pathways; the Edit path was not touched and the dead-UI nature was already there.
+
+**Impact.**
+
+- **No password can be changed from the admin UI today.** The only ways to set a user's password are (1) Create a new user via the Add New User modal, (2) trigger the Forgot Password email flow (requires working SMTP — not configured pre-launch), or (3) direct DB UPDATE of `Users.PasswordHash`.
+- Admins doing user management today are likely to think they've reset a password and communicate it to the user, who then can't log in. No error surface to catch the mismatch.
+- Pre-launch, the practical workaround is "delete the user and recreate via Add New User." That's what `docs/training/user-management.md` §3 and §4 currently document — and that documentation needs to be removed once this is fixed.
+
+**Proposed fix (~10 lines).**
+
+1. **`Models/AdminModels.cs:UserViewModel`** — add `public string? Password { get; set; }` (nullable string; blank = no change).
+2. **`Services/AdminService.cs:UpdateUserAsync`** — before `SaveChangesAsync`, add:
+   ```csharp
+   // DEF-187: honor admin-typed password on Edit User. Blank/null = no change.
+   if (!string.IsNullOrWhiteSpace(model.Password))
+   {
+       if (model.Password.Length < 8)
+       {
+           // Return a tuple instead of bool, mirroring CreateUserAsync DEF-107 pattern,
+           // OR throw a validation-style exception caught by the controller. Pick one
+           // and align with the Create path.
+           return false;
+       }
+       user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
+       user.RequirePasswordReset = false; // admin explicitly set it; no further reset needed
+       user.UpdatedAt = DateTime.UtcNow;
+   }
+   ```
+3. **`AdminController.UpdateUser`** — no change needed if step 2 keeps returning `bool`. Better: change `UpdateUserAsync` to `(bool, string?)` mirroring `CreateUserAsync` DEF-107 so the "password too short" case can return a meaningful message to the UI.
+4. **Audit log entry** — `AuditService.LogEntityChangeAsync` already gets old/new user; do NOT log the password value. Use a redacted `"Password changed"` flag in the comment string instead. Verify the audit-diff path doesn't try to serialize `PasswordHash` (it likely doesn't, but check).
+5. **Verification** — Playwright test: open Edit User for the `analyst` seed account, type a new password, save, log out, log in with the new password, confirm success. Then re-open Edit and confirm the password field is cleared (not pre-filled with the hash).
+
+**Files to touch.**
+
+- `Models/AdminModels.cs`
+- `Services/AdminService.cs`
+- `Controllers/AdminController.cs` (if return shape changes)
+- `Services/IAdminService.cs` (if return shape changes)
+- `docs/training/user-management.md` — remove the "Edit User modal password field is non-functional" troubleshooting row and the §3 caveat once this ships
+
+**Not in scope.**
+
+- Email-driven password reset for non-admin users — still gated on SMTP being configured (separate item).
+- Force-reset-on-next-login as a separate admin button — could be added later; for now the existing `RequirePasswordReset` checkbox in the Edit modal stays, but a future enhancement could add a dedicated "Send password reset" button that works even without admin typing a password.
+- Strength meter / complexity requirements — current rule is just 8-char minimum (matches Create path). Stronger policy is a separate CR.
+
+---
+
+### DEF-186 — User import template leaked plaintext passwords; blank cells silently defaulted to the public `TestPass123!`
+
+- **Date:** 2026-05-12
+- **Severity:** **High** (security — pre-launch, no production data yet, but the bulk-user-onboarding path was the primary mechanism for getting client users into the live system)
+- **Status:** Fixed locally — verified on http://localhost:5101
+- **Reported by:** Shawn (raised during the Company Access → User Company rename review)
+
+**Root cause (3 layers).**
+
+1. **JS template** (`wwwroot/js/userManagement.js` `downloadImportTemplate()`) generated a 7-column CSV including a `Password` column. The template literally invited admins to type plaintext passwords into a spreadsheet that lives in Downloads / SharePoint / email.
+
+2. **JS bulk-import flow** (`wwwroot/js/userManagement.js` ~line 1386) applied `password: row.data.password || 'TestPass123!'` as a fallback. Any blank Password cell — the *normal* case for an admin who didn't pre-decide each user's password — silently created the user with `TestPass123!`, the same well-known string published as a local-dev credential in the project root `.claude/CLAUDE.md`. Credential-stuffing layup.
+
+3. **Server positional parser** (`AdminController.ImportUsers()` line 284) applied the same `?? "TestPass123!"` fallback. Even an admin who bypassed the JS preview and POSTed a CSV directly to `/Admin/ImportUsers` would get the same bad default.
+
+The `CLAUDE.md` published-credential lookup is what makes this a **High** rather than Medium — the default password is publicly known to anyone who reads the repo or its docs (and the doc says it explicitly: "TestPass123!" for admin/analyst/external local-dev accounts).
+
+**Fix.**
+
+- **`Services/AdminService.cs:CreateUserAsync` — safety net at the service boundary.** Any caller-supplied empty/whitespace `model.Password` triggers `GenerateSecurePassword()` (cryptographically random 24-char, sourced from `RandomNumberGenerator.GetInt32` over a 70-char alphabet of A-Z a-z 0-9 + safe symbols). When this fires, `RequirePasswordReset` is also forced to `true` regardless of caller intent. Single point of truth — both Path A (JS) and Path B (server CSV) can stop caring about defaults.
+
+- **`wwwroot/js/userManagement.js` template** — `Password` and `RequirePasswordReset` columns removed from generated template. New 5-column layout: `Name, Email, Role (Admin/Analyst/External), Status (Active/Inactive), User Company (semicolon-separated names, or "All")`. Quoting logic for User Company's internal comma still applies.
+
+- **`wwwroot/js/userManagement.js` import flow** — fallback `'TestPass123!'` removed. Bulk-import row now sends `password: ''` deliberately. Modal create flow (admin manually adds one user) is unchanged — it still validates a non-empty password (line 683) because in that flow the admin has set one explicitly.
+
+- **`Controllers/AdminController.cs:ImportUsers`** — positional parser rewritten for the 5-column layout: `values[0]=Name, [1]=Email, [2]=Role, [3]=Status, [4]=User Company`. Password is never read from CSV; always sent as empty so the service-layer safety net generates random + forces reset. Comment updated. Legacy 7-column CSVs uploaded against the new parser still work for Name/Email/Role/Status but `Status` and `User Company` would land in wrong slots — old templates must be re-downloaded. This is documented in the shipped log.
+
+- **Forced reset on first login.** Because the user can't be told a password they didn't set, they must hit the existing forgot-password flow on first login. The `RequirePasswordReset` flag already gates this path; the random password is effectively unusable.
+
+**Files:**
+
+- `wwwroot/js/userManagement.js`
+- `Controllers/AdminController.cs`
+- `Services/AdminService.cs`
+
+**Verification:** see shipped-2026-05.md entry for the localhost test run.
+
+**Follow-ups (not in scope for DEF-186):**
+
+- Trigger an email-the-user "set your password" message at import time (today user gets nothing — admin would have to tell them out-of-band to use forgot-password). Tracked as `[[issue_import_user_notification_email]]`.
+- Move the published `TestPass123!` strings out of `.claude/CLAUDE.md` and `CLAUDE.md` into `appsettings.Development.json` or an env var so the dev-credential list isn't checked into the repo's docs. Separate cleanup.
+
+---
+
 ### DEF-185 — Certificate Create/Edit: non-nullable FKs (Company/Product/CertificationType) had no explicit server `> 0` guard
 
 - **Date:** 2026-05-12

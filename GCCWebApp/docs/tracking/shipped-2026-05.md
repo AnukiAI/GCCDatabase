@@ -6,6 +6,40 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-191 — Product ID Import no longer fails when the user picks a row that's already on file (2026-05-12, in working tree pending deploy)
+
+Shawn flagged that the Product ID Import Preview on `/Certificate/Edit/{id}` would fail with `Import failed: ... Product ID already exists on this certificate` when the user selected a subset of preview rows without enabling Replace-all. Reproduced on cert `26-0023`: upload a one-row CSV whose Type+Product ID already exist on the cert with identical field values, manually tick the preview row (default is unchecked for an `unchanged` row), leave Replace-all OFF, click Apply Import → red error toast, HTTP 200 with `successCount: 0, errorCount: 1` from the bulk endpoint.
+
+Root cause was a too-loose filter in `applyImport()` in `wwwroot/js/product-id-manager.js`. The code split selected preview rows into bulk-POST rows vs. PUT-update rows with `r.action !== 'update'`, which let `'skip'` rows (CSV rows that match an existing PID with no field changes) into the bulk endpoint. The server correctly rejected them as duplicates. Skip rows should have been treated as no-ops in non-overwrite mode.
+
+Fix is two changes in the same function: tightened the bulk filter to `r.action === 'create'`, added a `skippedExisting` partition, and updated the success/failure decision so a skip-only selection ends with the friendly `"X row(s) already on this certificate — nothing to change"` toast. Mixed selections that include skips append `"; X already on file"` to whatever the actual outcome was, so the user can tell what got applied versus what was already in place. Replace-all mode is unchanged — every non-error row still drives the server's deactivation logic.
+
+Verified end-to-end with a four-scenario Playwright repro against localhost cert `26-0023`: (A) skip-only → friendly no-change toast; (B) modified-only → `Updated 1 product ID(s)`; (C) new-only → `Imported 1 product ID(s)`; (D) mixed update + skip → `Updated 1 product ID(s)`. Before the fix, scenario A and any scenario including a checked skip row would have failed with the generic `Import failed` error. After the fix all four scenarios end in an accurate success toast.
+
+Files: `wwwroot/js/product-id-manager.js`, `observations_log.md`, `docs/tracking/defect-register.md` (DEF-191 entry), `docs/tracking/shipped-2026-05.md` (this entry).
+
+---
+
+## DEF-190 — Product ID Import Preview drops the redundant "Download Template" button (2026-05-12, in working tree pending deploy)
+
+Shawn pointed out that the Import Preview modal on `/Certificate/Edit/{id}` had a Download Template button in its footer, while the Product ID Manager's main toolbar already exposes the same template download. Two paths to the same action inside one workflow, which is what triggered the call-out.
+
+Fix is one block removal in `Views/Shared/_ProductIdManager.cshtml`: the footer `<button onclick="productIdManager.downloadSample()">` was deleted from the import preview modal. The toolbar's `#downloadSample` button (used by both the main page and as the canonical entry for getting the CSV template) is unchanged. The DEF-159 Replace-All pill toggle stays put in the footer's left cluster — it's the actual unique control that belongs there. Cancel + Apply Import on the right cluster also unchanged.
+
+Files: `Views/Shared/_ProductIdManager.cshtml`, `observations_log.md`, `docs/tracking/defect-register.md` (DEF-190 entry), `docs/tracking/shipped-2026-05.md` (this entry).
+
+---
+
+## DEF-189 — Certificate Edit/Create sidebar preview back to square (2026-05-12, in working tree pending deploy)
+
+Shawn flagged that the certificate snapshot preview on `/Certificate/Edit/{id}` was rendering portrait (8.5×11 letter) but had been square previously. A quick `git log -S "aspect-ratio"` against the certificate-create stylesheet traced the change to commit `6b37530` ("defect resolulution", 2026-04-13) where a new `.certificate-create-preview` rule was introduced with `aspect-ratio: 8.5 / 11`, duplicated again under the ≤1024px breakpoint. Before that commit, the class did not exist, so the box took its size from the inner content and read as roughly square.
+
+Fix is two one-token edits in `wwwroot/css/certificate-create.css`: `aspect-ratio: 8.5 / 11` → `aspect-ratio: 1 / 1` in both the main rule and the 1024px media query. The inner `<img>` keeps its existing `object-fit: contain`, so portrait or landscape snapshot images letterbox cleanly inside the square frame without any cropping. The change applies to both `/Certificate/Create` and `/Certificate/Edit/{id}` because they share the class.
+
+Files: `wwwroot/css/certificate-create.css`, `observations_log.md`, `docs/tracking/defect-register.md` (DEF-189 entry), `docs/tracking/shipped-2026-05.md` (this entry).
+
+---
+
 ## DEF-185 — Certificate Create/Edit now reject zero FKs with a clean error instead of letting them reach EF (2026-05-12, in working tree pending deploy)
 
 This is the audit follow-up Shawn scoped in DEF-184. After fixing the missing-Category bug on Product Add, the question was whether other create/edit forms had the same gap. A focused audit of the three forms with non-nullable FKs — Product Add/Edit, Certificate Create, Certificate Edit — found that the Product form was now fully covered (DEF-184 fix plus the long-standing Company pattern) but both Certificate forms had a latent gap on three FKs each: `CompanyId`, `ProductId`, and `CertificationTypeId`.
@@ -1140,3 +1174,69 @@ Files: `wwwroot/js/userManagement.js` (template quoting), `Controllers/AdminCont
 
 ---
 
+
+## UI rename — "Company Access" → "User Company" on User Management table + CSV templates (2026-05-12)
+
+Per Shawn request: on `/Admin/UserManagement` the column header on the table and the column header in both the **import template** and **export CSV** now read "User Company" instead of "Company Access". The Add/Edit User modal label is unchanged.
+
+Server-side import logic is unaffected because `AdminController.ImportUsers()` parses by column **index**, not by header name. Existing files using the old "Company Access" header still import without modification. The change is display-only.
+
+Files: `Views/Admin/UserManagement.cshtml`, `wwwroot/js/userManagement.js`, `Controllers/AdminController.cs` (comment alignment).
+
+---
+
+## DEF-186 — User import template leaked plaintext passwords; blank cells silently defaulted to public `TestPass123!` (2026-05-12)
+
+**Severity:** High (security — pre-launch, but the bulk-user-onboarding path was the primary mechanism for onboarding client users into the live system once live).
+
+Raised by Shawn during DEF-186 review of the Company Access → User Company rename. Three layers of the user-import flow conspired to make plaintext passwords almost-inevitable:
+
+1. The generated CSV template included a `Password` column — invited admins to type plaintext passwords into a spreadsheet that ends up in Downloads / SharePoint / email.
+2. The JS bulk-import flow (`wwwroot/js/userManagement.js`) applied `password: row.data.password || 'TestPass123!'` — any blank cell silently created the user with the **publicly-published** local-dev password from `CLAUDE.md`.
+3. The server positional parser (`AdminController.ImportUsers`) had the same `?? "TestPass123!"` fallback.
+
+**Fix.**
+
+- **Single safety net at the service boundary** (`AdminService.CreateUserAsync`). Any caller-supplied empty/whitespace password triggers `GenerateSecurePassword()` — cryptographically random 24-char password sourced from `RandomNumberGenerator.GetInt32` over a 70-char visually-unambiguous alphabet. When this fires, `RequirePasswordReset` is forced to `true` regardless of caller intent. Both the JS path and the server CSV path now route through this safety net.
+
+- **Template (`wwwroot/js/userManagement.js`)** — `Password` and `RequirePasswordReset` columns removed. Template is now 5 columns: `Name, Email, Role, Status, User Company`. RequirePasswordReset is implicit-yes for all imported users.
+
+- **JS bulk-import flow** — fallback `'TestPass123!'` removed; row now sends `password: ''` deliberately.
+
+- **Server parser (`AdminController.ImportUsers`)** — rewritten for 5-column layout. Password never read from CSV; service-layer safety net is the single source of truth for password generation.
+
+- **Model relaxation (`CreateUserViewModel.Password`)** — `[Required]` and `MinimumLength=8` removed. The min-length check moved to the service: caller-provided passwords still must be ≥8 chars, but empty is acceptable (triggers random generation).
+
+**Breaking change for re-uploads.** Admins who downloaded the old 7-column template must re-download. Legacy 7-column CSVs uploaded against the new parser would land Status/User Company in wrong slots. This is intentional — keeping the old layout would require keeping the Password column readable, which is exactly what we're closing.
+
+**Forced-reset flow.** Imported user gets a random password they never see → on first login they must use Forgot Password. Future work tracked: trigger an "set your password" email at import time so admin doesn't have to tell the user out-of-band.
+
+**Verification on http://localhost:5101:**
+
+- Served `wwwroot/js/userManagement.js`: template has no `'Password'` column; no `'TestPass123!'` fallback; bulk-import sends `password: ''` and `requirePasswordReset: true`. ✓
+- CSV import of a fresh test row (`def186-test-20623@example.com`, 5-column CSV): HTTP 200, user created. ✓
+- DB inspection: `RequirePasswordReset=True`, BCrypt hash present (60 chars, `$2a$11$` prefix). ✓
+- Attempted login as imported user with `TestPass123!`: **rejected** (final URL stays at `/Account/Login`). ✓
+- Regression: admin (pre-existing) still logs in with `TestPass123!` — unrelated auth untouched. ✓
+
+**Files:** `Services/AdminService.cs`, `Controllers/AdminController.cs`, `Models/AdminModels.cs`, `wwwroot/js/userManagement.js`.
+
+---
+
+## User Management pagination right-aligned (2026-05-12)
+
+Per Shawn: `/Admin/UserManagement` pagination controls should be right-aligned (were collapsing to the left because the shared `.pagination-wrapper` uses `justify-content: space-between` with only one flex child after the count display moved out).
+
+Fix: one scoped CSS rule in `wwwroot/css/pages/user-management.css`:
+
+```css
+#user-pagination .pagination-wrapper { justify-content: flex-end; }
+```
+
+Scope is intentional — Product Management (`#product-pagination`) uses the same admin-pagination component but Shawn didn't ask for it to change. Shared `admin-tables.css` `.pagination-wrapper` rule untouched.
+
+Verified on http://localhost:5101: rule present in served CSS; shared rule unchanged; 279 active users in dev DB confirms pagination will render (12 pages at pageSize=25).
+
+Files: `wwwroot/css/pages/user-management.css`.
+
+---

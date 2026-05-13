@@ -27,7 +27,17 @@ namespace GCCWebApp.Controllers
 
         private int? GetCurrentUserId()
         {
-            var userIdClaim = User.FindFirst("UserId");
+            // DEF-187 (rolled-in): AccountController.SignInUser issues the user's int Id
+            // via ClaimTypes.NameIdentifier (see AccountController.cs ~line 1138). The
+            // previous "UserId" lookup here matched no claim and silently returned null,
+            // so every admin action passed userId=0 to the audit service, which then failed
+            // FK_AuditHistory_Users_ChangedBy and lost the row in a swallowed catch. Result:
+            // no admin User UPDATE audit rows had ever been written in dev DB (0 in 264 rows).
+            // CertificateController.GetCurrentUserId already uses NameIdentifier (and sub
+            // as B2C fallback) — aligning here.
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+                              ?? User.FindFirst("sub")
+                              ?? User.FindFirst("UserId"); // kept as last-resort legacy fallback
             if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
             {
                 return userId;
@@ -145,11 +155,24 @@ namespace GCCWebApp.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return Json(new ApiResponse<object> 
-                { 
-                    Success = false, 
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
                     Message = "Invalid data provided",
                     Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            // DEF-187: when the admin types a new password, enforce the same 8-char
+            // minimum that CreateUserAsync uses for caller-provided passwords. Blank/null
+            // means "no change" and skips validation — the service will leave the existing
+            // PasswordHash untouched.
+            if (!string.IsNullOrWhiteSpace(model.Password) && model.Password.Length < 8)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Password must be at least 8 characters"
                 });
             }
 
@@ -240,11 +263,16 @@ namespace GCCWebApp.Controllers
                                 continue;
                             }
 
-                            // QC #108: CSV Format aligned with template:
-                            // Name, Email, Role, Password, Status, RequirePasswordReset, Company Access (semicolon-separated names, or "All")
-                            var statusVal = values.Length > 4 ? values[4].Trim() : "Active";
-                            var resetVal = values.Length > 5 ? values[5].Trim() : "Yes";
-                            var companyAccessRaw = values.Length > 6 ? values[6].Trim() : string.Empty;
+                            // DEF-186: CSV Format aligned with template (5 columns):
+                            //   Name, Email, Role, Status (Active/Inactive), User Company (semicolon names, or "All")
+                            // Password column was removed from the template — admins were typing
+                            // plaintext passwords into a spreadsheet, and blank cells silently
+                            // landed users with the public-default "TestPass123!". Server now
+                            // generates a cryptographically random password and forces
+                            // RequirePasswordReset=true (AdminService.CreateUserAsync safety net).
+                            // Status column (values[3]) is informational only — service hardcodes
+                            // new users to "active"; toggling inactive at import time was never wired.
+                            var companyAccessRaw = values.Length > 4 ? values[4].Trim() : string.Empty;
 
                             // Resolve company access to IDs. Literal "All" (case-insensitive) grants
                             // every company — must match the JS preview's resolveCompanyIds().
@@ -276,15 +304,18 @@ namespace GCCWebApp.Controllers
                                 }
                             }
 
+                            // DEF-186: Password intentionally left empty — AdminService.CreateUserAsync
+                            // generates a cryptographically random one and forces RequirePasswordReset
+                            // when caller leaves it blank. RequirePasswordReset=true here is belt-and-suspenders
+                            // (the service forces it anyway when Password is empty).
                             var model = new CreateUserViewModel
                             {
                                 Name = values[0].Trim(),
                                 Email = values[1].Trim(),
                                 Role = values[2].Trim(),
-                                Password = values.Length > 3 && !string.IsNullOrWhiteSpace(values[3]) ? values[3].Trim() : "TestPass123!",
+                                Password = string.Empty,
                                 CompanyIds = companyIds,
-                                RequirePasswordReset = resetVal.Equals("Yes", StringComparison.OrdinalIgnoreCase) ||
-                                                       resetVal.Equals("true", StringComparison.OrdinalIgnoreCase)
+                                RequirePasswordReset = true
                             };
 
                             if (string.IsNullOrWhiteSpace(model.Name))

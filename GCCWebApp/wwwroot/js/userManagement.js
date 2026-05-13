@@ -797,12 +797,12 @@ class UserManagement {
         }
 
         try {
-            // CSV columns must match UI table headers exactly: Name, Company Access, Email, Role, Status, Last Login, 2FA
+            // CSV columns must match UI table headers exactly: Name, User Company, Email, Role, Status, Last Login, 2FA
             const exportData = this.filteredUsers.map(user => {
                 const access = this.getCompanyAccessDisplay(user);
                 return {
                     Name: user.name || '',
-                    'Company Access': access === 'All'
+                    'User Company': access === 'All'
                         ? 'All'
                         : (user.companyNames ? user.companyNames.join('; ') : (user.company || '')),
                     Email: user.email || '',
@@ -849,19 +849,21 @@ class UserManagement {
     
     downloadImportTemplate() {
         try {
-            // Template headers aligned with table/export. Status: Active/Inactive. RequirePasswordReset: Yes/No.
+            // DEF-186: Password and RequirePasswordReset columns removed. Server generates
+            // a cryptographically random temporary password per imported user and forces
+            // password reset on first login. Admins should never type plaintext passwords
+            // into a CSV that ends up in Downloads / SharePoint / email.
             // Multiple companies separated by semicolons (company names, not IDs); use literal "All" to grant access to every company.
             const headers = [
                 'Name',
                 'Email',
                 'Role (Admin/Analyst/External)',
-                'Password',
                 'Status (Active/Inactive)',
-                'RequirePasswordReset (Yes/No)',
-                'Company Access (semicolon-separated names, or "All")'
+                'User Company (semicolon-separated names, or "All")'
             ];
-            // Quote any header that contains a comma or quote so the row parses as 7 columns
-            // (RFC 4180). Otherwise the 7th header's internal comma yields a phantom 8th column.
+            // Quote any header that contains a comma or quote so the row parses as the
+            // correct column count (RFC 4180). Otherwise the User Company header's
+            // internal comma yields a phantom extra column.
             const csvContent = headers
                 .map(h => /[",]/.test(h) ? `"${h.replace(/"/g, '""')}"` : h)
                 .join(',');
@@ -1053,7 +1055,7 @@ class UserManagement {
                         ? 'All'
                         : (existingUser.company || existingUser.companyNames?.join(', ') || '');
                     if (existingCompany.toLowerCase() !== importUser.company.trim().toLowerCase()) {
-                        changes.push({ field: 'Company Access', oldValue: existingCompany, newValue: importUser.company });
+                        changes.push({ field: 'User Company', oldValue: existingCompany, newValue: importUser.company });
                     }
                 }
 
@@ -1378,13 +1380,16 @@ class UserManagement {
                 // Resolve company name/ID from CSV to actual company IDs
                 const companyIds = this.resolveCompanyIds(row.data.company);
 
+                // DEF-186: never send a fallback password for bulk-imported users.
+                // Server (AdminService.CreateUserAsync) generates a random one and
+                // forces RequirePasswordReset=true when password is empty.
                 const userData = {
                     name: row.data.name,
                     email: row.data.email,
                     role: row.data.role,
                     status: row.data.status,
-                    password: row.data.password || 'TestPass123!',
-                    requirePasswordReset: row.data.requirePasswordReset || !row.data.password,
+                    password: '',
+                    requirePasswordReset: true,
                     companyIds: companyIds
                 };
 

@@ -4917,3 +4917,53 @@ This is a pre-existing latent defect, not a DEF-186 regression. DEF-186's scope 
 **Workaround documented in `docs/training/user-management.md` §3 and §4:** delete the user and recreate via Add New User. That doc should have the workaround rows removed once DEF-187 is fixed.
 
 **Fix is small** (~10 lines): add `Password` to `UserViewModel`, honor it in `UpdateUserAsync` when non-blank, hash with BCrypt, set `RequirePasswordReset=false`, log audit entry with "Password changed" redacted comment (never log the value or the hash). Full proposal in defect-register DEF-187 entry. Severity Medium — admin-only path, no security weakening, but high confusion cost pre-launch.
+
+## 2026-05-12 — DEF-187 fixed and verified — rolled in 3 latent admin-audit bugs along the way
+
+Implementation went as proposed for the core password-field fix: added `Password` to `UserViewModel`, honored it in `UpdateUserAsync` (BCrypt hash to `user.PasswordHash`), 8-char min validation in the controller, build clean. But verification surfaced three pre-existing bugs in adjacent code that I rolled into DEF-187 because they're tightly coupled to the audit trail of the password change.
+
+**Rolled-in bug 1 — `RequirePasswordReset` checkbox in Edit modal is dead UI.** Same root pattern as the password field. JS sends `requirePasswordReset` on save, `UpdateUserAsync` never read it. Fix: assign `user.RequirePasswordReset = model.RequirePasswordReset` unconditionally (independent of whether password was also changed). The Security section of the Edit modal now has zero decorative controls.
+
+**Rolled-in bug 2 — audit log was about to start leaking bcrypt hashes.** `AuditService.DetectChanges` reflects over all public props of `User`. As soon as `UpdateUserAsync` started actually changing `PasswordHash`, every password change would have written the old + new BCrypt hashes into `AuditHistory.OldValue` and `AuditHistory.NewValue`. An auditor leaking the audit table would then have an offline-cracking target. Added `"PasswordHash"` to `ShouldSkipProperty`'s skip list. The fact of the change is preserved through a separate `LogAuditEventAsync` call I added in `UpdateUserAsync` — single row, `NewValue = "Password changed by admin"`, `Reason = "Password changed"`. Auditors get the trail; the hash never leaves the `Users` table.
+
+**Rolled-in bug 3 — no admin User-UPDATE audit row had ever been written.** Direct query: `SELECT COUNT(*) FROM AuditHistory WHERE EntityType='User' AND Action='UPDATE'` returned **zero** in dev DB across the entire history. Server log on every admin attempt showed `FK_AuditHistory_Users_ChangedBy` violations swallowed by the audit catch. Root cause: `AdminController.GetCurrentUserId()` line 28 looks for a claim named `"UserId"` which is never issued. `AccountController.SignInUser` line 1138 issues the int Id on `ClaimTypes.NameIdentifier`, and `CertificateController.GetCurrentUserId()` reads it from there — `AdminController` had diverged at some point. Every admin audit call passed `userId=0`, the EF INSERT hit the FK constraint against `Users.Id`, the catch logged and ate the exception. **Blast radius: every admin-initiated audit event in dev/test — user updates, product updates, role updates, tag updates — silently lost since the divergence.** One-line fix: align `AdminController.GetCurrentUserId` to read `NameIdentifier` first, with `sub` (B2C) and legacy `"UserId"` as fallbacks. Audit rows immediately started writing after the fix.
+
+Verification: 7-step PowerShell script archived at `C:\Users\swest\AppData\Local\Temp\verify-def-187.ps1`. Admin login → PUT UpdateUser with new password → login with new password succeeds (302 to `/Certificate/CertificateTileViewInternal`) → login with old password fails (200 login re-render) → restore password to seed default → DB query confirms `Users.Id=2.PasswordHash` is a fresh BCrypt and `RequirePasswordReset=0` → DB query confirms two new `AuditHistory` rows with redacted text only, `ChangedBy=1` (admin), no bcrypt hash in any column. All 7 steps passed cleanly against http://localhost:5101.
+
+Files: `Models/AdminModels.cs`, `Services/AdminService.cs`, `Services/Audit/AuditService.cs`, `Controllers/AdminController.cs`.
+
+Once this ships, `docs/training/user-management.md` §3 and §4 need the "delete and recreate as a workaround" rows pulled — the Edit User flow now works.
+
+Out of scope but flagged: `AuditService.SerializeEntity` (used by the CREATE-event path) uses raw `JsonSerializer.Serialize` with no field exclusion, which means newly-created users currently have their `PasswordHash` bcrypt serialized into `AuditHistory.NewValue` JSON blobs. Pre-existing, separate scope from DEF-187. Worth a future DEF if Shawn wants the audit table cleaned of all hash material.
+
+## 2026-05-12 — DEF-187 audit-serialization fix (correction to the previous flag, plus the actual fix)
+
+Shawn asked me to fix the previously-flagged audit-serialization concern. On closer inspection my flag was **wrong on the credential-leak part** but **right that there's a real bug**.
+
+What I claimed: `SerializeEntity` raw-dumps the User entity to JSON including `PasswordHash`.
+
+What's actually true:
+1. `User.PasswordHash` has `[JsonIgnore]` (`Models/User.cs:37` — DEF-121 lineage). Same for `TwoFactorSecret`, `RecoveryCodes`, `SecurityQuestions`, `AllowedIPs`, `PasswordResetToken`, `PasswordResetTokenExpiry`, `PasswordHistory`. So credentials are already protected at the model level — `JsonSerializer.Serialize` skips them automatically.
+2. The audit table for every existing User CREATE row contains the literal string `[Serialization failed: User]`. Same for Certificate. Full serialization fails entirely because of cycles in nav properties (User↔Roles, Cert↔Products), the `try`/`catch` in `SerializeEntity` returns the placeholder string. No credential leak, but **no audit content either** — for the most security-relevant CREATE/DELETE events on the most security-relevant entity types.
+
+So the actual bug is data-quality, not data-leakage. Fixed it anyway because the audit trail being useless for User and Certificate creates is a real compliance concern.
+
+Implementation: in `Services/Audit/AuditService.cs`, extracted the audit skip-list (`UpdatedAt`, `UpdatedBy`, `UpdatedByUser`, `CreatedByUser`, `User`, `PasswordHash`) to a `private static readonly string[] AuditSkipFields` so both `DetectChanges` and `SerializeEntity` share one definition. Rewrote `SerializeEntity` to use a cached `static readonly JsonSerializerOptions` with `ReferenceHandler.IgnoreCycles` plus a `DefaultJsonTypeInfoResolver` modifier that drops (a) properties matching the skip-list and (b) navigation collections — same exclusions as the field-diff path, so the two audit code paths agree on what counts as "the entity itself."
+
+Verification: separate PowerShell script at `C:\Users\swest\AppData\Local\Temp\verify-audit-serialization.ps1`. Created an ephemeral test user via `/Admin/CreateUser`, queried `AuditHistory` for the latest User CREATE row, ran 5 assertions, deleted the test user. Results: the new audit row is 622 chars of clean scalar-only JSON (`{"Id":323,"Username":"audit.serialization.<ticks>@…","Email":"…","FullName":"Audit Serialization Test","IsDeleted":false,"Status":"active","IsActive":true,…}`). No "Serialization failed" placeholder. No `PasswordHash` substring. No BCrypt-shaped strings (regex `\$2[aby]\$\d{2}\$[A-Za-z0-9./]{53}` doesn't match). No other JsonIgnore'd security fields (TwoFactorSecret, RecoveryCodes, etc.). All 5 assertions passed.
+
+Pre-existing placeholder rows remain in `AuditHistory` — cannot be backfilled (the original entity state was never captured). Going forward only.
+
+Rolled into DEF-187 as scope item #4 since it's the same family of audit-trail issues uncovered during this session.
+
+## 2026-05-12 — DEF-188 audit: QC #169 (cert type filter) — no code change
+
+Client QC #169 (5/1/26 entry) bundled three sub-claims about the Certification Type filter on the tile views. Audited against `Controllers/Api/CertificateTilesApiController.cs:240-369`, `Models/CertificateStatus.cs`, `Models/CertificationType.cs`, and `Views/Admin/CertificateTypes.cshtml`. All three resolve without new code.
+
+**Sub-claim 1 — "Missing Certified Water Savings, LCA Opt, RM, WD."** R11 by design. Filter pulls `visibleCertTypeIds` = distinct `CertificationTypeId`s on certs in `PublicStatuses` (`Client Approved - Paid` / `Republished`) and not expired (lines 252-257). The four named types have zero certs in public status right now, so they're correctly hidden — comment at lines 252-253 documents this as the "no dead clicks" rule. Client's own follow-up in the CP NOTE — *"is it only showing certs with active listing... is that why they aren't there?"* — is exactly right. Will auto-populate the moment a Client-Approved-Paid cert is tagged to any of them.
+
+**Sub-claim 2 — "Product Opt and RM at top in alpha order + no sort ability under Cert Types."** Word-for-word duplicate of QC #124 (already addressed by DEF-175, 5/11/26). DEF-175 switched `OrderBy(ct.SortOrder)` → `OrderBy(ct.Name)` on all three filter endpoints; status is Fixed locally, pending deploy. Once the build ships, "Product Opt" / "RM" sort into their correct alpha positions, not the top. The "no sort ability" piece is accurate — confirmed `Views/Admin/CertificateTypes.cshtml` has no SortOrder UI — but DEF-175 made it moot by making the sort alpha (auto-positions new admin-added types without any UI intervention).
+
+**Sub-claim 3 — "Would just show options with applicable certs available."** Already the behavior (sub-claim 1).
+
+**Net result:** Closed DEF-188 as review-only. Carly's response should be: (a) the four hidden types are R11 working as specified — they'll appear when a public cert is tagged; (b) the alpha-order / "Product Opt at top" complaint is the QC #124 fix that's queued for the next deploy. Cross-references to DEF-175 / DEF-167 / DEF-168 noted in the DEF-188 entry. Per `feedback_qc_review_no_changes.md`: triage only, no code edits.

@@ -35,7 +35,7 @@ Reproduction (Playwright against localhost on cert `26-0023`): upload a one-row 
 
 Replace-all mode is unchanged — every non-error row still participates, and the server's deactivation logic still drives off the import keys.
 
-**Verification:** Playwright repro at `C:\Users\swest\AppData\Local\Temp\repro_import_bug.py` runs four scenarios (skip-only, modified-only, new-only, and mixed skip+update). Before fix: scenario A failed. After fix: all four scenarios end in a success toast that accurately describes the outcome.
+**Verification:** Playwright driver at `docs/tracking/screenshots/def191/verify_def191.py` runs four scenarios (skip-only, modified-only, new-only, and mixed update+skip) against cert `26-0023` on localhost. Before fix: scenario A failed with `Import failed: ... already exists`. After fix: all four scenarios end in a success toast that accurately describes the outcome. Proof screenshot at `docs/tracking/screenshots/def191/A_skip_only_toast.png`. Re-runnable any time via `py -3 docs/tracking/screenshots/def191/verify_def191.py`. See `docs/tracking/screenshots/def191/EVIDENCE.md` for the full writeup.
 
 **Files:** `wwwroot/js/product-id-manager.js`
 
@@ -119,72 +119,95 @@ Already the behavior — covered under sub-claim 1.
 
 ---
 
-### DEF-187 — Edit User modal: Password field is dead UI; admin-typed passwords are silently discarded
+### DEF-187 — Edit User modal: Password field is dead UI; admin-typed passwords are silently discarded (plus 4 related issues rolled in)
 
 - **Date:** 2026-05-12
-- **Severity:** Medium (admin-only path; no security regression vs. current state — passwords aren't *weakened*, they just don't change. But the field looks functional, so an admin who "resets" a user's password and tells them the new one will leave the user unable to log in with no error feedback. Pre-launch.)
-- **Status:** Open
+- **Severity:** Medium-High (admin-only path; no security regression for passwords vs. current state — passwords weren't *weakened*, they just didn't change. But the field looked functional, so an admin who "resets" a user's password and tells them the new one would leave the user unable to log in with no error feedback. Pre-launch. Bumped from Medium because verification uncovered that no admin User UPDATE audit rows had ever been written in dev DB — a separate latent bug rolled into this fix.)
+- **Status:** Fixed locally — verified end-to-end on http://localhost:5101 (7-step PowerShell verification script: admin login → set new password via UpdateUser → login with new password succeeds → login with old password fails → restore → audit rows confirmed in DB with no hash leakage)
 - **Reporter:** Shawn — surfaced 2026-05-12 while writing `docs/training/user-management.md`. We were documenting the password workflow for admins, hit "an imported user can't log in because email isn't configured yet, can the admin just edit the password?" and the audit found the field is non-functional.
 
-**Root cause.**
+**Root cause — original DEF-187.**
 
-The Edit User modal in `Views/Admin/UserManagement.cshtml:292-294` renders an `<input id="user-password">` that is wired through the JS layer:
+The Edit User modal in `Views/Admin/UserManagement.cshtml:292-294` renders an `<input id="user-password">` wired through `wwwroot/js/admin/userManagement.js`:
 
-- `wwwroot/js/admin/userManagement.js:59` captures the input ref as `userPasswordInput`
-- `wwwroot/js/admin/userManagement.js:690-691` clears the field and sets `required = false` when the modal opens in Edit mode
-- `wwwroot/js/admin/userManagement.js:784-785` conditionally adds the value to the save payload: `if (userPasswordInput.value) { userData.password = userPasswordInput.value; }`
+- line 59: captures the input ref as `userPasswordInput`
+- lines 690-691: clears the field and sets `required = false` when the modal opens in Edit mode
+- lines 784-785: conditionally adds the value to the save payload: `if (userPasswordInput.value) { userData.password = userPasswordInput.value; }`
 
-The save payload is POSTed to `AdminController.UpdateUser` (line 144) which model-binds to `UserViewModel` (`Models/AdminModels.cs:14-44`).
+The save payload is POSTed to `AdminController.UpdateUser` (line 144) which model-binds to `UserViewModel` (`Models/AdminModels.cs:6-44`). **`UserViewModel` did not declare a `Password` property** — the JSON field was silently dropped by the model binder. `AdminService.UpdateUserAsync` (`Services/AdminService.cs:397`) updates `FullName`, `Email`, `IsActive`, `Roles`, `Companies`, `Partners` — it never read `model.Password` and never touched `user.PasswordHash`. SaveChangesAsync succeeded, admin saw a success toast, password unchanged.
 
-**`UserViewModel` does not declare a `Password` property.** The JSON field is silently dropped by the model binder. The controller calls `_adminService.UpdateUserAsync(id, model, ...)` (`Services/AdminService.cs:397`). That method updates `FullName`, `Email`, `IsActive`, `Roles`, `Companies`, `Partners` — it never reads `model.Password` (there is no such property) and never touches `user.PasswordHash`. SaveChangesAsync succeeds, audit log records "Updated user", admin sees success toast, **password unchanged.**
+Pre-existing latent defect — not a DEF-186 regression. DEF-186's scope was the import/create pathways; the Edit path was untouched, and the dead-UI nature was already there.
 
-The modal's password field, the show/hide eye toggle, and the surrounding "Security" section header are pure decoration in Edit mode. In Create mode the same control works correctly because the Create path uses `CreateUserViewModel` (which *does* have a `Password` property) and `AdminService.CreateUserAsync` honors it.
+**Rolled-in scope (discovered during fix).**
 
-This is a pre-existing latent defect — not a DEF-186 regression. DEF-186's scope was the import / create pathways; the Edit path was not touched and the dead-UI nature was already there.
+1. **`RequirePasswordReset` checkbox in Edit modal — same dead-UI pattern.** `UpdateUserAsync` never assigned `user.RequirePasswordReset = model.RequirePasswordReset`, so toggling the checkbox in Edit mode also silently did nothing. Added the assignment unconditionally (admin's chosen value wins, regardless of whether password was also changed).
 
-**Impact.**
+2. **Audit log was leaking bcrypt hash via field-diff.** `AuditService.DetectChanges` reflected over all public properties of the `User` entity. Without intervention, an admin-driven password change would have written two `AuditHistory` rows containing the old and new BCrypt hashes — an offline-cracking target if the audit table ever leaked. Added `PasswordHash` to `ShouldSkipProperty`'s skip list. The fact-of-change is recorded via the redacted-event path instead (see point 3).
 
-- **No password can be changed from the admin UI today.** The only ways to set a user's password are (1) Create a new user via the Add New User modal, (2) trigger the Forgot Password email flow (requires working SMTP — not configured pre-launch), or (3) direct DB UPDATE of `Users.PasswordHash`.
-- Admins doing user management today are likely to think they've reset a password and communicate it to the user, who then can't log in. No error surface to catch the mismatch.
-- Pre-launch, the practical workaround is "delete the user and recreate via Add New User." That's what `docs/training/user-management.md` §3 and §4 currently document — and that documentation needs to be removed once this is fixed.
+3. **No admin User UPDATE audit rows had ever been written.** Discovered while verifying point 2. The dev DB had **zero** `AuditHistory` rows where `EntityType = 'User' AND Action = 'UPDATE'` — across the entire history. Server log showed `FK_AuditHistory_Users_ChangedBy` constraint violations on every admin attempt. Root cause: `AdminController.GetCurrentUserId()` (line 28) looked for a claim named `"UserId"` which is never issued. `AccountController.SignInUser` (line 1138) issues `ClaimTypes.NameIdentifier` with the user's int Id — and the comment at lines 1121-1123 explicitly states "Every controller's GetCurrentUserId() helper parses ClaimTypes.NameIdentifier as int." `CertificateController.GetCurrentUserId()` (line 1494) does this correctly; `AdminController` diverged. So every admin audit call passed `userId = 0`, EF tried to INSERT a row with `ChangedBy = 0`, and the FK constraint failed in a swallowed catch. **Impact: all admin-initiated audit events (user updates, product updates, role updates, etc.) silently lost since the divergence was introduced.** Fix: aligned `AdminController.GetCurrentUserId` to look for `NameIdentifier` first, with `sub` (B2C) and legacy `"UserId"` as fallbacks.
 
-**Proposed fix (~10 lines).**
+4. **`AuditService.SerializeEntity` failed entirely for entities with bidirectional nav** (User, Certificate, others with cycles). Discovered after a doc-cleanup pass where I incorrectly flagged "PasswordHash leaks via raw JSON serialization" — credentials are already excluded by `[JsonIgnore]` on the model side (`Models/User.cs:37, 61, 74, 79, 86, 89, 92, 99` — DEF-121 lineage). But on inspection the real bug is the opposite: `JsonSerializer.Serialize` was throwing on nav cycles (e.g., `User → Roles → Users → ...`), `SerializeEntity` caught and returned the placeholder string `"[Serialization failed: <EntityType>]"`. Direct dev DB query confirmed every User CREATE row (`Id=247, 245, 264, 318, 321, …`) and every Certificate CREATE row had useless placeholder text instead of the entity snapshot. **No data leak — but no audit content either, for the most security-relevant CREATE/DELETE events on the most security-relevant entity types.** Fix: rebuilt `SerializeEntity` to use a cached `JsonSerializerOptions` with `ReferenceHandler.IgnoreCycles` and a `DefaultJsonTypeInfoResolver` modifier that drops (a) properties matching the shared audit skip-list and (b) navigation collections — same exclusion rules as `DetectChanges`, so the two audit paths can't drift. After fix: User CREATE rows now serialize to ~600-char JSON containing scalar fields only (Id, Username, Email, FullName, Status, IsActive, …) — no nav clutter, no credentials, no cycles. Pre-existing Certificate CREATE rows from before the fix remain placeholder text (cannot be backfilled — the original entity state was never captured); only new CREATE/DELETE events after deploy will benefit.
 
-1. **`Models/AdminModels.cs:UserViewModel`** — add `public string? Password { get; set; }` (nullable string; blank = no change).
-2. **`Services/AdminService.cs:UpdateUserAsync`** — before `SaveChangesAsync`, add:
-   ```csharp
-   // DEF-187: honor admin-typed password on Edit User. Blank/null = no change.
-   if (!string.IsNullOrWhiteSpace(model.Password))
-   {
-       if (model.Password.Length < 8)
-       {
-           // Return a tuple instead of bool, mirroring CreateUserAsync DEF-107 pattern,
-           // OR throw a validation-style exception caught by the controller. Pick one
-           // and align with the Create path.
-           return false;
-       }
-       user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
-       user.RequirePasswordReset = false; // admin explicitly set it; no further reset needed
-       user.UpdatedAt = DateTime.UtcNow;
-   }
-   ```
-3. **`AdminController.UpdateUser`** — no change needed if step 2 keeps returning `bool`. Better: change `UpdateUserAsync` to `(bool, string?)` mirroring `CreateUserAsync` DEF-107 so the "password too short" case can return a meaningful message to the UI.
-4. **Audit log entry** — `AuditService.LogEntityChangeAsync` already gets old/new user; do NOT log the password value. Use a redacted `"Password changed"` flag in the comment string instead. Verify the audit-diff path doesn't try to serialize `PasswordHash` (it likely doesn't, but check).
-5. **Verification** — Playwright test: open Edit User for the `analyst` seed account, type a new password, save, log out, log in with the new password, confirm success. Then re-open Edit and confirm the password field is cleared (not pre-filled with the hash).
+**Implementation.**
 
-**Files to touch.**
+1. **`Models/AdminModels.cs:UserViewModel`** — added `[StringLength(100)] public string? Password { get; set; }`. Nullable; blank = no change. No `[Required]` — only validated when explicitly provided.
+
+2. **`Services/AdminService.cs:UpdateUserAsync`** — when `model.Password` is non-whitespace, hash with BCrypt and assign to `user.PasswordHash`. Always assign `user.RequirePasswordReset = model.RequirePasswordReset` (rolled-in fix). Server-side 8-char validation lives in the controller (matches `CreateUserAsync` DEF-186 pattern).
+
+3. **`Services/Audit/AuditService.cs:ShouldSkipProperty`** — added `"PasswordHash"` to the skip-fields list. Prevents bcrypt-hash storage in `AuditHistory.OldValue` / `NewValue` for field-level diffs.
+
+4. **`Services/AdminService.cs:UpdateUserAsync`** — added explicit `_auditService.LogAuditEventAsync` call when `passwordChanged`. This produces a dedicated audit row (`Action=UPDATE`, `FieldName=NULL`, `NewValue="Password changed by admin"`, `Reason="Password changed"`) that is guaranteed even when no other fields differ (the field-diff path returns 0 rows in password-only changes because `PasswordHash` is now skipped and `RequirePasswordReset` often doesn't change).
+
+5. **`Controllers/AdminController.cs:UpdateUser`** — added pre-service 8-char min-length check on `model.Password` (returns `{ success: false, message: "Password must be at least 8 characters" }` if too short). Blank/null still means "no change."
+
+6. **`Controllers/AdminController.cs:GetCurrentUserId`** — rewritten to look for `ClaimTypes.NameIdentifier`, then `sub`, then legacy `"UserId"` as last-resort fallback. Aligns with `CertificateController.GetCurrentUserId`.
+
+7. **`Services/Audit/AuditService.cs:SerializeEntity` rebuilt.** Extracted the audit skip-list (`UpdatedAt`, `UpdatedBy`, `UpdatedByUser`, `CreatedByUser`, `User`, `PasswordHash`) to a `private static readonly string[] AuditSkipFields` so both `DetectChanges` and `SerializeEntity` share one source of truth. `SerializeEntity` now uses a cached `static readonly JsonSerializerOptions` with `ReferenceHandler.IgnoreCycles` + a `DefaultJsonTypeInfoResolver` modifier that removes skip-list properties and navigation collections. Result: lean scalar-only JSON for CREATE/DELETE audit rows, no cycles, no credentials.
+
+**Verification (http://localhost:5101, dev DB `GCCDatabase_Dev`).**
+
+PowerShell script at `C:\Users\swest\AppData\Local\Temp\verify-def-187.ps1`:
+
+1. ✅ Admin login (POST `/Account/Login` → 302)
+2. ✅ Find target user (`jane.analyst@anukiconsulting.com`, id=2, role=Analyst)
+3. ✅ PUT `/Admin/UpdateUser?id=2` with new password → `{ success: true, message: "User updated successfully" }`
+4. ✅ Login with the new password → 302 redirect to `/Certificate/CertificateTileViewInternal` (auth succeeded)
+5. ✅ Login with the old password (`TestPass123!`) → 200 (login page re-render, auth rejected)
+6. ✅ Restore password to `TestPass123!` for seed-state hygiene → success
+7. ✅ Direct DB check: `Users.Id=2.PasswordHash` is 60 chars starting `$2a$` (valid BCrypt); `RequirePasswordReset=0`
+8. ✅ Direct DB check: `AuditHistory` rows for `EntityType='User' AND EntityId='2'` show two new rows (`Id=270, 271`), `NewValue="Password changed by admin"`, `Reason="Password changed"`, `ChangedBy=1` (admin), **no bcrypt hash in any column** — confirms PasswordHash skip-list works AND the GetCurrentUserId fix surfaced audit rows that were previously failing silently.
+
+**Verification — audit serialization (rolled-in scope #4, http://localhost:5101, dev DB).**
+
+Second PowerShell script at `C:\Users\swest\AppData\Local\Temp\verify-audit-serialization.ps1`:
+
+1. ✅ Admin login → 302
+2. ✅ POST `/Admin/CreateUser` for an ephemeral test user (`audit.serialization.<ticks>@anukiconsulting.com`) → `success: true`
+3. ✅ Query AuditHistory for latest `EntityType='User' AND Action='CREATE'` → row Id 272, `NewValue` length 622 chars, starts `{"Id":323,"Username":"audit.serialization...","Email":"...","FullName":"Audit Serialization Test","IsDeleted":false,"Status":"active","IsActive":true,…}`
+4. ✅ Assertion: `NewValue` does not contain `"Serialization failed"` placeholder
+5. ✅ Assertion: `NewValue` does not contain `"PasswordHash"` (case-insensitive)
+6. ✅ Assertion: `NewValue` contains the test user's email (audit content is meaningful)
+7. ✅ Assertion: `NewValue` matches no BCrypt-shaped string (regex `\$2[aby]\$\d{2}\$[A-Za-z0-9./]{53}`)
+8. ✅ Assertion: `NewValue` contains no other `[JsonIgnore]`'d sensitive fields (`twoFactorSecret`, `recoveryCodes`, `passwordResetToken`, `passwordHistory`, `allowedIPs`, `securityQuestions`)
+9. ✅ Clean up: deleted the test user via `/Admin/DeleteUser`
+
+**Files.**
 
 - `Models/AdminModels.cs`
-- `Services/AdminService.cs`
-- `Controllers/AdminController.cs` (if return shape changes)
-- `Services/IAdminService.cs` (if return shape changes)
-- `docs/training/user-management.md` — remove the "Edit User modal password field is non-functional" troubleshooting row and the §3 caveat once this ships
+- `Services/AdminService.cs` (UpdateUserAsync)
+- `Services/Audit/AuditService.cs` (ShouldSkipProperty refactored to share `AuditSkipFields`; new `BuildEntitySerializerOptions` + cached static `EntitySerializerOptions`; SerializeEntity rewrite)
+- `Controllers/AdminController.cs` (UpdateUser, GetCurrentUserId)
+
+**Follow-up doc cleanup.**
+
+- `docs/training/user-management.md` §3 and §4 currently document "delete + recreate via Add New User" as the workaround for the dead password field. Once this ships to prod, those rows need to be removed and replaced with the actual Edit User flow.
 
 **Not in scope.**
 
-- Email-driven password reset for non-admin users — still gated on SMTP being configured (separate item).
-- Force-reset-on-next-login as a separate admin button — could be added later; for now the existing `RequirePasswordReset` checkbox in the Edit modal stays, but a future enhancement could add a dedicated "Send password reset" button that works even without admin typing a password.
-- Strength meter / complexity requirements — current rule is just 8-char minimum (matches Create path). Stronger policy is a separate CR.
+- Email-driven password reset for non-admin users — still gated on SMTP configuration (separate item).
+- Force-reset-on-next-login as a standalone admin button — could be added later; the `RequirePasswordReset` checkbox handles the use case for now.
+- Strength meter / complexity requirements beyond 8-char minimum — separate CR.
+- Backfilling the historical placeholder `[Serialization failed: ...]` rows with reconstructed entity snapshots — not possible, the original entity state was never captured. Going forward only.
 
 ---
 

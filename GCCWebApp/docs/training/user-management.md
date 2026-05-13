@@ -10,9 +10,10 @@
 | How the user was created | Where the password comes from | What the admin tells the new user |
 |---|---|---|
 | **Add New User (UI)** | Admin types the password into the modal | The password the admin chose |
-| **Bulk Import (CSV)** | Server auto-generates; never displayed | Use **Forgot Password** on the login page (requires email to be configured) |
+| **Bulk Import (CSV)** | Server auto-generates; never displayed | Use **Forgot Password** on the login page (requires email to be configured), **or** ask an admin to set a password for them via Edit User |
+| **Edit User (UI)** | Admin types the new password in the Edit modal | The new password the admin chose |
 
-> **Important — email not yet configured:** until outbound email is wired up, the Forgot Password flow does not work. Use **Add New User** (not Bulk Import) so you can hand the user a password directly.
+> **Important — email not yet configured:** until outbound email is wired up, the Forgot Password flow does not work. For now, either use **Add New User** with a known password, or open imported users in **Edit User** and set a password directly. Both paths hand you a credential you can give to the user.
 
 ---
 
@@ -70,8 +71,10 @@ You can edit:
 - Status (Active / Inactive)
 - Company and Partner assignments
 - 2FA settings
+- **Password** — type a new password (≥8 chars) in the Password field and save. The field is blank when the modal opens; leave it blank to keep the user's existing password.
+- **Require Password Reset** — toggle whether the user must change their password on next login.
 
-You **cannot** currently change a user's password from the Edit User modal — the password field in that modal is non-functional and being tracked as a defect. To change a password today, delete the user and recreate them via **Add New User**, or wait for the defect fix.
+**Resetting a password** is the most reliable way to give a user a known credential without depending on email. After saving, communicate the new password to the user out of band (verbally / password-manager share), and ask them to log in and change it. If you want to force them to change it on first login, leave "Require Password Reset" checked.
 
 ---
 
@@ -85,10 +88,10 @@ You **cannot** currently change a user's password from the Edit User modal — t
 → Or, if you must do it now, Add New User one at a time so you can hand each person a password.
 
 ### "I imported a user by accident and they can't log in"
-→ Delete the user from User Management → recreate via **Add New User** with a password you control.
+→ Open the user in **Edit User**, type a new password (≥8 chars), uncheck "Require Password Reset," save, hand the password to the user. (Before DEF-187 this required delete + recreate; not anymore.)
 
 ### "I created a user but they typed the wrong password three times and got locked out"
-→ Edit the user → toggle Status to Inactive → save → toggle back to Active → save. (Account lockout is per-session; setting inactive/active resets the failed-attempt counter.) If that doesn't help, delete and recreate.
+→ Edit the user → toggle Status to Inactive → save → toggle back to Active → save. (Account lockout is per-session; setting inactive/active resets the failed-attempt counter.) If that doesn't help, type a fresh password in the Edit modal and have them try again.
 
 ---
 
@@ -123,8 +126,7 @@ You **cannot** currently change a user's password from the Edit User modal — t
 | Symptom | Likely Cause | Fix |
 |---|---|---|
 | "Failed to create user" with no detail | Duplicate email | Search User Management for the email; the user already exists. |
-| Imported user can't log in | Email not configured, Forgot Password doesn't send | Delete + recreate via Add New User |
-| Edit password field looks like it saved but the user still can't log in with the new password | Known defect — Edit modal password field is non-functional | Delete + recreate via Add New User |
+| Imported user can't log in | Email not configured, Forgot Password doesn't send | Edit the user, type a known password (≥8 chars), uncheck Require Password Reset, save, hand the password to the user |
 | New external user sees no certificates | Company Access wasn't assigned | Edit user → assign companies → save |
 | User keeps getting locked out | Failed login lockout | Toggle Status Inactive → Active to reset the counter |
 

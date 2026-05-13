@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading.Tasks;
 
 namespace GCCWebApp.Services.Audit
@@ -397,6 +398,14 @@ namespace GCCWebApp.Services.Audit
             return changes;
         }
 
+        // Shared skip list for both DetectChanges (field-level UPDATE diff) and SerializeEntity
+        // (CREATE/DELETE full-entity JSON). Single source of truth so the two audit code paths
+        // can't drift. PasswordHash is defense-in-depth here — the User model also marks it
+        // [JsonIgnore] (DEF-121) — but keeping it in this list means any future credential
+        // field added without [JsonIgnore] is still excluded from audit blobs.
+        private static readonly string[] AuditSkipFields =
+            { "UpdatedAt", "UpdatedBy", "UpdatedByUser", "CreatedByUser", "User", "PasswordHash" };
+
         /// <summary>
         /// Determines if a property should be skipped during change detection
         /// </summary>
@@ -406,14 +415,7 @@ namespace GCCWebApp.Services.Audit
             if (typeof(System.Collections.IEnumerable).IsAssignableFrom(prop.PropertyType) && prop.PropertyType != typeof(string))
                 return true;
 
-            // Skip internal tracking fields
-            // DEF-187: PasswordHash added to skip list. BCrypt hashes are still credentials
-            // — logging old/new hash pairs in AuditHistory creates an offline-cracking
-            // target if the table is ever leaked, and leaks rotation patterns. The fact
-            // that a password was changed is recorded in the audit reason string by the
-            // calling service (see AdminService.UpdateUserAsync); the hash itself is not.
-            var skipFields = new[] { "UpdatedAt", "UpdatedBy", "UpdatedByUser", "CreatedByUser", "User", "PasswordHash" };
-            if (skipFields.Contains(prop.Name))
+            if (AuditSkipFields.Contains(prop.Name))
                 return true;
 
             return false;
@@ -467,6 +469,60 @@ namespace GCCWebApp.Services.Audit
             }
         }
 
+        // DEF-187 (rolled-in audit-quality fix): static, cached JsonSerializerOptions for entity
+        // serialization. Previously a fresh options object was allocated per call (cheap, but
+        // each one rebuilt its TypeInfo cache from scratch). Caching across calls is the
+        // documented best practice for System.Text.Json and avoids reflection cost on every
+        // CREATE/DELETE audit write.
+        private static readonly JsonSerializerOptions EntitySerializerOptions = BuildEntitySerializerOptions();
+
+        private static JsonSerializerOptions BuildEntitySerializerOptions()
+        {
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                // Break cycles in navigation properties. Without this, EF entities with
+                // bidirectional nav (User <-> Roles, Certificate <-> Products, etc.) threw
+                // inside JsonSerializer.Serialize and SerializeEntity returned the placeholder
+                // string "[Serialization failed: ...]" — confirmed by query of dev AuditHistory:
+                // every User and Certificate CREATE row had useless placeholder text instead
+                // of the actual entity snapshot.
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+            };
+            options.TypeInfoResolver = new DefaultJsonTypeInfoResolver
+            {
+                Modifiers =
+                {
+                    typeInfo =>
+                    {
+                        if (typeInfo.Kind != JsonTypeInfoKind.Object) return;
+                        // Iterate in reverse so RemoveAt indices stay valid.
+                        for (int i = typeInfo.Properties.Count - 1; i >= 0; i--)
+                        {
+                            var jp = typeInfo.Properties[i];
+                            // 1. Drop fields in the shared audit skip list (PasswordHash, etc.).
+                            if (AuditSkipFields.Contains(jp.Name, StringComparer.OrdinalIgnoreCase))
+                            {
+                                typeInfo.Properties.RemoveAt(i);
+                                continue;
+                            }
+                            // 2. Drop navigation collections so audit blobs stay small and
+                            // focused on the entity's own scalar fields. This mirrors
+                            // DetectChanges' behavior — both paths agree on what counts as
+                            // "the entity itself" vs. "related graph."
+                            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(jp.PropertyType)
+                                && jp.PropertyType != typeof(string))
+                            {
+                                typeInfo.Properties.RemoveAt(i);
+                            }
+                        }
+                    }
+                }
+            };
+            return options;
+        }
+
         /// <summary>
         /// Serializes an entire entity to JSON
         /// </summary>
@@ -477,11 +533,7 @@ namespace GCCWebApp.Services.Audit
 
             try
             {
-                return JsonSerializer.Serialize(entity, new JsonSerializerOptions
-                {
-                    WriteIndented = false,
-                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-                });
+                return JsonSerializer.Serialize(entity, EntitySerializerOptions);
             }
             catch (Exception ex)
             {

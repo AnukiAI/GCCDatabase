@@ -98,7 +98,7 @@
                     <div class="form-group">
                         <label asp-for="Number">Certification # <span class="text-danger" aria-label="required">*</span></label>
                         <input asp-for="Number" readonly class="form-control-readonly" aria-required="true" style="background-color: #f8f9fa; font-weight: 600;" />
-                        <small class="form-text text-muted">Auto-generated (format: YY-XXXX)</small>
+                        <small class="form-text text-muted">Preview — final number is assigned at save. If another analyst saves first, you'll be given the next available number automatically.</small>
                         <span asp-validation-for="Number" class="text-danger" role="alert"></span>
                     </div>
 

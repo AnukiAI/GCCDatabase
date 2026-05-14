@@ -1,5 +1,19 @@
 # Observations Log
 
+## 2026-05-13 — Live smoke: external test user had no Company association → 0 certs visible
+
+Smoke test against `https://gccwebapp.com/` (Playwright, `LiveSmokeTests.S08`) confirmed the test `external` user could log in but the external tile view rendered `"Showing 0 of 0 certificates"`. Empty page, no defect in the view itself.
+
+Root cause: Direct live-DB query showed `external` (Users.Id=3) had role `External` and `IsActive=true`, but **zero rows in `CompanyUser`** — the many-to-many join between Users and Companies. The external tile view filters certs by the user's associated companies, so no association = empty result. The schema correctly enforces "external sees only their company's certs"; the gap was the missing CompanyUser row on the prod test DB.
+
+Fix: `INSERT INTO CompanyUser (UsersId, CompaniesId) VALUES (3, 259)` — linked external user to KAO (Companies.Id=259), which has 4 `Client Approved - Paid` certs on prod. KAO chosen because it had the most public-status certs of any single company on the live test DB (4), giving a meaningful smoke surface for the external view.
+
+Verified by re-running `S08_ExternalLogin_ExternalTileView` against gccwebapp.com → `external-tile-count=4`. Screenshot confirms 4 KAO tiles ("John Frieda PROfiller+ Thickening Conditioner", "John Frieda Profiller plus Shampoo 250ml", "Color Protecting Conditioner 200ml", "Color Protecting Shampoo 250ml"), header reads "Showing 4 of 4 certificates", TEST banner intact.
+
+Not a code defect — test-data seeding gap on the prod test env. No code change required. A new Playwright smoke test class `Tests/Production/LiveSmokeTests.cs` (10 tests) was added to the UAT project as part of this work; it runs against `https://gccwebapp.com/` with the Plesk Basic Auth gate handled via Playwright `HttpCredentials`. Useful for future ad-hoc post-deploy verification.
+
+Files: `GCCWebApp.UAT.Tests/Tests/Production/LiveSmokeTests.cs` (new), live DB `CompanyUser` table (one INSERT).
+
 ## 2026-05-12 — Product ID Import: partial-select with a no-change row → "Import failed"
 
 URL: `http://localhost:5101/Certificate/Edit/26-0023`. Shawn observed that selecting a subset of rows in the Import Preview without enabling Replace-all caused the import to fail.
@@ -4967,3 +4981,132 @@ Client QC #169 (5/1/26 entry) bundled three sub-claims about the Certification T
 **Sub-claim 3 — "Would just show options with applicable certs available."** Already the behavior (sub-claim 1).
 
 **Net result:** Closed DEF-188 as review-only. Carly's response should be: (a) the four hidden types are R11 working as specified — they'll appear when a public cert is tagged; (b) the alpha-order / "Product Opt at top" complaint is the QC #124 fix that's queued for the next deploy. Cross-references to DEF-175 / DEF-167 / DEF-168 noted in the DEF-188 entry. Per `feedback_qc_review_no_changes.md`: triage only, no code edits.
+
+
+## 2026-05-13 — DEF-192 logged: Product Category filter leaks non-matching certs
+
+Shawn flagged cert 26-0158 showing up when only `Product Categories → Carly Test` was checked on `/Certificate/CertificateTileViewInternal`. Verified via anonymous `/api/certificate-tiles?productCategory=Carly Test` — 4 certs returned, 3 legitimate, plus 26-0158 whose displayed category is "Electronics, Computers, and Accessories".
+
+Root cause in `Repositories/CertificateRepository.cs:333-351`: the ProductCategory filter ORs the requested name across 9 fields (cert-level overrides + Product-derived chain + parent cascade). The tile/detail display logic in `Controllers/Api/CertificateTilesApiController.cs:186-188` prefers cert override over Product-derived. So a cert whose Product-side chain contains "Carly Test" but whose cert override points elsewhere matches the filter but visibly shows the override — looks wrong to users.
+
+Logged as DEF-192, Status Open. Affects every tile surface (public, internal, external) since all use the same repo method. No code change made per QC review rule — proposed coalesce-then-match shape included in the entry for when the fix is approved.
+
+
+## 2026-05-13 — QC Log 5.8 → 5.13: added "Sprint 3 Comments Final" column + refreshed Resolution against 170 items
+
+Took client's 5/8 QC log (`Database QC Log_5.8.26sw.xlsx`) and produced `Database QC Log_5.13.26sw.xlsx` (same folder). Added a new column W titled **Sprint 3 Comments Final** on the `GCC DB QC Log2` tab and refreshed column O (Current Status — Anuki Marks Complete) against the 5/4 reconciliation (`docs/tracking/qc-sprint-3-reconciliation-2026-05-04.md`) plus all post-5/4 shipped work from `shipped-2026-05.md`.
+
+**Final shape (170 items):** 132 Ready-for-UAT / 12 Carryover-Open / 5 In-Progress / 6 CR-Required / 3 Blocked-Client / 1 Blocked-Config / 4 WAD / 3 OOS / 1 Duplicate. Column O resolves to Complete=144, Open=26.
+
+**Post-5/4 upgrades (10 items moved Open → Ready-for-UAT):** QC #103 (DEF-174/182), #108 (DEF-181/186), #127 (DEF-176), #128/#149/#169 (DEF-167), #156 (DEF-179), #157 (DEF-181), #164 (re-verified 5/12), #168 (DEF-183). These had been in Carryover-Open or Needs-Manual-Verify at the 5/4 cut; now closed by Sprint 3 ships.
+
+**Method note:** xlsx edited via PowerShell XmlDocument transform — extract zip → modify `xl/worksheets/sheet2.xml` (dimension A1:W175, new col-23 def width=60, W5 header inlineStr, W6..W175 inlineStr comments, O cells updated to shared-string indices 17/Complete or 104/Open) → modify `xl/tables/table2.xml` (ref A5:W175, count=23, new tableColumn) → re-zip. Original 5.5MB workbook with 92 embedded images + pivot tables preserved unchanged at 5.0MB output. Read-back verification passed on 5 sample rows across the ID range.
+
+**Source data:** 5/4 reconciliation = primary source-of-truth; verified 116/170 IDs explicitly listed in the doc's Verified-Pending-UAT bucket. Cross-checked post-5/4 closures via `Grep "QC #\d+"` over shipped-2026-05.md.
+
+**Email summary delivered separately** — same totals + the 6 CR-Required + 3 Blocked-Client items called out for action.
+
+
+## 2026-05-13 — DEF-193 logged: cert-number race condition (client QC #58)
+
+Client (5/11) on QC #58 asked: *"if 2 people have open and adding cert and hit save -- does one keep the original number and other get next available? It will never assign the same number right? Please coordinate test on your end."*
+
+**Live-confirmed on gccwebapp.com.** Wrote a PowerShell repro using two isolated .NET HttpClients (each its own CookieContainer + DefaultRequestHeaders.Authorization for the Basic-Auth gate). Logged Session A as analyst, Session B as admin; both GET `/Certificate/Create` concurrently via `Task.WhenAll`. Parsed the `id="Number"` input from each HTML response:
+
+```
+Session A (analyst) Number: '26-0164'
+Session B (admin)   Number: '26-0164'   <-- IDENTICAL
+```
+
+Root cause: `Repositories/CertificateRepository.cs:744` `GenerateNextCertificateNumberAsync` is a pure `MAX(Number) + 1` read with no reservation. Called once from `CertificateController.cs:287/348` during the GET, fills `model.Number` on the form. The UNIQUE index `IX_Certificates_Number` (`ApplicationDbContext.cs:67`) catches the duplicate at save time but the catch block at `CertificateController.cs:653-659` masks the error as a generic "An error occurred." The losing user keeps their form data but the stale number stays in the input — they have to refresh to get a new number.
+
+**Fix drafted (NOT applied) in DEF-193 register entry:** add `AddWithGeneratedNumberAsync(certificate, maxAttempts=3)` to `ICertificateRepository` / `CertificateRepository.cs` that regenerates the number inside a retry loop scoped on `DbUpdateException` whose inner `SqlException` matches errors 2601/2627 against `IX_Certificates_Number`. Controller POST replaces `await AddAsync + CompleteAsync` with `await AddWithGeneratedNumberAsync`. Form pre-fill stays for display but is labeled "preview — assigned at save". Three attempts handles every realistic concurrency level (<10 analysts).
+
+**Why retry instead of SERIALIZABLE / sp_getapplock:** retry is O(1) per attempt, converges in ≤ N attempts for N writers, and the unique-index error is the natural signal. Heavier locking would serialize all cert creation needlessly.
+
+**Repro script + evidence preserved at:** `%TEMP%\def193_repro_httpclient.ps1` + `%TEMP%\def193_evidence\session_{a,b}_create.html`. Repro is portable to localhost by swapping the base URL and removing the gate auth header.
+
+**PowerShell gotchas captured during repro:**
+- `Invoke-WebRequest -Credential` drops the Authorization header on 302 redirects following login POST, returning 401 from the gate on the redirected GET. Workaround: HttpClient with `DefaultRequestHeaders.Authorization` set on the client (not the request) — it re-sends on every request including redirects.
+- `-MaximumRedirection 0` raises "Operation is not valid due to the current state of the object" when the response has a body in PS 5.1.
+- `name="__RequestVerificationToken"` regex needs `[^>]*?` (greedy stop at `>`) not `[^"]*` since `type="hidden"` sits between `name=` and `value=`.
+
+**Status:** Diagnosed + live-reproduced + fix-drafted. Sequencing pending Friday call per client's *"lets discuss on Friday call"* — also surface CR question of whether to require the readonly preview UX or keep the editable Number field.
+
+
+## 2026-05-13 — DEF-193 fix applied to source (working tree pending deploy)
+
+Applied the patch drafted earlier today.
+
+**Interface (`Repositories/ICertificateRepository.cs`):** added `Task<Certificate> AddWithGeneratedNumberAsync(Certificate certificate, int maxAttempts = 3)` after `GenerateNextCertificateNumberAsync`.
+
+**Implementation (`Repositories/CertificateRepository.cs`):** appended `AddWithGeneratedNumberAsync` + private `IsUniqueNumberViolation` helper. Retry-on-conflict pattern: assign number → AddAsync → SaveChangesAsync → catch DbUpdateException whose inner `Microsoft.Data.SqlClient.SqlException.Number` is 2601 or 2627 AND whose message references `IX_Certificates_Number` → detach entity → retry. Bounded at 3 attempts; throws on final attempt.
+
+**Controller (`Controllers/CertificateController.cs` Create POST):** removed `Number = model.Number` from the initializer, replaced `AddAsync + CompleteAsync` pair with `AddWithGeneratedNumberAsync(certificate)`. Kept upload-before-save ordering — race-losing user's file gets the preview number in the filename (cosmetic drift) but the cert row's `CertificateFile` column links correctly.
+
+**View (`Views/Certificate/Create.cshtml`):** helper text under Number input updated from "Auto-generated (format: YY-XXXX)" to "Preview — final number is assigned at save. If another analyst saves first, you'll be given the next available number automatically."
+
+**Build verification:** 0 errors, 53 warnings (all pre-existing). Standard `dotnet build` against `bin/Debug/net8.0/` fails on output copy because dev server PID 34056 holds GCCWebApp.exe (Shawn has the app running on :5101). Verified C# compile by building to alternate output `bin/Debug/net8.0-verify/` (cleaned up after). Source compiles clean.
+
+**Not done (intentional):** dev server not restarted, no commit. Per `feedback_no_commits.md` Shawn commits himself. To live-test the fix, dev server needs restart; the existing repro script at `%TEMP%\def193_repro_httpclient.ps1` is portable to localhost by swapping base URL + removing gate auth header.
+
+**DEF register + shipped-2026-05 + this log updated.** DEF-193 status now "Fixed locally — pending deploy."
+
+
+## 2026-05-13 — DEF-193 fix verified end-to-end on localhost
+
+Stopped old dev server PID 34056, rebuilt clean (0 errors), restarted dev server on :5101 (new PID 31176), re-ran the repro adapted for localhost.
+
+**Phase 1 — preview check (expected, unchanged):** both sessions GET'd /Certificate/Create concurrently and both saw preview Number `26-0159`. Helper text now reads "Preview - final number is assigned at save..." (DEF-193 wording is live).
+
+**Phase 2 — the actual fix test:** built minimal valid form payloads for both sessions using known dev-DB IDs (CompanyId=1 Sofidel, ProductId=2 Plastic Film Packaging, CertificationTypeId=1 Recycled Content, PathwayId=1) and POSTed both simultaneously. Both POSTs succeeded:
+
+```
+Response A: 200 -> /Certificate/CertificateInternalView/26-0160   (retried)
+Response B: 200 -> /Certificate/CertificateInternalView/26-0159   (won the race)
+
+Saved cert A: 26-0160
+Saved cert B: 26-0159
+```
+
+The retry logic in `AddWithGeneratedNumberAsync` fired exactly once on Session A's save, caught the `DbUpdateException` whose inner `SqlException.Number = 2627` referenced `IX_Certificates_Number`, detached the entity, regenerated `26-0160`, and saved successfully. Session B (the winner of the race) saved with no retry needed.
+
+**Net result matches the client's described desired behavior** per QC #58: *"does one keep the original number and other get next available?"* — yes: B kept 26-0159, A got 26-0160 transparently with no error and no lost form work.
+
+Test certs (Id 56 + 58, Location='DEF-193 Repro') cleaned up from dev DB after verification.
+
+**Gotchas hit during the localhost adaptation:**
+- Dev DB emails differ from prod. Live smoke uses bare "admin"/"analyst" usernames (the app's login accepts both username and email). HttpClient-based repro had to use the actual dev DB email addresses (`swest@anukiconsulting.com`, `jane.analyst@anukiconsulting.com`).
+- ProductId is a cascading dropdown that's empty on initial form render — switched to hardcoded known-valid IDs from dev DB rather than parse the form's empty <select>.
+- PowerShell 5.1 parser choked on em-dashes and apostrophe-in-double-quoted-string in the script body; replaced with ASCII hyphens and simpler wording. UTF-8 encoding is fine, just specific characters trigger parser bugs.
+
+Repro script (post-fix) preserved at `%TEMP%\def193_repro_localhost.ps1`. Evidence HTML at `%TEMP%\def193_localhost_evidence\`. Pre-fix repro on gccwebapp.com still preserved at `%TEMP%\def193_repro_httpclient.ps1` + `%TEMP%\def193_evidence\` for the post-deploy live re-verification.
+
+**DEF-193 status flipped to "Fixed locally and verified end-to-end against the restarted dev server — pending deploy to gccwebapp.com."**
+
+## 2026-05-13 — DEF-192 fix applied, verified, status flipped to Fixed locally
+
+Replaced the OR-across-Product-AND-cert-override predicate in 3 places (`Repositories/CertificateRepository.cs` public path, `Controllers/Api/CertificateTileInternalApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`) with effective-value matching at each hierarchy level — cert override if set, otherwise Product-derived. Mirrors the display projection one-to-one. Parent cascade preserved on the public repo path (its only previous home); not introduced where it never existed.
+
+Verified end-to-end on localhost:5101 dev DB by synthesizing the leak (cert 26-0001 override=Clothing, Product.Category=Chemicals): public API leak total dropped 22→21 with 26-0001 disappearing from the Chemicals result; Clothing went 0→1 with 26-0001 appearing. Internal API (admin auth) matched: Chemicals→39 no 26-0001, Clothing→1 has 26-0001. Dev DB mutation restored at end of test.
+
+Def register + shipped-2026-05 updated. Pending deploy.
+
+
+## 2026-05-13 — DEF-193 Option A applied + verified (race-loser file rename)
+
+Added Option A to the DEF-193 fix: when AddWithGeneratedNumberAsync assigns a different number than the form preview, rename the uploaded PDF/image/thumbnail on disk so the filename matches the assigned cert Number.
+
+**Implementation (`Controllers/CertificateController.cs`):**
+- Inline block after `AddWithGeneratedNumberAsync`: if `certificate.Number != model.Number`, call new private helper `TryRenameUploadedFile` for both `certificate.CertificateFile` and `certificate.CertificateImagePath`. If any rename succeeded, update the in-memory paths and call `_unitOfWork.CompleteAsync()` to persist the new paths. Log info-level message with preview vs assigned numbers.
+- `TryRenameUploadedFile(relativePath, oldNumber, newNumber)` helper: resolves physical paths via `_hostingEnvironment.WebRootPath`, only renames if the source file exists AND the destination doesn't (don't clobber), returns the new relative path or null on any failure (file missing, no match, clobber risk, I/O error). Failures are logged as warnings and the original path is left in place — graceful degradation.
+
+**Verification:** ran a v3 repro (`%TEMP%\def193_repro_v3.ps1`) with two concurrent POSTs each carrying a real 60KB PDF. Both saves succeeded; race-loser cert 26-0160 ended up with filename `26-0160_20260513_232825.pdf` (renamed from `26-0159_*`) and thumbnail `26-0160_thumb_20260513_232825.png`. Race-winner cert 26-0159 got `26-0159_20260513_232825_<guid>.pdf` — the GUID suffix is the FileUploadService's existing collision-avoidance kicking in because the preview-number filename was briefly held by the loser before the rename. Both filenames now match their assigned cert numbers; no on-disk drift remaining.
+
+**Side notes from this session:**
+- `/Certificate/CertificateInternalView/{number}` returns 400 from the redirected GET because the action expects parameter name `id` while the route binding sees it as `null`. Pre-existing issue, unrelated to DEF-193. Logged as something to investigate separately.
+- PowerShell 5.1 parser bug with single-quoted strings ending in `\'` — `'\'` fails with "missing string terminator." Workaround: use `[char]92` instead of `'\'`. Also: files without UTF-8 BOM occasionally fail to parse when loaded via `& script.ps1` even when the Parser API accepts them. Saving with BOM resolves it. Captured for future repros.
+
+**Dev server:** PID 39864 currently running with both Option A + retry fix. Test certs cleaned up; dev DB back to its baseline state.
+
+**Status:** DEF-193 now reads "Fixed locally and verified end-to-end against the restarted dev server (including Option A file rename) — pending deploy to gccwebapp.com."

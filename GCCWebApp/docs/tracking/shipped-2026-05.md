@@ -6,6 +6,77 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-192 — Product Category filter no longer pulls in certs whose displayed category doesn't match (2026-05-13, in working tree pending deploy)
+
+Shawn flagged cert `26-0158` showing up on `https://gccwebapp.com/Certificate/CertificateTileViewInternal` when only `Product Categories → Carly Test` was checked, even though the cert's displayed category is `"Electronics, Computers, and Accessories"`. Reproduced anonymously via the public `/api/certificate-tiles?productCategory=Carly Test` — 4 results returned, 3 legitimately matching and 1 leak (26-0158).
+
+Root cause was in `Repositories/CertificateRepository.cs:333-351` `GetAdvancedFilteredCertificatesAsync`. The ProductCategory predicate ORed the requested name across nine fields: Product-derived Level-1/2/3 + cert-override Level-1/2/3 + three parent-cascade variants. Meanwhile, the display projection in `Controllers/Api/CertificateTilesApiController.cs:186-188` (and the parallel internal/external projections) preferred cert-level overrides and only fell back to Product-derived values. So a cert whose `Certificate.ProductCategoryId` pointed at one category while `Certificate.Product.CategoryId` pointed at another would display the override on the tile but match the filter via the Product-side value — exactly cert 26-0158's situation. The leak affected every surface that filters by Product Category: public `/api/certificate-tiles`, internal `/api/certificate-tiles-internal`, and external `/api/certificate-tiles-external`. The latter two carried their own inline copies of the same 6-way OR.
+
+Fix replaces the predicate at all three sites with effective-value matching at each hierarchy level — cert override if set, otherwise Product-derived — mirroring the display projection one-to-one. Parent cascade is preserved only on the public repo path where it existed before (so a Level-2 sidebar selection still surfaces certs tagged at the matching Level-3 child); the internal and external controllers never had parent cascade, and that behavior is preserved as-is to keep scope tight. The new shape is a clean translation to SQL — EF Core 9 emits the override/fallback as a coalesced WHERE clause per level, no client-side evaluation.
+
+End-to-end verification on localhost:5101 against the dev DB synthesized the leak condition by setting cert `26-0001`'s `ProductCategoryId = 2` ("Clothing, Apparel, and Fabrics") while leaving `Product.CategoryId = 1` ("Chemicals and Raw Materials"). Public API `productCategory=Chemicals and Raw Materials` dropped from `total=22, contains 26-0001=True` (pre-mutation baseline) to `total=21, contains 26-0001=False` — leak closed. Public API `productCategory=Clothing, Apparel, and Fabrics` went from `total=0, contains=False` to `total=1, contains 26-0001=True` — effective override correctly matches. Internal API (admin auth) shows the same: `Chemicals → total=39, no 26-0001`; `Clothing → total=1, contains 26-0001`. The dev DB row was restored to `ProductCategoryId = 1` at the end of the test.
+
+Build passes with 0 errors (51 pre-existing warnings). External controller compiles cleanly with structurally identical predicate; same EF shape is proven via the internal runtime test.
+
+Files changed: `Repositories/CertificateRepository.cs`, `Controllers/Api/CertificateTileInternalApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`. No data migration. No client-side changes.
+
+Once deployed, cert 26-0158 will stop appearing under the "Carly Test" filter on every tile surface. The 3 legitimate matches (26-0163, 26-0161, 26-0159) continue to surface — verified that any cert whose effective category is "Carly Test" still matches.
+
+---
+
+## DEF-193 — Concurrent cert-number race fixed: two analysts opening Create at the same time now both save successfully (QC #58 5/11/26 follow-up) (2026-05-13, in working tree pending deploy)
+
+Client (Carly) raised the question on QC #58: *"if 2 people have open and adding cert and hit save -- does one keep the original number and other get next available? It will never assign the same number right (it can't it has to be unique). Please coordinate test on your end to double check when this happens simultaneously with users."* Investigated, live-reproduced on gccwebapp.com, and fixed.
+
+**Live repro confirmed the bug.** Authored a PowerShell repro using two isolated .NET HttpClients (each with its own CookieContainer and `DefaultRequestHeaders.Authorization` for the Basic Auth gate — necessary because PowerShell's `Invoke-WebRequest -Credential` drops the Authorization header on the 302 chain after login POST). Logged Session A as analyst, Session B as admin; both GET'd `/Certificate/Create` via `Task.WhenAll`. Parsed the `id="Number"` input from each response:
+
+```
+Session A (analyst) Number: '26-0164'
+Session B (admin)   Number: '26-0164'   <-- IDENTICAL
+```
+
+Root cause was in `Repositories/CertificateRepository.cs:744` `GenerateNextCertificateNumberAsync`: a `MAX(Number) + 1` read with no reservation, called once from the Create form GET. Nothing held the number between form-render and form-submit. The DB-level `IX_Certificates_Number` unique index (`Data/ApplicationDbContext.cs:67`) prevented the duplicate from being written but converted the race into a generic `DbUpdateException` that the catch block at `Controllers/CertificateController.cs:653-659` swallowed into an opaque `"An error occurred while creating the certificate"`. Net effect: the user who lost the race saw a useless error toast, their form data was preserved but the same conflicting number stayed in the input field — they had to refresh to get a new number and re-paste 5+ minutes of work.
+
+Fix moves number assignment off the GET preview and onto the POST save path, inside a retry loop. Added `AddWithGeneratedNumberAsync(certificate, maxAttempts=3)` on `ICertificateRepository`. Implementation regenerates the number on each attempt, calls `_dbSet.AddAsync` + `_context.SaveChangesAsync`, and on `DbUpdateException` whose inner `Microsoft.Data.SqlClient.SqlException.Number` is 2601 or 2627 and whose message references `IX_Certificates_Number` it detaches the entity and retries. Three attempts handles every realistic concurrency level (the app has <10 analysts total). Heavier locking (SERIALIZABLE / sp_getapplock) would serialize all cert creation needlessly — retry is O(1) per attempt and converges in ≤ N attempts for N concurrent writers, with the unique-index error being the natural signal that a concurrent insert won.
+
+In `Controllers/CertificateController.cs` the Create POST initializer drops `Number = model.Number` (Number is now assigned at save) and the `AddAsync + CompleteAsync` pair at line 521-522 becomes a single `AddWithGeneratedNumberAsync(certificate)` call. PDF and image uploads keep their pre-save position and continue to use `model.Number` for filename construction — the filename for the race-losing user will encode the preview number (e.g. `26-0164_…pdf`) while the cert row's `Number` is the next-assigned value (e.g. `26-0165`), but the canonical link is the `CertificateFile` column on the row, not the filename. This is a cosmetic-only drift and the lowest-risk shape — keeping uploads ahead of save preserves the existing upload-fails-returns-error UX intact.
+
+Updated the Create view helper text under the Number input from `"Auto-generated (format: YY-XXXX)"` to `"Preview — final number is assigned at save. If another analyst saves first, you'll be given the next available number automatically."` so the user understands the preview-vs-final distinction and isn't surprised when their assigned number differs.
+
+Net behavior for the client's specific scenario: **the first user to save keeps the shown number; the second user transparently gets the next available number — no error, no lost work, exactly what the client described as the desired outcome.**
+
+Files: `Repositories/ICertificateRepository.cs`, `Repositories/CertificateRepository.cs`, `Controllers/CertificateController.cs`, `Views/Certificate/Create.cshtml`, `docs/tracking/defect-register.md` (DEF-193 entry), `docs/tracking/shipped-2026-05.md` (this entry), `observations_log.md`. Build clean: **0 errors, 53 pre-existing warnings** (verified against a separate output dir since the running dev server PID 34056 holds the standard `bin/Debug/net8.0/GCCWebApp.exe` lock).
+
+Repro script + evidence preserved at `%TEMP%\def193_repro_httpclient.ps1` + `%TEMP%\def193_evidence\session_{a,b}_create.html` for post-deploy re-verification. The post-deploy run should show one cert saved at 26-0164 and the second at 26-0165, both succeeding silently.
+
+---
+
+## 2026-05-13 — Live smoke pass on gccwebapp.com + external test user seeded against KAO
+
+Ran a full Playwright smoke against `https://gccwebapp.com/` covering 10 checks: site reachability through the Basic Auth gate, public tile view rendering, admin/analyst/external login flows, three admin pages (UserManagement, PartnerAPI, CertificateTypes), a cert-detail click-through, and the `/api/*` gate-bypass behavior. 9 of 10 came back clean on the first pass — public view rendered 25 tiles, analyst saw 20 internal tiles, admin pages loaded with 21 user rows visible, and the API gate bypass returned 401-from-app (not the Plesk Basic challenge) as designed.
+
+The one finding: the `external` test user logged in successfully but the external tile view rendered `"Showing 0 of 0 certificates"`. Pulled the live DB directly — `external` (Users.Id=3) was active and had role `External`, but had zero rows in the `CompanyUser` join table. The seed never wired a Company association on prod. External tile view filters by user→company→cert, so no association meant empty result. Inserted one row (`UsersId=3, CompaniesId=259` — KAO, the highest-cert-count company on prod at 4 `Client Approved - Paid` certs). Re-ran S08 → 4 KAO tiles render, "Showing 4 of 4 certificates" — confirmed.
+
+The smoke also surfaced two non-defect items worth noting: clicking `.certificate-card` on the public view didn't change URL in my naive selector — tiles likely use a child anchor or modal handler, so the smoke methodology needs a follow-up rather than the view being broken; and the live test env can't yet be smoked against the Partner API contract because no live API key is provisioned to this workstation (DEF-103 fix verification on live is still on the open list).
+
+New reusable artifact: `GCCWebApp.UAT.Tests/Tests/Production/LiveSmokeTests.cs` — 10 NUnit/Playwright tests, runs against gccwebapp.com directly, handles the Basic Auth gate via `HttpCredentials`, writes full-page screenshots and a `_findings.txt` summary to a dated folder under `Screenshots/LiveSmoke_*`. Filter with `--filter "FullyQualifiedName~LiveSmokeTests"` to re-run end-to-end after any deploy without standing up a browser by hand.
+
+Files: `GCCWebApp.UAT.Tests/Tests/Production/LiveSmokeTests.cs` (new), live DB `CompanyUser` table (one INSERT linking Users.Id=3 → Companies.Id=259), `observations_log.md`, `docs/tracking/shipped-2026-05.md` (this entry).
+
+---
+
+## Deploy 2026-05-13-0027 — DEF-187 bundle shipped to gccwebapp.com; post-deploy schema fix + migration-history catch-up
+
+Built `GCCWebApp-deploy-20260513-0027.zip` (60.4 MB, 372 files, `PleskTestEnvironment` profile, `EnvironmentName=Production`, uploads excluded per the post-2026-04-23 rule). Zip contents verified — DEF-187 fix DLLs and assets in, no Documentation, no test projects, no `wwwroot/uploads/`. Uploaded to Plesk and extracted onto gccwebapp.com.
+
+Post-deploy the site returned 401 at the test-env gate as expected, but the certificate tile views returned empty payloads. Diagnosis: `/api/certificate-tiles` was throwing `Invalid column name 'CertificationResultsNumeric'` on every query. Root cause: EF migration `20260512011258_AddCertificationResultsNumeric` (part of the DEF-181 cert-results sort fix) shipped in the code but never reached the database — `appsettings.Production.json` has automatic EF migrations disabled and the manual `Database_Scripts/apply-migrations.cmd` step wasn't run during the deploy. Applied the migration to the prod DB (`gccwebap_certificates` on AccuWeb) via an idempotent transactional SQL script (`Scripts/database/20260512011258_AddCertificationResultsNumeric.sql`): adds the persisted computed column, the supporting index, and the `__EFMigrationsHistory` row, all guarded by `IF NOT EXISTS`. First attempt failed with SQL error 1934 (`QUOTED_IDENTIFIER` must be ON for indexed computed columns); fixed by adding `SET QUOTED_IDENTIFIER ON` to the script and re-running with `sqlcmd -I`. Site verified working immediately after — `/api/certificate-tiles` returned `success: true` with cert payload.
+
+While the diagnosis was running, we also checked the rest of `__EFMigrationsHistory` against the codebase and found two other migrations missing from the history — `20260326025056_AddPasswordResetTokenToUser` and `20260420171817_FixProductIdUniqueIndex_PerCertificate`. Pre-flight queries showed that **the schema changes for both were already on prod** (columns present, new per-cert unique index in place, old global-unique index dropped, zero duplicate `(CertificateId, Type, Value)` rows in `CertificateProductIds`) — only the `__EFMigrationsHistory` rows were missing. Someone (or a partial prior deploy) had applied those two via raw SQL without updating the tracking table. Ran the matching idempotent scripts (`Scripts/database/20260326025056_AddPasswordResetTokenToUser.sql`, `Scripts/database/20260420171817_FixProductIdUniqueIndex_PerCertificate.sql`); the `IF NOT EXISTS` guards fell through every schema step and only the `INSERT INTO __EFMigrationsHistory` lines executed. EF history now matches the schema for all three migrations. The takeaway for the next deploy: the migration step needs to ride with the code deploy, not as a separate manual step that's easy to skip under outage pressure. Proposed automation (wrap `dotnet ef migrations script --idempotent` into `Scripts/deploy.ps1` so the migration script is bundled in the zip) is on the follow-up list but not yet implemented.
+
+Files (this deploy round): all DEF-187 changes per the previous entry, plus three idempotent migration scripts committed to `Scripts/database/` (matching their EF migration IDs as filenames so they sort alongside the codebase migrations).
+
+---
+
 ## DEF-187 — Admin Edit User: password field now works, plus 4 latent admin-audit bugs flushed out (2026-05-12, in working tree pending deploy)
 
 Shawn flagged this while we were drafting the new user-management training doc: an imported user can't use the Forgot Password flow until outbound email is configured, so the practical workaround would be "delete and recreate via Add New User" — except the Edit User modal *also* has a password field that visibly looks like the right control. Code audit confirmed Shawn's hunch: the Edit modal's password input was rendered, the JS shipped `userData.password` on save, but the receiving `UserViewModel` had no `Password` property. The model binder silently dropped the field, `UpdateUserAsync` never touched `user.PasswordHash`, and the admin got a green success toast on a no-op. The user they "reset" then couldn't log in. Pre-existing latent defect, not a DEF-186 regression.
@@ -1258,5 +1329,25 @@ Scope is intentional — Product Management (`#product-pagination`) uses the sam
 Verified on http://localhost:5101: rule present in served CSS; shared rule unchanged; 279 active users in dev DB confirms pagination will render (12 pages at pageSize=25).
 
 Files: `wwwroot/css/pages/user-management.css`.
+
+---
+
+## User Management pagination right-alignment — Playwright verification (2026-05-12)
+
+Playwright NUnit test `UserManagementPaginationAlignmentTests.Pagination_Is_Right_Aligned_On_UserManagement` added at `GCCWebApp.UAT.Tests/Tests/Admin/UserManagementPaginationAlignmentTests.cs`. Runs against `TEST_BASE_URL=http://localhost:5101`, logs in as Admin, waits for the table to populate (279 users so pagination renders at pageSize=25), then asserts on three layers:
+
+1. **Computed style** — `getComputedStyle('#user-pagination .pagination-wrapper').justifyContent === 'flex-end'`. Confirms the scoped rule wins over shared `admin-tables.css` (`space-between`).
+2. **Geometry** — bounding-rect comparison:
+   - `Wrapper:  [158.0, 1762.0]  width 1604.0`
+   - `Controls: [1442.5, 1762.0]  width 319.5`
+   - **Right-edge gap: 0.0px** (controls hug wrapper's right edge)
+   - **Left-edge gap: 1284.5px** (controls pushed all the way right; nearly the full wrapper width is empty on the left)
+3. **Visual** — full-page screenshot saved to `GCCWebApp.UAT.Tests/bin/Debug/net8.0/Screenshots/UserManagement_Pagination_RightAligned_*.png` for the receipts pile.
+
+**Result:** 1 passed, 0 failed, 14.0 seconds.
+
+Test will catch a regression in either direction — if someone reverts the scoped rule OR changes the shared rule in a way that no longer renders flex-end here, the assertion fails on the next run.
+
+Files: `GCCWebApp.UAT.Tests/Tests/Admin/UserManagementPaginationAlignmentTests.cs` (new).
 
 ---

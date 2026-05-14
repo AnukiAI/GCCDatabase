@@ -327,28 +327,31 @@ namespace GCCWebApp.Repositories
             if (filter.CompanyNames != null && filter.CompanyNames.Any())
                 query = query.Where(c => c.Company != null && filter.CompanyNames.Contains(c.Company.Name));
 
-            // Filter by product categories/types/subcategories (matches all 3 hierarchy levels)
-            // Hierarchy: Level 1 = ProductCategory, Level 2 = ProductType (root), Level 3 = ProductType (child)
-            // Checks Product hierarchy, Certificate direct fields, and parent traversal for cascade matching
+            // DEF-192: Match the EFFECTIVE displayed category/type/subcategory at each level
+            // (cert-level override if set, otherwise Product-derived). Previous implementation
+            // ORed Product-derived AND cert-override across all 3 levels, so a cert whose
+            // override hid the Product-derived value would still match on the hidden side and
+            // appear in a result list under a category the tile did not display.
+            // Display projection lives in CertificateTilesApiController.cs:186-188.
+            // Hierarchy: Level 1 = ProductCategory, Level 2 = ProductType (root), Level 3 = ProductType (child).
+            // Parent cascade preserved so a Level-2 sidebar pick still surfaces certs tagged at
+            // the matching Level-3 child, using the same effective-value rule.
             if (filter.ProductCategories != null && filter.ProductCategories.Any())
                 query = query.Where(c =>
-                    // Level 1: ProductCategory (from Product or Certificate)
-                    (c.Product != null && filter.ProductCategories.Contains(c.Product.Category.Name)) ||
+                    // Effective Level-1 category
                     (c.ProductCategory != null && filter.ProductCategories.Contains(c.ProductCategory.Name)) ||
-                    // Level 2/3: ProductType direct match (Product.ProductTypeId can point to root or child type)
-                    (c.Product != null && c.Product.ProductType != null && filter.ProductCategories.Contains(c.Product.ProductType.Name)) ||
+                    (c.ProductCategory == null && c.Product != null && filter.ProductCategories.Contains(c.Product.Category.Name)) ||
+                    // Effective Level-2/3 ProductType (cert.ProductType is L2 root; cert.ProductSubcategory is L3 child)
                     (c.ProductType != null && filter.ProductCategories.Contains(c.ProductType.Name)) ||
-                    // Level 3: Certificate's subcategory (stored as ProductType child in ProductSubcategoryId)
+                    (c.ProductType == null && c.Product != null && c.Product.ProductType != null && filter.ProductCategories.Contains(c.Product.ProductType.Name)) ||
+                    // Parent of effective L2/L3 ProductType — lets a Level-2 sidebar pick surface its children
+                    (c.ProductType != null && c.ProductType.Parent != null && filter.ProductCategories.Contains(c.ProductType.Parent.Name)) ||
+                    (c.ProductType == null && c.Product != null && c.Product.ProductType != null && c.Product.ProductType.Parent != null && filter.ProductCategories.Contains(c.Product.ProductType.Parent.Name)) ||
+                    // Effective Level-3 subcategory (cert.ProductSubcategory side and Product.ProductSubcategory side reference different tables)
                     (c.ProductSubcategory != null && filter.ProductCategories.Contains(c.ProductSubcategory.Name)) ||
-                    // Parent cascade: when Level 2 parent is selected, match products assigned to its children
-                    (c.Product != null && c.Product.ProductType != null && c.Product.ProductType.Parent != null &&
-                     filter.ProductCategories.Contains(c.Product.ProductType.Parent.Name)) ||
-                    (c.ProductType != null && c.ProductType.Parent != null &&
-                     filter.ProductCategories.Contains(c.ProductType.Parent.Name)) ||
-                    (c.ProductSubcategory != null && c.ProductSubcategory.Parent != null &&
-                     filter.ProductCategories.Contains(c.ProductSubcategory.Parent.Name)) ||
-                    // Product's ProductSubcategory table (separate entity from ProductType hierarchy)
-                    (c.Product != null && c.Product.ProductSubcategory != null && filter.ProductCategories.Contains(c.Product.ProductSubcategory.Name)));
+                    (c.ProductSubcategory == null && c.Product != null && c.Product.ProductSubcategory != null && filter.ProductCategories.Contains(c.Product.ProductSubcategory.Name)) ||
+                    // Parent of effective cert-side L3 subcategory
+                    (c.ProductSubcategory != null && c.ProductSubcategory.Parent != null && filter.ProductCategories.Contains(c.ProductSubcategory.Parent.Name)));
 
             var totalCount = await query.CountAsync();
 
@@ -772,6 +775,42 @@ namespace GCCWebApp.Repositories
 
             // Format: YY-XXXX (e.g., "26-0001")
             return $"{yearPrefix}-{nextSequence:D4}";
+        }
+
+        // DEF-193: assigns the next available certificate number AT save time and writes
+        // the cert in one transaction. On UNIQUE-index conflict (another save won the race),
+        // regenerates and retries. Fixes the scenario where two analysts opening the Create
+        // form back-to-back both saw the same pre-filled number.
+        public async Task<Certificate> AddWithGeneratedNumberAsync(Certificate certificate, int maxAttempts = 3)
+        {
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                certificate.Number = await GenerateNextCertificateNumberAsync();
+                try
+                {
+                    await _dbSet.AddAsync(certificate);
+                    await _context.SaveChangesAsync();
+                    return certificate;
+                }
+                catch (DbUpdateException ex) when (IsUniqueNumberViolation(ex))
+                {
+                    // Detach so the next attempt re-adds cleanly with the new number
+                    _context.Entry(certificate).State = EntityState.Detached;
+                    if (attempt == maxAttempts) throw;
+                }
+            }
+            throw new InvalidOperationException("AddWithGeneratedNumberAsync: unreachable");
+        }
+
+        private static bool IsUniqueNumberViolation(DbUpdateException ex)
+        {
+            // SQL Server: 2601 = duplicate key in unique index, 2627 = unique constraint violation
+            if (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx)
+            {
+                return (sqlEx.Number == 2601 || sqlEx.Number == 2627)
+                    && sqlEx.Message.IndexOf("IX_Certificates_Number", StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+            return false;
         }
     }
 }

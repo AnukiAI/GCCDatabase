@@ -449,7 +449,9 @@ namespace GCCWebApp.Controllers
                 {
                     var certificate = new Certificate
                     {
-                        Number = model.Number,
+                        // DEF-193: Number assigned atomically by AddWithGeneratedNumberAsync below;
+                        // model.Number is treated as a preview only so two concurrent Create-form
+                        // opens don't clash on the same value at save time.
                         Status = model.Status ?? "Draft",
                         Partner = model.Partner ?? "None",
                         CertificationResults = model.CertificationResults,
@@ -474,7 +476,10 @@ namespace GCCWebApp.Controllers
                         UpdatedAt = DateTime.UtcNow
                     };
 
-                    // Handle certificate image upload
+                    // Handle certificate image upload (uses model.Number for the filename — this is
+                    // the previewed cert number; if the user lost the race, certificate.Number
+                    // assigned at save will differ. The DB CertificateFile column is the canonical
+                    // link, so the filename mismatch is cosmetic, not functional.)
                     if (certificateImage != null && certificateImage.Length > 0)
                     {
                         var uploadResult = await _fileUploadService.UploadImageAsync(certificateImage, $"cert_{model.Number}");
@@ -518,8 +523,30 @@ namespace GCCWebApp.Controllers
                         }
                     }
 
-                    await _certificateRepository.AddAsync(certificate);
-                    await _unitOfWork.CompleteAsync();
+                    // DEF-193: atomic save — generates the next cert Number and writes in one
+                    // transaction; on UNIQUE-index conflict (race with another save), regenerates
+                    // and retries up to 3 attempts. Replaces the prior `AddAsync + CompleteAsync`
+                    // pair which trusted the form's pre-filled (race-prone) number.
+                    await _certificateRepository.AddWithGeneratedNumberAsync(certificate);
+
+                    // DEF-193 Option A: if the race forced a different number than the preview,
+                    // rename the uploaded files so their filenames match the assigned cert Number.
+                    // Functional path is the CertificateFile/CertificateImagePath columns; this is
+                    // for filename-on-disk consistency for ops audits and manual file browsing.
+                    if (!string.IsNullOrEmpty(model.Number)
+                        && !string.Equals(certificate.Number, model.Number, StringComparison.Ordinal))
+                    {
+                        bool anyRenamed = false;
+                        var newCertFile = TryRenameUploadedFile(certificate.CertificateFile, model.Number, certificate.Number);
+                        if (newCertFile != null) { certificate.CertificateFile = newCertFile; anyRenamed = true; }
+                        var newImagePath = TryRenameUploadedFile(certificate.CertificateImagePath, model.Number, certificate.Number);
+                        if (newImagePath != null) { certificate.CertificateImagePath = newImagePath; anyRenamed = true; }
+                        if (anyRenamed)
+                        {
+                            await _unitOfWork.CompleteAsync();
+                            _logger.LogInformation("DEF-193: race-loser file rename from preview {Preview} to assigned {Number}", model.Number, certificate.Number);
+                        }
+                    }
 
                     // Handle Product IDs from Product ID Manager
                     if (model.ProductIds != null && model.ProductIds.Any())
@@ -656,6 +683,43 @@ namespace GCCWebApp.Controllers
                 ModelState.AddModelError("", "An error occurred while creating the certificate");
                 await ReloadCreateFormDataAsync();
                 return View(model);
+            }
+        }
+
+        /// <summary>
+        /// DEF-193 Option A: rename an uploaded file on disk when the race forced a different
+        /// cert Number than the form's preview, so the filename matches the assigned Number.
+        /// Returns the new relative path on success, or null if no rename happened (file missing,
+        /// filename didn't contain the old number, destination already exists, or I/O error).
+        /// </summary>
+        private string? TryRenameUploadedFile(string? relativePath, string oldNumber, string newNumber)
+        {
+            if (string.IsNullOrEmpty(relativePath) || string.IsNullOrEmpty(oldNumber) || string.IsNullOrEmpty(newNumber))
+                return null;
+            try
+            {
+                var fileName = Path.GetFileName(relativePath);
+                if (string.IsNullOrEmpty(fileName) || !fileName.Contains(oldNumber, StringComparison.Ordinal))
+                    return null;
+
+                var newFileName = fileName.Replace(oldNumber, newNumber, StringComparison.Ordinal);
+                var dir = Path.GetDirectoryName(relativePath)?.Replace("\\", "/") ?? "";
+                var newRelative = string.IsNullOrEmpty(dir) ? newFileName : $"{dir}/{newFileName}";
+
+                var webRoot = _hostingEnvironment.WebRootPath;
+                var oldPhysical = Path.Combine(webRoot, relativePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                var newPhysical = Path.Combine(webRoot, newRelative.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+                if (!System.IO.File.Exists(oldPhysical)) return null;
+                if (System.IO.File.Exists(newPhysical)) return null; // don't clobber
+
+                System.IO.File.Move(oldPhysical, newPhysical);
+                return newRelative;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "DEF-193: failed to rename uploaded file {RelativePath} from {Old} to {New}", relativePath, oldNumber, newNumber);
+                return null;
             }
         }
 

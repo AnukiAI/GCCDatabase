@@ -5,8 +5,8 @@ namespace GCCWebApp.UAT.Tests.Tests.Admin;
 
 /// 2026-05-12 — User Management: pagination right-alignment regression.
 /// Shipped per Shawn: pagination should be right-aligned on /Admin/UserManagement.
-/// Verifies the scoped CSS rule (#user-pagination .pagination-wrapper { justify-content: flex-end })
-/// resolves correctly at runtime AND captures a screenshot for visual confirmation.
+/// Verifies (a) the scoped CSS rule resolves to flex-end at runtime, (b) the right
+/// edge of the controls hugs the right edge of the wrapper, and saves a screenshot.
 [TestFixture]
 public class UserManagementPaginationAlignmentTests : BaseTest
 {
@@ -31,71 +31,64 @@ public class UserManagementPaginationAlignmentTests : BaseTest
             WaitUntil = WaitUntilState.DOMContentLoaded,
             Timeout = 30000,
         });
-        // GetUsers XHR is slow on local dev with 279 users + Include chains; bump to 60s.
-        // Wait directly for pagination wrapper — it's only injected after setData() with totalItems > 25,
-        // which guarantees the table is populated.
-        await Page.WaitForSelectorAsync("#user-pagination .pagination-wrapper", new PageWaitForSelectorOptions { Timeout = 60000 });
+        // Pagination wrapper is only injected after setData() with totalItems > pageSize,
+        // which guarantees the table is populated. GetUsers XHR is slow on dev with 279
+        // users + Include chains, so allow up to 60s.
+        await Page.WaitForSelectorAsync("#user-pagination .pagination-wrapper",
+            new PageWaitForSelectorOptions { Timeout = 60000 });
     }
 
     [Test]
-    public async Task Pagination_Wrapper_Is_Right_Aligned()
+    public async Task Pagination_Is_Right_Aligned_On_UserManagement()
     {
         await GotoUserManagementAsAdmin();
 
+        // 1) Computed style — scoped rule must beat shared admin-tables.css.
         var justifyContent = await Page.EvalOnSelectorAsync<string>(
             "#user-pagination .pagination-wrapper",
             "el => getComputedStyle(el).justifyContent");
-
         justifyContent.Should().Be("flex-end",
-            "scoped rule '#user-pagination .pagination-wrapper { justify-content: flex-end }' must take precedence over the shared admin-tables.css rule (space-between)");
-    }
+            "scoped '#user-pagination .pagination-wrapper { justify-content: flex-end }' must override admin-tables.css's 'space-between'");
 
-    [Test]
-    public async Task Pagination_Controls_Sit_To_The_Right_Of_The_Table()
-    {
-        await GotoUserManagementAsAdmin();
+        // 2) Geometric — controls' right edge should hug the wrapper's right edge, and
+        // be far from the left edge. (Returning a simple JSON tuple as a string and
+        // parsing in C# avoids Playwright's Dictionary<string,double> deserialization quirks.)
+        var rectsJson = await Page.EvalOnSelectorAsync<string>(
+            "#user-pagination",
+            @"el => {
+                const wrapper = el.querySelector('.pagination-wrapper');
+                const controls = el.querySelector('.pagination-controls');
+                const w = wrapper.getBoundingClientRect();
+                const c = controls.getBoundingClientRect();
+                return JSON.stringify({
+                    wrapperLeft: w.left, wrapperRight: w.right, wrapperWidth: w.width,
+                    controlsLeft: c.left, controlsRight: c.right, controlsWidth: c.width
+                });
+            }");
+        var rects = System.Text.Json.JsonDocument.Parse(rectsJson).RootElement;
+        var wrapperLeft = rects.GetProperty("wrapperLeft").GetDouble();
+        var wrapperRight = rects.GetProperty("wrapperRight").GetDouble();
+        var controlsLeft = rects.GetProperty("controlsLeft").GetDouble();
+        var controlsRight = rects.GetProperty("controlsRight").GetDouble();
+        var wrapperWidth = rects.GetProperty("wrapperWidth").GetDouble();
+        var controlsWidth = rects.GetProperty("controlsWidth").GetDouble();
 
-        // Compare the right edge of the pagination controls block to the right edge of the table.
-        // If pagination is correctly right-aligned, the right edges should be within a few pixels.
-        var measurements = await Page.EvaluateAsync<Dictionary<string, double>>(@"() => {
-            const controls = document.querySelector('#user-pagination .pagination-controls');
-            const wrapper = document.querySelector('#user-pagination .pagination-wrapper');
-            const table = document.querySelector('#user-table');
-            const cRect = controls.getBoundingClientRect();
-            const wRect = wrapper.getBoundingClientRect();
-            const tRect = table.getBoundingClientRect();
-            return {
-                controlsRight: cRect.right,
-                controlsLeft: cRect.left,
-                wrapperRight: wRect.right,
-                wrapperLeft: wRect.left,
-                tableRight: tRect.right,
-                tableLeft: tRect.left,
-                wrapperWidth: wRect.width,
-                controlsWidth: cRect.width
-            };
-        }");
+        var rightEdgeGap = Math.Abs(controlsRight - wrapperRight);
+        var leftEdgeGap = controlsLeft - wrapperLeft;
+        var emptySpaceOnLeft = wrapperWidth - controlsWidth;
 
-        var controlsRight = measurements["controlsRight"];
-        var wrapperRight = measurements["wrapperRight"];
-        var controlsLeft = measurements["controlsLeft"];
-        var wrapperLeft = measurements["wrapperLeft"];
+        TestContext.WriteLine($"Wrapper:  [{wrapperLeft:F1}, {wrapperRight:F1}]  width {wrapperWidth:F1}");
+        TestContext.WriteLine($"Controls: [{controlsLeft:F1}, {controlsRight:F1}]  width {controlsWidth:F1}");
+        TestContext.WriteLine($"Right-edge gap (controls→wrapper.right): {rightEdgeGap:F1}px  [expect <5]");
+        TestContext.WriteLine($"Left-edge gap (controls.left - wrapper.left): {leftEdgeGap:F1}px  [expect = empty-space-on-left for flex-end]");
+        TestContext.WriteLine($"Empty space on left of controls: {emptySpaceOnLeft:F1}px");
 
-        // The controls' right edge should be within 4px of the wrapper's right edge (flex-end).
-        // The controls' left edge should be FAR from the wrapper's left edge (controls pushed right).
-        var rightEdgeDelta = Math.Abs(controlsRight - wrapperRight);
-        var leftEdgeDelta = controlsLeft - wrapperLeft;
+        rightEdgeGap.Should().BeLessThan(5,
+            "controls' right edge should hug the wrapper's right edge under justify-content: flex-end");
+        leftEdgeGap.Should().BeGreaterThan(100,
+            "controls should be pushed to the right, leaving substantial empty space on the left (wrapper is full-width, controls aren't)");
 
-        TestContext.WriteLine($"Wrapper: [{wrapperLeft:F1}, {wrapperRight:F1}] (width {measurements["wrapperWidth"]:F1})");
-        TestContext.WriteLine($"Controls: [{controlsLeft:F1}, {controlsRight:F1}] (width {measurements["controlsWidth"]:F1})");
-        TestContext.WriteLine($"Right-edge delta: {rightEdgeDelta:F1}px; Left-edge delta: {leftEdgeDelta:F1}px");
-
-        rightEdgeDelta.Should().BeLessThan(5,
-            "pagination controls' right edge should hug the wrapper's right edge (right-aligned)");
-        leftEdgeDelta.Should().BeGreaterThan(100,
-            "pagination controls should be pushed to the right, leaving a large gap on the left side of the wrapper");
-
-        // Capture full-page screenshot for visual confirmation.
+        // 3) Visual — capture screenshot for the shipped log.
         var screenshotsDir = Path.Combine(TestContext.CurrentContext.WorkDirectory, "Screenshots");
         Directory.CreateDirectory(screenshotsDir);
         var stamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
@@ -105,6 +98,6 @@ public class UserManagementPaginationAlignmentTests : BaseTest
             Path = shotPath,
             FullPage = true,
         });
-        TestContext.WriteLine($"Screenshot: {shotPath}");
+        TestContext.WriteLine($"Screenshot saved: {shotPath}");
     }
 }

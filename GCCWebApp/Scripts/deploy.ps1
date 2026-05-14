@@ -175,6 +175,90 @@ if ($stagedFileCount -lt 50) {
 }
 Write-Host "  Published $stagedFileCount files to staging." -ForegroundColor Green
 
+# --- Generate idempotent EF migrations script and bundle in zip ---
+# Added 2026-05-13 after the cert-tile outage caused by missing migration
+# 20260512011258_AddCertificationResultsNumeric on prod. Going forward every
+# deploy zip carries migrations/apply-migrations.sql so the schema can be
+# brought up to date BEFORE the new code starts handling requests against it.
+# The generated script is idempotent — each migration block is guarded by
+# IF NOT EXISTS (SELECT ... FROM __EFMigrationsHistory ...) so re-running is safe.
+Write-Host "Checking dotnet-ef tool..." -ForegroundColor Gray
+$efVersion = & dotnet ef --version 2>$null
+if ($LASTEXITCODE -ne 0 -or -not $efVersion) {
+    Write-Error @"
+ABORT: dotnet-ef tool is not installed (or not on PATH).
+Install it once with:
+    dotnet tool install --global dotnet-ef --version 8.0.11
+Then re-run this deploy script.
+"@
+    exit 1
+}
+# $efVersion can be a multi-line banner; take the last non-empty line as the version
+$efVersionLine = ($efVersion | Where-Object { $_ -match '\S' } | Select-Object -Last 1).Trim()
+Write-Host "  dotnet-ef: $efVersionLine" -ForegroundColor Gray
+
+$migrationsDir = Join-Path $stagingDir "migrations"
+New-Item -Path $migrationsDir -ItemType Directory -Force | Out-Null
+$migrationSqlPath = Join-Path $migrationsDir "apply-migrations.sql"
+
+Write-Host "Generating idempotent EF migrations script..." -ForegroundColor Gray
+# Note: NO --no-build. The publish step above wrote its artifacts to
+# bin/Release/net8.0/win-x64/publish/, but dotnet-ef resolves the host
+# project assembly out of bin/Release/net8.0/ (no RID subfolder). Without
+# letting EF build, it cannot find GCCWebApp.deps.json and aborts. The
+# incremental build EF triggers is fast (sub-second on a warm tree).
+& dotnet ef migrations script `
+    --idempotent `
+    --project $csproj `
+    --configuration $Configuration `
+    --output $migrationSqlPath
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "ABORT: dotnet ef migrations script failed (exit $LASTEXITCODE). See above for the EF tool's error output."
+    exit $LASTEXITCODE
+}
+if (-not (Test-Path $migrationSqlPath)) {
+    Write-Error "ABORT: dotnet ef returned success but no script was produced at $migrationSqlPath."
+    exit 1
+}
+$migrationBytes = (Get-Item $migrationSqlPath).Length
+$migrationLines = (Get-Content $migrationSqlPath | Measure-Object -Line).Lines
+Write-Host "  Generated: $migrationSqlPath" -ForegroundColor Green
+Write-Host "  $migrationLines lines, $([math]::Round($migrationBytes / 1KB, 1)) KB" -ForegroundColor Gray
+
+# Drop a tiny README next to the SQL so the server-side operator (or future-self)
+# knows how to apply it without digging through deploy logs.
+$migrationReadme = Join-Path $migrationsDir "README.md"
+$readmeContent = @"
+# Apply pending EF migrations
+
+Run this **before** recycling the IIS app pool so the new code doesn't query
+schema that doesn't exist yet (the cause of the 2026-05-13 cert-tile outage).
+
+## sqlcmd
+
+``````
+sqlcmd -S <server>,<port> -d <database> -U <user> -P <pwd> -I -i apply-migrations.sql -b
+``````
+
+The ``-I`` flag turns on ``QUOTED_IDENTIFIER`` (required if any migration adds
+an indexed computed column — error 1934 otherwise).
+
+## SSMS
+
+Open ``apply-migrations.sql`` in SSMS, connect to the target DB, run.
+
+## Idempotency
+
+Every migration block is guarded by ``IF NOT EXISTS (SELECT ... FROM
+__EFMigrationsHistory ...)`` so re-running this script is safe. If ``apply``
+errors with ``column already exists`` style messages, the prod schema has
+drifted ahead of ``__EFMigrationsHistory`` — generate a per-object guarded
+script (see ``Scripts/database/202605*.sql`` in the repo for examples).
+
+Generated $(Get-Date -Format 'yyyy-MM-dd HH:mm zzz') by Scripts/deploy.ps1.
+"@
+$readmeContent | Out-File -FilePath $migrationReadme -Encoding utf8 -NoNewline
+
 # --- Sanity check: confirm wwwroot/uploads/ is NOT in staging ---
 $stagedUploads = Join-Path $stagingDir "wwwroot\uploads"
 if (Test-Path $stagedUploads) {
@@ -203,9 +287,13 @@ Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Cyan
 Write-Host "  1. Upload the zip to Plesk via the file manager (or your usual method)" -ForegroundColor Gray
 Write-Host "  2. Extract on server, overwriting existing files" -ForegroundColor Gray
-Write-Host "  3. Recycle the IIS app pool" -ForegroundColor Gray
-Write-Host "  4. Smoke test: hit the site root and /api/v1/certificates with the partner key" -ForegroundColor Gray
-Write-Host "  5. Append a stakeholder line to docs/tracking/shipped-YYYY-MM.md" -ForegroundColor Gray
+Write-Host "  3. Apply DB migrations BEFORE recycling the app pool:" -ForegroundColor Yellow
+Write-Host "       sqlcmd -S <server>,<port> -d <db> -U <user> -P <pwd> \" -ForegroundColor Gray
+Write-Host "         -I -i migrations\apply-migrations.sql -b" -ForegroundColor Gray
+Write-Host "       (See migrations\README.md inside the extracted zip for details.)" -ForegroundColor Gray
+Write-Host "  4. Recycle the IIS app pool" -ForegroundColor Gray
+Write-Host "  5. Smoke test: hit the site root and /api/v1/certificates with the partner key" -ForegroundColor Gray
+Write-Host "  6. Append a stakeholder line to docs/tracking/shipped-YYYY-MM.md" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Older zips in deployment-drops/ accumulate over time -- feel free to delete" -ForegroundColor DarkGray
 Write-Host "any zip older than 7 days; the most recent is sufficient for rollback context." -ForegroundColor DarkGray

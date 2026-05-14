@@ -18,6 +18,197 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-193 — Race condition on cert-number generation: two concurrent Create form opens see the same number
+
+- **Date:** 2026-05-13
+- **Severity:** High (data-integrity adjacent — second user's submit fails with a generic error, losing UX continuity and 5+ minutes of form work)
+- **Status:** Fixed locally and verified end-to-end against the restarted dev server — pending deploy to gccwebapp.com
+- **Verification:** post-fix repro on localhost:5101 — two concurrent sessions both submitted with preview Number `26-0159`. Session A's save was retried and assigned `26-0160`; Session B kept `26-0159`. Both saves succeeded silently with no error toast. Test certs cleaned up from dev DB.
+- **Option A verification (file rename for race-loser):** ran a second repro with real PDF attachments on both concurrent POSTs. Race-winner cert `26-0159` got filename `26-0159_20260513_232825_<guid>.pdf` (the GUID suffix came from FileUploadService's collision-avoidance — the preview-number filename was briefly held by the loser before rename). Race-loser cert `26-0160` got filename `26-0160_20260513_232825.pdf` and thumbnail `26-0160_thumb_20260513_232825.png`; `TryRenameUploadedFile` successfully moved both files from the preview-number prefix to the assigned-number prefix. Both filenames now match their assigned cert numbers; no on-disk drift remaining.
+- **Reporter:** Client (Carly) — QC #58 5/11/26 comment: *"if 2 people have open and adding cert and hit save -- does one keep the original number and other get next available? It will never assign the same number right (it can't it has to be unique). Please coordinate test on your end to double check when this happens simultaneously with users."*
+
+**Symptom:** When two analysts open `/Certificate/Create` at the same time, both forms render with the SAME pre-filled `Number` value (e.g. "26-0164"). The user who saves second hits the UNIQUE-index violation on `Certificates.Number` and sees a generic `"An error occurred while creating the certificate"` message; their form data is preserved on re-render but the conflicting number remains in the input field. The user must refresh to receive a new number, then re-paste their work.
+
+**Root cause:** `Repositories/CertificateRepository.cs:744` (`GenerateNextCertificateNumberAsync`) computes the next number by reading `MAX(Number)` for the year and adding 1. It is called once from `Controllers/CertificateController.cs:287` and `:348` during the GET request that renders the Create form. Nothing reserves the number — it is a pure read and there is no transaction or lock around the read+save pair. The window between "form GET returns 26-0164" and "user clicks Save 5 minutes later" is the race window. The DB-level guarantee comes from `entity.HasIndex(e => e.Number).IsUnique()` in `Data/ApplicationDbContext.cs:67` — the unique index prevents the duplicate from being written but converts the race into a generic exception that the catch block at `Controllers/CertificateController.cs:653-659` swallows into an opaque "An error occurred" message.
+
+**Live reproduction (2026-05-13, gccwebapp.com):**
+```
+1. Two isolated HttpClients, both Basic-Auth through the gate.
+2. Session A logs in as analyst@greencirclecertified.com, Session B logs in as admin@greencirclecertified.com.
+3. Both sessions GET /Certificate/Create concurrently (Task.WhenAll).
+4. Parse `id="Number"` input from each response.
+
+RESULT:
+  Session A (analyst) Number: '26-0164'
+  Session B (admin)   Number: '26-0164'   <-- identical
+
+Script: %TEMP%\def193_repro_httpclient.ps1
+Evidence HTML (both responses): %TEMP%\def193_evidence\session_{a,b}_create.html
+```
+
+The unique index `IX_Certificates_Number` on `Certificates.Number` (`Migrations/...ModelSnapshot.cs:433`) is intact in production, so the second save would fail rather than silently writing a duplicate.
+
+**Proposed fix — atomic generate-and-save with retry-on-conflict (NOT YET APPLIED):**
+
+Move number assignment off the GET preview and onto the POST save path, inside a retry loop that handles unique-index conflicts.
+
+**`Repositories/ICertificateRepository.cs`** — add:
+```csharp
+Task<Certificate> AddWithGeneratedNumberAsync(Certificate certificate, int maxAttempts = 3);
+```
+
+**`Repositories/CertificateRepository.cs`** — add after `GenerateNextCertificateNumberAsync` (line 778):
+```csharp
+/// <summary>
+/// Atomically assigns the next available certificate number and saves the cert.
+/// Retries on UNIQUE-index conflict so concurrent saves both succeed (second user
+/// transparently gets the next number). DEF-193.
+/// </summary>
+public async Task<Certificate> AddWithGeneratedNumberAsync(Certificate certificate, int maxAttempts = 3)
+{
+    for (int attempt = 1; attempt <= maxAttempts; attempt++)
+    {
+        certificate.Number = await GenerateNextCertificateNumberAsync();
+        try
+        {
+            await _dbSet.AddAsync(certificate);
+            await _context.SaveChangesAsync();
+            return certificate;
+        }
+        catch (DbUpdateException ex) when (IsUniqueNumberViolation(ex))
+        {
+            _context.Entry(certificate).State = EntityState.Detached;
+            if (attempt == maxAttempts) throw;
+        }
+    }
+    throw new InvalidOperationException("Unreachable");
+}
+
+private static bool IsUniqueNumberViolation(DbUpdateException ex)
+{
+    // SQL Server: 2601 = duplicate key in unique index, 2627 = unique constraint violation
+    if (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx)
+    {
+        return (sqlEx.Number == 2601 || sqlEx.Number == 2627)
+            && sqlEx.Message.IndexOf("IX_Certificates_Number", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+    return false;
+}
+```
+
+**`Controllers/CertificateController.cs:450-522`** — replace `Number = model.Number,` in the new-Certificate initializer (line 452) with `// Number assigned atomically below (DEF-193)` and replace the save at lines 521-522:
+```csharp
+// OLD
+await _certificateRepository.AddAsync(certificate);
+await _unitOfWork.CompleteAsync();
+
+// NEW
+await _certificateRepository.AddWithGeneratedNumberAsync(certificate);
+```
+
+Then in the upload blocks above (lines 480 and 498) replace `model.Number` references with deferred ones — the cleanest approach is to move the PDF/image uploads AFTER the save, since they only need `certificate.Number` for filename. This is a 6-line reorder that keeps the rollback shape intact (if upload fails post-save, log + ignore; the cert exists in Draft state with no file, which is the same shape Analyst hits today when they fix-and-retry).
+
+**`Views/Certificate/Edit.cshtml` (or wherever the Create form Number input lives)** — mark the Number input as read-only and label it `Number (preview — assigned at save)`. Prevents UX surprise when the second user's assigned number differs from the preview they saw.
+
+**Why retry-on-conflict instead of SERIALIZABLE / sp_getapplock:** the read+save pair already locks `IX_Certificates_Number` at INSERT time. The unique-index error is the natural signal that a concurrent insert won the race. Retrying with a fresh `MAX(Number)+1` is O(1) per attempt and converges in ≤ N attempts for N concurrent writers. Three attempts handles every realistic concurrency level for this app (we have <10 analysts total). Heavier locking would serialize all cert creation needlessly.
+
+**Why not pre-reserve the number on GET:** would require either INSERTing a placeholder Draft row (orphan-on-close problem if user abandons the form) or a separate `CertificateNumberReservations` table (more state to manage and clean up). Retry-on-save is the least-invasive shape that fully resolves the symptom.
+
+**Test plan:**
+1. Unit: mock `_context.SaveChangesAsync()` to throw a `DbUpdateException` with a fake unique-index SqlException; assert the retry succeeds on attempt 2.
+2. Concurrency: spin up 5 parallel `AddWithGeneratedNumberAsync` calls in one test; assert all 5 succeed and have distinct sequential numbers.
+3. Live re-test with the script at `%TEMP%\def193_repro_httpclient.ps1` post-deploy: same two sessions submit; both certs save with 26-0164 and 26-0165 respectively.
+
+**Files to touch when fix is approved:** `Repositories/ICertificateRepository.cs`, `Repositories/CertificateRepository.cs`, `Controllers/CertificateController.cs` (Create POST only; Edit POST is unaffected because Edit doesn't generate numbers), `Views/Certificate/Create.cshtml` for the readonly Number label.
+
+**Cross-references:** QC #58 (5/11/26 client comment), CertificateRepository.cs:744 (race-prone read), ApplicationDbContext.cs:67 (unique index), CertificateController.cs:653 (generic catch that masks the error today).
+
+---
+
+### DEF-192 — Product Category filter pulls in certs whose displayed category does not match
+
+- **Date:** 2026-05-13
+- **Severity:** Medium (filter result set does not match what tiles show — user confusion / wrong-data risk)
+- **Status:** Fixed locally — verified end-to-end against localhost:5101 dev DB — pending deploy to gccwebapp.com
+- **Reporter:** Shawn — `https://gccwebapp.com/Certificate/CertificateTileViewInternal`, "why is this certificate showing for Carly Test is filtered. no other filters are selected" (cert 26-0158).
+
+**Symptom:** On the internal tile view, checking only `Product Categories → Carly Test` returns 4 results. Three of them legitimately show category `"Carly Test"` on the tile (26-0163, 26-0161, 26-0159). The fourth, `26-0158`, shows `"Electronics, Computers, and Accessories"` on the tile and detail view — a category that has nothing to do with the active filter. Verified via the anonymous public API as well, so the same leak happens on every surface that uses the shared filter path:
+
+```
+GET /api/certificate-tiles?productCategory=Carly%20Test → totalCount: 4
+  26-0163  3M                          productCategory="Carly Test"
+  26-0161  Testing… Long Name…         productCategory="Carly Test"
+  26-0159  Balcan Innovations          productCategory="Carly Test"
+  26-0158  Company Symbol Test é™®ä    productCategory="Electronics, Computers, and Accessories"   ← LEAK
+```
+
+**Root cause:** `Repositories/CertificateRepository.cs:333-351` (`GetAdvancedFilteredCertificatesAsync`). The ProductCategory predicate ORs the requested name across **nine** name fields:
+
+1. `c.Product.Category.Name` (Product-derived Level 1)
+2. `c.ProductCategory.Name` (cert-level Level 1 override)
+3. `c.Product.ProductType.Name` (Product-derived Level 2/3)
+4. `c.ProductType.Name` (cert-level Level 2/3 override)
+5. `c.ProductSubcategory.Name` (cert-level)
+6. `c.Product.ProductSubcategory.Name` (separate Product subcategory entity)
+7. `c.Product.ProductType.Parent.Name` (parent cascade)
+8. `c.ProductType.Parent.Name`
+9. `c.ProductSubcategory.Parent.Name`
+
+The tile/display logic in `Controllers/Api/CertificateTilesApiController.cs:186-188` does the **opposite** — it prefers the cert-level override and only falls back to the Product-derived value:
+
+```csharp
+productCategory = c.ProductCategory != null ? c.ProductCategory.Name : (c.Product?.Category?.Name ?? ""),
+productType    = c.ProductType    != null ? c.ProductType.Name    : (c.Product?.ProductType?.Name ?? ""),
+productSubcategory = c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product?.ProductSubcategory?.Name ?? ""),
+```
+
+For 26-0158 the public tile API returns `productCategory="Electronics, Computers, and Accessories"`, `productType="Electronic Accessories"`, `productSubcategory=""`. Since the cert's display chain has no "Carly Test" anywhere, the match must be happening on one of the Product-derived fields (most likely `c.Product.Category.Name == "Carly Test"` or a Product-side ProductType/ProductSubcategory in that chain), which the cert-level override masks at display time.
+
+**Fix applied:** replaced the OR-across-Product-AND-cert-override predicate with an effective-value match at each level (cert override if set, otherwise Product-derived) — mirrors the display projection. Parent-cascade preserved in the public repo (the only path that previously had it). Internal and external controllers had no parent cascade; preserved that to keep scope tight.
+
+```csharp
+// Effective Level-1 category
+(c.ProductCategory != null && filter.ProductCategories.Contains(c.ProductCategory.Name)) ||
+(c.ProductCategory == null && c.Product != null && filter.ProductCategories.Contains(c.Product.Category.Name)) ||
+// Effective Level-2/3 ProductType
+(c.ProductType != null && filter.ProductCategories.Contains(c.ProductType.Name)) ||
+(c.ProductType == null && c.Product != null && c.Product.ProductType != null && filter.ProductCategories.Contains(c.Product.ProductType.Name)) ||
+// Parent of effective L2/L3 ProductType (public repo only — preserves Level-2 sidebar cascade)
+(c.ProductType != null && c.ProductType.Parent != null && filter.ProductCategories.Contains(c.ProductType.Parent.Name)) ||
+(c.ProductType == null && c.Product != null && c.Product.ProductType != null && c.Product.ProductType.Parent != null && filter.ProductCategories.Contains(c.Product.ProductType.Parent.Name)) ||
+// Effective Level-3 subcategory
+(c.ProductSubcategory != null && filter.ProductCategories.Contains(c.ProductSubcategory.Name)) ||
+(c.ProductSubcategory == null && c.Product != null && c.Product.ProductSubcategory != null && filter.ProductCategories.Contains(c.Product.ProductSubcategory.Name)) ||
+// Parent of effective cert-side L3 subcategory
+(c.ProductSubcategory != null && c.ProductSubcategory.Parent != null && filter.ProductCategories.Contains(c.ProductSubcategory.Parent.Name))
+```
+
+**End-to-end verification (localhost:5101, dev DB):** synthesized the leak condition by setting cert 26-0001's `ProductCategoryId = 2` ("Clothing, Apparel, and Fabrics") while leaving `Product.CategoryId = 1` ("Chemicals and Raw Materials") — cert displays "Clothing…", Product-side still points at "Chemicals…".
+
+```
+Public  /api/certificate-tiles?productCategory=Chemicals and Raw Materials
+  before mutation: total=22, contains 26-0001=True
+  after mutation:  total=21, contains 26-0001=False    ← LEAK CLOSED
+Public  /api/certificate-tiles?productCategory=Clothing, Apparel, and Fabrics
+  before mutation: total=0,  contains 26-0001=False
+  after mutation:  total=1,  contains 26-0001=True     ← effective override matches
+
+Internal /api/certificate-tiles-internal (admin auth)
+  filter='Chemicals...' -> total=39, contains 26-0001=False
+  filter='Clothing...'  -> total=1,  contains 26-0001=True
+```
+
+Mutation restored at end of test (`ProductCategoryId = 1`).
+
+External controller has structurally identical predicate to internal; build passed and same EF shape proven via internal runtime.
+
+**Files changed:**
+- `Repositories/CertificateRepository.cs` (public path — `GetAdvancedFilteredCertificatesAsync`, with parent cascade preserved)
+- `Controllers/Api/CertificateTileInternalApiController.cs` (internal inline predicate)
+- `Controllers/Api/CertificateTileExternalApiController.cs` (external inline predicate)
+
+---
+
 ### DEF-191 — Product ID Import: per-row selection of an "unchanged" row failed with "already exists"
 
 - **Date:** 2026-05-12

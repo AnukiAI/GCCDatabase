@@ -167,20 +167,24 @@ namespace GCCWebApp.Controllers.Api
                     query = query.Where(c => types.Contains(c.CertificationType.Name));
                 }
 
-                // Apply product category filter - matches all 3 hierarchy levels
-                // Checks both Product's hierarchy and Certificate's direct fields
+                // DEF-192: Match the EFFECTIVE displayed category/type/subcategory at each level
+                // (cert-level override if set, otherwise Product-derived). Previous implementation
+                // ORed both sides and could match on a Product-derived value the cert's override
+                // hid from display. Display projection at line 240 below; this predicate must
+                // mirror it.
                 if (!string.IsNullOrWhiteSpace(productCategory))
                 {
                     var categories = productCategory.Split('|', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c =>
-                        // Product's hierarchy (Category → ProductType → ProductSubcategory)
-                        categories.Contains(c.Product.Category.Name) ||
-                        (c.Product.ProductType != null && categories.Contains(c.Product.ProductType.Name)) ||
-                        (c.Product.ProductSubcategory != null && categories.Contains(c.Product.ProductSubcategory.Name)) ||
-                        // Certificate's direct fields (if set independently)
+                        // Effective Level-1 category
                         (c.ProductCategory != null && categories.Contains(c.ProductCategory.Name)) ||
+                        (c.ProductCategory == null && categories.Contains(c.Product.Category.Name)) ||
+                        // Effective Level-2 ProductType
                         (c.ProductType != null && categories.Contains(c.ProductType.Name)) ||
-                        (c.ProductSubcategory != null && categories.Contains(c.ProductSubcategory.Name))
+                        (c.ProductType == null && c.Product.ProductType != null && categories.Contains(c.Product.ProductType.Name)) ||
+                        // Effective Level-3 subcategory
+                        (c.ProductSubcategory != null && categories.Contains(c.ProductSubcategory.Name)) ||
+                        (c.ProductSubcategory == null && c.Product.ProductSubcategory != null && categories.Contains(c.Product.ProductSubcategory.Name))
                     );
                 }
 

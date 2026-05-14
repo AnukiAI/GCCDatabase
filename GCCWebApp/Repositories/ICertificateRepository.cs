@@ -43,6 +43,10 @@ namespace GCCWebApp.Repositories
 
         // Certificate number generation
         Task<string> GenerateNextCertificateNumberAsync();
+
+        // DEF-193: atomic generate-and-save with retry on unique-index conflict
+        // so concurrent Create-form saves don't collide on Certificates.Number.
+        Task<Certificate> AddWithGeneratedNumberAsync(Certificate certificate, int maxAttempts = 3);
     }
 
     public class CertificateSearchFilter

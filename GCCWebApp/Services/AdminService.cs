@@ -797,6 +797,40 @@ namespace GCCWebApp.Services
                 return new List<ProductTypeViewModel>();
             }
 
+            // DEF-196 (was QC #170 follow-up): pull entity IDs (not just counts) so each
+            // node can hold a HashSet<int> of distinct certs/products in its subtree.
+            // A single cert/product can set ProductCategoryId AND ProductTypeId AND
+            // ProductSubcategoryId at once; the old direct + Σ(children) sum counted
+            // such rows once per level, inflating parent totals.
+            var certRefs = await _context.Certificates
+                .Where(c => c.ProductCategoryId != null || c.ProductTypeId != null || c.ProductSubcategoryId != null)
+                .Select(c => new { c.Id, c.ProductCategoryId, c.ProductTypeId, c.ProductSubcategoryId })
+                .ToListAsync();
+
+            var certIdsByCategory = certRefs
+                .Where(r => r.ProductCategoryId.HasValue)
+                .GroupBy(r => r.ProductCategoryId!.Value)
+                .ToDictionary(g => g.Key, g => g.Select(r => r.Id).ToHashSet());
+            var certIdsByType = certRefs
+                .Where(r => r.ProductTypeId.HasValue)
+                .GroupBy(r => r.ProductTypeId!.Value)
+                .ToDictionary(g => g.Key, g => g.Select(r => r.Id).ToHashSet());
+            var certIdsBySubcategory = certRefs
+                .Where(r => r.ProductSubcategoryId.HasValue)
+                .GroupBy(r => r.ProductSubcategoryId!.Value)
+                .ToDictionary(g => g.Key, g => g.Select(r => r.Id).ToHashSet());
+
+            // Products can be linked to a Level-2 ProductType via the dedicated
+            // ProductSubcategoryId FK in addition to ProductTypeId — collect IDs (not
+            // counts) so the subcat-level set unions cleanly with the type-level set.
+            var productSubcatRefs = await _context.Products
+                .Where(p => p.ProductSubcategoryId != null)
+                .Select(p => new { p.Id, SubId = p.ProductSubcategoryId!.Value })
+                .ToListAsync();
+            var productIdsBySubcategory = productSubcatRefs
+                .GroupBy(r => r.SubId)
+                .ToDictionary(g => g.Key, g => g.Select(r => r.Id).ToHashSet());
+
             // Group types by category
             var typesByCategory = allProductTypes
                 .Where(pt => pt.ParentId == null)
@@ -813,6 +847,14 @@ namespace GCCWebApp.Services
 
             foreach (var category in categories)
             {
+                // DEF-196: per-node ID sets — start with direct refs, then UnionWith
+                // each descendant's set so the same entity counts once at every
+                // ancestor regardless of how many FK levels it set.
+                var catCertIds = certIdsByCategory.TryGetValue(category.Id, out var catDirectCerts)
+                    ? new HashSet<int>(catDirectCerts)
+                    : new HashSet<int>();
+                var catProductIds = new HashSet<int>(); // categories have no direct products
+
                 var categoryVm = new ProductTypeViewModel
                 {
                     Id = category.Id,
@@ -821,7 +863,8 @@ namespace GCCWebApp.Services
                     Level = 1,
                     SortOrder = category.SortOrder,
                     ParentName = "",
-                    ProductCount = 0,
+                    ProductCount = 0,        // filled below from catProductIds.Count
+                    CertificateCount = 0,    // filled below from catCertIds.Count
                     IsCategory = true, // QC #117: This ID is from ProductCategories table
                     Children = new List<ProductTypeViewModel>()
                 };
@@ -831,6 +874,13 @@ namespace GCCWebApp.Services
                 {
                     foreach (var type in types)
                     {
+                        var typeCertIds = certIdsByType.TryGetValue(type.Id, out var typeDirectCerts)
+                            ? new HashSet<int>(typeDirectCerts)
+                            : new HashSet<int>();
+                        var typeProductIds = type.Products != null
+                            ? new HashSet<int>(type.Products.Select(p => p.Id))
+                            : new HashSet<int>();
+
                         var typeVm = new ProductTypeViewModel
                         {
                             Id = type.Id,
@@ -839,7 +889,8 @@ namespace GCCWebApp.Services
                             Level = 2,
                             SortOrder = type.SortOrder,
                             ParentName = category.Name,
-                            ProductCount = type.Products?.Count ?? 0,
+                            ProductCount = 0,        // filled below from typeProductIds.Count
+                            CertificateCount = 0,    // filled below from typeCertIds.Count
                             Children = new List<ProductTypeViewModel>()
                         };
 
@@ -848,6 +899,19 @@ namespace GCCWebApp.Services
                         {
                             foreach (var sub in subcategories)
                             {
+                                // Subcategory product set = products linked via ProductTypeId
+                                // (sub.Products navigation) ∪ products linked via ProductSubcategoryId.
+                                var subCertIds = certIdsBySubcategory.TryGetValue(sub.Id, out var subDirectCerts)
+                                    ? new HashSet<int>(subDirectCerts)
+                                    : new HashSet<int>();
+                                var subProductIds = sub.Products != null
+                                    ? new HashSet<int>(sub.Products.Select(p => p.Id))
+                                    : new HashSet<int>();
+                                if (productIdsBySubcategory.TryGetValue(sub.Id, out var subProdFkIds))
+                                {
+                                    subProductIds.UnionWith(subProdFkIds);
+                                }
+
                                 typeVm.Children.Add(new ProductTypeViewModel
                                 {
                                     Id = sub.Id,
@@ -856,22 +920,27 @@ namespace GCCWebApp.Services
                                     Level = 3,
                                     SortOrder = sub.SortOrder,
                                     ParentName = type.Name,
-                                    ProductCount = sub.Products?.Count ?? 0,
+                                    ProductCount = subProductIds.Count,
+                                    CertificateCount = subCertIds.Count,
                                     Children = new List<ProductTypeViewModel>()
                                 });
+
+                                typeCertIds.UnionWith(subCertIds);
+                                typeProductIds.UnionWith(subProductIds);
                             }
                         }
 
-                        // Roll up product counts from subcategories
-                        typeVm.ProductCount += typeVm.Children.Sum(c => c.ProductCount);
-
+                        typeVm.ProductCount = typeProductIds.Count;
+                        typeVm.CertificateCount = typeCertIds.Count;
                         categoryVm.Children.Add(typeVm);
+
+                        catCertIds.UnionWith(typeCertIds);
+                        catProductIds.UnionWith(typeProductIds);
                     }
                 }
 
-                // Roll up product counts from types
-                categoryVm.ProductCount = categoryVm.Children.Sum(t => t.ProductCount);
-
+                categoryVm.ProductCount = catProductIds.Count;
+                categoryVm.CertificateCount = catCertIds.Count;
                 result.Add(categoryVm);
             }
 
@@ -1137,16 +1206,37 @@ namespace GCCWebApp.Services
                     return (false, $"Cannot delete: This item has {childCount} {childType}. Please delete or move them first.");
                 }
 
-                // Check if it has products assigned
-                if (productType.Products != null && productType.Products.Any())
+                // QC #170: Products can reference a ProductType via BOTH ProductTypeId AND ProductSubcategoryId.
+                // The Products navigation only loads the ProductTypeId side.
+                var productCountViaTypeFk = productType.Products?.Count ?? 0;
+                var productCountViaSubcatFk = await _context.Products.CountAsync(p => p.ProductSubcategoryId == id);
+                var productTotal = productCountViaTypeFk + productCountViaSubcatFk;
+                if (productTotal > 0)
                 {
-                    var productCount = productType.Products.Count;
-                    return (false, $"Cannot delete: {productCount} product(s) are assigned to this item. Please reassign them first.");
+                    return (false, $"Cannot delete: {productTotal} product(s) are assigned to this item. Please reassign them first.");
+                }
+
+                // QC #170: Certificates can reference a ProductType via ProductTypeId OR ProductSubcategoryId.
+                // This was the missing check that caused the "An error occurred" generic message —
+                // pre-check passed, then SaveChanges hit the FK Restrict at the SQL layer.
+                var certCount = await _context.Certificates
+                    .CountAsync(c => c.ProductTypeId == id || c.ProductSubcategoryId == id);
+                if (certCount > 0)
+                {
+                    // Entity Level: 1 = top-level type, 2 = subcategory.
+                    var label = productType.Level == 2 ? "subcategory" : "type";
+                    return (false, $"Cannot delete: {certCount} certificate(s) use this {label}. Edit those certificates to use a different {label} first, then try again.");
                 }
 
                 _context.ProductTypes.Remove(productType);
                 await _context.SaveChangesAsync();
                 return (true, "Product type deleted successfully");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // QC #170: Last-resort fallback if a FK reference was added between the pre-check and SaveChanges.
+                _logger.LogError(dbEx, "FK violation deleting product type {Id}", id);
+                return (false, "Cannot delete: this item is still referenced by other records. Reassign or remove those references and try again.");
             }
             catch (Exception ex)
             {
@@ -1184,9 +1274,22 @@ namespace GCCWebApp.Services
                     return (false, $"Cannot delete: {productCount} product(s) are assigned to this category. Please reassign them first.");
                 }
 
+                // QC #170: Certificates can reference a ProductCategory directly via ProductCategoryId.
+                var certCount = await _context.Certificates.CountAsync(c => c.ProductCategoryId == id);
+                if (certCount > 0)
+                {
+                    return (false, $"Cannot delete: {certCount} certificate(s) use this category. Edit those certificates to use a different category first, then try again.");
+                }
+
                 _context.ProductCategories.Remove(category);
                 await _context.SaveChangesAsync();
                 return (true, "Category deleted successfully");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // QC #170: Last-resort fallback for FK references not caught by pre-checks.
+                _logger.LogError(dbEx, "FK violation deleting product category {Id}", id);
+                return (false, "Cannot delete: this category is still referenced by other records. Reassign or remove those references and try again.");
             }
             catch (Exception ex)
             {
@@ -2563,12 +2666,12 @@ namespace GCCWebApp.Services
                 case "product_types":
                 case "product_types_hierarchy":
                     var productTypes = await GetProductTypesAsync();
-                    content.AppendLine("Name,Type,Parent,Level,Sort Order,Product Count");
+                    content.AppendLine("Name,Type,Parent,Level,Sort Order,Product Count,Certificate Count");
                     foreach (var productType in productTypes)
                     {
                         var typeLabel = productType.Level == 0 ? "Category" : productType.Level == 1 ? "Type" : "Subcategory";
                         content.AppendLine($"\"{productType.Name}\",\"{typeLabel}\"," +
-                                         $"\"{productType.ParentName}\",{productType.Level + 1},{productType.SortOrder},{productType.ProductCount}");
+                                         $"\"{productType.ParentName}\",{productType.Level + 1},{productType.SortOrder},{productType.ProductCount},{productType.CertificateCount}");
                     }
                     break;
                     
@@ -2712,7 +2815,7 @@ namespace GCCWebApp.Services
                     case "product_types":
                     case "product_types_hierarchy":
                         var productTypes = await GetProductTypesAsync();
-                        
+
                         // Headers
                         worksheet.Cell(1, 1).Value = "ID";
                         worksheet.Cell(1, 2).Value = "Name";
@@ -2721,7 +2824,8 @@ namespace GCCWebApp.Services
                         worksheet.Cell(1, 5).Value = "Level";
                         worksheet.Cell(1, 6).Value = "Sort Order";
                         worksheet.Cell(1, 7).Value = "Product Count";
-                        
+                        worksheet.Cell(1, 8).Value = "Certificate Count";
+
                         // Data
                         row = 2;
                         foreach (var productType in productTypes)
@@ -2734,6 +2838,7 @@ namespace GCCWebApp.Services
                             worksheet.Cell(row, 5).Value = productType.Level + 1;
                             worksheet.Cell(row, 6).Value = productType.SortOrder;
                             worksheet.Cell(row, 7).Value = productType.ProductCount;
+                            worksheet.Cell(row, 8).Value = productType.CertificateCount;
                             row++;
                         }
                         break;

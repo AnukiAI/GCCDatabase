@@ -2688,7 +2688,7 @@ body.theme-option4 .card-header {
 body.theme-option4 .header-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     position: relative;
     z-index: 2;
 }

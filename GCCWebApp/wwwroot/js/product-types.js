@@ -100,12 +100,16 @@ class ProductTypeManager {
         
         // QC #117: Pass isCategory flag so CRUD operations use the correct table
         const isCat = node.isCategory ? 'true' : 'false';
+        // QC #170: Show product AND certificate counts so the column matches the delete blockers.
+        const prodCount = node.productCount || 0;
+        const certCount = node.certificateCount || 0;
+        const countTooltip = `${prodCount} product${prodCount === 1 ? '' : 's'} / ${certCount} certificate${certCount === 1 ? '' : 's'} reference this ${level === 1 ? 'category' : level === 2 ? 'type' : 'subcategory'}`;
         nodeContent.innerHTML = `
             <div class="node-indent level-${level}"></div>
             ${hasChildren ? '<div class="node-icon"><i class="fas fa-chevron-right"></i></div>' : '<div class="node-icon"></div>'}
             <div class="node-label">${node.name}</div>
             <div class="node-meta">
-                <span class="node-count">${node.productCount || 0}</span>
+                <span class="node-count" title="${countTooltip}">${prodCount} / ${certCount}</span>
                 <div class="node-actions">
                     <button class="action-btn edit" title="Edit ${nodeType}" data-id="${node.id}" data-type="${nodeType}" data-is-category="${isCat}">
                         <i class="fas fa-edit"></i>
@@ -303,7 +307,8 @@ class ProductTypeManager {
                             <th>Name</th>
                             <th>Type</th>
                             <th>Parent</th>
-                            <th>Product Count</th>
+                            <th title="Products that reference this item">Products</th>
+                            <th title="Certificates that reference this item">Certificates</th>
                             <th>Sort Order</th>
                             <th>Actions</th>
                         </tr>
@@ -353,6 +358,7 @@ class ProductTypeManager {
                 <td><span class="badge badge-${typeLabel.toLowerCase()}">${typeLabel}</span></td>
                 <td>${item.parentName}</td>
                 <td>${item.productCount || 0}</td>
+                <td>${item.certificateCount || 0}</td>
                 <td>${item.sortOrder || 0}</td>
                 <td>
                     <div class="action-buttons">
@@ -1132,7 +1138,8 @@ function initializeExportFunctionality() {
                         parent: parentName,
                         level: level + 1,
                         sortOrder: item.sortOrder || 0,
-                        productCount: item.productCount || 0
+                        productCount: item.productCount || 0,
+                        certificateCount: item.certificateCount || 0
                     });
                     if (item.children && item.children.length > 0) {
                         flatten(item.children, level + 1, item.name);
@@ -1148,7 +1155,8 @@ function initializeExportFunctionality() {
                 { key: 'parent', header: 'Parent' },
                 { key: 'level', header: 'Level' },
                 { key: 'sortOrder', header: 'Sort Order' },
-                { key: 'productCount', header: 'Product Count' }
+                { key: 'productCount', header: 'Product Count' },
+                { key: 'certificateCount', header: 'Certificate Count' }
             ];
 
             if (typeof ExportUtils !== 'undefined' && ExportUtils.exportToCSV) {

@@ -27,6 +27,12 @@
                     </button>
                 </div>
 
+                @* DEF-194: Bulk delete via row checkboxes + select-all. Hidden until at least one row is selected. *@
+                <button type="button" class="btn btn-danger btn-sm me-2" id="bulkDeleteProductIds" style="display: none;"
+                        title="Delete all selected product IDs">
+                    <i class="fas fa-trash me-1"></i>Delete Selected (<span id="bulkDeleteCount">0</span>)
+                </button>
+
                 <button type="button" class="btn btn-primary btn-sm" id="addProductId">
                     <i class="fas fa-plus me-1"></i>Add Product ID
                 </button>
@@ -65,6 +71,14 @@
         <table class="table table-sm table-hover" id="productIdsTable">
             <thead class="table-light">
                 <tr>
+                    @* DEF-194: Select-all checkbox for bulk delete. Hidden when read-only. *@
+                    @if (!isReadOnly)
+                    {
+                        <th style="width: 40px; text-align: center;">
+                            <input type="checkbox" id="selectAllProductIds" class="bulk-select-all"
+                                   aria-label="Select all product IDs on this page" />
+                        </th>
+                    }
                     @* DEF-150: Sortable headers match Views/Product/Management.cshtml convention.
                        Click toggles asc/desc; ▼ default, ▲ asc, ▼ desc. *@
                     <th data-sort="type" class="admin-table-th--sortable" style="width: 80px;">Type <span class="sort-icon admin-sort-icon">▼</span></th>
@@ -87,6 +101,14 @@
                     @foreach (var productId in Model)
                     {
                         <tr data-product-id="@productId.Id">
+                            @if (!isReadOnly)
+                            {
+                                <td style="text-align: center;">
+                                    <input type="checkbox" class="bulk-select-checkbox"
+                                           data-product-id="@productId.Id"
+                                           aria-label="Select product ID @productId.ProductIdValue" />
+                                </td>
+                            }
                             <td>
                                 <span class="product-type-badge product-type-@productId.ProductIdType.ToLower()">
                                     @productId.ProductIdType
@@ -145,7 +167,8 @@
                 else
                 {
                     <tr id="noProductIdsRow">
-                        <td colspan="@(isReadOnly ? 7 : 8)" class="text-center text-muted py-4">
+                        @* DEF-194: colspan grew by 1 when bulk-select column added for non-readonly. *@
+                        <td colspan="@(isReadOnly ? 7 : 9)" class="text-center text-muted py-4">
                             <i class="fas fa-barcode fa-2x mb-2 d-block text-muted"></i>
                             No product IDs added yet.
                             @if (!isReadOnly)

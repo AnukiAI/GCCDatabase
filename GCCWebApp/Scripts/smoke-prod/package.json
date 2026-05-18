@@ -1,0 +1,13 @@
+{
+  "name": "gccwebapp-smoke-prod",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Post-deploy smoke test runner for gccwebapp.com (prelaunch test env). Run after every Plesk deploy.",
+  "scripts": {
+    "smoke": "node smoke.js",
+    "smoke:verbose": "VERBOSE=1 node smoke.js"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}

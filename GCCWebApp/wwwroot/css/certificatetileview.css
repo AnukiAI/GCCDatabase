@@ -714,10 +714,12 @@ body.theme-option4 .certificate-card .card-actions {
 }
 
 /* Header row: cert type (left) + cert number (right) */
+/* DEF: top-align so cert-number pill stays at the top when the
+   certification category wraps to 2-3 lines (QC #174). */
 .certificate-card .header-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 4px;
 }
 

@@ -18,6 +18,174 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-197 — Admin → Product Types: Usage column overcounts when a cert or product sets multiple FK levels in the same hierarchy
+
+- **Date:** 2026-05-18
+- **Severity:** Medium (display-only — no data corruption, but mis-communicates the delete blocker count and can scare users into thinking they have more cleanup than they do)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **QC Ref:** None — found internally during local smoke test of [[DEF-196]] on 2026-05-18
+- **Bucket:** Bug
+- **Reporter:** Internal (Shawn / smoke test)
+
+**Symptom.** On `/Admin/ProductTypes`, the "Usage (Products / Certs)" column inflated rollup totals at non-leaf nodes. Dev DB example:
+
+| Node | Page (Prod / Cert) | Truth (distinct) | Δ |
+|---|---|---|---|
+| Cat 1 — Chemicals and Raw Materials | `3 / 28` | `2 / 26` | +1 / +2 |
+| Type 4 (child of Chemicals) | `2 / 2` | `1 / 1` | +1 / +1 |
+| Subcat 49 (child of Type 4) | `0 / 1` | `0 / 1` | ✓ |
+
+Leaf nodes (subcategories) were always correct. Every ancestor that *also* had a direct ref to the same cert or product overcounted by 1 per level. Worst case for an entity tagged at all `N` levels of the tree is `N*(N-1)/2` extra at the root.
+
+**Root cause.** `Services/AdminService.cs:GetProductTypesAsync` (introduced in [[DEF-196]]) used `direct + Σ(children)` to roll up the new `CertificateCount` field and the augmented `ProductCount` field:
+
+```csharp
+typeVm.ProductCount += typeVm.Children.Sum(c => c.ProductCount);
+typeVm.CertificateCount += typeVm.Children.Sum(c => c.CertificateCount);
+// ...
+categoryVm.ProductCount = categoryVm.Children.Sum(t => t.ProductCount);
+categoryVm.CertificateCount += categoryVm.Children.Sum(t => t.CertificateCount);
+```
+
+The `Certificates` schema allows a single row to set `ProductCategoryId` **and** `ProductTypeId` **and** `ProductSubcategoryId` simultaneously, and 1 of 43 dev certs (`26-0027`) does. `Products` has the same dual-FK pattern (`ProductTypeId` + `ProductSubcategoryId`) and 1 of 305 dev products (`#346 "test"`) does. Every entity tagged at multiple levels got counted at each level and then summed again at the grandparent.
+
+Production risk: dev surfaced 1 cert + 1 product with the multi-FK pattern. Real-world distribution is unknown — analyst tagging conventions may or may not produce more cases.
+
+**Fix.** Replaced the integer-sum rollup with `HashSet<int>` unions per node. Each node holds the distinct set of cert IDs and product IDs in its subtree; `.Count` is read once at the end into `CertificateCount` and `ProductCount`. The same entity appearing at multiple levels is now deduped on union.
+
+Files touched:
+- `Services/AdminService.cs:803-833` — query now selects entity IDs (not counts); `certIdsBy{Category,Type,Subcategory}` and `productIdsBySubcategory` hold `HashSet<int>` per FK target.
+- `Services/AdminService.cs:846-916` — tree build keeps a per-node `HashSet<int>` for certs and products, calls `UnionWith` on each descendant set, assigns `.Count` to the VM at the end.
+
+**Verification.** Smoke test rerun against `localhost:5101`:
+- Before fix sample `.node-count` values: `["0 / 0","3 / 28","1 / 0","0 / 0","0 / 0","2 / 2"]`
+- After fix sample `.node-count` values: `["0 / 0","2 / 26","1 / 0","0 / 0","0 / 0","1 / 1"]`
+- All other nodes unchanged (`0 / 0` correct).
+
+SQL ground-truth queries used:
+```sql
+-- Distinct certs in a category's subtree
+SELECT COUNT(DISTINCT c.Id) FROM Certificates c
+WHERE c.ProductCategoryId = @cat
+   OR c.ProductTypeId IN (SELECT Id FROM ProductTypes WHERE CategoryId = @cat)
+   OR c.ProductSubcategoryId IN (SELECT Id FROM ProductTypes WHERE CategoryId = @cat);
+```
+
+**Related.** Tightens [[DEF-196]]. Same root cause shape as past list-Include + projection issues (counting-when-you-should-be-distinct).
+
+---
+
+### DEF-196 — Admin → Product Types: count column showed 0 while delete failed; certificates referencing types/categories never blocked deletion gracefully (QC #170)
+
+- **Date:** 2026-05-15
+- **Severity:** High (data-management blocker — Carly could not clean up her own test rows and could not understand the error)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **QC Ref:** #170 (client log, 2026-05-01, Carly — *"PLEASE REMOVE MY CARLY TEST AND CARLY TEST TYPE OPTIONS. SEE IF YOU CAN GO THROUGH THIS PROCESS, ETC."*)
+- **Bucket:** Bug
+- **Reporter:** Client (Carly)
+
+**Symptom.** On `/Admin/ProductTypes`, the "Products" count column read `0` for every row Carly was trying to delete. Clicking delete on those same rows returned **"An error occurred while deleting. Please try again."** — a generic message that gave her no path forward. Separately, she could filter the certificate listing by "Carly Test" and see certs returned, proving the type was in use, but the admin page disagreed.
+
+**Root cause — three layered bugs in the same code path.**
+
+1. **Count query was Products-only.** `Services/AdminService.cs:842, 859, 866, 873` populated `ProductTypeViewModel.ProductCount` from `ProductType.Products?.Count`. The `Products` navigation only reflects the `Products.ProductTypeId` FK, so Products linked via the *other* FK (`Products.ProductSubcategoryId`) and **all** Certificate references were silently excluded from the displayed count.
+2. **Delete pre-check was Products-only too.** `Services/AdminService.cs:1141` short-circuited only on `productType.Products.Any()`. With no products attached, the pre-check passed and the code called `_context.SaveChangesAsync()`.
+3. **FK violation fell into a generic catch.** `Data/ApplicationDbContext.cs:135-147` defines `Certificates → ProductType` (and `→ ProductSubcategory`) with `OnDelete(DeleteBehavior.Restrict)`. SQL Server raised an FK violation on save, which the broad `catch (Exception ex)` at line 1151 swallowed and replaced with the unhelpful "An error occurred" message.
+
+Net effect: the column told Carly "deletable", the system disagreed, and the error gave no specifics. The same three-bug chain was present on `DeleteProductCategoryAsync` for root categories.
+
+**Fix.**
+
+- **`Services/AdminService.cs:GetProductTypesAsync`** — added a single read of `Certificates.ProductCategoryId/ProductTypeId/ProductSubcategoryId` plus `Products.ProductSubcategoryId` upfront, then populated a new `CertificateCount` field per node and corrected `ProductCount` for Level-2 subcategory rows (which reach Products via `ProductSubcategoryId`). Roll-up logic preserved: cert counts roll up child→parent the same way product counts always have, and direct cert refs on a category are preserved alongside the rolled-up children.
+- **`Services/AdminService.cs:DeleteProductTypeAsync`** — added an explicit cert pre-check (`Certificates.ProductTypeId == id || ProductSubcategoryId == id`) with a specific message naming the count and the noun ("subcategory" vs "type" per entity Level), plus a `Products.ProductSubcategoryId` pre-check that was missing entirely. The level→label map (entity Level: 1 = type, 2 = subcategory) was corrected after a test pass surfaced PET returning "1 certificate(s) use this **type**" when PET is a subcategory.
+- **`Services/AdminService.cs:DeleteProductCategoryAsync`** — same cert pre-check added for `Certificates.ProductCategoryId`.
+- **Both delete methods** — added `catch (DbUpdateException dbEx)` ahead of the generic `Exception` handler. If a new FK reference is added between the pre-check and `SaveChanges` (concurrent insert race), the user now sees "Cannot delete: this item is still referenced by other records. Reassign or remove those references and try again." instead of "An error occurred."
+- **`Models/AdminModels.cs:ProductTypeViewModel`** — added `int CertificateCount` field; existing `ProductCount` semantics preserved.
+- **`Views/Admin/ProductTypes.cshtml`** — tree-view column header renamed from "Products" to "Usage (Products / Certs)" with a tooltip explaining what blocks deletion. Help-modal text on the Cascade Behavior section rewritten to describe both counts. No layout change.
+- **`wwwroot/js/product-types.js`** — tree-node count cell now renders `${productCount} / ${certificateCount}` with a hover-title spelling out the breakdown ("3 products / 7 certificates reference this category"). Table-view splits "Product Count" into separate "Products" and "Certificates" columns. CSV export adds a `Certificate Count` column.
+- **`Services/AdminService.cs:GenerateCsvExport/GenerateExcelExport`** — server-side exports also include the new `Certificate Count` column for parity with the client export.
+
+**Cert Edit dropdown (Carly's secondary complaint).** She also reported that when editing a cert that used "Carly Test", the Product Type dropdown only offered her test options — locking her in. This is the cascading category→type→subcategory filter working as designed: `Views/Certificate/Edit.cshtml:626` loads `/Certificate/GetProductTypes?categoryId={saved}`, so a cert whose saved category is "Carly Test Category" sees only that category's children. **No code change here** — the workaround is to change Category first, which then refreshes the Type dropdown. If client feedback continues, the right call is a UX hint under the Type dropdown ("Change Category to see other types") rather than removing the cascade.
+
+**Files:**
+- `Services/AdminService.cs` — `GetProductTypesAsync`, `DeleteProductTypeAsync`, `DeleteProductCategoryAsync`, CSV/Excel exports.
+- `Models/AdminModels.cs` — `ProductTypeViewModel.CertificateCount` added.
+- `Views/Admin/ProductTypes.cshtml` — column header + help modal text.
+- `wwwroot/js/product-types.js` — tree node, table view, CSV export.
+
+**Test plan / verified 2026-05-15 against dev DB (`GCCDatabase_Dev`).**
+
+1. **`GET /Admin/GetProductTypes` JSON** as admin — verified each node now has both `productCount` and `certificateCount`. Spot-checks against direct SQL counts: "Chemicals and Raw Materials" → prod=3, cert=28 (matches FK counts); "Plastics" type → prod=2, cert=2 (1 own product + 1 LLDPE rollup; 1 own cert + 1 PET rollup); LLDPE subcategory → prod=1 (was hidden behind `ProductSubcategoryId` FK), cert=0; PET subcategory → prod=0, cert=1.
+2. **`POST /Admin/DeleteProductType/49` (PET, subcategory with 1 cert)** — returns `success: false` with **"Cannot delete: 1 certificate(s) use this subcategory. Edit those certificates to use a different subcategory first, then try again."** Was previously "An error occurred while deleting. Please try again."
+3. **`POST /Admin/DeleteProductType/48` (LLDPE, subcategory with 1 product via `ProductSubcategoryId`)** — returns **"Cannot delete: 1 product(s) are assigned to this item. Please reassign them first."** Was previously the same generic error (the Products navigation never saw this row).
+4. **`POST /Admin/DeleteProductType/4` (Plastics, has 6 subcategories)** — returns the existing children check: **"Cannot delete: This item has 6 subcategories. Please delete or move them first."** No regression.
+5. **`POST /Admin/DeleteProductType/99999` (nonexistent)** — returns **"Product type not found"**. No regression.
+6. **Build:** `dotnet build` clean — 0 errors, 53 pre-existing warnings (unchanged from prior commits).
+
+**Found by:** Client (Carly), QC #170 logged 2026-05-01. Triaged + fixed by Anuki 2026-05-15 — same day Shawn raised it for the status call.
+
+---
+
+### DEF-195 — Certificate-number pill drifts below the category text on tiles where the category wraps to 2-3 lines (QC #174)
+
+- **Date:** 2026-05-15
+- **Severity:** Low (visual)
+- **Status:** Deployed to gccwebapp.com 2026-05-15 (zip `GCCWebApp-deploy-20260515-2005.zip`, second attempt) — post-deploy smoke verified clean. First attempt earlier the same day (`GCCWebApp-deploy-20260515-1948.zip`) did not carry — server's CSS `Last-Modified` headers proved the files were never overwritten. Re-deploy with explicit "Overwrite All" in Plesk landed it; asp-append-version hash on `/css/certificatetileview.css` flipped from `29xsVYkW...` (broken) → `BgYK15dB7eLLdeKE74ymzJ0LNb74H3-dO5iVzgGpmvI` (fixed). 20 multi-line-category tiles now show 0px cert-id pill drift (was up to 10px).
+- **QC Ref:** #174 (client log, 2026-05-08, Carly)
+- **Bucket:** UX
+- **Reporter:** Client (Carly)
+
+Client report: *"Spacing of cert number off — not sure if it is because cert name has 3 lines but all others are top aligned."* What's actually wrapping is the **certification category** (left side of the card header), not the product/cert name. On tiles where the category wraps to 2 or 3 lines, the cert-number pill on the right was vertically centered against the taller row, so it sat noticeably below the top of the neighboring single-line tiles' pills.
+
+**Root cause — cascade specificity.** `wwwroot/css/main.css:2688` declares `body.theme-option4 .header-row { align-items: center; }` with specificity (0,2,1). The cleaner `.certificate-card .header-row` rule in `certificatetileview.css:719` (specificity 0,2,0) loses to it on tied-class but extra type-selector grounds, so the centered alignment won everywhere theme-option4 was active. theme-option4 is the default body class on all three tile views (public, internal, external), so the bug was site-wide on desktop and tablet ≥1024px. Below 1024px a separate `body.theme-option4 .header-row` rule inside a media query at `main.css:3693` already used `flex-start`, which is why narrow viewports looked fine and the visual problem was confined to wider screens. The base `.header-row { align-items: flex-start }` rule at `main.css:1457` and the per-card rule in `certificatetileview.css` already wanted the correct value — only the theme-option4 override disagreed.
+
+**Fix:**
+
+- `wwwroot/css/main.css:2691` — `align-items: center` → `align-items: flex-start` on `body.theme-option4 .header-row`.
+- `wwwroot/css/certificatetileview.css:720` — same value applied for defense-in-depth (the rule was already there; its value didn't matter while theme-option4 overruled it).
+
+Single source of truth is now the base `.header-row { align-items: flex-start }` rule at `main.css:1457`; the theme-option4 selector no longer disagrees with it.
+
+**Test plan:**
+
+1. **Visual** — `/Certificate/CertificateTileView` at 1920×1080, 1280×800, 1024×768, 768×1024, 390×844. On every viewport that shows multi-line categories ("CERTIFIED ENVIRONMENTAL FACTS", "CERTIFIED ENERGY SAVINGS"), the cert-number pill must be flush with the **first line** of the category text. Top-delta between `.certificate-category` top and `.certificate-id` top must be 0px.
+2. **Repeat for** `/Certificate/CertificateTileViewExternal` (external user) and `/Certificate/CertificateTileViewInternal` (analyst user) — both load the same `certificatetileview.css` and use identical `.header-row` markup (see `certificate-tile-view-external.js:436` and `certificate-tile-view-internal.js`), so the fix should carry over without per-view edits.
+3. **Automated measurement** — Playwright eval `getComputedStyle(headerRow).alignItems === 'flex-start'` on every viewport. Verified 2026-05-15: pre-fix run showed `center` on the three widest viewports and a 10px top-delta on tablet-1024 3-line cards; post-fix run shows `flex-start` and 0px top-delta on all 22 cards across all 5 viewports.
+4. **Regression** — Single-line category tiles must look unchanged (they do — `center` and `flex-start` are identical for a 1-line flex row).
+
+**Found by:** Client (Carly), QC #174 logged 2026-05-08. Triaged + fixed by Anuki 2026-05-15.
+
+---
+
+### DEF-194 — Cert Create/Edit Product Identifier table needs bulk-delete via checkboxes (QC #172 — client 5/11, per 5/8 call)
+
+- **Date:** 2026-05-14
+- **Severity:** Low (Enhancement — no broken behavior, fills a UX gap for analysts cleaning up large product-ID lists)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **Reporter:** Client (Carly) via QC log #172 (5/11/26): *"Add check all for mass delete under Product Identifier per 5/8 call"*
+- **Classification:** Enhancement (5-bucket taxonomy). Root cause: feature did not exist.
+
+**Symptom:** Cert Create + Edit pages' Product Identifier table only supported per-row delete. Analysts cleaning up imported product-ID lists had to click the row trash icon → confirm → wait → repeat, once per row.
+
+**Fix:** Added a checkbox column + select-all header + "Delete Selected (N)" red button to the shared `_ProductIdManager` partial. Selection state lives in `selectedIds: Set<number>` on `ProductIdManager` and survives re-renders, filter changes, and (in server-paged mode) page changes — so a user can accumulate selections across multiple pages and delete in one shot. Bulk delete runs through `AdminCore.showConfirmation()` ("Delete N product ID(s)?"), then issues parallel `DELETE /api/productids/{id}` calls via `Promise.allSettled`, tolerating partial failures so the toast can honestly report "Deleted N of M; X failed". In-memory mode (Create page, or any temp negative IDs) drops rows from local state without an API call, matching the existing single-row delete behavior. The select-all header is tri-state: checked when every visible row is selected, indeterminate when partial, unchecked when none. Read-only views (cert detail) get neither the column header nor the bulk button.
+
+**Files:**
+- `Views/Shared/_ProductIdManager.cshtml` — added bulk-delete button (hidden by default), select-all `<th>`, per-row checkbox `<td>`, server-rendered colspan updated (8→9 when not read-only).
+- `wwwroot/js/product-id-manager.js` — added `selectedIds` Set on the constructor; `getProductIdRowHtml()` now emits a per-row checkbox; `getEmptyStateHtml()` colspan 8→9; `renderTable()` calls `updateBulkActionsUI()` at every return path; new methods `handleRowCheckboxToggle`, `handleSelectAllToggle`, `updateBulkActionsUI`, `handleBulkDelete`; `handleDelete()` also clears `selectedIds` of the deleted id so the count stays in sync after a single-row delete.
+
+**Test plan:**
+
+1. **Create page** — `/Certificate/Create` as analyst. Add 3+ product IDs via Add button (these will have negative temp IDs). Verify each row has a checkbox at the left. Check the header checkbox: every row checkbox flips on, "Delete Selected (3)" red button appears next to "Add Product ID". Uncheck one row → header shows indeterminate state, button reads "Delete Selected (2)". Click button → confirmation reads "Delete 2 product ID(s)?" → confirm → 2 rows disappear, toast "2 product ID(s) removed", 3rd row remains.
+2. **Edit page (server-paged)** — `/Certificate/Edit/{id}` where the cert has 50+ product IDs. Verify the table is paginated. On page 1, select 5 rows. Navigate to page 2 — rows on page 2 should not be checked, but the "Delete Selected (5)" button should still show "5" (selection persists across pages). Select 3 more on page 2. Header on page 2 shows indeterminate, button reads "Delete Selected (8)". Click → confirmation reads "Delete 8 product ID(s)?" → confirm → all 8 deleted via API, table reloads, toast "8 product ID(s) deleted successfully".
+3. **Partial failure** — Force one API DELETE to fail (block the request in DevTools, or delete via SQL then click bulk delete). Toast should read "Deleted N of M; X failed" not just generic success.
+4. **Read-only view** — `/Certificate/CertificateInternalView/{id}` (or detail view). Verify no checkbox column header, no per-row checkboxes, no "Delete Selected" button.
+5. **Mixed in-flight + persisted** — On Edit page, click Add to create 2 unsaved rows (negative IDs) alongside saved rows, then bulk-select 1 negative + 1 persisted and bulk-delete. Both delete cleanly; persisted one removes via API; negative one removes from memory.
+6. **Build:** `dotnet build` — 0 errors, 53 pre-existing warnings (unchanged from prior commits).
+
+**Notes for client:** Behavior is the same on Create and Edit pages because both use the same partial. QC #172 specified "Cert Creation Page" but Edit gets the capability "for free" via the shared component — flag this in the response so client knows it covers both.
+
+---
+
 ### DEF-193 — Race condition on cert-number generation: two concurrent Create form opens see the same number
 
 - **Date:** 2026-05-13

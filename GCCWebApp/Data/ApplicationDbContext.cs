@@ -385,8 +385,12 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.Username).IsUnique();
-                entity.HasIndex(e => e.Email).IsUnique();
+                // Filtered unique indexes (DEF-195): soft-deleted rows are excluded so
+                // an email/username freed by DeleteUserAsync becomes immediately reusable
+                // without depending on the __deleted__ suffix trick. Same pattern as
+                // Pathways.Name (FixPathwayUniqueIndexForSoftDelete, 2026-02-13).
+                entity.HasIndex(e => e.Username).IsUnique().HasFilter("[IsDeleted] = 0");
+                entity.HasIndex(e => e.Email).IsUnique().HasFilter("[IsDeleted] = 0");
                 
                 // Performance indexes for user queries  
                 entity.HasIndex(e => e.Status);

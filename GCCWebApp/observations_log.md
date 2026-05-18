@@ -1,5 +1,47 @@
 # Observations Log
 
+## 2026-05-18 — DEF-197 (no QC ref): Product Types Usage column overcounted when entities set multiple FK levels
+
+Found during local smoke test of [[DEF-196]]. The new "Usage (Products / Certs)" column rolled up parent totals as `direct + Σ(children)`. The Certificates table allows a single row to set `ProductCategoryId` + `ProductTypeId` + `ProductSubcategoryId` simultaneously (1 of 43 dev certs does; 1 of 305 dev products does the same on the product side), so each such entity was counted at every level it set, then summed again at the grandparent.
+
+Dev DB: Chemicals category showed `3 / 28` (page) vs `2 / 26` (truth — distinct certs/products in the subtree). Type 4 showed `2 / 2` vs `1 / 1`. Leaf subcategories were always correct. Worst-case overcount for an entity tagged at all N levels is N*(N-1)/2 extra at the root.
+
+Fix in `Services/AdminService.cs:GetProductTypesAsync`: replaced integer-sum rollup with `HashSet<int>` unions per node, count `.Count` once at the end. UnionWith dedupes the multi-FK case naturally. Smoke re-run confirmed the page now matches SQL ground truth at every node. No data migration, no schema change, no UI change — same template renders, just with correct numbers.
+
+Build: 0 errors, 51 pre-existing warnings (unchanged). Files: `Services/AdminService.cs`. Tracking: `docs/tracking/defect-register.md` (DEF-197), `docs/tracking/shipped-2026-05.md`.
+
+Lesson worth keeping: `direct + Σ(children)` only works when each entity is referenced at exactly one level of a tree. As soon as the schema allows multi-level FK tagging, the rollup must dedupe on entity ID, not on count. Same shape as `[[feedback_ef_includes_with_projection]]` — counting when you should be distinct.
+
+---
+
+## 2026-05-15 — DEF-196 / QC #170: Admin → Product Types delete blocked by certs, but count column hid them
+
+Carly's QC #170 (5/1, re-raised 5/15): she couldn't delete her "Carly Test" product type. Tree-view "Products" column showed 0 but every delete attempt returned the generic "An error occurred while deleting. Please try again." Filtering the cert list by "Carly Test" showed certs were actually using it — the admin page was lying about what was deletable.
+
+Three layered bugs on the same path in `Services/AdminService.cs`: (1) `GetProductTypesAsync` populated `ProductCount` from `ProductType.Products` only — the EF navigation only sees `Products.ProductTypeId`, not Products linked via `ProductSubcategoryId`, and no Certificate FK at all. (2) `DeleteProductTypeAsync` pre-check used the same Products-only navigation, so it passed silently when only certs referenced the type. (3) `_context.SaveChangesAsync()` then hit the SQL Server FK Restrict on `Certificates.ProductTypeId`/`ProductSubcategoryId`/`ProductCategoryId` and got swallowed by the broad `catch (Exception)`. Same chain existed in `DeleteProductCategoryAsync`.
+
+Fix: `GetProductTypesAsync` now reads `Certificates.ProductCategoryId/ProductTypeId/ProductSubcategoryId` and `Products.ProductSubcategoryId` upfront, populates a new `CertificateCount` field per node, and corrects Level-2 product counts. Delete methods now run explicit cert pre-checks (`ProductTypeId == id || ProductSubcategoryId == id` for types; `ProductCategoryId == id` for categories) with messages naming the count and the right noun ("subcategory" vs "type" per entity Level). A `DbUpdateException` catch sits above the generic handler as final fallback. UI: column header renamed to "Usage (Products / Certs)" with tooltip; node cells render `${productCount} / ${certificateCount}`. Table view splits into two columns. CSV exports gain a `Certificate Count` column.
+
+Verified on local dev DB: GET `/Admin/GetProductTypes` returns both counts matching direct SQL queries. PET (subcategory with 1 cert via SubcategoryId) → "Cannot delete: 1 certificate(s) use this subcategory. Edit those certificates to use a different subcategory first, then try again." LLDPE (subcategory with 1 product via SubcategoryId — previously hidden) → "Cannot delete: 1 product(s) are assigned to this item. Please reassign them first." Plastics (has 6 subcategories) → existing children check fires first, unchanged. Build: 0 errors, 53 pre-existing warnings.
+
+Cert Edit dropdown side-complaint is the Category→Type cascade working as designed — no code change. Workaround: change Category first to unlock the Type dropdown with non-test options. If client keeps hitting it, add a UX hint under the Type dropdown.
+
+Files: `Services/AdminService.cs`, `Models/AdminModels.cs`, `Views/Admin/ProductTypes.cshtml`, `wwwroot/js/product-types.js`. Tracking: `docs/tracking/defect-register.md` (DEF-196), `docs/tracking/shipped-2026-05.md`.
+
+---
+
+## 2026-05-14 — DEF-194 / QC #172: Bulk-delete checkboxes added to Cert Create+Edit Product Identifier table
+
+Client QC #172 (5/11/26): *"Add check all for mass delete under Product Identifier per 5/8 call."* Triaged as an Enhancement — feature did not exist before. Built immediately per Shawn's "Build now, log as DEF" triage call.
+
+Shared partial `_ProductIdManager` got a select-all `<th>`, a per-row checkbox `<td>`, and a "Delete Selected (N)" red button next to "Add Product ID". `ProductIdManager` class in `wwwroot/js/product-id-manager.js` gained a `selectedIds: Set<number>` that survives re-renders, filter changes, and page changes. Bulk delete runs through `AdminCore.showConfirmation()` then issues parallel `DELETE /api/productids/{id}` via `Promise.allSettled`, tolerating partial failures with an honest "Deleted N of M; X failed" toast. In-memory mode (Create page) drops rows from local state without an API call. Select-all header is tri-state (checked / indeterminate / unchecked).
+
+Both Create and Edit pages get the capability from a single change because they share the partial. QC #172 only named "Cert Creation Page" but Edit benefits too — call this out in the client response so they know.
+
+Files: `Views/Shared/_ProductIdManager.cshtml`, `wwwroot/js/product-id-manager.js`, plus DEF-194 register entry and shipped-2026-05 entry. Build: 0 errors, 53 pre-existing warnings. JS syntax: clean via `node --check`. No data migration, no controller changes, no API contract changes. Read-only views (cert detail) don't get the new column or button.
+
+**Verification limit:** ran static checks only (build clean, Razor partial compiles, JS syntax OK). Could not drive an authenticated browser-free interactive test — dev server is up on `localhost:5101` but the seeded user creds in this environment differ from the standard `analyst@greencirclecertified.com / TestPass123!` (login returned "User not found"). Shawn to validate interactively in the browser before deploy.
+
 ## 2026-05-13 — Live smoke: external test user had no Company association → 0 certs visible
 
 Smoke test against `https://gccwebapp.com/` (Playwright, `LiveSmokeTests.S08`) confirmed the test `external` user could log in but the external tile view rendered `"Showing 0 of 0 certificates"`. Empty page, no defect in the view itself.

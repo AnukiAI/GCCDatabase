@@ -30,6 +30,11 @@ class ProductIdManager {
         this.cache = new Map();
         this.searchDebounceTimer = null;
 
+        // DEF-194: Bulk delete selection state. Set survives re-renders, filter
+        // changes, and (in server-paged mode) page changes — so a user can
+        // accumulate selections across multiple pages and delete in one shot.
+        this.selectedIds = new Set();
+
         this.init();
     }
 
@@ -265,6 +270,23 @@ class ProductIdManager {
         const tableBody = document.getElementById('productIdsTableBody');
         if (tableBody) {
             tableBody.addEventListener('click', (e) => this.handleTableAction(e));
+            // DEF-194: separate change handler for row checkboxes.
+            tableBody.addEventListener('change', (e) => {
+                if (e.target.classList.contains('bulk-select-checkbox')) {
+                    const id = parseInt(e.target.getAttribute('data-product-id'));
+                    if (!isNaN(id)) this.handleRowCheckboxToggle(id, e.target.checked);
+                }
+            });
+        }
+
+        // DEF-194: Select-all + bulk-delete controls.
+        const selectAll = document.getElementById('selectAllProductIds');
+        if (selectAll) {
+            selectAll.addEventListener('change', (e) => this.handleSelectAllToggle(e.target.checked));
+        }
+        const bulkDeleteBtn = document.getElementById('bulkDeleteProductIds');
+        if (bulkDeleteBtn) {
+            bulkDeleteBtn.addEventListener('click', () => this.handleBulkDelete());
         }
     }
 
@@ -325,6 +347,7 @@ class ProductIdManager {
         if (this.filteredProductIds.length === 0) {
             tbody.innerHTML = this.getEmptyStateHtml();
             this.renderPagination();
+            this.updateBulkActionsUI();
             return;
         }
 
@@ -333,6 +356,7 @@ class ProductIdManager {
         if (this.serverPaged) {
             tbody.innerHTML = this.filteredProductIds.map(productId => this.getProductIdRowHtml(productId)).join('');
             this.renderPagination();
+            this.updateBulkActionsUI();
             return;
         }
 
@@ -353,6 +377,7 @@ class ProductIdManager {
         }
 
         this.renderPagination();
+        this.updateBulkActionsUI();
     }
 
     // DEF-152: Pagination markup mirrors Views/Product/Management.cshtml:740-793
@@ -469,8 +494,19 @@ class ProductIdManager {
                 </div>
             </td>`;
 
+        // DEF-194: Per-row bulk-select checkbox (non-readonly only). Checked
+        // state is restored after render from this.selectedIds.
+        const isChecked = this.selectedIds.has(productId.id) ? 'checked' : '';
+        const selectHtml = this.isReadOnly ? '' : `
+            <td style="text-align: center;">
+                <input type="checkbox" class="bulk-select-checkbox"
+                       data-product-id="${productId.id}" ${isChecked}
+                       aria-label="Select product ID ${productId.productIdValue || ''}">
+            </td>`;
+
         return `
             <tr data-product-id="${productId.id}">
+                ${selectHtml}
                 <td>
                     <span class="product-type-badge product-type-${productId.productIdType.toLowerCase()}">
                         ${productId.productIdType}
@@ -502,7 +538,8 @@ class ProductIdManager {
     }
 
     getEmptyStateHtml() {
-        const colspan = this.isReadOnly ? 7 : 8;
+        // DEF-194: colspan grew by 1 when bulk-select column added for non-readonly.
+        const colspan = this.isReadOnly ? 7 : 9;
         const message = this.isReadOnly ?
             'No product IDs added yet.' :
             'No product IDs added yet.<br><small>Click "Add Product ID" to get started.</small>';
@@ -778,6 +815,7 @@ class ProductIdManager {
         if (productIdId < 0 || !this.certificateId || this.certificateId === 0) {
             this.productIds = this.productIds.filter(p => p.id !== productIdId);
             this.filteredProductIds = [...this.productIds];
+            this.selectedIds.delete(productIdId); // DEF-194: keep bulk-selection in sync
             this.renderTable();
             this.updateCount();
             this.showSuccess('Product ID removed');
@@ -792,6 +830,7 @@ class ProductIdManager {
 
             if (response.ok) {
                 this.cache.clear(); // CR-018: invalidate page cache after delete
+                this.selectedIds.delete(productIdId); // DEF-194: keep bulk-selection in sync
                 await this.loadProductIds();
                 this.showSuccess('Product ID deleted successfully');
             } else {
@@ -800,6 +839,139 @@ class ProductIdManager {
         } catch (error) {
             console.error('Error deleting product ID:', error);
             this.showError('Error deleting product ID');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    // DEF-194: Bulk-delete helpers.
+    // selectedIds is a Set<number> that persists across renders, filters, and
+    // (in server-paged mode) page changes. The header select-all only acts on
+    // currently visible rows; the count badge and confirm dialog reflect the
+    // global selection.
+    handleRowCheckboxToggle(productIdId, checked) {
+        if (checked) {
+            this.selectedIds.add(productIdId);
+        } else {
+            this.selectedIds.delete(productIdId);
+        }
+        this.updateBulkActionsUI();
+    }
+
+    handleSelectAllToggle(checked) {
+        const tableBody = document.getElementById('productIdsTableBody');
+        if (!tableBody) return;
+        const rowBoxes = tableBody.querySelectorAll('.bulk-select-checkbox');
+        rowBoxes.forEach(box => {
+            const id = parseInt(box.getAttribute('data-product-id'));
+            if (isNaN(id)) return;
+            box.checked = checked;
+            if (checked) {
+                this.selectedIds.add(id);
+            } else {
+                this.selectedIds.delete(id);
+            }
+        });
+        this.updateBulkActionsUI();
+    }
+
+    updateBulkActionsUI() {
+        if (this.isReadOnly) return;
+
+        const count = this.selectedIds.size;
+        const btn = document.getElementById('bulkDeleteProductIds');
+        const countSpan = document.getElementById('bulkDeleteCount');
+        if (btn) btn.style.display = count > 0 ? '' : 'none';
+        if (countSpan) countSpan.textContent = String(count);
+
+        // Header select-all: checked when every visible row is selected,
+        // indeterminate when partial, unchecked when none.
+        const selectAll = document.getElementById('selectAllProductIds');
+        const tableBody = document.getElementById('productIdsTableBody');
+        if (!selectAll || !tableBody) return;
+
+        const rowBoxes = tableBody.querySelectorAll('.bulk-select-checkbox');
+        if (rowBoxes.length === 0) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+            return;
+        }
+        let checkedVisible = 0;
+        rowBoxes.forEach(box => { if (box.checked) checkedVisible++; });
+        if (checkedVisible === 0) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        } else if (checkedVisible === rowBoxes.length) {
+            selectAll.checked = true;
+            selectAll.indeterminate = false;
+        } else {
+            selectAll.checked = false;
+            selectAll.indeterminate = true;
+        }
+    }
+
+    async handleBulkDelete() {
+        if (this.selectedIds.size === 0) return;
+
+        const count = this.selectedIds.size;
+        const confirmed = await AdminCore.showConfirmation({
+            title: 'Delete Confirmation',
+            message: `Are you sure you want to delete ${count} product ID(s)? This action cannot be undone.`,
+            confirmText: `Delete ${count}`,
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+        if (!confirmed) return;
+
+        const idsToDelete = Array.from(this.selectedIds);
+
+        // In-memory mode (Create page or temp negative IDs): drop from local state only.
+        const isInMemory = !this.certificateId || this.certificateId === 0 || this.certificateId === '0';
+        if (isInMemory) {
+            const set = new Set(idsToDelete);
+            this.productIds = this.productIds.filter(p => !set.has(p.id));
+            this.filteredProductIds = [...this.productIds];
+            this.selectedIds.clear();
+            this.renderTable();
+            this.updateCount();
+            this.showSuccess(`${count} product ID(s) removed`);
+            return;
+        }
+
+        // Server-paged mode: tempted negative IDs short-circuit; everything else
+        // hits the DELETE endpoint. We run requests in parallel but tolerate
+        // partial failures so the user gets an honest "deleted N of M" toast.
+        this.showLoading(true);
+        try {
+            const results = await Promise.allSettled(idsToDelete.map(id => {
+                if (id < 0) return Promise.resolve({ ok: true, tempId: id });
+                return fetch(`/api/productids/${id}`, { method: 'DELETE' });
+            }));
+
+            let succeeded = 0;
+            let failed = 0;
+            results.forEach(r => {
+                if (r.status === 'fulfilled' && (r.value.ok === true || r.value.tempId)) {
+                    succeeded++;
+                } else {
+                    failed++;
+                }
+            });
+
+            this.cache.clear();
+            this.selectedIds.clear();
+            await this.loadProductIds();
+
+            if (failed === 0) {
+                this.showSuccess(`${succeeded} product ID(s) deleted successfully`);
+            } else if (succeeded === 0) {
+                this.showError(`Failed to delete ${failed} product ID(s)`);
+            } else {
+                this.showError(`Deleted ${succeeded} of ${count}; ${failed} failed`);
+            }
+        } catch (error) {
+            console.error('Error during bulk delete:', error);
+            this.showError('Error during bulk delete');
         } finally {
             this.showLoading(false);
         }

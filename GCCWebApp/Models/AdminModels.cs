@@ -169,6 +169,11 @@ namespace GCCWebApp.Models
 
         public int ProductCount { get; set; }
 
+        // QC #170: Certificates referencing this category/type/subcategory.
+        // Counts via Certificates.ProductCategoryId / ProductTypeId / ProductSubcategoryId
+        // — independent of Products. Rolled up the same way as ProductCount.
+        public int CertificateCount { get; set; }
+
         public List<ProductTypeViewModel> Children { get; set; } = new List<ProductTypeViewModel>();
 
         public string ParentName { get; set; } = string.Empty;

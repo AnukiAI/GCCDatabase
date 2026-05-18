@@ -1904,7 +1904,8 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("Email")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("IsActive");
 
@@ -1913,7 +1914,8 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("Status");
 
                     b.HasIndex("Username")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("IsActive", "CreatedAt");
 

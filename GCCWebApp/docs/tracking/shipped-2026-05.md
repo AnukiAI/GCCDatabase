@@ -6,6 +6,100 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-197 — Admin → Product Types: Usage column rollups now dedupe entities tagged at multiple FK levels (2026-05-18, in working tree pending deploy)
+
+Found during local smoke test of [[DEF-196]] on 2026-05-18, not raised by the client. The "Usage (Products / Certs)" column rolled up parent totals by adding direct refs plus the sum of children's counts. The `Certificates` table allows a single row to set `ProductCategoryId` **and** `ProductTypeId` **and** `ProductSubcategoryId` simultaneously — 1 of 43 dev certs does (`26-0027` referencing the Chemicals tree at every level), and 1 of 305 dev products does the same on the product side (`#346 "test"` set on both `ProductTypeId=4` and `ProductSubcategoryId=48`). The integer-sum rollup counted each such entity once per level and then summed them again at the grandparent, producing visibly wrong totals.
+
+Dev DB before/after, Chemicals subtree:
+
+| Node | Before (Prod / Cert) | After (Prod / Cert) | Truth |
+|---|---|---|---|
+| Cat 1 — Chemicals | `3 / 28` | `2 / 26` | `2 / 26` ✓ |
+| Type 4 (child of Chemicals) | `2 / 2` | `1 / 1` | `1 / 1` ✓ |
+| Subcat 49 (child of Type 4) | `0 / 1` | `0 / 1` | `0 / 1` ✓ |
+
+Worst-case for an entity tagged at all `N` levels is `N*(N-1)/2` extra counts at the root. Production exposure depends on analyst tagging conventions and is unknown until the data is checked.
+
+Fix replaced the integer-sum rollup in `Services/AdminService.cs:GetProductTypesAsync` with `HashSet<int>` unions: each node holds the distinct set of cert IDs and product IDs in its subtree, descendants call `UnionWith` on the parent, and `.Count` is read once at the end into `CertificateCount` and `ProductCount`. The same entity appearing at multiple levels is now deduped on union. Leaf-node math was already correct and is unchanged.
+
+Files: `Services/AdminService.cs:803-833` (query selects entity IDs not counts; per-FK-target `HashSet<int>` dictionaries) and `Services/AdminService.cs:846-916` (tree build keeps per-node ID sets, unions descendants, assigns `.Count` at the end). Tracking: `docs/tracking/defect-register.md` (DEF-197), this ship-log entry, `observations_log.md`.
+
+Build: **0 errors, 51 pre-existing warnings** (unchanged). Verified locally on `localhost:5101` against both tree view and table view. CSV export inherits the correct counts since `GetProductTypesAsync` is the single source of truth.
+
+Client-facing framing: not a regression, not a client-reported defect — internal QC tightening on the [[DEF-196]] rollup before client UAT. Will deploy alongside DEF-196 in the next push.
+
+Post-deploy verification: spot-check a category on prod that mixes parent + child FK references and confirm the displayed count matches `SELECT COUNT(DISTINCT c.Id) FROM Certificates c WHERE c.ProductCategoryId = @cat OR c.ProductTypeId IN (...) OR c.ProductSubcategoryId IN (...)`.
+
+---
+
+## Add User flow — historical "email already exists" block cleared on prod, schema hardening queued for next deploy (DEF-137 follow-up, 2026-05-15)
+
+Not a defect — the deployed code (DEF-137, shipped 2026-05-04, deployed 2026-05-12) is correct. Surfaced today when the client reported they still could not create a user on gccwebapp.com when the email had been used previously, even though the user was deleted. This was a data state issue, not a code regression.
+
+Root cause: `DeleteUserAsync` now appends `__deleted__<id>__<yyyyMMddHHmmss>` to Email and Username on every soft delete so the unfiltered UNIQUE index on `Users.Email`/`Users.Username` (`Migrations\20251015162223_InitialCreate_SqlServer_Final.cs` — `IX_Users_Email`, `IX_Users_Username`) does not block re-create. Users soft-deleted **before** the 5/12 deploy never got that rewrite, so their original email still occupied the unique index slot and the `INSERT` for any re-create with the same address failed at the database level. The C# duplicate-email pre-check (`!u.IsDeleted`) passed it through, then `SaveChangesAsync` threw on the index, and the controller surfaced the generic "An error occurred while saving the entity changes" message that the client saw.
+
+Three things landed:
+
+1. **Diagnostic + backfill script** — `Database_Scripts\20260515_BackfillSoftDeletedUserEmails.sql`. Three-step idempotent script: read-only count, transactional UPDATE that applies the same `__deleted__<id>__<ts>` suffix `DeleteUserAsync` writes (timestamp falls back to `CreatedAt` then `GETUTCDATE()` if `DeletedAt` was never set), and verification SELECT. Pre-commit sanity check inside the transaction rolls back if any post-update duplicate Email or Username is detected. WHERE clause excludes rows already containing `__deleted__` or `__cleanup__` markers so re-runs are no-ops and existing QC #108 cleanup test rows are left alone.
+
+2. **Prod run already complete** — script executed today against `gccwebap_certificates`. Diagnostic surfaced exactly **1 row** that needed backfill: the client contact's own soft-deleted account from 2026-05-01, which matches the 5/1 QC #107 retest note about the same email already existing. Three QC #108 test-user rows had already been de-collided with a different `__cleanup__qc108__` marker on 5/12 and the tightened WHERE correctly skipped them. UPDATE touched 1 row, sanity checks passed, transaction committed. Verification SELECT returned 0 unsuffixed soft-deleted users remaining. The client's email is now reusable through the Add New User flow without any code change.
+
+3. **Schema hardening queued for next deploy** — new EF migration `Migrations\20260515185538_FixUserUniqueIndexesForSoftDelete.cs` converts both unique indexes to filtered (`WHERE [IsDeleted] = 0`), matching the existing pattern on `Pathways.Name` (`Migrations\20260213005208_FixPathwayUniqueIndexForSoftDelete.cs`). Idempotent SQL DDL generated at `Database_Scripts\20260515_FixUserUniqueIndexesForSoftDelete.sql`, guarded by `__EFMigrationsHistory` so re-runs are no-ops. Production explicitly opts out of automatic EF migrations (`Program.cs:902-917` — "manual migration management enabled"), so this script must be run in SSMS as part of the next deploy. After it runs, soft-deleted rows are excluded from the uniqueness constraint at the schema level, so the suffix logic in `DeleteUserAsync` becomes a nice-to-have for audit reconstruction rather than load-bearing for the create-after-delete path. Same class of bug cannot recur.
+
+Files: `Data\ApplicationDbContext.cs` (added `.HasFilter("[IsDeleted] = 0")` on the two unique indexes with a comment referencing the Pathways precedent), `Migrations\20260515185538_FixUserUniqueIndexesForSoftDelete.cs` (+ Designer + `ApplicationDbContextModelSnapshot.cs` updated by EF tooling), `Database_Scripts\20260515_BackfillSoftDeletedUserEmails.sql` (data backfill, already executed), `Database_Scripts\20260515_FixUserUniqueIndexesForSoftDelete.sql` (DDL for next deploy), this ship-log entry.
+
+Build: **0 errors, 53 pre-existing warnings** (unchanged). No defect-register entry created — per the data-issue-vs-defect classification, this is housekeeping on the DEF-137 fix, not a new code bug.
+
+Post-deploy verification: after the DDL script runs against prod and the next app deploy is up, attempt to delete a user and immediately re-create with the same email — both should succeed without the suffix being involved. Then sanity-check that creating a brand-new user with a never-used email still works (regression coverage for the filtered-index change).
+
+---
+
+## DEF-196 — Admin → Product Types: count column now reflects what actually blocks deletion; cert references give a specific error message (QC #170 — client 5/1, raised again 5/15) (2026-05-15, in working tree pending deploy)
+
+Client raised QC #170 on 5/1 and re-emphasized today (status-call day): she was trying to remove her "Carly Test" product type, the count column on `/Admin/ProductTypes` read **0**, but every delete attempt returned the generic *"An error occurred while deleting. Please try again."* Meanwhile filtering the certificate listing by "Carly Test" showed certs were actually using it — so the admin page was lying to her, and she had no path to fix it. Her direct ask: *"PLEASE REMOVE MY CARLY TEST AND CARLY TEST TYPE OPTIONS. SEE IF YOU CAN GO THROUGH THIS PROCESS, ETC."*
+
+Root cause was three layered bugs on the same code path. The count column queried only `ProductType.Products` (the EF navigation only reflects `Products.ProductTypeId` — it does not see Products linked via `ProductSubcategoryId`, and it does not see Certificates at all). The delete pre-check used the same Products-only navigation, so it always passed for cert-only references. When `SaveChanges` then hit the SQL Server `OnDelete(Restrict)` FK constraint on `Certificates.ProductTypeId`/`ProductSubcategoryId`/`ProductCategoryId` (all three are configured Restrict in `Data/ApplicationDbContext.cs`), the FK violation fell into a broad `catch (Exception)` and got replaced with the unhelpful generic message. The same three-bug chain existed in `DeleteProductCategoryAsync` for root categories.
+
+Fix consolidates the cert and product references into the same source the user sees and the same source the delete checks. `GetProductTypesAsync` now pulls a single batch of `Certificates.ProductCategoryId/ProductTypeId/ProductSubcategoryId` plus `Products.ProductSubcategoryId` once at the top of the method, then populates a new `CertificateCount` field per node and corrects `ProductCount` for Level-2 subcategory rows (which previously showed 0 for products that were attached via the subcategory FK). Roll-up logic preserved: cert counts roll up child→parent the same way product counts always have, so a parent category whose children carry cert references shows that in its own count. The delete methods now run explicit cert pre-checks (`Certificates.ProductTypeId == id || ProductSubcategoryId == id` for types; `Certificates.ProductCategoryId == id` for categories) and a missing `Products.ProductSubcategoryId` pre-check, with specific messages that name the count and the noun ("Cannot delete: 1 certificate(s) use this subcategory. Edit those certificates to use a different subcategory first, then try again."). Entity-Level→label map (1 = type, 2 = subcategory) corrected after a first-pass test surfaced PET returning "use this type" when PET is a subcategory. A `DbUpdateException` catch sits above the generic `Exception` handler as final fallback if a concurrent insert adds a new reference between the pre-check and `SaveChanges` — the user sees "Cannot delete: this item is still referenced by other records. Reassign or remove those references and try again." instead of the old generic error.
+
+UI surface: tree-view column header is now **"Usage (Products / Certs)"** with a tooltip explaining what blocks deletion; each node's count cell renders `${productCount} / ${certificateCount}` with hover-title spelling out the breakdown. Table view splits the old single "Product Count" column into separate "Products" and "Certificates" columns. CSV export (both client-side via product-types.js and server-side via `GenerateCsvExport`/`GenerateExcelExport`) gains a `Certificate Count` column for parity. Help modal text on the Cascade Behavior section rewritten to describe both counts.
+
+Carly's secondary complaint — that the cert Edit page's Product Type dropdown only offered her test options when she tried to migrate certs off "Carly Test" — is the cascading Category→Type→Subcategory filter working as designed: `Views/Certificate/Edit.cshtml:626` loads `/Certificate/GetProductTypes?categoryId={saved}`, so a cert whose saved category is the test category only sees that category's children. **No code change for that part** — workaround is to change Category first, which refreshes the Type dropdown. Flag this in the response to client; if it continues to confuse, the right call is a UX hint under the Type dropdown rather than removing the cascade.
+
+Files: `Services/AdminService.cs` (`GetProductTypesAsync`, `DeleteProductTypeAsync`, `DeleteProductCategoryAsync`, plus CSV/Excel export paths), `Models/AdminModels.cs` (added `CertificateCount`), `Views/Admin/ProductTypes.cshtml` (header text + help modal), `wwwroot/js/product-types.js` (tree node, table view, CSV export), `docs/tracking/defect-register.md` (DEF-196 entry), this ship-log entry.
+
+Build: **0 errors, 53 pre-existing warnings** (unchanged from prior commits). No data migration. No controller signature changes. No API contract changes for partner-facing surfaces. Verified end-to-end on local dev DB: GET `/Admin/GetProductTypes` returns both counts with correct values vs direct SQL counts; POST `/Admin/DeleteProductType/49` (PET, cert ref via SubcategoryId) returns the new specific subcategory message; POST `/Admin/DeleteProductType/48` (LLDPE, product ref via SubcategoryId) returns the new specific product message; POST `/Admin/DeleteProductType/4` (Plastics, has subcategories) returns the existing children check unchanged; POST against nonexistent ID returns "Product type not found" unchanged.
+
+Post-deploy verification: on `/Admin/ProductTypes` as admin, the "Carly Test" type that Carly couldn't delete should now read non-zero in the Usage column, and clicking delete should return the specific count and instruction. Once she migrates the cert(s) using "Carly Test" to a real type (changing Category first to unlock the Type dropdown — see workaround above), the type will delete cleanly without the generic error.
+
+---
+
+## Client narrative — written explanation of QC log defect volume (2026-05-14, doc only)
+
+The client raised that the project is roughly a year past the original timeline and that the volume of defects surfacing through testing is itself frustrating — *"I shouldn't be seeing this many"*. Most of the framing for that conversation already lives in `docs/tracking/qc-log-client-talking-points.md` (verbal-conversation script, prepared 2026-05-09 from the 5/8 log) and `docs/tracking/change-request-register.md` (full CR history, ~27 scope-change events of which only 3 were formally tracked). What was missing was a single written narrative that connects the approach we ran to the defect shape the client is now seeing — paste-ready for an email or share-back, not a live-conversation script.
+
+`docs/tracking/qc-narrative-defect-volume-5-13.md` written today as that document. Grounded in the 5/13 QC log's own *Change vs Defect Analysis* sheet (170 items: 79 actual defects / 46 lack-of-requirements / 45 client-preference iterations; 65 of 170 are pure original-build implementation defects, 38%). Walks the four structural drivers the client asked about: (1) requirements emerging through builds because the original docs didn't define operational detail, (2) functionality arriving incrementally so testing started before the system was complete, (3) UAT and SIT overlapping because the client needed to see screens to validate them, (4) every change request triggering full regression on already-tested code — which is the multiplier that explains why even small CRs add disproportionately to logged-defect volume.
+
+Document explicitly owns what we own: the 65 implementation defects, all 8 Critical-severity items (zero are scope-driven), and the structural decision to absorb most scope changes as "defect fixes" instead of formal CRs. Forward proposal is the same three asks already in the talking-points doc — design checkpoint before each CR sprint, regression pass before each UAT release, every scope-change event gets a CR record. No code, no shipped behavior; this is a client-communication artifact.
+
+Files: `docs/tracking/qc-narrative-defect-volume-5-13.md` (new, ~7 KB). Companion docs unchanged: `qc-log-client-talking-points.md`, `change-request-register.md`, `defect-register.md`.
+
+---
+
+## DEF-194 — Cert Create/Edit Product Identifier table now supports bulk-delete via row checkboxes (QC #172 — client 5/11, per 5/8 call) (2026-05-14, in working tree pending deploy)
+
+Client raised QC #172 on 5/11: *"Add check all for mass delete under Product Identifier per 5/8 call."* On the certificate Create and Edit pages, the Product Identifier table previously only supported per-row delete — analysts cleaning up imported product-ID lists had to click the row trash icon, confirm, wait, and repeat once per row. Fix adds a checkbox column to the left of the table, a select-all checkbox in the header, and a red "Delete Selected (N)" button that appears next to "Add Product ID" whenever at least one row is selected.
+
+Behavior matches the rest of the admin app: confirmation is the standard `AdminCore.showConfirmation()` modal ("Delete N product ID(s)?"), and on confirm the page issues parallel `DELETE /api/productids/{id}` calls. Failures are tolerated per-row so the toast reports honestly: "8 product ID(s) deleted successfully" on full success, or "Deleted 6 of 8; 2 failed" on partial success — no silent drops. Selection state persists across pagination changes in server-paged mode (Edit page with 50+ product IDs), so a user can accumulate selections across multiple pages and delete in one shot. The select-all header is tri-state: checked when every visible row is selected, indeterminate when partial, unchecked when none. On the Create page, where product IDs live in memory until the cert is saved, the bulk delete drops rows from local state without an API call — matching the existing single-row delete behavior. Read-only views (cert detail) get neither the column nor the button.
+
+Two surfaces ship simultaneously even though QC #172 only named "Cert Creation Page": both Create and Edit use the same `_ProductIdManager` partial, so the capability lands on both pages from a single change. Flag this in the response to the client so they know it covers Edit too.
+
+Files: `Views/Shared/_ProductIdManager.cshtml` (bulk-delete button, select-all `<th>`, per-row checkbox `<td>`, server-rendered colspan 8→9 when not read-only), `wwwroot/js/product-id-manager.js` (added `selectedIds` Set on the constructor; `getProductIdRowHtml` emits per-row checkbox; `getEmptyStateHtml` colspan 8→9; `renderTable` calls `updateBulkActionsUI` at every return path; new methods `handleRowCheckboxToggle`, `handleSelectAllToggle`, `updateBulkActionsUI`, `handleBulkDelete`; single-row `handleDelete` also clears `selectedIds` of the deleted id so the count stays in sync), plus `docs/tracking/defect-register.md` (DEF-194 entry) and this ship-log entry. Build clean: **0 errors, 53 pre-existing warnings** (unchanged from prior commits). No data migration, no controller changes, no API contract changes.
+
+Post-deploy verification: on Create page, add 3 product IDs via Add button → check the header → "Delete Selected (3)" appears → confirm → all 3 removed with toast. On Edit page of a cert with 50+ product IDs, select 5 on page 1, navigate to page 2, select 3 more (button shows "Delete Selected (8)"), confirm → all 8 deleted via API → table reloads with the remaining rows.
+
+---
+
 ## DEF-192 — Product Category filter no longer pulls in certs whose displayed category doesn't match (2026-05-13, in working tree pending deploy)
 
 Shawn flagged cert `26-0158` showing up on `https://gccwebapp.com/Certificate/CertificateTileViewInternal` when only `Product Categories → Carly Test` was checked, even though the cert's displayed category is `"Electronics, Computers, and Accessories"`. Reproduced anonymously via the public `/api/certificate-tiles?productCategory=Carly Test` — 4 results returned, 3 legitimately matching and 1 leak (26-0158).
@@ -1349,5 +1443,74 @@ Playwright NUnit test `UserManagementPaginationAlignmentTests.Pagination_Is_Righ
 Test will catch a regression in either direction — if someone reverts the scoped rule OR changes the shared rule in a way that no longer renders flex-end here, the assertion fails on the next run.
 
 Files: `GCCWebApp.UAT.Tests/Tests/Admin/UserManagementPaginationAlignmentTests.cs` (new).
+
+---
+
+## QC #174 — Certificate tile cert-number top-aligned with multi-line categories (2026-05-15)
+
+Client log 2026-05-08, Carly: "Spacing of cert number off — not sure if it is because cert name has 3 lines but all others are top aligned." Tracked as DEF-195.
+
+What she saw: on tiles where the **certification category** wraps to 2 or 3 lines (e.g. "CERTIFIED ENVIRONMENTAL FACTS"), the cert-number pill on the right of the card header was centered against the taller row — sitting visibly below the cert-number pills on neighboring single-line tiles.
+
+Root cause: cascade specificity. `body.theme-option4 .header-row { align-items: center; }` in `wwwroot/css/main.css:2688` (specificity 0,2,1) beat the cleaner `.certificate-card .header-row` rule in `certificatetileview.css` (0,2,0). theme-option4 is the default body class on all three tile views, so the bug was site-wide on viewports ≥1024px. Below 1024px a separate media-query override at `main.css:3693` already used flex-start, which is why narrow screens looked fine.
+
+Fix (CSS-only, no rebuild):
+- `wwwroot/css/main.css:2691` — `align-items: center` → `align-items: flex-start` on `body.theme-option4 .header-row`.
+- `wwwroot/css/certificatetileview.css:720` — same value applied for defense-in-depth.
+
+Verified on http://localhost:5101 across 5 viewports (1920, 1280, 1024, 768, 390). Pre-fix Playwright run: `align-items: center` on the three wider viewports, 10px top-delta between the category top and cert-id top on 3-line cards at 1024. Post-fix run: `align-items: flex-start` on every viewport, 0px top-delta on all 22 rendered cards. Same `.header-row` markup is shared with `/Certificate/CertificateTileViewExternal` and `/Certificate/CertificateTileViewInternal` so the fix carries over without per-view edits.
+
+Files: `wwwroot/css/main.css`, `wwwroot/css/certificatetileview.css`.
+
+---
+
+## DEF-195 deployed — cert-tile header-row alignment fix live on gccwebapp.com (2026-05-15)
+
+Zip `GCCWebApp-deploy-20260515-1948.zip` (60.4 MB) uploaded to Plesk and extracted. Shawn ran the bundled `migrations/apply-migrations.sql` against the prod DB before recycling the app pool, then smoke tested clean. QC #174 closed end-to-end same day client reported it.
+
+Visible change for the client: on any cert tile whose certification category wraps to 2 or 3 lines, the cert-number pill on the right of the card header now sits flush with the **first line** of the category text, matching the alignment of single-line-category tiles. Previously the pill was vertically centered against the taller row, drifting visibly below its neighbors on the same grid row.
+
+---
+
+## DEF-195 deploy retraction — first zip didn't carry (2026-05-15 ~20:00)
+
+Post-deploy smoke against gccwebapp.com showed DEF-195 is **still broken** in production: computed `align-items: center` on 25 cert tiles, 20 wrapped-category tiles with up to 10px cert-id pill drift. `Last-Modified` on `/css/main.css` was 2026-05-13 and on `/css/certificatetileview.css` was 2026-05-01 — neither file was overwritten by today's zip extract.
+
+The earlier "deployed clean" claim in this log is wrong. Rebuilt as `GCCWebApp-deploy-20260515-2005.zip`; second deploy attempt pending. The post-deploy smoke test that surfaced this is at `C:\Users\swest\AppData\Local\Temp\qc174\smoke.js` and runs the gate, login, tile-view, CSS-hash, and role-gated-route checks in one shot — should become standard practice after every prod deploy.
+
+---
+
+## DEF-195 deployed for real — second attempt clean (2026-05-15 ~20:30)
+
+Zip `GCCWebApp-deploy-20260515-2005.zip` uploaded to Plesk with explicit "Overwrite All" on extract. Post-deploy smoke against gccwebapp.com:
+
+- **CSS files updated:** `Last-Modified` flipped from 2026-05-01/05-13 to 2026-05-15. asp-append-version hash on `/css/certificatetileview.css` flipped to `BgYK15dB7eLLdeKE74ymzJ0LNb74H3-dO5iVzgGpmvI` (matches local-build hash).
+- **DEF-195 visual:** 25 cert tiles rendered, all `.header-row` compute `align-items: flex-start`, 20 multi-line-category tiles have 0px cert-id pill drift (was up to 10px on tablet-1024 before fix).
+- **Site health:** Basic Auth gate works, Partner API bypass works + 401s on bogus key, login page renders, role-gated pages return 302 redirects (no 500s).
+
+17/19 smoke checks PASS. The 2 failures (`favicon.ico` 404, `cert-detail-page` 400) are pre-existing or test-script bugs, not deploy regressions: `/favicon.ico` is a missing static file unrelated to today's work; the cert-detail check used `?number=` querystring but the actual route is `/Certificate/CertificateSingleView/{number}` path-segment (manually re-tested: 200 OK).
+
+Root cause of the first-attempt failure not fully diagnosed but workaround confirmed: Plesk's default extract behavior appears to skip existing files. Always pick "Overwrite All" explicitly. Adding a programmatic post-deploy smoke (asserting file contents via hash/mtime, not just "page loads") to the standard deploy checklist going forward.
+
+---
+
+## Post-deploy smoke runner moved to repo (2026-05-15 ~21:00)
+
+Created `scripts/smoke-prod/` — permanent home for the post-deploy smoke runner that caught the silent DEF-195 deploy failure earlier today.
+
+**Files:**
+- `scripts/smoke-prod/smoke.js` — 26-check Playwright runner (gate behavior, UI surfaces, DEF-195 multi-viewport, CSS content + freshness, role-gated route reachability)
+- `scripts/smoke-prod/README.md` — usage, what's covered, failure-mode glossary, why this exists, how to add checks
+- `scripts/smoke-prod/package.json` — single dependency (playwright)
+- `scripts/smoke-prod/.gitignore` — node_modules + screenshots
+
+**Coverage added since the /tmp version:**
+- Multi-viewport DEF-195 check (desktop/tablet/mobile) with auto-detection of the mobile stacked-header responsive layout — so the drift assertion doesn't false-fail at 390px where the cert-id pill is intentionally below the category.
+- `Last-Modified` freshness assertion on each CSS file (14-day window). This is the check that would have caught the first DEF-195 deploy failure if we'd had it.
+- Additional admin routes under section 5 (Companies, PartnerApiKeys) so a controller-throw regression in those areas surfaces.
+
+**Verified 26/26 PASS against gccwebapp.com** after the second DEF-195 deploy landed.
+
+**Standard practice going forward:** `cd scripts/smoke-prod && node smoke.js` after every Plesk extract + app-pool recycle. Non-zero exit = do not announce the deploy until investigated.
 
 ---

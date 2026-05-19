@@ -594,6 +594,20 @@
                 collapseSidebar();
             });
         }
+
+        // DEF-201 (QC #176): Hide/Show controls are CSS-hidden at ≤1024px (DEF-098).
+        // Auto-expand when the viewport drops below the breakpoint so filters stay
+        // reachable for users who collapsed on desktop and then narrowed their window.
+        if (typeof window.matchMedia === 'function') {
+            const mq = window.matchMedia('(max-width: 1024px)');
+            const onChange = (e) => { if (e.matches) expandSidebar(); };
+            if (typeof mq.addEventListener === 'function') {
+                mq.addEventListener('change', onChange);
+            } else if (typeof mq.addListener === 'function') {
+                mq.addListener(onChange);
+            }
+            if (mq.matches) expandSidebar();
+        }
     }
 
     // Collapse the sidebar (show edge tab)

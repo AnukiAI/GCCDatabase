@@ -462,6 +462,28 @@ namespace GCCWebApp.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// DEF-200 (QC #180): expired-last-month export must filter on ExpirationDate, not
+        /// EffectiveDate. The original code reused GetCertificatesByDateRangeAsync (which
+        /// filters by EffectiveDate) so the "Certs Expired Last Month" export returned certs
+        /// that became EFFECTIVE last month — a completely different set.
+        /// </summary>
+        public async Task<IEnumerable<Certificate>> GetCertificatesByExpirationDateRangeAsync(DateTime startDate, DateTime endDate)
+        {
+            return await _dbSet
+                .Where(c => c.ExpirationDate >= startDate && c.ExpirationDate <= endDate)
+                .Include(c => c.Company)
+                .Include(c => c.Product).ThenInclude(p => p!.Category)
+                .Include(c => c.Product).ThenInclude(p => p!.ProductType)
+                .Include(c => c.Product).ThenInclude(p => p!.ProductSubcategory)
+                .Include(c => c.ProductCategory)
+                .Include(c => c.ProductType)
+                .Include(c => c.ProductSubcategory)
+                .Include(c => c.CertificationType)
+                .OrderBy(c => c.ExpirationDate)
+                .ToListAsync();
+        }
+
         public async Task<Dictionary<string, int>> GetCertificateStatisticsAsync()
         {
             var stats = new Dictionary<string, int>();
@@ -565,8 +587,13 @@ namespace GCCWebApp.Repositories
                 c.ExpirationDate >= startOfMonth &&
                 c.ExpirationDate < startOfNextMonth);
 
-            // Expired last month
+            // Expired last month — DEF-200 (QC #180): added EverPublishedStatuses filter so a
+            // Draft or Hold cert with an ExpirationDate in last month no longer counts as
+            // having "expired." Previously the tile counted any cert with an expiration date
+            // in last month regardless of whether it ever went live.
+            var everPublished = CertificateStatusHelper.EverPublishedStatuses;
             stats["ExpiredLastMonth"] = await _dbSet.CountAsync(c =>
+                everPublished.Contains(c.Status) &&
                 c.ExpirationDate >= startOfLastMonth &&
                 c.ExpirationDate <= endOfLastMonth);
 
@@ -576,10 +603,15 @@ namespace GCCWebApp.Repositories
                 c.ExpirationDate >= startOfNextMonth &&
                 c.ExpirationDate <= endOfNextMonth);
 
-            // Published this year (active certs with EffectiveDate in current year)
+            // Published this year (active certs with EffectiveDate in current year up to today).
+            // DEF-200 (QC #180): added `EffectiveDate <= today` cap so a future-dated cert
+            // (EffectiveDate after today) no longer inflates the "published this year" count
+            // ahead of actually being effective. Matches the export side, which already had
+            // the cap via GetCertificatesByDateRangeAsync(startOfYear, today).
             stats["PublishedThisYear"] = await _dbSet.CountAsync(c =>
                 dashboardStatuses.Contains(c.Status) &&
-                c.EffectiveDate >= startOfYear);
+                c.EffectiveDate >= startOfYear &&
+                c.EffectiveDate <= today);
 
             // Published last year (active certs with EffectiveDate in last year)
             stats["PublishedLastYear"] = await _dbSet.CountAsync(c =>

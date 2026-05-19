@@ -153,6 +153,32 @@
                             </span>
                         </div>
                     </div>
+                    @* DEF-202 (QC #118): external partner cert detail renders custom fields
+                       scoped to RoleVisibility ∈ { "Public", "External" } — the External view
+                       is partner/logged-in surface so it sees both publicly-visible fields
+                       AND external-only fields; "Internal" stays restricted to
+                       CertificateInternalView. Per `feedback_custom_fields_single_section`,
+                       CustomField.Section is ignored — flat under "Custom Fields". *@
+                    @if (Model.CustomFieldValues != null)
+                    {
+                        var visibleFields = Model.CustomFieldValues
+                            .Where(f => f.Field != null
+                                && (string.Equals(f.Field.RoleVisibility, "Public", StringComparison.OrdinalIgnoreCase)
+                                    || string.Equals(f.Field.RoleVisibility, "External", StringComparison.OrdinalIgnoreCase))
+                                && !string.IsNullOrWhiteSpace(f.Value))
+                            .ToList();
+                        if (visibleFields.Any())
+                        {
+                            <div class="detail-section">
+                                <h3 class="certificate-section-title">Custom Fields</h3>
+                                @foreach (var fieldValue in visibleFields)
+                                {
+                                    <div class="certificate-field"><strong>@fieldValue.Field.Name:</strong> <span>@fieldValue.DisplayValue</span></div>
+                                }
+                            </div>
+                        }
+                    }
+
                     <!-- Tags (External only for external users) -->
                     @if (externalTags.Any())
                     {

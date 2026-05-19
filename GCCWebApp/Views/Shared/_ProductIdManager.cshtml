@@ -319,6 +319,11 @@
                                 <th style="padding: 10px;">Type</th>
                                 <th style="padding: 10px;">Product ID</th>
                                 <th style="padding: 10px;">Product Name</th>
+                                @* DEF-202 (QC #179): SKU was being imported into the DB
+                                   (productSku field is parsed in product-id-manager.js:1266)
+                                   but the preview popup didn't show it as a column, so the
+                                   client couldn't sanity-check SKU values before confirming. *@
+                                <th style="padding: 10px;">SKU</th>
                                 <th style="padding: 10px;">Partner</th>
                                 <th style="padding: 10px;">Changes / Errors</th>
                             </tr>

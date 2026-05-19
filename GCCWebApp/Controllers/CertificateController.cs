@@ -1497,10 +1497,43 @@ namespace GCCWebApp.Controllers
                 return "Analyst";
             if (User.HasClaim("Role", "External"))
                 return "External";
+            // DEF-198 (QC #182): missing Partner branch let Partner web users fall through to
+            // "Public" — which the export path treated as unrestricted, leaking every cert in
+            // the DB. Cookie auth stamps the Partner role via AccountController.SignInUser.
+            if (User.HasClaim("Role", "Partner"))
+                return "Partner";
             if (User.HasClaim("Role", "Internal"))
                 return "Internal";
-            
+
             return "Public"; // Default role for anonymous users
+        }
+
+        // DEF-198 (QC #182): partner-name / company-id lookups for role-scoped queries.
+        // Lifted from Controllers/ProductController.cs:606-644 — same shape, same source claim.
+        private async Task<List<string>> GetCurrentUserPartnerNamesAsync()
+        {
+            var userEmail = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(userEmail))
+                return new List<string>();
+
+            var user = await _context.Users
+                .Include(u => u.Partners)
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            return user?.Partners?.Select(p => p.Name).ToList() ?? new List<string>();
+        }
+
+        private async Task<List<int>> GetCurrentUserCompanyIdsAsync()
+        {
+            var userEmail = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(userEmail))
+                return new List<int>();
+
+            var user = await _context.Users
+                .Include(u => u.Companies)
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            return user?.Companies?.Select(c => c.Id).ToList() ?? new List<int>();
         }
 
         /// <summary>
@@ -1998,12 +2031,29 @@ namespace GCCWebApp.Controllers
                 var includeInternalTags = string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(userRole, "Analyst", StringComparison.OrdinalIgnoreCase);
 
+                // DEF-198 (QC #182): populate the security context so the service can scope
+                // the export to what the caller is allowed to see. Partner web users were
+                // previously falling through to the unscoped path and receiving every cert
+                // in the DB (including drafts and other partners' rows).
+                var allowedPartnerNames = new List<string>();
+                var allowedCompanyIds = new List<int>();
+                if (string.Equals(userRole, "Partner", StringComparison.OrdinalIgnoreCase))
+                {
+                    allowedPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                }
+                else if (string.Equals(userRole, "External", StringComparison.OrdinalIgnoreCase))
+                {
+                    allowedCompanyIds = await GetCurrentUserCompanyIdsAsync();
+                }
+
                 var request = new CertificateListRequest
                 {
                     Page = 1,
                     PageSize = 10000, // Large page size for export
                     Sort = sort ?? string.Empty,
                     UserRole = userRole,
+                    AllowedPartnerNames = allowedPartnerNames,
+                    AllowedCompanyIds = allowedCompanyIds,
                     Filters = new CertificateSearchFilters
                     {
                         SearchTerm = searchTerm ?? "",
@@ -2015,12 +2065,14 @@ namespace GCCWebApp.Controllers
                     }
                 };
 
-                // If specific IDs provided, filter to only those certificates
+                // If specific IDs provided, filter to only those certificates. Pass the
+                // security context so a Partner can't list IDs outside their scope and
+                // get them back. (DEF-198)
                 byte[]? exportData;
                 if (!string.IsNullOrEmpty(ids))
                 {
                     var certificateIds = ids.Split(',').Select(id => id.Trim()).Where(id => !string.IsNullOrEmpty(id)).ToList();
-                    exportData = await _certificateService.ExportCertificatesByIdsAsync(certificateIds, includeInternalTags);
+                    exportData = await _certificateService.ExportCertificatesByIdsAsync(certificateIds, includeInternalTags, request);
                 }
                 else
                 {

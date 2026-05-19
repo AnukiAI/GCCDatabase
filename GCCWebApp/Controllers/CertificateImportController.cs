@@ -322,7 +322,16 @@ namespace GCCWebApp.Controllers
             // Headers only — no sample data, to avoid accidental import of fake data.
             // Column set mirrors Services/CertificateService.cs GenerateCsvExport (with includeInternalTags=true)
             // so the table → export → edit → re-import round-trip works end-to-end.
-            var templateCsv = "\"Certificate #\",\"Certification Type\",\"Cert Subcategories\",\"Status\",\"Company\",\"Company Email\",\"Company URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"";
+            // DEF-202 (QC #148): enum-typed columns now carry their allowed values inline so analysts
+            // don't have to flip back to the app to look them up. Same pattern as the User Mgmt
+            // template (`Status (Active/Inactive)`, `Role (Admin/Analyst/External)`) and the Tags
+            // template (`TagType (Internal, External)`). Partner / Pathway / Country / cert taxonomy
+            // are intentionally left plain because their value sets are admin-configurable per
+            // tenant — listing them here would go stale immediately.
+            var statusHint = "Status (Draft / Client Approved - Not Paid / Client Approved - Confidential / Client Approved - Paid / Hold / Expired / Republished / Expired - No Annual Verification — defaults to Draft if blank)";
+            var templateCsv = "\"Certificate #\",\"Certification Type\",\"Cert Subcategories\"," +
+                              $"\"{statusHint}\"," +
+                              "\"Company\",\"Company Email\",\"Company URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"";
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(templateCsv);
             return File(bytes, "text/csv", $"GCC_Certificate_Import_Template.csv");

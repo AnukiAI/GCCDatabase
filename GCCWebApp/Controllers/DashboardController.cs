@@ -283,12 +283,16 @@ namespace GCCWebApp.Controllers
                     return Forbid();
                 }
 
-                // QC #155: Aggregate exports for category/type/subcategory stats
+                // QC #155: Aggregate exports for category/type/subcategory stats.
+                // DEF-200 (QC #180): "products-with-active-certs" added here too — the tile counts
+                // distinct products, but the previous non-aggregate export returned a row per cert
+                // (so 10-product / 22-cert dev data made tile=10 vs export=22).
                 var aggregateTypes = new[] {
                     "product-categories-with-active-certs",
                     "product-types-with-active-certs",
                     "product-subcategories-with-active-certs",
-                    "companies-with-active-certs"
+                    "companies-with-active-certs",
+                    "products-with-active-certs"
                 };
 
                 if (aggregateTypes.Contains(type))
@@ -396,8 +400,18 @@ namespace GCCWebApp.Controllers
                         "Certificates Expiring This Month");
 
                 case "certs-expired-last-month":
-                    return (await _certificateRepository.GetCertificatesByDateRangeAsync(startOfLastMonth, endOfLastMonth),
+                {
+                    // DEF-200 (QC #180): two bugs in the original line. First, GetCertificatesByDateRangeAsync
+                    // filters by EffectiveDate — so "expired last month" was returning certs that became
+                    // effective last month, a completely different set. Switched to the new
+                    // GetCertificatesByExpirationDateRangeAsync helper. Second, no status filter meant
+                    // Draft / Hold rows with a stale ExpirationDate in last month were treated as
+                    // "expired" even though they never went live. Matched the tile's EverPublishedStatuses
+                    // filter from GetCertificateStatisticsAsync.
+                    var certs = await _certificateRepository.GetCertificatesByExpirationDateRangeAsync(startOfLastMonth, endOfLastMonth);
+                    return (certs.Where(c => CertificateStatusHelper.EverPublishedStatuses.Contains(c.Status)),
                         "Certificates Expired Last Month");
+                }
 
                 case "certs-expiring-next-month":
                     var expiringNext = await _certificateRepository.GetExpiringCertificatesAsync(endOfNextMonth);
@@ -501,6 +515,16 @@ namespace GCCWebApp.Controllers
                     header = "Company";
                     groups = activeCerts
                         .GroupBy(c => c.Company?.Name)
+                        .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+                        .Select(g => (Name: g.Key!, Count: g.Count()))
+                        .OrderByDescending(g => g.Count);
+                    break;
+
+                // DEF-200 (QC #180): aggregate products to match tile's distinct-product count.
+                case "products-with-active-certs":
+                    header = "Product";
+                    groups = activeCerts
+                        .GroupBy(c => c.Product?.Name)
                         .Where(g => !string.IsNullOrWhiteSpace(g.Key))
                         .Select(g => (Name: g.Key!, Count: g.Count()))
                         .OrderByDescending(g => g.Count);

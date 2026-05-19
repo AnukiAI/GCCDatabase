@@ -1516,6 +1516,8 @@ class ProductIdManager {
                 <td style="padding: 10px; font-weight: 500;">${row.data.productIdType || ''}</td>
                 <td style="padding: 10px; font-family: monospace;">${row.data.productIdValue || ''}</td>
                 <td style="padding: 10px;">${row.data.productName || '-'}</td>
+                <!-- DEF-202 (QC #179): show SKU column so client can verify import data before confirming -->
+                <td style="padding: 10px; font-family: monospace;">${row.data.productSku || '-'}</td>
                 <td style="padding: 10px;">${row.data.partner || '-'}</td>
                 <td style="padding: 10px;">${changesHtml}</td>
             `;

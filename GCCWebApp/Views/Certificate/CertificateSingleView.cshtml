@@ -137,6 +137,33 @@
                             </span>
                         </div>
                     </div>
+                    @* DEF-202 (QC #118): public cert detail page now renders custom fields
+                       whose RoleVisibility is "Public". CertificateSingleView is the anonymous
+                       public surface so we MUST filter to Public scope and skip blanks. Per
+                       `feedback_custom_fields_single_section`, fields go under a single
+                       "Custom Fields" group — CustomField.Section is intentionally ignored.
+                       Model.CustomFieldValues was already loaded by the controller; the view
+                       just wasn't binding to it. (IsPublic is [Obsolete] in favor of the
+                       string RoleVisibility with values "Public"/"External"/"Internal".) *@
+                    @if (Model.CustomFieldValues != null)
+                    {
+                        var publicFields = Model.CustomFieldValues
+                            .Where(f => f.Field != null
+                                && string.Equals(f.Field.RoleVisibility, "Public", StringComparison.OrdinalIgnoreCase)
+                                && !string.IsNullOrWhiteSpace(f.Value))
+                            .ToList();
+                        if (publicFields.Any())
+                        {
+                            <div class="detail-section">
+                                <h3 class="certificate-section-title">Custom Fields</h3>
+                                @foreach (var fieldValue in publicFields)
+                                {
+                                    <div class="certificate-field"><strong>@fieldValue.Field.Name:</strong> <span>@fieldValue.DisplayValue</span></div>
+                                }
+                            </div>
+                        }
+                    }
+
                     <!-- Tags -->
                     @if (Model.Certificate?.Tags != null && Model.Certificate.Tags.Any())
                     {

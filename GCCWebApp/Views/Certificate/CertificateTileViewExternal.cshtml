@@ -163,8 +163,11 @@
                         <div class="sort-option" data-sort="country" role="option"><i class="fas fa-globe" aria-hidden="true"></i> Country A-Z</div>
                         <div class="sort-option" data-sort="country-za" role="option"><i class="fas fa-globe" aria-hidden="true"></i> Country Z-A</div>
 
+                        <!-- DEF-201 (QC #183): removed "Most Popular Companies" — no
+                             backend handler (MapSortBy returns Number for "popularity"),
+                             so the option produced default sort with no visible effect.
+                             "Relevance Score" never existed on the external view. -->
                         <div class="sort-group-header" role="presentation">Advanced</div>
-                        <div class="sort-option" data-sort="popularity" role="option"><i class="fas fa-star" aria-hidden="true"></i> Most Popular Companies</div>
                         <div class="sort-option" data-sort="product-type" role="option"><i class="fas fa-boxes" aria-hidden="true"></i> Product Type A-Z</div>
                         <div class="sort-option" data-sort="status" role="option"><i class="fas fa-check-circle" aria-hidden="true"></i> Status</div>
                     </div>

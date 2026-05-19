@@ -12,7 +12,7 @@ namespace GCCWebApp.Services
         // DEF-128: format param dropped — CSV is the only supported export format per CLAUDE.md
         // "CSV ONLY" rule. includeInternalTags must be false for anonymous/External callers.
         Task<byte[]?> ExportCertificatesAsync(CertificateListRequest request, bool includeInternalTags = false);
-        Task<byte[]?> ExportCertificatesByIdsAsync(List<string> certificateIds, bool includeInternalTags = false);
+        Task<byte[]?> ExportCertificatesByIdsAsync(List<string> certificateIds, bool includeInternalTags = false, CertificateListRequest? securityContext = null);
         Task<CertificateStatistics> GetCertificateStatisticsAsync(string userRole);
         Task<BulkActionResult> PerformBulkActionAsync(BulkActionRequest request);
         Task<List<string>> GetSearchSuggestionsAsync(string term, string type, string userRole);

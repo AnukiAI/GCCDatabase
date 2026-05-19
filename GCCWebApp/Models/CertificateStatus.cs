@@ -79,6 +79,21 @@ namespace GCCWebApp.Models
         };
 
         /// <summary>
+        /// DEF-200 (QC #180): statuses that count for "Certs Expired Last Month" — certs that
+        /// were ever published (or are now flagged Expired). Excludes Draft / Hold /
+        /// ClientApprovedNotPaid because a cert that never went live shouldn't be counted as
+        /// having "expired" just because it happens to have an expiration date in the past.
+        /// </summary>
+        public static readonly string[] EverPublishedStatuses = new[]
+        {
+            StatusClientApprovedPaid,
+            StatusRepublished,
+            StatusClientApprovedConfidential,
+            StatusExpired,
+            StatusExpiredNoAnnualVerification
+        };
+
+        /// <summary>
         /// Gets all available status values with their display names
         /// </summary>
         public static Dictionary<string, string> GetAllStatuses()

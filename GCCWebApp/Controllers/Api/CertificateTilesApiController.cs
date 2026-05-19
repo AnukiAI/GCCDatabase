@@ -256,22 +256,31 @@ namespace GCCWebApp.Controllers.Api
                     .Distinct()
                     .ToListAsync();
 
+                // DEF-199 (QC #178): use the EFFECTIVE category/type/subcategory at each level
+                // (cert-level override if set, otherwise Product-derived) — mirrors the listing
+                // predicate at CertificateRepository.cs:339-354 / DEF-192. The previous Product-only
+                // projection missed any cert whose category/type/subcategory was set via the
+                // cert-level FK override columns and never showed those nodes in the sidebar.
                 var visibleCategoryIds = await baseQuery
-                    .Select(c => c.Product.CategoryId)
+                    .Select(c => c.ProductCategoryId ?? c.Product.CategoryId)
                     .Distinct()
                     .ToListAsync();
 
-                var visibleProductTypeIds = await baseQuery
-                    .Where(c => c.Product.ProductTypeId != null)
-                    .Select(c => c.Product.ProductTypeId!.Value)
+                var visibleProductTypeIds = (await baseQuery
+                    .Select(c => c.ProductTypeId ?? c.Product.ProductTypeId)
+                    .Where(id => id != null)
                     .Distinct()
-                    .ToListAsync();
+                    .ToListAsync())
+                    .Select(id => id!.Value)
+                    .ToList();
 
-                var visibleSubcategoryIds = await baseQuery
-                    .Where(c => c.Product.ProductSubcategoryId != null)
-                    .Select(c => c.Product.ProductSubcategoryId!.Value)
+                var visibleSubcategoryIds = (await baseQuery
+                    .Select(c => c.ProductSubcategoryId ?? c.Product.ProductSubcategoryId)
+                    .Where(id => id != null)
                     .Distinct()
-                    .ToListAsync();
+                    .ToListAsync())
+                    .Select(id => id!.Value)
+                    .ToList();
 
                 // DEF-167: Filter dropdown shows Level-1 (top-level) cert types only.
                 // Subcategories should not appear as filter options; certs tagged at Level-2
@@ -348,7 +357,13 @@ namespace GCCWebApp.Controllers.Api
                 {
                     certificationTypes = hierarchicalCertTypes,
 
+                    // DEF-199 (QC #177): also exclude soft-deleted / inactive companies. A cert
+                    // can still reference a Company that was later soft-deleted; the navigation
+                    // resolves successfully so the company surfaced in the sidebar even though
+                    // the management UI hid it — clicking it appeared to "find no certs" if the
+                    // user assumed an active company.
                     companies = await baseQuery
+                        .Where(c => c.Company != null && c.Company.IsActive && !c.Company.IsDeleted)
                         .Select(c => new { id = c.Company.Id, name = c.Company.Name })
                         .Distinct()
                         .OrderBy(c => c.name)
@@ -366,11 +381,13 @@ namespace GCCWebApp.Controllers.Api
                     // Hierarchical product categories (Level 1 -> Level 2 -> Level 3)
                     productCategoriesHierarchy,
 
-                    // Keep flat list for backward compatibility
-                    productCategories = await baseQuery
-                        .Select(c => c.Product.Category.Name)
-                        .Distinct()
-                        .OrderBy(name => name)
+                    // DEF-199 (QC #178): flat list resolved from the same visibleCategoryIds set
+                    // so cert-level overrides surface here too. Previous projection
+                    // (baseQuery.Select(c => c.Product.Category.Name)) ignored overrides.
+                    productCategories = await _context.Set<ProductCategory>()
+                        .Where(pc => pc.IsActive && visibleCategoryIds.Contains(pc.Id))
+                        .OrderBy(pc => pc.Name)
+                        .Select(pc => pc.Name)
                         .ToListAsync(),
 
                     // Only external tags (APR, LEED, etc.) for the Additional filter

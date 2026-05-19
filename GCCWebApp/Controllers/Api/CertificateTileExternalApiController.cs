@@ -471,23 +471,30 @@ namespace GCCWebApp.Controllers.Api
                 // Filter to active certificates only
                 baseQuery = baseQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday));
 
-                // Strict scoping for product hierarchy: only surface options the user can actually filter to.
+                // DEF-199 (QC #178): use the EFFECTIVE category/type/subcategory at each level
+                // (cert-level override if set, otherwise Product-derived) — mirrors DEF-192's
+                // listing predicate. The Product-only projection missed certs whose hierarchy
+                // was set via the cert-level FK overrides.
                 var visibleCategoryIds = await baseQuery
-                    .Select(c => c.Product.CategoryId)
+                    .Select(c => c.ProductCategoryId ?? c.Product.CategoryId)
                     .Distinct()
                     .ToListAsync();
 
-                var visibleProductTypeIds = await baseQuery
-                    .Where(c => c.Product.ProductTypeId != null)
-                    .Select(c => c.Product.ProductTypeId!.Value)
+                var visibleProductTypeIds = (await baseQuery
+                    .Select(c => c.ProductTypeId ?? c.Product.ProductTypeId)
+                    .Where(id => id != null)
                     .Distinct()
-                    .ToListAsync();
+                    .ToListAsync())
+                    .Select(id => id!.Value)
+                    .ToList();
 
-                var visibleSubcategoryIds = await baseQuery
-                    .Where(c => c.Product.ProductSubcategoryId != null)
-                    .Select(c => c.Product.ProductSubcategoryId!.Value)
+                var visibleSubcategoryIds = (await baseQuery
+                    .Select(c => c.ProductSubcategoryId ?? c.Product.ProductSubcategoryId)
+                    .Where(id => id != null)
                     .Distinct()
-                    .ToListAsync();
+                    .ToListAsync())
+                    .Select(id => id!.Value)
+                    .ToList();
 
                 // Build hierarchy matching Admin page: Category → Type (ParentId=null) → Subcategory (ParentId!=null)
                 var prodCategories = await _context.Set<ProductCategory>()
@@ -567,21 +574,24 @@ namespace GCCWebApp.Controllers.Api
 
                     productCategoriesHierarchy,
 
-                    // Keep flat list for backward compatibility
-                    productCategories = await baseQuery
-                        .Select(c => c.Product.Category.Name)
-                        .Distinct()
-                        .OrderBy(name => name)
+                    // DEF-199 (QC #178): flat lists resolved from the same visible* sets the
+                    // hierarchy uses, so cert-level FK overrides surface here too.
+                    productCategories = await _context.Set<ProductCategory>()
+                        .Where(pc => pc.IsActive && visibleCategoryIds.Contains(pc.Id))
+                        .OrderBy(pc => pc.Name)
+                        .Select(pc => pc.Name)
                         .ToListAsync(),
 
-                    productTypes = await baseQuery
-                        .Where(c => c.Product.ProductType != null)
-                        .Select(c => c.Product.ProductType!.Name)
-                        .Distinct()
-                        .OrderBy(name => name)
+                    productTypes = await _context.Set<ProductType>()
+                        .Where(pt => pt.IsActive && visibleProductTypeIds.Contains(pt.Id))
+                        .OrderBy(pt => pt.Name)
+                        .Select(pt => pt.Name)
                         .ToListAsync(),
 
+                    // DEF-199 (QC #177): also exclude soft-deleted / inactive companies so a
+                    // cert's stale Company reference can't surface in the dropdown.
                     companies = await baseQuery
+                        .Where(c => c.Company != null && c.Company.IsActive && !c.Company.IsDeleted)
                         .Select(c => new { id = c.Company.Id, name = c.Company.Name })
                         .Distinct()
                         .OrderBy(c => c.name)

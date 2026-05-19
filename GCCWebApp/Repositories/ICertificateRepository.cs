@@ -28,6 +28,8 @@ namespace GCCWebApp.Repositories
         Task<IEnumerable<Certificate>> GetCertificatesByLocationAsync(string location);
         Task<IEnumerable<Certificate>> GetCertificatesByCountryAsync(string country);
         Task<IEnumerable<Certificate>> GetCertificatesByDateRangeAsync(DateTime startDate, DateTime endDate);
+        // DEF-200 (QC #180): expired-last-month must filter on ExpirationDate, not EffectiveDate.
+        Task<IEnumerable<Certificate>> GetCertificatesByExpirationDateRangeAsync(DateTime startDate, DateTime endDate);
         Task<Dictionary<string, int>> GetCertificateStatisticsAsync();
         
         // Dashboard breakdown methods

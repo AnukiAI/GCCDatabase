@@ -18,6 +18,323 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-202 — Cert import template enum hint; breadcrumb rename; public custom-field rendering; product-ID import SKU column; Product Mgmt export Name/SKU/Partner columns
+
+- **Date:** 2026-05-19
+- **Severity:** Minor (UX correctness — each sub-item closes a small client ask)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **QC Ref:** #148, #104 (partial — Company Mgmt rename), #118, #179 (partial — SKU column), #184 (partial — column additions)
+- **Bucket:** Bug + Enhancement
+- **Reporter:** Client
+
+**Bundle.** Five small client-asked corrections grouped into one deploy footprint.
+
+**1. QC #148 — Cert import template now ships Status enum hint inline.**
+
+The User Management template (`wwwroot/js/userManagement.js:857-862`) and the Tags template (`wwwroot/js/tags.js:546`) already include enum hints like `Status (Active/Inactive)` and `TagType (Internal, External)`. The Certificate import template (`Controllers/CertificateImportController.cs:DownloadTemplate`) had bare headers — no inline cue that Status accepts only the 8 canonical lifecycle values. Updated the `Status` column header to `Status (Draft / Client Approved - Not Paid / Client Approved - Confidential / Client Approved - Paid / Hold / Expired / Republished / Expired - No Annual Verification — defaults to Draft if blank)`. Partner / Pathway / Country / cert taxonomy left plain because their value sets are admin-configurable per tenant and would go stale immediately.
+
+`Services/Import/CertificateImportService.cs:GetFieldWithMapping` extended with a prefix-match fallback so the longer header still parses on re-import. After the exact short forms (`STATUS` / `Status` / `status`) fail, the helper walks `csv.HeaderRecord` and accepts any header that starts with one of the known names followed by a space or `(`. Tight enough that `Status Update` / `Status Date` won't false-positive.
+
+**2. QC #104 (partial) — "Companies" breadcrumb → "Company Management" for parity with the Product side.**
+
+`Views/Company/Index.cshtml:14-22` — single-word breadcrumb label change. Product side already reads "Product Management" so this restores symmetry. **The other half of #104 (Admin Dashboard nav item) is closed as needs-no-action**: per the comment at `Controllers/AdminController.cs:48` the standalone admin dashboard view was removed by client decision on 2026-05-01, and `/Admin/Index` now redirects to `UserManagement`. The breadcrumb the client expected to land somewhere is already pointing at the right destination.
+
+**3. QC #118 — Custom Fields flagged IsPublic now render on Public + External cert detail pages.**
+
+The model has `CustomField.IsPublic` (default `true`) and `Services/CertificateFieldService.GetFormattedFieldValuesAsync` already loads the value set into `Model.CustomFieldValues`. The Internal cert detail view (`Views/Certificate/CertificateInternalView.cshtml:197-213`) was rendering them; the Public (`CertificateSingleView.cshtml`) and External-partner (`CertificateExternalView.cshtml`) views simply weren't binding to the property. Added the same render block to both, filtered to `f.Field.IsPublic && !string.IsNullOrWhiteSpace(f.Value)` and grouped under a single `Custom Fields` section per `feedback_custom_fields_single_section` (CustomField.Section intentionally ignored everywhere).
+
+Client report (5/1): *"I set test to public and it didn't show on public cert detail page. See Balcan 26-0159 example."* Direct cause: the public view never read the loaded data.
+
+**4. QC #179 (partial) — Product ID import preview popup now shows the SKU column.**
+
+`product-id-manager.js:1266` parses the SKU value from the CSV into `productSku`, but the preview-modal table rendered Type / ID / Name / Partner / Changes — no SKU column. Analysts could only verify SKU values by opening the cert after confirming the import. Added a `SKU` column to the modal `<thead>` (`Views/Shared/_ProductIdManager.cshtml:319-323`) and a `<td>` to the per-row render (`product-id-manager.js:1517-1520`). Monospaced like the Product ID cell so leading-zero values stay legible.
+
+**#179 deferred sub-item.** The Description column in the import template doesn't have a UI surface today — client asked whether it should be exposed in the Add/Edit popup or removed. Needs design / client decision; carrying as a separate item rather than guessing.
+
+**5. QC #184 (partial) — Product Management export now includes SKU and Partner columns.**
+
+`Views/Product/Management.cshtml:exportProducts` previously emitted only Product Name / Company / Description / Category / Product Type / Subcategory / Identifier Type / Identifier Value. SKU was being shoved into the Identifier pair list (which clients building tooling around the existing layout may have come to rely on, so kept as a row pair too). Partner wasn't on the response at all. Two changes:
+
+- `Controllers/ProductController.cs:GetProducts` — projection now also pulls `c.Partner` for each of the product's certs into a `CertPartners` array, then surfaces distinct non-empty / non-`None` values as `Partners` on `ProductListViewModel`.
+- `Views/Product/Management.cshtml:exportProducts` — `headers` array gains `SKU` and `Partners` columns; `baseCols` populates `p.sku` and `(p.partners || []).join('; ')`.
+
+**#184 deferred sub-item.** Client also asked for an "all active product identifiers across certs" cross-cert export. That's a new report surface, not a column-add — design decision pending (extend the Cert Tile CSV with one row per (cert × product ID), or new admin Reports page). Tracking as a future Enhancement.
+
+**Build.** 0 errors. 51 pre-existing warnings unchanged.
+
+**Files touched.**
+
+- `Controllers/CertificateImportController.cs:319-336` — template Status header hint.
+- `Services/Import/CertificateImportService.cs:67-72, 90-138` — prefix-match fallback in `GetFieldWithMapping`.
+- `Views/Company/Index.cshtml:14-22` — breadcrumb rename.
+- `Views/Certificate/CertificateSingleView.cshtml:140-159` — public Custom Fields render block.
+- `Views/Certificate/CertificateExternalView.cshtml:156-176` — external Custom Fields render block.
+- `Views/Shared/_ProductIdManager.cshtml:319-330` — SKU column header.
+- `wwwroot/js/product-id-manager.js:1517-1521` — SKU `<td>` per row.
+- `Controllers/ProductController.cs:236-243, 264-273, 960-969` — Partners projection + ViewModel property.
+- `Views/Product/Management.cshtml:1075-1110` — export headers + row population.
+
+**Verification.** Static checks only (server stopped during this turn). Build clean. Will visual-pass the next time the server is up: open cert import template, confirm Status header reads the long form; open Company Management breadcrumb; open Balcan-style public cert detail, confirm a public custom field renders; import product IDs with SKU values, confirm preview table shows them; export Product Mgmt to CSV, confirm Name/SKU/Partner columns present and populated.
+
+**Notes.**
+
+- **QC #181 (Company Email validation) is already fixed in HEAD** since commit `f018782` on 2026-05-11 — strict regex on `CertificateEditViewModel.CompanyEmail` and `CompanyViewModel.Email`. Status synced in this batch's log update; no code action needed.
+- **#167 + #150 are no-code items.** `docs/tracking/client-responses-2026-05-19.md` carries Shawn's draft of (#167) the auto-expire timing explainer and (#150) the forgot-password verification steps + named-test-user provisioning script. Both close once Shawn sends them.
+
+---
+
+### DEF-201 — Three small UX fixes: header logo at reduced desktop, filter toggle unreachable on mobile, dead sort options removed
+
+- **Date:** 2026-05-19
+- **Severity:** Minor (each item is small UX correctness)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **QC Ref:** #175 (header logo distorts/narrow on reduced desktop/tablet), #176 (filter-hide toggle unreachable on mobile after hiding on desktop), #183 (Sort By has unused "Most Popular Companies" and "Relevance Score" options across all views) — all 2026-05-15
+- **Bucket:** Bug (#175, #176) + UX (#183)
+- **Reporter:** Client
+
+**Symptoms.**
+
+- **#175** — `.main-logo` default size is 280px (sized for ≥1440px displays); a tablet rule at 769–1024px scales to 180px. Between 1025 and 1440 the logo stayed at 280px and the `.logo-text-group`'s 300px `min-width` forced awkward wrap. Client report: *"Logo gets distorted/narrow in reduced desktop/tablet size."*
+- **#176** — Per [[DEF-098]], the desktop Hide/Show Filters controls (`#sidebarToggleTab`, `#sidebarCollapseBtn`) are CSS-hidden at ≤1024px. A user who collapsed the sidebar on desktop and resized below 1024 (or rotated tablet to portrait) had the `.collapsed` class stuck on the sidebar with no on-screen way to bring it back. Client framing was hedged (*"not sure how realistic this scenario will be"*) — still worth a small fix.
+- **#183** — `CertificateTileViewInternal.cshtml` had two Sort By options (`Most Popular Companies` / `Relevance Score`) with no backend handler. `CertificateTilesApiController.MapSortBy` has no `popularity` or `relevance` cases, so picking either fell through to the default (`Number`) and produced an unchanged sort. Client: *"What is this? It was under partner and analyst login."* External view had `Most Popular Companies` only (no Relevance Score).
+
+**Fix.**
+
+- **#175:** `wwwroot/css/main.css:3353-3373` — new `@media (min-width: 1025px) and (max-width: 1440px)` rule for `.main-logo` (220px), `.logo-text` (36px), `.logo-subtext` (24px). Sits between the existing 769–1024 tablet rule and the default 1441+ desktop sizing.
+- **#176:** `wwwroot/js/certificate-tile-view.js`, `certificate-tile-view-internal.js`, `certificate-tile-view-external.js` — `setupSidebarToggle` now subscribes to `window.matchMedia('(max-width: 1024px)')`; whenever the viewport crosses into ≤1024px (or loads in that state), the sidebar's `.collapsed` class is removed via `expandSidebar()`. Same pattern in all three tile-view JS files; covers public, external, and internal callers.
+- **#183:** `Views/Certificate/CertificateTileViewInternal.cshtml:214-231` — removed the two dead options (`data-sort="popularity"`, `data-sort="relevance"`) along with their associated DOM nodes; kept `Product Type A-Z` and `Status` since those have backend handlers. `Views/Certificate/CertificateTileViewExternal.cshtml:166-169` — same removal of `Most Popular Companies`. No backend changes needed — `MapSortBy` never mapped these keys, so dropping the option just removes a dead-click. Comment block in each view points the next reader at the MapSortBy method so this can't quietly regress.
+
+**Verification.** Build clean (0 errors). #175 visual check: dev tools at 1280×800 and 1366×768 — logo no longer crowds `.logo-text-group` past its 300px min-width; layout fits. #176: collapse sidebar on desktop, resize to ≤1024px in dev tools — `.collapsed` is dropped immediately and filter rail re-appears. #183: open both internal and external tile views, click Sort By dropdown — neither "Most Popular Companies" nor "Relevance Score" appears.
+
+**Files touched.**
+
+- `wwwroot/css/main.css:3353-3373` — new mid-desktop logo breakpoint.
+- `wwwroot/js/certificate-tile-view.js:51-72` — auto-expand on small breakpoint.
+- `wwwroot/js/certificate-tile-view-external.js:567-600` — same.
+- `wwwroot/js/certificate-tile-view-internal.js:581-614` — same.
+- `Views/Certificate/CertificateTileViewInternal.cshtml:214-231` — sort option removal.
+- `Views/Certificate/CertificateTileViewExternal.cshtml:166-169` — sort option removal.
+
+**Notes.** **QC #181 (Company Email format validation) was already fixed.** Commit `f018782` on 2026-05-11 (same day client raised it) added strict regex `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$` on both `Models/CertificateEditViewModel.cs:CompanyEmail` and `Models/CompanyViewModel.cs:Email`. The fix has been on master since 5/11 but waiting for the next deploy — that's why the client still saw the loose behavior on gccwebapp.com. Status synced in the QC log; no further code work needed.
+
+**Related.** Smaller UX cleanup batch — no shared root cause across the three items, but bundling them into one DEF keeps the deploy footprint tight.
+
+---
+
+### DEF-200 — Internal dashboard tile counts vs export row counts diverged on most cards; "Certs Expired Last Month" used wrong date field
+
+- **Date:** 2026-05-19
+- **Severity:** Major (data integrity — every "click download to see what this number represents" interaction returned a different number than the tile)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **QC Ref:** #180 (client log, 2026-05-11) — *"Certs Expired Last Month is not using right data … we added clarifer of 'Active' for multiple items but then you are having the export show those not 'Active' (but number is only active which is right — the export should align with only the number that it makes up). … Anuki needs to do that"*
+- **Bucket:** Bug
+- **Reporter:** Client
+
+**Symptom.** Every download icon on the internal dashboard returned rows that didn't match the count on the same card. Concrete dev-DB measurements:
+
+| Card | Tile | Export (before) | Export (after) |
+|---|---|---|---|
+| Total Active Certs | 22 | 22 | 22 ✓ |
+| # Companies with Active Certs | 9 | 12 | 9 ✓ |
+| # Product Categories with Active Certs | 1 | 4 | 1 ✓ |
+| # Product Types with Active Certs | 0 | 3 | 0 ✓ |
+| # Product Type Subcategories with Active Certs | 0 | 3 | 0 ✓ |
+| # Products with Active Certs | 10 | 22 | 10 ✓ |
+| # Active Certs Published Last Month | 0 | 0 | 0 ✓ |
+| # Certs Expiring This Month | 0 | 0 | 0 ✓ |
+| **# Certs Expired Last Month** | **1** | **4** | **1 ✓** |
+| # Certs Expiring Next Month | 0 | 0 | 0 ✓ |
+| # Active Certs Published This Year | 16 | 15 | 15 ✓ |
+| # Active Certs Published Last Year | 6 | 6 | 6 ✓ |
+
+The "Certs Expired Last Month" gap was the one the client explicitly called out. The others compounded the trust problem.
+
+**Root causes — three separate bugs in one feature area.**
+
+1. **`certs-expired-last-month` used the wrong date column.** `Controllers/DashboardController.cs:certs-expired-last-month` called `_certificateRepository.GetCertificatesByDateRangeAsync(startOfLastMonth, endOfLastMonth)` which filters on `c.EffectiveDate >= startDate && c.EffectiveDate <= endDate` (per `Repositories/CertificateRepository.cs:447-463`). So "expired last month" returned certs that became **effective** last month — a completely different set. The export also had no status filter so it counted Draft / Hold rows with a stale ExpirationDate. Tile filter (correctly built on ExpirationDate) included a `EverPublishedStatuses` predicate per [[DEF-200]] earlier in this same change — but the export side never aligned. Combined effect: tile and export filtered on different columns AND different status sets.
+2. **`products-with-active-certs` exported per-cert rows; tile counted distinct products.** `GenerateAggregatedStatCsv` already had aggregation cases for categories / types / subcategories / companies but missed Products. The tile binds to `Statistics["ActiveProducts"]` which is `Distinct(c.ProductId).Count()` over active certs (10 distinct in dev); the export fell through to `GetCertificatesForStat` which returned every active-cert row (22 in dev) — 12-row gap.
+3. **`PublishedThisYear` tile counted future-dated certs.** `Repositories/CertificateRepository.cs:580-582` had `c.EffectiveDate >= startOfYear` with no upper bound. The matching export already capped at `today`. A single cert with `EffectiveDate = 2027-07-08` made tile=16 vs export=15.
+
+**Fix.**
+
+- `Repositories/CertificateRepository.cs` — new `GetCertificatesByExpirationDateRangeAsync(start, end)` helper that mirrors `GetCertificatesByDateRangeAsync` but filters and orders by `ExpirationDate`. Original method kept for the published-by-date callers, which correctly want EffectiveDate.
+- `Repositories/CertificateRepository.cs:GetCertificateStatisticsAsync` — `stats["ExpiredLastMonth"]` already gained the `EverPublishedStatuses` filter (DEF-200 first pass). `stats["PublishedThisYear"]` capped at `today` so the tile no longer counts future-dated certs.
+- `Repositories/ICertificateRepository.cs` — interface gains `GetCertificatesByExpirationDateRangeAsync`.
+- `Controllers/DashboardController.cs:GetCertificatesForStat` — `certs-expired-last-month` switched to the new ExpirationDate helper and the same `EverPublishedStatuses` filter as the tile.
+- `Controllers/DashboardController.cs:DownloadStat aggregateTypes` — added `products-with-active-certs`.
+- `Controllers/DashboardController.cs:GenerateAggregatedStatCsv` — new `products-with-active-certs` case groups by Product name.
+- `Controllers/ExportController.cs` (parallel `/Export/DownloadStat` endpoint) — all "Active …" cases switched from `PublicStatuses` to `DashboardStatuses` and the expired-last-month case picked up `EverPublishedStatuses`. The dashboard JS hits `/Dashboard/DownloadStat`, not this controller, but the parallel endpoint is reachable via `Scripts/testing/test-functionality.ps1` and a sweep of "Export" endpoints flagged in [[DEF-198]] notes — aligning it defensively prevents the same divergence reappearing through a different surface.
+
+A new `CertificateStatusHelper.EverPublishedStatuses` constant was introduced (`DashboardStatuses` ∪ `{Expired, ExpiredNoAnnualVerification}`) so the "expired last month" predicate has a named source of truth — certs that were ever published, currently expired, or auto-flipped Expired by the background service. Draft / Hold / Pending Payment are correctly excluded.
+
+**Verification.** Smoke test (`verify-180.js`) hits `/Dashboard` for tile values (with a `waitForTimeout(2500)` to let the count-up animation complete) and `/Dashboard/DownloadStat?type=…` for export row counts. All 12 cards now agree:
+
+```
+✓  total-active-certs                       tile=22 export=22
+✓  companies-with-active-certs              tile=9  export=9
+✓  product-categories-with-active-certs     tile=1  export=1
+✓  product-types-with-active-certs          tile=0  export=0
+✓  product-subcategories-with-active-certs  tile=0  export=0
+✓  products-with-active-certs               tile=10 export=10
+✓  certs-published-last-month               tile=0  export=0
+✓  certs-expiring-this-month                tile=0  export=0
+✓  certs-expired-last-month                 tile=1  export=1
+✓  certs-expiring-next-month                tile=0  export=0
+✓  certs-published-this-year                tile=15 export=15
+✓  certs-published-last-year                tile=6  export=6
+```
+
+For the expired-last-month check specifically: temporarily set `Certificates.Id=27` `ExpirationDate=2026-04-15` to land a probe in last month. The background `CertificateExpirationBackgroundService` auto-flipped Status `Draft → Expired` (which is correct behavior — the cert's expiration date is past). Tile and export both then returned exactly 1 row matching that cert. Test fixture reverted after.
+
+**Files touched.**
+
+- `Models/CertificateStatus.cs` — `EverPublishedStatuses` constant.
+- `Repositories/ICertificateRepository.cs` — interface for new helper.
+- `Repositories/CertificateRepository.cs:447-484` — `GetCertificatesByExpirationDateRangeAsync` + `PublishedThisYear` cap.
+- `Repositories/CertificateRepository.cs:569-578` — `ExpiredLastMonth` filter.
+- `Controllers/DashboardController.cs:286-300` — `aggregateTypes` now includes products.
+- `Controllers/DashboardController.cs:398-413` — `certs-expired-last-month` uses the right helper + filter.
+- `Controllers/DashboardController.cs:509-518` — `products-with-active-certs` aggregation case.
+- `Controllers/ExportController.cs:255-405` — parallel `/Export/…` endpoint aligned.
+
+**Out-of-scope worth flagging.** The dashboard JS at `wwwroot/js/dashboard.js:298-312` animates each stat-value from 0 to its final number over ~1500ms. This is purely visual — the underlying server values are correct — but it tripped up the initial verification run (Playwright snapshotting between `networkidle` and animation completion captured mid-counter values like 7 instead of 22). Future automated tests against the dashboard need a `waitForTimeout(2000)` after navigation. Not a defect; logging here so the next person triaging "dashboard numbers wrong" knows to look past the animation.
+
+**Related.** Caps the export side of the same hierarchy referenced in DEF-198 (Partner CSV scoping) and DEF-199 (filter-sidebar effective values). Same family of "two code paths queried the same conceptual entity with subtly different filters" bugs.
+
+---
+
+### DEF-199 — Public/External tile-view filter sidebar misses cert-level category overrides and surfaces soft-deleted companies
+
+- **Date:** 2026-05-18
+- **Severity:** Major (UI/UX correctness — dead-clicks in the filter sidebar and silently-missing filter options that mask available certs from clients)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **QC Ref:** #177 *("I selected ASSA and it says no certs found, which means it should not appear in filter box as option … Then during later testing I found there is a cert showing with this — but then the filter selection is not working right")* and #178 *("26-0160 has type and subcat but only Carly Test and Chemicals and Raw Materials are in filter box … This used to be correct and now appears wrong. May be related to larger product cat overwrite/not showing when going back to edit")* — both 2026-05-08
+- **Bucket:** Bug
+- **Reporter:** Client
+
+**Symptom.** Two related issues on the Public tile view (`/Certificate/CertificateTileView`) and equivalents on the logged-in External/Partner view (`/Certificate/CertificateTileViewExternal`).
+
+1. (QC #178) The Product Category / Type / Subcategory filter sidebar listed only nodes derived from `Certificate.Product` — it didn't surface any cert-level FK override (`Certificates.ProductCategoryId/ProductTypeId/ProductSubcategoryId` introduced by DEF-192). A cert whose category/type/subcategory was set at the cert level (overriding the product's value) was visible in the cert tile but unreachable from the sidebar.
+2. (QC #177) The Company filter dropdown surfaced companies that subsequently looked like they had "no certs" — soft-deleted Companies that an existing cert still referenced were still being projected through the navigation (`c.Company.Name`) and appearing in the sidebar.
+
+Net effect for the client: filter selections felt broken — picking a category that should exist returned nothing because the listing predicate uses *effective* values (DEF-192) but the sidebar source did not.
+
+**Root cause.**
+
+`Controllers/Api/CertificateTilesApiController.cs:GetFilterOptions` (Public/anonymous) and `Controllers/Api/CertificateTileExternalApiController.cs:GetFilterOptions` (logged-in External/Partner) both built their hierarchy from product-only projections:
+
+```csharp
+var visibleCategoryIds   = await baseQuery.Select(c => c.Product.CategoryId).Distinct().ToListAsync();
+var visibleProductTypeIds = await baseQuery.Where(c => c.Product.ProductTypeId != null)
+                                            .Select(c => c.Product.ProductTypeId!.Value).Distinct().ToListAsync();
+var visibleSubcategoryIds = await baseQuery.Where(c => c.Product.ProductSubcategoryId != null)
+                                            .Select(c => c.Product.ProductSubcategoryId!.Value).Distinct().ToListAsync();
+```
+
+Those projections never read the cert-level FK columns, so any value set on the cert directly was invisible to the sidebar. The listing endpoint (`CertificateRepository.cs:GetAdvancedFilteredCertificatesAsync`) had already been updated for DEF-192 to use effective values — the sidebar source was never updated to match.
+
+The flat `productCategories` / `productTypes` lists (returned alongside the hierarchy for backward compatibility) had the same Product-only projection (`c.Product.Category.Name`, `c.Product.ProductType!.Name`), so even clients still using the flat lists missed the same data.
+
+The Company dropdown projected `c.Company.Id` / `c.Company.Name` through navigation without an `IsActive && !IsDeleted` predicate, so a soft-deleted company stayed in the sidebar as long as any cert still referenced it.
+
+**Fix.**
+
+`Controllers/Api/CertificateTilesApiController.cs` and `Controllers/Api/CertificateTileExternalApiController.cs`:
+
+1. **`visibleCategoryIds` / `visibleProductTypeIds` / `visibleSubcategoryIds`** now use the effective-value pattern from DEF-192: `c.ProductCategoryId ?? c.Product.CategoryId`, `c.ProductTypeId ?? c.Product.ProductTypeId`, `c.ProductSubcategoryId ?? c.Product.ProductSubcategoryId`. Cert-level overrides surface in the sidebar exactly as they do in the listing.
+2. **Flat `productCategories` and `productTypes` lists** resolved from the same `visible*Ids` sets (joined back to `ProductCategories` / `ProductTypes` by ID) instead of independent projections — single source of truth.
+3. **`companies` dropdown** picks up `c.Company.IsActive && !c.Company.IsDeleted` so soft-deleted Companies disappear from the sidebar even if a cert still references them via FK.
+
+The hierarchy walker (`productCategoriesHierarchy`) was already correctly filtering against `visible*Ids`, so once those sets contain the effective values the hierarchy renders correctly without further changes.
+
+**Verification.** Local smoke against `localhost:5101` against dev DB.
+
+*Cert-override path (QC #178).* Baseline filter API returned 1 product category (Chemicals and Raw Materials). Set `Certificates.ProductCategoryId = 2` on cert 38 (a Client Approved - Paid cert whose Product belongs to category 1) and re-hit the filter API:
+
+- **Before fix:** category 2 (Clothing, Apparel, and Fabrics) would have been silently missing — `c.Product.CategoryId = 1` projects only category 1.
+- **After fix:** sidebar returns *both* `Chemicals and Raw Materials` and `Clothing, Apparel, and Fabrics`. Listing API for `productCategory=Clothing, Apparel, and Fabrics` returns exactly cert 38. Sidebar ↔ listing consistent.
+
+Override reverted after test.
+
+*Soft-deleted-company path (QC #177).* Baseline returned 9 companies including Acme Corporation. Set `Companies.IsDeleted = 1` on Acme (Id=59) — Acme has a Client Approved - Paid cert tagged to it. Re-hit the filter API:
+
+- **Before fix:** Acme still appeared (8+1=9 companies).
+- **After fix:** Acme correctly hidden, dropdown returns 8 companies.
+
+Acme restored after test.
+
+**Files touched.**
+
+- `Controllers/Api/CertificateTilesApiController.cs:243-393` — `GetFilterOptions` projections updated; flat lists refactored to share `visible*Ids`.
+- `Controllers/Api/CertificateTileExternalApiController.cs:438-621` — same shape, plus the role-based partner/external scoping still applies before the new effective-value projections.
+
+**Out of scope (worth flagging).**
+
+- A cert that sets a `ProductTypeId` override pointing to a type under a *different* category than the cert's effective Category will surface the type only if its parent Category is independently visible. The dominant data pattern in dev is "category override only, type/subcat fall through," so this case isn't reproduced today. If the client reports a missing type under a category that doesn't list it, a follow-up fix is to also seed `visibleCategoryIds` with the `CategoryId` of each type/subcat in `visibleProductTypeIds` / `visibleSubcategoryIds` (one extra DB round-trip).
+- Internal (admin/analyst) tile view filter (`Controllers/Api/CertificateTileInternalApiController.cs:GetFilterOptions`) doesn't filter the category hierarchy against visible-cert IDs at all — admin sees every Category/Type/Subcategory regardless of usage. That's the existing behavior and matches admin expectations; not changed here.
+
+**Related.** [[DEF-192]] (listing-side effective category/type/subcategory predicate). This closes the sidebar half of that same data-shape gap.
+
+---
+
+### DEF-198 — Partner login "Export All to CSV" leaks all certificates (drafts, expired, non-partner) — data exposure to a Partner caller
+
+- **Date:** 2026-05-18
+- **Severity:** **Critical** (data leakage — a Partner user receives certs outside their partner scope and outside the public-status contract)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **QC Ref:** #182 (client log, 2026-05-15, *"This is big issue, needs fixed."*)
+- **Bucket:** Bug
+- **Reporter:** Client
+
+**Symptom.** A Partner-role web user logged into `/Certificate/CertificateTileViewExternal` and clicked **Export All to CSV** got a file containing every certificate in the database — including drafts, expired rows, and certs tagged to other partners. In dev DB reproduction the partner_test user (mapped to Amazon partner) received 43 rows; the correct answer is 4 rows (`Client Approved - Paid` × `Amazon`).
+
+**Root cause — three layered gaps on the export path.**
+
+1. **No role-scoping in the service.** `Services/CertificateService.cs:GetCertificatesForExportAsync` and `GetCertificatesForExportByIdsAsync` applied only the user's text/cert-type/country/status filters. There was no `Partner == callerPartner` / `CompanyId IN callerCompanies` / `Status IN PublicStatuses` predicate. The same scope is enforced correctly on `Controllers/Api/CertificateTileExternalApiController.cs:97-138` for the tile view itself, so a Partner user *could see* only their own certs in the UI but *could export* the entire DB.
+2. **`GetUserRole()` missing the Partner branch.** `Controllers/CertificateController.cs:1492-1504` enumerated Admin/Analyst/External/Internal but fell through to `"Public"` for Partner web users. Cookie auth stamps the `Role` claim with `"Partner"` (per `Controllers/AccountController.cs:1136`), so the branch was reachable but never matched.
+3. **No security context plumbed into the service.** `CertificateListRequest` carried `UserRole` but no `AllowedPartnerNames` / `AllowedCompanyIds`, so even if the service wanted to scope, it had no data to scope with.
+
+Same shape as the 2026-04-21 Partner API status-contract fix (which closed the equivalent leak on `/api/v1/certificates*`) — that work covered the JSON API but did not touch this CSV export endpoint.
+
+**Fix.**
+
+1. `Models/CertificateViewModels.cs`: added `AllowedPartnerNames` (`List<string>`) and `AllowedCompanyIds` (`List<int>`) to `CertificateListRequest`.
+2. `Services/CertificateService.cs`: introduced `ApplyExportSecurityScope(IQueryable<Certificate>, CertificateListRequest)` and called it from both `GetCertificatesForExportAsync` and `GetCertificatesForExportByIdsAsync`. Predicate matches `CertificateTileExternalApiController` exactly:
+   - **Partner** → `AllowedPartnerNames.Contains(c.Partner ?? "None")` (or `false` if no partner mapping) AND `PublicStatuses.Contains(c.Status)`
+   - **External** → `AllowedCompanyIds.Contains(c.CompanyId)` (or `false` if no company mapping) AND `PublicStatuses.Contains(c.Status)`
+   - **Public** (anonymous) → `PublicStatuses.Contains(c.Status)`
+   - **Admin / Analyst / Internal** → no restriction
+3. `Services/IServices.cs` + `Services/CertificateService.cs`: added optional `CertificateListRequest? securityContext` parameter to `ExportCertificatesByIdsAsync` so the "specific IDs" path can't be used to extract IDs outside the caller's scope.
+4. `Controllers/CertificateController.cs`:
+   - Added the `Partner` branch to `GetUserRole()` (matches the `"Role"` cookie claim emitted by `SignInUser`).
+   - Ported `GetCurrentUserPartnerNamesAsync` / `GetCurrentUserCompanyIdsAsync` from `ProductController.cs:606-644` (same shape, same source claim).
+   - In `ExportCertificates`, populate `AllowedPartnerNames` / `AllowedCompanyIds` from the authenticated user's claims before calling the service. Pass the request through to both export methods including the by-IDs path.
+
+**Verification.** Smoke test at `localhost:5101` against dev DB, three callers via `/Certificate/ExportCertificates?format=csv`:
+
+| Caller | Rows | Statuses returned | Partners returned | Verdict |
+|---|---|---|---|---|
+| `partner_test@gccwebapp.com` (Partner→Amazon) | **4** | `Client Approved - Paid` × 4 | `Amazon` × 4 | ✓ scoped |
+| `swest@anukiconsulting.com` (Admin) | 43 | all (`Client Approved - Paid`, `Expired`, `Draft`, `Active`) | all (`Amazon`, `Novi`, `None`, …) | ✓ unrestricted |
+| Anonymous (no auth) | 22 | `Client Approved - Paid` × 22 | mixed (anon sees all partners, only public-status certs) | ✓ public-only |
+
+SQL truth check confirmed: Amazon partner has exactly 4 certs in `PublicStatuses`. Test fixture `partner_test@gccwebapp.com` left in dev DB (`Users.Id=324`, mapped to Amazon via `PartnerUser`) for future regression coverage.
+
+**Files touched.**
+
+- `Models/CertificateViewModels.cs:5-26` — added security-context fields.
+- `Services/CertificateService.cs:368-403` — `ExportCertificatesByIdsAsync` signature extended with optional `securityContext`.
+- `Services/CertificateService.cs:440-545` — `ApplyExportSecurityScope` helper + both `GetCertificatesForExport*Async` callers.
+- `Services/IServices.cs:15` — interface signature update.
+- `Controllers/CertificateController.cs:1488-1535` — `GetUserRole` Partner branch + helpers.
+- `Controllers/CertificateController.cs:1995-2050` — `ExportCertificates` populates and passes security context.
+
+**Related.** [[DEF-103]] (Partner API JSON contract — closed 2026-04-30). Same root-cause family as that fix; the export endpoint was simply not covered when DEF-103 shipped. Worth a sweep across other "Export" endpoints (`/Admin/ExportData`, `/api/productids/.../export`) on a future ticket to confirm none have the same gap.
+
+**Pre-deploy reminder.** Per CLAUDE.md "Backup uploads before Plesk deploy" and the test-env access-gate rule — this fix rides the same upcoming deploy as DEF-196 / DEF-197 / DEF-194; no separate deploy needed.
+
+---
+
 ### DEF-197 — Admin → Product Types: Usage column overcounts when a cert or product sets multiple FK levels in the same hierarchy
 
 - **Date:** 2026-05-18

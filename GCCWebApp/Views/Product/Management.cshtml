@@ -1076,12 +1076,20 @@
             // Headers align with the import template (Controllers/ProductController.cs DownloadProductImportTemplate)
             // so the export round-trips through Import. Identifier Type / Identifier Value are appended so
             // analysts retain identifier visibility; one row per identifier (empty pair if none).
-            const headers = ['Product Name', 'Company', 'Description', 'Category', 'Product Type', 'Subcategory', 'Identifier Type', 'Identifier Value'];
+            // DEF-202 (QC #184): SKU and Partners added as dedicated columns. SKU lives on
+            // Products.Sku directly (it WAS being shoved into the Identifier pair list — left in
+            // place so SKU still flows through Identifier columns for clients who built tooling
+            // around that, but now also surfaced as its own column for easier offline analysis).
+            // Partners is a semicolon-separated list of distinct partner names from the product's
+            // certs (populated by ProductController.GetProducts).
+            const headers = ['Product Name', 'SKU', 'Partners', 'Company', 'Description', 'Category', 'Product Type', 'Subcategory', 'Identifier Type', 'Identifier Value'];
             const rows = [];
 
             products.forEach(p => {
                 const baseCols = [
                     p.name || '',
+                    p.sku || '',
+                    (p.partners || []).join('; '),
                     p.companyName || p.company || '',
                     p.description || '',
                     p.categoryName || p.category || '',

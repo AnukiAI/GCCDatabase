@@ -211,19 +211,16 @@
                             Country Z-A
                         </div>
 
+                        <!-- DEF-201 (QC #183): removed "Most Popular Companies" and
+                             "Relevance Score" — UI-only options with no backend handler
+                             (CertificateTilesApiController.MapSortBy falls through to
+                             Number for both keys, so picking either produced default
+                             sort with no user-visible effect). -->
                         <!-- Advanced sorting -->
                         <div class="sort-group-header" role="presentation">Advanced</div>
-                        <div class="sort-option" data-sort="popularity" role="option">
-                            <i class="fas fa-star" aria-hidden="true"></i>
-                            Most Popular Companies
-                        </div>
                         <div class="sort-option" data-sort="product-type" role="option">
                             <i class="fas fa-boxes" aria-hidden="true"></i>
                             Product Type A-Z
-                        </div>
-                        <div class="sort-option" data-sort="relevance" role="option">
-                            <i class="fas fa-search" aria-hidden="true"></i>
-                            Relevance Score
                         </div>
                         <div class="sort-option" data-sort="status" role="option">
                             <i class="fas fa-check-circle" aria-hidden="true"></i>

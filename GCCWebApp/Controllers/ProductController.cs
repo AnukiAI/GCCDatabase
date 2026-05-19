@@ -238,6 +238,12 @@ namespace GCCWebApp.Controllers
                             .SelectMany(c => c.ProductIds)
                             .Where(pid => pid.IsActive)
                             .Select(pid => new { pid.ProductIdType, pid.ProductIdValue })
+                            .ToList(),
+                        // DEF-202 (QC #184): distinct Partner labels from this product's certs so the
+                        // Product Management export can include a Partner column. Empty/None values
+                        // dropped client-side below.
+                        CertPartners = p.Certificates
+                            .Select(c => c.Partner)
                             .ToList()
                     })
                     .ToListAsync();
@@ -264,7 +270,14 @@ namespace GCCWebApp.Controllers
                     // Group certificate-level identifiers by type (ASIN, UPC, etc.)
                     Identifiers = p.CertificateIdentifiers
                         .GroupBy(pi => pi.ProductIdType)
-                        .ToDictionary(g => g.Key.ToLower(), g => g.Select(pi => pi.ProductIdValue).Distinct().ToList())
+                        .ToDictionary(g => g.Key.ToLower(), g => g.Select(pi => pi.ProductIdValue).Distinct().ToList()),
+                    // DEF-202 (QC #184): distinct Partner names — empty/None dropped.
+                    Partners = (p.CertPartners ?? new List<string?>())
+                        .Where(name => !string.IsNullOrWhiteSpace(name) && name != "None")
+                        .Select(name => name!)
+                        .Distinct()
+                        .OrderBy(name => name)
+                        .ToList()
                 }).ToList();
 
                 return Json(new ApiResponse<List<ProductListViewModel>> { Success = true, Data = products });
@@ -958,6 +971,13 @@ namespace GCCWebApp.Controllers
         public int CertificateCount { get; set; }
         public DateTime CreatedAt { get; set; }
         public Dictionary<string, List<string>> Identifiers { get; set; } = new Dictionary<string, List<string>>();
+
+        // DEF-202 (QC #184): distinct Partner values derived from the product's certificates.
+        // Cert.Partner is a single string column today (multi-partner per cert is tracked as
+        // QC #171). For a product touched by multiple cert→partner pairs, we surface the
+        // unique set so the Product Management export can show "Amazon; Novi" etc. without
+        // forcing the analyst to drill into each cert.
+        public List<string> Partners { get; set; } = new List<string>();
     }
 
     public class ProductSaveModel

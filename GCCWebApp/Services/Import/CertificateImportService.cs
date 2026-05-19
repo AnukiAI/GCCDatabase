@@ -64,6 +64,11 @@ namespace GCCWebApp.Services.Import
         private static readonly string[] ProductNameColumns = { "PRODUCT_NAME", "ProductName", "product_name", "Product Name", "Product" };
         private static readonly string[] ProductTypeColumns = { "PRODUCT_TYPE", "ProductType", "product_type", "Product Type", "Prod Type" };
         private static readonly string[] CertificationTypeColumns = { "CERTIFICATION_TYPE", "CertificationType", "certification_type", "Certification Type", "Cert Type" };
+        // DEF-202 (QC #148): the downloaded template header reads
+        // "Status (Draft / Client Approved - Not Paid / Client Approved - Confidential / Client Approved - Paid / Hold / Expired / Republished / Expired - No Annual Verification — defaults to Draft if blank)"
+        // so the analyst sees allowed values inline. Parser tries exact short forms first;
+        // if missing, GetFieldWithMapping falls back to a "starts with 'Status '" prefix
+        // match so the longer hint header still resolves.
         private static readonly string[] StatusColumns = { "STATUS", "Status", "status" };
         private static readonly string[] EffectiveDateColumns = { "EFFECTIVE_DATE", "EffectiveDate", "effective_date", "Effective Date", "Eff Date" };
         private static readonly string[] ExpirationDateColumns = { "EXPIRATION_DATE", "ExpirationDate", "expiration_date", "Expiration Date", "Exp Date" };
@@ -101,6 +106,36 @@ namespace GCCWebApp.Services.Import
                 {
                     // Column not found, try next
                 }
+            }
+
+            // DEF-202 (QC #148): templates now ship enum-typed headers with inline value
+            // hints, e.g. "Status (Draft / Client Approved - Paid / ...)". Exact match
+            // above won't find those, so as a fallback walk the header row and accept any
+            // header that starts with one of the short names followed by a space or '(' —
+            // tight enough that "Status Update" or "Status Date" wouldn't false-positive.
+            try
+            {
+                var header = csv.HeaderRecord;
+                if (header != null)
+                {
+                    foreach (var name in possibleNames)
+                    {
+                        var match = header.FirstOrDefault(h =>
+                            h != null &&
+                            (h.StartsWith(name + " ", StringComparison.OrdinalIgnoreCase) ||
+                             h.StartsWith(name + "(", StringComparison.OrdinalIgnoreCase)));
+                        if (match != null)
+                        {
+                            var value = csv.GetField(match);
+                            if (value != null)
+                                return StripExcelTextFormat(value.Trim());
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Header introspection unavailable for this CsvReader state — fall through
             }
             return string.Empty;
         }

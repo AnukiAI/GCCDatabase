@@ -382,14 +382,14 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<byte[]?> ExportCertificatesByIdsAsync(List<string> certificateIds, bool includeInternalTags = false)
+        public async Task<byte[]?> ExportCertificatesByIdsAsync(List<string> certificateIds, bool includeInternalTags = false, CertificateListRequest? securityContext = null)
         {
             try
             {
                 if (certificateIds == null || !certificateIds.Any())
                     return null;
 
-                var exportRows = await GetCertificatesForExportByIdsAsync(certificateIds);
+                var exportRows = await GetCertificatesForExportByIdsAsync(certificateIds, securityContext);
                 if (!exportRows.Any())
                     return null;
 
@@ -441,6 +441,12 @@ namespace GCCWebApp.Services
         {
             var query = BuildExportQuery();
 
+            // DEF-198 (QC #182): scope by caller role BEFORE any user filters. Mirrors
+            // Controllers/Api/CertificateTileExternalApiController.cs:97-138 — Partner sees only their
+            // partner's certs, External sees only their companies' certs, both restricted to
+            // PublicStatuses. Without this, Partner login's CSV export leaked the entire DB.
+            query = ApplyExportSecurityScope(query, request);
+
             // Apply filters
             if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
             {
@@ -464,12 +470,68 @@ namespace GCCWebApp.Services
         /// <summary>
         /// Queries certificates by IDs/numbers with all fields for export.
         /// </summary>
-        private async Task<List<CertificateExportRow>> GetCertificatesForExportByIdsAsync(List<string> certificateIds)
+        private async Task<List<CertificateExportRow>> GetCertificatesForExportByIdsAsync(List<string> certificateIds, CertificateListRequest? securityContext = null)
         {
             var query = BuildExportQuery()
                 .Where(c => certificateIds.Contains(c.Id.ToString()) || certificateIds.Contains(c.Number));
 
+            // DEF-198 (QC #182): a Partner could otherwise pass IDs of certs outside their scope
+            // and receive them. Apply the same security predicate as the unscoped list path.
+            if (securityContext != null)
+            {
+                query = ApplyExportSecurityScope(query, securityContext);
+            }
+
             return await ProjectToExportRows(query);
+        }
+
+        /// <summary>
+        /// DEF-198 (QC #182): role-based security predicate for CSV export queries.
+        /// Mirrors the predicate enforced by CertificateTileExternalApiController so the
+        /// export cannot return more than the tile view shows the same user.
+        /// </summary>
+        private static IQueryable<Certificate> ApplyExportSecurityScope(IQueryable<Certificate> query, CertificateListRequest request)
+        {
+            var role = request.UserRole ?? "Public";
+
+            if (string.Equals(role, "Partner", StringComparison.OrdinalIgnoreCase))
+            {
+                // Partner web users see only certs tagged with their partner name(s)
+                // AND only certs in PublicStatuses. A Partner user with no partner
+                // association returns an empty result (mirrors tile view line 113-114).
+                if (request.AllowedPartnerNames.Any())
+                {
+                    var allowed = request.AllowedPartnerNames;
+                    query = query.Where(c => allowed.Contains(c.Partner ?? "None"));
+                }
+                else
+                {
+                    query = query.Where(c => false);
+                }
+                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+            }
+            else if (string.Equals(role, "External", StringComparison.OrdinalIgnoreCase))
+            {
+                // External users see only certs from their assigned companies, restricted to PublicStatuses.
+                if (request.AllowedCompanyIds.Any())
+                {
+                    var allowedCompanies = request.AllowedCompanyIds;
+                    query = query.Where(c => allowedCompanies.Contains(c.CompanyId));
+                }
+                else
+                {
+                    query = query.Where(c => false);
+                }
+                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+            }
+            else if (string.Equals(role, "Public", StringComparison.OrdinalIgnoreCase))
+            {
+                // Anonymous / unauthenticated callers see only PublicStatuses certs.
+                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+            }
+            // Admin / Analyst / Internal: no restriction.
+
+            return query;
         }
 
         private IQueryable<Certificate> BuildExportQuery()

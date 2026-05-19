@@ -1,5 +1,100 @@
 # Observations Log
 
+## 2026-05-19 — DEF-202 / batch close-out of remaining code-actionable backlog
+
+Five small client-asked corrections fixed in one batch. (1) QC #148 cert import template Status header now reads `Status (Draft / Client Approved - Paid / ... — defaults to Draft if blank)`; import parser extended with a prefix-match fallback so the longer header still resolves. (2) QC #104 Companies breadcrumb renamed to Company Management for parity with the Product side; the Admin Dashboard nav item half of #104 closed as needs-no-action (page was removed by client decision 5/1, `/Admin/Index` redirects to User Management). (3) QC #118 Custom Fields with IsPublic=true now render on the public + external cert detail pages — controllers were already loading the data, the views weren't binding. Grouped under one Custom Fields section per the project-wide rule (CustomField.Section ignored). (4) QC #179 Product ID import preview popup now shows the SKU column (data was already parsed into productSku, just wasn't rendered). (5) QC #184 Product Mgmt export now includes SKU and Partners columns; Partners derived via a new projection on `ProductController.GetProducts`.
+
+Also discovered: **QC #181 (Company Email regex) is already in HEAD** since commit f018782 (5/11, same day client raised). Status synced.
+
+No-code items drafted in `docs/tracking/client-responses-2026-05-19.md`: #167 auto-expire timing explainer and #150 forgot-password verify steps + named-test-user provisioning ask. Both close once Shawn sends.
+
+Two sub-items intentionally deferred for client decision: (a) #179 Description column on product-ID import — expose in UI vs remove from template, (b) #184 cross-cert "all active product identifiers" export — new report surface, not a column-add.
+
+Build: 0 errors, 51 pre-existing warnings (unchanged). Tracking: defect-register DEF-202, shipped-2026-05, this log.
+
+---
+
+## 2026-05-19 — DEF-201 / QC #175 + #176 + #183: Three small UX fixes bundled
+
+(1) QC #175 logo distortion: default `.main-logo` is 280px (≥1440 displays); existing 769-1024 tablet rule drops to 180px; the 1025-1440 gap left it at 280 and `.logo-text-group`'s 300px min-width forced wrap. Added a new `min-width: 1025px and max-width: 1440px` rule with 220/36/24px sizes.
+
+(2) QC #176 mobile-stuck filter sidebar: DEF-098 hides the Hide/Show toggle ≤1024px. If a user collapsed on desktop and then narrowed below 1024, the `.collapsed` class stuck with no way back. Added `matchMedia('(max-width: 1024px)')` listener in all three tile-view JS files — sidebar auto-expands on crossing into the small breakpoint (or initial load there). Same pattern in public, external, internal.
+
+(3) QC #183 dead sort options: `Most Popular Companies` and `Relevance Score` had no backend handler in `MapSortBy` (fell through to Number default, so dropdown clicks produced unchanged sort). Removed both from `CertificateTileViewInternal.cshtml` and `Most Popular Companies` from `CertificateTileViewExternal.cshtml`. Backend untouched.
+
+Also: QC #181 (Company Email format validation) discovered already fixed in commit f018782 on 2026-05-11 — strict regex `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$` on both `CertificateEditViewModel.CompanyEmail` and `CompanyViewModel.Email`. Status synced; the fix has been on master since 5/11 and the client just hadn't seen it because gccwebapp.com is still on the pre-deploy build.
+
+Build: 0 errors, 0 warnings on incremental. Files: `wwwroot/css/main.css`, three `certificate-tile-view*.js` files, two `CertificateTileView*.cshtml` files. Tracking: `docs/tracking/defect-register.md` (DEF-201), `docs/tracking/shipped-2026-05.md`.
+
+---
+
+## 2026-05-19 — DEF-200 / QC #180: Dashboard tile↔export divergence (mass alignment + one wrong-column bug)
+
+Client raised QC #180 on 5/11 — *"Certs Expired Last Month is not using right data … Anuki needs to do that"* (the count audit). Audited every dashboard tile against its export and found the gap was broader than the headline: every "Active …" card and the "Expired Last Month" card disagreed with their downloads. Three root causes:
+
+1. **Wrong column.** `Controllers/DashboardController.cs:certs-expired-last-month` called `GetCertificatesByDateRangeAsync(start, end)`, which filters on `EffectiveDate`. So "Expired Last Month" returned certs that became *effective* last month. Plus no status filter → Drafts with stale ExpirationDates leaked through.
+2. **Missing aggregation case.** `GenerateAggregatedStatCsv` had cases for categories/types/subcategories/companies but not Products, so `products-with-active-certs` exported per-cert rows (22) instead of distinct products (10).
+3. **Tile counted future-dated certs.** `Repositories/CertificateRepository.cs:580-582` had `EffectiveDate >= startOfYear` with no upper bound, so a `2027-07-08` future cert was counted in "Published This Year" tile (16) but excluded from export (15).
+
+Fix introduced `CertificateStatusHelper.EverPublishedStatuses` (DashboardStatuses ∪ {Expired, ExpiredNoAnnualVerification}) as a named constant for the "ever-published" set used by ExpiredLastMonth. New `GetCertificatesByExpirationDateRangeAsync` helper for the right column. DashboardController switched to both. Products added to aggregation. PublishedThisYear capped at today. Parallel `/Export/DownloadStat` aligned defensively.
+
+Verified on dev: all 12 dashboard cards now have tile=export. Probe for ExpiredLastMonth: temporarily set cert 27 ExpirationDate to 2026-04-15; background expiration service auto-flipped Draft→Expired (correct); tile and export both returned exactly 1 row matching that cert; fixture reverted.
+
+Time-trap worth remembering: `wwwroot/js/dashboard.js` runs a 1.5s count-up animation on every stat-value. Playwright `waitUntil:'networkidle'` fires before that completes, so initial verification captured mid-counter values (e.g. 7 instead of 22) and sent me down a phantom rabbit hole investigating why "Statistics['Active']" was returning 7 — it wasn't, the test snapshot just caught the animation mid-roll. Any future automated dashboard test needs `await page.waitForTimeout(2000)` after `goto`.
+
+Build: 0 errors, 51 pre-existing warnings (unchanged). Files: `Models/CertificateStatus.cs`, `Repositories/ICertificateRepository.cs`, `Repositories/CertificateRepository.cs`, `Controllers/DashboardController.cs`, `Controllers/ExportController.cs`. Tracking: `docs/tracking/defect-register.md` (DEF-200), `docs/tracking/shipped-2026-05.md`.
+
+---
+
+## 2026-05-18 — DEF-199 / QC #177+#178: Filter sidebar half of DEF-192 closed
+
+Two related complaints (QC #177 and #178, both 5/8). The Public + External tile-view filter sidebar projected only `c.Product.X` for category/type/subcategory IDs, so any cert-level override (the `Certificates.ProductCategoryId`/`ProductTypeId`/`ProductSubcategoryId` columns DEF-192 added to the listing predicate) was invisible in the sidebar even though the listing matched on it. Plus the company dropdown had no IsActive/IsDeleted predicate, so soft-deleted Companies still surfaced via the cert→Company FK navigation.
+
+Same data-shape gap DEF-192 fixed on the listing side, just half-applied — sidebar source never got the effective-value pattern. Fixed `CertificateTilesApiController.GetFilterOptions` (Public) and `CertificateTileExternalApiController.GetFilterOptions` (External/Partner) to use `c.{X}Id ?? c.Product.{X}Id`, refactored the flat `productCategories`/`productTypes` lists to share the same `visible*Ids` sets the hierarchy uses (single source of truth), and added `c.Company.IsActive && !c.Company.IsDeleted` to the company dropdown query.
+
+Verified locally on dev. Set `Certificates.ProductCategoryId=2` on cert 38 (Client Approved - Paid, Product in category 1): sidebar before fix would have hidden category 2; after fix shows both. Selecting Clothing in the listing returned exactly cert 38. Soft-deleted Acme (cert tied) disappeared from the dropdown after fix. All test mutations reverted.
+
+Out-of-scope follow-up flagged: a cert that overrides only `ProductTypeId` to a type under a different category than its effective category needs `visibleCategoryIds` to also include the type's `CategoryId`. Not reproduced in dev data — dominant pattern is "category override only." Will add if client surfaces it.
+
+Build: 0 errors, 51 pre-existing warnings (unchanged). Files: `Controllers/Api/CertificateTilesApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`. Tracking: `docs/tracking/defect-register.md` (DEF-199), `docs/tracking/shipped-2026-05.md`.
+
+---
+
+## 2026-05-18 — DEF-198 / QC #182: Partner CSV export was leaking the whole DB
+
+Critical fix for QC #182 (5/15 client, *"This is big issue, needs fixed."*). Partner login's *Export All to CSV* on the tile view returned every cert in the database — drafts, expired rows, certs tagged to other partners. The tile view itself was correctly scoped; the export bypassed that scope because `Services/CertificateService.cs` never applied a role-based predicate, `Controllers/CertificateController.GetUserRole()` had no Partner branch (so partner web users fell through to `"Public"`), and `CertificateListRequest` carried no partner/company allow-list.
+
+Fix: introduced `ApplyExportSecurityScope` in CertificateService (same predicate as `CertificateTileExternalApiController.cs:97-138`), added `AllowedPartnerNames`/`AllowedCompanyIds` to `CertificateListRequest`, ported the partner/company claim helpers from ProductController, added the Partner branch to GetUserRole, plumbed the security context through both `ExportCertificatesAsync` and `ExportCertificatesByIdsAsync` (so the "specific IDs" path can't bypass it either). Partner/External now restricted to their allow-list + PublicStatuses; anonymous Public restricted to PublicStatuses; Admin/Analyst unrestricted.
+
+Verified locally on dev DB (`ANUKI01\GCCDatabase_Dev`) with three callers hitting `/Certificate/ExportCertificates?format=csv`:
+- Partner (Amazon-scoped test user `partner_test@gccwebapp.com`): 43 → **4** rows (Amazon × Client Approved - Paid)
+- Admin (`swest@anukiconsulting.com`): 43 rows unchanged
+- Anonymous: 43 → 22 rows (only PublicStatuses)
+
+SQL truth: Amazon partner = 4 PublicStatus certs (`SELECT COUNT(*) FROM Certificates WHERE Partner='Amazon' AND Status IN ('Client Approved - Paid','Republished')`). Numbers match.
+
+Test fixture left in dev DB: `Users.Id=324` (`partner_test`, Amazon partner mapping, password `TestPass123!`) for future regression coverage of the partner-login path.
+
+Same root-cause family as DEF-103 (Partner API JSON contract, closed 2026-04-30). DEF-103 covered the API list/single endpoints; the CSV export endpoint was simply not in scope at the time. Worth a future sweep across other export endpoints (`/Admin/ExportData`, `/api/productids/.../export`) to confirm no parallel gap.
+
+Build: 0 errors, 51 pre-existing warnings (unchanged). Files: `Models/CertificateViewModels.cs`, `Services/CertificateService.cs`, `Services/IServices.cs`, `Controllers/CertificateController.cs`. Tracking: `docs/tracking/defect-register.md` (DEF-198), `docs/tracking/shipped-2026-05.md`.
+
+---
+
+## 2026-05-18 — QC log open-items triage + 13-item status sync
+
+Full pass through the 34 open QC items in `Database QC Log_5.15.26_og.xlsx` Sheet 2. Triage doc at `docs/tracking/qc-triage-2026-05-18.md` — six batches of 5–6 items each, comparing each row vs current code/memory, deciding STATUS-STALE / FIXED-PENDING-DEPLOY / STILL-BROKEN / NEEDS-CR / NEEDS-CLARIFICATION. No code changes.
+
+Headline: 13 items were already fixed or accepted by client but the Status cell had never been flipped — same staleness pattern QC #170 showed before today's update. Cleared in a single Excel pass: #59, #60, #127, #131, #132, #141, #143, #155, #158, #165, #166 → Complete. #172 (DEF-194 bulk-delete), #174 (cert tile header CSS) → Fixed - pending deploy. Backlog cut from 34 → 21 open without writing any new code.
+
+Critical finding: QC #182 — Partner login "Export All to CSV" leaks all certs (draft + non-Amazon). Same shape as DEF-103 which fixed the API list endpoint but missed this CSV export. Half-day fix; needs to land before any partner UAT.
+
+Major bugs flagged for follow-up: #177/#178 (public filters surface companies/categories without active certs, and selections sometimes don't filter), #180 (dashboard "Expired Last Month" wrong + export rows don't match displayed count). Plus 8 decision/CR items including Partner multi-select (#171, schema + API contract impact), Duo MFA (#151), and mobile-pass-on-Create-form vs wontfix (#50). Pre-production cutover task tracked: #173 (strip "Partner" column from partner-login tile).
+
+Took: ~1 hour. Spreadsheet-only edits in og workbook; working copy left alone per Shawn's "leave my open copy be" rule.
+
+---
+
 ## 2026-05-18 — DEF-197 (no QC ref): Product Types Usage column overcounted when entities set multiple FK levels
 
 Found during local smoke test of [[DEF-196]]. The new "Usage (Products / Certs)" column rolled up parent totals as `direct + Σ(children)`. The Certificates table allows a single row to set `ProductCategoryId` + `ProductTypeId` + `ProductSubcategoryId` simultaneously (1 of 43 dev certs does; 1 of 305 dev products does the same on the product side), so each such entity was counted at every level it set, then summed again at the grandparent.
@@ -5152,3 +5247,20 @@ Added Option A to the DEF-193 fix: when AddWithGeneratedNumberAsync assigns a di
 **Dev server:** PID 39864 currently running with both Option A + retry fix. Test certs cleaned up; dev DB back to its baseline state.
 
 **Status:** DEF-193 now reads "Fixed locally and verified end-to-end against the restarted dev server (including Option A file rename) — pending deploy to gccwebapp.com."
+
+---
+
+## 2026-05-19 — Sprint-close batch deployed to gccwebapp.com + smoke verified
+
+Zip `GCCWebApp-deploy-20260519-1044.zip` extracted on Plesk; bundled migration `FixUserUniqueIndexesForSoftDelete` ran; app pool recycled.
+
+**Smoke verification on live (`gccwebapp.com`):**
+- Baseline `scripts/smoke-prod/smoke.js` — **26/26 PASS** (gate, UI surfaces, DEF-195 pill alignment, CSS freshness, role-gated routes).
+- New per-deploy runner `scripts/smoke-prod/smoke-batch-2026-05-19.js` — **11 PASS, 1 SKIP, 0 FAIL** covering this batch's items (#170, #180, #175, #177/178, #181, #183, #104, #148, #184, #179, #118 all PASS; #182 partner-API end-to-end verification deferred — requires `GCC_PARTNER_KEY` env var with the real Amazon partner key).
+- Composite: 37/38 verified, 0 failures.
+
+**Cross-cutting discovery during smoke:** login page logo (`.login-logo`) does not shrink at laptop/tablet widths — only mobile. The DEF-201 new breakpoint targets `.main-logo` (post-login layout) which was the actual client-reported surface. Login-page logo responsiveness is a separate small fix, not a regression of this deploy.
+
+**Pattern established:** Going forward, each significant deploy gets its own `smoke-batch-<date>.js` alongside the permanent `smoke.js`. Baseline guards invariants; batch runners prove the *specific deploy contents* are actually live. Mirrors the DEF-195 first-attempt failure mode where the site "loaded fine" but the fix wasn't on the wire.
+
+**Working tree state at end of session:** `Scripts/smoke-prod/smoke-batch-2026-05-19.js` is the only new addition not yet committed. Per standing rule, Shawn commits when ready.

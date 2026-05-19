@@ -3351,6 +3351,27 @@ footer {
     .logo-subtext {
         font-size: 20px;
     }
+}
+
+/* DEF-201 (QC #175): mid-size desktop / small-laptop gap.
+   The default .main-logo is 280px which is sized for ≥1440px displays.
+   The 769–1024 tablet rule above scales to 180px. Between 1025 and 1440
+   the logo stayed at 280px and the .logo-text-group's 300px min-width
+   forced the layout to wrap awkwardly — the client's "narrow/distorted"
+   report. This rule fills the gap with proportional intermediate sizes. */
+@media (min-width: 1025px) and (max-width: 1440px) {
+    .main-logo {
+        height: 220px;
+        width: auto;
+    }
+
+    .logo-text {
+        font-size: 36px;
+    }
+
+    .logo-subtext {
+        font-size: 24px;
+    }
 
     /* Two-column certificate grid for tablet */
     .certificates-grid {

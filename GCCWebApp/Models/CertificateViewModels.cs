@@ -10,6 +10,13 @@ namespace GCCWebApp.Models
         public string UserRole { get; set; } = "Public";
         public CertificateSearchFilters Filters { get; set; } = new CertificateSearchFilters();
 
+        // DEF-198 (QC #182): security context for role-scoped queries (currently the
+        // CSV export path). Populated by the controller from the authenticated user's
+        // claims so the service can apply the same Partner/Company/PublicStatuses
+        // constraints the tile view already enforces.
+        public List<string> AllowedPartnerNames { get; set; } = new List<string>();
+        public List<int> AllowedCompanyIds { get; set; } = new List<int>();
+
         public override int GetHashCode()
         {
             return HashCode.Combine(Page, PageSize, Sort, UserRole, Filters.SearchTerm);

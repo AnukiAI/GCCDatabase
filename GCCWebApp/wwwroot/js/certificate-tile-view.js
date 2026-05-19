@@ -54,6 +54,22 @@
         const collapseBtn = document.getElementById('sidebarCollapseBtn');
         if (toggleTab) toggleTab.addEventListener('click', expandSidebar);
         if (collapseBtn) collapseBtn.addEventListener('click', collapseSidebar);
+
+        // DEF-201 (QC #176): the desktop Hide/Show controls are CSS-hidden at ≤1024px
+        // (per DEF-098). If a user collapsed on desktop and resized to mobile/tablet,
+        // the .collapsed class stuck and there was no on-screen way to bring filters
+        // back. Auto-expand when crossing into ≤1024px so filters are accessible at
+        // the smaller breakpoint regardless of prior desktop state.
+        if (typeof window.matchMedia === 'function') {
+            const mq = window.matchMedia('(max-width: 1024px)');
+            const onChange = (e) => { if (e.matches) expandSidebar(); };
+            if (typeof mq.addEventListener === 'function') {
+                mq.addEventListener('change', onChange);
+            } else if (typeof mq.addListener === 'function') {
+                mq.addListener(onChange); // older Safari
+            }
+            if (mq.matches) expandSidebar(); // initial load on a small screen
+        }
     }
 
     function collapseSidebar() {

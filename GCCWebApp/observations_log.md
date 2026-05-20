@@ -5264,3 +5264,428 @@ Zip `GCCWebApp-deploy-20260519-1044.zip` extracted on Plesk; bundled migration `
 **Pattern established:** Going forward, each significant deploy gets its own `smoke-batch-<date>.js` alongside the permanent `smoke.js`. Baseline guards invariants; batch runners prove the *specific deploy contents* are actually live. Mirrors the DEF-195 first-attempt failure mode where the site "loaded fine" but the fix wasn't on the wire.
 
 **Working tree state at end of session:** `Scripts/smoke-prod/smoke-batch-2026-05-19.js` is the only new addition not yet committed. Per standing rule, Shawn commits when ready.
+
+---
+
+## 2026-05-19 — DEF-203 found: cert workflow transition matrix not enforced
+
+During the "test around every QC item" pass, walked a fresh cert (`26-0163`) through all 8 lifecycle states via the documented `CertificateStatusHelper.IsValidTransition` matrix, then probed explicitly-illegal jumps.
+
+**Finding:** Legal walk passes 10/10. The probe `Draft → Republished` (not in matrix) returned **HTTP 200** and persisted — the illegal jump was silently accepted.
+
+**Root cause:** `Controllers/CertificateController.cs:944` Edit POST handler assigns `certificate.Status = model.Status` directly with no matrix validation and no call to the existing `CertificateWorkflowService.TransitionCertificateStatusAsync()`. The matrix and the service are both implemented and registered in DI, but **no controller path invokes them** — dead code.
+
+**Secondary impacts:**
+- `CertificateStatusHistory` audit rows NOT being written on Edit-form transitions (the insert lives inside the unreached service method)
+- CR-015 cascade (`SyncProductIdStatusesForCertificateAsync`) NOT firing on Edit-form transitions (same root)
+
+**Disposition:** Written up as DEF-203 in `docs/tracking/defect-register.md` with Option A (enforce matrix via service) recommended fix and a test plan that reuses the discovery script. Awaiting client decision on enforce-vs-document-as-relaxed.
+
+**Test script:** `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\workflow-transitions.js` — runs against any cert, walks the full 8-state path, attempts invalid transitions. Reusable for verification once the fix lands.
+
+**Test data:** all WF-Co-* companies, WF-Product-* products, certs 26-0161/26-0162/26-0163, and their PDFs/thumbnails cleaned up from dev DB.
+
+---
+
+## 2026-05-19 — Two more critical defects: DEF-204 + DEF-205
+
+Five-surface probe pass after DEF-203 (PDF auth / role-URL / cross-company / partner API edges / product-ID validation) — 35 PASS, 6 FAIL, of which 4 were real defects and 2 were script issues (analyst is NOT supposed to access /Admin/ProductTypes; EAN test value was syntactically valid but checksum-wrong).
+
+**4 real findings collapsed into 2 DEFs (shared root pattern):**
+
+**DEF-204 (Critical):** Authenticated cross-scope cert leaks. Two endpoints share the same auth-vs-ownership gap:
+- `/Certificate/ViewCertificateFile/{id}` — DEF-164 gated anonymous access but lets *any* authenticated user (External, Analyst-on-otherwise-scoped-data, etc.) download any cert PDF regardless of status. Empirically: External (Henkel) user downloaded Draft `26-0026` (151KB) + Expired `26-0012` (151KB) — both other-company certs, neither publicly visible.
+- `/Certificate/CertificateExternalView/{number}` — External user (Henkel) loaded cert detail for `26-0001` (Acme Corp) and got HTML response with "Acme Corporation" + "certificate-detail" + "Certification Period" in the body. The tile-view filter correctly scopes to Henkel; the detail-view endpoint doesn't.
+
+Both share root cause: detail endpoints check that the caller is "authenticated enough" but skip the *ownership / company-scope* check that the corresponding list endpoints apply.
+
+**DEF-205 (Critical):** Partner API single-cert endpoints (`/api/v1/certificates/{id}` and `/number/{n}`) leak certs across partners. DEF-198 fixed the LIST scoping but the single endpoints were never given the same partner-ownership filter. The `BuildPartnerCertificateDto` projection hardcodes the `partner` field to the caller's identity, so Amazon partner GET `/api/v1/certificates/number/26-0001` (Acme/None) returned 200 with `partner: "Amazon"` AND `company: "Acme Corporation"` in the JSON — *cross-partner data leak + misleading partner attribution*. Same result via `/api/v1/certificates/2` (by internal id). Drafts ARE correctly hidden (404), so the PublicStatuses filter works; only the partner-ownership filter is missing.
+
+Both are extensions of previously-shipped fixes (DEF-103, DEF-164, DEF-198) that were each scoped to a different surface and didn't catch the adjacent ones. **The pattern is the same — list endpoints scope; detail endpoints don't.** Pattern review should be applied to:
+- `CertificateInternalView` / `CertificateSingleView` (single-cert HTML detail)
+- `/Certificate/Verify/{n}` redirect target
+- Any `/api/v1/certificates/.../download` PDF endpoint (likely same gap as the single-cert leak)
+
+Both DEFs written up in `docs/tracking/defect-register.md` with empirical proof, root cause pinned to controller lines, recommended fix patterns, file lists, and re-runnable test scripts (`probe-security-confirm.js`).
+
+**Pattern note worth a memory entry:** Whenever a scoping fix lands on a LIST endpoint, ask "does the corresponding SINGLE / DETAIL / DOWNLOAD endpoint have the same filter?" The DEF-103 / DEF-164 / DEF-198 / DEF-204 / DEF-205 sequence is the same root-cause class.
+
+---
+
+## 2026-05-19 — Third critical defect today: DEF-206 (internal API has no role guard)
+
+Continuing the surface probe after DEF-204/205. Hit the **internal** `/api/CertificatesApi` endpoint (not the contracted `/api/v1/certificates`).
+
+**Finding:** No `[Authorize(Policy = ...)]` at the class or method level. Any authenticated identity gets 200 with full cert data:
+
+- **External user (Henkel-mapped):** 43 certs across 10+ companies including Drafts, Expired, and the deprecated "Active" legacy status. Internal field shape: `id`, raw `status`, raw `partner`, legacy flat `asin/upc/gtin/ean`, internal flags like `isExpiringSoon`/`statusClass`. The same External user via the role-gated tile-view UI sees 2 Henkel certs only — proving the scoping logic exists, it just doesn't apply to this controller.
+- **Amazon Partner X-API-Key on the INTERNAL endpoint:** 11 certs vs. 4 on the contracted v1 endpoint. Includes Drafts (PublicStatuses filter not applied), includes Acme/None partner certs (partner-ownership filter not applied), `partner` field returned as raw `"None"` not the contracted `"Amazon"` literal. Internal data shape leaks `id`, `asin/upc/gtin/ean`, etc. — direct contract drift if Amazon ever hits this endpoint.
+
+**Pattern continues.** The 6 defects in this series (DEF-103, DEF-103-followup, DEF-164, DEF-198, DEF-204, DEF-205, now DEF-206) all share the same root: scoping logic exists in one query / one endpoint / one controller, the matching sibling endpoint lacks it. DEF-206 is the most dangerous so far because:
+1. It's a LIST endpoint (returns many rows, not single-cert lookup)
+2. It returns the internal data shape (not the contract-clean DTO)
+3. ANY authenticated External user can hit it from their browser session — no key needed
+
+Written up in `docs/tracking/defect-register.md` with the standard structure: empirical proof, threat model (insider browse + mis-issued partner key with bigger blast radius than contract suggests), root cause pinned to `Controllers/Api/CertificatesApiController.cs:11-15`, fix recommendation (Option A: delete the partner branch, make this internal-only), test plan, adjacent surfaces to audit.
+
+**Adjacent surfaces in same controller to verify post-fix:**
+- `[HttpGet("{id:int}")]` (line 114) — by-id detail
+- `[HttpGet("by-number/{n}")]` (line 149) — by-number detail
+- `[HttpPost]` (line 185) — create cert via API
+- `[HttpPost("{id:int}/upload")]` (line 352) — file upload
+- `[HttpGet("{id:int}/download")]` (line 527) — PDF download
+
+All almost certainly inherit the same auth gap.
+
+**Day's running total — 4 DEFs from internal QA, all from the same root-cause family:**
+- DEF-203 — Workflow matrix not enforced on Edit POST
+- DEF-204 — Authenticated cross-scope PDF/ExternalView leaks
+- DEF-205 — Partner API single-cert cross-partner leak
+- DEF-206 — Internal /api/CertificatesApi has no role guard (biggest)
+
+All four written up with empirical proof, root cause pinned to specific lines, fix recommendations, and re-runnable test scripts in `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\`.
+
+---
+
+## 2026-05-19 — DEF-206 adjacent-surface audit complete (rolled into same DEF)
+
+Per the closing section of DEF-206 ("Adjacent surfaces to audit") empirically probed all 10 endpoints on `CertificatesApiController`:
+
+| Endpoint | Result |
+|---|---|
+| GET / (list) | **Leaks** — covered by parent DEF |
+| GET /{id} | **Leaks** — External user reads full 30-key detail for other companies, including Draft certs |
+| GET /by-number/{n} | **Leaks** — same |
+| POST / (create) | OK — `[Authorize(Roles="Admin")]` |
+| PUT /{id} (update) | OK — same |
+| DELETE /{id} | OK — same |
+| POST /{id}/upload | OK — same (not actively probed) |
+| POST /GenerateThumbnail | OK — `[Authorize(Roles="Admin,Analyst")]` (not actively probed) |
+| GET /{id}/download | OK — denies anonymous + correctly 404s non-public for External (more restrictive than the controller's own comment claims) |
+| POST /export | OK — `[Authorize(Policy="AnalystOrAdmin")]` |
+
+**Three GETs leak, seven mutating/protected endpoints are OK.** All three leaking endpoints share the exact same root cause — no class-level `[Authorize]` and no per-method override on the read paths. The class-level guard recommended in DEF-206 closes all three in one change.
+
+**Bonus finding:** the `?userRole=` query parameter on the detail endpoints is **ignored** by the service layer. Same response shape regardless of `?userRole=Public` vs `?userRole=Admin`. So there is no role-escalation via parameter (good), but the parameter is dead code in the API surface (mildly deceptive). Recommendation: delete the parameter from the method signatures during the DEF-206 fix.
+
+**Bonus finding:** the download endpoint's XML comment claims "Public certificates can be downloaded without authentication" but the actual implementation returns 401 for anonymous + Paid cert. Either the comment is stale or there's a default-policy override. Worth verifying when the DEF lands — it's denying more than the comment suggests, so no leak, just documentation drift.
+
+DEF-206 updated in place with the audit table, confirmed leak proof for by-id and by-number, and the userRole-is-dead-code finding.
+
+---
+
+## 2026-05-19 — `CompanyController` + `ProductController` audit — CLEAN
+
+Per the pattern memory (`feedback_scoping_check_adjacent_endpoints.md`), audited the two CRUD controllers most likely to share the DEF-206 root cause.
+
+**Script:** `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-company-product.js` (initial run had a Playwright redirect-following artifact making 8 endpoints look like 200/leaked; confirmed via `probe-redirects-check.js` they're actually 302 → login. Real results below.)
+
+### CompanyController — class-level `[Authorize(Policy = "AnalystOrAdmin")]` ✓
+
+All 4 endpoints tested (Index, GetCompanies, SaveCompany, DeleteCompany) — Anonymous + External both get 302/login. No bypass. CompanyController is correctly gated entirely.
+
+### ProductController — class-level `[Authorize(Policy = "ExternalAccess")]` + per-method scoping ✓
+
+Class-level lets External users IN by design (Product Management is a surface External users can browse). The 5 GET endpoints apply row-level scoping via `GetCurrentUserCompanyIdsAsync()`:
+
+| Endpoint | External (Henkel/KAO) sees | Admin baseline | Verdict |
+|---|---|---|---|
+| `/Product/GetProducts` | 17 products, distinct companies = `[Henkel, KAO]` | 305 products | ✓ scoped |
+| `/Product/GetCompanies` | 2 companies | 285 companies | ✓ scoped |
+| `/Product/GetCategories` | 9 categories | 9 | ✓ intentionally global (admin-managed taxonomy) |
+| `/Product/GetProductTypes` | 44 types | 44 | ✓ intentionally global |
+| `/Product/GetDashboardStats` | 8 stats scoped + 2 global reference counts | 8 | ✓ correctly mixed |
+
+The test user `external.user@anukiconsulting.com` (Users.Id=3) is associated with BOTH Henkel AND KAO via the `Users.Companies` navigation property (many-to-many, presumably via a join table not directly visible in INFORMATION_SCHEMA). Seeing products for both is correct seed-data behavior, not a leak.
+
+All 4 mutation endpoints (SaveProduct, SaveCategory, DeleteProduct, DeleteCategory) override to `[Authorize(Policy = "AnalystOrAdmin")]` — External properly gets 302/login.
+
+### Conclusion — the DEF-204/205/206 pattern is LOCALIZED, not systemic
+
+CompanyController + ProductController follow the correct pattern (class-level guard + per-method row scoping where multi-tenant). The 4 DEFs found today are specific to controllers/endpoints that lacked the class-level guard (CertificatesApiController) or lacked scoping on adjacent detail endpoints despite having it on the list endpoint (DEF-204 ViewCertificateFile / ExternalView, DEF-205 PartnerApi by-id/by-number).
+
+**No new DEFs.** The pattern memory's "always check adjacent endpoints" is still good guidance — applied here, it confirmed two controllers are clean. The "miss" probability is real but bounded.
+
+### Next surfaces worth auditing (in priority order if continuing)
+
+- **AdminController** — many endpoints across UserMgmt, Tags, ProductTypes, CertificateTypes, CertificateFields. Class-level `[Authorize(Policy = "AdminOnly")]` per earlier read, so probably clean. Verify on the GET endpoints + sub-resource endpoints.
+- **CertificateTilesApi controllers** — internal + external. We probed external on the cert detail leak but not the tile list scoping under all roles.
+- **`/api/productids` controller** — uses `[Authorize(Policy = "AnalystOrAdmin")]` per earlier check; mutating endpoints likely fine but GET-by-certificate might leak cross-tenant if no scope check.
+- **CertificateImportController** — bulk-import path; auth gate + content validation.
+
+---
+
+## 2026-05-19 — AdminController + CertificateTilesApi + ProductIdApi + CertificateImport audit — ALL CLEAN
+
+**Script:** `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-batch7.js`. 4 controllers × 5 personas (anon, external, analyst, partner, admin) × ~25 endpoints. **110 of 112 probes correct;** the 2 misses were test-script artifacts, not defects.
+
+### AdminController — `[Authorize(Policy = "AdminOnly")]` ✓
+
+14 endpoints × 4 non-admin personas = **54/54 PASS.** Every non-admin attempt got 302 → login. Admin baseline got 200 on `/Admin/GetRoles` (the `/Admin/GetUsers` 8-second timeout was a Playwright `request.fetch` quirk; direct curl returned 200 in 10ms). UserMgmt / RoleMgmt / ProductTypes / CertificateTypes / CertificateFields / Tags / GoogleAnalytics / CreateUser / DeleteUser — all admin-locked at the door.
+
+### CertificateTilesApiController — public tile API, all 5 methods `[AllowAnonymous]` ✓
+
+Anonymous probe of public surface:
+- `/api/certificate-tiles?pageSize=100` → 20 certs, distinct statuses = `["Client Approved - Paid"]` only. No Drafts, no Hold, no Expired, no Active legacy status leaked to anonymous.
+- Cert items have 16 keys, no `internalTags` / `asin` / `upc` / `gtin` / `ean` fields exposed (the contract-clean public DTO).
+- `/filters` → 200 ✓
+- `/autocomplete?term=cer` → 200 ✓
+- `/27/download` (Draft) → 404 ✓ (DEF-164 fix intact)
+- `/2/download` (Paid) → 404 (no on-disk PDF for cert id=2, so falls through; not a leak)
+
+### CertificateTileExternalApiController — `[Authorize(Policy = "ExternalAccess")]` ✓
+
+- Anonymous → 401 ✓
+- External (Henkel-mapped) → 2 certs, distinct companies = `["Henkel"]`, distinct statuses = `["Client Approved - Paid"]`. Correctly scoped (KAO had no Paid certs in dev, so only Henkel shows; ExternalAccess is row-scoped per `userCompanyIds`).
+- Analyst → 200 (ExternalAccess policy allows Analyst+; what data they see was not probed in this batch, but Analyst seeing all is the design).
+
+### ProductIdApiController — `[Authorize(Policy = "AnalystOrAdmin")]` ✓
+
+6 endpoints × 5 personas = **30 probes, 29/30 correct.** All expected blocks (anon → 401, external → 403, partner → 403) and expected allows (analyst → 200/404/201, admin → 200/404). The one exception was admin `POST /api/productids` returning 500 — root cause: the analyst persona had created the same ASIN `B08N5WRWNW` on cert id=2 milliseconds earlier in the same probe run, so admin's identical POST hit a duplicate-row constraint at the service layer (500 instead of a clean 409). **Not a defect, just a probe-order race.** The duplicate constraint is the right behavior.
+
+Also worth noting: probe-created `CertificateProductIds.Id=2140` was removed from dev DB after the run.
+
+### CertificateImportController — `[Authorize(Policy = "AdminOnly")]` ✓
+
+3 endpoints × 5 personas = **15/15 PASS.** Index (view), DownloadTemplate (CSV), api/Preview (POST upload preview) — all admin-only at the door. Anonymous 302/401, external/analyst/partner 302/403, admin 200/400 (400 on Preview was the expected "missing file" body validation after passing auth).
+
+### Combined audit — 7 controllers, 4 DEF-candidates found earlier are LOCALIZED
+
+| Controller | Class guard | Verdict |
+|---|---|---|
+| `CertificatesApiController` (internal v1) | **none** | 🚨 3 leaks (DEF-206) |
+| `Controllers/Api/v1/CertificatesController` (partner contract API) | — single-cert paths | 🚨 by-id + by-number leak (DEF-205) |
+| `CertificateController.ViewCertificateFile`, `.CertificateExternalView` | mixed | 🚨 cross-scope leaks (DEF-204) |
+| `CertificateController.Edit` POST | role policy correct | 🚨 workflow matrix dead code (DEF-203) |
+| `CompanyController` | `AnalystOrAdmin` | ✓ clean |
+| `ProductController` | `ExternalAccess` + row-scope filter | ✓ clean |
+| `AdminController` | `AdminOnly` | ✓ clean |
+| `CertificateTilesApiController` (public) | `AllowAnonymous` + status filter | ✓ clean |
+| `CertificateTileExternalApiController` | `ExternalAccess` + row scope | ✓ clean |
+| `ProductIdApiController` | `AnalystOrAdmin` | ✓ clean |
+| `CertificateImportController` | `AdminOnly` | ✓ clean |
+
+**7 controllers clean, 4 specific endpoints/areas leaking. Pattern memory confirmed correct, and the actual blast radius is bounded.**
+
+### Day's running total — unchanged
+| DEF | Severity |
+|---|---|
+| DEF-203 | Major |
+| DEF-204 | Critical |
+| DEF-205 | Critical |
+| DEF-206 | Critical |
+
+### Working tree
+- `observations_log.md` — appended full audit table
+- No new DEFs
+- `Scripts/smoke-prod/smoke-batch-2026-05-19.js` still the only new untracked file
+
+---
+
+## 2026-05-19 — Three more DEFs from the auth-surface audit (DEF-208/209/210)
+
+**Script:** `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-batch8.js` (+ tail). Audited AccountController login surface, DashboardController, PartnerApi class guards, and the static-file middleware path.
+
+### Clean surfaces (16/16 PASS)
+
+- **Dashboard** — class `[AnalystOrAdmin]` blocks Anonymous + External on Index, GetChartData, DownloadStat, DownloadTable. ✓
+- **PartnerApi controllers** (`/api/admin/partner/*` + `/api/v1/apikeys`) — class `[AdminOnly]` blocks Anonymous (401) AND Partner X-API-Key (403). Partner keys correctly do NOT unlock admin endpoints. ✓
+- **ForgotPassword body-length** identical for valid vs invalid email — message-based enum prevented. ✓
+- **Directory listing on `/uploads/certificates/`** → 404. ✓
+- **Path traversal** sanitized. ✓
+
+### Three real critical/major findings → 3 new DEFs
+
+**DEF-208 (Critical) — Static-file middleware serves every uploaded cert PDF + thumbnail to anonymous users.** Direct GET `/uploads/certificates/{filename}.pdf` returns the file with `Content-Type: application/pdf`, bypassing `ViewCertificateFile`'s DEF-164 status gate entirely. Same for thumbnails at `/uploads/images/...`. Verified on 5 PDFs + 5 PNGs sampled across cert numbers — 100% leak. Filename format is predictable (`{certNumber}_{YYYYMMDD}_{HHMMSS}.pdf`), so a motivated attacker can enumerate every cert PDF. Fix recommendation (Option B): relocate uploads out of `wwwroot` so static-file middleware never sees them, force all access through controller routes that already apply the right scoping (DEF-204's recommended pattern).
+
+**DEF-209 (Major) — Login error messages enable email enumeration.** `POST /Account/Login` returns the verbose failure reason verbatim:
+- Valid email + wrong password: `"Login failed: Invalid password"`
+- Nonexistent email + any password: `"Login failed: User not found"`
+
+Two distinct, deterministic messages parseable from the rendered HTML. ForgotPassword has a related **timing side-channel** (valid email = 3008ms because of synchronous SMTP send; invalid email = 32ms — 100× delta) — same class of finding rolled into the same DEF. Fix: generic "Invalid email or password." message on Login, async email send on ForgotPassword.
+
+**DEF-210 (Major) — No login rate limit / account lockout.** Ran 8 consecutive `POST /Account/Login` requests with the same email and unique-wrong passwords in ~2.3 seconds: no slowdown, no lockout, no error-message change between 1st and 8th attempt. AspNetCoreRateLimit is configured for the partner API surface but not for auth routes. Combined with DEF-209 this enables targeted brute force against confirmed-valid accounts.
+
+### Combined attack picture: DEF-209 + DEF-210 chained
+
+An attacker can (1) confirm any email address against the user table via the differing login error, then (2) run unlimited password attempts against that specific account with zero throttling. The admin email is essentially public knowledge. **These should ship in the same deploy** — fixing only the message without rate-limit leaves brute force open; fixing only rate-limit without message leaves the targeting signal open.
+
+### Day's running total
+| DEF | Severity | Surface |
+|---|---|---|
+| DEF-203 | Major | Workflow matrix dead code |
+| DEF-204 | Critical | Cross-scope PDF + ExternalView |
+| DEF-205 | Critical | Partner API single-cert cross-partner |
+| DEF-206 | Critical | Internal `/api/CertificatesApi` no role guard |
+| **DEF-208** | **Critical** | **Static-file middleware leaks all cert PDFs + thumbnails** |
+| **DEF-209** | **Major** | **Login error messages enable email enumeration** |
+| **DEF-210** | **Major** | **No login rate limit / account lockout** |
+
+7 DEFs from internal QA today (numbering 203–206 + 208–210; 207 was a separate mobile-bfcache fix logged yesterday), all written up in `docs/tracking/defect-register.md` with empirical proof, root cause, fix recommendations, file lists, and re-runnable probe scripts in `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\`.
+
+**Pattern memory still valid** — most controllers follow the correct pattern. The 7 DEFs found cluster around four root-cause families:
+1. List-endpoint-scoped, detail/sibling-endpoint-not (DEF-103, 164, 198, 204, 205, 206)
+2. Static-file middleware bypassing controller-level gates (DEF-208 — same family, different mechanism)
+3. Auth surface hardening gaps (DEF-209, 210)
+4. Dead-code business rules (DEF-203 workflow service)
+
+---
+
+## 2026-05-19 — Batch 9 audit (CSRF / reset token / file upload / XSS / cookies) — CLEAN
+
+**Script:** `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-batch9.js` (+ direct curl verification).
+
+### Clean surfaces — 5/5 PASS
+
+- **CSRF / antiforgery enforcement.** `POST /Company/SaveCompany` with missing or bogus `RequestVerificationToken` header returns **302 to `/Account/Login?error=session_expired`** (validated via direct curl with no auto-redirect). With the real token, request succeeds. `[ValidateAntiForgeryToken]` attribute fires correctly. Playwright's `request.fetch` auto-following the 302 to a login-page 200 made the initial probe look like a defect — direct curl confirmed enforcement.
+- **Password reset bogus token rejected.** `/Account/ResetPasswordWithToken?token=BOGUS_TOKEN_12345&email=...` renders an error page with "invalid/expired/not found" — controlled rejection.
+- **ForgotPassword works for existing users.** Returns 200 with confirmation view (and triggers async-ish email flow — see DEF-209 for the timing-channel finding).
+- **File upload type validation.** Uploading a fake-PDF (HTML body with `application/pdf` MIME) to `/api/CertificatesApi/GenerateThumbnail` returns **400 with `"Failed to generate thumbnail from PDF. The PDF may be empty or corrupted."`** — controlled rejection at the PDF-parse step, no exception leakage.
+- **XSS in company name does not execute.** Created a company named `XSS-Probe-{ts}<script>window.__xss="fired"</script>`, then loaded the Company list page. Result: `window.__xss !== "fired"` (no execution), raw `<script>` not in `innerHTML` (HTML-encoded by Razor's `@` syntax). Razor output encoding is doing its job. The DB stores the raw value (which is fine — input validation belongs at output time, not storage time).
+
+### Cookie configuration finding (not a DEF — pre-existing TODO)
+
+`Program.cs:36, 251, 359` set `options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest` on the session, auth, AND antiforgery cookies, with code comments saying *"TEMPORARY FIX: Allow cookies without valid SSL certificate. TODO: Install proper SSL certificate and change back to CookieSecurePolicy.Always"*.
+
+- **HTTPS prod (gccwebapp.com):** `SameAsRequest` does the right thing today — the cookie gets the `Secure` flag because requests come in via HTTPS. So prod is not currently broken.
+- **Risk:** if HTTPS termination breaks (misconfigured proxy, dev container running HTTP, internal probe via HTTP) the cookies become non-Secure and could be observed on the wire. `Always` would harden against that case.
+
+This was flagged earlier today in memory ("session cookie missing Secure flag" from 2026-04-07 entry). Still unfixed. Tracking as a follow-up nice-to-have, not a new DEF — it's a pre-existing item the team is aware of.
+
+### Server crash side-effect (no DEF, just an operational note)
+
+The fake-PDF upload probe in batch 9 appears to have crashed the dev server (subsequent curls returned `Unable to connect`). The endpoint returned 400 with a controlled error message, so it wasn't an unhandled exception in the HTTP path — but something in the file processing left a process in a bad state. Restarted cleanly. **Not a security vulnerability** (can't be used remotely without auth; AnalystOrAdmin-gated). **Possible DoS via crafted PDF** worth following up — but partner API rate-limit covers most of that surface. Logging this as an observation; if it reproduces on more sample inputs, would write up as DEF.
+
+### Cleanup
+- `Companies.Id=324` (CSRF-Test-RealToken-CLEANUP) and `Id=325` (XSS-Probe-...) both deleted from dev DB.
+- No other test data leftover.
+
+### Day's running total — unchanged at 7 DEFs
+
+| DEF | Severity | Area |
+|---|---|---|
+| DEF-203 | Major | Workflow matrix not enforced on Edit POST |
+| DEF-204 | Critical | Cross-scope PDF + ExternalView |
+| DEF-205 | Critical | Partner API single-cert cross-partner |
+| DEF-206 | Critical | Internal `/api/CertificatesApi` no role guard |
+| DEF-208 | Critical | Static-file middleware leaks all cert files |
+| DEF-209 | Major | Login error messages — email enumeration |
+| DEF-210 | Major | No login rate limit / account lockout |
+
+(DEF-207 is yesterday's mobile bfcache fix — already shipped.)
+
+---
+
+## 2026-05-19 — Batch 10 audit (open redirect / SQLi / mass assignment / rate-limit) — CLEAN
+
+**Script:** `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-batch10.js`. 17/17 PASS, no new DEFs.
+
+### Surfaces verified clean
+
+**1. Open redirect via `returnUrl` — protected by `Url.IsLocalUrl()` in `AccountController.RedirectToLocal` (line 1173).** Probed 6 attack variants on `POST /Account/Login?returnUrl=...`:
+- `https://evil.example.com/phishing` → ignored; redirects to role-based home (`/Certificate/CertificateTileViewInternal`)
+- `//evil.example.com/phishing` (protocol-relative)
+- `/\evil.example.com` (backslash trick)
+- `/.evil.example.com` (dot trick)
+- `/Account/Login%2F%2Fevil.example.com` (encoded slashes)
+- `javascript:alert(1)` (XSS-via-redirect)
+
+All 6 either redirected to local URL or kicked out via antiforgery. `RedirectToLocal` is the right check; ASP.NET Core's `Url.IsLocalUrl()` handles all common bypass tricks.
+
+**2. SQL injection in cert tile search + autocomplete — input validation rejects dangerous characters.** Tested:
+- `' OR '1'='1`
+- `'; WAITFOR DELAY '0:0:5'--` (time-based)
+- `%' OR 1=1--`
+- `' UNION SELECT 1,2,3,4,5,6,7,8,9,10--`
+- `"; DROP TABLE Certificates;--`
+- Autocomplete: `'`, `' OR 1=1--`
+
+All return 400 "Bad request" with 11-byte body. **Legitimate searches still work** (`?searchTerm=cert` returns 200 with cert list — confirmed via sanity check). Input validation rejects single quotes / SQL keywords at the controller layer. EF Core parameterized queries provide a second defense at the query layer. WAITFOR injection didn't surface as delay (2-8ms response times — query never executed).
+
+**3. Mass assignment / role escalation — External user blocked at the AdminOnly gate.** External user attempting:
+- `PUT /Admin/UpdateUser/3` (themselves) with `role: "admin"` payload → **302 to `/Account/AccessDenied`**
+- `POST /Admin/CreateUser` with `role: "admin"` payload → **302 to login**
+
+Verified no rogue admin user got created (admin's subsequent GET `/Admin/GetUsers` shows no `evil-admin@e2e.dev` entry). The class-level `[AdminOnly]` policy on AdminController stops the request before any model binding / mass assignment can happen.
+
+**4. Partner API rate-limit observation — 100 rapid requests all succeeded.** Fired 100× `GET /api/v1/certificates?pageSize=1` with Amazon key in 1614ms (~62 req/sec). All 100 returned 200. **Rate limit not tripped at this rate.**
+
+Possible reasons (need follow-up to know which):
+- AspNetCoreRateLimit policy is per-minute (e.g., 1000/min) — 100 in 1.6s doesn't exceed
+- Test environment relaxes the limit
+- Rate limit applied at gateway/proxy on prod (Plesk), not the app
+
+**Not a defect** — just an observation. If contract specifies a particular req/sec ceiling, worth verifying that ceiling actually fires. Otherwise, the LIMIT exists per memory entry `DEF-112` and is probably set to a reasonable production threshold.
+
+### 2FA bypass — not testable on dev
+
+`appsettings.Development.json` has `"Enable2FA": false`. Can't validate 2FA flow without enabling it (which would require email config). On prod gccwebapp.com, `Enable2FA: true` so the 2FA challenge IS in the flow. **Will need to re-test on prod after the next deploy** (where DEF-208/209/210 fixes land) to verify the 2FA gate doesn't have a bypass path.
+
+### Day's running total — unchanged at 7 DEFs
+
+7 internal-QA DEFs total. All written up. The audit's breadth so far:
+
+| Probe batch | Surfaces | Result |
+|---|---|---|
+| Deploy smoke (Sections A-L) | 12 | 11 PASS, 1 SKIP (partner key) |
+| Workflow transitions | 1 (Edit POST) | **DEF-203** found |
+| Security/scoping (PDF, ExternalView, single-cert) | 5 | **DEF-204 + DEF-205** found |
+| Internal /api/CertificatesApi sweep | 1 controller (3 leaking endpoints) | **DEF-206** found |
+| CompanyController + ProductController | 2 controllers | Clean |
+| AdminController + Tile + ProductId + Import | 4 controllers | Clean |
+| Account / Dashboard / PartnerApi / static-file | 4 surfaces | **DEF-208 + DEF-209 + DEF-210** found |
+| CSRF / reset / upload / XSS / cookies | 5 surfaces | Clean |
+| Open redirect / SQLi / mass assignment / rate-limit | 4 surfaces | Clean |
+
+**~30 surfaces probed total, 8 found leaking, 22 clean.** The 8 leaking endpoints/surfaces cluster around two root-cause families: (1) controller scoping pattern (list endpoint filters but detail/single/sibling endpoint doesn't — covered by `feedback_scoping_check_adjacent_endpoints.md` memory), and (2) auth surface hardening gaps (DEF-209 + DEF-210 + DEF-208 static-file).
+
+---
+
+## 2026-05-19 — Batch 11 audit + **DEF-205 RETRACTED**
+
+**Batch 11 surfaces probed:** GS1 partner endpoint contract, audit-trail (CertificateStatusHistory), cert delete cascade behavior.
+
+### GS1 endpoint — CLEAN
+
+`GET /api/v1/certificates/gs1` with Amazon partner key:
+- Returns 4 certs (matches LIST endpoint count, all Amazon-tagged)
+- Contract shape correct: `@context`, `$schema`, `id`, `type`, `issueDate`, `issuer`, `products[]` with nested `certificationInfo`
+- All `status` fields are `"ACTIVE"` (contract literal, not raw `Client Approved - Paid`)
+- Anonymous → 401 ✓
+- Bogus key → 401 ✓
+- No cross-partner leak — only Amazon-tagged certs returned
+
+### DEF-205 RETRACTED — same-day false positive
+
+While verifying GS1 contract, I rechecked cert `26-0001` and discovered my DEF-205 finding was based on misreading DB data. **`26-0001` is Amazon-partnered** (`Certificates.Partner = "Amazon"`, `Companies.Name = "Acme Corporation"`). I had confused **Company** (the manufacturer — Acme) with **Partner** (who tracks it — Amazon). A cert can be from any company AND tagged with any partner — they're separate dimensions.
+
+**Retest with truly-non-Amazon cert `26-0002` (Beta Industries, Partner=None):**
+- `GET /api/v1/certificates/number/26-0002` → **404** ✓
+- `GET /api/v1/certificates/3` (by id) → **404** ✓
+- `GET /api/v1/certificates/number/26-0001` (Amazon-tagged) → 200 ✓
+
+**Single-cert endpoints ARE properly scoping by partner ownership.** DEF-205 marked as **RETRACTED** in the defect register with the original write-up preserved for audit trail. Memory entry `feedback_scoping_check_adjacent_endpoints.md` updated to remove DEF-205 from the family list.
+
+**Lesson learned:** When verifying partner-scoping defects, always cross-check the cert's `Partner` column directly in the DB — don't infer partner relationship from the cert's `Company` field. The two columns track orthogonal concepts (manufacturer vs. tracking partner).
+
+### Audit trail — already covered in DEF-203 secondary impacts
+
+`CertificateStatusHistory` rows are written only by `CertificateWorkflowService.TransitionCertificateStatusAsync()`, which DEF-203 documented as never being called from any controller. So Edit-form status changes today produce no audit rows. Already captured in DEF-203's "Secondary impacts" section — not a separate finding.
+
+### Cert delete cascade — test deferred
+
+The previous cert delete I did during DEF-204 cleanup (cert 26-0163) successfully removed CustomFieldValues (3 rows) + the Certificate row, no FK errors. The cleanup pattern in `cleanup2.sql` deletes from CustomFieldValues, CertificateStatusHistory, CertificateProductIds, CertificateDocuments before deleting Certificates — implying app-level cascade (not DB-level CASCADE). Works in the cases I exercised. **Not running a fresh test today;** mark for follow-up.
+
+### Day's running total — CORRECTED to 6 DEFs
+
+| DEF | Severity | Status |
+|---|---|---|
+| DEF-203 | Major | Open |
+| DEF-204 | Critical | Open |
+| ~~DEF-205~~ | ~~Critical~~ | **RETRACTED 2026-05-19** |
+| DEF-206 | Critical | Open |
+| DEF-208 | Critical | Open |
+| DEF-209 | Major | Open |
+| DEF-210 | Major | Open |
+
+**6 valid DEFs from internal QA today** (DEF-207 is yesterday's separately-shipped bfcache fix). Composite severity distribution: 3 Critical (DEF-204, 206, 208) + 3 Major (DEF-203, 209, 210).

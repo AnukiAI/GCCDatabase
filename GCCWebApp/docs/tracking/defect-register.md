@@ -18,6 +18,800 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-210 — No login rate-limit / account lockout: unlimited password-guess attempts against any account
+
+- **Date:** 2026-05-19
+- **Severity:** Major (multiplies DEF-209 into practical brute-force; combined risk on admin accounts is High)
+- **Status:** Open — Anuki QA discovery 2026-05-19
+- **QC Ref:** none (internal exploratory testing — auth-surface audit)
+- **Bucket:** Bug — auth hardening gap
+- **Reporter:** Internal (Anuki QA)
+
+**What's wrong.** The `POST /Account/Login` handler in `Controllers/AccountController.cs:162` calls `ValidateUserDetailed(model.Email, model.Password)` and on failure simply re-renders the form with a `ModelState` error. **No counter increments, no lockout timer, no progressive delay, no rate-limit middleware applied to the route.** An attacker can submit unlimited wrong passwords against any account without any throttling.
+
+**Empirical proof on dev.**
+
+Ran 8 consecutive `POST /Account/Login` requests with `Email = jane.analyst@anukiconsulting.com` and unique-wrong passwords (`wrongAttempt0` through `wrongAttempt7`) inside ~2 seconds total:
+
+```
+First attempt:  347ms  err="Login failed: Invalid password"
+2nd attempt:    ~300ms err="Login failed: Invalid password"
+…
+8th attempt:    266ms  err="Login failed: Invalid password"
+```
+
+- 8 attempts in roughly 2.3s wall-clock — no slowdown.
+- Same error message on the 8th attempt as the 1st — no lockout signal.
+- 8 attempts is below typical lockout thresholds (3 / 5 / 10), but the trend line is flat — there is no counter at all. Running 1000 attempts would not lock the account.
+
+The HTTP layer also returned 200 OK for every attempt (form re-render with error). No CAPTCHA injected, no exponential back-off, no per-IP throttle visible to the caller.
+
+**Combined with DEF-209 (email enumeration).** An attacker who can confirm valid emails via the differing error messages can then mount an unbounded password-guess attack against those specific accounts. The combination — **DEF-209 + DEF-210** — moves the attack from "untargeted credential stuffing" (where most attempts hit invalid emails and are wasted) to "targeted brute-force against confirmed admin/analyst accounts." That's the actual exploitation path that matters.
+
+**Why this hasn't been noticed.**
+
+- AspNetCoreRateLimit IS configured in `Program.cs` (per memory entry on DEF-112), but it's applied to the partner API surface, not auth routes.
+- The login route also bypasses the test-env Basic Auth gate that protects gccwebapp.com (per the `TestEnvironmentGateMiddleware` configuration), so requests reach the login handler without any pre-throttle.
+- Standard ASP.NET Core Identity ships with `SignInManager.PasswordSignInAsync(..., lockoutOnFailure: true)` for exactly this case. The custom `ValidateUserDetailed` path doesn't use Identity — it's a hand-rolled email+password check against the Users table.
+
+**Threat model.**
+
+- **Targeted admin brute-force.** Admin email (`swest@anukiconsulting.com`) is essentially public knowledge. Combined with DEF-209's email confirmation, an attacker can run a credential dictionary at full network speed. Today gccwebapp.com is "test env" but the same auth code ships to production. When prod cuts over (current Basic Auth gate goes away), the login endpoint becomes the only barrier. **Land lockout BEFORE that cutover.**
+- **No audit trail of brute-force.** The `_logger.LogWarning` at line 176 fires per attempt but there's no aggregation/alerting hook.
+
+**Recommended fix.**
+
+Layer this; cheapest is rate-limit middleware on the route, right answer is per-account lockout state.
+
+**Minimum (deploy-this-week scope):** Add per-IP and per-email rate limiting on `POST /Account/Login` using the existing AspNetCoreRateLimit middleware:
+
+```json
+"IpRateLimiting": {
+  "GeneralRules": [
+    { "Endpoint": "POST:/Account/Login", "Period": "1m", "Limit": 5 },
+    { "Endpoint": "POST:/Account/Login", "Period": "1h", "Limit": 30 }
+  ]
+}
+```
+
+(5/min, 30/hour per IP — same shape Azure AD uses. Tune as needed.)
+
+**Right answer (sprint scope):** Add `FailedLoginCount` + `LockoutUntil` columns to `Users` table; increment on each failed attempt; clear on successful login; reject with `Login failed: account locked. Try again in N minutes.` when `LockoutUntil > now`. Threshold suggestion: 5 failures = 15-min lockout, 10 failures = 1-hour, 25 failures = require admin unlock. Also add `LastSuccessfulLoginAt` while in there — useful for stale-account alerts.
+
+**Don't conflict with DEF-209 fix.** When DEF-209 is fixed (generic "Invalid email or password" message), the lockout message has to be generic too. The fix order matters: **ship DEF-209 + DEF-210 in the same deploy** so the threat model closes simultaneously.
+
+**Test plan after fix.** Re-run `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-batch8.js` section [2]:
+- 5 wrong attempts → 6th rejected with lockout message (Identity-style) or rate-limit 429 (middleware-style)
+- One correct attempt 30 minutes after lockout → succeeds
+- Lockout does NOT leak email existence: locking a non-existent email's "account" should NOT differ from DEF-209's generic message.
+
+**Files affected (option B — Identity-style lockout).**
+
+- `Models/User.cs` — add `FailedLoginCount`, `LockoutUntil`, `LastSuccessfulLoginAt` columns.
+- New EF migration.
+- `Controllers/AccountController.cs:162-180` — increment count on failure, check `LockoutUntil` before validating password, clear on success.
+
+---
+
+### DEF-209 — Login error messages enable email enumeration ("User not found" vs "Invalid password"); ForgotPassword timing side-channel
+
+- **Date:** 2026-05-19
+- **Severity:** Major (information disclosure; pairs with DEF-210 to make targeted brute-force practical)
+- **Status:** Open — Anuki QA discovery 2026-05-19
+- **QC Ref:** none (internal exploratory testing — auth-surface audit)
+- **Bucket:** Bug — information disclosure
+- **Reporter:** Internal (Anuki QA)
+
+**What's wrong.** The `POST /Account/Login` handler shows different error messages depending on whether the submitted email matches a Users row or not. An unauthenticated attacker can probe arbitrary email addresses one-by-one to confirm which are valid accounts, then concentrate password-guessing efforts (DEF-210) on those.
+
+**Empirical proof on dev.**
+
+```
+POST /Account/Login Email=swest@anukiconsulting.com  Password=wrongpassword
+  → 200 OK, error rendered: "Login failed: Invalid password"
+
+POST /Account/Login Email=nonexistent-user@e2e-test.invalid  Password=TestPass123!
+  → 200 OK, error rendered: "Login failed: User not found"
+
+POST /Account/Login Email=malformed-not-an-email  Password=anything
+  → 200 OK, error rendered: "Login failed: User not found"
+```
+
+Two distinct, deterministic messages parseable from the rendered HTML body. ~373ms timing delta between the cases also exists (valid email = 487ms with hash compare, nonexistent = 114ms with no hash) but the message difference alone is enough for enumeration.
+
+**Root cause.** `Controllers/AccountController.cs:162-180`:
+
+```csharp
+var (userRole, canonicalEmail, loginError) = ValidateUserDetailed(model.Email, model.Password);
+if (string.IsNullOrEmpty(userRole))
+{
+    _logger.LogWarning("Login failed for {Email}: {Reason}", model.Email, loginError);
+    ModelState.AddModelError("", $"Login failed: {loginError}");
+    return View(model);
+}
+```
+
+`loginError` is the literal reason returned by `ValidateUserDetailed` — `"User not found"`, `"Invalid password"`, possibly `"Account inactive"`, `"Password reset required"`, etc. — interpolated directly into the user-facing message. Diagnostic-friendly, security-unfriendly.
+
+**Adjacent finding — ForgotPassword timing side-channel.**
+
+`POST /Account/ForgotPassword` correctly returns the SAME view (`ForgotPasswordConfirmation`) for valid and invalid emails — body length identical (2949 bytes both cases). **However** the response time differs dramatically:
+
+```
+POST /Account/ForgotPassword Email=swest@anukiconsulting.com         → 3008ms
+POST /Account/ForgotPassword Email=nonexistent-fp@e2e-test.invalid   → 32ms
+```
+
+100× delta. The valid-email branch synchronously sends an email via `_emailService.SendEmailAsync` BEFORE returning the view (`AccountController.cs:459`). The invalid-email branch logs and returns immediately. Timing-based email enumeration works even though message bodies are identical.
+
+**Threat model.**
+
+- **Combined with DEF-210** (no rate-limit/lockout): once an attacker confirms an email is valid via the message differential, they can run unlimited password-guess attempts against that exact email.
+- **Admin emails are easy to guess.** Format is `{firstname}@{domain}` or `{firstname}.{lastname}@{domain}`. Confirm one, sweep the company directory.
+- **Public surface.** Login is `[AllowAnonymous]` and routable. No IP restriction, no captcha.
+
+**Recommended fix.**
+
+**Login POST handler — generic error.**
+
+```csharp
+if (string.IsNullOrEmpty(userRole))
+{
+    _logger.LogWarning("Login failed for {Email}: {Reason}", model.Email, loginError);
+    // Generic message — DO NOT reveal whether email exists OR password is wrong
+    ModelState.AddModelError("", "Invalid email or password.");
+    return View(model);
+}
+```
+
+Keep `loginError` going to the server log; strip it from the rendered HTML.
+
+For "Account inactive" / "Password reset required" branches that need specific user-facing messages, gate them on a separate post-authentication check (run them ONLY after a successful password match — they leak less because the attacker already proved knowledge of credentials).
+
+**ForgotPassword handler — async email send.**
+
+Move the email send to a background queue (Hangfire / Channel / `Task.Run(...)` fire-and-forget). HTTP response returns immediately; email is sent out-of-band. This is also the right architecture — synchronous SMTP blocking the request thread is a perf foot-gun beyond the security issue.
+
+**Test plan after fix.** Re-run `probe-batch8.js` Section [1]:
+- All probe inputs (valid-email-wrong-pw, nonexistent-email, malformed, empty) → IDENTICAL `errMsg` string.
+- Section [3]: `validMs - invalidMs` < 100ms after async fix.
+
+**Files affected.**
+
+- `Controllers/AccountController.cs:162-180` — generic error message.
+- `Controllers/AccountController.cs:403-473` — async email send.
+
+---
+
+### DEF-208 — Static-file middleware serves every uploaded cert PDF and thumbnail to anonymous users, bypassing `ViewCertificateFile`'s DEF-164 status gate
+
+- **Date:** 2026-05-19
+- **Severity:** Critical (anonymous bulk leak of all uploaded cert files; bypasses DEF-164 entirely)
+- **Status:** Open — Anuki QA discovery 2026-05-19
+- **QC Ref:** none (internal exploratory testing — extends DEF-164 + DEF-204 surface audit)
+- **Bucket:** Bug — auth/scoping gap (static-file path)
+- **Reporter:** Internal (Anuki QA)
+
+**What's wrong.** Uploaded certificate PDFs (`wwwroot/uploads/certificates/{filename}.pdf`) and thumbnails (`wwwroot/uploads/images/{filename}.png`) are served by ASP.NET Core's static file middleware to anyone who knows or can construct the filename. The middleware runs before any controller routing and applies no authorization. **DEF-164's anonymous-only status gate on `Controllers/CertificateController.ViewCertificateFile` is irrelevant** because the static URL bypasses the controller entirely.
+
+**Empirical proof on dev (anonymous, no cookies, no API key):**
+
+```
+GET /uploads/certificates/26-0001_20260112_230836.pdf  (Paid cert)
+  → 200 OK, application/pdf, 60341 bytes
+
+GET /uploads/certificates/25-5027_20260113_032824.pdf  (random other cert)
+  → 200 OK, application/pdf, 60268 bytes
+
+GET /uploads/images/25-5027_thumb_20260113_032824.png
+  → 200 OK, image/png, 51136 bytes
+```
+
+Sampled 5 PDFs and 5 thumbnails — **5/5 returned 200 OK with the file body** for the anonymous caller.
+
+```
+GET /uploads/certificates/              → 404 (directory listing disabled — good)
+GET /uploads/../appsettings.json        → 404 (traversal sanitized — good)
+```
+
+Leak is bounded by needing the exact filename. But the filename format is predictable: `{certNumber}_{YYYYMMDD}_{HHMMSS}.pdf`. Cert numbers are sequential (`26-0001`, `26-0002`, …). Upload timestamps can be:
+- Narrowed by deployment date for bulk imports
+- Brute-forced — `YYYYMMDD` is bounded by reasonable upload windows, `HHMMSS` is 86400 values per day
+- Or read off any debug output / log file / git commit metadata that leaks them
+
+A motivated attacker can enumerate every cert PDF in the system at a few thousand HTTP requests per cert. ~163 certs in dev means the full corpus is downloadable in a manageable time.
+
+**Why DEF-164's fix isn't enough.**
+
+DEF-164 added an anonymous-only branch in `Controllers/CertificateController.ViewCertificateFile` (`CertificateController.cs:1750-1760`) that returns 404 for non-public certs. That gate works when traffic flows through the controller.
+
+The vulnerability here is on a completely different URL — `/uploads/certificates/{filename}.pdf` — handled by `UseStaticFiles()` middleware in `Program.cs`. Static file middleware runs BEFORE routing, returns the file if it exists, never invokes `ViewCertificateFile`. The DEF-164 gate is unreachable for these requests.
+
+**Threat model.**
+
+- **Worst case:** anonymous attacker downloads every Draft / Hold / Expired / Confidential cert PDF. These contain client business info (issuer, partner attribution, products, etc.) that is intentionally not public until the cert reaches Paid/Republished.
+- **Cross-tenant.** External users (restricted today by tile-view + detail-view controller scoping) can also hit `/uploads/...` and pull any cert PDF, not just their own company's. The per-company scoping in `CertificateController` is bypassable for any logged-in user (DEF-204 covers ExternalView scope; DEF-208 makes static-file access just as broad for unauthenticated users).
+- **Compliance / contract.** Per the partner-API contract immutability rule (memory: `feedback_amazon_api_immutable.md`), partner data shape is sign-off-gated. Confidential certs leaking via static URL is not a contract change but it IS data leakage the API was designed to prevent.
+
+**Recommended fix.**
+
+**Option A (smallest change) — disable static file serving for `/uploads/` entirely; force all access through controllers.**
+
+In `Program.cs` narrow the `UseStaticFiles()` middleware to skip `/uploads/`, and add controller routes that stream cert files after the existing role/ownership/status checks (mirror `ViewCertificateFile` for thumbnails too). Anywhere in views/JS that currently links `/uploads/images/...` directly gets refactored to use the controller route.
+
+**Option B (right answer architecturally) — move uploads OUT of `wwwroot`.**
+
+Relocate the directory to `App_Data/uploads/` or `<repo>/uploads/` (outside the web root). Static file middleware never sees it. All access flows through `ViewCertificateFile` and an equivalent thumbnail route. Update `FileUploadService` write paths + `CertificateImagePath` storage format if needed.
+
+This is the cleanest fix — files that should be access-controlled are physically separate from public assets (`/css/`, `/js/`, `/img/`).
+
+**Option C (band-aid) — rename existing files to cryptographically-random IDs.**
+
+Replace the `{certNum}_{timestamp}.pdf` convention with `{guid}.pdf` (already partly done — DEF-193 added a GUID suffix in collision cases). Files remain in `wwwroot/uploads/`, but filenames are unguessable. Brute-force becomes infeasible.
+
+Doesn't fix anonymous access for someone who SEES the URL (e.g., via cert detail page HTML rendering `<img src="/uploads/images/{guid}.png">`). Public Paid certs would still be accessible by URL once their thumbnail is rendered — probably fine because Paid is public. But Confidential and Hold certs whose UIs render thumbnails leak the URL to authorized users, who could share it.
+
+Combine C with A: random filenames AND middleware block. Best defense-in-depth.
+
+**Anuki recommendation: Option B (move out of `wwwroot`).** It's the only fix that's structurally correct. Cost is one migration (move files, update DB paths). Once shipped, all access flows through the controllers, and the DEF-164 + DEF-204 work becomes the actual gate (not bypassable).
+
+**Test plan after fix.** Re-run `probe-batch8.js` Section [4]:
+- Anonymous GET `/uploads/certificates/{any_known_filename}.pdf` → 401 or 404 (was 200)
+- Same for `/uploads/images/{any}.png`
+- Authenticated GET through the controller routes — admin sees all, External sees only their own company, anonymous sees only Paid/Republished — exactly matching DEF-204's recommended fix.
+- Directory listing still 404 (unchanged).
+- Traversal still 404 (unchanged).
+
+**Files affected (Option B).**
+
+- `Program.cs` — narrow `UseStaticFiles()` to exclude `/uploads/`.
+- `Services/FileUploadService.cs` — write to `App_Data/uploads/...` instead of `wwwroot/uploads/...`.
+- New controller route: `/Certificate/ViewCertificateImage/{id}` mirroring `ViewCertificateFile`. Apply DEF-204's role-aware status + company-ownership gate.
+- Migration / one-time script to physically move existing files + update `Certificates.CertificateFile` + `CertificateImagePath` columns.
+- Views: `<img src="@Url.Action(...)">` calls anywhere that currently emits `/uploads/images/...`.
+
+---
+
+### DEF-207 — Certificate Create page on mobile: stale "Certificate XX-XXXX created successfully!" toast fires on direct nav due to bfcache replaying the inline TempData script
+
+- **Date:** 2026-05-18
+- **Severity:** Low (cosmetic — no data action; misleads tester)
+- **Status:** Fixed (pending deploy)
+- **QC Ref:** Internal mobile testing (Shawn, gccwebapp.com)
+- **Bucket:** Bug — client-side cache replay
+- **Reporter:** Shawn (Anuki QA)
+
+**What's wrong.** On real mobile devices hitting live gccwebapp.com, navigating to `/Certificate/Create` (after a prior "Save & Add Another" earlier in the session) replays the success toast — `"Certificate XX-XXXX created successfully!"` — even though no new certificate has been saved. The TempData entry was correctly consumed on the original POST→redirect; this is a browser-cache replay, not a server-state bug.
+
+**Root cause.** `Views/Certificate/Create.cshtml:46-54` renders an inline `<script>` containing the success message whenever `TempData["SuccessMessage"]` is present (correct after Save & Add Another). Mobile Safari (and Android Chrome to a lesser degree) caches the entire rendered HTML — including that inline script — in the back-forward / disk cache. On a subsequent direct nav to `/Certificate/Create`, the browser serves the cached HTML and the `DOMContentLoaded` handler re-fires `AdminCore.showNotification(...)` with the old success text.
+
+**Fix.** Added a `sessionStorage` guard keyed by the message itself. The first time the script fires for a given message, it stamps `createSuccessMsg:<msg>` and shows the toast. Cached replays hit the guard and skip. Try/catch around `sessionStorage` so private-browsing modes degrade gracefully (toast shows once, same as today).
+
+**Files:**
+- `Views/Certificate/Create.cshtml` — inline success-message script (lines 46-58 after fix)
+
+**Notes:**
+- Server-side TempData flow unchanged; only the client-side replay path is gated.
+- `Views/Certificate/Edit.cshtml` checked — does not render an equivalent inline success script, no fix needed there.
+- Other controllers that set `TempData["SuccessMessage"]` (Account 2FA, Document upload) render via `_Layout` / different views and have not exhibited this symptom; out of scope unless reported.
+
+---
+
+### DEF-206 — Internal `/api/CertificatesApi` has no role-based authorization: any authenticated user (External, Partner via X-API-Key) can read every cert in the database with full internal data shape
+
+- **Date:** 2026-05-19
+- **Severity:** Critical (multi-tenant data leak; internal field exposure; bypasses the role-gated tile view scoping)
+- **Status:** Open — Anuki QA discovery 2026-05-19
+- **QC Ref:** none (internal exploratory testing — same root-cause class as DEF-204 / DEF-205, applied to a different controller)
+- **Bucket:** Bug — auth/scoping gap
+- **Reporter:** Internal (Anuki QA)
+
+**What's wrong.** `Controllers/Api/CertificatesApiController.cs` declares `[ApiController]` + `[Route("api/[controller]")]` with **no `[Authorize]` at class level and no role policy on the list `[HttpGet]` action**. Anonymous gets 401 (some app-wide default kicks in), but ANY authenticated identity — including External users (browser cookie) and Partner X-API-Key callers — gets `HTTP 200` with a full cert list. The query has no role-based scoping for cookie callers and applies a looser partner filter than the contracted `/api/v1/certificates` endpoint does.
+
+**Empirical proof on dev:**
+
+`External user (external.user@anukiconsulting.com, mapped to Henkel) GET /api/CertificatesApi?pageSize=50`:
+```
+status=200
+count=43 certificates returned
+distinct companies = ["Acme Corporation","Beta Industries","Sofidel America Corp.","KAO",
+                     "Amazon Devices","Sonos","Superlong company name…","HID Global",
+                     "ExtTest-AmazonCo","ExtTest-NoviCo"]   ← Henkel user sees TEN other companies
+distinct statuses  = ["Client Approved - Paid","Draft","Active","Expired"]
+                                                ↑ Drafts leaked to External
+                                                ↑ "Active" (legacy/internal status) leaked
+internal field shape: id, status (raw lifecycle), partner (raw value), asin, upc, gtin, ean,
+                      tagType, certificateUrl, detailsUrl, isExpiringSoon, statusClass…
+```
+
+The same External user via `/Certificate/CertificateTileViewExternal` UI (the role-gated tile view) sees **2** certs, both Henkel. So the role-aware scoping exists in the tile-view query but is **not applied** at the `/api/CertificatesApi` endpoint.
+
+`Amazon Partner X-API-Key GET /api/CertificatesApi?pageSize=50`:
+```
+status=200
+count=11 certificates returned                  ← contracted v1 endpoint returns 4
+distinct companies = ["KAO","Amazon Devices","Sonos","ExtTest-AmazonCo","Acme Corporation"]
+                                                  ↑ Acme is Partner="None" — not Amazon's
+distinct statuses  = ["Active","Client Approved - Paid","Draft"]
+                                                  ↑ Drafts leaked (contract requires PublicStatuses only)
+partner field      = "None"                       ← raw value, NOT the contracted "Amazon" literal
+internal field shape: same as above — id, asin/upc/gtin/ean, raw status, etc.
+```
+
+Compare to the contracted `/api/v1/certificates` endpoint we verified earlier today: Amazon key returns 4 Active certs, `partner="Amazon"`, no Drafts, contract envelope.
+
+**Two distinct partner-API-shape problems on this endpoint:**
+
+1. **Contract divergence.** Partners hitting `/api/CertificatesApi` get 11 rows in internal-shape data while the same partners hitting `/api/v1/certificates` get 4 rows in contract-shape data. Amazon Ingest is theoretically scoped to v1 but nothing prevents them (or anyone with the key) from probing `/api/CertificatesApi`, where the response shape leaks `id`, raw lifecycle status, legacy flat product-id fields, and `partner="None"` for every cert returned.
+2. **Looser filtering.** The dispatch on line 62-75 calls `_certificateService.GetCertificatesByPartnerAsync(partnerName, request)` which apparently does NOT filter by PublicStatuses (Drafts leaked) nor by the strict Partner=callerName match (Acme/None leaked to Amazon caller). Either the service is wrong, or the controller is calling the wrong service method, or the LIST/v1 path uses different filtering downstream and got it right.
+
+**Root cause (in code).**
+
+`Controllers/Api/CertificatesApiController.cs:11-15`:
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+[Produces("application/json")]
+public class CertificatesApiController : ControllerBase
+{
+```
+
+No `[Authorize(Policy = ...)]` at class or method level. The class XML doc claims it supports both cookie auth AND partner X-API-Key — designed-in dual-mode endpoint. But the implementation only branches based on the presence of a `partner_name` claim; it doesn't gate cookie callers by role.
+
+Compare to `Controllers/Api/v1/CertificatesController.cs` (the contracted partner API): that controller applies the strict scope (`PublicStatuses` + `Partner == callerName`) AND uses the `BuildPartnerCertificateDto` projection for partner callers. Class-level guard probably also restricts to partners. Whatever it does, it's stricter — and the contract-shaped result is the proof.
+
+**Why this hasn't been noticed.**
+
+- The UI surface for External users is the tile-view (`/Certificate/CertificateTileViewExternal`), which uses a different controller (`CertificateTileExternalApiController`) that DOES apply company scoping. So no External user has ever stumbled into `/api/CertificatesApi` via normal navigation.
+- The contracted partner integration (Amazon's ingest) uses `/api/v1/certificates/*`, not `/api/CertificatesApi`. So no real-world traffic has hit this endpoint for partner-shaped reads.
+- The endpoint exists for internal admin/analyst tooling — the XML doc and the dual-mode comment suggest it was once intended as a single multi-role endpoint, but the role enforcement was never added.
+
+**Threat model.**
+
+- **Insider browse:** Any logged-in External user can curl `/api/CertificatesApi` from their browser session and download the full cert table including every other tenant's data. No authentication-bypass needed; they have a valid session.
+- **API key abuse:** A leaked or mis-issued partner X-API-Key (one of the things partner-API security is supposed to limit blast-radius on) reads BOTH the contracted v1 surface (correct, scoped) AND the internal `/api/CertificatesApi` surface (loose, includes Drafts, includes other partners' cert IDs). The mis-issued key has a bigger blast radius than the contract suggests.
+- **No audit trail.** Reads on `/api/CertificatesApi` are logged at info level (line 86 `_logger.LogInformation(...)`). No security event, no rate limiting tied to the cross-tenant fan-out, no alerting on a single principal pulling thousands of rows.
+
+**Severity rationale.**
+
+- Multi-tenant data leak across companies → Critical
+- Partner-contract shape leak (id / legacy fields / raw status) → Critical for Amazon contract
+- Pattern matches DEF-204 / DEF-205 (list endpoint vs list endpoint here; sibling/detail issues there) — but THIS one is more dangerous because it's a list endpoint returning 43 rows of full internal data, not a single-cert lookup.
+
+**Recommended fix.**
+
+Two layers:
+
+**Layer 1 — Class-level role guard.** Add `[Authorize(Policy = "AnalystOrAdmin")]` at the class level of `CertificatesApiController`. This blocks all External users and pure-cookie Partner callers immediately. Then re-allow the X-API-Key partner path via a per-method override on the list action only (and only if Amazon actually depends on this endpoint — which they shouldn't, per the contract).
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+[Produces("application/json")]
+[Authorize(Policy = "AnalystOrAdmin")]   // ← new
+public class CertificatesApiController : ControllerBase
+```
+
+**Layer 2 — Decide whether the X-API-Key partner branch should even exist on this endpoint.** Two options:
+
+- **Option A — Delete the partner branch entirely from `/api/CertificatesApi`.** Partners use `/api/v1/certificates/*` exclusively (already contracted with Amazon). The dual-mode comment + code on lines 62-83 was speculative scope. Removing it eliminates one whole class of partner-contract risk and simplifies the security model (this controller = internal only).
+- **Option B — Keep the partner branch but make it reuse the v1 codepath.** Have the partner branch call the same projection + filter chain the v1 controller does, so partners hitting EITHER endpoint get IDENTICAL data. Requires extracting the v1 projection into a shared service.
+
+**Anuki recommendation: Option A.** Internal endpoint = internal callers. Partners have a contracted endpoint already. Less code, smaller attack surface, no risk of contract drift.
+
+**Test plan after fix.** Reuse `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-internal-api.js`:
+- External user `GET /api/CertificatesApi` → expect 403 (was 200 with 43 rows)
+- Partner X-API-Key `GET /api/CertificatesApi` → expect 401/403 if Option A; expect contract-shape 4 rows if Option B
+- Admin / Analyst `GET /api/CertificatesApi` → expect 200 with internal data (unchanged)
+- Anonymous `GET /api/CertificatesApi` → expect 401 (unchanged)
+
+Then re-run today's regression sweep (`C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\regression-sweep.js`) to verify no admin/analyst path broke.
+
+**Files affected.**
+
+- `Controllers/Api/CertificatesApiController.cs` — add class-level `[Authorize(Policy = "AnalystOrAdmin")]`; either delete the partner_name branch (Option A) or rewire it to call the v1 partner path (Option B).
+- No DB / view / JS changes.
+
+**Adjacent surfaces audited 2026-05-19 (empirical results).**
+
+Probe script: `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-cert-api-adjacent.js`. Persona: same External user (Henkel-mapped), same Amazon partner key.
+
+| Endpoint | Line | Auth attribute | External user | Anon | Verdict |
+|---|---|---|---|---|---|
+| `[HttpGet]` list | 53 | **none** | 200 / 43 rows / 10+ companies | 401 | **leaks (parent DEF)** |
+| `[HttpGet("{id:int}")]` by-id | 114 | **none** + `?userRole=` dead param | 200 / full 30-key detail / other companies | 401 | **leaks same** |
+| `[HttpGet("by-number/{n}")]` by-number | 149 | **none** + `?userRole=` dead param | 200 / 30-key detail / other companies incl. Draft `26-0026` | 401 | **leaks same** |
+| `[HttpPost]` create | 185 | `[Authorize(Roles="Admin")]` | 403 ✓ | 401 ✓ | OK |
+| `[HttpPut("{id:int}")]` update | 239 | `[Authorize(Roles="Admin")]` | 403 ✓ | 401 ✓ | OK |
+| `[HttpDelete("{id:int}")]` delete | 313 | `[Authorize(Roles="Admin")]` | 403 ✓ | 401 ✓ | OK |
+| `[HttpPost("{id}/upload")]` | 352 | `[Authorize(Roles="Admin")]` | not probed | not probed | OK (role attr present) |
+| `[HttpPost("GenerateThumbnail")]` | 415 | `[Authorize(Roles="Admin,Analyst")]` | not probed | not probed | OK (role attr present) |
+| `[HttpGet("{id}/download")]` | 527 | none + service-layer userRole filter | 404 (non-public) | 401 (Paid id=2) | OK by accident; denies more than the XML comment claims |
+| `[HttpPost("export")]` | 577 | `[Authorize(Policy="AnalystOrAdmin")]` | 403 ✓ | 401 ✓ | OK |
+
+**Three GETs leak. Seven mutating/protected endpoints are properly gated.**
+
+**Confirmed by-id leak proof:**
+
+```
+External user (Henkel) GET /api/CertificatesApi/2
+  → 200, 30 keys incl. id, certificateNumber, companyName, productName,
+                       certificationType, productCategory, productType,
+                       productSubcategory, effectiveDate, expirationDate,
+                       companyContact, location, country, certificateImageUrl, additionalInfo, …
+  → companyName="Acme Corporation"   ← OTHER COMPANY leak, full detail shape
+  → status="Active"                  ← raw status, contract-divergent
+
+External user (Henkel) GET /api/CertificatesApi/27
+  → 200, same 30 keys
+  → companyName="Superlong company name that needs to fit on the three rows…"
+                                     ← OTHER COMPANY + DRAFT cert detail leaked
+
+External user (Henkel) GET /api/CertificatesApi/by-number/26-0026  (Draft)
+  → 200, same 30 keys                ← Drafts visible to External role
+```
+
+**`?userRole=` query parameter is IGNORED by the service** — same response shape (30 keys) for `?userRole=Public` vs `?userRole=Admin`. Good — no role-escalation via parameter. **But the parameter is dead code in the API surface.** Delete from method signatures during the DEF-206 fix; today it's deceptive (looks like it might do something).
+
+**Updated fix scope.** The class-level `[Authorize(Policy = "AnalystOrAdmin")]` covers all 3 leaking GETs simultaneously (list, by-id, by-number). Keep the partner branch on the list action as the only per-method override. Also delete the unused `userRole` query parameter from both detail action signatures (line 117-118 and 152-153).
+
+**Download endpoint quirk worth verifying when this DEF ships:** XML comment at line 524 says "Public certificates can be downloaded without authentication" but the actual behavior returns 401 for anonymous + Paid cert id=2. Either the comment is stale or there's a default-policy override applied. Currently denies MORE than documented — not a leak — but the docstring should match reality (or the implementation should match the docstring) once the rest of the controller is fixed.
+
+---
+
+### DEF-205 — RETRACTED 2026-05-19 — Partner API single-cert endpoints DO apply partner-ownership scoping correctly; original finding was based on misreading DB test data
+
+- **Date:** 2026-05-19 (retracted same day)
+- **Severity:** ~~Critical~~ → **Invalid finding**
+- **Status:** **RETRACTED** — original write-up below was a false positive
+- **QC Ref:** none
+
+**Retraction reason (Anuki QA, 2026-05-19).** The original DEF write-up below claimed Amazon partner key gets cert `26-0001` (which I labeled "Acme / Partner=None") via `/api/v1/certificates/number/{n}` and `/{id}` — a cross-partner leak.
+
+**Retest with the actual non-Amazon cert `26-0002` (Beta Industries, Partner=None):**
+
+```
+GET /api/v1/certificates/number/26-0002        → 404  ✓ correctly blocked
+GET /api/v1/certificates/3                      → 404  ✓ correctly blocked  (id 3 = 26-0002)
+GET /api/v1/certificates/number/26-0001        → 200  ✓ correctly returned  (26-0001 IS Amazon-tagged)
+```
+
+**Root cause of the false positive.** I confused **Company** (Acme Corporation) with **Partner** (Amazon). A cert can be from any company AND tagged with any partner — they're separate dimensions. Cert 26-0001 is from Acme Corporation (the manufacturer) AND tagged with Amazon (the partner displaying it via Climate Pledge Friendly). When the API returned 26-0001 with `partner: "Amazon"` and `company: "Acme Corporation"`, that was the **correct contract** — Acme's cert that Amazon partner-tracks. I incorrectly inferred from the company name that the cert was "Acme/None".
+
+The DB columns:
+- `Certificates.Partner` (string) — who tracks this cert (e.g., "Amazon", "Novi", "None")
+- `Certificates.CompanyId` → `Companies.Name` — the manufacturer
+
+A truly-non-Amazon cert is one with `Partner != "Amazon"`. `26-0002` (Beta/None) and `26-0003` through `26-0006` (None partner, various companies) are the actual non-Amazon certs. Tested all of them — Amazon key gets 404 on each.
+
+**Adjacent verification — GS1 endpoint.** Same retest applied to `/api/v1/certificates/gs1` (the JSON-LD endpoint for Amazon Climate Pledge Friendly): Amazon key returns the same 4 Amazon-tagged certs (incl. 26-0001) in GS1 format. No leak of 26-0002 or other Partner=None certs. **GS1 endpoint is also clean.**
+
+**Net day count adjusted:** 6 new DEFs from internal QA today (not 7). DEF-205 removed from the running list. The remaining six are DEF-203, DEF-204, DEF-206, DEF-208, DEF-209, DEF-210 — all empirically verified with the correct test data.
+
+**Test artifact preserved for posterity:** `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-cert-api-adjacent.js` does the by-id/by-number probes. A corrected version would substitute 26-0002 for 26-0001 in the "should leak" cases. Same script structure, same expectations — just the choice of which cert is non-Amazon was wrong.
+
+---
+
+**Original (incorrect) write-up below for audit trail. The empirical content is preserved but the conclusion is wrong because the test cert was misidentified.**
+
+- **Date:** 2026-05-19
+- **Severity:** ~~Critical~~ (Invalid)
+- **Status:** ~~Open~~ → **Retracted same day**
+- **QC Ref:** none (internal exploratory testing — extends DEF-103 / DEF-198 / DEF-103-followup)
+- **Bucket:** Bug — partner-scoping gap
+- **Reporter:** Internal (Anuki QA)
+
+**What's wrong.** The LIST endpoint `/api/v1/certificates` correctly scopes returned certs to the calling partner's identity (Amazon caller sees only Amazon-tagged certs — verified earlier today, 4 rows, all Amazon). The SINGLE-CERT endpoints `/api/v1/certificates/{id}` and `/api/v1/certificates/number/{n}` filter by `PublicStatuses` (so Drafts are correctly hidden) but **DO NOT apply partner ownership scoping**. They return ANY publicly-visible cert to ANY partner that asks by ID or by number. Worse, the response projection (`BuildPartnerCertificateDto`) hardcodes the `partner` field to the calling partner's name, so the leaked cert appears to belong to the wrong partner in the JSON.
+
+**Empirical proof on dev:**
+
+```
+GET /api/v1/certificates/number/26-0001
+X-API-Key: gcc_partner_<Amazon test key>
+
+→ HTTP 200
+{
+  "success": true,
+  "data": {
+    "certificateNumber": "26-0001",
+    "status": "Active",
+    "partner": "Amazon",            ← LIE: actual Certificates.Partner = "None"
+    "company": "Acme Corporation",  ← LEAK: not an Amazon-partnered company
+    "productName": "Widget Pro",
+    "certificationResults": "95%",
+    "amazonCode": "greencircle_recycled_content",
+    ...
+  }
+}
+```
+
+Same result via `GET /api/v1/certificates/2` (by internal id). Cert id=2 / number 26-0001 is tagged `Partner = "None"` in the DB but the Amazon partner key returns it unconditionally.
+
+**Sanity check — by-number scoping is intact for Drafts:** `GET /api/v1/certificates/number/26-0026` (a Draft) returns 404. So the `PublicStatuses` filter IS applied. The miss is purely the partner-ownership filter.
+
+**Root cause.** Controllers/Api/v1/CertificatesController.cs single-cert endpoints (search around the `BuildPartnerCertificateDto` helper introduced 2026-04-30 per DEF-103-followup):
+
+- The LIST query in `GET /api/v1/certificates` builds `query.Where(c => c.Partner == callerPartnerName)` when the caller is a Partner.
+- The single-cert handlers fetch by id/number and check `PublicStatuses.Contains(c.Status)` for the 404 gate, then directly call `BuildPartnerCertificateDto(c)` and return. **They never check `c.Partner == callerPartnerName`.**
+- `BuildPartnerCertificateDto` hardcodes `partner = callerPartnerName` (so the field always says "Amazon" for an Amazon key, regardless of source). This is the right design for the LIST endpoint (where the scoping happens upstream) but creates a misleading payload when the upstream scoping is missing.
+
+**Why this matters / threat model.**
+
+- **Partner integrations are the primary external surface.** Amazon hits the API tens-of-thousands of times per day at scale. Any partner with a valid key can enumerate every publicly-visible cert across every company, regardless of partnership.
+- **Cert numbers are easily enumerable** — sequential `YY-NNNN` format (`26-0001`, `26-0002`, …). An Amazon ingest pipeline that retries failed by-number lookups (or builds an "is this cert valid?" probe) effectively scrapes the entire public cert table.
+- **Misleading partner attribution** — the JSON tells Amazon's downstream pipeline "this cert is yours" when it isn't. If Amazon caches by `partner` claim, the cache poisoning would attribute Acme's certs to the Amazon partnership, breaking downstream reporting/billing.
+- **Contract violation.** Per `feedback_amazon_api_immutable.md` the Partner API contract is governed by client+partner sign-off. Returning a cert outside the partner's relationship + rewriting its partner attribution is a contract break, not a minor scope deviation.
+
+**Severity rationale:** This is the same class of bug as DEF-103/DEF-198 but in the endpoints those defects didn't actually cover. The pattern is well-documented internally; the fix is well-understood; the cross-partner enumeration is the worst-case scenario for the Amazon contract. Critical.
+
+**Recommended fix.** In `Controllers/Api/v1/CertificatesController.cs`, add the same partner-ownership clause to both single-cert handlers that the list handler already uses:
+
+```csharp
+// Inside GetCertificateById / GetCertificateByNumber, after loading the cert:
+if (isPartnerCaller && !string.Equals(certificate.Partner, callerPartnerName, StringComparison.OrdinalIgnoreCase))
+{
+    return NotFound(...);  // 404 with the contract envelope shape
+}
+```
+
+Place the check between the existing `PublicStatuses` 404 gate and the call to `BuildPartnerCertificateDto`. Return 404 (not 403) — matches the existing "drafts return 404" pattern and doesn't reveal that the cert exists under a different partner.
+
+**Test plan after fix.** Re-run `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-security-confirm.js` Section [4]:
+- `GET /api/v1/certificates/number/26-0001` with Amazon key → expect 404 (was 200)
+- `GET /api/v1/certificates/2` with Amazon key → expect 404 (was 200)
+- `GET /api/v1/certificates/number/<an-actual-Amazon-cert>` with Amazon key → expect 200 (unchanged)
+- `GET /api/v1/certificates` (list) with Amazon key → expect 4 Amazon-only rows (unchanged)
+- `GET /api/v1/certificates/{id}/download` (PDF) — verify same ownership check applies there too.
+
+**Adjacent question — PDF download endpoint.** `/api/v1/certificates/{number}/download` is referenced in the `pdfDownloadUrl` field of the cert response. If that endpoint also bypasses partner-ownership (likely, given the pattern), the leak extends to the actual PDF binary. Verify and add to the same fix scope.
+
+**Files affected.**
+
+- `Controllers/Api/v1/CertificatesController.cs` — `GetCertificateById`, `GetCertificateByNumber`, and `DownloadCertificatePdf` (or equivalent name) get the partner-ownership clause.
+- No DB schema change. No view change. No JS change.
+
+---
+
+### DEF-204 — Authenticated cross-scope cert leaks: `/Certificate/ViewCertificateFile/{id}` returns any cert PDF to any logged-in user; `/Certificate/CertificateExternalView/{num}` returns cert detail page across companies
+
+- **Date:** 2026-05-19
+- **Severity:** Critical (data leak; cert PDFs from Draft/Hold/Expired states downloadable by any authenticated user; External users can read other companies' cert detail pages)
+- **Status:** Open — Anuki QA discovery 2026-05-19
+- **QC Ref:** none (internal exploratory testing — extends DEF-164)
+- **Bucket:** Bug — auth/scoping gap
+- **Reporter:** Internal (Anuki QA)
+
+**Two endpoints, same root cause.** Both check that the caller is *authenticated* but skip the next-level check on *ownership* or *publicly-visible status*. Combined into one DEF because they share the fix pattern.
+
+**1. `/Certificate/ViewCertificateFile/{id}` — PDF download bypass for authenticated users**
+
+DEF-164 added an anonymous-only gate to this endpoint (see `Controllers/CertificateController.cs:1750-1760`):
+
+```csharp
+if (User.Identity?.IsAuthenticated != true)
+{
+    var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
+    var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
+    if (!isPublicStatus || isExpired)
+    {
+        return NotFound();
+    }
+}
+// ↑ if authenticated, falls through to serve the file
+```
+
+The fix correctly blocks anonymous users from downloading non-public PDFs. But it has a `!IsAuthenticated` gate — meaning **any logged-in user, regardless of role or company, can download any cert PDF** by guessing the integer ID. Empirically verified on dev with the External (Henkel) user:
+
+```
+GET /Certificate/ViewCertificateFile/27  (Draft cert, OTHER company)
+   → 200, image/png, 151807 bytes  ← LEAK: Henkel user got a Draft PDF for a non-Henkel cert
+GET /Certificate/ViewCertificateFile/13  (Expired cert, OTHER company)
+   → 200, image/png, 151807 bytes  ← LEAK: same
+GET /Certificate/ViewCertificateFile/2   (Paid cert, OTHER company — Acme)
+   → 200, image/png, 151807 bytes  ← Arguable: Paid is publicly visible anyway
+```
+
+**Threat model:** integer IDs are sequentially enumerable, so any internal user (Analyst, External, Partner-on-web) can scrape every cert PDF in the database. External users in particular were never supposed to see non-their-company certs at all (per "External users see ONLY associated company/partner data" in CLAUDE.md), and definitely never Draft/Hold/Expired regardless of company.
+
+**2. `/Certificate/CertificateExternalView/{number}` — cross-company cert detail leak**
+
+The `CertificateExternalView` controller action (`Controllers/CertificateController.cs:93-141`) is protected by `[Authorize(Policy = "ExternalAccess")]` — gating that an External (or higher) user is logged in — but **never checks that the requested cert belongs to the caller's company**. Empirically verified:
+
+```
+External user (Henkel) GET /Certificate/CertificateExternalView/26-0001
+   → 200, 19262 bytes
+   → Body contains: "Acme Corporation", "certificate-detail", "Certification Period"
+   → ← LEAK: Henkel user got Acme's company name + cert detail page
+```
+
+The tile-view filter (`CertificateTileViewExternal`) correctly scopes to the caller's company (verified earlier today — Henkel external user sees 2 certs, both Henkel). The DETAIL endpoint doesn't apply the same filter — load by number, return whatever you find.
+
+Also: External user can hit ExternalView for a Draft cert (26-0026 returned 200 with the page chrome, although cert-specific data was empty — the controller doesn't 404 on Draft status either, returning a degraded-but-still-revealing-existence page).
+
+**Root cause pattern (same for both endpoints).** Detail endpoints filter on *one* axis (authentication for the PDF route, "is External or higher" for the ExternalView route) but skip the second axis — *ownership / status*. The list endpoints in both cases (Tile API + Tile View) apply the full scoping, so the bug is invisible until you probe the detail surface directly.
+
+**Recommended fix.**
+
+**For `ViewCertificateFile`:** Apply the same status/expiration check to *all* callers, not just anonymous ones. For authenticated External / Partner users, additionally filter by company-ownership scope (mirror `GetCurrentUserCompanyIdsAsync` from `CertificateController.cs:606-644` per the DEF-198 fix pattern). Admin and Analyst can keep the unrestricted access.
+
+```csharp
+// Updated guard (pseudocode):
+var role = GetUserRole();
+var isAdminOrAnalyst = role == "Admin" || role == "Analyst";
+
+if (!isAdminOrAnalyst)
+{
+    // 1) status gate (DEF-164, now extended to all non-admin/analyst callers)
+    var isPublic = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
+    var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
+    if (!isPublic || isExpired)
+    {
+        return NotFound();
+    }
+
+    // 2) ownership gate for External / Partner — they may only download their own company's cert PDFs
+    if (role == "External")
+    {
+        var myCompanyIds = await GetCurrentUserCompanyIdsAsync();
+        if (!myCompanyIds.Contains(certificate.CompanyId)) return NotFound();
+    }
+    else if (role == "Partner")
+    {
+        var myPartnerNames = await GetCurrentUserPartnerNamesAsync();
+        if (!myPartnerNames.Contains(certificate.Partner ?? "", StringComparer.OrdinalIgnoreCase)) return NotFound();
+    }
+}
+// authenticated as Admin/Analyst → fall through, no further checks
+```
+
+Anonymous keeps its existing branch. Logged-in users get the appropriate ownership filter for their role.
+
+**For `CertificateExternalView`:** Similar pattern. After loading the cert and BEFORE building the view model:
+
+```csharp
+var role = GetUserRole();
+if (role == "External")
+{
+    var myCompanyIds = await GetCurrentUserCompanyIdsAsync();
+    if (!myCompanyIds.Contains(certificate.CompanyId)) return NotFound();
+}
+else if (role == "Partner")
+{
+    var myPartnerNames = await GetCurrentUserPartnerNamesAsync();
+    if (!myPartnerNames.Contains(certificate.Partner ?? "", StringComparer.OrdinalIgnoreCase)) return NotFound();
+}
+
+// Additionally — gate by PublicStatuses for non-admin/analyst.
+// Drafts should never reach the External view.
+if (!isAdminOrAnalyst && !CertificateStatusHelper.IsPubliclyVisible(certificate.Status))
+{
+    return NotFound();
+}
+```
+
+**Test plan after fix.** Re-run `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-security-confirm.js` Sections [1] and [2-3]:
+
+- External (Henkel) GET PDF for Draft 26-0026 → expect 404 (was 200)
+- External GET PDF for Expired 26-0012 → expect 404 (was 200)
+- External GET PDF for Paid 26-0001 (Acme — other company) → expect 404 (was 200, technically allowed since public but doesn't pass the ownership filter)
+- External GET PDF for any of their own company's Paid certs → expect 200 (unchanged)
+- External GET ExternalView for 26-0001 (Acme) → expect 404 (was 200 with "Acme Corporation" in body)
+- External GET ExternalView for own Henkel cert → expect 200 (unchanged)
+- Anonymous GET PDF for Paid cert → expect 200 (DEF-164 path, unchanged)
+- Anonymous GET PDF for Draft → expect 404 (DEF-164 path, unchanged)
+- Admin GET PDF for any cert → expect 200 (unchanged)
+
+**Files affected.**
+
+- `Controllers/CertificateController.cs:1737-1800` — `ViewCertificateFile` gate.
+- `Controllers/CertificateController.cs:96-141` — `CertificateExternalView` ownership + status gate.
+- No DB / view / JS changes.
+
+**Adjacent surfaces to verify.** Apply the same pattern review to:
+- `CertificateInternalView` (Admin/Analyst-only via policy, probably safe but confirm)
+- `CertificateSingleView` (public — intentionally unscoped; just confirm Drafts aren't loadable here either)
+- `/Certificate/Verify/{number}` — redirects to SingleView; same scoping
+- `Edit/{number}` GET — confirm External + Partner can't GET an edit page for any cert (policy is `AnalystOrAdmin` so probably fine)
+- `Download` POST/GET on cert files — any other binary endpoints
+
+---
+
+### DEF-203 — Certificate workflow state-transition matrix is dead code: Edit POST bypasses `CertificateWorkflowService` and accepts any status change
+
+- **Date:** 2026-05-19
+- **Severity:** Major (data-integrity gap — silent business-rule bypass on every cert status change)
+- **Status:** Open — Anuki QA discovery 2026-05-19; awaiting client decision on enforce-vs-document-as-relaxed
+- **QC Ref:** none (internal exploratory testing during the post-deploy "test around every item" pass — see workflow probe at `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\workflow-transitions.js`)
+- **Bucket:** Bug — silent dead code
+- **Reporter:** Internal (Anuki QA)
+
+**What's wrong.** The 8-state lifecycle workflow has a documented allowed-transitions matrix and a service that validates against it, **but neither is invoked by the controller path that actually saves status changes.** Status field on the cert Edit form is assigned directly from posted form data, with no consultation of the matrix.
+
+**Empirical proof on dev (cert `26-0163`, started at `Draft`):**
+
+- ✓ Legal walk through all 8 states succeeded (10/10 hops, every step matched the matrix and saved): `Draft → ClientApprovedNotPaid → Confidential → Paid → Hold → Paid → Republished → Expired → Republished → ExpNoAV → Draft`. So the controller CAN save valid transitions — that's not the bug.
+- ✗ **Direct probe: `Draft → Republished`** is **NOT** in `CertificateStatusHelper.IsValidTransition()`. Forced via `POST /Certificate/Edit/{id}` carrying the full form payload with `Status` overridden to `Republished`. Server returned **HTTP 200** with redirect to `/CertificateInternalView/26-0163`. SQL read after: cert.Status = `Republished`. **No 400, no model error, no audit warning — the illegal jump was silently accepted.**
+
+Other illegal jumps that the matrix forbids but Edit POST would equally accept (logically equivalent — same code path):
+
+| Illegal jump | Why it matters |
+|---|---|
+| `Draft → Expired` | Skip approval entirely |
+| `Draft → Republished` | Cert becomes public without ever being Paid |
+| `Draft → Expired - No Annual Verification` | Land directly in a terminal state |
+| `Confidential → Republished` | Skip Paid intermediate (paid certs are the public surface) |
+| `Expired - No Annual Verification → anything except Draft` | Resurrect a terminal-state cert |
+| `Republished → Draft` | De-publish a published cert without going through Expired |
+
+These are all "matrix-allows=N" per `CertificateStatusHelper.IsValidTransition`. The Edit POST would accept any of them with the same HTTP 200 / persisted-status pattern.
+
+**Root cause (in code).**
+
+1. `Models/CertificateStatus.cs:144-160` — `IsValidTransition(fromStatus, toStatus)` is implemented and correct (per-source-state allowed-next-states dictionary).
+2. `Services/CertificateWorkflowService.cs:50-111` — `CanTransitionToStatusAsync` + `TransitionCertificateStatusAsync` correctly call `IsValidTransition` AND log to `CertificateStatusHistory` AND fire CR-015 (`SyncProductIdStatusesForCertificateAsync`) AND run `HandleStatusChangeBusinessLogic`.
+3. `Controllers/CertificateController.cs:944-954` — Edit POST handler reads the posted model, builds the certificate update, and assigns:
+   ```csharp
+   certificate.Status = model.Status ?? "Draft";
+   ```
+   Direct assignment. No matrix check. No service call. No transition audit.
+4. **`grep -rn 'TransitionCertificateStatusAsync\|CanTransitionToStatusAsync' Controllers/` returns zero results** — the service is defined and registered in DI (`Program.cs`) but never invoked from any controller path. It is fully dead code.
+
+**Secondary impacts.**
+
+- **CR-015 (Product-ID status follows cert) is also not firing on Edit-form status changes** — the cascade lives inside `TransitionCertificateStatusAsync`, which the controller bypasses. So if a cert moves from Paid → Hold via the Edit form, its associated `CertificateProductId.Status` rows stay marked Active. Their derivation is supposed to be automatic per `feedback_product_id_status_follows_cert`. Worth verifying independently.
+- **`CertificateStatusHistory` is not being written** on Edit-form transitions — the audit row insert is inside `TransitionCertificateStatusAsync` too. The audit trail the WorkflowService writes ("changed from X to Y by user N at timestamp T") is not produced. Any "who-changed-what-when" trail comes only from the generic `CreatedBy/UpdatedBy` fields on the Certificate row — which only carry the latest state, not the path.
+- **Role-restriction policy on `GetStatusesForRole` is also moot** — External users are mapped to `{Draft}` only, but External users can't reach Edit POST anyway (Edit policy is `AnalystOrAdmin`). So the role gate doesn't matter for the Edit path; the only users on this path are Analyst+, whom `GetStatusesForRole` allows all 8 for. Not a bypass per se, just dead.
+
+**Why this hasn't been noticed.**
+
+- The Status dropdown on the Edit form shows all 8 statuses to Admin + Analyst, so the UI itself doesn't visibly restrict (the matrix never gates what they're allowed to pick). A user clicking through the form sees what looks like a free-form status pick.
+- The matrix was probably added with intent to enforce in the service, then the controller path was never updated. Comments in `CertificateWorkflowService` describe it as the enforcement surface, but it's plumbed in DI without callers.
+- Smoke tests up to now hit "happy path" transitions only (Draft → Paid, Paid → Expired, etc.), which happen to all be matrix-valid. The bug only surfaces when you try an explicitly illegal jump.
+
+**Recommended fix (two options — needs client decision).**
+
+**Option A — Enforce the matrix (preferred):** In `Controllers/CertificateController.cs:944` Edit POST, when `model.Status != certificate.Status` (i.e., a transition is being attempted), route through the service:
+
+```csharp
+if (!string.Equals(model.Status, certificate.Status, StringComparison.Ordinal))
+{
+    var (ok, err) = await _workflowService.TransitionCertificateStatusAsync(
+        certificate.Id, model.Status ?? "Draft", GetCurrentUserId());
+    if (!ok)
+    {
+        ModelState.AddModelError(nameof(model.Status), err);
+        // …re-populate viewmodel + return View(model)
+    }
+}
+else
+{
+    certificate.Status = model.Status ?? "Draft";  // no-op transition, preserve current behavior for non-status edits
+}
+```
+
+This wins the matrix enforcement AND the audit row AND the CR-015 cascade in one move. Same fix on the Create POST if a non-Draft initial status is ever allowed for Admin/Analyst (currently `GetCreationStatuses` returns only `Draft`, so probably not needed there).
+
+**Option B — Decide the matrix is informational, delete dead code:** Strip `CertificateStatusHelper.IsValidTransition`, `CertificateWorkflowService.CanTransitionToStatusAsync`, `CertificateWorkflowService.TransitionCertificateStatusAsync`, the audit-log + business-logic blocks inside them, and the DI registration. State the relaxation explicitly in the requirements doc ("Admin and Analyst can change a cert to any status at any time; no transition matrix is enforced"). Saves carrying ~150 lines of unused code that future maintainers will assume is wired up.
+
+**Anuki recommendation:** Option A. The comment in `CertificateWorkflowService:11-12` ("Enforces business rules for certificate lifecycle management") and the existence of `CertificateStatusHistory` table strongly suggest the original design intent. The matrix is also reasonably permissive — most realistic forward-progression paths are allowed; only "skip steps" jumps are blocked. Enforcing it doesn't restrict day-to-day analyst work, but does prevent the worst cases (skipping approval, resurrecting terminal states, de-publishing without an Expired waypoint).
+
+**Files affected if Option A.**
+
+- `Controllers/CertificateController.cs:944` — route status changes through `_workflowService.TransitionCertificateStatusAsync()` instead of direct assignment.
+- Inject `ICertificateWorkflowService` into `CertificateController` constructor.
+- (Optional) Surface the error from a rejected transition in the form's validation summary so the user sees "Cannot transition from Republished to Draft — must go through Expired first" rather than a generic save error.
+
+**Test plan after fix.**
+
+- Reuse `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\workflow-transitions.js` (the same script that found this) — re-run, expect `[A]` to still pass (legal walk) AND `[B]` invalid attempts to ALL be rejected (cert state preserved at "from").
+- Sample at least one of: `Draft → Expired`, `Republished → Draft`, `ExpNoAV → Republished`, `Confidential → Republished`. All must return HTTP 4xx or save with `Status` unchanged.
+- Verify `CertificateStatusHistory` gets a row per legal transition (audit trail intact).
+- Verify product-ID cascade fires per CR-015 (legal status change of cert with product-IDs flips child rows).
+
+**Build.** No code changes in this DEF — discovery / writeup only. Tree is clean.
+
+---
+
 ### DEF-202 — Cert import template enum hint; breadcrumb rename; public custom-field rendering; product-ID import SKU column; Product Mgmt export Name/SKU/Partner columns
 
 - **Date:** 2026-05-19

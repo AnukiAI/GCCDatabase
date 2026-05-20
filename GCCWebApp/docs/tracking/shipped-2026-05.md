@@ -6,6 +6,55 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## QC #170 / DEF-196 + DEF-197 — deployed to gccwebapp.com and end-to-end verified against live data (2026-05-19, live)
+
+Both fixes from the 5/15 working-tree entries below ([[DEF-196]] cert-aware delete pre-check + specific error messages, [[DEF-197]] hash-set rollup dedupe) are live on gccwebapp.com today. End-to-end verification ran against the production-DB-backed test environment using existing real subcategory rows — no test data was created on prod. The SQL FK constraint (`OnDelete.Restrict`) is the backstop, so even if the new pre-check were missing, the delete would still be blocked at the DB layer; nothing actually deletes on these probes.
+
+All branches of the new logic produced the expected specific-message response:
+
+| Subject | Cells (Product / Cert) | Branch fired | Server response |
+|---|---|---|---|
+| LDPE (id=47, Plastics → subcategory) | 0 / 1 | cert-only blocker | *"Cannot delete: 1 certificate(s) use this subcategory. Edit those certificates to use a different subcategory first, then try again."* |
+| PET (id=49, Plastics → subcategory) | 0 / 1 | cert-only blocker | *"Cannot delete: 1 certificate(s) use this subcategory. Edit those certificates to use a different subcategory first, then try again."* |
+| HDPE (id=46, Plastics → subcategory) | 5 / 2 | product blocker (fires before cert check by design) | *"Cannot delete: 5 product(s) are assigned to this item. Please reassign them first."* |
+| Plastics (id=4, type with children) | 5 / 4 | child-rows blocker | *"Cannot delete: This item has 6 subcategories. Please delete or move them first."* |
+
+Pre-fix all four would have returned *"An error occurred while deleting. Please try again."*
+
+**Usage column also confirmed populated correctly on prod.** LDPE row reads `Products=0, Certificates=1`; HDPE reads `Products=5, Certificates=2`; Plastics rolls up `Products=5, Certificates=4`. Pre-fix all of these would have read `0` in the Certificates column since the old code only saw Products via the `ProductType.Products` navigation.
+
+**Localhost-side reproduction of the client's exact 5/15 scenario** ran in parallel before the deploy: created `Carly Test` category + `Carly Test Type` on dev DB, tagged cert `26-0001`, exercised the new error path, confirmed the message text, and cleaned up via idempotent SQL scripts (`Scripts/smoke-prod/qc170-setup.sql` and `qc170-cleanup.sql`). Dev DB restored to original state. No prod data was mutated.
+
+**Sub-issue 3 from the QC #170 retest** ("Edit dropdown only shows my test options") confirmed working as designed — cascading Category→Type filter, not a code defect. Addressed in the response to client as workflow guidance: change Category at the top of the cert Edit form first, which repopulates the Type dropdown with that category's real types. If this confuses the client repeatedly post-launch, follow-up is a UX hint under the Type dropdown rather than removing the cascade.
+
+**Side-finding (not QC #170, flagged for separate ticket):** The cert Edit form overwrites the saved `Certificate.ProductCategoryId` with the linked `Product.CategoryId` on initial load — visible when a cert's saved category differs from its product's category. Outside QC #170 scope but worth a defect row if it keeps surfacing. No code change today.
+
+**Client-facing reply drafted and approved for send** — see [[qc170-localhost-validation-2026-05-19]] for the draft body and full screenshot inventory. Reply asks the client to retest on gccwebapp.com and confirms cleanup of the "Carly Test" / "Carly Test Type" rows can be done by either side after retest.
+
+Verification artifacts:
+
+- `Scripts/smoke-prod/screenshots/qc170-prod-leaf-2026-05-19T23-00-07/` — live gccwebapp.com screenshots: LDPE row showing populated Certificates count, confirm modal, new error modal text
+- `Scripts/smoke-prod/screenshots/qc170-prod-2026-05-19T22-58-53/` — full `/Admin/ProductTypes` table snapshot post-deploy and direct-API response for Plastics (child-rows branch)
+- `Scripts/smoke-prod/screenshots/qc170v5-2026-05-19T21-03-00/` — localhost end-to-end against the Carly Test scenario
+- Playwright scripts: `qc170-walkthrough-v5.js` (localhost flow), `qc170-prod-verify.js` (prod read-only check), `qc170-prod-leaf.js` (targeted leaf-subcategory probe)
+- SQL setup/cleanup: `qc170-setup.sql`, `qc170-cleanup.sql`
+
+Closes QC #170 pending client retest on gccwebapp.com.
+
+---
+
+## DEF-207 — Mobile Cert Create page: stale "Certificate created successfully!" toast on direct nav (2026-05-18, in working tree pending deploy)
+
+**Reported by Shawn during mobile testing on live gccwebapp.com.** Navigating to `/Certificate/Create` on a real mobile device fired a green "Certificate XX-XXXX created successfully!" popup before the analyst had entered any data. Confusing for users — looks like a successful save just happened when it didn't.
+
+**Root cause** is a browser-cache replay, not a server bug. After a "Save & Add Another" submit, the redirected Create page legitimately includes an inline `<script>` that pulls `TempData["SuccessMessage"]` and shows the toast. Mobile Safari (and to a lesser extent Android Chrome) then caches the rendered HTML — including that inline script — in the back-forward / disk cache. The next direct navigation to `/Certificate/Create` serves the cached page and the `DOMContentLoaded` handler re-fires the old success notification, even though server-side TempData has been cleared.
+
+**Fix.** Added a `sessionStorage` guard keyed by the message string. First render stamps the key and shows the toast; cached replays see the key and silently skip. Try/catch ensures private-browsing modes still show the toast once (no regression). One file touched: `Views/Certificate/Create.cshtml`.
+
+Edit page (`Views/Certificate/Edit.cshtml`) checked — does not have the same inline-script pattern, no parallel fix needed.
+
+---
+
 ## DEF-202 — Cert import template enum hint, breadcrumb rename, public custom-field rendering, product-ID preview SKU column, Product Mgmt export Name/SKU/Partner (QC #148 + #104 + #118 + #179 + #184, 2026-05-19, in working tree pending deploy)
 
 Five small client-asked corrections bundled into one deploy.

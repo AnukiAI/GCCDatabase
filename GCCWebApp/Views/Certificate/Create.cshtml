@@ -46,9 +46,17 @@
     @if (TempData["SuccessMessage"] is string successMsg)
     {
         <script>
+            // Guard against mobile bfcache / disk-cache re-firing this toast on subsequent
+            // direct loads of /Certificate/Create after a "Save & Add Another" submit.
             document.addEventListener('DOMContentLoaded', function() {
+                var msg = '@Html.Raw(successMsg.Replace("'", "\\'"))';
+                var seenKey = 'createSuccessMsg:' + msg;
+                try {
+                    if (sessionStorage.getItem(seenKey)) return;
+                    sessionStorage.setItem(seenKey, '1');
+                } catch (e) { /* sessionStorage unavailable — fall through and show once */ }
                 if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
-                    AdminCore.showNotification('@Html.Raw(successMsg.Replace("'", "\\'"))', 'success');
+                    AdminCore.showNotification(msg, 'success');
                 }
             });
         </script>

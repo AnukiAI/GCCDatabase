@@ -18,6 +18,117 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-213 — Cert Edit page: external/internal tag chips render close button as mojibaked `Ã—` instead of `×`
+
+- **Date:** 2026-05-20
+- **Severity:** Low (cosmetic, but obvious garbled text where a close button should be)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **QC Ref:** none (internal find — Shawn, while reviewing prod cert 26-0004 Edit page, 2026-05-20)
+- **Bucket:** Bug — encoding / display
+- **Reporter:** Internal (Shawn, 2026-05-20, screenshot of `https://gccwebapp.com/Certificate/Edit/26-0004` External Tags area)
+
+**What's wrong.** On `/Certificate/Edit/<id>`, any cert with existing external or internal tags (e.g. LEED, APR) renders the tag's close button as literal text `Ã—` instead of `×`. The text appears next to the tag name inside the green chip — looks like the tag name itself is corrupted, which is why Shawn flagged "APR and LEED has special characters displaying."
+
+**Root cause.** `Views/Certificate/Edit.cshtml` lines 1031 and 1059 — the close-button glyph was stored as the mojibake sequence `Ã—` (UTF-8 bytes for `×` interpreted as Windows-1252 and then re-saved as UTF-8). Browser correctly displays the literal `Ã—` characters that are actually in the file. The equivalent code in `wwwroot/js/certificate-create.js:409` uses the unicode `×` correctly; only the existing-tag rehydration path in `Edit.cshtml` had the corrupted bytes.
+
+Tag names themselves in the DB are clean ASCII ("LEED", "APR") — the corruption was purely in the close-button literal, but it sits visually adjacent to the tag name inside the same chip so it reads as if the tag is broken.
+
+**Fix.** Replaced both `Ã—` instances with the HTML entity `&times;` (encoding-safe, matches the convention already used in `wwwroot/js/certificate-tile-view.js`, `certificate-tile-view-internal.js`, `certificate-tile-view-external.js`).
+
+**Files:** `Views/Certificate/Edit.cshtml` (lines 1031, 1059). No JS, CSS, controller, or DB changes.
+
+**Test plan after deploy.** Open `/Certificate/Edit/26-0004` (or any cert with at least one external or internal tag). Each rehydrated tag chip should show its name followed by a clean `×` close button. Removing a tag and re-adding it should not regress (the add path already used the correct character via `certificate-create.js`).
+
+Regression risk: zero. Two-line literal-text swap; no logic change.
+
+---
+
+### DEF-212 — SearchableSelect: re-focusing a populated autocomplete shows only the already-selected option, blocking quick re-selection
+
+- **Date:** 2026-05-20
+- **Severity:** Medium (UX) — High for Country (197 options collapse to 1; effectively unusable for change-after-pick)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **QC Ref:** none (internal find — Shawn, post-deploy probing of `testtest` Product Category on prod, 2026-05-20)
+- **Bucket:** Bug — front-end component
+- **Reporter:** Internal (Shawn, 2026-05-20)
+
+**What's wrong.** The `SearchableSelect` component (`wwwroot/js/searchable-select.js`) wraps a native `<select>` with a type-ahead autocomplete: hidden underlying select, visible text input, dropdown of matching items. After the user picks an option (say `testtest` for Product Category, or `United States` for Country), the input text is set to the chosen value. Clicking *back* into the input — the universal "let me see my other choices" gesture — re-runs the focus handler, which calls `renderOptions(this.value)`. The filter is now the chosen text ("testtest", "United States"), so the dropdown collapses to the single already-selected option. Users have to triple-click and Delete the input text before the rest of the list re-appears, which is non-obvious enough that the field appears broken.
+
+**Scope.** Every `SearchableSelect` instance on the app — six fields total across Create and Edit cert forms:
+
+| Form | Field | Underlying options | Shown on re-click |
+|---|---|---|---|
+| Create | Product Category | 12 | 1 (collapsed to current pick) |
+| Create | Certification Type | 19 | 1 |
+| Create | Country | 198 | 1 |
+| Edit | Product Category | 12 | 1 |
+| Edit | Certification Type | 19 | 1 |
+| Edit | Country | 198 | 1 |
+
+Native `<select>` dropdowns on the same forms (Company, Product, Status, Partner, Pathway, Tags, Product Type / Subcategory cascades) are unaffected — browser-native dropdowns always show all options on click regardless of the underlying value.
+
+**Why this matters for [[DEF-196]] / QC #170.** Carly's sub-issue 3 — *"only my test options show in the dropdown"* — was originally triaged as cascading-filter-working-as-designed. Probing prod cert 26-0163 (Category = "Carly Test") confirmed the Category SearchableSelect collapses to `["Carly Test", "Carly Test Type"]` on re-click. So her experience was **two compounding problems**: (a) the cascading Type filter (working as designed) AND (b) this SearchableSelect re-focus bug (real defect). The DEF-196 fix already addressed the count/delete-error half of #170; this fix closes the dropdown half. The 5/19 reply to client should be amended to mention this second factor.
+
+**Root cause.** `wwwroot/js/searchable-select.js:189-193` — the `focus` handler passed the input's current value as the filter to `renderOptions(this.value)`. Standard autocomplete pattern (Select2, react-select, browser-native datalist) is to show the full list on focus and let typing re-filter; the existing `this.select()` line already highlights the input text so typing replaces it cleanly.
+
+**Fix.** One line in `wwwroot/js/searchable-select.js`:
+
+```diff
+ input.addEventListener('focus', function () {
+-    renderOptions(this.value);
++    renderOptions('');           // show full list on focus; typing re-filters via 'input' handler
+     showDropdown();
+     this.select();
+ });
+```
+
+The `input` handler (line 179) still calls `renderOptions(this.value)` so typing filters in real time. The `keydown` ArrowDown branch (line 200) was already passing the current value as filter, which is correct behavior for keyboard navigation within an active filter — left unchanged.
+
+**Test plan after deploy.** On `/Certificate/Create` and `/Certificate/Edit/<cert>`, for each of (Product Category, Certification Type, Country):
+
+1. Pick any non-empty option
+2. Click back into the field — full option list should appear
+3. Type any substring — list should re-filter as you type
+4. Press Escape — should restore the previously-selected text in the input
+
+Regression risk: low. Single-line change, scoped to focus event; no behavior change for the `input`, `keydown`, or outside-click handlers. Worst case it does not break anything; in the absolute worst case rolling back is one line.
+
+**Related / follow-up.** Side-finding from yesterday's QC #170 validation — the Edit form's cascading dropdowns also auto-overwrite the cert's saved `ProductCategoryId` with the linked `Product.CategoryId` on initial load. Separate defect, not addressed here. Will get its own DEF row if/when prioritized.
+
+**Files:** `wwwroot/js/searchable-select.js`. No backend changes. No database changes.
+
+---
+
+### DEF-211 — Breadcrumb on Companies & Products pages wrongly nested under "Administration"
+
+- **Date:** 2026-05-19
+- **Severity:** Low (cosmetic / IA correctness)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **QC Ref:** #104 (5/1 follow-up — second half not covered by DEF-202)
+- **Bucket:** UX — information architecture
+- **Reporter:** Client (Carly, 5/1)
+
+**What's wrong.** Company Management and Product Management pages rendered breadcrumb trail `Administration › Companies & Products › <page>`. In `_Layout.cshtml`, "Companies & Products" and "Administration" are **sibling top-level nav items** — Companies & Products is not a child of Administration — so the "Administration ›" prefix mis-described the site IA.
+
+**Why DEF-202 didn't close this.** DEF-202 addressed two of the three components of QC #104 (the Companies → Company Management parity rename, and the Admin Dashboard "needs-no-action" because the standalone Admin Dashboard page was deleted 2026-05-01). The third component — bogus "Administration" prefix on Companies & Products pages — was not touched. Client flagged it again on 5/1: *"You are also showing 'Administration' under the Companies & Products which is not correct - its unrelated to this based on nav structure."*
+
+**Fix.** Removed the leading "Administration ›" segment from the breadcrumb in:
+
+- `Views/Company/Index.cshtml` — now `Companies & Products › Company Management`
+- `Views/Product/Management.cshtml` — now `Companies & Products › Product Management`
+
+Kept the comment explaining why so the next person editing these doesn't re-introduce the nesting.
+
+**Not touched (deliberate).**
+
+- `Views/Product/ManagementAlt.cshtml`, `Views/Product/ManagementV2.cshtml` — alternate/dead view files; left as-is to avoid touching code that may not ship.
+- Admin views — `<span>Administration</span>` stays as the top of the trail on Admin pages because Admin pages ARE under the Administration nav dropdown. Already non-clickable (verified across all 14 Admin views).
+- Breadcrumb `<nav>` in `_Layout.cshtml:299` is gated `role-admin-show` so Analyst users never see breadcrumbs even on Companies & Products pages. Flagged as a separate concern, not addressed here.
+
+**Test plan after deploy.** Log in as Admin, navigate to Company Management — breadcrumb reads `Companies & Products › Company Management` (no "Administration"). Same check on Product Management. Admin pages (User Management, Roles, etc.) still read `Administration › <page>`.
+
+---
+
 ### DEF-210 — No login rate-limit / account lockout: unlimited password-guess attempts against any account
 
 - **Date:** 2026-05-19
@@ -187,7 +298,7 @@ Move the email send to a background queue (Hangfire / Channel / `Task.Run(...)` 
 
 - **Date:** 2026-05-19
 - **Severity:** Critical (anonymous bulk leak of all uploaded cert files; bypasses DEF-164 entirely)
-- **Status:** Open — Anuki QA discovery 2026-05-19
+- **Status:** **Open — VERIFIED LIVE ON PROD gccwebapp.com 2026-05-19.** Real prod URL `https://gccwebapp.com/uploads/images/26-0163_thumb_20260511_122453.png` returned 200 image/png to anonymous (no cookies, no API key, no Basic Auth challenge for /uploads/* once you're past the gate). Filename was extracted from the cert detail page rendered HTML (`<img src="/uploads/images/...">`) so attackers don't need to brute-force timestamps — they're embedded in the page source for any user with detail-page access, who can then share the URL with unauthenticated viewers.
 - **QC Ref:** none (internal exploratory testing — extends DEF-164 + DEF-204 surface audit)
 - **Bucket:** Bug — auth/scoping gap (static-file path)
 - **Reporter:** Internal (Anuki QA)
@@ -301,7 +412,7 @@ Combine C with A: random filenames AND middleware block. Best defense-in-depth.
 
 - **Date:** 2026-05-19
 - **Severity:** Critical (multi-tenant data leak; internal field exposure; bypasses the role-gated tile view scoping)
-- **Status:** Open — Anuki QA discovery 2026-05-19
+- **Status:** **Open — VERIFIED LIVE ON PROD gccwebapp.com 2026-05-19.** External user (Henkel-mapped) GET `/api/CertificatesApi?pageSize=50` on prod returned **36 certs across 29 distinct companies**. Dev had 43 / 10+ — prod has fewer certs but spread across more tenants, so cross-company leak is actually BROADER on prod.
 - **QC Ref:** none (internal exploratory testing — same root-cause class as DEF-204 / DEF-205, applied to a different controller)
 - **Bucket:** Bug — auth/scoping gap
 - **Reporter:** Internal (Anuki QA)
@@ -576,7 +687,7 @@ Place the check between the existing `PublicStatuses` 404 gate and the call to `
 
 - **Date:** 2026-05-19
 - **Severity:** Critical (data leak; cert PDFs from Draft/Hold/Expired states downloadable by any authenticated user; External users can read other companies' cert detail pages)
-- **Status:** Open — Anuki QA discovery 2026-05-19
+- **Status:** **Open — VERIFIED LIVE ON PROD gccwebapp.com 2026-05-19.** External user GET `/Certificate/CertificateExternalView/26-0163` on prod returned 200 OK with full 19899-byte cert detail body (certificate-detail block + Certification Period present). Whether 26-0163 belongs to Henkel was not separately probed — but the endpoint accepts the request regardless of ownership, which is the gap.
 - **QC Ref:** none (internal exploratory testing — extends DEF-164)
 - **Bucket:** Bug — auth/scoping gap
 - **Reporter:** Internal (Anuki QA)

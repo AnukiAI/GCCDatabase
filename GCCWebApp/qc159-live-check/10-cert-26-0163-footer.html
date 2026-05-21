@@ -1,0 +1,13 @@
+<div class="admin-modal-footer" style="background-color: #f8f9fa; border-top: 2px solid #e9ecef; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 0 0 8px 8px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <label id="overwrite-existing-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin: 0; padding: 6px 12px; border: 1px solid #f0ad4e; background: #fff8e6; border-radius: 16px; color: #8a5a00;" title="When checked: this import file is the new full list. Existing Product IDs not in the file will be deactivated. When unchecked (default): rows in the file are added or updated; nothing is deactivated.">
+                        <input type="checkbox" id="overwrite-existing-toggle" style="margin: 0px;">
+                        <i class="fas fa-exchange-alt" aria-hidden="true" style="font-size: 12px;"></i>
+                        <span>Replace all existing IDs with this file</span>
+                    </label>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary me-2" onclick="productIdManager.closeImportPreviewModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="apply-import-btn" onclick="productIdManager.applyImport()" disabled=""><i class="fas fa-check me-1"></i> Apply Import</button>
+                </div>
+            </div>

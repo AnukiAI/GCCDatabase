@@ -1,0 +1,2038 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style id="inline-validation-styles">
+                .inline-validation-error {
+                    display: block;
+                    margin-top: 8px;
+                    padding: 0;
+                }
+                .form-group.has-error label {
+                    color: #FF5252;
+                }
+            </style></head><body class="theme-option4 role-analyst role-admin"><input name="__RequestVerificationToken" type="hidden" value="CfDJ8CvW3tQN-DlFnCr2tFGIRBOCKMBmljmoSVru6E45bBtqgfKLx9mBZ9KDw6kXDFwqRmKCEXeiQ4nelhxOVdZ2q3As4o4GTL5gWRi7M7cpvwUi_d0u6H7wjcTRE2YbAzZ5b3DFamu7TLPXLljMj66HXvYvU_iv_u7zMIqUSlqXiLm8k__DjR9MBrxBmJ4LBlli1Q" style="">
+    <meta name="x-remember-me" content="false">
+    <title>Edit Certificate - GreenCircle Certified Database</title>
+
+    <!-- FontAwesome Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" rel="stylesheet" crossorigin="anonymous">
+
+    <!-- Preload critical icon fonts -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/webfonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
+    <!-- Unified CSS -->
+    <link href="/css/main.css" rel="stylesheet">
+
+    <!-- Admin Tables - Unified styling for all admin page tables -->
+    <link href="/css/admin-tables.css" rel="stylesheet">
+
+    <!-- Admin Core & Modals - Required for AdminCore notifications -->
+    <link href="/css/admin/admin-core.css" rel="stylesheet">
+    <link href="/css/admin/admin-modals.css" rel="stylesheet">
+
+    <!-- Unified Component System (standardized buttons, modals, layouts) -->
+    <link href="/css/unified-components.css" rel="stylesheet">
+
+    <!-- Accessibility Enhancements - Low Priority Fixes (WCAG 2.1 Level AA) -->
+    <link href="/css/accessibility-enhancements-low-priority.css" rel="stylesheet">
+
+    <!-- Component-specific CSS loaded per page -->
+    
+    <link href="/css/admin/admin.css" rel="stylesheet">
+    <link href="/css/admin/admin-mockup-override.css" rel="stylesheet">
+    <link href="/css/certificate-create.css?v=WlUgj34PXG4byhnEg3hg74aml6F2r20EYhuVMQAnocY" rel="stylesheet">
+    <link href="/css/product-id-manager.css?v=2k7vQA_X7MLh_FpsRZ6JVAf4l4VVX2yF4gSqB_APGx0" rel="stylesheet">
+    <link href="/css/admin/admin-inline-editing.css" rel="stylesheet">
+
+
+            <!-- Google Analytics 4 -->
+            <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-16J12CPD8S"></script>
+            <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+
+                var config = { anonymize_ip: true, };
+                gtag('config', 'G-16J12CPD8S', config);
+            </script>
+
+
+    <!-- Skip to main content link for keyboard navigation -->
+    <a href="#main-content" class="admin-sr-only skip-to-main">Skip to main content</a>
+
+        <div role="status" aria-label="Test environment notice" style="background: #c0392b; color: #fff; text-align: center; padding: 6px 12px; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; border-bottom: 2px solid #8e2b22;">
+            TEST ENVIRONMENT — data shown here reflects production records; do not share this URL publicly.
+        </div>
+
+    <!-- Header -->
+    <header class="header">
+        <!-- Top bar with user controls -->
+        <div class="header-top">
+            <div class="logo-text"></div>
+            <div class="user-controls">
+                    <div class="user-profile">
+                        <span class="user-name">analyst</span>
+                        <div class="user-dropdown">
+                            <a class="dropdown-item" href="/Account/TwoFactorPreferences">
+                                <i class="fas fa-shield-alt"></i> 2FA Settings
+                            </a>
+                            <form method="post" id="logoutForm" class="logout-form" action="/Account/LogoutPost">
+                                <button type="submit" class="dropdown-item logout-button">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </button>
+                            <input name="__RequestVerificationToken" type="hidden" value="CfDJ8CvW3tQN-DlFnCr2tFGIRBOCKMBmljmoSVru6E45bBtqgfKLx9mBZ9KDw6kXDFwqRmKCEXeiQ4nelhxOVdZ2q3As4o4GTL5gWRi7M7cpvwUi_d0u6H7wjcTRE2YbAzZ5b3DFamu7TLPXLljMj66HXvYvU_iv_u7zMIqUSlqXiLm8k__DjR9MBrxBmJ4LBlli1Q" style=""></form>
+                        </div>
+                    </div>
+            </div>
+        </div>
+
+        <!-- Middle section with logo and branding - Always Option 4 -->
+        <div class="header-middle header-option4">
+            <div class="page-container">
+                <a href="/" class="logo-area" style="text-decoration: none; color: inherit;">
+                    <div class="logo-img">
+                        <img src="/img/gcclogo.png" alt="GreenCircle Certified Logo" class="main-logo">
+                    </div>
+                    <div class="logo-text-group">
+                        <div class="logo-text">GreenCircle Certified Database</div>
+                        <div class="logo-subtext">
+                            Browse the directory to access active GreenCircle certifications.
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Navigation wrapper - Hidden on mobile for anonymous users (no nav items to show) -->
+        <div class="nav-wrapper ">
+            <nav class="main-nav" aria-label="Main navigation">
+                <div class="mobile-toggle" id="mobile-toggle" role="button" aria-label="Open navigation menu" tabindex="0">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
+                </div>
+                <ul class="nav-links">
+                    <li class="mobile-nav-close-item">
+                        <button class="mobile-nav-close" id="mobile-nav-close" title="Close navigation menu" aria-label="Close navigation menu">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </li>
+
+                            <!-- Analyst & Admin Navigation Items -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="/Certificate/CertificateTileViewInternal">
+                                    Certificates
+                                </a>
+                            </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/Dashboard">
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">
+                                Companies &amp; Products
+                                <i class="fas fa-chevron-down dropdown-icon"></i>
+                            </a>
+                            <div class="submenu">
+                                <a href="/Company/Index">
+                                    Companies
+                                </a>
+                                <a href="/Product/Management">
+                                    Products
+                                </a>
+                            </div>
+                        </li>
+
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Breadcrumbs - Only visible for Admin role -->
+    <nav class="breadcrumbs role-element role-admin-show" aria-label="Breadcrumb">
+        <div class="breadcrumb-wrapper">
+            
+    <span class="role-element role-analyst-show role-admin-show">
+        <a href="/">Home</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span>Administration</span>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="/Certificate/CertificateTileViewInternal">Certificate Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Edit Certificate 26-0163</span>
+    </span>
+
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main id="main-content" class="main-content">
+        <div class="page-container">
+            <div class="page-header">
+                <h1 class="page-title">Edit Certificate</h1>
+                <div class="page-actions">
+                    
+                </div>
+            </div>
+            
+
+
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <h1 class="admin-page-title">Edit Certificate</h1>
+                <p class="admin-page-subtitle">Edit certificate 26-0163 in the GreenCircle Certified database</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <a href="/Certificate/CertificateTileViewInternal" class="admin-btn admin-btn--secondary">
+                        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Management
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="admin-content">
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate="novalidate" id="certificateEditForm" action="/Certificate/Edit/26-0163">
+            <div class="alert alert-danger validation-summary-valid" data-valmsg-summary="true"><ul><li style="display:none"></li>
+</ul></div>
+            <input data-val="true" data-val-required="The Id field is required." id="Id" name="Id" type="hidden" value="76" style="">
+
+            <div class="form-section-header">
+                <i class="fas fa-file-certificate"></i>
+                <span>Certificate Information</span>
+            </div>
+
+            <div class="form-grid">
+                <div class="main-form">
+                    <!-- Company Section -->
+                    <div class="form-group">
+                        <label for="CompanyId">Company <span class="text-danger" aria-label="required">*</span></label>
+                        <div class="custom-dropdown-wrapper" style="position: relative; width: 100%;"><div class="custom-dropdown-trigger" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid rgb(206, 212, 218); border-radius: 4px; background: white; cursor: pointer; font-size: 14px; min-height: 40px; transition: border-color 0.2s;">
+            <span class="custom-dropdown-selected" style="color: rgb(51, 51, 51);">3M</span>
+            <i class="fas fa-chevron-down" style="color: #6c757d; font-size: 12px; transition: transform 0.2s;"></i>
+        </div><div class="custom-dropdown-panel" style="position: absolute; top: 100%; left: 0px; right: 0px; z-index: 1000; background: white; border-width: medium 1px 1px; border-style: none solid solid; border-color: currentcolor rgb(206, 212, 218) rgb(206, 212, 218); border-image: initial; border-radius: 0px 0px 4px 4px; box-shadow: rgba(0, 0, 0, 0.15) 0px 4px 12px; max-height: 350px; display: none;"><div style="padding: 8px 12px; border-bottom: 1px solid rgb(233, 236, 239);"><input type="text" class="custom-dropdown-search" placeholder="Search company..." autocomplete="off" style="width: 100%; padding: 8px 12px; border: 1px solid rgb(206, 212, 218); border-radius: 4px; font-size: 14px; outline: none;"></div><div class="custom-dropdown-options" style="max-height: 250px; overflow-y: auto; padding: 8px 0px;"></div><div class="custom-dropdown-footer" style="padding: 12px 16px; border-top: 1px solid rgb(233, 236, 239); background: rgb(250, 250, 250);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: #92C83E; font-size: 18px; font-weight: bold;">+</span>
+                <input type="text" class="custom-dropdown-add-input" placeholder="Enter company name" style="flex: 1 1 0%; padding: 8px 12px; border: 1px solid rgb(206, 212, 218); border-radius: 4px; font-size: 14px; outline: none;">
+                <button type="button" class="custom-dropdown-add-btn" style="padding: 8px 16px; background: #92C83E; color: white; border: none; border-radius: 4px; font-size: 14px; font-weight: 500; cursor: pointer;">
+                    Add
+                </button>
+            </div>
+            <div class="custom-dropdown-error" style="display: none; color: #dc3545; font-size: 12px; margin-top: 6px; padding-left: 26px;"></div>
+        </div></div><select class="form-control" required="" aria-required="true" data-val="true" data-val-required="The Company field is required." id="CompanyId" name="CompanyId" data-custom-dropdown-init="true" style="position: absolute; opacity: 0; height: 0px; width: 0px; overflow: hidden; pointer-events: none;">
+                            <option value="">Select a company...</option>
+                                    <option value="131" selected="selected">3M</option>
+                                    <option value="3">Acme Corporation</option>
+                                    <option value="104">Alcon</option>
+                                    <option value="227">Amazon</option>
+                                    <option value="197">Amazon Devices</option>
+                                    <option value="12">Armstrong World Industries</option>
+                                    <option value="237">Asphalt System, Inc.</option>
+                                    <option value="94">ASR Group</option>
+                                    <option value="1">ASSA ABLOY Access &amp; Egress Hardware Group, Inc. - Corbin Russwin Division</option>
+                                    <option value="111">Audubon Metals</option>
+                                    <option value="187">Balcan Innovations</option>
+                                    <option value="176">Belkin</option>
+                                    <option value="135">Block Square</option>
+                                    <option value="183">Blue Polymer</option>
+                                    <option value="228">Braun</option>
+                                    <option value="194">Brava Tile</option>
+                                    <option value="37">Brewer Science</option>
+                                    <option value="62">Burt’s Bees</option>
+                                    <option value="258">Carly Test</option>
+                                    <option value="66">Cascades</option>
+                                    <option value="80">CertainTeed</option>
+                                    <option value="14">CertainTeed Corporation</option>
+                                    <option value="250">CertainTeed Insulation Group</option>
+                                    <option value="98">Charter Next Generation</option>
+                                    <option value="115">Clover Environmental Solutions, LLC</option>
+                                    <option value="245">Clover Imaging Group</option>
+                                    <option value="30">Coca-Cola Beverages Florida, LLC</option>
+                                    <option value="90">Colgate-Palmolive</option>
+                                    <option value="31">Comcast</option>
+                                    <option value="262">Company Symbol Test é™®ä</option>
+                                    <option value="238">Copper Development Association</option>
+                                    <option value="232">Cox Automotive</option>
+                                    <option value="235">Cox Communications</option>
+                                    <option value="82">COX Enterprises</option>
+                                    <option value="28">Cree Lighting</option>
+                                    <option value="247">CURRIES, an ASSA ABLOY Group Company</option>
+                                    <option value="129">DATA4</option>
+                                    <option value="181">DePuy</option>
+                                    <option value="53">Domtar</option>
+                                    <option value="43">Dormakaba</option>
+                                    <option value="45">Dow</option>
+                                    <option value="143">DUDE Products</option>
+                                    <option value="231">DUDE Wipes</option>
+                                    <option value="55">DuPont</option>
+                                    <option value="119">earth rated</option>
+                                    <option value="7">EcoFlex Manufacturing</option>
+                                    <option value="78">Electrolux</option>
+                                    <option value="217">ePac Flexible Packaging</option>
+                                    <option value="249">Esko Graphics BV</option>
+                                    <option value="200">Estee Lauder Companies</option>
+                                    <option value="241">Everrank Inc.</option>
+                                    <option value="139">First Quality</option>
+                                    <option value="22">Forbo Flooring Systems</option>
+                                    <option value="8">GAF Materials Corporation</option>
+                                    <option value="39">General Mills</option>
+                                    <option value="234">General Mills, Inc.</option>
+                                    <option value="168">Geomagworld</option>
+                                    <option value="236">Glad</option>
+                                    <option value="4">Globex Industries</option>
+                                    <option value="2">Green Products Inc. - Environmental Division</option>
+                                    <option value="239">Greenfield Natural Meat Co.</option>
+                                    <option value="164">Gunnebo Entrance Control</option>
+                                    <option value="242">Gunnebo Entrance Control Ltd.</option>
+                                    <option value="155">Haleon</option>
+                                    <option value="166">HanesBrands</option>
+                                    <option value="233">HanesBrands Inc.</option>
+                                    <option value="145">Henkel</option>
+                                    <option value="19">Herman Miller Inc.</option>
+                                    <option value="243">HID Global</option>
+                                    <option value="137">HP</option>
+                                    <option value="17">Hunter Douglas</option>
+                                    <option value="230">IB Roof Systems</option>
+                                    <option value="70">ILFI</option>
+                                    <option value="47">Interface</option>
+                                    <option value="203">JohnPi Plastics LLC</option>
+                                    <option value="15">Johns Manville</option>
+                                    <option value="117">Johnson &amp; Johnson Consumer</option>
+                                    <option value="205">Joseph Smith and Sons</option>
+                                    <option value="108">Jupiter Aluminum Corp.</option>
+                                    <option value="100">JW Aluminum</option>
+                                    <option value="259">KAO</option>
+                                    <option value="147">Kao Germany GmbH</option>
+                                    <option value="123">Kappus Plastic Company, Inc.</option>
+                                    <option value="172">Kärcher</option>
+                                    <option value="153">Kenvue</option>
+                                    <option value="248">Kenvue Brands LLC</option>
+                                    <option value="16">Kingspan Insulation</option>
+                                    <option value="20">Knoll Inc.</option>
+                                    <option value="35">Kohler</option>
+                                    <option value="192">L'Oreal</option>
+                                    <option value="26">Lutron Electronics</option>
+                                    <option value="68">Malarkey Roofing</option>
+                                    <option value="32">Mapei</option>
+                                    <option value="59">Maple Leaf Foods</option>
+                                    <option value="246">Medeco, an ASSA ABLOY Group brand</option>
+                                    <option value="24">Milliken &amp; Company</option>
+                                    <option value="11">Mohawk Industries</option>
+                                    <option value="57">Molson Coors</option>
+                                    <option value="189">Nestle Health Sciences</option>
+                                    <option value="174">Nice-Pak Products, Inc.</option>
+                                    <option value="51">Novalis</option>
+                                    <option value="74">Novelis ALR Rolled Products, Inc.</option>
+                                    <option value="13">Owens Corning</option>
+                                    <option value="38">Perdue Farms Inc.</option>
+                                    <option value="127">Philips</option>
+                                    <option value="27">Philips Lighting</option>
+                                    <option value="159">Poly-America</option>
+                                    <option value="84">Polymeric Exterior Products Association (PEPA) (previously VSI)</option>
+                                    <option value="125">Pretred</option>
+                                    <option value="36">Procter &amp; Gamble</option>
+                                    <option value="170">Protec International Ltd</option>
+                                    <option value="92">PureCycle Technologies</option>
+                                    <option value="209">PuroAir</option>
+                                    <option value="133">Ravago</option>
+                                    <option value="149">Reynolds Consumer Products</option>
+                                    <option value="113">Rockline</option>
+                                    <option value="251">Rockline Industries</option>
+                                    <option value="49">Saint Gobain</option>
+                                    <option value="96">Sea Bags</option>
+                                    <option value="10">Shaw Industries Group</option>
+                                    <option value="33">Sika</option>
+                                    <option value="240">Sika Corporation</option>
+                                    <option value="185">Simply Filters</option>
+                                    <option value="141">Sofidel</option>
+                                    <option value="229">Sofidel America Corp.</option>
+                                    <option value="261">Sonos</option>
+                                    <option value="213">Southeastern Container Inc.</option>
+                                    <option value="157">Spectrum Brands</option>
+                                    <option value="244">SPR Packaging LLC</option>
+                                    <option value="211">Spraylat International</option>
+                                    <option value="34">Staples</option>
+                                    <option value="5">Stark Enterprises</option>
+                                    <option value="18">Steelcase Inc.</option>
+                                    <option value="88">Superior Essex Inc.</option>
+                                    <option value="215">Sylvamo</option>
+                                    <option value="72">Tangent Technologies</option>
+                                    <option value="76">Tarkett</option>
+                                    <option value="23">Tarkett USA Inc.</option>
+                                    <option value="21">Teknion Corporation</option>
+                                    <option value="29">TEST</option>
+                                    <option value="254">test company 3.9</option>
+                                    <option value="256">Test Upload</option>
+                                    <option value="255">Test: This is a Company Name Test for a Name That is 100 Characters Long Which is Very Very Very Very Long</option>
+                                    <option value="263">Testing Very Very Long Company Name That’s Over 100 Characters Very Very Very Very Very Veryyyy Long</option>
+                                    <option value="64">The Clorox Company</option>
+                                    <option value="162">The Glad Products Company</option>
+                                    <option value="253">This is a Company Name Test for a Name That is 100 Characters Long Which is Very Very Very Very Long</option>
+                                    <option value="86">Ultra-Poly</option>
+                                    <option value="151">United Solutions</option>
+                                    <option value="25">USG Corporation</option>
+                                    <option value="199">Veer Group</option>
+                                    <option value="6">Wayne Technologies</option>
+                                    <option value="179">Westlake</option>
+                                    <option value="41">Westlake Chemical</option>
+                                    <option value="121">Westlake Dimex</option>
+                                    <option value="190">Westlake Global Compounds</option>
+                                    <option value="102">Wyndham Destinations</option>
+                                    <option value="106">Yi Design Company Limited</option>
+                                    <option value="207">Z3</option>
+                        </select></div>
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="CompanyId" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="CompanyEmail">Company Email <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <input type="email" placeholder="Auto-populated from company" maxlength="255" data-val="true" data-val-maxlength="The field Company Email must be a string or array type with a maximum length of '255'." data-val-maxlength-max="255" data-val-regex="Enter a valid email address (e.g., name@example.com)." data-val-regex-pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$" id="CompanyEmail" name="CompanyEmail" value="test@test.com" style="">
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="CompanyEmail" data-valmsg-replace="true"></span>
+                        <small class="form-text text-muted">Pre-filled from company record. Changes here update the company.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="CompanyWebsite">Company URL <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <input type="url" placeholder="Auto-populated from company" maxlength="500" data-val="true" data-val-maxlength="The field Company URL must be a string or array type with a maximum length of '500'." data-val-maxlength-max="500" id="CompanyWebsite" name="CompanyWebsite" value="https://www.3m.com" style="">
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="CompanyWebsite" data-valmsg-replace="true"></span>
+                        <small class="form-text text-muted">Pre-filled from company record. Changes here update the company.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Number">Certification # <span class="text-danger" aria-label="required">*</span></label>
+                        <input readonly="" class="form-control-readonly" aria-required="true" style="background-color: rgb(248, 249, 250); font-weight: 600;" type="text" data-val="true" data-val-maxlength="The field Certificate Number must be a string or array type with a maximum length of '7'." data-val-maxlength-max="7" data-val-required="The Certificate Number field is required." id="Number" maxlength="7" name="Number" value="26-0163">
+                        <small class="form-text text-muted">Certificate number cannot be changed</small>
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="Number" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="CertificationTypeId">Certification Type <span class="text-danger" aria-label="required">*</span></label>
+                        <select id="CertificationTypeId" class="form-control" required="" aria-required="true" data-val="true" data-val-required="The Certification Type field is required." name="CertificationTypeId" style="display: none;">
+                            <option value="">Select type...</option>
+                                    <option value="24">+Vantage Vinyl Verified</option>
+                                    <option value="3">Carbon Footprint Reduction</option>
+                                    <option value="4">Certified Energy Savings</option>
+                                    <option value="5">Certified Environmental Facts</option>
+                                    <option value="6" selected="selected">Certified Sustainability Facts</option>
+                                    <option value="7">Certified Water Savings</option>
+                                    <option value="8">Closed Loop Product</option>
+                                    <option value="9">Dematerialization</option>
+                                    <option value="11">GreenCircle Audited</option>
+                                    <option value="10">Greenhouse Gas (GHG) Verification</option>
+                                    <option value="12">Life Cycle Assessment (LCA) Optimized</option>
+                                    <option value="13">Material Ingredient Reporting</option>
+                                    <option value="119">Product Optimization: Carbon Footprint Reduction</option>
+                                    <option value="120">Recyclable Material</option>
+                                    <option value="15">Recycled Content</option>
+                                    <option value="17">Sustainable Energy Practices</option>
+                                    <option value="18">Sustainable Manufacturing Practices</option>
+                                    <option value="19">Waste Diversion from Landfill</option>
+                        </select><div class="searchable-select-wrapper" style="position: relative;"><input type="text" class="form-control" placeholder="Search certification types..." autocomplete="off" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-label="Search certification types..." style=""><div class="searchable-select-dropdown" role="listbox" style="display: none; position: absolute; z-index: 1050; width: 100%; max-height: 250px; overflow-y: auto; background: rgb(255, 255, 255); border-width: medium 1px 1px; border-style: none solid solid; border-color: currentcolor rgb(206, 212, 218) rgb(206, 212, 218); border-image: initial; border-radius: 0px 0px 4px 4px; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 8px;"></div></div>
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="CertificationTypeId" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group" id="subcategory-group">
+                        <label>Certificate Subcategories <span class="text-muted" style="font-size: 12px;">(Optional - Multiple)</span></label>
+                        <div class="custom-dropdown-wrapper multi-select-dropdown" style="position: relative; width: 100%;"><div class="custom-dropdown-trigger" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border: 1px solid rgb(206, 212, 218); border-radius: 4px; background: white; cursor: pointer; font-size: 14px; min-height: 38px; transition: border-color 0.2s;">
+            <span class="custom-dropdown-selected" style="color: rgb(51, 51, 51);">2 selected</span>
+            <i class="fas fa-chevron-down" style="color: #6c757d; font-size: 12px; transition: transform 0.2s;"></i>
+        </div><div class="custom-dropdown-panel" style="position: absolute; top: 100%; left: 0px; right: 0px; z-index: 1000; background: white; border-width: medium 1px 1px; border-style: none solid solid; border-color: currentcolor rgb(206, 212, 218) rgb(206, 212, 218); border-image: initial; border-radius: 0px 0px 4px 4px; box-shadow: rgba(0, 0, 0, 0.15) 0px 4px 12px; display: none; max-height: 300px; overflow-y: auto;"><div class="custom-dropdown-options" style="padding: 8px 0px;"></div></div><select id="subcategorySelect" class="form-control" aria-label="Select certificate subcategories" data-multi-select-init="true" style="display: none;"><option value="">Select subcategory...</option><option value="116">Carbon Footprint Reduction</option><option value="84">Certified Energy Savings</option><option value="95">Certified Water Savings</option><option value="71">Closed Loop Product</option><option value="72">Dematerialization</option><option value="88">Life Cycle Assessment (LCA) Optimized</option><option value="82">Material Ingredient Reporting</option><option value="117">Recyclable Material</option><option value="73">Recycled Content</option><option value="90">Sustainable Energy Practices</option><option value="118">Sustainable Manufacturing Practices</option><option value="78">Waste Diversion from Landfill</option></select></div>
+                        <div class="subcategories-container" id="subcategoriesContainer" aria-live="polite" aria-label="Selected subcategories">
+                <span class="tag subcategory" data-subcategory-id="73" style="
+                    display: inline-flex; align-items: center; gap: 4px;
+                    background: linear-gradient(135deg, #f0f7e6 0%, #e8f5d9 100%);
+                    border: 1px solid #92C83E; border-radius: 12px;
+                    padding: 2px 8px; font-size: 12px; color: #447638; margin: 3px 3px 3px 0;
+                ">
+                    Recycled Content
+                    <button type="button" class="tag-remove" onclick="window.CertificateInlineCreate.removeSubcategory(73)" style="
+                        background: none; border: none; color: #92C83E; cursor: pointer;
+                        font-size: 13px; line-height: 1; padding: 0 2px; font-weight: bold;
+                    ">×</button>
+                </span>
+            
+                <span class="tag subcategory" data-subcategory-id="84" style="
+                    display: inline-flex; align-items: center; gap: 4px;
+                    background: linear-gradient(135deg, #f0f7e6 0%, #e8f5d9 100%);
+                    border: 1px solid #92C83E; border-radius: 12px;
+                    padding: 2px 8px; font-size: 12px; color: #447638; margin: 3px 3px 3px 0;
+                ">
+                    Certified Energy Savings
+                    <button type="button" class="tag-remove" onclick="window.CertificateInlineCreate.removeSubcategory(84)" style="
+                        background: none; border: none; color: #92C83E; cursor: pointer;
+                        font-size: 13px; line-height: 1; padding: 0 2px; font-weight: bold;
+                    ">×</button>
+                </span>
+            </div>
+                        <input type="hidden" name="SubcategoryIds" id="subcategoriesHidden" value="[73,84]" style="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ProductId">Product Name <span class="text-danger" aria-label="required">*</span></label>
+                        <div class="custom-dropdown-wrapper" style="position: relative; width: 100%;"><div class="custom-dropdown-trigger" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid rgb(206, 212, 218); border-radius: 4px; background: white; cursor: pointer; font-size: 14px; min-height: 40px; transition: border-color 0.2s;">
+            <span class="custom-dropdown-selected" style="color: #6c757d;">Select product...</span>
+            <i class="fas fa-chevron-down" style="color: #6c757d; font-size: 12px; transition: transform 0.2s;"></i>
+        </div><div class="custom-dropdown-panel" style="position: absolute; top: 100%; left: 0px; right: 0px; z-index: 1000; background: white; border-width: medium 1px 1px; border-style: none solid solid; border-color: currentcolor rgb(206, 212, 218) rgb(206, 212, 218); border-image: initial; border-radius: 0px 0px 4px 4px; box-shadow: rgba(0, 0, 0, 0.15) 0px 4px 12px; max-height: 350px; display: none;"><div style="padding: 8px 12px; border-bottom: 1px solid rgb(233, 236, 239);"><input type="text" class="custom-dropdown-search" placeholder="Search product..." autocomplete="off" style="width: 100%; padding: 8px 12px; border: 1px solid rgb(206, 212, 218); border-radius: 4px; font-size: 14px; outline: none;"></div><div class="custom-dropdown-options" style="max-height: 250px; overflow-y: auto; padding: 8px 0px;"><div class="custom-dropdown-option" data-value="127" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; transition: background 0.15s;">
+                    <span style="width: 18px; height: 18px; border: 2px solid #ced4da;
+                        border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        
+                    </span>
+                    <span style="color: #333;">3M Test Product</span>
+                </div><div class="custom-dropdown-option" data-value="128" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; transition: background 0.15s;">
+                    <span style="width: 18px; height: 18px; border: 2px solid #ced4da;
+                        border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        
+                    </span>
+                    <span style="color: #333;">3M Test Product 2</span>
+                </div></div><div class="custom-dropdown-footer" style="padding: 12px 16px; border-top: 1px solid rgb(233, 236, 239); background: rgb(250, 250, 250);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: #92C83E; font-size: 18px; font-weight: bold;">+</span>
+                <input type="text" class="custom-dropdown-add-input" placeholder="Enter product name" style="flex: 1 1 0%; padding: 8px 12px; border: 1px solid rgb(206, 212, 218); border-radius: 4px; font-size: 14px; outline: none;">
+                <button type="button" class="custom-dropdown-add-btn" style="padding: 8px 16px; background: #92C83E; color: white; border: none; border-radius: 4px; font-size: 14px; font-weight: 500; cursor: pointer;">
+                    Add
+                </button>
+            </div>
+            <div class="custom-dropdown-error" style="display: none; color: #dc3545; font-size: 12px; margin-top: 6px; padding-left: 26px;"></div>
+        </div></div><select class="form-control" required="" aria-required="true" data-val="true" data-val-required="The Product field is required." id="ProductId" name="ProductId" data-custom-dropdown-init="true" style="position: absolute; opacity: 0; height: 0px; width: 0px; overflow: hidden; pointer-events: none;"><option value="">Select a product...</option><option value="127">3M Test Product</option><option value="128">3M Test Product 2</option></select></div>
+                        <small id="productHelpText" class="form-text text-muted">2 product(s) found</small>
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="ProductId" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ProductCategoryId">Product Category <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <select id="ProductCategoryId" name="ProductCategoryId" class="form-control" style="display: none;">
+                            <option value="">Select a category...</option>
+                                        <option value="9" selected="">Carly Test</option>
+                                        <option value="1">Chemicals and Raw Materials</option>
+                                        <option value="2">Clothing, Apparel, and Fabrics</option>
+                                        <option value="3">Carly Test Type</option>
+                                        <option value="11">Construction / Building Products</option>
+                                        <option value="4">Consumer Products</option>
+                                        <option value="5">Electronics, Computers, and Accessories</option>
+                                        <option value="6">Food and Beverage</option>
+                                        <option value="7">Healthcare and Pharmaceutical</option>
+                                        <option value="8">Packaging</option>
+                        </select><div class="searchable-select-wrapper" style="position: relative;"><input type="text" class="form-control" placeholder="Search product categories..." autocomplete="off" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-label="Search product categories..." style=""><div class="searchable-select-dropdown" role="listbox" style="display: none; position: absolute; z-index: 1050; width: 100%; max-height: 250px; overflow-y: auto; background: rgb(255, 255, 255); border-width: medium 1px 1px; border-style: none solid solid; border-color: currentcolor rgb(206, 212, 218) rgb(206, 212, 218); border-image: initial; border-radius: 0px 0px 4px 4px; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 8px;"></div></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ProductTypeId">Product Type <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <select id="ProductTypeId" name="ProductTypeId" class="form-control"><option value="">Select a type...</option></select>
+                    </div>
+
+                    <div class="form-group" id="product-subcategory-group">
+                        <label for="ProductSubcategoryId">Product Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <select id="ProductSubcategoryId" name="ProductSubcategoryId" class="form-control">
+                            <option value="">Select type first...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="EffectiveDate">Effective Date <span class="text-danger" aria-label="required">*</span></label>
+                        <input type="date" required="" aria-required="true" data-val="true" data-val-required="The Effective Date field is required." id="EffectiveDate" name="EffectiveDate" value="2026-05-11" style=""><input name="__Invariant" type="hidden" value="EffectiveDate" style="">
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="EffectiveDate" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ExpirationDate">Expiration Date <span class="text-danger" aria-label="required">*</span></label>
+                        <input type="date" required="" aria-required="true" data-val="true" data-val-required="The Expiration Date field is required." id="ExpirationDate" name="ExpirationDate" value="2027-05-10" style=""><input name="__Invariant" type="hidden" value="ExpirationDate" style="">
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="ExpirationDate" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Status">Status <span class="text-danger" aria-label="required">*</span></label>
+                        <select class="form-control" required="" aria-required="true" data-val="true" data-val-required="The Status field is required." id="Status" name="Status">
+                            <option value="">Select status...</option>
+                                    <option value="Draft">Draft</option>
+                                    <option value="Client Approved - Not Paid">Client Approved - Not Paid</option>
+                                    <option value="Client Approved - Confidential">Client Approved - Confidential</option>
+                                    <option value="Client Approved - Paid" selected="selected">Client Approved - Paid</option>
+                                    <option value="Hold">Hold</option>
+                                    <option value="Expired">Expired</option>
+                                    <option value="Republished">Republished</option>
+                                    <option value="Expired - No Annual Verification">Expired - No Annual Verification</option>
+                        </select>
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="Status" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Partner">Partner</label>
+                        <select class="form-control" data-val="true" data-val-maxlength="The field Partner Program must be a string or array type with a maximum length of '100'." data-val-maxlength-max="100" id="Partner" name="Partner">
+                            <option value="None" selected="selected">None</option>
+                                    <option value="Amazon">Amazon</option>
+                                    <option value="Novi">Novi</option>
+                                    <option value="Wayfair">Wayfair</option>
+                                    <option value="Other">Other</option>
+                        </select>
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="Partner" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="CertificationResults">Certification Results <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <textarea rows="3" maxlength="1000" placeholder="Enter test results or scores if required by partner (e.g., threshold values for Amazon)" data-val="true" data-val-maxlength="The field Certification Results must be a string or array type with a maximum length of '1000'." data-val-maxlength-max="1000" id="CertificationResults" name="CertificationResults" style=""></textarea>
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="CertificationResults" data-valmsg-replace="true"></span>
+                        <small class="form-text text-muted">Optional field for recording certification test results or scores.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="PathwayId">Pathway (for Amazon CPF applicable certs)</label>
+                        <select class="form-control" id="PathwayId" name="PathwayId">
+                            <option value="">Select pathway...</option>
+                                    <option value="1">Energy usage reduction</option>
+                                    <option value="2">Onsite fossil fuel usage reduction</option>
+                                    <option value="3">Renewable electricity usage</option>
+                        </select>
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="PathwayId" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Location">Location</label>
+                        <input placeholder="City, State" maxlength="175" type="text" data-val="true" data-val-maxlength="The field Location must be a string or array type with a maximum length of '175'." data-val-maxlength-max="175" id="Location" name="Location" value="Douglassville, PA" style="">
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="Location" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Country">Country</label>
+                        <select class="form-control" id="countrySelect" data-val="true" data-val-maxlength="The field Country must be a string or array type with a maximum length of '100'." data-val-maxlength-max="100" name="Country" style="display: none;">
+                            <option value="">Select country...</option>
+                                        <option value="Afghanistan">Afghanistan</option>
+                                        <option value="Albania">Albania</option>
+                                        <option value="Algeria">Algeria</option>
+                                        <option value="Andorra">Andorra</option>
+                                        <option value="Angola">Angola</option>
+                                        <option value="Antigua and Barbuda">Antigua and Barbuda</option>
+                                        <option value="Argentina">Argentina</option>
+                                        <option value="Armenia">Armenia</option>
+                                        <option value="Australia">Australia</option>
+                                        <option value="Austria">Austria</option>
+                                        <option value="Azerbaijan">Azerbaijan</option>
+                                        <option value="Bahamas">Bahamas</option>
+                                        <option value="Bahrain">Bahrain</option>
+                                        <option value="Bangladesh">Bangladesh</option>
+                                        <option value="Barbados">Barbados</option>
+                                        <option value="Belarus">Belarus</option>
+                                        <option value="Belgium">Belgium</option>
+                                        <option value="Belize">Belize</option>
+                                        <option value="Benin">Benin</option>
+                                        <option value="Bhutan">Bhutan</option>
+                                        <option value="Bolivia">Bolivia</option>
+                                        <option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option>
+                                        <option value="Botswana">Botswana</option>
+                                        <option value="Brazil">Brazil</option>
+                                        <option value="Brunei">Brunei</option>
+                                        <option value="Bulgaria">Bulgaria</option>
+                                        <option value="Burkina Faso">Burkina Faso</option>
+                                        <option value="Burundi">Burundi</option>
+                                        <option value="Cabo Verde">Cabo Verde</option>
+                                        <option value="Cambodia">Cambodia</option>
+                                        <option value="Cameroon">Cameroon</option>
+                                        <option value="Canada">Canada</option>
+                                        <option value="Central African Republic">Central African Republic</option>
+                                        <option value="Chad">Chad</option>
+                                        <option value="Chile">Chile</option>
+                                        <option value="China">China</option>
+                                        <option value="Colombia">Colombia</option>
+                                        <option value="Comoros">Comoros</option>
+                                        <option value="Congo (Democratic Republic)">Congo (Democratic Republic)</option>
+                                        <option value="Congo (Republic)">Congo (Republic)</option>
+                                        <option value="Costa Rica">Costa Rica</option>
+                                        <option value="Croatia">Croatia</option>
+                                        <option value="Cuba">Cuba</option>
+                                        <option value="Cyprus">Cyprus</option>
+                                        <option value="Czech Republic">Czech Republic</option>
+                                        <option value="Denmark">Denmark</option>
+                                        <option value="Djibouti">Djibouti</option>
+                                        <option value="Dominica">Dominica</option>
+                                        <option value="Dominican Republic">Dominican Republic</option>
+                                        <option value="Ecuador">Ecuador</option>
+                                        <option value="Egypt">Egypt</option>
+                                        <option value="El Salvador">El Salvador</option>
+                                        <option value="Equatorial Guinea">Equatorial Guinea</option>
+                                        <option value="Eritrea">Eritrea</option>
+                                        <option value="Estonia">Estonia</option>
+                                        <option value="Eswatini">Eswatini</option>
+                                        <option value="Ethiopia">Ethiopia</option>
+                                        <option value="Fiji">Fiji</option>
+                                        <option value="Finland">Finland</option>
+                                        <option value="France">France</option>
+                                        <option value="Gabon">Gabon</option>
+                                        <option value="Gambia">Gambia</option>
+                                        <option value="Georgia">Georgia</option>
+                                        <option value="Germany">Germany</option>
+                                        <option value="Ghana">Ghana</option>
+                                        <option value="Greece">Greece</option>
+                                        <option value="Grenada">Grenada</option>
+                                        <option value="Guatemala">Guatemala</option>
+                                        <option value="Guinea">Guinea</option>
+                                        <option value="Guinea-Bissau">Guinea-Bissau</option>
+                                        <option value="Guyana">Guyana</option>
+                                        <option value="Haiti">Haiti</option>
+                                        <option value="Honduras">Honduras</option>
+                                        <option value="Hungary">Hungary</option>
+                                        <option value="Iceland">Iceland</option>
+                                        <option value="India">India</option>
+                                        <option value="Indonesia">Indonesia</option>
+                                        <option value="Iran">Iran</option>
+                                        <option value="Iraq">Iraq</option>
+                                        <option value="Ireland">Ireland</option>
+                                        <option value="Israel">Israel</option>
+                                        <option value="Italy">Italy</option>
+                                        <option value="Ivory Coast">Ivory Coast</option>
+                                        <option value="Jamaica">Jamaica</option>
+                                        <option value="Japan">Japan</option>
+                                        <option value="Jordan">Jordan</option>
+                                        <option value="Kazakhstan">Kazakhstan</option>
+                                        <option value="Kenya">Kenya</option>
+                                        <option value="Kiribati">Kiribati</option>
+                                        <option value="Kosovo">Kosovo</option>
+                                        <option value="Kuwait">Kuwait</option>
+                                        <option value="Kyrgyzstan">Kyrgyzstan</option>
+                                        <option value="Laos">Laos</option>
+                                        <option value="Latvia">Latvia</option>
+                                        <option value="Lebanon">Lebanon</option>
+                                        <option value="Lesotho">Lesotho</option>
+                                        <option value="Liberia">Liberia</option>
+                                        <option value="Libya">Libya</option>
+                                        <option value="Liechtenstein">Liechtenstein</option>
+                                        <option value="Lithuania">Lithuania</option>
+                                        <option value="Luxembourg">Luxembourg</option>
+                                        <option value="Madagascar">Madagascar</option>
+                                        <option value="Malawi">Malawi</option>
+                                        <option value="Malaysia">Malaysia</option>
+                                        <option value="Maldives">Maldives</option>
+                                        <option value="Mali">Mali</option>
+                                        <option value="Malta">Malta</option>
+                                        <option value="Marshall Islands">Marshall Islands</option>
+                                        <option value="Mauritania">Mauritania</option>
+                                        <option value="Mauritius">Mauritius</option>
+                                        <option value="Mexico">Mexico</option>
+                                        <option value="Micronesia">Micronesia</option>
+                                        <option value="Moldova">Moldova</option>
+                                        <option value="Monaco">Monaco</option>
+                                        <option value="Mongolia">Mongolia</option>
+                                        <option value="Montenegro">Montenegro</option>
+                                        <option value="Morocco">Morocco</option>
+                                        <option value="Mozambique">Mozambique</option>
+                                        <option value="Myanmar">Myanmar</option>
+                                        <option value="Namibia">Namibia</option>
+                                        <option value="Nauru">Nauru</option>
+                                        <option value="Nepal">Nepal</option>
+                                        <option value="Netherlands">Netherlands</option>
+                                        <option value="New Zealand">New Zealand</option>
+                                        <option value="Nicaragua">Nicaragua</option>
+                                        <option value="Niger">Niger</option>
+                                        <option value="Nigeria">Nigeria</option>
+                                        <option value="North Korea">North Korea</option>
+                                        <option value="North Macedonia">North Macedonia</option>
+                                        <option value="Norway">Norway</option>
+                                        <option value="Oman">Oman</option>
+                                        <option value="Pakistan">Pakistan</option>
+                                        <option value="Palau">Palau</option>
+                                        <option value="Palestine">Palestine</option>
+                                        <option value="Panama">Panama</option>
+                                        <option value="Papua New Guinea">Papua New Guinea</option>
+                                        <option value="Paraguay">Paraguay</option>
+                                        <option value="Peru">Peru</option>
+                                        <option value="Philippines">Philippines</option>
+                                        <option value="Poland">Poland</option>
+                                        <option value="Portugal">Portugal</option>
+                                        <option value="Qatar">Qatar</option>
+                                        <option value="Romania">Romania</option>
+                                        <option value="Russia">Russia</option>
+                                        <option value="Rwanda">Rwanda</option>
+                                        <option value="Saint Kitts and Nevis">Saint Kitts and Nevis</option>
+                                        <option value="Saint Lucia">Saint Lucia</option>
+                                        <option value="Saint Vincent and the Grenadines">Saint Vincent and the Grenadines</option>
+                                        <option value="Samoa">Samoa</option>
+                                        <option value="San Marino">San Marino</option>
+                                        <option value="Sao Tome and Principe">Sao Tome and Principe</option>
+                                        <option value="Saudi Arabia">Saudi Arabia</option>
+                                        <option value="Senegal">Senegal</option>
+                                        <option value="Serbia">Serbia</option>
+                                        <option value="Seychelles">Seychelles</option>
+                                        <option value="Sierra Leone">Sierra Leone</option>
+                                        <option value="Singapore">Singapore</option>
+                                        <option value="Slovakia">Slovakia</option>
+                                        <option value="Slovenia">Slovenia</option>
+                                        <option value="Solomon Islands">Solomon Islands</option>
+                                        <option value="Somalia">Somalia</option>
+                                        <option value="South Africa">South Africa</option>
+                                        <option value="South Korea">South Korea</option>
+                                        <option value="South Sudan">South Sudan</option>
+                                        <option value="Spain">Spain</option>
+                                        <option value="Sri Lanka">Sri Lanka</option>
+                                        <option value="Sudan">Sudan</option>
+                                        <option value="Suriname">Suriname</option>
+                                        <option value="Sweden">Sweden</option>
+                                        <option value="Switzerland">Switzerland</option>
+                                        <option value="Syria">Syria</option>
+                                        <option value="Taiwan">Taiwan</option>
+                                        <option value="Tajikistan">Tajikistan</option>
+                                        <option value="Tanzania">Tanzania</option>
+                                        <option value="Thailand">Thailand</option>
+                                        <option value="Timor-Leste">Timor-Leste</option>
+                                        <option value="Togo">Togo</option>
+                                        <option value="Tonga">Tonga</option>
+                                        <option value="Trinidad and Tobago">Trinidad and Tobago</option>
+                                        <option value="Tunisia">Tunisia</option>
+                                        <option value="Turkey">Turkey</option>
+                                        <option value="Turkmenistan">Turkmenistan</option>
+                                        <option value="Tuvalu">Tuvalu</option>
+                                        <option value="Uganda">Uganda</option>
+                                        <option value="Ukraine">Ukraine</option>
+                                        <option value="United Arab Emirates">United Arab Emirates</option>
+                                        <option value="United Kingdom">United Kingdom</option>
+                                        <option value="United States" selected="">United States</option>
+                                        <option value="Uruguay">Uruguay</option>
+                                        <option value="Uzbekistan">Uzbekistan</option>
+                                        <option value="Vanuatu">Vanuatu</option>
+                                        <option value="Vatican City">Vatican City</option>
+                                        <option value="Venezuela">Venezuela</option>
+                                        <option value="Vietnam">Vietnam</option>
+                                        <option value="Yemen">Yemen</option>
+                                        <option value="Zambia">Zambia</option>
+                                        <option value="Zimbabwe">Zimbabwe</option>
+                        </select><div class="searchable-select-wrapper" style="position: relative;"><input type="text" class="form-control" placeholder="Search countries..." autocomplete="off" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-label="Search countries..." style=""><div class="searchable-select-dropdown" role="listbox" style="display: none; position: absolute; z-index: 1050; width: 100%; max-height: 250px; overflow-y: auto; background: rgb(255, 255, 255); border-width: medium 1px 1px; border-style: none solid solid; border-color: currentcolor rgb(206, 212, 218) rgb(206, 212, 218); border-image: initial; border-radius: 0px 0px 4px 4px; box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 8px;"></div></div>
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="Country" data-valmsg-replace="true"></span>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="certificate-sidebar">
+                    <div class="upload-section card-style">
+                        <div class="sidebar-section-header">
+                            <div class="section-icon">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div>
+                                <h3 id="certificate-image-label">Certificate Preview</h3>
+                                <p id="certificate-image-help" class="text-muted sidebar-help-text">Auto-generated from uploaded PDF</p>
+                            </div>
+                        </div>
+                        <div class="preview-container certificate-create-preview">
+                                <img id="certificateImagePreviewImg" src="/uploads/images/26-0163_thumb_20260511_122453.png" alt="Certificate Preview" onclick="openImageZoom('/uploads/images/26-0163_thumb_20260511_122453.png')" title="Click to view full size">
+                        </div>
+                        <input type="hidden" id="certificateImagePathHidden" data-val="true" data-val-maxlength="The field Certificate Image must be a string or array type with a maximum length of '500'." data-val-maxlength-max="500" name="CertificateImagePath" value="uploads/images/26-0163_thumb_20260511_122453.png" style="">
+                    </div>
+
+                    <div class="tags-section card-style">
+                        <div class="sidebar-section-header">
+                            <div class="section-icon">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <h3>Certificate Tags</h3>
+                        </div>
+
+                        <div class="tags-group">
+                            <label for="externalTagSelect">External Tags</label>
+                            <select id="externalTagSelect" aria-label="Select external tags for this certificate">
+                                <option value="">Select...</option>
+                                        <option value="1">APR</option>
+                                        <option value="2">LEED</option>
+                                        <option value="1041">Gensler GPS</option>
+                            </select>
+                            <div class="tags-container" id="externalTagsContainer" aria-live="polite" aria-label="Selected external tags">
+                                <!-- External tags will be added dynamically -->
+                            </div>
+                            <input type="hidden" name="ExternalTags" id="externalTagsHidden" style="">
+                        </div>
+
+                        <div class="tags-group">
+                            <label for="internalTagSelect">Internal Tags</label>
+                            <select id="internalTagSelect" aria-label="Select internal tags for this certificate">
+                                <option value="">Select...</option>
+                                        <option value="35">PL/BE</option>
+                            </select>
+                            <div class="tags-container" id="internalTagsContainer" aria-live="polite" aria-label="Selected internal tags">
+                                <!-- Internal tags will be added dynamically -->
+                            </div>
+                            <input type="hidden" name="InternalTags" id="internalTagsHidden" style="">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate PDF Upload Section -->
+            <div class="certificate-section card-style">
+                <div class="form-section-header">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Certificate PDF Document</span>
+                </div>
+                    <div class="current-pdf-info" style="background-color: #e8f5e9; border: 1px solid #4caf50; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-check-circle" style="color: #4caf50; font-size: 20px;"></i>
+                        <div style="flex: 1;">
+                            <strong style="color: #2e7d32;">Current PDF:</strong>
+                            <span style="color: #1b5e20; margin-left: 8px;">26-0163_thumb_20260511_122453.png</span>
+                        </div>
+                            <button type="button" onclick="openImageZoom('/uploads/images/26-0163_thumb_20260511_122453.png')" class="btn btn-sm" style="background-color: #4caf50; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;" title="View Certificate Preview">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        <button type="button" onclick="window.CertificateEdit.confirmRemovePdf(76)" class="btn btn-sm" style="background-color: #FF5252; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;" title="Remove uploaded PDF">
+                            <i class="fas fa-trash-alt"></i> Remove
+                        </button>
+                    </div>
+                <div class="form-group">
+                    <label for="certificatePdf">Replace PDF Certificate (optional)</label>
+                    <div class="pdf-upload-zone" id="pdfUploadZone" role="button" tabindex="0" aria-label="Upload PDF certificate file. You can drag and drop a file here or press Enter to select a file." onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificatePdf').click();}">
+                        <div class="pdf-upload-placeholder">
+                            <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                        </div>
+                        <div class="pdf-upload-text">Drag and drop PDF here or click to select</div>
+                        <small class="form-text text-muted">Maximum file size: 10MB. Leave empty to keep existing PDF.</small>
+                    </div>
+                    <input type="file" id="certificatePdf" name="certificatePdf" accept="application/pdf" style="display: none;" aria-describedby="pdf-help">
+                    <small id="pdf-help" class="form-text text-muted">PDF file optional for editing. Leave empty to keep existing PDF. Image preview will be regenerated if new file uploaded.</small>
+                    <div id="pdfPreviewContainer" aria-live="polite"></div>
+                </div>
+            </div>
+
+            <!-- Product ID Manager -->
+            <div class="product-manager card-style">
+                <div class="form-section-header">
+                    <i class="fas fa-barcode"></i>
+                    <span>Product Identifiers</span>
+                </div>
+                <p class="section-description">Manage ASINs, UPCs, GTINs, and other product identifiers</p>
+                <div class="product-id-save-note" role="note" aria-label="Product ID save behavior" style="background-color: #e7f3ff; border-left: 4px solid #002B76; border-radius: 4px;
+                            padding: 10px 14px; margin-bottom: 16px; font-size: 16px; color: #002B76;
+                            display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-info-circle" aria-hidden="true" style="font-size: 18px;"></i>
+                    <span>Add, edit, and delete actions on product identifiers <strong>save immediately</strong> and apply even if you cancel the certificate edit. Use this if you need to quickly correct a wrong identifier.</span>
+                </div>
+                
+
+<div class="product-id-manager" data-certificate-id="76" style="position: relative;">
+    <div class="product-manager-header">
+        <h3 class="product-manager-title">
+            <i class="fas fa-barcode me-2"></i>
+            Product ID Manager
+        </h3>
+
+            <div class="product-manager-actions">
+                <div class="btn-group me-2" role="group">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="downloadSample" title="Download CSV template for bulk import">
+                        <i class="fas fa-file-download me-1"></i>Template
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="importProductIds">
+                        <i class="fas fa-download me-1"></i>Import
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="exportProductIds">
+                        <i class="fas fa-upload me-1"></i>Export
+                    </button>
+                </div>
+
+                <button type="button" class="btn btn-danger btn-sm me-2" id="bulkDeleteProductIds" style="display: none;" title="Delete all selected product IDs">
+                    <i class="fas fa-trash me-1"></i>Delete Selected (<span id="bulkDeleteCount">0</span>)
+                </button>
+
+                <button type="button" class="btn btn-primary btn-sm" id="addProductId">
+                    <i class="fas fa-plus me-1"></i>Add Product ID
+                </button>
+            </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="product-manager-filters mb-3">
+        <div class="product-manager-filter-row">
+            <select class="form-select form-select-sm pid-filter-type" id="filterByType">
+                <option value="">All Types</option>
+                <option value="ASIN">ASIN</option>
+                <option value="UPC">UPC</option>
+                <option value="GTIN">GTIN</option>
+                <option value="EAN">EAN</option>
+                <option value="ISBN">ISBN</option>
+                <option value="SKU">SKU</option>
+                <option value="MPN">MPN</option>
+                <option value="OTHER">Other</option>
+            </select>
+            <select class="form-select form-select-sm pid-filter-partner" id="filterByPartner">
+                <option value="">All Partners</option>
+                <option value="Amazon">Amazon</option>
+                <option value="Novi">Novi</option>
+                <option value="None">None</option>
+                <option value="Other">Other</option>
+            </select>
+            <input type="text" class="form-control form-control-sm pid-filter-search" id="searchProductIds" placeholder="Search" style="">
+        </div>
+    </div>
+
+    <!-- Product IDs Table -->
+    <div class="product-ids-table-container">
+        <table class="table table-sm table-hover" id="productIdsTable">
+            <thead class="table-light">
+                <tr>
+                        <th style="width: 40px; text-align: center;">
+                            <input type="checkbox" id="selectAllProductIds" class="bulk-select-all" aria-label="Select all product IDs on this page" style="">
+                        </th>
+                    <th data-sort="type" class="admin-table-th--sortable" style="width: 80px;">Type <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="value" class="admin-table-th--sortable" style="width: 120px;">Product ID <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="name" class="admin-table-th--sortable" style="width: 250px;">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="sku" class="admin-table-th--sortable" style="width: 100px;">SKU <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="partner" class="admin-table-th--sortable" style="width: 100px;">Partner <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="created" class="admin-table-th--sortable" style="width: 100px;">Created <span class="sort-icon admin-sort-icon">▼</span></th>
+                    <th data-sort="createdBy" class="admin-table-th--sortable" style="width: 100px;">Created By <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th style="width: 70px; text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="productIdsTableBody">
+            <tr data-product-id="1054">
+                
+            <td style="text-align: center;">
+                <input type="checkbox" class="bulk-select-checkbox" data-product-id="1054" aria-label="Select product ID B0BQN91QFC" style="">
+            </td>
+                <td>
+                    <span class="product-type-badge product-type-asin">
+                        ASIN
+                    </span>
+                </td>
+                <td class="product-id-value" title="B0BQN91QFC">
+                    B0BQN91QFC
+                </td>
+                <td class="product-name" title="3M Test Product Name">
+                    3M Test Product Name
+                </td>
+                <td class="product-sku" title="123456790">
+                    123456790
+                </td>
+                <!-- CR-015: Status cell removed — derived from parent cert. -->
+                <td>
+                    <span class="partner-badge partner-amazon">Amazon</span>
+                </td>
+                <td class="created-date" title="5/11/2026, 8:33:12 AM">
+                    5/11/2026
+                </td>
+                <td class="created-by" title="admin.uat">
+                    admin.uat
+                </td>
+                
+            <td>
+                <div class="admin-inline-actions">
+                    <button type="button" class="admin-inline-action-btn admin-inline-action-btn--edit btn-edit-product-id" data-product-id="1054" title="Edit" aria-label="Edit product ID B0BQN91QFC">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="admin-inline-action-btn admin-inline-action-btn--delete btn-delete-product-id" data-product-id="1054" title="Delete" aria-label="Delete product ID B0BQN91QFC">
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </td>
+            </tr>
+            <tr data-product-id="1055">
+                
+            <td style="text-align: center;">
+                <input type="checkbox" class="bulk-select-checkbox" data-product-id="1055" aria-label="Select product ID B0D9HW3Z3Z" style="">
+            </td>
+                <td>
+                    <span class="product-type-badge product-type-asin">
+                        ASIN
+                    </span>
+                </td>
+                <td class="product-id-value" title="B0D9HW3Z3Z">
+                    B0D9HW3Z3Z
+                </td>
+                <td class="product-name" title="3M Manual Add Test">
+                    3M Manual Add Test
+                </td>
+                <td class="product-sku" title="2345678901">
+                    2345678901
+                </td>
+                <!-- CR-015: Status cell removed — derived from parent cert. -->
+                <td>
+                    <span class="partner-badge partner-amazon">Amazon</span>
+                </td>
+                <td class="created-date" title="5/11/2026, 8:42:37 AM">
+                    5/11/2026
+                </td>
+                <td class="created-by" title="admin.uat">
+                    admin.uat
+                </td>
+                
+            <td>
+                <div class="admin-inline-actions">
+                    <button type="button" class="admin-inline-action-btn admin-inline-action-btn--edit btn-edit-product-id" data-product-id="1055" title="Edit" aria-label="Edit product ID B0D9HW3Z3Z">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="admin-inline-action-btn admin-inline-action-btn--delete btn-delete-product-id" data-product-id="1055" title="Delete" aria-label="Delete product ID B0D9HW3Z3Z">
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </td>
+            </tr></tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Info -->
+    <div class="pagination-info text-end text-muted mt-2" id="paginationInfo">
+            <small>Showing 2 product ID(s)</small>
+    </div>
+</div>
+
+<!-- Add/Edit Product ID Modal -->
+    
+    <!-- Import Preview Modal (US-015 Backdrop Standard) -->
+    
+
+            </div>
+
+            <div class="card-style" style="margin-bottom: 24px;">
+                <div class="form-section-header">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Additional Fields</span>
+                </div>
+
+                <div id="custom-fields-container" class="mb-4">
+            <div class="custom-fields-grid">
+                
+            <div class="form-group custom-field-group" data-field-id="34">
+                <label for="field_34">
+                    Carly Cert Field test 
+                    
+                </label>
+                <textarea class="form-control custom-field-input" id="field_34" name="field_34" data-field-id="34" rows="3" style="">Test notes</textarea>
+            </div>
+        
+            <div class="form-group custom-field-group" data-field-id="35">
+                <label for="field_35">
+                    Test 2 
+                    
+                </label>
+                <input type="date" class="form-control custom-field-input" id="field_35" name="field_35" value="" data-field-id="35" style="">
+            </div>
+        
+            </div>
+        </div>
+            </div>
+
+            <div class="action-buttons">
+                <button type="submit" name="action" value="save" class="btn btn-primary" aria-label="Save certificate changes" id="saveButton">
+                    Save Changes
+                </button>
+                <a href="/Certificate/CertificateTileViewInternal" class="btn btn-secondary" aria-label="Cancel and return to certificate management">
+                    Cancel
+                </a>
+            </div>
+        <input name="__RequestVerificationToken" type="hidden" value="CfDJ8CvW3tQN-DlFnCr2tFGIRBOCKMBmljmoSVru6E45bBtqgfKLx9mBZ9KDw6kXDFwqRmKCEXeiQ4nelhxOVdZ2q3As4o4GTL5gWRi7M7cpvwUi_d0u6H7wjcTRE2YbAzZ5b3DFamu7TLPXLljMj66HXvYvU_iv_u7zMIqUSlqXiLm8k__DjR9MBrxBmJ4LBlli1Q" style=""></form>
+    </div>
+</div>
+
+<!-- Image Zoom Modal - Uses CSS from main.css for consistent styling -->
+<div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()">
+    <span class="zoom-close">×</span>
+    <img class="zoom-modal-content" id="zoomedImage" alt="Certificate Preview">
+    <div class="zoom-caption" id="imageCaption">Certificate Preview - Click anywhere to close</div>
+</div>
+
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer id="footer" role="contentinfo">
+        <div class="footer-content">
+            <div class="disclaimer">
+                The certificates in this public database are available for viewing at the consent of the client; not all awarded certificates are made publicly available. Additionally, some previously awarded certificates might not come up in a search of this database but may be valid for products in circulation that were produced during the evaluation period.
+                Please contact <a href="mailto:info@greencirclecertified.com">GreenCircle</a> with questions.
+            </div>
+            <div class="disclaimer">
+                © 2026 GreenCircle Certified. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- JavaScript -->
+    <!-- jQuery (required for validation) -->
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <!-- Bootstrap 5 Bundle (includes Popper for modals, tooltips, etc.) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="/js/main.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/admin/admin-core.js"></script>
+    <script src="/js/accessibility-enhancements.js"></script>
+
+    
+<script src="/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script src="/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="/js/product-id-manager.js"></script>
+    <script src="/js/certificate-custom-fields.js"></script>
+    <script src="/js/certificate-create.js"></script>
+    <script src="/js/certificate-inline-create.js"></script>
+    <script src="/js/searchable-select.js"></script>
+    <script>
+        var certTypeSearch = new SearchableSelect('#CertificationTypeId', { placeholder: 'Search certification types...' });
+        var productCategorySearch = new SearchableSelect('#ProductCategoryId', { placeholder: 'Search product categories...' });
+        new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });
+        // Company and Product dropdowns are handled by certificate-inline-create.js (createCustomDropdown)
+        // which provides search + "Add New" functionality. Do NOT also wrap them with SearchableSelect.
+    </script>
+
+    <script>
+        console.log('[Edit.cshtml] Script section loaded');
+
+        // Image zoom functionality
+        function openImageZoom(imageSrc) {
+            const modal = document.getElementById('imageZoomModal');
+            const modalImg = document.getElementById('zoomedImage');
+            const caption = document.getElementById('imageCaption');
+
+            modal.style.display = 'block';
+            modalImg.src = imageSrc;
+            caption.innerHTML = 'Certificate 26-0163 - Click anywhere to close';
+
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageZoom() {
+            const modal = document.getElementById('imageZoomModal');
+            modal.style.display = 'none';
+
+            // Restore body scroll
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close on ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImageZoom();
+            }
+        });
+
+        // Store all certification types for subcategory filtering
+        var allCertificationTypes = [
+  {
+    "id": 3,
+    "name": "Carbon Footprint Reduction",
+    "parentId": null
+  },
+  {
+    "id": 4,
+    "name": "Certified Energy Savings",
+    "parentId": null
+  },
+  {
+    "id": 5,
+    "name": "Certified Environmental Facts",
+    "parentId": null
+  },
+  {
+    "id": 6,
+    "name": "Certified Sustainability Facts",
+    "parentId": null
+  },
+  {
+    "id": 7,
+    "name": "Certified Water Savings",
+    "parentId": null
+  },
+  {
+    "id": 8,
+    "name": "Closed Loop Product",
+    "parentId": null
+  },
+  {
+    "id": 9,
+    "name": "Dematerialization",
+    "parentId": null
+  },
+  {
+    "id": 10,
+    "name": "Greenhouse Gas (GHG) Verification",
+    "parentId": null
+  },
+  {
+    "id": 11,
+    "name": "GreenCircle Audited",
+    "parentId": null
+  },
+  {
+    "id": 12,
+    "name": "Life Cycle Assessment (LCA) Optimized",
+    "parentId": null
+  },
+  {
+    "id": 13,
+    "name": "Material Ingredient Reporting",
+    "parentId": null
+  },
+  {
+    "id": 15,
+    "name": "Recycled Content",
+    "parentId": null
+  },
+  {
+    "id": 17,
+    "name": "Sustainable Energy Practices",
+    "parentId": null
+  },
+  {
+    "id": 18,
+    "name": "Sustainable Manufacturing Practices",
+    "parentId": null
+  },
+  {
+    "id": 19,
+    "name": "Waste Diversion from Landfill",
+    "parentId": null
+  },
+  {
+    "id": 20,
+    "name": "Waste System Audit",
+    "parentId": 19
+  },
+  {
+    "id": 24,
+    "name": "\u002BVantage Vinyl Verified",
+    "parentId": null
+  },
+  {
+    "id": 71,
+    "name": "Closed Loop Product",
+    "parentId": 6
+  },
+  {
+    "id": 72,
+    "name": "Dematerialization",
+    "parentId": 6
+  },
+  {
+    "id": 73,
+    "name": "Recycled Content",
+    "parentId": 6
+  },
+  {
+    "id": 78,
+    "name": "Waste Diversion from Landfill",
+    "parentId": 6
+  },
+  {
+    "id": 82,
+    "name": "Material Ingredient Reporting",
+    "parentId": 6
+  },
+  {
+    "id": 84,
+    "name": "Certified Energy Savings",
+    "parentId": 6
+  },
+  {
+    "id": 88,
+    "name": "Life Cycle Assessment (LCA) Optimized",
+    "parentId": 6
+  },
+  {
+    "id": 90,
+    "name": "Sustainable Energy Practices",
+    "parentId": 6
+  },
+  {
+    "id": 95,
+    "name": "Certified Water Savings",
+    "parentId": 6
+  },
+  {
+    "id": 115,
+    "name": "Waste Diversion Event",
+    "parentId": 19
+  },
+  {
+    "id": 116,
+    "name": "Carbon Footprint Reduction",
+    "parentId": 6
+  },
+  {
+    "id": 117,
+    "name": "Recyclable Material",
+    "parentId": 6
+  },
+  {
+    "id": 118,
+    "name": "Sustainable Manufacturing Practices",
+    "parentId": 6
+  },
+  {
+    "id": 119,
+    "name": "Product Optimization: Carbon Footprint Reduction",
+    "parentId": null
+  },
+  {
+    "id": 120,
+    "name": "Recyclable Material",
+    "parentId": null
+  }
+];
+
+        // Store product data for auto-fill when product is selected
+        var companyProducts = [];
+
+        $(document).ready(async function() {
+            const certificateId = 76;
+            const typeId = 6;
+            const savedProductId = '127';
+            const savedCompanyId = '131';
+
+            // ===== Company → Product Cascading Dropdown (REQ-CERT-10) =====
+
+            // Load products for a company and optionally pre-select a product
+            async function loadProductsForCompany(companyId, preselectProductId) {
+                const productSelect = $('#ProductId');
+                const helpText = $('#productHelpText');
+                productSelect.html('<option value="">Select a product...</option>');
+                companyProducts = [];
+
+                if (!companyId) {
+                    helpText.text('Select a company to see its products');
+                    $('#CompanyEmail').val('');
+                    $('#CompanyWebsite').val('');
+                    return;
+                }
+
+                helpText.text('Loading products...');
+                try {
+                    const response = await fetch(`/Certificate/GetProductsByCompany?companyId=${companyId}`);
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        companyProducts = result.data;
+                        if (result.data.length > 0) {
+                            // Build all options at once to avoid multiple MutationObserver triggers
+                            let optionsHtml = '<option value="">Select a product...</option>';
+                            result.data.forEach(p => {
+                                optionsHtml += `<option value="${p.id}">${p.name}</option>`;
+                            });
+                            productSelect.html(optionsHtml);
+                            // Explicitly set value after all options are in the DOM
+                            if (preselectProductId) {
+                                setTimeout(() => {
+                                    productSelect.val(preselectProductId);
+                                    productSelect.trigger('change');
+                                }, 50);
+                            }
+                            helpText.text(`${result.data.length} product(s) found`);
+                        } else {
+                            helpText.text('No products found for this company. Use "Add New" below.');
+                        }
+                        // Auto-populate company email/website
+                        $('#CompanyEmail').val(result.companyEmail || '');
+                        $('#CompanyWebsite').val(result.companyWebsite || '');
+                    }
+                } catch (error) {
+                    console.error('Error loading products by company:', error);
+                    helpText.text('Error loading products');
+                }
+            }
+
+            // Initial load: populate products for the saved company with saved product pre-selected
+            if (savedCompanyId) {
+                await loadProductsForCompany(savedCompanyId, savedProductId);
+            }
+
+            // When company changes, reload products and reset category/type/subcategory
+            $('#CompanyId').change(async function() {
+                const companyId = $(this).val();
+                $('#ProductCategoryId').val('');
+                $('#ProductTypeId').html('<option value="">Select category first...</option>');
+                $('#ProductSubcategoryId').html('<option value="">Select type first...</option>');
+                await loadProductsForCompany(companyId);
+            });
+
+            // When product changes, auto-fill category/type/subcategory
+            $('#ProductId').change(async function() {
+                const productId = parseInt($(this).val());
+                if (!productId) return;
+
+                const product = companyProducts.find(p => p.id === productId);
+                if (!product) return;
+
+                if (product.categoryId) {
+                    $('#ProductCategoryId').val(product.categoryId);
+                    try {
+                        const response = await fetch(`/Certificate/GetProductTypes?categoryId=${product.categoryId}`);
+                        const result = await response.json();
+                        if (result.success && result.data) {
+                            const typeSelect = $('#ProductTypeId');
+                            typeSelect.html('<option value="">Select a type...</option>');
+                            result.data.forEach(pt => {
+                                typeSelect.append(`<option value="${pt.id}">${pt.name}</option>`);
+                            });
+                            if (product.productTypeId) {
+                                typeSelect.val(product.productTypeId);
+                                const subResponse = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${product.productTypeId}`);
+                                const subResult = await subResponse.json();
+                                if (subResult.success && subResult.data && subResult.data.length > 0) {
+                                    const subSelect = $('#ProductSubcategoryId');
+                                    subSelect.html('<option value="">Select subcategory...</option>');
+                                    subResult.data.forEach(sub => {
+                                        subSelect.append(`<option value="${sub.id}">${sub.name}</option>`);
+                                    });
+                                    if (product.productSubcategoryId) {
+                                        subSelect.val(product.productSubcategoryId);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error auto-filling product hierarchy:', error);
+                    }
+                }
+            });
+
+            // ===== Product Category/Type/Subcategory 3-Level Cascading Dropdowns =====
+
+            // Saved values from model for pre-selection
+            const savedCategoryId = '9';
+            const savedTypeId = '';
+            const savedSubcategoryId = '';
+
+            // On page load: if category is pre-selected, load types then subcategories
+            async function initProductCascade() {
+                if (savedCategoryId) {
+                    // Load types for saved category
+                    try {
+                        const response = await fetch(`/Certificate/GetProductTypes?categoryId=${savedCategoryId}`);
+                        const result = await response.json();
+                        if (result.success && result.data) {
+                            const typeSelect = $('#ProductTypeId');
+                            typeSelect.html('<option value="">Select a type...</option>');
+                            result.data.forEach(pt => {
+                                const selected = pt.id.toString() === savedTypeId ? ' selected' : '';
+                                typeSelect.append(`<option value="${pt.id}"${selected}>${pt.name}</option>`);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error loading product types:', error);
+                    }
+
+                    // If type is also saved, load subcategories
+                    if (savedTypeId) {
+                        try {
+                            const response = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${savedTypeId}`);
+                            const result = await response.json();
+                            if (result.success && result.data && result.data.length > 0) {
+                                const subSelect = $('#ProductSubcategoryId');
+                                subSelect.html('<option value="">Select subcategory...</option>');
+                                result.data.forEach(sub => {
+                                    const selected = sub.id.toString() === savedSubcategoryId ? ' selected' : '';
+                                    subSelect.append(`<option value="${sub.id}"${selected}>${sub.name}</option>`);
+                                });
+                            } else {
+                                $('#ProductSubcategoryId').html('<option value="">No subcategories available</option>');
+                            }
+                        } catch (error) {
+                            console.error('Error loading product subcategories:', error);
+                        }
+                    }
+                }
+            }
+
+            await initProductCascade();
+
+            // When product category changes, load types filtered by category
+            $('#ProductCategoryId').change(async function() {
+                const categoryId = $(this).val();
+                const typeSelect = $('#ProductTypeId');
+                const subcategorySelect = $('#ProductSubcategoryId');
+
+                // Clear dependent dropdowns
+                typeSelect.html('<option value="">Select type...</option>');
+                subcategorySelect.html('<option value="">Select type first...</option>');
+
+                if (categoryId) {
+                    try {
+                        const response = await fetch(`/Certificate/GetProductTypes?categoryId=${categoryId}`);
+                        const result = await response.json();
+                        if (result.success && result.data) {
+                            typeSelect.html('<option value="">Select a type...</option>');
+                            result.data.forEach(pt => {
+                                typeSelect.append(`<option value="${pt.id}">${pt.name}</option>`);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error loading product types:', error);
+                    }
+                }
+            });
+
+            // When product type changes, load subcategories (children in ProductTypes table)
+            $('#ProductTypeId').change(async function() {
+                const ptypeId = $(this).val();
+                const subcategorySelect = $('#ProductSubcategoryId');
+
+                // Clear subcategory options
+                subcategorySelect.html('<option value="">Select subcategory...</option>');
+
+                if (ptypeId) {
+                    try {
+                        const response = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${ptypeId}`);
+                        const result = await response.json();
+                        if (result.success && result.data && result.data.length > 0) {
+                            result.data.forEach(sub => {
+                                subcategorySelect.append(`<option value="${sub.id}">${sub.name}</option>`);
+                            });
+                        } else {
+                            subcategorySelect.html('<option value="">No subcategories available</option>');
+                        }
+                    } catch (error) {
+                        console.error('Error loading product subcategories:', error);
+                    }
+                }
+            });
+
+            // ===== Certification Type Subcategories (Multi-Select) =====
+
+            // Initialize subcategory dropdown based on current type
+            function initializeSubcategory() {
+                const subcategorySelect = $('#subcategorySelect');
+
+                subcategorySelect.html('<option value="">Select subcategory...</option>');
+
+                if (typeId) {
+                    const subcategories = allCertificationTypes
+                        .filter(ct => ct.parentId === typeId)
+                        .sort((a, b) => a.name.localeCompare(b.name));
+
+                    if (subcategories.length > 0) {
+                        subcategories.forEach(sub => {
+                            subcategorySelect.append(`<option value="${sub.id}">${sub.name}</option>`);
+                        });
+                    }
+                    // Field always stays visible
+                }
+            }
+
+            initializeSubcategory();
+
+            // Load existing subcategories for this certificate (multi-select with checkboxes)
+
+                const existingSubcategories = [{"Id":73,"Name":"Recycled Content"},{"Id":84,"Name":"Certified Energy Savings"}];
+                // Wait for multi-select dropdown to be initialized
+                setTimeout(function() {
+                    if (window.CertificateInlineCreate && window.CertificateInlineCreate.loadExistingSubcategories) {
+                        window.CertificateInlineCreate.loadExistingSubcategories(existingSubcategories);
+                    }
+                }, 200);
+                
+            // Load subcategories when certification type changes
+            $('#CertificationTypeId').change(function() {
+                const newTypeId = parseInt($(this).val());
+                const subcategorySelect = $('#subcategorySelect');
+
+                subcategorySelect.html('<option value="">Select subcategory...</option>');
+
+                // Clear selected subcategories when parent type changes
+                if (window.CertificateInlineCreate && window.CertificateInlineCreate.clearSubcategories) {
+                    window.CertificateInlineCreate.clearSubcategories();
+                }
+
+                if (newTypeId) {
+                    const subcategories = allCertificationTypes
+                        .filter(ct => ct.parentId === newTypeId)
+                        .sort((a, b) => a.name.localeCompare(b.name));
+
+                    if (subcategories.length > 0) {
+                        subcategories.forEach(sub => {
+                            subcategorySelect.append(`<option value="${sub.id}">${sub.name}</option>`);
+                        });
+                    }
+                    // Field always stays visible
+
+                    // Refresh the multi-select dropdown to show new options
+                    if (window.CertificateInlineCreate && window.CertificateInlineCreate.refreshSubcategories) {
+                        setTimeout(() => window.CertificateInlineCreate.refreshSubcategories(), 50);
+                    }
+
+                    // Load custom fields for the selected type (only if container exists)
+                    if (typeof certificateCustomFields !== 'undefined' && document.getElementById('custom-fields-container')) {
+                        certificateCustomFields.loadFieldsForType(newTypeId);
+                    }
+                } else {
+                    // Custom fields container may be hidden for initial phase
+                    const customFieldsContainer = document.getElementById('custom-fields-container');
+                    if (customFieldsContainer) {
+                        customFieldsContainer.innerHTML = '<p class="text-muted">Select a certification type to load custom fields.</p>';
+                    }
+                }
+            });
+
+            // Load custom fields for the certificate type (only if container exists)
+            async function loadCustomFields() {
+                const customFieldsContainer = document.getElementById('custom-fields-container');
+                if (typeId && customFieldsContainer && typeof certificateCustomFields !== 'undefined') {
+                    await certificateCustomFields.loadFieldsForType(typeId);
+                    await certificateCustomFields.loadFieldValues(certificateId);
+                }
+            }
+
+            await loadCustomFields();
+
+            // Rebaseline unsaved changes tracking after all async initialization
+            // (product types, custom fields, subcategories, tags all trigger change events)
+            setTimeout(function() {
+                if (window.CertificateCreate && window.CertificateCreate.rebaselineUnsavedChanges) {
+                    window.CertificateCreate.rebaselineUnsavedChanges();
+                }
+            }, 1000);
+
+            // Intercept form submission to handle custom fields
+            const form = document.getElementById('certificateEditForm');
+
+            form.addEventListener('submit', function(e) {
+                try {
+                    // Only validate custom fields if container exists and fields are loaded
+                    const customFieldsContainer = document.getElementById('custom-fields-container');
+                    if (customFieldsContainer && typeof certificateCustomFields !== 'undefined' && certificateCustomFields.fields && certificateCustomFields.fields.length > 0) {
+                        const validation = certificateCustomFields.validateFields();
+                        if (!validation.isValid) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            customFieldsContainer.querySelectorAll('.inline-validation-error').forEach(el => el.remove());
+                            customFieldsContainer.querySelectorAll('.form-group.has-error').forEach(fg => fg.classList.remove('has-error'));
+
+                            validation.errors.forEach(error => {
+                                const formGroups = customFieldsContainer.querySelectorAll('.form-group');
+                                formGroups.forEach(fg => {
+                                    const label = fg.querySelector('label');
+                                    if (label && error.includes(label.textContent.replace('*', '').trim())) {
+                                        fg.classList.add('has-error');
+                                        const errorDiv = document.createElement('div');
+                                        errorDiv.className = 'inline-validation-error';
+                                        errorDiv.textContent = error;
+                                        const input = fg.querySelector('input, select, textarea');
+                                        if (input) {
+                                            input.insertAdjacentElement('afterend', errorDiv);
+                                        }
+                                    }
+                                });
+                            });
+
+                            customFieldsContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            return false;
+                        }
+
+                        // Get custom field values and add them to the form
+                        const fieldValues = certificateCustomFields.getFieldValues();
+                        form.querySelectorAll('input[name^="CustomFieldValues"]').forEach(input => input.remove());
+                        Object.keys(fieldValues).forEach(fieldId => {
+                            const hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = `CustomFieldValues[${fieldId}]`;
+                            hiddenInput.value = fieldValues[fieldId] || '';
+                            form.appendChild(hiddenInput);
+                        });
+                    }
+
+                    // CR-018: Do NOT post product IDs through the cert form on Edit.
+                    // Product ID changes are immediate-save via /api/productids
+                    // (per DEF-149 — the user-facing hint above the manager
+                    // explains this), so the cert form's submit doesn't need to
+                    // carry them. With server-side paging the JS only holds the
+                    // currently visible page; posting that subset would tell the
+                    // controller's merge logic to delete every off-page row.
+                    // The hidden-input writer is intentionally removed.
+                    if (false && typeof window.productIdManager !== 'undefined' && window.productIdManager.productIds) {
+                        form.querySelectorAll('input[name^="ProductIds"]').forEach(input => input.remove());
+                        window.productIdManager.productIds.forEach((pid, index) => {
+                            const fields = {
+                                'Id': pid.id || 0,
+                                'CertificateId': pid.certificateId || 76,
+                                'ProductIdType': pid.productIdType || '',
+                                'ProductIdValue': pid.productIdValue || '',
+                                'Status': pid.status || 'Active',
+                                'Partner': pid.partner || '',
+                                'ProductName': pid.productName || '',
+                                'ProductSku': pid.productSku || '',
+                                'Description': pid.description || ''
+                            };
+                            Object.entries(fields).forEach(([key, value]) => {
+                                const hiddenInput = document.createElement('input');
+                                hiddenInput.type = 'hidden';
+                                hiddenInput.name = `ProductIds[${index}].${key}`;
+                                hiddenInput.value = value;
+                                form.appendChild(hiddenInput);
+                            });
+                        });
+                    }
+
+                    return true;
+                } catch (error) {
+                    console.error('Error in form submit handler:', error);
+                    return true;
+                }
+            });
+        });
+    </script>
+
+    <script>
+        // Extend certificate-create.js for Edit page specifics
+        window.CertificateEdit = window.CertificateEdit || {};
+
+        // Delete confirmation using custom modal
+        window.CertificateEdit.confirmDelete = async function(certificateNumber) {
+            if (!certificateNumber) {
+                console.error('Certificate number is missing');
+                return;
+            }
+
+            const confirmed = await window.CertificateCreate.showConfirmation({
+                title: 'Delete Certificate',
+                message: 'Are you sure you want to delete this certificate? This action cannot be undone.',
+                confirmText: 'Delete',
+                type: 'danger'
+            });
+
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch(`/Certificate/Delete/${encodeURIComponent(certificateNumber)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    }
+                });
+                let payload = null;
+                try { payload = await response.json(); } catch (_) { /* non-JSON response */ }
+
+                if (response.ok && payload && payload.success) {
+                    const target = payload.redirectUrl || '/Certificate/CertificateTileViewInternal';
+                    window.location.href = target;
+                } else {
+                    const msg = (payload && payload.message) || `Failed to delete certificate (HTTP ${response.status})`;
+                    console.error('Delete failed:', response.status, payload);
+                    if (window.AdminCore && AdminCore.showNotification) {
+                        AdminCore.showNotification(msg, 'error');
+                    } else {
+                        alert(msg);
+                    }
+                }
+            } catch (error) {
+                console.error('Error deleting certificate:', error);
+                if (window.AdminCore && AdminCore.showNotification) {
+                    AdminCore.showNotification('An error occurred while deleting the certificate', 'error');
+                } else {
+                    alert('An error occurred while deleting the certificate');
+                }
+            }
+        };
+
+        // Remove saved PDF confirmation and API call
+        window.CertificateEdit.confirmRemovePdf = async function(certificateId) {
+            const confirmed = await window.CertificateCreate.showConfirmation({
+                title: 'Remove Certificate PDF',
+                message: 'Are you sure you want to remove the uploaded PDF and its preview? This action cannot be undone.',
+                confirmText: 'Remove',
+                type: 'danger'
+            });
+
+            if (confirmed) {
+                try {
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                    const response = await fetch(`/api/CertificatesApi/${certificateId}/pdf`, {
+                        method: 'DELETE',
+                        headers: {
+                            'RequestVerificationToken': token
+                        }
+                    });
+
+                    if (response.ok) {
+                        // Hide the current PDF info bar
+                        const pdfInfo = document.querySelector('.current-pdf-info');
+                        if (pdfInfo) pdfInfo.style.display = 'none';
+
+                        // Reset sidebar preview
+                        const sidebarPreview = document.querySelector('.preview-container');
+                        if (sidebarPreview) {
+                            sidebarPreview.innerHTML = `
+                                <div class="no-preview" style="text-align: center; color: #6c757d;">
+                                    <i class="fas fa-file-pdf" style="font-size: 48px; color: #adb5bd; margin-bottom: 12px; display: block;"></i>
+                                    <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Certificate Unavailable</p>
+                                    <small style="color: #adb5bd; font-size: 11px;">Upload a PDF to generate preview</small>
+                                </div>
+                            `;
+                        }
+
+                        // Clear hidden input
+                        const hiddenInput = document.getElementById('certificateImagePathHidden') || document.getElementById('CertificateImagePath');
+                        if (hiddenInput) hiddenInput.value = '';
+
+                        // Update upload label
+                        const uploadLabel = document.querySelector('label[for="certificatePdf"]');
+                        if (uploadLabel) uploadLabel.textContent = 'Upload PDF Certificate';
+
+                        ModalSystem.showNotification('Certificate PDF removed successfully.', 'success');
+                    } else {
+                        const result = await response.json();
+                        ModalSystem.showNotification(result.message || 'Failed to remove PDF.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error removing PDF:', error);
+                    ModalSystem.showNotification('An error occurred while removing the PDF.', 'error');
+                }
+            }
+        };
+
+        // Load existing tags on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load existing external tags
+
+            // Load existing internal tags
+        });
+    </script>
+
+
+<div class="admin-notification-stack" id="admin-notifications"></div><div id="admin-live-region" class="admin-sr-only" aria-live="polite" aria-atomic="true"></div><div class="modal fade" id="productIdModal" tabindex="-1" aria-labelledby="productIdModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productIdModalLabel">Add Product ID</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                    <div class="modal-body" id="productIdForm">
+                        <input type="hidden" id="productIdId" name="Id" value="0" style="">
+                        <input type="hidden" id="certificateId" name="CertificateId" value="76" style="">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="productIdType" class="form-label">Type <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="productIdType" name="ProductIdType" required="">
+                                        <option value="">Select Type</option>
+                                        <option value="ASIN">ASIN - Amazon Standard ID</option>
+                                        <option value="UPC">UPC - Universal Product Code</option>
+                                        <option value="GTIN">GTIN - Global Trade Item Number</option>
+                                        <option value="EAN">EAN - European Article Number</option>
+                                        <option value="ISBN">ISBN - Book Identifier</option>
+                                        <option value="SKU">SKU - Stock Keeping Unit</option>
+                                        <option value="MPN">MPN - Manufacturer Part Number</option>
+                                        <option value="OTHER">Other</option>
+                                    </select>
+                                    <div class="form-text " id="typeHelp">Select a type to see format requirements</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="productIdValue" class="form-label">Product ID <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="productIdValue" name="ProductIdValue" required="" style="">
+                                    <div class="invalid-feedback" id="valueValidation"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="productIdPartner" class="form-label">Partner</label>
+                                    <select class="form-select" id="productIdPartner" name="Partner">
+                                        <option value="">None</option>
+                                        <option value="Amazon">Amazon</option>
+                                        <option value="Novi">Novi</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="productName" class="form-label">Product Name</label>
+                            <input type="text" class="form-control" id="productName" name="ProductName" placeholder="Optional product name" style="">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="productSku" class="form-label">SKU</label>
+                            <input type="text" class="form-control" id="productSku" name="ProductSku" placeholder="Optional SKU" style="">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="productDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="productDescription" name="Description" rows="2" placeholder="Optional description or notes" style=""></textarea>
+                        </div>
+                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveProductId">Save Product ID</button>
+                </div>
+            </div>
+        </div>
+    </div><div id="import-preview-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9997;">
+        <!-- Backdrop (sibling) -->
+        <div class="import-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
+        <!-- Modal Container (sibling) -->
+        <div class="import-modal-container" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: 95%; max-width: 1200px; max-height: 90vh; background-color: white; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column;">
+            <div class="admin-modal-header" style="background-color: #f8f9fa; border-bottom: 2px solid #e9ecef; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;">
+                <h3 class="admin-modal-title" style="color: #002B76; font-weight: 600; margin: 0; font-size: 18px;">
+                    <i class="fas fa-download" style="margin-right: 8px;"></i> Import Preview - Product IDs
+                </h3>
+                <button class="admin-modal-close" onclick="productIdManager.closeImportPreviewModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #666; padding: 4px 8px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="admin-modal-body" style="background-color: white; padding: 20px; overflow-y: auto; flex: 1;">
+                <!-- Summary Stats -->
+                <div id="import-summary" class="import-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <div class="import-stat" style="background: #e8f5e1; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div class="import-stat-value" id="stat-new" style="font-size: 24px; font-weight: 600; color: #447638;">0</div>
+                        <div class="import-stat-label" style="font-size: 12px; color: #666;">New</div>
+                    </div>
+                    <div class="import-stat" style="background: #e6f7ff; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div class="import-stat-value" id="stat-modified" style="font-size: 24px; font-weight: 600; color: #002B76;">0</div>
+                        <div class="import-stat-label" style="font-size: 12px; color: #666;">Modified</div>
+                    </div>
+                    <div class="import-stat" style="background: #f5f5f5; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div class="import-stat-value" id="stat-unchanged" style="font-size: 24px; font-weight: 600; color: #999;">0</div>
+                        <div class="import-stat-label" style="font-size: 12px; color: #666;">Unchanged</div>
+                    </div>
+                    <div class="import-stat" style="background: #ffebee; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div class="import-stat-value" id="stat-errors" style="font-size: 24px; font-weight: 600; color: #ff5252;">0</div>
+                        <div class="import-stat-label" style="font-size: 12px; color: #666;">Errors</div>
+                    </div>
+                </div>
+
+                <!-- Preview Table -->
+                <div style="overflow-x: auto; max-height: 400px; border: 1px solid #e9ecef; border-radius: 6px;">
+                    <table class="table table-sm table-hover mb-0" style="font-size: 14px;">
+                        <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th style="width: 40px; padding: 10px;">
+                                    <input type="checkbox" id="select-all-import" checked="" onchange="productIdManager.toggleAllImportRows(this.checked)" style="">
+                                </th>
+                                <th style="padding: 10px;">Status</th>
+                                <th style="padding: 10px;">Type</th>
+                                <th style="padding: 10px;">Product ID</th>
+                                <th style="padding: 10px;">Product Name</th>
+                                <th style="padding: 10px;">SKU</th>
+                                <th style="padding: 10px;">Partner</th>
+                                <th style="padding: 10px;">Changes / Errors</th>
+                            </tr>
+                        </thead>
+                        <tbody id="import-preview-body">
+                            <!-- Preview rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="admin-modal-footer" style="background-color: #f8f9fa; border-top: 2px solid #e9ecef; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 0 0 8px 8px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <label id="overwrite-existing-label" style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin: 0; padding: 6px 12px; border: 1px solid #f0ad4e; background: #fff8e6; border-radius: 16px; color: #8a5a00;" title="When checked: this import file is the new full list. Existing Product IDs not in the file will be deactivated. When unchecked (default): rows in the file are added or updated; nothing is deactivated.">
+                        <input type="checkbox" id="overwrite-existing-toggle" style="margin: 0px;">
+                        <i class="fas fa-exchange-alt" aria-hidden="true" style="font-size: 12px;"></i>
+                        <span>Replace all existing IDs with this file</span>
+                    </label>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary me-2" onclick="productIdManager.closeImportPreviewModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="apply-import-btn" onclick="productIdManager.applyImport()">
+                        <i class="fas fa-check me-1"></i> Apply Import
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div></body></html>

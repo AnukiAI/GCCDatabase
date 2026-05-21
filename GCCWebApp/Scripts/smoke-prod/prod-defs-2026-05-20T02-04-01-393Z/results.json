@@ -1,0 +1,32 @@
+[
+  {
+    "section": "1.static-prod",
+    "name": "Directory listing /uploads/certificates/ on prod",
+    "ok": true,
+    "detail": "status=404"
+  },
+  {
+    "section": "1.static-prod",
+    "name": "Anon static-file PDF probe (10 guesses for 26-0163)",
+    "ok": true,
+    "detail": "tried 10 filename guesses, none matched — limited probe"
+  },
+  {
+    "section": "1.static-prod",
+    "name": "No /uploads/* refs found in public tile HTML (good — controllers may proxy)",
+    "ok": true,
+    "detail": "0 references in HTML"
+  },
+  {
+    "section": "2.internal-api-prod",
+    "name": "External GET /api/CertificatesApi on prod",
+    "ok": false,
+    "detail": "count=36 distinctCompanies=29 — if many companies, DEF-206 live on prod"
+  },
+  {
+    "section": "3.extview-prod",
+    "name": "External GET ExternalView/26-0163 on prod",
+    "ok": false,
+    "detail": "status=200 bodyLen=19899 certInBody=true detailBlock=true — if true/true = DEF-204 live on prod (whether the cert is theirs or not)"
+  }
+]

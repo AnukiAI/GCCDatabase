@@ -6,6 +6,21 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-211 — Breadcrumb on Companies & Products pages no longer prefixed with "Administration" (QC #104, 2026-05-19, in working tree pending deploy)
+
+Final piece of QC #104 (Carly 5/1 follow-up). DEF-202 closed the Companies → Company Management rename and the Admin Dashboard half (page was removed 5/1 so the broken link is gone). The remaining piece — Carly's note that *"Administration"* should not appear in the Companies & Products breadcrumb because they're sibling top-level nav items, not parent/child — landed here.
+
+**Files:** `Views/Company/Index.cshtml`, `Views/Product/Management.cshtml`.
+
+**Before:** `Administration › Companies & Products › Company Management`
+**After:**  `Companies & Products › Company Management`
+
+(Same shape on Product Management.) Admin pages keep `Administration › <page>` because they truly are under the Administration nav dropdown — verified across all 14 Admin views, `<span>Administration</span>` stays non-clickable. `ManagementAlt.cshtml` / `ManagementV2.cshtml` left untouched (alternates that don't appear to be reachable in normal flows).
+
+Post-deploy verification: log in as Admin, hit Company Management — breadcrumb reads `Companies & Products › Company Management`. Same on Product Management. Spot-check one Admin page (e.g., User Management) — still reads `Administration › User Management`.
+
+---
+
 ## QC #170 / DEF-196 + DEF-197 — deployed to gccwebapp.com and end-to-end verified against live data (2026-05-19, live)
 
 Both fixes from the 5/15 working-tree entries below ([[DEF-196]] cert-aware delete pre-check + specific error messages, [[DEF-197]] hash-set rollup dedupe) are live on gccwebapp.com today. End-to-end verification ran against the production-DB-backed test environment using existing real subcategory rows — no test data was created on prod. The SQL FK constraint (`OnDelete.Restrict`) is the backstop, so even if the new pre-check were missing, the delete would still be blocked at the DB layer; nothing actually deletes on these probes.

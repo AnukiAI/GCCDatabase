@@ -5689,3 +5689,175 @@ The previous cert delete I did during DEF-204 cleanup (cert 26-0163) successfull
 | DEF-210 | Major | Open |
 
 **6 valid DEFs from internal QA today** (DEF-207 is yesterday's separately-shipped bfcache fix). Composite severity distribution: 3 Critical (DEF-204, 206, 208) + 3 Major (DEF-203, 209, 210).
+
+---
+
+## 2026-05-19 — DEF-211 fix: removed "Administration" prefix from Companies & Products breadcrumbs (QC #104 5/1 follow-up)
+
+Shawn reopened QC #104 second half — Carly's 5/1 note that *"Administration"* should not appear in the breadcrumb for Companies & Products pages because they're sibling top-level nav items, not parent/child. DEF-202 (5/19) closed two of three parts of #104 but missed this one.
+
+Two edits, both in Views:
+- `Views/Company/Index.cshtml` — `Administration › Companies & Products › Company Management` → `Companies & Products › Company Management`
+- `Views/Product/Management.cshtml` — `Administration › Companies & Products › Product Management` → `Companies & Products › Product Management`
+
+Logged as DEF-211 in defect register + shipped-2026-05.md. Pending deploy. Admin views' `Administration ›` prefix kept (those pages truly are under the Administration nav dropdown). `Views/Product/ManagementAlt.cshtml` + `ManagementV2.cshtml` left as-is — they look like dead alternates.
+
+**Adjacent observation** (not addressed in this DEF): breadcrumb `<nav>` in `_Layout.cshtml:299` is gated `role-admin-show`, so Analyst users never see breadcrumbs even though they can reach Companies & Products. Separate concern.
+
+---
+
+## 2026-05-19 — Batch 12 audit (cascade delete / health / API field leaks / sessions) — CLEAN
+
+**Script:** `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\probe-batch12.js`. 15/17 PASS, no new DEFs. Two minor observations.
+
+### Clean surfaces
+
+- **Health endpoints anonymous.** `/health` `/health/ready` `/health/live` all 200 OK to anonymous. Body returns `{ status: "Healthy", checks: [...] }`. No connection strings, no exception stacks, no schema metadata leaked. `/health` exposes `database_provider: "Microsoft.EntityFrameworkCore.SqlServer"` and `database_response_time_ms` — minor info disclosure but standard. `/health/ready` and `/health/live` only return "Healthy" (load-balancer probes).
+- **Swagger anonymous.** `/swagger`, `/swagger/index.html`, `/swagger/v1/swagger.json` all reachable — by design (API documentation is public per partner contract).
+- **Partner API field-leak audit.** `/api/v1/certificates` has: no absolute filesystem paths, no internal numeric IDs adjacent to certificateNumber, `pdfDownloadUrl` is relative (`/api/v1/certificates/EXT-AMZ-003/download`) — contract-clean.
+- **Cert delete cascade.** Created CASCADE-Co + CASCADE-Product + cert (Paid, PDF, +1 ProductId via API), then `DELETE /api/CertificatesApi/{id}` → 200 OK. App-level cascade removes dependents cleanly.
+- **Concurrent session.** Same user from two browsers — both authenticated independently. Logout from A doesn't propagate to B (expected — no server-side single-session enforcement, normal for multi-device-friendly).
+- **Session idle timeout — server-enforced.** `Program.cs:31` `Session.IdleTimeout = 30 min`, `Program.cs:245-246` auth cookie `ExpireTimeSpan = 30 min` with `SlidingExpiration = true`. Cookies are session-cookies (no Expires attribute); the 30-min idle gate is server-side. Reasonable.
+
+### Two observations (not DEFs)
+
+**Obs 1 — GS1 endpoint `@id` URLs use request-relative base.** Amazon CPF contract example shows `"https://greencirclecertified.com/api/v1/certificates/gs1/24-0366"`. Actual response uses request host: `localhost:5101` on dev, `gccwebapp.com` on test env. On the canonical greencirclecertified.com cutover it'll match. Whether Amazon's ingest validates against an expected canonical is the open question — worth a quick check with the contract.
+
+**Obs 2 — Health endpoint exposes DB provider info.** Standard ASP.NET Core health output. No real-world leak (SQL Server is in the deploy stack docs anyway). `/health/ready` and `/health/live` already cover load-balancer probes with just "Healthy"/"Unhealthy". Could gate `/health` behind admin or ops IP-allowlist if defense-in-depth matters. Low priority.
+
+### Day's running total
+
+| DEF | Severity | Author | Status |
+|---|---|---|---|
+| DEF-203 | Major | Anuki QA | Open |
+| DEF-204 | Critical | Anuki QA | Open |
+| ~~DEF-205~~ | ~~Critical~~ | — | **Retracted** |
+| DEF-206 | Critical | Anuki QA | Open |
+| DEF-207 | Low | (yesterday) | shipped |
+| DEF-208 | Critical | Anuki QA | Open |
+| DEF-209 | Major | Anuki QA | Open |
+| DEF-210 | Major | Anuki QA | Open |
+| **DEF-211** | (Shawn just added) | Shawn | (in flight) |
+
+**6 from Anuki QA today + 1 from Shawn (DEF-211) — 7 fresh DEFs total today.**
+
+### Cumulative audit table
+
+| Batch | Surfaces | Findings |
+|---|---|---|
+| Deploy smoke (A-L) | 12 | — |
+| Workflow transitions | 1 | DEF-203 |
+| Security/scoping audit | 5 | DEF-204 (DEF-205 retracted) |
+| Internal `/api/CertificatesApi` | 1 controller / 10 endpoints | DEF-206 |
+| Company + Product controllers | 2 | clean |
+| Admin/Tile/ProductId/Import | 4 | clean |
+| Account/Dashboard/PartnerApi/static-file | 4 | DEF-208 + 209 + 210 |
+| CSRF/reset/upload/XSS/cookies | 5 | clean |
+| Open redir/SQLi/mass assign/rate limit | 4 | clean |
+| GS1/audit-trail/cascade | 3 | clean (+ DEF-205 retraction) |
+| Health/field leaks/cascade/sessions | 5 | clean |
+
+**~50 surfaces probed total, 6 leaking, 44 clean.**
+
+### Surfaces NOT yet probed (low priority)
+- 2FA flow on prod (need config enabled)
+- Email template injection (need to capture outbound email content)
+- File upload size limits (server crashed once on malformed input — could probe more)
+- WebSocket/SignalR endpoints (if any)
+- Encrypted-at-rest checks for sensitive DB columns
+
+---
+
+## 2026-05-19 — QC #164 client response drafted; no code change needed
+
+Client (5/11): *"GCC has no way to verify if this is working, Anuki needs to ensure it is correct - if it's not this would cause huge issues."*
+
+Re-verified the implementation is complete and verification evidence already exists from 2026-05-12 (`docs/tracking/screenshots/qc164/EVIDENCE.md`): UI cleanup confirmed across 5 viewports, UP/DOWN cascade confirmed via real Edit-form Playwright saves on cert 26-0002, Partner API contract confirmed (PublicStatuses filter + `"Active"` literal). The cascade is wired at 8 mutation sites: cert Create/Edit (`CertificateController.cs:662, 1224`), Import (`:2253`), `CertificateService.Update`/`BulkAction` (`:704, 905`), Workflow service (`:102`), Expiration sweep (`:195`), Import service (`:1227, 1307`).
+
+Drafted client response in `docs/tracking/client-responses-2026-05-19.md`, appended as third entry. Response includes (a) test table from EVIDENCE.md, (b) the 8-site cascade coverage, (c) three self-verification steps the client can run without Anuki involvement, (d) transparent flag that DEF-203 (workflow matrix not enforced) is a separate item that does NOT affect the cascade guarantee — fires unconditionally on every save.
+
+No code changes for QC #164. Awaiting Shawn to send the response.
+
+---
+
+## 2026-05-19 — DEF-204 + DEF-206 + DEF-208 VERIFIED LIVE ON PROD gccwebapp.com
+
+**Script:** `Scripts/smoke-prod/probe-prod-defs.js` + `probe-prod-def208.js`. Read-only verification (no data changes on prod).
+
+### DEF-208 (static-file leak) — confirmed on prod
+
+The cert detail page renders the thumbnail filename in its HTML source:
+
+```html
+<img src="/uploads/images/26-0163_thumb_20260511_122453.png">
+```
+
+Anonymous user fetching the URL directly:
+
+```
+GET https://gccwebapp.com/uploads/images/26-0163_thumb_20260511_122453.png
+  → 200 OK, image/png
+```
+
+**No need to brute-force timestamps** — the filename is embedded in the page source of every cert detail page. Anyone with detail-page access can share the static URL with an unauthenticated viewer.
+
+The /uploads/ path is past the test-env Basic Auth gate (same as `/api/*` bypass). Once Amazon or any partner has the gate creds, they have anonymous access to every uploaded file by URL.
+
+### DEF-206 (internal API no role guard) — confirmed on prod
+
+```
+External user GET /api/CertificatesApi?pageSize=50 on prod
+  → 200 OK
+  → 36 certs across 29 distinct companies
+```
+
+Dev had 43 certs / 10+ companies. Prod has fewer certs but spread across more tenants — **cross-company leak is BROADER on prod than dev.**
+
+### DEF-204 (ExternalView cross-company) — confirmed on prod
+
+```
+External user GET /Certificate/CertificateExternalView/26-0163 on prod
+  → 200 OK, 19899 bytes
+  → certificate-detail block + Certification Period block both present
+```
+
+Endpoint accepts the request regardless of caller's company ownership.
+
+### Urgency upgrade
+
+These three are now flagged **"Open — VERIFIED LIVE ON PROD"** in the defect register. Earlier "Open" framing implied dev-only findings; prod verification proves they're affecting test-env data right now. **Should ship in the next deploy, not the one after.**
+
+Combined attack picture on prod:
+- DEF-206 leaks the list of 36 certs to External users
+- DEF-204 leaks the External-view detail page for any cert
+- DEF-208 leaks the PDF/thumbnail file with no auth at all
+
+Any External account on prod + gate creds = read access to every cert in the database including underlying PDF files anonymously.
+
+### Day's running total — 6 valid DEFs (3 now confirmed on prod)
+
+| DEF | Severity | Status |
+|---|---|---|
+| DEF-203 | Major | Open (dev verified) |
+| **DEF-204** | **Critical** | **Open — VERIFIED ON PROD** |
+| ~~DEF-205~~ | ~~Critical~~ | RETRACTED |
+| **DEF-206** | **Critical** | **Open — VERIFIED ON PROD** |
+| **DEF-208** | **Critical** | **Open — VERIFIED ON PROD** |
+| DEF-209 | Major | Open (dev verified) |
+| DEF-210 | Major | Open (dev verified) |
+
+DEF-209 + DEF-210 (auth-surface hardening) — same code ships to prod; almost certainly live there. Not separately reverified to avoid login-attempt log noise on the live system.
+
+---
+
+## 2026-05-20 — DEF-213: Edit cert page tag close-button mojibake
+
+**Trigger.** Shawn shared `https://gccwebapp.com/Certificate/Edit/26-0004` plus a screenshot — External Tags area circled, "APR and LEED has special characters displaying???"
+
+**Diagnosis (~4 tool calls).** Grepped Edit.cshtml for tag-rendering code, found literal `Ã—` at lines 1031 + 1059 in the existing-tag rehydration template strings. `Ã—` is the classic UTF-8-bytes-of-`×`-decoded-as-Windows-1252 mojibake pattern. The add-tag path (`wwwroot/js/certificate-create.js:409`) uses correct `×`; only the rehydration path was wrong, so the bug only manifests when the cert already has tags (which is why it looked like LEED/APR specifically were broken — those are the tags 26-0004 had applied).
+
+**Fix.** Replaced both `Ã—` instances with `&times;` (HTML entity, encoding-safe, matches `certificate-tile-view*.js` convention). Two-line edit, zero regression risk.
+
+**Tag-name check.** Grepped seed data + scripts for `LEED`/`APR` — names are clean ASCII in the DB. The "special characters" Shawn saw were entirely the close-button glyph rendering adjacent to the tag name.
+
+**Logged as DEF-213.** Pending deploy.

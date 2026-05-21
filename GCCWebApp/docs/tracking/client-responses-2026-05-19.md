@@ -54,7 +54,52 @@ Alternative if the client wants to self-serve: we add their named addresses to t
 
 ---
 
+## QC #164 — Confirm cert-status-driven Product ID status cascade is working (5/11 client follow-up: "GCC has no way to verify if this is working")
+
+**Client ask (5/11):** *"GCC has no way to verify if this is working, Anuki needs to ensure it is correct - if it's not this would cause huge issues."*
+
+**Draft response (to client):**
+
+Confirmed working end-to-end. Verification was completed on 2026-05-12 via Playwright against the dev environment, with SQL snapshots at each step proving the database actually flipped. Evidence package lives at `docs/tracking/screenshots/qc164/` and includes the screenshots, transition logs, and Partner API call traces. Summary:
+
+| Test | What was checked | Result |
+|---|---|---|
+| A1 | Product ID Manager — no Status column, no Status filter (5 viewports: 1920, 1366, 1024, 768, 375) | PASS |
+| A2 | Add / Edit Product ID modal — no Status field (5 viewports) | PASS |
+| B  | Import template — no Status column in headers | PASS |
+| C1 | **UP-cascade:** flipping a cert from Hold → Client Approved - Paid promoted both of its product IDs from Inactive → Active automatically | **PASS** |
+| C2 | **DOWN-cascade:** flipping the same cert from Client Approved - Paid → Hold demoted both product IDs back to Inactive | **PASS** |
+| D  | Partner API (`/api/v1/certificates` with the Amazon key) — only public-status certs appear in the payload; every item carries `status: "Active"` per the contract | PASS |
+
+**How the cascade is guaranteed.** Product ID status is **never user-controlled**. It is derived from the parent certificate every time the cert is saved, imported, or auto-expired. The derivation rule is one line: `"Active"` if the cert is in a public-facing state (Client Approved - Paid / Republished), `"Inactive"` for every other state (Draft, Hold, Expired, Confidential, Not Paid, Expired - No Annual Verification, Republished → Expired).
+
+The cascade runs from **eight different code paths** so there is no way to mutate a certificate without it firing:
+
+1. Analyst Edit form save
+2. Create-new-certificate save
+3. Manual workflow transition (the dedicated status-change button)
+4. Bulk action (apply a status to a set of certs)
+5. CSV import — create path
+6. CSV import — update path
+7. Product ID import (via the per-cert importer)
+8. Nightly auto-expiration background service (flips eligible certs to Expired and cascades the product IDs at the same time)
+
+Even if a stale Status value were sent in by a script or a legacy import, the create/update service methods overwrite it with the derived value before saving. There is no path to write an incorrect Status.
+
+**How the client can self-verify** (any of these reproduce the cascade — no Anuki involvement needed):
+
+1. **Edit-form check.** Open any cert with product IDs (e.g., 26-0002 on dev or any production cert tagged to Amazon). Change its status to Hold, save. View the cert detail — every product ID row shows Inactive in the Partner API response. Flip the status back to Client Approved - Paid, save — product IDs flip back to Active.
+2. **Partner API contract check.** Call `GET /api/v1/certificates` with the Amazon partner key. Every returned cert has `status: "Active"`. No Draft / Hold / Expired certs leak through. Product IDs under each cert inherit the same Active state.
+3. **Expiration check.** Set a cert's expiration date to yesterday, leave status as Client Approved - Paid. Within 24 hours the nightly sweep flips it to Expired and re-derives product IDs as Inactive. (For a faster repro on dev, the sweep runs every minute — let us know and we'll point a tester at the dev environment.)
+
+**One adjacent item worth flagging for transparency** (separate, not a QC #164 blocker): Anuki internal testing on 2026-05-19 found that the cert Edit form does not currently enforce the workflow transition matrix — illegal jumps like Draft → Republished are accepted without warning. This is logged as a separate defect (DEF-203) and does not affect the product-ID cascade above. The cascade fires on **every** cert save regardless of whether the transition was legal, so the product-ID statuses remain correct even in that case. We will close DEF-203 separately.
+
+**Recommended next step for the client:** Spot-check on dev or UAT using any of the three steps above. Once confirmed, this QC item can be closed.
+
+---
+
 ## When to flip the QC log
 
 - **#167:** flip to `Complete` once Shawn sends the explainer to the client.
 - **#150:** flip to `Complete` once (a) forgot-password is screenshot-verified on dev/UAT and (b) the named test logins are provisioned or the seed list is updated.
+- **#164:** flip to `Complete` once Shawn sends the verification summary to the client and the client confirms spot-check (or after 5 business days with no response — the evidence package is sufficient on its own).

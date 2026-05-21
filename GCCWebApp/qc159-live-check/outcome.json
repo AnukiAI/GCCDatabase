@@ -1,0 +1,12 @@
+{
+  "reached": "modal-checked",
+  "toggleFound": true,
+  "notes": [
+    "Cert 26-0163: ✅ Replace-all toggle present (visible=true); footer HTML saved"
+  ],
+  "toggleLabelById": true,
+  "toggleLabelByText": true,
+  "testedCert": "26-0163",
+  "existingProductIds": 2,
+  "toggleVisible": true
+}

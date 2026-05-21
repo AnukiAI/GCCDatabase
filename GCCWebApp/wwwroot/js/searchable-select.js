@@ -187,9 +187,13 @@
         });
 
         input.addEventListener('focus', function () {
-            renderOptions(this.value);
+            // Show the full option list on focus — typing re-filters via the
+            // 'input' handler below. Filtering by the current input value here
+            // collapses the dropdown to only the already-selected item, which
+            // breaks the "click to see my other choices" gesture.
+            renderOptions('');
             showDropdown();
-            this.select(); // select all text for easy replacement
+            this.select(); // text stays highlighted so typing replaces cleanly
         });
 
         input.addEventListener('keydown', function (e) {

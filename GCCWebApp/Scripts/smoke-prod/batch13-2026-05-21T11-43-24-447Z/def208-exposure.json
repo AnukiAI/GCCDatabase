@@ -1,0 +1,34 @@
+{
+  "totalUniqueUrls": 1,
+  "surfacesProbed": [
+    {
+      "url": "/Certificate/CertificateTileViewInternal",
+      "uploadUrls": 0
+    },
+    {
+      "url": "/Certificate/CertificateInternalView/26-0164",
+      "uploadUrls": 0
+    },
+    {
+      "url": "/Certificate/CertificateInternalView/26-0163",
+      "uploadUrls": 1
+    },
+    {
+      "url": "/Certificate/CertificateInternalView/26-0160",
+      "uploadUrls": 0
+    },
+    {
+      "url": "/Certificate/CertificateInternalView/26-0159",
+      "uploadUrls": 0
+    },
+    {
+      "url": "/Certificate/CertificateInternalView/26-0161",
+      "uploadUrls": 0
+    }
+  ],
+  "anonReachable": 1,
+  "sampleSize": 1,
+  "sample": [
+    "/uploads/images/26-0163_thumb_20260511_122453.png"
+  ]
+}

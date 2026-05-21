@@ -1,0 +1,14 @@
+[
+  {
+    "section": "1.dos",
+    "name": "Server survived all 6 malformed PDF probes",
+    "ok": true,
+    "detail": "no repro of yesterday's crash"
+  },
+  {
+    "section": "2.exposure",
+    "name": "Prod DEF-208 exposure: 1/1 URLs anon-fetchable (100%)",
+    "ok": false,
+    "detail": "1 unique URLs across 6 pages; sample of 1 = 1 successful anon GETs"
+  }
+]

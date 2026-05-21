@@ -5861,3 +5861,87 @@ DEF-209 + DEF-210 (auth-surface hardening) — same code ships to prod; almost c
 **Tag-name check.** Grepped seed data + scripts for `LEED`/`APR` — names are clean ASCII in the DB. The "special characters" Shawn saw were entirely the close-button glyph rendering adjacent to the tag name.
 
 **Logged as DEF-213.** Pending deploy.
+
+---
+
+## 2026-05-20 — Batch 13 — file-upload DoS closed; DEF-208 prod exposure 100% confirmed
+
+**Script:** `Scripts/smoke-prod/probe-batch13.js`.
+
+### File-upload DoS — not reproducible (concern closed)
+
+Ran 6 malformed PDF shapes against `/api/CertificatesApi/GenerateThumbnail` on dev: html-as-pdf, empty, 1-byte, pdf-magic-only, pdf-corrupt-tail, pdf-jpeg-fake. All returned controlled 400 with `"PDF may be empty or corrupted."` message. Server stayed at 200 across the entire sequence. Yesterday's single crash during the original fake-PDF probe was likely transient (parallel browser-context memory pressure), not a repeatable remote-attacker vector.
+
+**Operational note (not a DEF):** the `html-as-pdf` probe took **8530ms** vs ~30ms for the other 5 — the PDF parser walks the HTML body before giving up. A chained burst of these could amplify into resource exhaustion. Adding to ops notes only. Real DoS protection (per-IP rate-limit at edge or app) would close this; today it's not exploited.
+
+### DEF-208 prod exposure quantification
+
+Walked 6 prod page surfaces (tile internal + 5 cert detail pages for `26-0164, 26-0163, 26-0160, 26-0159, 26-0161`). Extracted unique `/uploads/*` URLs from rendered HTML, then anonymously fetched each:
+
+```
+Total unique /uploads/* URLs found: 1 (26-0163's thumbnail)
+Anon-fetchable: 1/1 = 100%
+```
+
+Only 1 across 6 surfaces because most older certs don't have a `CertificateImagePath` set — the recently-uploaded ones do. **Every cert that has a thumbnail leaks its URL via every page that renders it, and 100% of leaked URLs are anonymously fetchable past the Basic Auth gate.** Structural leak, not data-dependent.
+
+A full crawl of every cert detail page on prod (~160 certs) would surface ~160 anon-fetchable URLs minus the certs without thumbnails. Numbers don't change the severity — the structural finding (DEF-208) is the issue.
+
+### Day's running total — still 6 DEFs
+
+No new DEFs from Batch 13. File-upload DoS closed as not-a-defect; DEF-208 prod confirmation strengthens the existing entry.
+
+---
+
+## 2026-05-20 — Batch 14 — WebSocket/SignalR surface = 0 (no audit needed)
+
+Searched the codebase + live-probed common hub paths. No SignalR package in `GCCWebApp.csproj`, no `Hub<>` classes, no `MapHub` / `AddSignalR` / `UseSignalR` calls, no SignalR DLLs in build output, no client-side `signalr.js`. Live probes of `/hub`, `/ws`, `/signalr`, `/signalr/negotiate`, `/hubs/notifications`, `/hubs/cert` all return 404. WS upgrade requests to `/hub` and `/ws` return 404 (Kestrel won't even consider the upgrade because no route matches).
+
+Only artifact is a placeholder in `Scripts/deployment/nginx-plesk-config.conf:68-72` — *"# WebSocket support for SignalR (if used)"* — proxy headers set but nothing to forward. Dead infra config.
+
+**No DEF needed.** Nothing to audit on a connection type the app doesn't open.
+
+---
+
+## 2026-05-20 — DEF-208 fix shipped to working tree; DEF-204 ViewCertificateFile half closed in same diff
+
+Three-layer fix:
+1. `Program.cs` HTTP middleware blocks `/uploads/*` at the boundary — even if `UseStaticFiles` reconfigures, this layer holds.
+2. `FileUploadService` writes new uploads to `App_Data/uploads/` instead of `wwwroot/uploads/`. Physical files leave the web root entirely.
+3. `Certificate/ViewCertificateFile/{id}` + new `Certificate/ViewCertificateImage/{id}` route through a shared `FileAccessAllowed` gate (Admin/Analyst unrestricted; everyone else gated by PublicStatuses + non-expired + company/partner scope). New `Certificate/PreviewThumbnail/{fileName}` route serves the Create/Edit pre-save preview (AnalystOrAdmin only).
+
+Migration-friendly: `StreamUploadedFile` checks `App_Data/uploads/` then falls back to `wwwroot/uploads/` for legacy files. Server can be redeployed BEFORE the one-time `Move-Item` runs — no gap.
+
+Local smoke clean: `/uploads/*` → 404 to anon (real files too); `Certificate/ViewCertificateImage/{id}` → 200 for Paid certs, 404 for Drafts; `/img/*` legitimate public assets still 200.
+
+DEF-208 status flipped to **Fixed locally — pending deploy**. DEF-204 `ViewCertificateFile` half closed in the same diff via shared `FileAccessAllowed` helper; `CertificateExternalView` half is still open (separate patch — needs the same scope check at `CertificateController.cs:96`).
+
+Deploy script's pre-deploy checklist now includes the one-time `Move-Item wwwroot\uploads App_Data\uploads`. `Scripts/smoke-prod/smoke.js` gets Section 6 — anonymous `/uploads/*` must return non-200; regression guard for future deploys.
+
+Files touched (12 incl. one unit test constructor update):
+- `Program.cs`
+- `Services/FileUploadService.cs`
+- `Controllers/CertificateController.cs`
+- `Controllers/Api/v1/CertificatesController.cs`
+- `Controllers/Api/CertificatesApiController.cs`
+- `Views/Certificate/CertificateInternalView.cshtml`
+- `Views/Certificate/CertificateSingleView.cshtml`
+- `Views/Certificate/CertificateExternalView.cshtml`
+- `Views/Certificate/Edit.cshtml`
+- `Scripts/deploy.ps1`
+- `Scripts/smoke-prod/smoke.js`
+- `GCCWebApp.Api.Tests/Unit/Controllers/CertificatesControllerTests.cs`
+
+Working tree state: 12 modified files + the smoke-prod probes from prior batches (still untracked from yesterday's audit). Ready for Shawn's commit + the next Plesk deploy.
+
+---
+
+## 2026-05-20 — DEF-204 fully closed: CertificateExternalView now gated
+
+Three-line patch — `CertificateExternalView` action calls the existing `FileAccessAllowed` helper from the DEF-208 patch. Same shape, same gate, different entry point.
+
+Dev smoke (`Scripts/smoke-prod/verify-def204-extview.js`): **9/9 pass**. External (Henkel) sees 200 only for their own Paid certs (26-0011, 26-0020); 404 for cross-company (26-0001, 26-0023), own-company Expired (26-0012), and cross-company Draft (26-0026). Admin sees 200 for all.
+
+DEF-204 status flipped from "Partially fixed" to **Fixed locally — pending deploy**. Working tree state: 17 files modified including this patch + new harness. Ready for the same Plesk deploy as DEF-208.
+
+Day's running total adjusted — 6 valid DEFs from internal QA, 2 now Fixed-pending-deploy (DEF-204 + DEF-208), 4 still Open (DEF-203, 206, 209, 210).

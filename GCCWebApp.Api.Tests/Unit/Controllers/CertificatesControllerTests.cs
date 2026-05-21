@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -17,13 +18,19 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly Mock<ILogger<CertificatesController>> _loggerMock;
+        private readonly Mock<IWebHostEnvironment> _envMock;
         private readonly CertificatesController _controller;
 
         public CertificatesControllerTests()
         {
             _context = TestDbContextFactory.CreateInMemoryContext();
             _loggerMock = new Mock<ILogger<CertificatesController>>();
-            _controller = new CertificatesController(_context, _loggerMock.Object);
+            // DEF-208: controller now takes IWebHostEnvironment to resolve uploads
+            // against ContentRootPath/App_Data. Tests don't exercise file IO, so a
+            // stub with a temp ContentRootPath is sufficient.
+            _envMock = new Mock<IWebHostEnvironment>();
+            _envMock.SetupGet(e => e.ContentRootPath).Returns(System.IO.Path.GetTempPath());
+            _controller = new CertificatesController(_context, _loggerMock.Object, _envMock.Object);
 
             // Set up HttpContext for the controller
             var httpContext = new DefaultHttpContext();

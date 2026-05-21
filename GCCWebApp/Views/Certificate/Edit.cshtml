@@ -269,12 +269,20 @@
                             </div>
                         </div>
                         @{
+                            // DEF-208: route image through controller (gate enforced) instead of
+                            // rendering the raw /uploads/* path that static-file middleware would serve.
+                            // For a cert mid-edit (no Id yet on Create), fall back to the raw path —
+                            // it'll 404 until the cert is saved, which matches existing UX for
+                            // unsaved Create-mode previews. The hidden CertificateImagePath input
+                            // still carries the path for form persistence.
                             var editImagePath = Model.CertificateImagePath ?? "";
                             bool editHasValidSnapshot = !string.IsNullOrEmpty(editImagePath);
                             string editImageSrc = "";
                             if (editHasValidSnapshot)
                             {
-                                editImageSrc = editImagePath.StartsWith("/") ? editImagePath : $"/{editImagePath}";
+                                editImageSrc = Model.Id > 0
+                                    ? Url.Action("ViewCertificateImage", "Certificate", new { id = Model.Id }) ?? ""
+                                    : (editImagePath.StartsWith("/") ? editImagePath : $"/{editImagePath}");
                             }
                         }
                         <div class="preview-container certificate-create-preview">

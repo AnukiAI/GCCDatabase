@@ -638,6 +638,21 @@ if (!app.Environment.IsDevelopment())
 // for gate-issued 401s, and BEFORE UseStaticFiles so /css, /js, /img aren't public.
 app.UseMiddleware<TestEnvironmentGateMiddleware>();
 
+// DEF-208: block /uploads/* before UseStaticFiles so even if wwwroot/uploads/
+// still has files from a prior build, they can't be served directly. All cert
+// PDF + thumbnail access flows through CertificateController.ViewCertificateFile /
+// ViewCertificateImage now (which apply the DEF-204 role+status+ownership gate).
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+    if (path.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = 404;
+        return;
+    }
+    await next();
+});
+
 // Static files with cache control headers
 app.UseStaticFiles(new StaticFileOptions
 {

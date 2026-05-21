@@ -197,11 +197,11 @@
                         string certificateImageSrc = "";
                         if (hasValidSnapshot)
                         {
+                            // DEF-208: route image through controller (gate enforced) instead of
+                            // rendering the raw /uploads/* path that static-file middleware would serve.
                             certificateImageSrc = certificateImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                                 ? certificateImagePath
-                                : certificateImagePath.StartsWith("/")
-                                    ? certificateImagePath
-                                    : $"/{certificateImagePath}";
+                                : Url.Action("ViewCertificateImage", "Certificate", new { id = Model.Certificate.Id }) ?? "";
                         }
                         var altText = $"Certificate {GetFormattedCertificateNumber()}";
                     }

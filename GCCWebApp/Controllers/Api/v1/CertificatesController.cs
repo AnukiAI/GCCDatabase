@@ -36,11 +36,19 @@ namespace GCCWebApp.Controllers.Api.v1
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CertificatesController> _logger;
+        private readonly IWebHostEnvironment _hostingEnvironment;
 
-        public CertificatesController(ApplicationDbContext context, ILogger<CertificatesController> logger)
+        public CertificatesController(
+            ApplicationDbContext context,
+            ILogger<CertificatesController> logger,
+            IWebHostEnvironment hostingEnvironment)
         {
             _context = context;
             _logger = logger;
+            // DEF-208: needed to resolve cert files against ContentRootPath/App_Data
+            // instead of wwwroot/. Static-file serving for /uploads/ was removed; all
+            // partner-API downloads now read from the App_Data location.
+            _hostingEnvironment = hostingEnvironment;
         }
 
         /// <summary>
@@ -1196,23 +1204,24 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         return NotFoundResponse($"Certificate '{id}' not found");
                 }
 
-                // Check if uploaded certificate file exists
+                // DEF-208: resolve cert file against the new App_Data base (was wwwroot).
+                // Handles both "uploads/certificates/file.pdf" (full relative path) and
+                // bare "file.pdf" (just the filename — legacy compatibility). Migration
+                // fallback to wwwroot keeps existing files reachable through this
+                // endpoint until the one-time server-side Move-Item runs.
                 if (!string.IsNullOrEmpty(certificate.CertificateFile))
                 {
-                    // Handle both cases: full path (uploads/certificates/file.pdf) or just filename (file.pdf)
-                    string filePath;
-                    if (certificate.CertificateFile.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // CertificateFile already contains the relative path
-                        filePath = Path.Combine("wwwroot", certificate.CertificateFile);
-                    }
-                    else
-                    {
-                        // CertificateFile is just the filename
-                        filePath = Path.Combine("wwwroot", "uploads", "certificates", certificate.CertificateFile);
-                    }
+                    string subPath = certificate.CertificateFile.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase)
+                        ? certificate.CertificateFile.Replace('/', Path.DirectorySeparatorChar)
+                        : Path.Combine("uploads", "certificates", certificate.CertificateFile);
 
-                    if (System.IO.File.Exists(filePath))
+                    var newPath = Path.Combine(_hostingEnvironment.ContentRootPath, "App_Data", subPath);
+                    var legacyPath = Path.Combine(_hostingEnvironment.WebRootPath ?? "", subPath);
+                    var filePath = System.IO.File.Exists(newPath) ? newPath
+                                  : System.IO.File.Exists(legacyPath) ? legacyPath
+                                  : null;
+
+                    if (filePath != null)
                     {
                         var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
                         var fileName = $"certificate_{certificate.Number}.pdf";

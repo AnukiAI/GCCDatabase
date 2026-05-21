@@ -43,21 +43,25 @@ namespace GCCWebApp.Services
             _environment = environment;
             _context = context;
 
-            // Defensive guard: WebRootPath must resolve before we build upload paths.
-            // If wwwroot was missing at app-pool start (e.g., deploy-extract race), WebRootPath
-            // can be empty, Path.Combine returns a relative path, and Directory.CreateDirectory
-            // creates root-level <app-root>/uploads/ instead of <app-root>/wwwroot/uploads/.
-            // Fail loudly so this can't happen silently again.
-            if (string.IsNullOrEmpty(_environment.WebRootPath))
+            // DEF-208: physical upload files now live OUTSIDE the web root so the
+            // static-file middleware can't serve them. Logical paths in DB columns
+            // (CertificateFile, CertificateImagePath) keep their existing
+            // "uploads/.../{filename}" shape — resolved against ContentRootPath/App_Data
+            // by CertificateController.StreamUploadedFile.
+            //
+            // Defensive guard: ContentRootPath must resolve before we build upload paths.
+            // Fail loudly so a missing ContentRootPath can't silently land uploads at
+            // the application root.
+            if (string.IsNullOrEmpty(_environment.ContentRootPath))
             {
-                _logger.LogCritical("WebRootPath is null or empty at FileUploadService init. ContentRootPath={ContentRoot}", _environment.ContentRootPath);
+                _logger.LogCritical("ContentRootPath is null or empty at FileUploadService init.");
                 throw new InvalidOperationException(
-                    "WebRootPath is null or empty. wwwroot may not be deployed yet. " +
-                    "Aborting FileUploadService init to prevent uploads landing at the application root.");
+                    "ContentRootPath is null or empty. Aborting FileUploadService init to " +
+                    "prevent uploads landing at the application root.");
             }
 
-            // Set up upload directories
-            _uploadsPath = Path.Combine(_environment.WebRootPath, "uploads");
+            // Set up upload directories under App_Data (outside wwwroot — see DEF-208).
+            _uploadsPath = Path.Combine(_environment.ContentRootPath, "App_Data", "uploads");
             _certificatesPath = Path.Combine(_uploadsPath, "certificates");
             _imagesPath = Path.Combine(_uploadsPath, "images");
 

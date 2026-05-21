@@ -288,6 +288,20 @@ async function withPage(viewport, fn) {
 
   await ctxRoles.dispose();
 
+  // ===== [6] DEF-208 regression guard ======================================
+  section(6, 'DEF-208 — /uploads/* path stays blocked');
+  // Anonymous request to /uploads/* must return 404 (or 401 if Basic gate is in
+  // front). NOT 200. If a future engineer re-enables broad UseStaticFiles, this
+  // check fires before the leak escapes.
+  const def208Anon = await request.newContext();
+  let r208 = await def208Anon.get(`${CFG.base}/uploads/certificates/anyfile.pdf`);
+  record(6, '/uploads/certificates/* anon → not served (DEF-208 fix in place)',
+    r208.status() !== 200, `status=${r208.status()}`);
+  r208 = await def208Anon.get(`${CFG.base}/uploads/images/anything.png`);
+  record(6, '/uploads/images/* anon → not served (DEF-208 fix in place)',
+    r208.status() !== 200, `status=${r208.status()}`);
+  await def208Anon.dispose();
+
   // ===== SUMMARY ===========================================================
   console.log('\n' + '='.repeat(72));
   const passed = results.filter(r => r.pass).length;

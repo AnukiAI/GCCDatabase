@@ -1784,3 +1784,98 @@ Zip `GCCWebApp-deploy-20260519-1044.zip` (60.4 MB) uploaded to Plesk and extract
 Going forward, **batch-specific runners live alongside `smoke.js`** as `smoke-batch-<date>.js` — one per significant deploy. The baseline `smoke.js` continues to guard the gate/CSS-freshness/role-gated invariants; the dated batch runners assert that the *specific items in that deploy* are actually live.
 
 ---
+
+## DEF-208 fix — static-file leak closed; DEF-204 ViewCertificateFile half closed in same diff (2026-05-20)
+
+Closes a Critical, prod-verified anonymous data leak: `/uploads/certificates/*.pdf` and `/uploads/images/*.png` were served by ASP.NET Core's static-file middleware to anyone past the test-env Basic Auth gate, completely bypassing the DEF-164 anonymous-status check on `ViewCertificateFile`. Filenames were embedded in cert-detail HTML (`<img src="/uploads/...">`), so attackers didn't need to brute-force timestamps — they could just open a cert detail page and read off the URL.
+
+**The fix in three layers:**
+
+1. **HTTP-boundary block.** `Program.cs` gets a tiny middleware ahead of `UseStaticFiles()` that returns 404 for any path starting with `/uploads/`. Static-file middleware never sees these requests. Even if a future engineer broadens `StaticFileOptions`, this layer holds. Backstop, not the only protection.
+2. **Files move out of `wwwroot/`.** `FileUploadService` now writes to `ContentRootPath/App_Data/uploads/{certificates,images}/` instead of `WebRootPath/uploads/...`. Physical files no longer sit under the web root at all — there's nothing for static-file middleware to serve.
+3. **Controller routes with gates.** `Certificate/ViewCertificateFile/{id}` gets the DEF-204 role-aware gate (Admin/Analyst unrestricted; anonymous + External + Partner gated by `PublicStatuses` + non-expired; External scoped by `userCompanyIds`, Partner by `userPartnerNames`). Companion route `Certificate/ViewCertificateImage/{id}` does the same for thumbnails. Both call a shared `FileAccessAllowed` helper + `StreamUploadedFile` helper. The pre-save Create/Edit preview gets a separate `Certificate/PreviewThumbnail/{fileName}` route gated to `AnalystOrAdmin` so the JS upload flow keeps working.
+
+**Migration-friendly fallback.** `StreamUploadedFile` checks `App_Data/uploads/` first, then falls back to `wwwroot/uploads/` if the file isn't in the new location. Lets the server be redeployed BEFORE the one-time `Move-Item` runs — no gap where existing files appear broken. After the server-side move completes, the fallback branch is dead code; can be removed in a later cleanup.
+
+**Verified on dev:**
+
+- `GET /uploads/certificates/anyfile.pdf` → **404** (was 200 OK / served file)
+- `GET /uploads/images/anything.png` → **404**
+- `GET /uploads/images/{REAL_FILE_THAT_EXISTS}.png` → **404** (static path blocked even when file exists)
+- `GET /Certificate/ViewCertificateImage/5` (Paid cert with thumbnail) → **200 image/png 104KB** (controller route works, finds file via legacy fallback)
+- `GET /Certificate/ViewCertificateImage/27` (Draft cert) → **404** (gate enforced; anon can't see Drafts)
+- `GET /Certificate/ViewCertificateFile/5` (Paid cert PDF) → **200 application/pdf**
+- `GET /img/gcclogo.png` (legitimate public asset) → **200** (regular static files unaffected)
+
+**Server-side migration step (run ONCE during this deploy).** Documented in `Scripts/deploy.ps1` pre-deploy checklist:
+
+```powershell
+cd <site root>
+New-Item -ItemType Directory -Path App_Data -Force | Out-Null
+if (Test-Path wwwroot\uploads) {
+    Move-Item wwwroot\uploads App_Data\uploads -Force
+}
+```
+
+Run BEFORE recycling the app pool. After this, subsequent deploys are no-ops because new uploads write directly to `App_Data/uploads/`. The `wwwroot/uploads/` exclusion in `pubxml` continues to prevent dev `wwwroot/uploads/` from shipping over real prod uploads.
+
+**Regression guard added to `Scripts/smoke-prod/smoke.js`** — Section 6 checks `/uploads/certificates/anyfile.pdf` and `/uploads/images/anything.png` both return non-200. Fires before the leak can escape on any future deploy.
+
+**Files touched (10):**
+
+- `Program.cs` — `/uploads/*` block ahead of `UseStaticFiles()`
+- `Services/FileUploadService.cs` — `_uploadsPath` → `ContentRootPath/App_Data/uploads/`
+- `Controllers/CertificateController.cs` — `ViewCertificateFile` gated; new `ViewCertificateImage` + `PreviewThumbnail`; helpers `FileAccessAllowed` + `StreamUploadedFile`
+- `Controllers/Api/v1/CertificatesController.cs` — partner-API PDF download now resolves against `App_Data` (was hardcoded `wwwroot`); constructor takes `IWebHostEnvironment`
+- `Controllers/Api/CertificatesApiController.cs` — `GenerateThumbnail` returns `PreviewThumbnail` URL instead of raw `/uploads/`
+- `Views/Certificate/CertificateInternalView.cshtml` — `<img src>` → `Url.Action("ViewCertificateImage")`
+- `Views/Certificate/CertificateSingleView.cshtml` — same
+- `Views/Certificate/CertificateExternalView.cshtml` — same
+- `Views/Certificate/Edit.cshtml` — same (saved certs); Create-mode preview unchanged
+- `Scripts/deploy.ps1` — pre-deploy checklist now includes the one-time move
+- `Scripts/smoke-prod/smoke.js` — Section 6 DEF-208 regression check
+- `GCCWebApp.Api.Tests/Unit/Controllers/CertificatesControllerTests.cs` — constructor signature update
+
+Build: 0 errors. Local smoke: all green. **Ready for the next Plesk deploy** with the one-time move documented in the pre-deploy checklist.
+
+**Open follow-up:** DEF-204 `CertificateExternalView` half is NOT yet closed. Needs the same `userCompanyIds` / `userPartnerNames` scope check added to the action body at `Controllers/CertificateController.cs:96`. Tracked in DEF-204; will land in the next patch.
+
+
+## DEF-204 closed — CertificateExternalView gated by company/partner scope (2026-05-20)
+
+Follow-up patch closing the remaining half of DEF-204. The DEF-208 patch earlier today closed the `ViewCertificateFile` PDF leak via the shared `FileAccessAllowed` helper. This patch wires the same helper into `CertificateExternalView` so the HTML detail page also rejects cross-company / cross-partner / non-public access.
+
+**One-line code change**, full effect:
+
+```csharp
+// Controllers/CertificateController.cs — CertificateExternalView action
+if (!FileAccessAllowed(certificate, out var denyReason))
+{
+    _logger.LogWarning("ExternalView denied for cert {CertificateNumber}: {Reason}", id, denyReason);
+    return NotFound($"Certificate {id} not found");
+}
+```
+
+**Behavior matrix (verified on dev with `Scripts/smoke-prod/verify-def204-extview.js`):**
+
+| Caller | Cert | Status | Company | Expected | Actual |
+|---|---|---|---|---|---|
+| External (Henkel) | 26-0001 | Paid | Acme | 404 (cross-company) | **404** ✓ |
+| External (Henkel) | 26-0011 | Paid | Henkel | 200 (own) | **200** ✓ |
+| External (Henkel) | 26-0012 | Expired | Henkel | 404 (expired) | **404** ✓ |
+| External (Henkel) | 26-0020 | Paid | Henkel | 200 (own) | **200** ✓ |
+| External (Henkel) | 26-0026 | Draft | SuperlongCo | 404 (Draft+cross) | **404** ✓ |
+| External (Henkel) | 26-0023 | Paid | Acme | 404 (cross-company) | **404** ✓ |
+| Admin | 26-0001 | Paid | Acme | 200 (admin) | **200** ✓ |
+| Admin | 26-0026 | Draft | SuperlongCo | 200 (admin) | **200** ✓ |
+| Admin | 26-0023 | Paid | Acme | 200 (admin) | **200** ✓ |
+
+**9/9 pass.** Same gate, same shape as DEF-208 — only the entry point differs. DEF-204 status flipped from "Partially fixed" to "Fixed locally — pending deploy" in the register.
+
+Files touched (1):
+- `Controllers/CertificateController.cs` — `CertificateExternalView` calls `FileAccessAllowed` before building the view model
+
+New file:
+- `Scripts/smoke-prod/verify-def204-extview.js` — re-runnable verification harness
+
+Build: 0 errors. Ready for the same deploy as DEF-208.

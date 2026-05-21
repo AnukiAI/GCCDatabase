@@ -485,11 +485,17 @@ namespace GCCWebApp.Controllers.Api
 
                     _logger.LogInformation("Thumbnail generated successfully: {ThumbnailPath}", thumbnailPath);
 
+                    // DEF-208: route the preview through the controller (admin/analyst gate)
+                    // instead of returning the raw /uploads/* path that static-file middleware
+                    // would have served. ThumbnailPath (the DB value) stays as
+                    // "uploads/images/{file}.png" so the saved cert still resolves via
+                    // ViewCertificateImage once the cert has an Id.
+                    var thumbnailFileName = System.IO.Path.GetFileName(thumbnailPath);
                     return Ok(new ThumbnailGenerationResponse
                     {
                         Success = true,
                         ThumbnailPath = thumbnailPath,
-                        ThumbnailUrl = $"/{thumbnailPath}",
+                        ThumbnailUrl = $"/Certificate/PreviewThumbnail/{thumbnailFileName}",
                         Message = "Thumbnail generated successfully"
                     });
                 }

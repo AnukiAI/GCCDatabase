@@ -117,6 +117,21 @@ namespace GCCWebApp.Controllers
                 _logger.LogInformation("Certificate found: {CertificateNumber}, Company: {CompanyName}, Product: {ProductName}",
                     certificate.Number, certificate.Company?.Name ?? "N/A", certificate.Product?.Name ?? "N/A");
 
+                // DEF-204: gate by role + ownership + status. Admin/Analyst pass through
+                // (they have a separate Internal view but ExternalView is reachable to them
+                // too). External users may only see certs from their assigned companies AND
+                // in PublicStatuses. Partner users may only see certs tagged to their
+                // partner name. Anyone else (including Public via misconfiguration) is
+                // denied — this view is gated by `[Authorize(Policy = "ExternalAccess")]`
+                // so anonymous should never reach here, but fail closed if they do.
+                if (!FileAccessAllowed(certificate, out var denyReason))
+                {
+                    _logger.LogWarning(
+                        "ExternalView denied for cert {CertificateNumber}: {Reason}",
+                        id, denyReason);
+                    return NotFound($"Certificate {id} not found");
+                }
+
                 // Generate thumbnail if missing (for imported certificates without thumbnails)
                 await EnsureCertificateThumbnailAsync(certificate);
 
@@ -1744,57 +1759,29 @@ namespace GCCWebApp.Controllers
                     return NotFound();
                 }
 
-                // Block anonymous inline-view of non-public certificate files. Integer IDs are
-                // trivially enumerable, so without this guard any visitor can scrape every cert PDF
-                // regardless of Draft / Hold / Expired status.
-                if (User.Identity?.IsAuthenticated != true)
+                // DEF-204 + DEF-208: role-aware gate. Admin and Analyst keep unrestricted
+                // access (operational need). All other callers — anonymous, External,
+                // Partner — must pass status + ownership filters. The pre-DEF-204 code
+                // only blocked anonymous callers, which let any logged-in External /
+                // Partner enumerate every cert PDF by integer ID.
+                if (!FileAccessAllowed(certificate, out var denyReason))
                 {
-                    var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
-                    var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
-
-                    if (!isPublicStatus || isExpired)
-                    {
-                        _logger.LogWarning("Anonymous file view denied for non-public certificate Id: {CertificateId}, Status: {Status}, Expired: {Expired}", id, certificate.Status, isExpired);
-                        return NotFound();
-                    }
+                    _logger.LogWarning("File view denied for cert {Id}: {Reason}", id, denyReason);
+                    return NotFound();
                 }
 
-                // Check if an uploaded certificate file exists
-                if (!string.IsNullOrEmpty(certificate.CertificateFile))
+                // DEF-208: resolve the logical "uploads/.../{file}" path against the new
+                // App_Data physical base. Returns 404 on traversal attempts or
+                // missing files.
+                if (!string.IsNullOrEmpty(certificate.CertificateFile)
+                    && !certificate.CertificateFile.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
-                    var filePath = certificate.CertificateFile;
-
-                    // If it's a relative path, construct the full path
-                    if (!filePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Remove leading ~ if present
-                        if (filePath.StartsWith("~"))
-                        {
-                            filePath = filePath.Substring(1);
-                        }
-
-                        // Remove leading / if present
-                        if (filePath.StartsWith("/"))
-                        {
-                            filePath = filePath.Substring(1);
-                        }
-
-                        // Construct full path to wwwroot
-                        var webRootPath = _hostingEnvironment.WebRootPath;
-                        var fullPath = Path.Combine(webRootPath, filePath.Replace('/', Path.DirectorySeparatorChar));
-
-                        if (System.IO.File.Exists(fullPath))
-                        {
-                            var fileBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
-                            var contentType = GetContentType(fullPath);
-
-                            // Return file for inline display (not as attachment)
-                            return File(fileBytes, contentType);
-                        }
-                    }
+                    var streamed = StreamUploadedFile(certificate.CertificateFile);
+                    if (streamed != null) return streamed;
                 }
 
-                // If no uploaded file, return placeholder image
+                // If no uploaded file, return placeholder image. Placeholder is a
+                // truly-public asset (img/certpreview.png) so it stays in wwwroot.
                 var placeholderPath = Path.Combine(_hostingEnvironment.WebRootPath, "img", "certpreview.png");
                 if (System.IO.File.Exists(placeholderPath))
                 {
@@ -1809,6 +1796,184 @@ namespace GCCWebApp.Controllers
                 _logger.LogError(ex, "Error viewing certificate file for ID: {Id}", id);
                 return BadRequest("Failed to load certificate file");
             }
+        }
+
+        /// <summary>
+        /// DEF-208 — temp-preview endpoint for the Create/Edit form's pre-save
+        /// thumbnail flow. The Create form has no cert Id yet (cert isn't saved
+        /// until form submit), so it can't route through ViewCertificateImage.
+        /// Gated to AnalystOrAdmin matching GenerateThumbnail; resolves a bare
+        /// filename under App_Data/uploads/images/ with traversal sanitization.
+        ///
+        /// Used by `wwwroot/js/certificate-create.js` after a successful
+        /// GenerateThumbnail call to render the inline `&lt;img src&gt;` preview.
+        /// </summary>
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public IActionResult PreviewThumbnail(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)
+                || fileName.Contains("..", StringComparison.Ordinal)
+                || fileName.Contains('/') || fileName.Contains('\\'))
+            {
+                return NotFound();
+            }
+            var physical = Path.Combine(
+                _hostingEnvironment.ContentRootPath, "App_Data", "uploads", "images", fileName);
+            if (!System.IO.File.Exists(physical)) return NotFound();
+            var contentType = GetContentType(physical);
+            return PhysicalFile(physical, contentType);
+        }
+
+        /// <summary>
+        /// DEF-208 companion to ViewCertificateFile — serves the cert thumbnail
+        /// (CertificateImagePath) through the same role+status+ownership gate. Views
+        /// now render `&lt;img src="@Url.Action(ViewCertificateImage)"&gt;` instead of
+        /// the raw /uploads/images/{file}.png path so static-file middleware can't
+        /// bypass the gate.
+        /// </summary>
+        [AllowAnonymous]
+        public async Task<IActionResult> ViewCertificateImage(int id)
+        {
+            try
+            {
+                var certificate = await _certificateRepository.GetByIdAsync(id);
+                if (certificate == null) return NotFound();
+
+                if (!FileAccessAllowed(certificate, out var denyReason))
+                {
+                    _logger.LogWarning("Image view denied for cert {Id}: {Reason}", id, denyReason);
+                    return NotFound();
+                }
+
+                if (string.IsNullOrEmpty(certificate.CertificateImagePath))
+                {
+                    // Placeholder so layouts don't break when no thumbnail exists.
+                    var placeholderPath = Path.Combine(_hostingEnvironment.WebRootPath, "img", "certpreview.png");
+                    if (System.IO.File.Exists(placeholderPath))
+                    {
+                        var placeholderBytes = await System.IO.File.ReadAllBytesAsync(placeholderPath);
+                        return File(placeholderBytes, "image/png");
+                    }
+                    return NotFound();
+                }
+
+                var streamed = StreamUploadedFile(certificate.CertificateImagePath);
+                return streamed ?? NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error viewing certificate image for ID: {Id}", id);
+                return BadRequest("Failed to load certificate image");
+            }
+        }
+
+        /// <summary>
+        /// DEF-204: shared gate for ViewCertificateFile + ViewCertificateImage.
+        /// Admin / Analyst → unrestricted.
+        /// Anonymous → only PublicStatuses, only non-expired.
+        /// External → must be in user's CompanyIds AND in PublicStatuses (non-expired).
+        /// Partner → must be in user's PartnerNames AND in PublicStatuses (non-expired).
+        /// All other roles → denied.
+        /// </summary>
+        private bool FileAccessAllowed(Certificate certificate, out string denyReason)
+        {
+            var role = GetUserRole();
+            if (role == "Admin" || role == "Analyst")
+            {
+                denyReason = string.Empty;
+                return true;
+            }
+
+            var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
+            var isExpired = certificate.ExpirationDate != default
+                            && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
+            if (!isPublicStatus || isExpired)
+            {
+                denyReason = $"non-public (Status={certificate.Status}, Expired={isExpired})";
+                return false;
+            }
+
+            if (role == "External")
+            {
+                // Synchronous over async — ok because callers are GET endpoints not in a hot path
+                // and the lookup is one row. If this becomes hot, switch the public surface to async.
+                var myCompanyIds = GetCurrentUserCompanyIdsAsync().GetAwaiter().GetResult();
+                if (!myCompanyIds.Contains(certificate.CompanyId))
+                {
+                    denyReason = $"External user not associated with CompanyId={certificate.CompanyId}";
+                    return false;
+                }
+            }
+            else if (role == "Partner")
+            {
+                var myPartnerNames = GetCurrentUserPartnerNamesAsync().GetAwaiter().GetResult();
+                if (!myPartnerNames.Contains(certificate.Partner ?? "", StringComparer.OrdinalIgnoreCase))
+                {
+                    denyReason = $"Partner not associated with cert Partner={certificate.Partner}";
+                    return false;
+                }
+            }
+            // Public (anonymous) — already passed the status+expiry check above; allow.
+            // Any other role (Internal etc.) — fail closed.
+            else if (role != "Public")
+            {
+                denyReason = $"Role {role} not permitted to view cert files";
+                return false;
+            }
+
+            denyReason = string.Empty;
+            return true;
+        }
+
+        /// <summary>
+        /// DEF-208 helper. Resolves a "uploads/{subdir}/{file}" logical path against
+        /// the App_Data physical base, with traversal sanitisation. Returns a FileResult
+        /// or null if the file is missing / the path looks unsafe (caller maps null → 404).
+        /// </summary>
+        private IActionResult? StreamUploadedFile(string logicalPath)
+        {
+            if (string.IsNullOrEmpty(logicalPath)) return null;
+
+            // Normalize — strip ~/ and leading / so we always join against App_Data
+            var clean = logicalPath.TrimStart('~').TrimStart('/').Replace('\\', '/');
+
+            // Must be a known uploads subpath, no traversal
+            if (!clean.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase)
+                || clean.Contains("..", StringComparison.Ordinal))
+            {
+                _logger.LogWarning("StreamUploadedFile rejected suspicious path: {Path}", logicalPath);
+                return null;
+            }
+
+            var subPath = clean.Replace('/', Path.DirectorySeparatorChar);
+
+            // Resolve under App_Data first (the new home as of DEF-208 fix).
+            var physical = Path.Combine(
+                _hostingEnvironment.ContentRootPath, "App_Data", subPath);
+
+            // Migration-friendly fallback: pre-DEF-208 files still live under wwwroot/.
+            // The static-file leak is closed by the /uploads/* middleware block in
+            // Program.cs regardless of where the file physically sits; this fallback
+            // just keeps existing files reachable through the controller until the
+            // one-time Move-Item migration runs on the server. Remove this branch
+            // after the migration has propagated everywhere.
+            if (!System.IO.File.Exists(physical))
+            {
+                var legacy = Path.Combine(
+                    _hostingEnvironment.WebRootPath ?? "", subPath);
+                if (System.IO.File.Exists(legacy))
+                {
+                    physical = legacy;
+                }
+                else
+                {
+                    _logger.LogInformation("StreamUploadedFile: file not found in App_Data nor wwwroot: {Path}", subPath);
+                    return null;
+                }
+            }
+
+            var contentType = GetContentType(physical);
+            return PhysicalFile(physical, contentType);
         }
 
         private string GetContentType(string path)

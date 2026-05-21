@@ -90,6 +90,18 @@ if (-not $SkipUploadsBackupPrompt) {
     Write-Host "      uploads once on 2026-04-23 -- exclusion is in pubxml but the" -ForegroundColor Yellow
     Write-Host "      backup-first rule still applies as defense-in-depth)." -ForegroundColor Yellow
     Write-Host ""
+    Write-Host "  [ ] DEF-208 one-time migration (this deploy ONLY):" -ForegroundColor Cyan
+    Write-Host "      After extracting the zip, move uploaded files OUT of wwwroot/uploads/" -ForegroundColor Cyan
+    Write-Host "      to App_Data/uploads/ on the server:" -ForegroundColor Cyan
+    Write-Host "        cd <site root>" -ForegroundColor DarkCyan
+    Write-Host "        New-Item -ItemType Directory -Path App_Data -Force | Out-Null" -ForegroundColor DarkCyan
+    Write-Host "        if (Test-Path wwwroot\uploads) {" -ForegroundColor DarkCyan
+    Write-Host "          Move-Item wwwroot\uploads App_Data\uploads -Force" -ForegroundColor DarkCyan
+    Write-Host "          Write-Host 'Moved uploads to App_Data'" -ForegroundColor DarkCyan
+    Write-Host "        }" -ForegroundColor DarkCyan
+    Write-Host "      Run BEFORE recycling the app pool. Subsequent deploys are no-ops" -ForegroundColor Cyan
+    Write-Host "      because new uploads write to App_Data directly." -ForegroundColor Cyan
+    Write-Host ""
     $resp = Read-Host "  Type 'yes' if uploads are backed up (or any other key to abort)"
     if ($resp -ne "yes") {
         Write-Host "Aborted by user. Back up wwwroot/uploads/ on the server, then re-run." -ForegroundColor Red

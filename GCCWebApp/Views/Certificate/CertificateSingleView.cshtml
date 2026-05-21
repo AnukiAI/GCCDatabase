@@ -178,6 +178,8 @@
                 <!-- Right Column: Certificate Image/PDF Preview -->
                 <div class="certificate-image-column">
                     @{
+                        // DEF-208: route image through controller (gate enforced) instead of
+                        // rendering the raw /uploads/* path that static-file middleware would serve.
                         var imagePath = Model.Certificate?.CertificateImagePath ?? "";
                         bool hasValidSnapshot = !string.IsNullOrEmpty(imagePath);
                         string certificateImageSrc = "";
@@ -185,9 +187,7 @@
                         {
                             certificateImageSrc = imagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                                 ? imagePath
-                                : imagePath.StartsWith("/")
-                                    ? imagePath
-                                    : $"/{imagePath}";
+                                : Url.Action("ViewCertificateImage", "Certificate", new { id = Model.Certificate.Id }) ?? "";
                         }
                         var altText = $"Certificate {GetFormattedCertificateNumber()}";
                     }

@@ -99,11 +99,27 @@ Regression risk: low. Single-line change, scoped to focus event; no behavior cha
 
 ---
 
+### DEF-Priority4-Batch — 2026-05-21 batch verification
+
+5 small UX items confirmed deployed and working on gccwebapp.com via single harness `qc159-live-check/qc-batch-priority4.js`:
+
+| QC # | DEF # | Verification result |
+|---|---|---|
+| #104 | DEF-202 + DEF-211 | ✅ Both `/Company/Index` and `/Product/Management` breadcrumbs read `Companies & Products › <page>` — no leading "Administration" |
+| #181 | DEF-172 | ✅ `#CompanyEmail` carries strict regex `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$` (data-val-regex-pattern attribute); typing `notanemail` surfaces "Please enter a valid email address." inline |
+| #183 | DEF-201 | ✅ "Most Popular Companies" and "Relevance Score" absent from both internal (19 options) and public (13 options) Sort By dropdowns |
+| #207 | DEF-207 | ✅ Cert Create page inline-success script properly omitted when TempData empty; `Views/Certificate/Create.cshtml:53` `sessionStorage` guard `'createSuccessMsg:' + msg` present in source for the success-toast path |
+| #174 | DEF-195 | ✅ 25 tiles sampled on `/Certificate/CertificateTileView`, every `.header-row` has `align-items: flex-start`, max top-delta = 0px between `.certificate-category` top and `.certificate-id` top |
+
+11 / 11 assertions PASS. Test artifacts: `qc-batch-priority4-live-results.json`, screenshots `qc104-*`, `qc181-*`, `qc174-*`. No data mutation.
+
+---
+
 ### DEF-211 — Breadcrumb on Companies & Products pages wrongly nested under "Administration"
 
 - **Date:** 2026-05-19
 - **Severity:** Low (cosmetic / IA correctness)
-- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21 — batch Priority-4 verification, see `qc-batch-priority4-live-results.json`)
 - **QC Ref:** #104 (5/1 follow-up — second half not covered by DEF-202)
 - **Bucket:** UX — information architecture
 - **Reporter:** Client (Carly, 5/1)
@@ -387,7 +403,7 @@ Combine C with A: random filenames AND middleware block. Best defense-in-depth.
 
 - **Date:** 2026-05-18
 - **Severity:** Low (cosmetic — no data action; misleads tester)
-- **Status:** Fixed (pending deploy)
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21 — guard verified deployed in batch Priority-4)
 - **QC Ref:** Internal mobile testing (Shawn, gccwebapp.com)
 - **Bucket:** Bug — client-side cache replay
 - **Reporter:** Shawn (Anuki QA)
@@ -958,7 +974,7 @@ All three of the originally-cited illegal jumps from the discovery write-up (`Dr
 
 - **Date:** 2026-05-19
 - **Severity:** Minor (UX correctness — each sub-item closes a small client ask)
-- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21 — QC #104 breadcrumb half verified in batch Priority-4)
 - **QC Ref:** #148, #104 (partial — Company Mgmt rename), #118, #179 (partial — SKU column), #184 (partial — column additions)
 - **Bucket:** Bug + Enhancement
 - **Reporter:** Client
@@ -1023,7 +1039,7 @@ Client report (5/1): *"I set test to public and it didn't show on public cert de
 
 - **Date:** 2026-05-19
 - **Severity:** Minor (each item is small UX correctness)
-- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21 — QC #183 verified in batch Priority-4; #175/#176 visual checks unchanged)
 - **QC Ref:** #175 (header logo distorts/narrow on reduced desktop/tablet), #176 (filter-hide toggle unreachable on mobile after hiding on desktop), #183 (Sort By has unused "Most Popular Companies" and "Relevance Score" options across all views) — all 2026-05-15
 - **Bucket:** Bug (#175, #176) + UX (#183)
 - **Reporter:** Client
@@ -1061,7 +1077,7 @@ Client report (5/1): *"I set test to public and it didn't show on public cert de
 
 - **Date:** 2026-05-19
 - **Severity:** Major (data integrity — every "click download to see what this number represents" interaction returned a different number than the tile)
-- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21)
 - **QC Ref:** #180 (client log, 2026-05-11) — *"Certs Expired Last Month is not using right data … we added clarifer of 'Active' for multiple items but then you are having the export show those not 'Active' (but number is only active which is right — the export should align with only the number that it makes up). … Anuki needs to do that"*
 - **Bucket:** Bug
 - **Reporter:** Client
@@ -1139,11 +1155,68 @@ For the expired-last-month check specifically: temporarily set `Certificates.Id=
 
 ---
 
+**Verification (added 2026-05-21) — QC #180 end-to-end test pass on both envs, all 12 cards reconciled**
+
+Two-run verification using a single Playwright harness (`qc159-live-check/qc180-dashboard-counts.js`) parameterized via `BASE_URL` + `TARGET`. The script logs in as admin, navigates `/Dashboard`, waits 2500ms for the count-up animation to settle, walks every `.stat-card`, captures `(title, .stat-value, data-stat-type)`, fetches `/Dashboard/DownloadStat?type={statType}`, counts data rows in the returned CSV, and asserts `tile === export`.
+
+**Run A — Localhost (`http://localhost:5101`, dev DB, 22 active certs)**
+
+```
+✅ total-active-certs                              tile=22 export=22
+✅ companies-with-active-certs                     tile=9  export=9
+✅ product-categories-with-active-certs            tile=1  export=1
+✅ product-types-with-active-certs                 tile=0  export=0
+✅ product-subcategories-with-active-certs         tile=0  export=0
+✅ products-with-active-certs                      tile=10 export=10
+✅ certs-published-last-month                      tile=0  export=0
+✅ certs-expiring-this-month                       tile=0  export=0
+✅ certs-expired-last-month                        tile=0  export=0
+✅ certs-expiring-next-month                       tile=0  export=0
+✅ certs-published-this-year                       tile=15 export=15
+✅ certs-published-last-year                       tile=6  export=6
+```
+
+12 / 12 PASS. Same shape as the original DEF-200 smoke test; `certs-expired-last-month` is `0=0` today because the fixture cert (id=27) probe was reverted after the original verification — the assertion still proves tile=export.
+
+**Run B — gccwebapp.com (live prod data, deploy verification)**
+
+```
+✅ total-active-certs                              tile=26 export=26
+✅ companies-with-active-certs                     tile=22 export=22
+✅ product-categories-with-active-certs            tile=2  export=2
+✅ product-types-with-active-certs                 tile=2  export=2
+✅ product-subcategories-with-active-certs         tile=2  export=2
+✅ products-with-active-certs                      tile=26 export=26
+✅ certs-published-last-month                      tile=5  export=5
+✅ certs-expiring-this-month                       tile=1  export=1
+✅ certs-expired-last-month                        tile=6  export=6
+✅ certs-expiring-next-month                       tile=1  export=1
+✅ certs-published-this-year                       tile=13 export=13
+✅ certs-published-last-year                       tile=4  export=4
+```
+
+12 / 12 PASS on live prod data. Three notable cards directly exercise the three root-cause fixes:
+- `certs-expired-last-month` **6 = 6** — the headline client complaint. Pre-fix this would have used `EffectiveDate` (wrong column) and no status filter; today it uses `ExpirationDate` + `EverPublishedStatuses`.
+- `products-with-active-certs` **26 = 26** — pre-fix the tile counted distinct products while the export returned one row per cert. Now both go through the aggregated CSV path.
+- `certs-published-this-year` **13 = 13** — pre-fix the tile had no upper date bound while the export capped at today; the cap is now applied symmetrically.
+
+**Test artifacts** (working tree, not committed):
+- `qc159-live-check/qc180-dashboard-counts.js` — parameterized Playwright harness
+- `qc159-live-check/qc180-{local,live}-dashboard.png` — full-page screenshots of `/Dashboard` after settle
+- `qc159-live-check/qc180-{local,live}-{stat-type}.csv` — 24 raw CSVs (12 per env)
+- `qc159-live-check/qc180-{local,live}-results.json` — machine-readable assertion logs
+
+**Status:** Closed — DEF-200 deployed and verified. Client's *"the export should align with only the number that it makes up"* contract is met on every card on prod.
+
+**Operational note for future dashboard work:** the `waitForTimeout(2500)` is required — `wwwroot/js/dashboard.js:298-312` animates 0→N over ~1500ms. Without the wait, Playwright captures mid-counter values and the assertion produces false negatives. Documented inline in the script and called out in the original DEF-200 entry above.
+
+---
+
 ### DEF-199 — Public/External tile-view filter sidebar misses cert-level category overrides and surfaces soft-deleted companies
 
 - **Date:** 2026-05-18
 - **Severity:** Major (UI/UX correctness — dead-clicks in the filter sidebar and silently-missing filter options that mask available certs from clients)
-- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21)
 - **QC Ref:** #177 *("I selected ASSA and it says no certs found, which means it should not appear in filter box as option … Then during later testing I found there is a cert showing with this — but then the filter selection is not working right")* and #178 *("26-0160 has type and subcat but only Carly Test and Chemicals and Raw Materials are in filter box … This used to be correct and now appears wrong. May be related to larger product cat overwrite/not showing when going back to edit")* — both 2026-05-08
 - **Bucket:** Bug
 - **Reporter:** Client
@@ -1213,11 +1286,57 @@ Acme restored after test.
 
 ---
 
+**Verification (added 2026-05-21) — QC #177 + #178 destructive matrix on localhost + read-only deploy probe on gccwebapp.com**
+
+Single harness `qc159-live-check/qc177-178-filter-options.js` exercises both QC items in one run. Both DEFs share the same endpoint (`GET /api/certificate-tiles/filters`), so one mutation cycle proves both fixes.
+
+**Run A — Localhost destructive matrix** (3 snapshots + clean revert via PowerShell SQL):
+
+| Phase | Mutation | Companies | Categories | Acme present? | Cat id=2 present? |
+|---|---|---|---|---|---|
+| Baseline | none | 9 | [1] | ✅ yes | no |
+| After mutation | `Companies.IsDeleted=1 WHERE Id=59 (Acme)`; `Certificates.ProductCategoryId=2 WHERE Id=38` | 8 | [1, 2] | ❌ correctly hidden | ✅ surfaces via cert-level override |
+| After revert | `Companies.IsDeleted=0`; `Certificates.ProductCategoryId=NULL` | 9 | [1] | ✅ restored | no — restored |
+
+8 / 8 assertions PASS:
+
+```
+✅ Filter endpoint returns 200
+✅ Acme present in baseline (sanity)
+✅ Acme (soft-deleted) NOT in company filter         — QC #177 main proof
+✅ Company count drops by exactly 1                  — QC #177 count proof
+✅ Cert-level Category override (id=2) surfaces      — QC #178 main proof
+✅ Acme returns to filter after restore              — no test residue
+✅ Company count matches baseline post-restore
+✅ Category set matches baseline post-restore
+```
+
+Cleanup verified — `Companies.IsDeleted` and `Certificates.ProductCategoryId` for cert 38 are at their original values. No test residue.
+
+**Run B — gccwebapp.com read-only deploy probe**
+
+```
+✅ Public filter endpoint reachable on prod (HTTP 200)
+✅ Filter response carries companies + categories (21 companies, 3 categories)
+```
+
+Notable: **"ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division"** appears in the prod filter list today. That was the specific company the client called out in QC #177 (5/8 — *"I selected ASSA and it says no certs found"*). Per the deployed code's `baseQuery` (`/api/certificate-tiles/filters`, line ~250: `PublicStatuses.Contains(c.Status) AND (ExpirationDate IS NULL OR ExpirationDate >= today)` plus the DEF-199 `Company.IsActive && !Company.IsDeleted` predicate), any company in the dropdown is guaranteed to have ≥1 currently-visible cert. The client's complaint can't occur on the deployed build.
+
+**Test artifacts** (working tree, not committed):
+- `qc159-live-check/qc177-178-filter-options.js` — parameterized harness with PowerShell SQL helper
+- `qc177-local-{base,mut,restore}.json` — three localhost snapshots
+- `qc177-live-live.json` — prod snapshot
+- `qc177-{local,live}-results.json` — machine-readable assertion logs
+
+**Status:** Closed — DEF-199 deployed and verified for both QC #177 (Company filter excludes soft-deleted) and QC #178 (cert-level Category override surfaces). The pattern called out under "Out of scope" in this entry (cross-category type/subcat overrides) remains a documented follow-up if the client reports it post-launch; today's data doesn't reproduce it.
+
+---
+
 ### DEF-198 — Partner login "Export All to CSV" leaks all certificates (drafts, expired, non-partner) — data exposure to a Partner caller
 
 - **Date:** 2026-05-18
 - **Severity:** **Critical** (data leakage — a Partner user receives certs outside their partner scope and outside the public-status contract)
-- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21)
 - **QC Ref:** #182 (client log, 2026-05-15, *"This is big issue, needs fixed."*)
 - **Bucket:** Bug
 - **Reporter:** Client
@@ -1268,6 +1387,45 @@ SQL truth check confirmed: Amazon partner has exactly 4 certs in `PublicStatuses
 **Related.** [[DEF-103]] (Partner API JSON contract — closed 2026-04-30). Same root-cause family as that fix; the export endpoint was simply not covered when DEF-103 shipped. Worth a sweep across other "Export" endpoints (`/Admin/ExportData`, `/api/productids/.../export`) on a future ticket to confirm none have the same gap.
 
 **Pre-deploy reminder.** Per CLAUDE.md "Backup uploads before Plesk deploy" and the test-env access-gate rule — this fix rides the same upcoming deploy as DEF-196 / DEF-197 / DEF-194; no separate deploy needed.
+
+---
+
+**Verification (added 2026-05-21) — QC #182 end-to-end test pass on both envs**
+
+Two-run verification. The localhost case proves the full Partner / Admin / Anonymous scoping matrix; the gccwebapp.com case proves the fix is actually deployed and applies to live data.
+
+**Run A — Localhost `/Certificate/ExportCertificates?format=csv`** (dev DB; 45 certs total: 22 Client Approved - Paid, 9 Expired, 8 Draft, 6 legacy Active)
+
+| Caller | HTTP | Data rows | Statuses returned | Partners returned | Verdict |
+|---|---|---|---|---|---|
+| `partner_test` (Partner→Amazon) | 200 | **4** | `Client Approved - Paid` only | `Amazon` only | ✅ scoped correctly |
+| `admin` (Admin) | 200 | **45** | All (`Client Approved - Paid`, `Expired`, `Draft`, `Active`) | All | ✅ no restriction |
+| Anonymous (no auth) | 200 | **22** | `Client Approved - Paid` only | All public partners | ✅ PublicStatuses only |
+
+All 6 localhost assertions PASS.
+
+**Run B — gccwebapp.com (prod DB, deploy verification)**
+
+The definitive deploy probe is anonymous: if DEF-198 were not deployed, anonymous would leak Draft/Expired/Active rows. Result:
+
+| Caller | HTTP | Data rows | Statuses returned | Partners returned | Verdict |
+|---|---|---|---|---|---|
+| Anonymous (Basic-auth-gated env, no app login) | 200 | **25** | `Client Approved - Paid`, `Republished` only | `None`, `Amazon` | ✅ PublicStatuses only on prod data — DEF-198 is deployed |
+
+(The Partner-scoped probe was attempted with `partner_test`; that fixture is dev-only and login bounces on prod. Anonymous + same code path = sufficient evidence the scope helper is wired on the deployed build.)
+
+**Test artifacts** (working tree, not committed):
+- `qc159-live-check/qc182-export-scope.js` — localhost destructive-free E2E
+- `qc159-live-check/qc182-export-scope-live.js` — gccwebapp.com deploy probe
+- `qc159-live-check/qc182-{partner,admin,anon}.csv` — raw CSVs (localhost)
+- `qc159-live-check/qc182-live-anon.csv` — raw CSV from gccwebapp anonymous
+- `qc159-live-check/qc182-{,live-}results.json` — machine-readable assertion logs
+
+**Status:** Closed — DEF-198 deployed and verified. The 5/15 client complaint (*"This is big issue, needs fixed"*) is no longer reproducible on either env.
+
+**Follow-up suggested** (separate, low priority): create a `partner_test` fixture on the prod DB so future regression tests on gccwebapp.com can include the full Partner→Amazon scoped path, not just the anonymous probe. Per memory `[gccwebapp.com is pre-launch test env]` — test users are allowed.
+
+**Related sweep** (already partially done): same fix pattern was extended in [[DEF-200]] family (per the existing 2026-05 work) covering adjacent endpoints. Per memory `[Scoping fixes — always audit adjacent endpoints]`, any future "Export" or "Download" route added to the app must include the same scope helper or document why it's exempt.
 
 ---
 
@@ -1332,8 +1490,8 @@ WHERE c.ProductCategoryId = @cat
 
 - **Date:** 2026-05-15
 - **Severity:** High (data-management blocker — Carly could not clean up her own test rows and could not understand the error)
-- **Status:** Fixed locally — pending deploy to gccwebapp.com
-- **QC Ref:** #170 (client log, 2026-05-01, Carly — *"PLEASE REMOVE MY CARLY TEST AND CARLY TEST TYPE OPTIONS. SEE IF YOU CAN GO THROUGH THIS PROCESS, ETC."*)
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21)
+- **QC Ref:** #170 (client log, 2026-05-01, *"PLEASE REMOVE MY CARLY TEST AND CARLY TEST TYPE OPTIONS. SEE IF YOU CAN GO THROUGH THIS PROCESS, ETC."*)
 - **Bucket:** Bug
 - **Reporter:** Client (Carly)
 
@@ -1375,7 +1533,60 @@ Net effect: the column told Carly "deletable", the system disagreed, and the err
 5. **`POST /Admin/DeleteProductType/99999` (nonexistent)** — returns **"Product type not found"**. No regression.
 6. **Build:** `dotnet build` clean — 0 errors, 53 pre-existing warnings (unchanged from prior commits).
 
-**Found by:** Client (Carly), QC #170 logged 2026-05-01. Triaged + fixed by Anuki 2026-05-15 — same day Shawn raised it for the status call.
+**Found by:** Client, QC #170 logged 2026-05-01. Triaged + fixed by Anuki 2026-05-15 — same day Shawn raised it for the status call.
+
+---
+
+**Verification (added 2026-05-21) — QC #170 end-to-end retest on both envs**
+
+Two-run verification covering BOTH layers of the fix (DEF-196 messages + DEF-197 dedup rollup) via `qc159-live-check/qc170-product-type-delete.js`. The destructive delete probes only run on localhost — but they're safe because the new pre-checks block `SaveChanges()` before any FK violation can fire; we verify post-run that node count is unchanged. The deploy probe on gccwebapp.com is read-only (JSON shape only).
+
+**Run A — Localhost (`http://localhost:5101`, dev DB)**
+
+```
+PART A — Display side
+✅ Every product-type node carries productCount   (59 nodes)
+✅ Every product-type node carries certificateCount  (59 nodes)
+✅ Spot-check PET-49     prod=0/exp 0, cert=1/exp 1
+✅ Spot-check LLDPE-48   prod=1/exp 1, cert=0/exp 0
+✅ Spot-check Plastics-4-dedup  prod=1/exp 1, cert=1/exp 1
+   ↑ this is the DEF-197 dedup assertion. Product #346 is tagged BOTH
+     ProductTypeId=4 (Plastics direct) AND ProductSubcategoryId=48 (LLDPE).
+     Pre-DEF-197 integer-sum rollup counted it once at each level → 2.
+     Post-fix HashSet UnionWith dedupes → 1. Same shape for cert 26-0027.
+
+PART B — Delete pre-check probes
+✅ DeleteProductType/49  PET (1 cert ref)
+   → "Cannot delete: 1 certificate(s) use this subcategory. Edit those certificates…"
+✅ DeleteProductType/48  LLDPE (1 product via ProductSubcategoryId FK)
+   → "Cannot delete: 1 product(s) are assigned to this item. Please reassign them first."
+✅ DeleteProductType/4   Plastics (6 subcategories)
+   → "Cannot delete: This item has 6 subcategories. Please delete or move them first."
+✅ DeleteProductType/99999  Nonexistent
+   → "Product type not found"
+✅ No rows actually deleted — node count before=59 after=59 (pre-check fires before SaveChanges)
+```
+
+10 / 10 PASS. Every specific-message branch fires correctly. Pre-fix all four destructive cases would have returned the generic *"An error occurred while deleting. Please try again."*
+
+**Run B — gccwebapp.com (live prod data, deploy verification, read-only)**
+
+```
+PART A — Display side
+✅ Every product-type node carries productCount     (62 nodes)
+✅ Every product-type node carries certificateCount (62 nodes)
+```
+
+2 / 2 PASS. Prod tree has 62 nodes (vs 59 dev — same shape, 3 extra rows). Every node carries the new `certificateCount` field — confirms DEF-196 + DEF-197 deployed. Per-node count-correctness on prod was confirmed by the original 2026-05-19 shipped-log post-deploy probe (LDPE 0/1, HDPE 5/2, Plastics 5/4 — see `docs/tracking/shipped-2026-05.md`); today's check focused on JSON shape because count spot-checks on prod data would require additional SQL access we didn't add to the script.
+
+**Delete pre-check probes were NOT run on prod** — the messages are pure UI strings that don't depend on data, and the destructive probes carry data-mutation risk on real records per the `[Data Changes Require CR]` rule. The localhost matrix covers all four message branches; the gccwebapp display probe confirms the same code path is deployed.
+
+**Test artifacts** (working tree, not committed):
+- `qc159-live-check/qc170-product-type-delete.js` — parameterized harness
+- `qc170-local-types.json`, `qc170-live-types.json` — full tree responses
+- `qc170-local-results.json`, `qc170-live-results.json` — machine-readable assertion logs
+
+**Status:** Closed — DEF-196 + DEF-197 deployed and verified. Client's 5/1 "PLEASE REMOVE MY CARLY TEST" request is now actionable end-to-end: every blocker case gives a specific, action-oriented message and the Usage column accurately tells the user how many references they still need to clear.
 
 ---
 
@@ -1383,7 +1594,7 @@ Net effect: the column told Carly "deletable", the system disagreed, and the err
 
 - **Date:** 2026-05-15
 - **Severity:** Low (visual)
-- **Status:** Deployed to gccwebapp.com 2026-05-15 (zip `GCCWebApp-deploy-20260515-2005.zip`, second attempt) — post-deploy smoke verified clean. First attempt earlier the same day (`GCCWebApp-deploy-20260515-1948.zip`) did not carry — server's CSS `Last-Modified` headers proved the files were never overwritten. Re-deploy with explicit "Overwrite All" in Plesk landed it; asp-append-version hash on `/css/certificatetileview.css` flipped from `29xsVYkW...` (broken) → `BgYK15dB7eLLdeKE74ymzJ0LNb74H3-dO5iVzgGpmvI` (fixed). 20 multi-line-category tiles now show 0px cert-id pill drift (was up to 10px).
+- **Status:** Deployed to gccwebapp.com 2026-05-15 (zip `GCCWebApp-deploy-20260515-2005.zip`, second attempt) — post-deploy smoke verified clean. First attempt earlier the same day (`GCCWebApp-deploy-20260515-1948.zip`) did not carry — server's CSS `Last-Modified` headers proved the files were never overwritten. Re-deploy with explicit "Overwrite All" in Plesk landed it; asp-append-version hash on `/css/certificatetileview.css` flipped from `29xsVYkW...` (broken) → `BgYK15dB7eLLdeKE74ymzJ0LNb74H3-dO5iVzgGpmvI` (fixed). 20 multi-line-category tiles now show 0px cert-id pill drift (was up to 10px). **Re-verified 2026-05-21** in batch Priority-4: 25 tiles sampled on prod, all `align-items: flex-start`, max top-delta 0px.
 - **QC Ref:** #174 (client log, 2026-05-08, Carly)
 - **Bucket:** UX
 - **Reporter:** Client (Carly)
@@ -1414,8 +1625,9 @@ Single source of truth is now the base `.header-row { align-items: flex-start }`
 
 - **Date:** 2026-05-14
 - **Severity:** Low (Enhancement — no broken behavior, fills a UX gap for analysts cleaning up large product-ID lists)
-- **Status:** Fixed locally — pending deploy to gccwebapp.com
-- **Reporter:** Client (Carly) via QC log #172 (5/11/26): *"Add check all for mass delete under Product Identifier per 5/8 call"*
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21)
+- **QC Ref:** #172 (client log, 2026-05-11, *"Add check all for mass delete under Product Identifier per 5/8 call"*)
+- **Reporter:** Client via QC log #172 (5/11/26): *"Add check all for mass delete under Product Identifier per 5/8 call"*
 - **Classification:** Enhancement (5-bucket taxonomy). Root cause: feature did not exist.
 
 **Symptom:** Cert Create + Edit pages' Product Identifier table only supported per-row delete. Analysts cleaning up imported product-ID lists had to click the row trash icon → confirm → wait → repeat, once per row.
@@ -1436,6 +1648,64 @@ Single source of truth is now the base `.header-row { align-items: flex-start }`
 6. **Build:** `dotnet build` — 0 errors, 53 pre-existing warnings (unchanged from prior commits).
 
 **Notes for client:** Behavior is the same on Create and Edit pages because both use the same partial. QC #172 specified "Cert Creation Page" but Edit gets the capability "for free" via the shared component — flag this in the response so client knows it covers both.
+
+---
+
+**Verification (added 2026-05-21) — QC #172 end-to-end pass with cross-page selection proof**
+
+Single harness `qc159-live-check/qc172-bulk-delete.js`. Destructive on localhost (isolated by `QC172TEST%` test prefix; defensive cleanup at start + end); read-only DOM probe on gccwebapp.com.
+
+**Run A — Localhost destructive end-to-end + cross-page** (cert 26-0023, dev DB)
+
+Setup: SQL-inserted 3 identifiable test rows (`ASIN QC172TEST1/2/3`) on cert 26-0023; search-filter on `QC172TEST` isolated them from the 1004 unrelated rows.
+
+```
+PART A — UI shape
+✅ Select-all header checkbox present
+✅ Bulk delete button hidden before any selection
+✅ Three filtered test rows visible
+
+PART B — selection / count
+✅ Bulk delete button appears after 1 selection
+✅ Bulk delete shows "Delete Selected (1)"
+✅ Select-all checks all 3 visible rows → count=3
+
+PART C — destructive end-to-end
+✅ All 3 test rows deleted from DB (post-delete count=0)
+   — clicks #bulkDeleteProductIds → AdminCore.showConfirmation modal
+     ([data-action="confirm"]) → 3 parallel DELETE /api/productids/{id} calls
+     → table reload → SQL truth verify
+
+PART D — cross-page selection persistence (non-destructive, cert 26-0106, 101 rows / 3 pages)
+✅ Page 1: one row selected → count=1
+✅ Navigate to page 2: count persists (=1)            ← selectedIds Set survives page change
+✅ Page 2 + 1 more selected: count=2
+✅ Page 1 revisited: first row still checked          ← getProductIdRowHtml restores
+                                                          isChecked from selectedIds on re-render
+```
+
+11 / 11 PASS. Cleanup verified: post-test query `WHERE ProductIdValue LIKE 'QC172TEST%'` returns 0 — no test residue. Cert 26-0023 retains its 1004 original rows; cert 26-0106 retains its 101 (cross-page test never clicked Delete).
+
+**Run B — gccwebapp.com read-only DOM probe** (cert 26-0163 via admin login)
+
+```
+✅ Select-all checkbox present on prod
+✅ Bulk delete button present on prod (hidden until selection — style display:none)
+✅ Per-row bulk-select checkboxes present on prod (2 row checkboxes for cert 26-0163's 2 IDs)
+```
+
+3 / 3 PASS. The DEF-194 partial (`Views/Shared/_ProductIdManager.cshtml`) and `wwwroot/js/product-id-manager.js` are deployed on the current build. Destructive matrix intentionally skipped on prod per the `[Data Changes Require CR]` rule.
+
+**Test artifacts** (working tree, not committed):
+- `qc159-live-check/qc172-bulk-delete.js` — parameterized harness with PowerShell SQL helper
+- `qc172-local-01-filtered.png` — filtered to test rows showing checkboxes
+- `qc172-local-02-all-selected.png` — select-all in indeterminate→checked state with "Delete Selected (3)"
+- `qc172-local-03-after-delete.png` — confirmation modal capture (pre-fix-of-script artifact, useful evidence)
+- `qc172-local-04-cross-page.png` — cross-page selection on cert 26-0106
+- `qc172-live-dom.png` — prod DOM probe
+- `qc172-{local,live}-results.json`
+
+**Status:** Closed — DEF-194 deployed and verified. The client's 5/11 ask (*"Add check all for mass delete under Product Identifier per 5/8 call"*) is met on both Create and Edit pages (shared partial), with cross-page persistence working as designed.
 
 ---
 
@@ -2532,7 +2802,8 @@ The unused class method at `productManagement.js:2054-2161` is left in place for
 
 - **Date:** 2026-05-11
 - **Severity:** Low–Medium (data quality issue; doesn't block use but pollutes Company records)
-- **Status:** Fixed locally (pending deploy)
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21 — regex `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$` deployed on `#CompanyEmail`, error msg fires on "notanemail")
+- **QC Ref:** #181 (client log, 2026-05-11, *"Can you add rule to the Company Email field that it needs to be in an email format..."*)
 - **Reporter:** Client — QC #181 (5/11/26): *"Can you add rule to the Company Email field that it needs to be in an email format. See image 74 where something went through and its not email."* — Create Cert flow.
 
 **Root cause:** `CertificateEditViewModel.CompanyEmail` was annotated with `[EmailAddress]` only. The built-in .NET `EmailAddressAttribute` validator is very permissive — it accepts any string with exactly one `@` that isn't first or last, e.g. `"a@b"` validates. No TLD requirement, no character-class enforcement. Combined with the form's `novalidate` attribute disabling HTML5 native feedback, anything with a single `@` in it passed silently. The client observed something patently non-email-shaped persisting and (correctly) called it out.

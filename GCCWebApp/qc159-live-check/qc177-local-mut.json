@@ -1,0 +1,82 @@
+{
+  "certificationTypes": [
+    {
+      "name": "Biobased",
+      "level": 1
+    },
+    {
+      "name": "Certified Energy Savings",
+      "level": 1
+    },
+    {
+      "name": "Certified Environmental Facts",
+      "level": 1
+    },
+    {
+      "name": "Recycled Content",
+      "level": 1
+    }
+  ],
+  "companies": [
+    {
+      "id": 52,
+      "name": "Amazon"
+    },
+    {
+      "id": 60,
+      "name": "Beta Industries"
+    },
+    {
+      "id": 54,
+      "name": "Braun"
+    },
+    {
+      "id": 61,
+      "name": "ExtTest-AmazonCo"
+    },
+    {
+      "id": 63,
+      "name": "ExtTest-NoPartnerCo"
+    },
+    {
+      "id": 62,
+      "name": "ExtTest-NoviCo"
+    },
+    {
+      "id": 53,
+      "name": "Henkel"
+    },
+    {
+      "id": 19,
+      "name": "HID Global"
+    }
+  ],
+  "countries": [
+    "United States",
+    "Hungary",
+    "Mexico",
+    "United Kingdom"
+  ],
+  "productCategoriesHierarchy": [
+    {
+      "id": 1,
+      "name": "Chemicals and Raw Materials",
+      "level": 1,
+      "types": []
+    },
+    {
+      "id": 2,
+      "name": "Clothing, Apparel, and Fabrics",
+      "level": 1,
+      "types": []
+    }
+  ],
+  "productCategories": [
+    "Chemicals and Raw Materials",
+    "Clothing, Apparel, and Fabrics"
+  ],
+  "additionalTags": [
+    "Eco-Friendly",
+    "Verified"
+  ]
+}

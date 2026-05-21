@@ -1,0 +1,38 @@
+[
+  {
+    "id": "QC182-1a",
+    "name": "Partner export returns scoped row count",
+    "status": "PASS",
+    "notes": "expected=4 actual=4"
+  },
+  {
+    "id": "QC182-1b",
+    "name": "All rows have Partner=Amazon (no cross-partner leakage)",
+    "status": "PASS",
+    "notes": "distinct partners=[\"Amazon\"]"
+  },
+  {
+    "id": "QC182-1c",
+    "name": "All rows have Status in PublicStatuses (no Draft/Expired/Active leakage)",
+    "status": "PASS",
+    "notes": "distinct statuses=[\"Client Approved - Paid\"] expected⊆={Client Approved - Paid,Republished}"
+  },
+  {
+    "id": "QC182-2a",
+    "name": "Admin export returns full DB (no restriction)",
+    "status": "PASS",
+    "notes": "actual=45; expecting close to total cert count (~45)"
+  },
+  {
+    "id": "QC182-2b",
+    "name": "Admin sees non-public statuses (Draft / Expired / Active)",
+    "status": "PASS",
+    "notes": "distinct statuses=[\"Client Approved - Paid\",\"Expired\",\"Draft\",\"Active\"]"
+  },
+  {
+    "id": "QC182-3a",
+    "name": "Anonymous export contains ONLY PublicStatuses",
+    "status": "PASS",
+    "notes": "distinct statuses=[\"Client Approved - Paid\"] rows=22"
+  }
+]

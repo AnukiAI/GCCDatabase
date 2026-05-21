@@ -1,0 +1,62 @@
+[
+  {
+    "id": "QC170-A1-local",
+    "name": "Every product-type node carries productCount",
+    "status": "PASS",
+    "notes": "node count=59"
+  },
+  {
+    "id": "QC170-A2-local",
+    "name": "Every product-type node carries certificateCount",
+    "status": "PASS",
+    "notes": "node count=59"
+  },
+  {
+    "id": "QC170-A3-PET-49",
+    "name": "Spot-check PET-49 counts",
+    "status": "PASS",
+    "notes": "prod=0/exp 0, cert=1/exp 1"
+  },
+  {
+    "id": "QC170-A3-LLDPE-48",
+    "name": "Spot-check LLDPE-48 counts",
+    "status": "PASS",
+    "notes": "prod=1/exp 1, cert=0/exp 0"
+  },
+  {
+    "id": "QC170-A3-Plastics-4-dedup",
+    "name": "Spot-check Plastics-4-dedup counts",
+    "status": "PASS",
+    "notes": "prod=1/exp 1, cert=1/exp 1"
+  },
+  {
+    "id": "QC170-B-49",
+    "name": "PET (subcat with 1 cert) → cert-blocker",
+    "status": "PASS",
+    "notes": "HTTP 200, success=false, msg=\"Cannot delete: 1 certificate(s) use this subcategory. Edit those certificates to use a different subcategory f\""
+  },
+  {
+    "id": "QC170-B-48",
+    "name": "LLDPE (subcat with 1 product) → product-blocker",
+    "status": "PASS",
+    "notes": "HTTP 200, success=false, msg=\"Cannot delete: 1 product(s) are assigned to this item. Please reassign them first.\""
+  },
+  {
+    "id": "QC170-B-4",
+    "name": "Plastics (type with children) → child-blocker",
+    "status": "PASS",
+    "notes": "HTTP 200, success=false, msg=\"Cannot delete: This item has 6 subcategories. Please delete or move them first.\""
+  },
+  {
+    "id": "QC170-B-99999",
+    "name": "Nonexistent ID → not-found",
+    "status": "PASS",
+    "notes": "HTTP 200, success=false, msg=\"Product type not found\""
+  },
+  {
+    "id": "QC170-B-no-destruction",
+    "name": "No rows actually deleted (pre-check fired)",
+    "status": "PASS",
+    "notes": "before=59 after=59 nodes"
+  }
+]

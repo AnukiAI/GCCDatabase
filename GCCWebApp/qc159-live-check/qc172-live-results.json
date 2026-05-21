@@ -1,0 +1,20 @@
+[
+  {
+    "id": "QC172-LIVE-1",
+    "name": "Select-all checkbox present on prod",
+    "status": "PASS",
+    "notes": "count=1"
+  },
+  {
+    "id": "QC172-LIVE-2",
+    "name": "Bulk delete button present on prod (hidden until selection)",
+    "status": "PASS",
+    "notes": "count=1"
+  },
+  {
+    "id": "QC172-LIVE-3",
+    "name": "Per-row bulk-select checkboxes present on prod",
+    "status": "PASS",
+    "notes": "row checkbox count=2"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "QC182-LIVE-anon-1",
+    "name": "Anonymous export accessible (200)",
+    "status": "PASS",
+    "notes": "25 rows"
+  },
+  {
+    "id": "QC182-LIVE-anon-2",
+    "name": "Anonymous export contains ONLY PublicStatuses",
+    "status": "PASS",
+    "notes": "distinct statuses=[\"Client Approved - Paid\",\"Republished\"]"
+  },
+  {
+    "id": "QC182-LIVE-anon-3",
+    "name": "No Draft/Expired/Active leakage to anonymous",
+    "status": "PASS",
+    "notes": "if FAIL → DEF-198 not deployed"
+  },
+  {
+    "id": "QC182-LIVE-partner-1",
+    "name": "partner_test exists on prod DB",
+    "status": "WARN",
+    "notes": "login failed — fixture not on prod; anonymous check alone is the evidence"
+  }
+]

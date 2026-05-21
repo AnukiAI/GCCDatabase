@@ -1,0 +1,27 @@
+Report: Total Active Certificates
+Generated: 2026-05-21 15:49:00 UTC
+Total Certificates: 22
+
+Certificate Number,Status,Company,Product,Product Category,Product Type,Product Subcategory,Certification Type,Effective Date,Expiration Date,Location,Country,Partner
+"26-0001","Client Approved - Paid","Acme Corporation","Widget Pro","Chemicals and Raw Materials","","","Recycled Content",2026-01-01,2027-01-01,"Portland, OR","United States","Amazon"
+"26-0002","Client Approved - Paid","Beta Industries","Gadget Plus","Chemicals and Raw Materials","","","Biobased",2026-02-01,2027-02-01,"Hartford, CT","United States","None"
+"26-0003","Client Approved - Paid","Amazon","Kuiper","Chemicals and Raw Materials","","","Recycled Content",2026-01-01,2026-12-31,"","United States","None"
+"26-0004","Client Approved - Paid","Amazon","Kuiper","Chemicals and Raw Materials","","","Recycled Content",2026-01-01,2026-12-31,"","United States","None"
+"26-0005","Client Approved - Paid","Amazon","Kuiper","Chemicals and Raw Materials","","","Recycled Content",2026-01-01,2026-12-31,"","Hungary","None"
+"26-0006","Client Approved - Paid","Amazon","Kuiper","Chemicals and Raw Materials","","","Recycled Content",2026-01-01,2026-12-31,"","United States","None"
+"26-0007","Client Approved - Paid","Amazon","Kuiper","Chemicals and Raw Materials","","","Recycled Content",2026-01-01,2026-12-31,"","United States","None"
+"26-0008","Client Approved - Paid","Amazon","Kuiper","Chemicals and Raw Materials","","","Recycled Content",2026-01-01,2026-12-31,"","Mexico","None"
+"26-0009","Client Approved - Paid","Amazon","Kuiper","Chemicals and Raw Materials","","","Recycled Content",2026-01-01,2026-12-31,"","United Kingdom","None"
+"26-0010","Client Approved - Paid","Amazon","Kuiper","Chemicals and Raw Materials","","","Recycled Content",2026-01-01,2026-12-31,"","United States","None"
+"26-0011","Client Approved - Paid","Henkel","Dial Body Wash, Pamper & Indulge, Silk & Magnolia, 16 fl oz (Pack of 4)","Chemicals and Raw Materials","","","Certified Environmental Facts",2026-01-01,2026-12-31,"","United States","None"
+"26-0020","Client Approved - Paid","Henkel","Dial Men 3in1 Body, Hair and Face Wash, Ultimate Clean, Amber Woods Scent, 16 fl oz, Pack of 4","Chemicals and Raw Materials","","","Certified Environmental Facts",2026-01-05,2027-02-02,"","United States","None"
+"26-0023","Client Approved - Paid","Acme Corporation","Widget Pro","Chemicals and Raw Materials","","","Certified Environmental Facts",2027-07-08,2028-07-07,"","United States","None"
+"26-0024","Client Approved - Paid","Braun","electric shaver","Chemicals and Raw Materials","","","Certified Energy Savings",2025-07-09,2028-07-08,"","United States","None"
+"26-0025","Client Approved - Paid","HID Global","Bottles","Chemicals and Raw Materials","","","Biobased",2026-02-25,2028-02-25,"","Mexico","None"
+"EXT-AMZ-001","Client Approved - Paid","ExtTest-AmazonCo","ExtTest Amazon Product","Chemicals and Raw Materials","","","Recycled Content",2025-09-17,2026-09-17,"Seattle, WA","United States","Amazon"
+"EXT-AMZ-002","Client Approved - Paid","ExtTest-AmazonCo","ExtTest Amazon Product","Chemicals and Raw Materials","","","Recycled Content",2025-12-17,2026-12-17,"Chicago, IL","United States","Amazon"
+"EXT-AMZ-003","Client Approved - Paid","ExtTest-AmazonCo","ExtTest Amazon Product","Chemicals and Raw Materials","","","Recycled Content",2026-02-17,2027-02-17,"New York, NY","United States","Amazon"
+"EXT-NOVI-001","Client Approved - Paid","ExtTest-NoviCo","ExtTest Novi Product","Chemicals and Raw Materials","","","Recycled Content",2025-11-17,2026-11-17,"Portland, OR","United States","Novi"
+"EXT-NOVI-002","Client Approved - Paid","ExtTest-NoviCo","ExtTest Novi Product","Chemicals and Raw Materials","","","Recycled Content",2026-01-17,2027-01-17,"San Francisco, CA","United States","Novi"
+"EXT-NP-001","Client Approved - Paid","ExtTest-NoPartnerCo","ExtTest NoPartner Product","Chemicals and Raw Materials","","","Recycled Content",2025-10-17,2026-10-17,"Denver, CO","United States","None"
+"EXT-NP-002","Client Approved - Paid","ExtTest-NoPartnerCo","ExtTest NoPartner Product","Chemicals and Raw Materials","","","Recycled Content",2025-12-17,2026-12-17,"Austin, TX","United States",""

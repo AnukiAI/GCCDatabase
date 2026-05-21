@@ -1,0 +1,14 @@
+[
+  {
+    "id": "QC177-live-200",
+    "name": "Public filter endpoint reachable on prod",
+    "status": "PASS",
+    "notes": "HTTP 200"
+  },
+  {
+    "id": "QC177-live-shape",
+    "name": "Filter response carries companies + categories",
+    "status": "PASS",
+    "notes": "companies=21 categories=3"
+  }
+]

@@ -1,0 +1,68 @@
+[
+  {
+    "id": "QC104-_Company_Index",
+    "name": "Breadcrumb on /Company/Index starts with \"Companies & Products\" (not \"Administration\")",
+    "status": "PASS",
+    "notes": "crumbs=[\"Companies & Products  Company Management\",\"Companies & Products\",\"Company Management\"]"
+  },
+  {
+    "id": "QC104-_Product_Management",
+    "name": "Breadcrumb on /Product/Management starts with \"Companies & Products\" (not \"Administration\")",
+    "status": "PASS",
+    "notes": "crumbs=[\"Companies & Products  Product Management\",\"Companies & Products\",\"Product Management\"]"
+  },
+  {
+    "id": "QC181-regex-attr",
+    "name": "#CompanyEmail input has regex validation attribute",
+    "status": "PASS",
+    "notes": "attrs={\"type\":\"email\",\"dataValRegex\":\"Enter a valid email address (e.g., name@example.com).\",\"dataValRegexPattern\":\"^[a-zA-Z0-9._%+\\\\-]+@[a-zA-Z0-9.\\\\-]+\\\\.[a-zA-Z]{2,}$\",\"attrs\":[\"type\",\"placeholder\",\"maxlength\",\"data-val\",\"data-val-maxlength\",\"data-val-maxlength-max\",\"data-val-regex\",\"data-val-regex-pattern\",\"id\",\"name\",\"value\"]}"
+  },
+  {
+    "id": "QC181-functional-blocked",
+    "name": "Invalid email surfaces a validation error",
+    "status": "PASS",
+    "notes": "msg=\"Please enter a valid email address.\""
+  },
+  {
+    "id": "QC183-CertificateTileViewInternal-popular",
+    "name": "/Certificate/CertificateTileViewInternal: \"Most Popular Companies\" option removed",
+    "status": "PASS",
+    "notes": "options found=19, sample=[\"Default\",\"Newest Effective Date\",\"Oldest Effective Date\",\"Longest Validity Period\",\"Recently Issued (Last 30 Days)\",\"Certificate Number (Newest)\",\"Certificate Number (Oldest)\",\"Certification Type A-Z\"]"
+  },
+  {
+    "id": "QC183-CertificateTileViewInternal-relevance",
+    "name": "/Certificate/CertificateTileViewInternal: \"Relevance Score\" option removed",
+    "status": "PASS",
+    "notes": "options found=19, sample=[\"Default\",\"Newest Effective Date\",\"Oldest Effective Date\",\"Longest Validity Period\",\"Recently Issued (Last 30 Days)\",\"Certificate Number (Newest)\",\"Certificate Number (Oldest)\",\"Certification Type A-Z\"]"
+  },
+  {
+    "id": "QC183-CertificateTileView-popular",
+    "name": "/Certificate/CertificateTileView: \"Most Popular Companies\" option removed",
+    "status": "PASS",
+    "notes": "options found=13, sample=[\"Default\",\"Certificate Number (Newest)\",\"Certificate Number (Oldest)\",\"Certification Type A-Z\",\"Certification Type Z-A\",\"Company A-Z\",\"Company Z-A\",\"Product Name A-Z\"]"
+  },
+  {
+    "id": "QC183-CertificateTileView-relevance",
+    "name": "/Certificate/CertificateTileView: \"Relevance Score\" option removed",
+    "status": "PASS",
+    "notes": "options found=13, sample=[\"Default\",\"Certificate Number (Newest)\",\"Certificate Number (Oldest)\",\"Certification Type A-Z\",\"Certification Type Z-A\",\"Company A-Z\",\"Company Z-A\",\"Product Name A-Z\"]"
+  },
+  {
+    "id": "QC207-guard",
+    "name": "Create page inline-success guard pattern present (or script properly omitted when no TempData)",
+    "status": "PASS",
+    "notes": "no inline success script (TempData empty)"
+  },
+  {
+    "id": "QC174-align-items",
+    "name": ".header-row align-items is flex-start on every visible tile",
+    "status": "PASS",
+    "notes": "samples=25 all-flex-start=true distinct=[\"flex-start\"]"
+  },
+  {
+    "id": "QC174-top-delta",
+    "name": "Cert-id pill top within 2px of category top across all sampled tiles",
+    "status": "PASS",
+    "notes": "max top-delta=0px (samples=25)"
+  }
+]

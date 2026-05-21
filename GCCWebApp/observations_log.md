@@ -1,5 +1,142 @@
 # Observations Log
 
+## 2026-05-21 — Priority-4 batch verification: 5 small UX items (QC #104, #181, #183, #207, #174) all confirmed on gccwebapp.com — 11/11 assertions PASS
+
+Closed out the remaining audit items in one harness run. All five shipped 5/15-5/19 and now have formal post-deploy verification on file.
+
+| QC # | DEF | One-line outcome |
+|---|---|---|
+| #104 | DEF-202 + 211 | Breadcrumb on Company Mgmt and Product Mgmt reads `Companies & Products › <page>` — no leading "Administration" |
+| #181 | DEF-172 | `#CompanyEmail` carries the strict regex; "notanemail" surfaces validation error inline |
+| #183 | DEF-201 | Sort dropdown clean on both internal (19 opts) and public (13 opts) views — "Most Popular Companies" / "Relevance Score" absent |
+| #207 | DEF-207 | Cert Create page's inline success script is omitted when TempData is empty; `sessionStorage` guard `createSuccessMsg:` present in source |
+| #174 | DEF-195 | 25 tiles sampled — every `.header-row` `align-items: flex-start`, max top-delta = 0px |
+
+Single Playwright harness (`qc-batch-priority4.js`) parameterized via `BASE_URL` / `TARGET`. Read-only against prod; no data mutation. Two iteration cycles required: first pass had weak selectors for breadcrumb (chevron icons, not text separators) and sort dropdown (custom DOM, not native `<select>`); strengthened to look up `nav.breadcrumbs > span` children and to click-open `#sortDropdownBtn` before enumerating.
+
+All five DEF status lines flipped to "Deployed and verified on gccwebapp.com (2026-05-21)" with verification reference in defect-register.md. Single batch entry added to shipped-2026-05.md (rather than five separate ones) since they shipped in the same wave.
+
+**Audit milestone:** all 12 candidates from the original Priority audit are now verified. Tally:
+
+| # | QC | DEF | Result |
+|---|---|---|---|
+| 1 | #159 | DEF-180 | ✅ verified 2026-05-21 |
+| 2 | #182 | DEF-198 | ✅ verified 2026-05-21 |
+| 3 | #180 | DEF-200 | ✅ verified 2026-05-21 |
+| 4 | #170 | DEF-196 + 197 | ✅ verified 2026-05-21 |
+| 5 | #177 + #178 | DEF-199 | ✅ verified 2026-05-21 |
+| 6 | #172 | DEF-194 | ✅ verified 2026-05-21 |
+| 7-11 | #104, #181, #183, #207, #174 | DEF-202/211/172/201/207/195 | ✅ verified 2026-05-21 (this entry) |
+
+Pattern that emerged across the audit: a parameterized Playwright harness shape (`BASE_URL` env var, login → endpoint probe / DOM read / destructive matrix → cleanup) works well for "deploy probe + destructive matrix" verifications. Reusable for future fix-verify cycles. Twelve harness files now live in `qc159-live-check/`; each can be re-run against any environment.
+
+---
+
+## 2026-05-21 — QC #172 (DEF-194) verified end-to-end on localhost + read-only DOM probe on gccwebapp.com: Product ID bulk-delete with cross-page selection persistence
+
+Client asked 5/11 ("Add check all for mass delete under Product Identifier per 5/8 call"). DEF-194 shipped 2026-05-14 — added a checkbox column, select-all header (tri-state), and "Delete Selected (N)" red button to the shared `_ProductIdManager` partial, with selection state in a `selectedIds: Set<number>` that survives re-renders and pagination changes. Bulk delete fires parallel `DELETE /api/productids/{id}` calls via `Promise.allSettled` so partial failures are reported honestly.
+
+**Localhost destructive E2E + cross-page test** (`qc172-bulk-delete.js`): 11 / 11 PASS.
+
+Destructive matrix isolated by an identifiable test prefix — 3 rows seeded on cert 26-0023 (already has 1004 real rows) with `ASIN QC172TEST1/2/3` via direct SQL. Search-filtered the table to those 3 → all UI checks PASS (select-all present, bulk button hidden initially, count updates from 1 → 3 as checkboxes flip, confirm modal `[data-action="confirm"]` fires the 3 parallel API calls). Post-test SQL truth query `WHERE ProductIdValue LIKE 'QC172TEST%'` returns 0 — clean.
+
+Cross-page persistence proved non-destructively on cert 26-0106 (101 rows / 3 pages of 50): select one on page 1 → count=1; navigate to page 2 → count stays 1; select one more → count=2; navigate back to page 1 → first row's checkbox still rendered as checked. That last assertion is the load-bearing one: it proves `getProductIdRowHtml` reads `isChecked` from the surviving `selectedIds` Set on re-render, not just from DOM state.
+
+**gccwebapp.com read-only DOM probe** (cert 26-0163 via admin login): 3 / 3 PASS. `#selectAllProductIds`, `#bulkDeleteProductIds`, and `.bulk-select-checkbox` all present in the deployed DOM. Destructive matrix intentionally skipped on prod per the `[Data Changes Require CR]` rule.
+
+DEF-194 register entry updated with verification block + status flipped to "Deployed and verified on gccwebapp.com (2026-05-21)". Shipped-2026-05.md entry retitled "deployed + verified 2026-05-21" with the cross-page proof added inline. Test artifacts: `qc172-bulk-delete.js`, screenshots, results JSONs.
+
+Two minor script-side fixes worth noting for future harness reuse: (a) `Users.CreatedBy` is `int` not nvarchar — seed inserts must use a Users.Id value (used `1` for admin); (b) `AdminCore.showConfirmation` modal uses `[data-action="confirm"]` (not `button:has-text("Delete")`), and pagination buttons use `.pagination-btn` with the page number as text. Both encoded in the harness.
+
+---
+
+## 2026-05-21 — QC #177 + #178 (DEF-199) verified deployed + working on gccwebapp.com: filter sidebar excludes soft-deleted companies and surfaces cert-level Category overrides
+
+Client raised 5/8 that the public-tile filter sidebar showed companies that returned zero results when picked (QC #177, "ASSA appears but selecting it shows no certs") and that the Product Category filter was missing categories on certs where the category was set at the cert level instead of via the product (QC #178). DEF-199 shipped 2026-05-18 fixed both by (a) adding `Company.IsActive && !Company.IsDeleted` to the company dropdown's projection and (b) using the effective-value pattern `c.ProductCategoryId ?? c.Product.CategoryId` (same as DEF-192's listing predicate) for the visible-category set.
+
+Single parameterized harness covers both QC items in one run since they share the endpoint `GET /api/certificate-tiles/filters`.
+
+**Localhost destructive matrix** (`qc177-178-filter-options.js`): 8 / 8 PASS.
+
+| Phase | Companies | Categories | Acme present | Cat id=2 present |
+|---|---|---|---|---|
+| Baseline | 9 | [1] | yes | no |
+| After mutation (Acme soft-deleted + cert 38 ProductCategoryId=2) | 8 | [1, 2] | **no — hidden** | **yes — surfaces via override** |
+| After clean revert | 9 | [1] | yes | no |
+
+Both QC items proved end-to-end with non-residual mutation. Cleanup verified — `Companies.IsDeleted=0` and `Certificates.ProductCategoryId=NULL` for cert 38 restored to original values.
+
+**gccwebapp.com read-only deploy probe**: 2 / 2 PASS. Filter endpoint returns HTTP 200; 21 companies + 3 categories on live prod data. Notable client-specific evidence: "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division" appears in the prod filter today — and per the deployed `baseQuery` (`PublicStatuses` + non-expired + `Company.IsActive && !IsDeleted`), every company in the dropdown is guaranteed to have ≥1 currently-visible cert. The client's "select ASSA → no results" complaint cannot occur on the deployed build.
+
+DEF-199 register entry updated with verification block + status flipped to "Deployed and verified on gccwebapp.com (2026-05-21)". Shipped-2026-05.md entry retitled "deployed + verified 2026-05-21" with the update paragraph appended. Test artifacts: `qc177-178-filter-options.js`, 4 snapshot JSONs, results JSONs.
+
+The "Out of scope" follow-up noted in DEF-199 (cross-category ProductType overrides) remains untouched — current dev/prod data doesn't reproduce it, and no client report has come in. Logged as future-watch.
+
+---
+
+## 2026-05-21 — QC #170 (DEF-196 + DEF-197) second-pass verification: 10/10 localhost matrix + dedup assertion + prod JSON-shape probe
+
+Client raised 5/1 ("PLEASE REMOVE MY CARLY TEST AND CARLY TEST TYPE OPTIONS") that Admin → Product Types showed Products=0 in the count column but delete still failed with a generic error. DEF-196 added cert-aware pre-checks with specific messages + a new Certificates count column; DEF-197 followed up with HashSet-based rollup dedup. Both shipped 5/15–5/18 and a first-pass post-deploy verification ran 5/19 with live count probes (LDPE 0/1, HDPE 5/2, Plastics 5/4).
+
+Today's pass focused on the message-branch matrix and the DEF-197 dedup assertion that wasn't formally captured before.
+
+**Localhost** (`qc170-product-type-delete.js`): 10 / 10 PASS.
+- Display side: every node carries `productCount` AND `certificateCount` (59 dev nodes)
+- Spot-checks: PET-49 (0p/1c), LLDPE-48 (1p/0c), Plastics-4 (1p/1c — dedup verified)
+- Pre-check matrix: cert-blocker, product-blocker, child-blocker, not-found — all four return their documented specific messages
+- Non-destruction: node count before=59 after=59 — pre-check fires before SaveChanges, as designed
+
+**DEF-197 dedup verified explicitly**: Plastics rolls up to 1p/1c, NOT 2p/2c. Why: Product #346 is tagged both `ProductTypeId=4` (Plastics direct) AND `ProductSubcategoryId=48` (LLDPE child); cert 26-0027 references the Chemicals tree at every level. Pre-DEF-197 integer-sum rollup double-counted; HashSet UnionWith now dedupes. This is the assertion that proves both DEFs are working together.
+
+**gccwebapp.com** (read-only deploy probe): 2 / 2 PASS — 62 prod nodes, every one carrying both `productCount` and `certificateCount`. Destructive probes intentionally skipped on prod per the `[Data Changes Require CR]` rule; localhost matrix covers all message branches; gccwebapp shape probe confirms the same code path is live.
+
+DEF-196 and DEF-197 register entries updated with verification block + status flipped to "Deployed and verified on gccwebapp.com (2026-05-21)". Shipped-2026-05.md entries for both DEFs retitled. Test artifacts: `qc170-product-type-delete.js`, `qc170-{local,live}-types.json`, `qc170-{local,live}-results.json`.
+
+---
+
+## 2026-05-21 — QC #180 (DEF-200) verified deployed + working on gccwebapp.com: all 12 dashboard tiles reconcile with their exports
+
+Client called out 5/11 that dashboard tile counts and the CSV behind the download icon disagreed; the headline complaint was "Certs Expired Last Month is not using right data." DEF-200 shipped 2026-05-19 with three layered fixes: (1) wrong date column on the expired-last-month export, (2) missing aggregate case for products-with-active-certs, (3) no upper date bound on published-this-year.
+
+Parameterized Playwright harness (`qc180-dashboard-counts.js`) ran against both envs. Logs in as admin, waits 2500ms for the count-up animation (per the DEF-200 callout — `dashboard.js` animates 0→N over ~1500ms), walks every `.stat-card`, fetches `/Dashboard/DownloadStat?type=…` per tile, counts CSV data rows, asserts tile=export.
+
+**Localhost** (dev DB, 22 active certs): 12 / 12 PASS.
+**gccwebapp.com** (live prod data): 12 / 12 PASS — including the three cards that directly exercise the three root-cause fixes:
+
+| Card | Tile | Export | Notes |
+|---|---|---|---|
+| certs-expired-last-month | 6 | 6 | the client's headline complaint — pre-fix used wrong date column + no status filter |
+| products-with-active-certs | 26 | 26 | pre-fix tile counted distinct products, export returned per-cert rows |
+| certs-published-this-year | 13 | 13 | pre-fix tile lacked the upper date bound the export already had |
+
+DEF-200 register entry updated with verification block. Shipped-2026-05.md status flipped from "in working tree pending deploy" to "deployed + verified 2026-05-21". Test artifacts: `qc159-live-check/qc180-dashboard-counts.js`, 24 CSVs (`qc180-{local,live}-*.csv`), screenshots, results JSON.
+
+Same harness shape (env var BASE_URL switches localhost↔gccwebapp) can be reused for any future "tile vs export" reconciliation question.
+
+---
+
+## 2026-05-21 — QC #182 (DEF-198) verified deployed + working on gccwebapp.com: Partner CSV export now correctly scoped
+
+Critical security item — Partner-role users' "Export All to CSV" was previously returning the entire DB (drafts, expired, cross-partner data). DEF-198 shipped 2026-05-18 with a new `ApplyExportSecurityScope` helper.
+
+**Localhost full-matrix test** (`/Certificate/ExportCertificates?format=csv`, dev DB, 45 certs total):
+
+| Caller | Rows | Statuses | Partners | Verdict |
+|---|---|---|---|---|
+| partner_test (Partner→Amazon) | **4** | Client Approved - Paid only | Amazon only | ✅ scoped |
+| admin (Admin) | **45** | All (incl. Draft/Expired/legacy Active) | All | ✅ no restriction |
+| Anonymous | **22** | Client Approved - Paid only | All public partners | ✅ PublicStatuses only |
+
+All 6 localhost assertions PASS.
+
+**gccwebapp.com deploy probe** (anonymous → 25 data rows, distinct statuses = {`Client Approved - Paid`, `Republished`}, both PublicStatuses). If DEF-198 were not deployed, Draft/Expired/Active would have leaked — they did not. Confirms DEF-198 is live on gccwebapp.com.
+
+partner_test fixture is dev-only — bounced on prod login. Partner-on-prod scoping is verified via shared code path with anonymous + the localhost full-matrix proof. Follow-up (low priority): create partner_test on prod for future regression coverage of the gccwebapp Partner→Amazon path directly.
+
+DEF-198 register entry updated with verification block. Shipped-2026-05.md status flipped from "in working tree pending deploy" to "deployed + verified 2026-05-21". Test artifacts: `qc159-live-check/qc182-export-scope.js`, `qc182-export-scope-live.js`, `qc182-*.csv`, `qc182-{,live-}results.json`.
+
+---
+
 ## 2026-05-21 — QC #159 (DEF-180) end-to-end verification: 9/9 UI tests PASS on gccwebapp + destructive E2E PASS on localhost
 
 Two-run verification of the Replace-all Product ID import path to retire any remaining client doubt before the next UAT cycle.

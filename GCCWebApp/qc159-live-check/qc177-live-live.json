@@ -1,0 +1,195 @@
+{
+  "certificationTypes": [
+    {
+      "name": "Carbon Footprint Reduction",
+      "level": 1
+    },
+    {
+      "name": "Certified Energy Savings",
+      "level": 1
+    },
+    {
+      "name": "Certified Environmental Facts",
+      "level": 1
+    },
+    {
+      "name": "Certified Sustainability Facts",
+      "level": 1
+    },
+    {
+      "name": "Certified Water Savings",
+      "level": 1
+    },
+    {
+      "name": "Closed Loop Product",
+      "level": 1
+    },
+    {
+      "name": "GreenCircle Audited",
+      "level": 1
+    },
+    {
+      "name": "Life Cycle Assessment (LCA) Optimized",
+      "level": 1
+    },
+    {
+      "name": "Recycled Content",
+      "level": 1
+    },
+    {
+      "name": "Sustainable Energy Practices",
+      "level": 1
+    },
+    {
+      "name": "Sustainable Manufacturing Practices",
+      "level": 1
+    }
+  ],
+  "companies": [
+    {
+      "id": 131,
+      "name": "3M"
+    },
+    {
+      "id": 197,
+      "name": "Amazon Devices"
+    },
+    {
+      "id": 1,
+      "name": "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division"
+    },
+    {
+      "id": 187,
+      "name": "Balcan Innovations"
+    },
+    {
+      "id": 250,
+      "name": "CertainTeed Insulation Group"
+    },
+    {
+      "id": 245,
+      "name": "Clover Imaging Group"
+    },
+    {
+      "id": 262,
+      "name": "Company Symbol Test é™®ä"
+    },
+    {
+      "id": 247,
+      "name": "CURRIES, an ASSA ABLOY Group Company"
+    },
+    {
+      "id": 231,
+      "name": "DUDE Wipes"
+    },
+    {
+      "id": 234,
+      "name": "General Mills, Inc."
+    },
+    {
+      "id": 236,
+      "name": "Glad"
+    },
+    {
+      "id": 239,
+      "name": "Greenfield Natural Meat Co."
+    },
+    {
+      "id": 233,
+      "name": "HanesBrands Inc."
+    },
+    {
+      "id": 243,
+      "name": "HID Global"
+    },
+    {
+      "id": 230,
+      "name": "IB Roof Systems"
+    },
+    {
+      "id": 259,
+      "name": "KAO"
+    },
+    {
+      "id": 127,
+      "name": "Philips"
+    },
+    {
+      "id": 36,
+      "name": "Procter & Gamble"
+    },
+    {
+      "id": 229,
+      "name": "Sofidel America Corp."
+    },
+    {
+      "id": 261,
+      "name": "Sonos"
+    },
+    {
+      "id": 263,
+      "name": "Testing Very Very Long Company Name That’s Over 100 Characters Very Very Very Very Very Veryyyy Long"
+    }
+  ],
+  "countries": [
+    "United States",
+    "Canada",
+    "El Salvador",
+    "Germany",
+    "Indonesia",
+    "United Kingdom"
+  ],
+  "productCategoriesHierarchy": [
+    {
+      "id": 9,
+      "name": "Carly Test",
+      "level": 1,
+      "types": []
+    },
+    {
+      "id": 1,
+      "name": "Chemicals and Raw Materials",
+      "level": 1,
+      "types": [
+        {
+          "id": 4,
+          "name": "Plastics",
+          "level": 2,
+          "subcategories": [
+            {
+              "id": 46,
+              "name": "HDPE",
+              "level": 3
+            },
+            {
+              "id": 49,
+              "name": "PET",
+              "level": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Electronics, Computers, and Accessories",
+      "level": 1,
+      "types": [
+        {
+          "id": 35,
+          "name": "Electronic Accessories",
+          "level": 2,
+          "subcategories": []
+        }
+      ]
+    }
+  ],
+  "productCategories": [
+    "Carly Test",
+    "Chemicals and Raw Materials",
+    "Electronics, Computers, and Accessories"
+  ],
+  "additionalTags": [
+    "APR"
+  ]
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "QC177-base-200",
+    "name": "Filter endpoint returns 200",
+    "status": "PASS",
+    "notes": "HTTP 200"
+  },
+  {
+    "id": "QC177-base-acme-in",
+    "name": "Acme present in baseline (sanity)",
+    "status": "PASS",
+    "notes": "9 companies"
+  },
+  {
+    "id": "QC177-mut-acme-gone",
+    "name": "Acme (soft-deleted) NOT in company filter",
+    "status": "PASS",
+    "notes": "companies=8 (expect 8=8)"
+  },
+  {
+    "id": "QC177-mut-count-1-less",
+    "name": "Company count drops by exactly 1",
+    "status": "PASS",
+    "notes": "before=9 after=8"
+  },
+  {
+    "id": "QC178-mut-cat-override",
+    "name": "Cert-level Category override (id=2) surfaces in filter",
+    "status": "PASS",
+    "notes": "cat IDs=[1,2]"
+  },
+  {
+    "id": "QC177-restore-acme-back",
+    "name": "Acme returns to filter after restore",
+    "status": "PASS",
+    "notes": "companies=9"
+  },
+  {
+    "id": "QC177-restore-counts-match",
+    "name": "Company count matches baseline post-restore",
+    "status": "PASS",
+    "notes": "base=9 restore=9"
+  },
+  {
+    "id": "QC178-restore-cat-aligned",
+    "name": "Category set matches baseline post-restore",
+    "status": "PASS",
+    "notes": "base=[1] restore=[1]"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "QC170-A1-live",
+    "name": "Every product-type node carries productCount",
+    "status": "PASS",
+    "notes": "node count=62"
+  },
+  {
+    "id": "QC170-A2-live",
+    "name": "Every product-type node carries certificateCount",
+    "status": "PASS",
+    "notes": "node count=62"
+  }
+]

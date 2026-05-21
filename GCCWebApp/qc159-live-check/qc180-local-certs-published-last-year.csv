@@ -1,0 +1,11 @@
+Report: Active Certificates Published Last Year
+Generated: 2026-05-21 15:49:01 UTC
+Total Certificates: 6
+
+Certificate Number,Status,Company,Product,Product Category,Product Type,Product Subcategory,Certification Type,Effective Date,Expiration Date,Location,Country,Partner
+"26-0024","Client Approved - Paid","Braun","electric shaver","Chemicals and Raw Materials","","","Certified Energy Savings",2025-07-09,2028-07-08,"","United States","None"
+"EXT-AMZ-001","Client Approved - Paid","ExtTest-AmazonCo","ExtTest Amazon Product","Chemicals and Raw Materials","","","Recycled Content",2025-09-17,2026-09-17,"Seattle, WA","United States","Amazon"
+"EXT-NP-001","Client Approved - Paid","ExtTest-NoPartnerCo","ExtTest NoPartner Product","Chemicals and Raw Materials","","","Recycled Content",2025-10-17,2026-10-17,"Denver, CO","United States","None"
+"EXT-NOVI-001","Client Approved - Paid","ExtTest-NoviCo","ExtTest Novi Product","Chemicals and Raw Materials","","","Recycled Content",2025-11-17,2026-11-17,"Portland, OR","United States","Novi"
+"EXT-AMZ-002","Client Approved - Paid","ExtTest-AmazonCo","ExtTest Amazon Product","Chemicals and Raw Materials","","","Recycled Content",2025-12-17,2026-12-17,"Chicago, IL","United States","Amazon"
+"EXT-NP-002","Client Approved - Paid","ExtTest-NoPartnerCo","ExtTest NoPartner Product","Chemicals and Raw Materials","","","Recycled Content",2025-12-17,2026-12-17,"Austin, TX","United States",""

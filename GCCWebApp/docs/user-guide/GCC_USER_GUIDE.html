@@ -481,10 +481,17 @@
             <li><a href="#password-reset">Forgotten password &amp; reset</a></li>
             <li><a href="#notifications">Notifications &amp; toasts</a></li>
             <li><a href="#partner-api-quickref">Partner API quick reference</a></li>
+            <li><a href="#mobile-tablet">Mobile &amp; tablet usage</a></li>
+            <li><a href="#two-factor">Two-factor authentication (2FA)</a></li>
+            <li><a href="#account-edges">Account access — edge cases</a></li>
+            <li><a href="#google-analytics">Google Analytics integration</a></li>
+            <li><a href="#privacy-policy">Privacy policy</a></li>
         </ol>
         <p class="toc-group-label">Reference</p>
-        <ol start="28">
-            <li><a href="#appendix-glossary">Appendix — Glossary</a></li>
+        <ol style="list-style-type:upper-alpha">
+            <li><a href="#appendix-glossary">Appendix A — Glossary</a></li>
+            <li><a href="#appendix-permissions">Appendix B — Permissions matrix</a></li>
+            <li><a href="#appendix-help">Appendix C — Need help?</a></li>
         </ol>
     </nav>
 
@@ -989,6 +996,28 @@
         <li><strong>Copy shareable link</strong> — the URL bar already contains a permanent shareable link to this certificate. Copy and send it to anyone — they'll see whatever their role allows.</li>
     </ul>
 
+    <h3>7.3 Tips &amp; common questions</h3>
+    <details>
+        <summary>The PDF preview is blank or won't load.</summary>
+        <p>The preview is generated from the first page of the uploaded PDF. If the PDF was corrupt or password-protected when uploaded, the preview can fail to render. Re-upload a clean PDF via the Edit form (§5) and the preview is regenerated automatically.</p>
+    </details>
+    <details>
+        <summary>I can see the cert but the audit history section is missing.</summary>
+        <p>Audit history is only shown to Admin and Analyst. Company users and public visitors see the cert metadata and PDF, but not the change log.</p>
+    </details>
+    <details>
+        <summary>Why can't I see the Edit / Delete / Change Status buttons?</summary>
+        <p>Your role doesn't include that capability. Edit and Change Status are Admin/Analyst only. Delete is Admin only. If you think your role should have access, contact your administrator.</p>
+    </details>
+    <details>
+        <summary>I clicked Delete by accident — can I undo it?</summary>
+        <p>Delete asks you to confirm in a modal first, but once confirmed, the certificate is hard-deleted from the database. Contact your administrator immediately — they may be able to restore from backup, but recovery is not guaranteed. The safest "remove from view" option is the <em>Hold</em> status, not Delete.</p>
+    </details>
+    <details>
+        <summary>The shareable URL works for me but my colleague sees a different view.</summary>
+        <p>That's expected. The URL points to the certificate; what each viewer sees depends on their role. A public visitor opening an Admin's URL will still only see the public version; an External Company user will only see the cert if it's scoped to their company.</p>
+    </details>
+
     <!-- ============================================================ -->
     <!-- 8. WORKFLOW                                                     -->
     <!-- ============================================================ -->
@@ -1082,9 +1111,9 @@
     <table>
         <thead><tr><th style="width:22%">Control</th><th>What it does</th></tr></thead>
         <tbody>
-            <tr><td><strong>Search box</strong></td><td>Free-text search across certification #, company, product, certification type, tags, and product identifiers (ASIN, UPC, etc.). Updates the results as you type.</td></tr>
-            <tr><td><strong>Filters sidebar</strong></td><td>Multi-select filters for Company, Certification Type, Partner, Status (internal only), Tags, Date range, Country. Open by clicking <em>Show Filters</em> on mobile/tablet.</td></tr>
-            <tr><td><strong>Sort</strong></td><td>Sort by Most Recent, Certification # (asc/desc), Expiration Date (asc/desc), Company A–Z.</td></tr>
+            <tr><td><strong>Search box</strong></td><td>Free-text search across certification #, company, product, certification type, tags, and product identifiers (ASIN, UPC, etc.). Updates results as you type.</td></tr>
+            <tr><td><strong>Filters sidebar</strong></td><td>See §9.2 below for the full list of filters and how each works.</td></tr>
+            <tr><td><strong>Sort dropdown</strong></td><td>See §9.3 below for the full list of sort options.</td></tr>
             <tr><td><strong>Add Certificate</strong> <span class="role-badge role-admin" style="font-size:10px;padding:2px 8px">Admin</span> <span class="role-badge role-analyst" style="font-size:10px;padding:2px 8px">Analyst</span></td><td>Opens the Create Certificate form (§4).</td></tr>
             <tr><td><strong>Import / Template</strong> <span class="role-badge role-admin" style="font-size:10px;padding:2px 8px">Admin</span> <span class="role-badge role-analyst" style="font-size:10px;padding:2px 8px">Analyst</span></td><td>Bulk import (§6).</td></tr>
             <tr><td><strong>Export</strong></td><td>Downloads the currently-filtered list as a CSV (§11).</td></tr>
@@ -1092,17 +1121,47 @@
     </table>
     </div>
 
-    <h3>9.2 Working with the tiles</h3>
+    <h3>9.2 The filters sidebar</h3>
+    <p>The sidebar sits on the left of the tile view on desktop. On tablet (≤ 1024 px) and mobile it's collapsed by default — click <strong>Show Filters</strong> at the top of the list to open it. Each filter is multi-select, and you can combine any number of them. Filters apply on top of the search box, so search + filters narrow the list together.</p>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Filter</th><th>What it does</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Company</strong></td><td>Pick one or more companies. Only certs whose Company matches the selection are shown.</td></tr>
+            <tr><td><strong>Certification Type</strong></td><td>Filter by parent certification type (USDA Organic, ECOCERT, B-Corp, etc.). Doesn't currently filter by subcategory — use the search box for that.</td></tr>
+            <tr><td><strong>Partner</strong></td><td>Filter by partner (Amazon, Novi, Other, or None). Useful when preparing a list to send to a specific partner.</td></tr>
+            <tr><td><strong>Status</strong> <span class="role-badge role-admin" style="font-size:10px;padding:2px 8px">Admin</span> <span class="role-badge role-analyst" style="font-size:10px;padding:2px 8px">Analyst</span></td><td>Lifecycle status (the 8 states from §8). Public visitors don't see this filter — they only ever see Paid + Republished anyway.</td></tr>
+            <tr><td><strong>Tags</strong></td><td>External tags appear to everyone; Internal tags only to Admin/Analyst. Picking multiple tags is OR (any selected tag matches), not AND.</td></tr>
+            <tr><td><strong>Date range</strong></td><td>Filter by Expiration Date or Effective Date — useful for "what's expiring this month" or "what was issued last quarter." Pick the date field, then a from/to range.</td></tr>
+            <tr><td><strong>Country</strong></td><td>Filter by the certified facility's country.</td></tr>
+            <tr><td><strong>Clear filters</strong></td><td>One click clears all active filters and returns to the unfiltered list.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>9.3 Sort options</h3>
+    <p>The sort dropdown at the top-right of the tile grid controls how tiles are ordered:</p>
+    <ul>
+        <li><strong>Most Recent</strong> (default) — newest by creation date first.</li>
+        <li><strong>Certification # (ascending)</strong> — lowest cert number first.</li>
+        <li><strong>Certification # (descending)</strong> — highest cert number first.</li>
+        <li><strong>Expiration Date (ascending)</strong> — soonest-expiring first. Good for "what needs renewal."</li>
+        <li><strong>Expiration Date (descending)</strong> — latest-expiring first.</li>
+        <li><strong>Company A–Z</strong> — alphabetical by company name.</li>
+        <li><strong>Company Z–A</strong> — reverse alphabetical.</li>
+    </ul>
+
+    <h3>9.4 Working with the tiles</h3>
     <ul>
         <li><strong>Click a tile</strong> to open its detail page (§7).</li>
         <li><strong>Infinite scroll</strong> — as you scroll near the bottom, more tiles load automatically. There's no pagination.</li>
         <li><strong>Tile count</strong> in the footer shows how many certificates match the current filters out of the total in the database.</li>
     </ul>
 
-    <h3>9.3 Shareable URLs</h3>
+    <h3>9.5 Shareable URLs</h3>
     <p>Every filter, search, and sort you apply updates the URL in the address bar. Copy the URL and send it to a colleague — when they open it, they'll see the same filtered view (subject to their role permissions). This is the easiest way to share, for example, "all Amazon-tagged certs expiring this month."</p>
 
-    <h3>9.4 Tips &amp; common questions</h3>
+    <h3>9.6 Tips &amp; common questions</h3>
     <details>
         <summary>The search isn't finding a cert I know exists.</summary>
         <p>Public users only see certs in Paid or Republished status. If you're not signed in, certs in Draft / Hold / Expired won't appear. Sign in as Admin/Analyst to see everything.</p>
@@ -1324,30 +1383,50 @@
     </ul>
 
     <!-- ============================================================ -->
-    <!-- 16. ADMIN DASHBOARD                                            -->
+    <!-- 16. DASHBOARD                                                   -->
     <!-- ============================================================ -->
-    <h2 id="admin-dashboard">16. Admin Dashboard</h2>
+    <h2 id="admin-dashboard">16. Dashboard</h2>
     <div class="role-row">
         <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
     </div>
 
-    <p>The dashboard is the landing page for Admin users — a quick at-a-glance view of system health and recent activity. Access it at <strong>Administration → Dashboard</strong>.</p>
+    <p>The Dashboard is a landing page for internal users (Admin and Analyst) — an at-a-glance view of system activity. Access it from the main navigation under <strong>Dashboard</strong>.</p>
 
     <h3>16.1 What's on the dashboard</h3>
+    <p>The page is a grid of stat-cards. Each card shows a count, a label, and a download icon that lets you export the underlying data as CSV. Cards include (subject to ongoing tuning):</p>
     <div class="table-wrap">
     <table>
-        <thead><tr><th style="width:30%">Tile / section</th><th>Content</th></tr></thead>
+        <thead><tr><th style="width:36%">Stat card</th><th>What it counts</th></tr></thead>
         <tbody>
-            <tr><td><strong>Active Certificates</strong></td><td>Count of certs in Client Approved – Paid, Republished, or Client Approved – Confidential.</td></tr>
-            <tr><td><strong>Certs Expiring (next 30 days)</strong></td><td>Count of active certs whose Expiration Date is within 30 days.</td></tr>
-            <tr><td><strong>Certs Expired Last Month</strong></td><td>Count of certs that moved into an Expired state during the previous calendar month.</td></tr>
-            <tr><td><strong>Pending Approvals</strong></td><td>Count of certs in Draft + Client Approved – Not Paid — work-in-progress queue.</td></tr>
-            <tr><td><strong>Total Companies / Products / Users</strong></td><td>Headline counts.</td></tr>
-            <tr><td><strong>Recent Activity</strong></td><td>Last 10 status transitions across all certificates.</td></tr>
-            <tr><td><strong>Quick Links</strong></td><td>Shortcuts to User Management, Tag Management, Partner API.</td></tr>
+            <tr><td><strong>Total Active Certs</strong></td><td>Certificates in Client Approved – Paid, Republished, or Client Approved – Confidential.</td></tr>
+            <tr><td><strong># Companies with Active Certs</strong></td><td>Distinct companies that have at least one active certificate.</td></tr>
+            <tr><td><strong>Certs Expiring (next 30 days)</strong></td><td>Active certs whose Expiration Date is within 30 days.</td></tr>
+            <tr><td><strong>Certs Expired Last Month</strong></td><td>Certs moved into an Expired state during the previous calendar month.</td></tr>
+            <tr><td><strong>Pending Approvals</strong></td><td>Certs in Draft + Client Approved – Not Paid — your work-in-progress queue.</td></tr>
         </tbody>
     </table>
     </div>
+
+    <h3>16.2 How to use it</h3>
+    <ul>
+        <li><strong>Download a stat's underlying data</strong> — every card has a small download icon in the corner. Click it to export the matching certificates / companies to CSV.</li>
+        <li><strong>Reload the page</strong> to refresh the counts. They're not live-streaming.</li>
+    </ul>
+
+    <h3>16.3 Tips &amp; common questions</h3>
+    <details>
+        <summary>The "Total Active Certs" count seems too high — it includes Confidential certs.</summary>
+        <p>That's intentional. Confidential certs are approved and "live" from a billing perspective; they're just not shown publicly. The Active count reflects the internal reality. The publicly-visible count is just Paid + Republished.</p>
+    </details>
+    <details>
+        <summary>The dashboard doesn't refresh in real time.</summary>
+        <p>Correct — it loads when you open the page. Reload to get fresh counts.</p>
+    </details>
+    <details>
+        <summary>Why is this called a "Dashboard" and not "Admin Dashboard"?</summary>
+        <p>It's accessible to both Admin and Analyst, not just Admin. Earlier guide drafts mislabeled it. The actual page title is just "Dashboard."</p>
+    </details>
 
     <!-- ============================================================ -->
     <!-- 17. USER MGMT                                                  -->
@@ -1452,6 +1531,24 @@
         <p>Not every permission flag is enforced by code today. The standard roles (Admin/Analyst/External/Partner) are gated by role name throughout the application. Custom roles can be created but their effect is currently limited — consult your administrator before relying on a custom role.</p>
     </div>
 
+    <h3>18.3 Tips &amp; common questions</h3>
+    <details>
+        <summary>I can't delete the Admin role.</summary>
+        <p>The Admin role is a system role and cannot be deleted — otherwise the system could be left with no administrative access. Same applies to the default Admin user account.</p>
+    </details>
+    <details>
+        <summary>I created a custom role but users assigned to it can't do anything new.</summary>
+        <p>Most access checks in the app are gated by the standard role names (Admin / Analyst / External / Partner), not by individual permission flags. A custom role is treated as "unknown role" and effectively gets minimal access. Custom roles are best thought of as labels rather than functional differentiators today. For real permission changes, file a change request.</p>
+    </details>
+    <details>
+        <summary>I changed a permission description and it didn't update for live users.</summary>
+        <p>Description-text edits made in the admin UI need to propagate through the seed data on the live database to take effect. Contact your administrator if a description change isn't appearing.</p>
+    </details>
+    <details>
+        <summary>How do I see the consolidated permissions matrix?</summary>
+        <p>See <a href="#appendix-permissions">Appendix B</a> for a single table of every action × every role.</p>
+    </details>
+
     <!-- ============================================================ -->
     <!-- 19. TAGS                                                        -->
     <!-- ============================================================ -->
@@ -1508,7 +1605,35 @@
         <li>Attach <strong>custom fields</strong> to a parent type — extra form fields that appear on Create/Edit for any cert of that type.</li>
     </ul>
 
-    <h3>20.2 Custom fields</h3>
+    <h3>20.2 Walkthrough — adding a new type with custom fields</h3>
+    <ol class="workflow-steps">
+        <li>
+            <span class="step-title">Open Certification Types</span>
+            <span class="step-detail">Administration → Certification Types. You'll see the existing two-level hierarchy.</span>
+        </li>
+        <li>
+            <span class="step-title">Add the parent type</span>
+            <span class="step-detail">Click <strong>Add New Type</strong>. Pick "Parent type" (top level), give it a name (e.g., "ISO 14001"), and save. The new parent appears at the root of the tree.</span>
+        </li>
+        <li>
+            <span class="step-title">(Optional) Add subcategories</span>
+            <span class="step-detail">For each sub-variant, click <strong>Add New Type</strong> again, pick "Subcategory", choose the parent you just created, name it, and save. Repeat for as many subcategories as you need.</span>
+        </li>
+        <li>
+            <span class="step-title">Open the parent type to attach custom fields</span>
+            <span class="step-detail">Click the parent type row to open its detail panel. There's a <strong>Custom Fields</strong> tab/section.</span>
+        </li>
+        <li>
+            <span class="step-title">Add each custom field</span>
+            <span class="step-detail">Click <strong>+ Add Field</strong>. Set the Label, Type (Text / Number / Date / Select), Required flag, Display order, and Help text. Save. Repeat for each field.</span>
+        </li>
+        <li>
+            <span class="step-title">Verify on a new certificate</span>
+            <span class="step-detail">Open Create Certificate (§4), pick the new type, and confirm the custom fields appear in the <em>Additional Fields</em> section. If anything is off, return to the type and edit.</span>
+        </li>
+    </ol>
+
+    <h3>20.3 Custom field properties</h3>
     <p>For each certification type, you can add extra fields the analyst will fill in when uploading. These fields appear in a single "Custom Fields" section on the cert form, on the cert detail page, and (if marked public) on the Partner API.</p>
 
     <div class="table-wrap">
@@ -1524,10 +1649,22 @@
     </table>
     </div>
 
-    <h3>20.3 Tips</h3>
+    <h3>20.4 Tips &amp; common questions</h3>
     <details>
         <summary>I added a custom field to a type but it isn't appearing on existing certs.</summary>
         <p>Custom field values are stored per-certificate. Adding the field to the type makes it appear on the Create/Edit form for that type from that moment forward. Existing certs will show the new field as blank until you edit and fill it in.</p>
+    </details>
+    <details>
+        <summary>The same type name appears twice in the list.</summary>
+        <p>Certification Types are hierarchical — the same name can legitimately exist at the parent level and the subcategory level (or under different parents). Look at the parent column to disambiguate before assuming it's a duplicate.</p>
+    </details>
+    <details>
+        <summary>I deleted a custom field — what happens to data analysts already entered?</summary>
+        <p>The field is removed from the form, but historical values stored on existing certificates remain in the database (orphaned). To fully clean up, an administrator can purge the orphaned values via a data operation — but typically you'd just leave them and ignore.</p>
+    </details>
+    <details>
+        <summary>I want a Select-type custom field with options sourced from another list.</summary>
+        <p>Select options are hand-entered per custom field — there's no "source from another table" capability today. If you need dynamic options, that would be a change request.</p>
     </details>
 
     <!-- ============================================================ -->
@@ -1579,6 +1716,20 @@
         </tbody>
     </table>
     </div>
+
+    <h3>22.3 Tips &amp; common questions</h3>
+    <details>
+        <summary>I deactivated a partner — what happens to their existing API keys?</summary>
+        <p>The keys remain in the system but stop working on the next API request. If you reactivate the partner later, those keys resume functioning. To permanently invalidate, revoke each key individually on the Partner API Access page (§23).</p>
+    </details>
+    <details>
+        <summary>I want to delete the "Other" partner.</summary>
+        <p>"Other" is one of the three core partner records and is intentionally hard to delete — it's the catch-all for certificates that aren't bound to a specific named partner. Removing it would orphan those certs. Use Deactivate instead if you need to retire it.</p>
+    </details>
+    <details>
+        <summary>I added a new partner but it doesn't appear in the certificate form's Partner dropdown.</summary>
+        <p>The dropdown is populated from active partners only. Check the Active flag on your new partner record, and reload the certificate form.</p>
+    </details>
 
     <!-- ============================================================ -->
     <!-- 23. PARTNER API ACCESS                                         -->
@@ -1649,9 +1800,35 @@
     <h3>24.2 What only an Administrator can change</h3>
     <ul>
         <li>Your <strong>Role</strong>.</li>
-        <li>Your <strong>Company</strong> (for External users).</li>
+        <li>Your <strong>Company</strong> (for users with the External role).</li>
         <li>Your account's <strong>Active</strong> status.</li>
     </ul>
+
+    <h3>24.3 Walkthrough — changing your password</h3>
+    <ol class="workflow-steps">
+        <li>
+            <span class="step-title">Open My Profile</span>
+            <span class="step-detail">Click your name in the top-right corner of any page and choose <strong>My Profile</strong> from the dropdown.</span>
+        </li>
+        <li>
+            <span class="step-title">Click "Change Password"</span>
+            <span class="step-detail">In the profile page, find the Security section and click <strong>Change Password</strong>.</span>
+        </li>
+        <li>
+            <span class="step-title">Enter your current password</span>
+            <span class="step-detail">For security, you must confirm your current password before setting a new one.</span>
+        </li>
+        <li>
+            <span class="step-title">Enter and confirm the new password</span>
+            <span class="step-detail">Minimum 8 characters, with at least one letter, one number, and one symbol. The form validates as you type.</span>
+        </li>
+        <li>
+            <span class="step-title">Save</span>
+            <span class="step-detail">A green toast confirms success. You stay signed in — no need to sign in again.</span>
+        </li>
+    </ol>
+
+    <p>If you've <em>forgotten</em> your password (i.e., you can't sign in at all), use the <em>Forgot password?</em> flow in §25 instead.</p>
 
     <!-- ============================================================ -->
     <!-- 25. PASSWORD RESET                                             -->
@@ -1743,9 +1920,223 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- APPENDIX - GLOSSARY                                            -->
+    <!-- 28. MOBILE & TABLET                                            -->
     <!-- ============================================================ -->
-    <h2 id="appendix-glossary">Appendix — Glossary</h2>
+    <h2 id="mobile-tablet">28. Mobile &amp; tablet usage</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+        <span class="role-badge role-public">Public</span>
+    </div>
+
+    <p>The platform is fully responsive — every page works on phones, tablets, and desktops. The layout adapts automatically based on screen width. There's no separate mobile app and no app store download required; just open the same URL in your phone's browser.</p>
+
+    <h3>28.1 Three layouts</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Screen size</th><th>Breakpoint</th><th>How the layout adapts</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Desktop</strong></td><td>&gt; 1024 px</td><td>Full sidebar filters always visible. Multi-column form layouts. Side-by-side tile + detail navigation.</td></tr>
+            <tr><td><strong>Tablet</strong></td><td>≤ 1024 px</td><td>Filters sidebar collapses by default — tap <strong>Show Filters</strong> to open. Tables hide less-important columns to fit; horizontal scroll is offered when needed.</td></tr>
+            <tr><td><strong>Mobile</strong></td><td>≤ 768 px</td><td>Top navigation collapses into a hamburger menu. Forms reflow to single column. Tile grid becomes single-column with larger touch targets. The certificate tile view hides 11 low-priority columns to stay readable.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>28.2 Patterns specific to mobile</h3>
+    <ul>
+        <li><strong>Hamburger menu (☰)</strong> — top-left on mobile. Tap to open the navigation list. Tap an item to navigate; tap outside the menu to close.</li>
+        <li><strong>Touch targets</strong> — all buttons, links, and tap zones meet the 44 × 44 pixel minimum recommended for touchscreens.</li>
+        <li><strong>Font sizes</strong> — minimum 16 px throughout to prevent iOS from auto-zooming on input focus.</li>
+        <li><strong>Modals and toasts</strong> — full-width on mobile so they're readable without pinch-zoom. Confirmation modals always require an explicit tap on Yes or Cancel.</li>
+        <li><strong>PDF viewing</strong> — the cert preview image opens in a full-screen zoom view; tap anywhere to close. To save the PDF locally, use Download — the file goes to your phone's default downloads location.</li>
+    </ul>
+
+    <h3>28.3 Tips &amp; common questions</h3>
+    <details>
+        <summary>The page looks fine on Wi-Fi but slow over cell data.</summary>
+        <p>The tile view loads images for each tile. On a slow connection, scroll a few tiles at a time and let images catch up rather than scrolling rapidly. Reducing the number of active filters can also help.</p>
+    </details>
+    <details>
+        <summary>I can't see the filter sidebar on my iPad.</summary>
+        <p>At ≤ 1024 px (which includes most tablets in portrait mode), filters are collapsed by default. Look for <strong>Show Filters</strong> at the top of the list. Rotating to landscape may push the screen above the breakpoint, restoring the sidebar.</p>
+    </details>
+    <details>
+        <summary>The CSV download didn't open my spreadsheet app on mobile.</summary>
+        <p>Most mobile browsers save downloaded files to a Downloads folder rather than opening them automatically. Open your Files app, navigate to Downloads, and tap the CSV to open it with your preferred app.</p>
+    </details>
+    <details>
+        <summary>Can I sign in on mobile?</summary>
+        <p>Yes — sign-in works identically on all screen sizes. The sign-in form uses the same fields and the same password reset flow.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 29. TWO-FACTOR AUTHENTICATION                                  -->
+    <!-- ============================================================ -->
+    <h2 id="two-factor">29. Two-factor authentication (2FA)</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+    </div>
+
+    <p>Two-factor authentication (2FA) adds a second sign-in step on top of your password. After entering your email and password, you'll be asked for a 6-digit code from an authenticator app (Google Authenticator, Microsoft Authenticator, Authy, 1Password, etc.). Even if someone has your password, they can't sign in without your phone.</p>
+
+    <h3>29.1 Setting up 2FA — walkthrough</h3>
+    <ol class="workflow-steps">
+        <li>
+            <span class="step-title">Open Two-Factor Preferences</span>
+            <span class="step-detail">Click your name in the top-right corner and choose <strong>Two-Factor Preferences</strong> from the dropdown.</span>
+        </li>
+        <li>
+            <span class="step-title">Click "Set up authenticator app"</span>
+            <span class="step-detail">You'll see a QR code and a text-based setup key (in case you can't scan).</span>
+        </li>
+        <li>
+            <span class="step-title">Scan the QR code</span>
+            <span class="step-detail">Open your authenticator app, tap <em>Add account</em> (or equivalent), and scan the code. The app will start generating 6-digit codes that change every 30 seconds.</span>
+        </li>
+        <li>
+            <span class="step-title">Enter a code to confirm</span>
+            <span class="step-detail">Type the current 6-digit code from your authenticator app into the form. This confirms the link.</span>
+        </li>
+        <li>
+            <span class="step-title">Save your recovery codes</span>
+            <span class="step-detail">The platform shows you 8–10 one-time recovery codes. <strong>Save these in a password manager or print them.</strong> If you lose your phone, these are your only way back in.</span>
+        </li>
+        <li>
+            <span class="step-title">Done</span>
+            <span class="step-detail">2FA is now active on your account. Next time you sign in, you'll be asked for a code after your password.</span>
+        </li>
+    </ol>
+
+    <h3>29.2 Signing in with 2FA enabled</h3>
+    <ol>
+        <li>Enter your email and password as usual.</li>
+        <li>On the next screen, open your authenticator app and enter the current 6-digit code.</li>
+        <li>Optional: tick "Trust this device for 30 days" to skip the second factor on this browser for a month.</li>
+        <li>Click <strong>Verify</strong>.</li>
+    </ol>
+
+    <h3>29.3 If you lose access to your authenticator</h3>
+    <ol>
+        <li>On the 2FA prompt, click <strong>Use a recovery code instead</strong>.</li>
+        <li>Enter one of the codes you saved during setup. Each code works exactly once.</li>
+        <li>Once signed in, go to Two-Factor Preferences and re-set up 2FA on your new device. Generate a fresh set of recovery codes.</li>
+        <li>If you've run out of recovery codes <em>and</em> lost your authenticator, contact your administrator. They can reset 2FA on your account.</li>
+    </ol>
+
+    <h3>29.4 Tips &amp; common questions</h3>
+    <details>
+        <summary>Is 2FA required?</summary>
+        <p>Today it's optional but strongly recommended, especially for Admin and Analyst accounts. Your administrator may enforce 2FA for specific roles in future.</p>
+    </details>
+    <details>
+        <summary>My code isn't working.</summary>
+        <p>The most common cause is clock drift between your phone and the server. Check your phone's clock is set to automatic / network time. If the issue persists, use a recovery code to sign in and re-set up 2FA.</p>
+    </details>
+    <details>
+        <summary>Can I disable 2FA after setting it up?</summary>
+        <p>Yes — go to Two-Factor Preferences and choose <strong>Disable</strong>. You'll be asked for your password and a current code (or recovery code) to confirm. Disabling 2FA reduces account security — only do this if you understand the trade-off.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 30. ACCOUNT ACCESS EDGE CASES                                  -->
+    <!-- ============================================================ -->
+    <h2 id="account-edges">30. Account access — edge cases</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+    </div>
+
+    <p>A few situations you may encounter outside the normal sign-in flow:</p>
+
+    <h3>30.1 Access Denied</h3>
+    <p>You're signed in, but you tried to open a page your role can't access — for example, an External Company user trying to reach <code>/Admin/UserManagement</code>. You'll see a friendly Access Denied page with a link back to the home page or sign-in. If you think you should have access, contact your administrator.</p>
+
+    <h3>30.2 Account Locked</h3>
+    <p>After a number of consecutive failed sign-in attempts (configurable per environment, typically 5), your account is temporarily locked to protect against brute-force attacks. You'll see an Account Locked page with a brief explanation. Options:</p>
+    <ul>
+        <li><strong>Wait</strong> — the lock automatically lifts after a short timeout (typically 15 minutes).</li>
+        <li><strong>Reset your password</strong> — using the Forgot Password flow (§25) re-enables sign-in.</li>
+        <li><strong>Contact your administrator</strong> — Admin can unlock an account immediately from User Management.</li>
+    </ul>
+
+    <h3>30.3 Forced password reset</h3>
+    <p>If your administrator has issued you a temporary password — for first sign-in or after a reset — you'll be redirected to a <strong>Force Password Reset</strong> screen on your next sign-in. Set a new password (minimum 8 characters with a mix of letters, numbers, and a symbol) before you can use the rest of the app.</p>
+
+    <h3>30.4 Verify email</h3>
+    <p>New accounts may receive a verification email containing a one-time link. Clicking the link confirms ownership of the email address and activates the account. If you didn't receive the email, check spam, or ask your administrator to resend it.</p>
+
+    <h3>30.5 Welcome redirect</h3>
+    <p>The first time you sign in successfully, the platform may redirect you to a brief "welcome" landing screen that summarizes your role and points to the relevant starting page (Dashboard for internal users, the certificate tile view for Company users). After that first sign-in, you'll go straight to your normal landing page each time.</p>
+
+    <!-- ============================================================ -->
+    <!-- 31. GOOGLE ANALYTICS                                            -->
+    <!-- ============================================================ -->
+    <h2 id="google-analytics">31. Google Analytics integration</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+    </div>
+
+    <p>The platform can stream visitor analytics to a Google Analytics property — useful for understanding how the public tile view and external users interact with the site. Manage the integration at <strong>Administration → Configuration/Settings → Google Analytics Tracking</strong>.</p>
+
+    <h3>31.1 What you can configure</h3>
+    <ul>
+        <li><strong>Status</strong> — Enabled / Disabled. When disabled, no analytics events are sent regardless of other settings.</li>
+        <li><strong>Measurement ID</strong> — the Google Analytics 4 property identifier (looks like <code>G-XXXXXXXXXX</code>). Get it from the GA admin console.</li>
+        <li><strong>Tracking scope</strong> — whether to track signed-in users, public visitors, or both.</li>
+        <li><strong>Anonymize IP addresses</strong> — recommended for GDPR alignment.</li>
+    </ul>
+
+    <h3>31.2 How to set it up</h3>
+    <ol class="workflow-steps">
+        <li>
+            <span class="step-title">Create the GA4 property</span>
+            <span class="step-detail">In Google Analytics, create (or pick) a property for the GCC Database. Copy its Measurement ID.</span>
+        </li>
+        <li>
+            <span class="step-title">Open the integration page</span>
+            <span class="step-detail">Administration → Configuration/Settings → Google Analytics Tracking.</span>
+        </li>
+        <li>
+            <span class="step-title">Paste the Measurement ID</span>
+            <span class="step-detail">Confirm tracking scope and anonymization. Toggle Status to Enabled.</span>
+        </li>
+        <li>
+            <span class="step-title">Click Save Settings</span>
+            <span class="step-detail">Changes take effect on the next page load. Verify in GA Real-Time view that events are arriving.</span>
+        </li>
+    </ol>
+
+    <h3>31.3 Tips</h3>
+    <details>
+        <summary>I enabled it but no events are showing in GA.</summary>
+        <p>Allow up to a few minutes for GA Real-Time to populate. If still nothing, double-check the Measurement ID (typo / wrong property), confirm Status is Enabled, and check your browser's developer console for any errors or ad-blocker activity that might strip the GA tag.</p>
+    </details>
+    <details>
+        <summary>Does this track internal users (Admin/Analyst)?</summary>
+        <p>Only if the tracking scope is set to include them. Most installations track public + external users only — tracking internal staff usage is rarely useful and can clutter the analytics view.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 32. PRIVACY POLICY                                              -->
+    <!-- ============================================================ -->
+    <h2 id="privacy-policy">32. Privacy policy</h2>
+    <div class="role-row">
+        <span class="role-badge role-public">Public</span>
+    </div>
+
+    <p>The platform serves a static Privacy Policy page describing what data is collected, how it's used, retention periods, and contact information for data subject requests. It's linked from the site footer and accessible at <code>/Home/Privacy</code>.</p>
+
+    <p>This page is maintained as a single document and is not user-configurable from within the app. If the wording needs to change, contact your administrator — the file is updated outside of the running application.</p>
+
+    <!-- ============================================================ -->
+    <!-- APPENDIX A - GLOSSARY                                          -->
+    <!-- ============================================================ -->
+    <h2 id="appendix-glossary">Appendix A — Glossary</h2>
     <div class="table-wrap">
     <table>
         <thead><tr><th style="width:24%">Term</th><th>Definition</th></tr></thead>
@@ -1767,9 +2158,164 @@
             <tr><td><strong>Pathway</strong></td><td>Within Amazon CPF, the specific eligibility track a certification falls under.</td></tr>
             <tr><td><strong>Product hierarchy</strong></td><td>The 3-level classification Category → Type → Subcategory used to organize products in the catalog.</td></tr>
             <tr><td><strong>Status (8-state workflow)</strong></td><td>The lifecycle state of a certificate — Draft, Client Approved (3 variants), Hold, Expired, Republished, Expired - No Annual Verification. Determines whether the certificate is visible publicly and to Partners. Full details in §8.</td></tr>
+            <tr><td><strong>Hold</strong></td><td>Status used to temporarily remove a publicly-visible certificate from view (e.g., during a corrected re-issue). Internally visible; not public; not returned by the Partner API. Easily reversible — move back to a Client Approved variant when ready.</td></tr>
+            <tr><td><strong>Republished</strong></td><td>Status for certs that were Expired and re-issued. Publicly visible — equivalent to Client Approved – Paid for display purposes.</td></tr>
+            <tr><td><strong>Client Approved – Confidential</strong></td><td>Status for certs the client has paid for but asked GCC not to display publicly. Counted in internal "active" reporting but not shown on the public tile view or Partner API.</td></tr>
             <tr><td><strong>Tile view</strong></td><td>The main certificate browsing screen — a grid of cards showing each certificate's preview image, key fields, and link to detail.</td></tr>
         </tbody>
     </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- APPENDIX B - PERMISSIONS MATRIX                                -->
+    <!-- ============================================================ -->
+    <h2 id="appendix-permissions">Appendix B — Permissions matrix</h2>
+    <p>Quick reference of who can do what across the platform. Use this when provisioning a user, when explaining capabilities to a client, or when troubleshooting "why can't I do X."</p>
+
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+        <span class="role-badge role-partner">Partner</span>
+        <span class="role-badge role-public">Public</span>
+    </div>
+
+    <h3>B.1 Certificates</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr>
+            <th style="width:36%">Action</th>
+            <th style="width:12%; text-align:center">Admin</th>
+            <th style="width:12%; text-align:center">Analyst</th>
+            <th style="width:12%; text-align:center">External</th>
+            <th style="width:14%; text-align:center">Partner</th>
+            <th style="width:14%; text-align:center">Public</th>
+        </tr></thead>
+        <tbody>
+            <tr><td>Browse public tile view</td>                              <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">via API</td><td style="text-align:center">✓</td></tr>
+            <tr><td>View internal tile view (all statuses)</td>                <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>View own-company certs only</td>                           <td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">✓</td><td style="text-align:center">own scope</td><td style="text-align:center">—</td></tr>
+            <tr><td>View internal tags</td>                                    <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>View audit history</td>                                    <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Download certificate PDF</td>                              <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">✓ (own)</td><td style="text-align:center">✓ (own)</td><td style="text-align:center">✓ (public)</td></tr>
+            <tr><td>Create certificate</td>                                    <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Edit certificate</td>                                      <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Delete certificate</td>                                    <td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Bulk-import certificates</td>                              <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Change certificate status (workflow)</td>                  <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Export to CSV</td>                                         <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">✓ (own)</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Search by product identifier (ASIN/UPC/etc.)</td>          <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>B.2 Companies, products, identifiers</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr>
+            <th style="width:36%">Action</th>
+            <th style="width:12%; text-align:center">Admin</th>
+            <th style="width:12%; text-align:center">Analyst</th>
+            <th style="width:12%; text-align:center">External</th>
+            <th style="width:14%; text-align:center">Partner</th>
+            <th style="width:14%; text-align:center">Public</th>
+        </tr></thead>
+        <tbody>
+            <tr><td>Manage companies (CRUD)</td>                               <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Manage products (CRUD)</td>                                <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Manage product hierarchy (Category → Type → Subcategory)</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>View product list / catalog</td>                           <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">✓ (own)</td><td style="text-align:center">via API</td><td style="text-align:center">—</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>B.3 Administration</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr>
+            <th style="width:36%">Action</th>
+            <th style="width:12%; text-align:center">Admin</th>
+            <th style="width:12%; text-align:center">Analyst</th>
+            <th style="width:12%; text-align:center">External</th>
+            <th style="width:14%; text-align:center">Partner</th>
+            <th style="width:14%; text-align:center">Public</th>
+        </tr></thead>
+        <tbody>
+            <tr><td>Admin Dashboard</td>                                       <td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Manage users</td>                                          <td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Manage roles &amp; permissions</td>                        <td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Manage tags (internal &amp; external)</td>                 <td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Manage certification types &amp; custom fields</td>        <td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Manage pathways (Amazon CPF)</td>                          <td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Manage partner organizations</td>                          <td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Generate / revoke API keys</td>                            <td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>B.4 Account &amp; profile</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr>
+            <th style="width:36%">Action</th>
+            <th style="width:12%; text-align:center">Admin</th>
+            <th style="width:12%; text-align:center">Analyst</th>
+            <th style="width:12%; text-align:center">External</th>
+            <th style="width:14%; text-align:center">Partner</th>
+            <th style="width:14%; text-align:center">Public</th>
+        </tr></thead>
+        <tbody>
+            <tr><td>Sign in to the web UI</td>                                 <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Edit own profile (name, email, password)</td>              <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+            <tr><td>Reset own password (forgot-password flow)</td>             <td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">✓</td><td style="text-align:center">—</td><td style="text-align:center">—</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <p style="font-size:13px;color:var(--neutral-600); margin-top:8px;">Legend: <strong>✓</strong> = can do; <strong>—</strong> = cannot do; <em>(own)</em> = scoped to the user's own company; <em>via API</em> = available through the Partner API, not the web UI.</p>
+
+    <!-- ============================================================ -->
+    <!-- APPENDIX C - NEED HELP                                         -->
+    <!-- ============================================================ -->
+    <h2 id="appendix-help">Appendix C — Need help?</h2>
+
+    <p>If you run into a problem the doc doesn't answer, here's where to go:</p>
+
+    <h3>C.1 Self-service first</h3>
+    <ol>
+        <li>Check this guide's table of contents — the answer may be in another section.</li>
+        <li>Try the action with your browser developer console open (F12) to capture any error message.</li>
+        <li>Sign out and sign back in — many session-related issues resolve this way.</li>
+        <li>Clear your browser cache and reload — fixes stale-asset issues after a deployment.</li>
+    </ol>
+
+    <h3>C.2 Reporting a problem</h3>
+    <p>When contacting support, include:</p>
+    <ul>
+        <li><strong>What you were trying to do</strong> — e.g., "upload a certificate for Acme Corp."</li>
+        <li><strong>What happened</strong> — exact wording of any error toast or modal.</li>
+        <li><strong>Browser and device</strong> — e.g., "Chrome on Windows 11."</li>
+        <li><strong>Time</strong> — approximate timestamp so the engineering team can find your session in the logs.</li>
+        <li><strong>Screenshot</strong> — almost always helpful, even if just to confirm what page you were on.</li>
+    </ul>
+
+    <h3>C.3 Contact</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:30%">Need</th><th>Who to contact</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Day-to-day operational questions</strong></td><td>Your GCC administrator (the person who provisioned your account).</td></tr>
+            <tr><td><strong>Account / password issues you can't resolve</strong></td><td>Your GCC administrator. Admin can issue a temporary password from User Management.</td></tr>
+            <tr><td><strong>Bug reports or unexpected behavior</strong></td><td>Your GCC administrator forwards to the engineering team (Anuki Consulting).</td></tr>
+            <tr><td><strong>New features / change requests</strong></td><td>Your GCC administrator. A formal change request is required for any change beyond defect fixes.</td></tr>
+            <tr><td><strong>Partner API technical questions</strong></td><td>Use the separate <em>Partner API Developer Guide</em>; engineering questions through your GCC contact.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <div class="callout callout-warn">
+        <span class="callout-label">Before launch</span>
+        <p>The platform is currently in pre-launch testing. If you're using it before the production launch, please flag anything you see — feedback during this phase is far cheaper to act on than after launch.</p>
     </div>
 
     <hr style="border:none; border-top:1px solid var(--neutral-200); margin:48px 0 16px;">

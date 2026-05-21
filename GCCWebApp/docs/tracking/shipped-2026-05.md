@@ -6,6 +6,24 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## Priority-4 batch verification — five small UX/UI items confirmed on gccwebapp.com (QC #104, #181, #183, #207, #174; 2026-05-21)
+
+Single Playwright harness `qc159-live-check/qc-batch-priority4.js` ran read-only checks against the deployed test env. All five items shipped in the 5/15-5/19 wave; today's pass formally locks in post-deploy verification with concrete DOM/CSS evidence. 11 / 11 assertions PASS.
+
+| QC # | DEF # | What was checked on gccwebapp.com | Evidence |
+|---|---|---|---|
+| **#104** | DEF-202 + DEF-211 | Breadcrumb on `/Company/Index` and `/Product/Management` does not lead with "Administration" | Crumb list reads `["Companies & Products", "Company Management"]` and `["Companies & Products", "Product Management"]` |
+| **#181** | DEF-172 | Cert Create Company Email field has strict regex validation | `#CompanyEmail` carries `data-val-regex-pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"`; typing `notanemail` triggers inline error *"Please enter a valid email address."* |
+| **#183** | DEF-201 | Sort dropdown no longer offers "Most Popular Companies" / "Relevance Score" | Both options absent from internal (19 options) and public (13 options) Sort By dropdowns; sample includes Default, Newest Effective Date, Oldest Effective Date, etc. |
+| **#207** | DEF-207 | Cert Create page does not replay stale success toast on mobile bfcache | Inline success script omitted when TempData empty; `Views/Certificate/Create.cshtml:53` `sessionStorage` guard `createSuccessMsg:` present in source for when TempData is set |
+| **#174** | DEF-195 | Cert-number pill flush with top of category text on tile view | 25 tiles sampled on `/Certificate/CertificateTileView`, every `.header-row` has `align-items: flex-start`, max top-delta = 0px |
+
+Single batch entry rather than five separate updates because all five items are small, deployed in the same wave, and verified in one harness run. Individual DEF status lines flipped to "Deployed and verified on gccwebapp.com (2026-05-21)". Test artifacts in `qc159-live-check/`: `qc-batch-priority4.js`, `qc-batch-priority4-live-results.json`, screenshots `qc104-live-*`, `qc181-live-*`, `qc174-live-*`, `qc207-live-*`.
+
+QC #181 is notably the one item that shipped earliest (commit `f018782`, 2026-05-11) but had no formal post-deploy verification on file until today. The regex pattern + functional check both pass against live prod data.
+
+---
+
 ## QC #159 / DEF-180 — Replace-all Product ID import: end-to-end verified on both localhost and gccwebapp.com (2026-05-21, live + tested)
 
 Two-run verification of the Replace-all Product ID import flow that closes out QC #159 (originally raised 4/7 — *"I tried to import a doc with only 1 product against 2 existing and got an error"*). The underlying code shipped under DEF-154 on 2026-05-07; this 5/21 entry records the formal proof that the client's exact scenario now works correctly on the deployed test environment.
@@ -84,6 +102,8 @@ Verification artifacts:
 
 Closes QC #170 pending client retest on gccwebapp.com.
 
+**Update 2026-05-21 — second-pass retest.** Re-ran the full message-branch matrix and the DEF-197 dedup assertion via a fresh harness (`qc159-live-check/qc170-product-type-delete.js`). Localhost: 10/10 PASS — all four pre-check branches (cert-blocker, product-blocker, child-blocker, not-found) produce the documented messages; node count is unchanged before/after the destructive probes (pre-check fires before SaveChanges as designed); the DEF-197 dedup assertion confirms HashSet UnionWith correctly collapses Product #346 (tagged both ProductTypeId=4 and ProductSubcategoryId=48) into a single count at the Plastics rollup. Gccwebapp.com: 2/2 PASS — 62 prod nodes, every one carrying both `productCount` and `certificateCount` fields, confirming both DEF-196 and DEF-197 are deployed on the current build. Original 5/19 live counts (LDPE 0/1, HDPE 5/2, Plastics 5/4) stand. Test artifacts: `qc170-{local,live}-types.json`, `qc170-{local,live}-results.json`.
+
 ---
 
 ## DEF-207 — Mobile Cert Create page: stale "Certificate created successfully!" toast on direct nav (2026-05-18, in working tree pending deploy)
@@ -147,7 +167,7 @@ Post-deploy verification: client to test logo at typical laptop widths, exercise
 
 ---
 
-## DEF-200 — Internal dashboard tile counts now match their export row counts; "Certs Expired Last Month" no longer uses the wrong date column (QC #180, 2026-05-19, in working tree pending deploy)
+## DEF-200 — Internal dashboard tile counts now match their export row counts; "Certs Expired Last Month" no longer uses the wrong date column (QC #180, 2026-05-19, deployed + verified 2026-05-21)
 
 Client called this out 5/11: every download icon on the internal dashboard returned a different number than the tile right above it. The headline complaint was *"Certs Expired Last Month is not using right data"* with an explicit ask: *"Anuki needs to do that"* (the count audit). Audited every tile against its export and found three layered bugs.
 
@@ -182,9 +202,11 @@ Build: **0 errors, 51 pre-existing warnings** (unchanged). Files: `Models/Certif
 
 Post-deploy verification: on gccwebapp.com, log in as admin, hover each stat-card download icon until the file lands, open the CSV in Excel, check the count line at the top against the displayed tile number. Specifically test "Certs Expired Last Month" — the count should match a `SELECT COUNT(*) FROM Certificates WHERE Status IN (PublicStatuses + Expired) AND ExpirationDate BETWEEN startOfLastMonth AND endOfLastMonth` on prod.
 
+**Update 2026-05-21 — verified on gccwebapp.com (12/12 cards reconcile).** Parameterized Playwright harness ran against both envs, captured tile values after the 2500ms count-up animation, fetched each tile's `/Dashboard/DownloadStat?type=…` CSV, counted rows. Localhost: 12/12 PASS. Prod: 12/12 PASS — including the three cards that directly exercise the three root-cause fixes (`certs-expired-last-month` 6=6 using ExpirationDate column + EverPublishedStatuses filter; `products-with-active-certs` 26=26 via the aggregated CSV path; `certs-published-this-year` 13=13 with the upper date bound now applied symmetrically). Test artifacts in `qc159-live-check/qc180-*`.
+
 ---
 
-## DEF-199 — Public/External tile-view filter sidebar now surfaces cert-level category overrides and hides soft-deleted companies (QC #177 + #178, 2026-05-18, in working tree pending deploy)
+## DEF-199 — Public/External tile-view filter sidebar now surfaces cert-level category overrides and hides soft-deleted companies (QC #177 + #178, 2026-05-18, deployed + verified 2026-05-21)
 
 Two related complaints from the client on 5/8. (#178) The Product Category/Type/Subcategory filter sidebar on the public tile view listed only categories/types derived from `Certificate.Product` — any cert-level FK override (`Certificates.ProductCategoryId/ProductTypeId/ProductSubcategoryId`, introduced when DEF-192 fixed the listing-side display) was invisible in the sidebar. So a cert visible in the grid couldn't be reached from the filter. (#177) Companies showed up in the company dropdown that the client expected to be gone — soft-deleted Companies that an existing cert still referenced via FK were projected through the navigation and stayed in the sidebar.
 
@@ -211,9 +233,11 @@ Build: **0 errors, 51 pre-existing warnings** (unchanged). Files: `Controllers/A
 
 Post-deploy verification: on gccwebapp.com, log in as analyst, open a cert, set its `Product Category` field directly on the cert form to a value different from the product's own category, save, view the public tile view — the override category should appear in the sidebar. Picking it should return that cert.
 
+**Update 2026-05-21 — verified on gccwebapp.com.** Parameterized harness (`qc159-live-check/qc177-178-filter-options.js`) ran the full destructive matrix on localhost — soft-delete Acme + set cert 38 ProductCategoryId=2, snapshot, revert. 8/8 PASS: company count drops 9→8 with Acme correctly hidden; category set grows {1}→{1,2} with the cert-level override surfacing; clean revert returns both to baseline. Gccwebapp.com read-only deploy probe: filter endpoint reachable, 21 companies + 3 categories returned. **Specific to the client's QC #177 complaint:** "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division" appears in the prod filter list today; per the deployed `baseQuery` (`PublicStatuses` + non-expired + `Company.IsActive && !IsDeleted`), every company in the dropdown is guaranteed to have ≥1 currently-visible cert — the "selecting it returns nothing" complaint cannot occur on the deployed build. Test artifacts: `qc177-local-{base,mut,restore}.json`, `qc177-live-live.json`, `qc177-{local,live}-results.json`.
+
 ---
 
-## DEF-198 — Partner login CSV export was leaking the full database; now correctly scoped to caller (QC #182, 2026-05-18, in working tree pending deploy)
+## DEF-198 — Partner login CSV export was leaking the full database; now correctly scoped to caller (QC #182, 2026-05-18, deployed + verified 2026-05-21)
 
 Client raised QC #182 on 5/15 (*"This is big issue, needs fixed."*). A Partner-role web user logged into `/Certificate/CertificateTileViewExternal` and clicked **Export All to CSV** got back the entire database — drafts, expired rows, certificates tagged to other partners. The same caller could see their own scope correctly in the tile view, but the export endpoint behind that button enforced no scope. In dev-DB reproduction, the partner_test user (mapped to Amazon partner) was getting 43 rows; correct answer is 4 rows (`Client Approved - Paid` × `Amazon`).
 
@@ -250,9 +274,11 @@ Same root-cause family as the 2026-04-21 Partner API status-contract fix and DEF
 
 Post-deploy verification: log in as a Partner user on gccwebapp.com, hit Export All to CSV, confirm row count + Partner column + Status column all match that partner's PublicStatuses count. Same check as the partner_test fixture above.
 
+**Update 2026-05-21 — verified on gccwebapp.com (deploy confirmed).** Anonymous probe against the deployed build returned 25 data rows, all with Status in {`Client Approved - Paid`, `Republished`} (i.e., `PublicStatuses` only). If DEF-198 were not deployed, Draft/Expired/Active rows would have leaked through to anonymous — they did not. The Partner-scoped path was confirmed end-to-end on localhost against dev DB (partner_test→Amazon returned 4 rows correctly; admin returned all 45; anonymous returned 22 Client Approved - Paid only). The partner_test fixture is dev-only — Partner-on-gccwebapp scoping is verified by sharing the same scope-helper code path with anonymous, plus the localhost full-matrix proof. Test artifacts in `qc159-live-check/qc182-*`.
+
 ---
 
-## DEF-197 — Admin → Product Types: Usage column rollups now dedupe entities tagged at multiple FK levels (2026-05-18, in working tree pending deploy)
+## DEF-197 — Admin → Product Types: Usage column rollups now dedupe entities tagged at multiple FK levels (QC #170, 2026-05-18, deployed + verified 2026-05-21)
 
 Found during local smoke test of [[DEF-196]] on 2026-05-18, not raised by the client. The "Usage (Products / Certs)" column rolled up parent totals by adding direct refs plus the sum of children's counts. The `Certificates` table allows a single row to set `ProductCategoryId` **and** `ProductTypeId` **and** `ProductSubcategoryId` simultaneously — 1 of 43 dev certs does (`26-0027` referencing the Chemicals tree at every level), and 1 of 305 dev products does the same on the product side (`#346 "test"` set on both `ProductTypeId=4` and `ProductSubcategoryId=48`). The integer-sum rollup counted each such entity once per level and then summed them again at the grandparent, producing visibly wrong totals.
 
@@ -300,7 +326,7 @@ Post-deploy verification: after the DDL script runs against prod and the next ap
 
 ---
 
-## DEF-196 — Admin → Product Types: count column now reflects what actually blocks deletion; cert references give a specific error message (QC #170 — client 5/1, raised again 5/15) (2026-05-15, in working tree pending deploy)
+## DEF-196 — Admin → Product Types: count column now reflects what actually blocks deletion; cert references give a specific error message (QC #170 — client 5/1, raised again 5/15) (2026-05-15, deployed + verified 2026-05-21)
 
 Client raised QC #170 on 5/1 and re-emphasized today (status-call day): she was trying to remove her "Carly Test" product type, the count column on `/Admin/ProductTypes` read **0**, but every delete attempt returned the generic *"An error occurred while deleting. Please try again."* Meanwhile filtering the certificate listing by "Carly Test" showed certs were actually using it — so the admin page was lying to her, and she had no path to fix it. Her direct ask: *"PLEASE REMOVE MY CARLY TEST AND CARLY TEST TYPE OPTIONS. SEE IF YOU CAN GO THROUGH THIS PROCESS, ETC."*
 
@@ -332,7 +358,7 @@ Files: `docs/tracking/qc-narrative-defect-volume-5-13.md` (new, ~7 KB). Companio
 
 ---
 
-## DEF-194 — Cert Create/Edit Product Identifier table now supports bulk-delete via row checkboxes (QC #172 — client 5/11, per 5/8 call) (2026-05-14, in working tree pending deploy)
+## DEF-194 — Cert Create/Edit Product Identifier table now supports bulk-delete via row checkboxes (QC #172 — client 5/11, per 5/8 call) (2026-05-14, deployed + verified 2026-05-21)
 
 Client raised QC #172 on 5/11: *"Add check all for mass delete under Product Identifier per 5/8 call."* On the certificate Create and Edit pages, the Product Identifier table previously only supported per-row delete — analysts cleaning up imported product-ID lists had to click the row trash icon, confirm, wait, and repeat once per row. Fix adds a checkbox column to the left of the table, a select-all checkbox in the header, and a red "Delete Selected (N)" button that appears next to "Add Product ID" whenever at least one row is selected.
 
@@ -343,6 +369,8 @@ Two surfaces ship simultaneously even though QC #172 only named "Cert Creation P
 Files: `Views/Shared/_ProductIdManager.cshtml` (bulk-delete button, select-all `<th>`, per-row checkbox `<td>`, server-rendered colspan 8→9 when not read-only), `wwwroot/js/product-id-manager.js` (added `selectedIds` Set on the constructor; `getProductIdRowHtml` emits per-row checkbox; `getEmptyStateHtml` colspan 8→9; `renderTable` calls `updateBulkActionsUI` at every return path; new methods `handleRowCheckboxToggle`, `handleSelectAllToggle`, `updateBulkActionsUI`, `handleBulkDelete`; single-row `handleDelete` also clears `selectedIds` of the deleted id so the count stays in sync), plus `docs/tracking/defect-register.md` (DEF-194 entry) and this ship-log entry. Build clean: **0 errors, 53 pre-existing warnings** (unchanged from prior commits). No data migration, no controller changes, no API contract changes.
 
 Post-deploy verification: on Create page, add 3 product IDs via Add button → check the header → "Delete Selected (3)" appears → confirm → all 3 removed with toast. On Edit page of a cert with 50+ product IDs, select 5 on page 1, navigate to page 2, select 3 more (button shows "Delete Selected (8)"), confirm → all 8 deleted via API → table reloads with the remaining rows.
+
+**Update 2026-05-21 — verified end-to-end.** Localhost: 11/11 PASS via `qc159-live-check/qc172-bulk-delete.js`. Destructive flow ran on 3 isolated test rows (`ASIN QC172TEST1/2/3` seeded on cert 26-0023 via direct SQL with the `QC172TEST%` prefix for clean isolation from the 1004 real rows); UI flow → confirm modal `[data-action="confirm"]` → 3 parallel `DELETE /api/productids/{id}` calls → SQL truth verify post-delete count=0. Cross-page selection persistence proved non-destructively on cert 26-0106 (101 rows / 3 pages): selected one row on page 1 → count=1; navigated to page 2 → count stayed 1; selected one more → count=2; navigated back to page 1 → first row's checkbox still rendered as checked (the `selectedIds` Set survives re-render and `getProductIdRowHtml` reads from it). Gccwebapp.com read-only DOM probe: 3/3 PASS — `#selectAllProductIds`, `#bulkDeleteProductIds`, and `.bulk-select-checkbox` all present on a prod cert with product IDs; the destructive matrix was intentionally skipped per the live-data CR rule. Test artifacts: `qc172-{local,live}-results.json`, screenshots `qc172-local-0{1..4}-*.png`.
 
 ---
 

@@ -9,9 +9,20 @@ using System.ComponentModel.DataAnnotations;
 
 namespace GCCWebApp.Controllers.Api
 {
+    // DEF-206: class-level role guard. Before this, the controller had no
+    // [Authorize] at the class level and only the mutating endpoints had per-
+    // method role attributes — so the GET list / GET-by-id / GET-by-number
+    // endpoints accepted ANY authenticated identity. External users got the
+    // full cert list across all companies in the internal data shape, and
+    // Partner X-API-Key callers got an unfiltered cross-partner view here that
+    // diverged from the contracted /api/v1/certificates surface. Locking the
+    // entire controller to AnalystOrAdmin closes both: External + Partner
+    // keys are denied at the door, mutating endpoints keep their per-method
+    // role attributes for finer control.
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
+    [Authorize(Policy = "AnalystOrAdmin")]
     public class CertificatesApiController : ControllerBase
     {
         private readonly ILogger<CertificatesApiController> _logger;
@@ -32,23 +43,19 @@ namespace GCCWebApp.Controllers.Api
         }
 
         /// <summary>
-        /// Get certificates with filtering, sorting, and pagination
+        /// Get certificates with filtering, sorting, and pagination. Admin/Analyst only.
         /// </summary>
         /// <remarks>
-        /// This endpoint supports both standard authentication (cookie/JWT) and Partner API key authentication.
+        /// **Internal admin/analyst endpoint.** Returns the full cert dataset in the
+        /// internal data shape (raw status, internal fields). Partner integrations MUST use
+        /// `/api/v1/certificates` (the contracted, partner-scoped, contract-shape endpoint) —
+        /// NOT this one.
         ///
-        /// **Partner API Key Authentication:**
-        /// When authenticated with a partner API key (X-API-Key header), only certificates
-        /// associated with that partner are returned.
-        ///
-        /// **Standard Authentication:**
-        /// When authenticated with cookie or JWT, all certificates are returned (filtered by user role).
-        ///
-        /// **Example Partner Request:**
-        /// ```
-        /// GET /api/certificates?page=1&amp;pageSize=50
-        /// X-API-Key: gcc_partner_9f8e7d6c5b4a3210...
-        /// ```
+        /// Pre-DEF-206 the controller had no class-level [Authorize] and accepted both
+        /// cookie auth AND partner X-API-Key on the GET endpoints. That allowed External
+        /// users + partner keys to see the unfiltered internal-shape data (DEF-206).
+        /// The class is now gated to AnalystOrAdmin, which also retires the partner
+        /// X-API-Key path through this controller — partners stay on the contracted v1.
         /// </remarks>
         [HttpGet]
         [ProducesResponseType(typeof(CertificateListResponse), 200)]
@@ -58,32 +65,7 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                // Check if request is from a partner (Partner API key authentication)
-                var partnerName = User.FindFirst("partner_name")?.Value;
-                if (!string.IsNullOrEmpty(partnerName))
-                {
-                    // Partner authentication - filter by partner
-                    _logger.LogInformation("Partner API request from {PartnerName} for certificates with filters: {@Request}",
-                        partnerName, request);
-
-                    var partnerResult = await _certificateService.GetCertificatesByPartnerAsync(partnerName, request);
-
-                    if (partnerResult.Success)
-                    {
-                        _logger.LogInformation("Returned {Count} certificates for partner {PartnerName}",
-                            partnerResult.Certificates.Count, partnerName);
-                        return Ok(partnerResult);
-                    }
-
-                    return BadRequest(new ApiErrorResponse
-                    {
-                        Message = partnerResult.Message,
-                        Errors = partnerResult.Errors
-                    });
-                }
-
-                // Standard authentication - return all certificates (filtered by user role)
-                _logger.LogInformation("Standard API request for certificates with filters: {@Request}", request);
+                _logger.LogInformation("Internal API request for certificates with filters: {@Request}", request);
 
                 var result = await _certificateService.GetCertificatesAsync(request);
 
@@ -109,25 +91,35 @@ namespace GCCWebApp.Controllers.Api
         }
 
         /// <summary>
-        /// Get a specific certificate by ID
+        /// Get a specific certificate by ID. Admin/Analyst only (class-level guard).
         /// </summary>
+        /// <remarks>
+        /// DEF-206 dropped the `?userRole=` query parameter. It was an attempt to vary
+        /// the response shape based on caller-claimed role, but the service layer
+        /// ignored it — same payload regardless of value. Caller's actual role comes
+        /// from the auth ticket, not a querystring. Removing it eliminates a
+        /// deceptive-looking attack surface (no escalation was possible, but the
+        /// parameter looked like it might be).
+        /// </remarks>
         [HttpGet("{id:int}")]
         [ProducesResponseType(typeof(CertificateDetailsViewModel), 200)]
         [ProducesResponseType(typeof(ApiErrorResponse), 404)]
-        public async Task<ActionResult<CertificateDetailsViewModel>> GetCertificate(int id, 
-            [FromQuery] string userRole = "Public")
+        public async Task<ActionResult<CertificateDetailsViewModel>> GetCertificate(int id)
         {
             try
             {
-                _logger.LogInformation("API request for certificate {CertificateId} with role {UserRole}", id, userRole);
+                _logger.LogInformation("API request for certificate {CertificateId}", id);
 
-                var certificate = await _certificateService.GetCertificateDetailsAsync(id, userRole);
-                
+                // userRole arg here is the role the service uses to shape its response.
+                // Class-level [AnalystOrAdmin] guard means callers are always Admin/Analyst,
+                // so request the unrestricted "Admin" projection regardless of who calls.
+                var certificate = await _certificateService.GetCertificateDetailsAsync(id, "Admin");
+
                 if (certificate == null)
                 {
-                    return NotFound(new ApiErrorResponse 
-                    { 
-                        Message = $"Certificate with ID {id} not found." 
+                    return NotFound(new ApiErrorResponse
+                    {
+                        Message = $"Certificate with ID {id} not found."
                     });
                 }
 
@@ -136,34 +128,36 @@ namespace GCCWebApp.Controllers.Api
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving certificate {CertificateId} via API", id);
-                return StatusCode(500, new ApiErrorResponse 
-                { 
-                    Message = "An internal server error occurred while retrieving the certificate." 
+                return StatusCode(500, new ApiErrorResponse
+                {
+                    Message = "An internal server error occurred while retrieving the certificate."
                 });
             }
         }
 
         /// <summary>
-        /// Get certificate by certificate number
+        /// Get certificate by certificate number. Admin/Analyst only (class-level guard).
         /// </summary>
+        /// <remarks>
+        /// DEF-206 dropped the `?userRole=` query parameter — see GetCertificate above.
+        /// </remarks>
         [HttpGet("by-number/{certificateNumber}")]
         [ProducesResponseType(typeof(CertificateDetailsViewModel), 200)]
         [ProducesResponseType(typeof(ApiErrorResponse), 404)]
         public async Task<ActionResult<CertificateDetailsViewModel>> GetCertificateByNumber(
-            string certificateNumber, [FromQuery] string userRole = "Public")
+            string certificateNumber)
         {
             try
             {
-                _logger.LogInformation("API request for certificate number {CertificateNumber} with role {UserRole}", 
-                    certificateNumber, userRole);
+                _logger.LogInformation("API request for certificate number {CertificateNumber}", certificateNumber);
 
-                var certificate = await _certificateService.GetCertificateByCertificateNumberAsync(certificateNumber, userRole);
-                
+                var certificate = await _certificateService.GetCertificateByCertificateNumberAsync(certificateNumber, "Admin");
+
                 if (certificate == null)
                 {
-                    return NotFound(new ApiErrorResponse 
-                    { 
-                        Message = $"Certificate with number '{certificateNumber}' not found." 
+                    return NotFound(new ApiErrorResponse
+                    {
+                        Message = $"Certificate with number '{certificateNumber}' not found."
                     });
                 }
 
@@ -172,9 +166,9 @@ namespace GCCWebApp.Controllers.Api
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving certificate by number {CertificateNumber} via API", certificateNumber);
-                return StatusCode(500, new ApiErrorResponse 
-                { 
-                    Message = "An internal server error occurred while retrieving the certificate." 
+                return StatusCode(500, new ApiErrorResponse
+                {
+                    Message = "An internal server error occurred while retrieving the certificate."
                 });
             }
         }

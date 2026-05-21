@@ -964,9 +964,40 @@ namespace GCCWebApp.Controllers
                         return NotFound();
                     }
 
+                    // DEF-203: enforce the workflow transition matrix BEFORE applying
+                    // any updates. CertificateStatusHelper.IsValidTransition is the
+                    // 8-state matrix; before this check, the Edit POST blindly
+                    // assigned model.Status with no enforcement (the
+                    // CertificateWorkflowService implementing the matrix existed but
+                    // no controller invoked it — dead code path that the security
+                    // audit on 2026-05-19 surfaced).
+                    //
+                    // Auto-expire interaction: DEF-171's TryApplySaveTimeAutoExpire
+                    // below may still override `certificate.Status` to "Expired"
+                    // regardless of caller intent if `ExpirationDate < today`. That
+                    // bypass is intentional and consistent with the matrix —
+                    // Paid/Confidential/NotPaid/Republished all allow → Expired,
+                    // and Draft → Expired-via-time-elapse is also a sane fallback.
+                    var oldStatus = certificate.Status;
+                    var requestedStatus = model.Status ?? "Draft";
+                    if (!string.Equals(oldStatus, requestedStatus, StringComparison.Ordinal)
+                        && !CertificateStatusHelper.IsValidTransition(oldStatus, requestedStatus))
+                    {
+                        var fromDisplay = CertificateStatusHelper.GetDisplayName(oldStatus);
+                        var toDisplay = CertificateStatusHelper.GetDisplayName(requestedStatus);
+                        _logger.LogWarning(
+                            "Invalid workflow transition rejected for cert {Number}: '{From}' → '{To}' by user {UserId}",
+                            certificate.Number, oldStatus, requestedStatus, GetCurrentUserId());
+                        ModelState.AddModelError(nameof(model.Status),
+                            $"Invalid status transition from '{fromDisplay}' to '{toDisplay}'. " +
+                            $"Check workflow rules for the allowed next states from '{fromDisplay}'.");
+                        await ReloadEditFormDataAsync(id);
+                        return View(model);
+                    }
+
                     // Update basic properties
                     certificate.Number = model.Number;
-                    certificate.Status = model.Status ?? "Draft";
+                    certificate.Status = requestedStatus;
                     certificate.Partner = model.Partner;
                     certificate.CertificationResults = model.CertificationResults;
                     certificate.PathwayId = model.PathwayId;
@@ -1229,6 +1260,31 @@ namespace GCCWebApp.Controllers
                     if (autoExpired && historyRow != null)
                     {
                         _context.CertificateStatusHistory.Add(historyRow);
+                    }
+
+                    // DEF-203: write audit row for user-initiated status transitions.
+                    // Skipped when the auto-expire above already changed the status
+                    // (it writes its own row above; avoid double-history). Also a
+                    // no-op when the user didn't actually change Status. The
+                    // validation upstream already rejected invalid jumps, so any
+                    // change reaching here is matrix-legal.
+                    if (!autoExpired
+                        && !string.Equals(oldStatus, certificate.Status, StringComparison.Ordinal))
+                    {
+                        _context.CertificateStatusHistory.Add(new CertificateStatusHistory
+                        {
+                            CertificateId = certificate.Id,
+                            CertificateNumber = certificate.Number,
+                            PreviousStatus = oldStatus,
+                            NewStatus = certificate.Status,
+                            Reason = "User-initiated transition via Edit form",
+                            ChangedBy = actingUserId ?? 1,
+                            ChangedByUsername = actingUsername,
+                            ChangedAt = DateTime.UtcNow,
+                            ChangeSource = AuditChangeSource.WebUI,
+                            IsAutomatedTransition = false,
+                            WorkflowStep = "Edit-POST"
+                        });
                     }
 
                     await _certificateRepository.UpdateAsync(certificate);

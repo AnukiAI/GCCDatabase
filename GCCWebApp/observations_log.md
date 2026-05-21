@@ -1,5 +1,19 @@
 # Observations Log
 
+## 2026-05-21 — QC #159 (DEF-180) end-to-end verification: 9/9 UI tests PASS on gccwebapp + destructive E2E PASS on localhost
+
+Two-run verification of the Replace-all Product ID import path to retire any remaining client doubt before the next UAT cycle.
+
+**Localhost destructive E2E** (cert id=48 / `26-0147`, 2 active Product IDs): Import → upload 1-row CSV (`ASIN,B00REPL001,...`) → tick "Replace all existing IDs with this file" → Apply. `POST /api/productids/certificate/48/bulk` → 200. DB confirmed: 2 prior rows flipped `IsActive: True → False`, 1 new row inserted Active, all three rows share the same UpdatedAt (single transaction). Matches the client's verbatim 4/7 ask.
+
+**gccwebapp.com read-only UI suite** (cert `26-0163`, 9 tests, Apply never clicked to preserve the live-data CR rule): T1 modal opens, T2 toggle present + visible, T3 toggle defaults unchecked (safe default), T4 click flips both ways, T5 4 stat tiles render, T6 valid 1-row → 1 New, T7 bad ASIN → 1 Error + Apply disabled, T8 Cancel preserves data, T9 CR-016 polish (radios / "To Remove" tile / warning banner) confirmed NOT yet in deployed DOM. All 9 PASS.
+
+QC #159's original "got an error" complaint is no longer reproducible on either the deployed code (gccwebapp) or the latest local build. Verification block appended to DEF-180. Test artifacts under `qc159-live-check/` (not committed): `check.js`, `e2e-replace.js`, `ui-suite.js`, screenshots, `ui-results.json`.
+
+If the client retests and still sees an error → that is a NEW defect, logged with a fresh DEF row referencing this baseline. CR-016 (UX polish) remains separately pending client sign-off.
+
+---
+
 ## 2026-05-19 — DEF-202 / batch close-out of remaining code-actionable backlog
 
 Five small client-asked corrections fixed in one batch. (1) QC #148 cert import template Status header now reads `Status (Draft / Client Approved - Paid / ... — defaults to Draft if blank)`; import parser extended with a prefix-match fallback so the longer header still resolves. (2) QC #104 Companies breadcrumb renamed to Company Management for parity with the Product side; the Admin Dashboard nav item half of #104 closed as needs-no-action (page was removed by client decision 5/1, `/Admin/Index` redirects to User Management). (3) QC #118 Custom Fields with IsPublic=true now render on the public + external cert detail pages — controllers were already loading the data, the views weren't binding. Grouped under one Custom Fields section per the project-wide rule (CustomField.Section ignored). (4) QC #179 Product ID import preview popup now shows the SKU column (data was already parsed into productSku, just wasn't rendered). (5) QC #184 Product Mgmt export now includes SKU and Partners columns; Partners derived via a new projection on `ProductController.GetProducts`.
@@ -5945,3 +5959,82 @@ Dev smoke (`Scripts/smoke-prod/verify-def204-extview.js`): **9/9 pass**. Externa
 DEF-204 status flipped from "Partially fixed" to **Fixed locally — pending deploy**. Working tree state: 17 files modified including this patch + new harness. Ready for the same Plesk deploy as DEF-208.
 
 Day's running total adjusted — 6 valid DEFs from internal QA, 2 now Fixed-pending-deploy (DEF-204 + DEF-208), 4 still Open (DEF-203, 206, 209, 210).
+
+---
+
+## 2026-05-20 — DEF-206 closed: CertificatesApiController gated to AnalystOrAdmin
+
+Three changes to `Controllers/Api/CertificatesApiController.cs`:
+1. Class-level `[Authorize(Policy = "AnalystOrAdmin")]`
+2. Deleted the partner_name branch in `GetCertificates` (dead code — partners belong on `/api/v1/certificates`, not this internal endpoint)
+3. Removed `?userRole=` query params from `GetCertificate` + `GetCertificateByNumber` (ignored by service, deceptive on the API surface)
+
+Local smoke (`Scripts/smoke-prod/verify-def206.js`): **9/9 pass**. Anon 401, partner-key 403, external 403 (incl. by-id and by-number), analyst 200, admin 200 on all three GET endpoints.
+
+DEF-206 status flipped from "Open — VERIFIED LIVE ON PROD" to **Fixed locally — pending deploy**.
+
+**Cumulative state — 3 Critical DEFs closed in working tree today (DEF-204, DEF-206, DEF-208).** 4 still open: DEF-203 (workflow matrix dead code, Major), DEF-209 (login error enum, Major), DEF-210 (no rate limit, Major). DEF-209 + DEF-210 are auth-surface hardening and would ship together; DEF-203 is a separate concern that ties into the workflow service.
+
+---
+
+## 2026-05-20 — DEF-209 + DEF-210 closed: auth-surface hardening
+
+Both ship together — neither alone closes the attack chain.
+
+**DEF-209:** `ValidateUserDetailed` returns single `GenericLoginError` ("Invalid email or password.") for all failure modes. Server log still records specifics. ForgotPassword SMTP send is fire-and-forget — timing delta dropped from 3000ms → 332ms (under 500ms threshold).
+
+**DEF-210:** Per-account lockout wired into the existing `Users.FailedLoginAttempts` + `LockedUntil` columns. Policy: 5 attempts → 15-min lock. Check happens BEFORE password verify so locked-account probes can't drive the counter higher AND don't reveal lockout vs nonexistent-account. Successful login resets state. No DB migration needed — columns existed, just weren't being written.
+
+`Scripts/smoke-prod/verify-def209-210.js` — **6/6 pass** end-to-end (generic message across 3 failure modes, lockout triggered, correct-password rejected during lockout, lockout expires + correct-password succeeds, counter resets on success, ForgotPassword timing parity).
+
+**One file changed (`Controllers/AccountController.cs`) + one new harness.** Both DEFs flipped to "Fixed locally — pending deploy" in the register.
+
+### Day's running total — 5 of 6 deployable DEFs closed
+
+| DEF | Severity | Status |
+|---|---|---|
+| DEF-203 | Major | Open (workflow matrix dead code — separate concern, controller-wiring patch) |
+| **DEF-204** | Critical | Fixed (committed) |
+| ~~DEF-205~~ | Retracted | |
+| **DEF-206** | Critical | Fixed (pending commit) |
+| **DEF-208** | Critical | Fixed (committed) |
+| **DEF-209** | Major | Fixed (pending commit) |
+| **DEF-210** | Major | Fixed (pending commit) |
+
+**3 Critical + 2 Major closed today; one Major (DEF-203) remains open and is its own next-patch concern.**
+
+The 4 patches pending commit (DEF-206 + DEF-209 + DEF-210) plus the 2 already-committed (DEF-204 + DEF-208) form the **deploy batch for the next Plesk push**. One-time server-side `Move-Item wwwroot\uploads App_Data\uploads` step documented in `Scripts/deploy.ps1` pre-deploy checklist. Standard smoke (`smoke.js`) + new harnesses (`verify-def204-extview.js`, `verify-def206.js`, `verify-def209-210.js`) form the post-deploy verification suite.
+
+---
+
+## 2026-05-21 — DEF-203 closed: certificate workflow matrix now enforced on Edit POST + audit row written
+
+Last of the 6 internal-QA DEFs from the 5-19 audit pass. The Edit POST controller was assigning `certificate.Status = model.Status` directly with no consultation of the existing `CertificateStatusHelper.IsValidTransition` matrix — analysts could drive a cert from any state to any state through the cert Edit form (e.g., `Draft → Republished` skipping approval, `Draft → Expired - No Annual Verification` jumping to a terminal state). Server returned HTTP 200, cert persisted at the illegal target, no audit trail.
+
+**Two patches in `Controllers/CertificateController.cs` Edit POST handler:**
+
+1. Pre-save validation: if `model.Status != certificate.Status` and `CertificateStatusHelper.IsValidTransition(oldStatus, requestedStatus)` returns false, the controller logs a warning, attaches a human-readable error to `ModelState`, re-populates the form, and re-renders. DB write never happens. Validation message uses `GetDisplayName` so it reads "Client Approved - Paid" not the enum value.
+
+2. Audit row write: after the DEF-171 auto-expire block but before `UpdateAsync`, a new `CertificateStatusHistory` row inserts for every user-initiated valid transition (skips auto-expire which has its own row). Carries `PreviousStatus`, `NewStatus`, `Reason = "User-initiated transition via Edit form"`, `ChangedBy`, `ChangeSource = AuditChangeSource.WebUI`, `WorkflowStep = "Edit-POST"`.
+
+**Option A from the discovery write-up, scoped tighter.** I did NOT route the save through `CertificateWorkflowService.TransitionCertificateStatusAsync` — that service builds its own `SaveChangesAsync` cycle, which would conflict with the Edit POST's single transactional save (image upload + custom fields + product-ID arrays + cert all flush together). Inline matrix check + inline audit row + the existing single SaveChanges gives the same enforcement guarantees without splitting the transaction. Service remains the right surface for a future status-only API call path.
+
+**CR-015 product-ID cascade preserved** — `SyncProductIdStatusesForCertificateAsync` later in the same handler still runs unconditionally after the cert save and reads the updated `Status`. Paid → Hold via Edit form still flips associated `CertificateProductId.Status` to Inactive. No regression.
+
+**Verification: `Scripts/smoke-prod/verify-def203.js` — 9/9 pass** on fixture cert `26-0026`. Walks 5 valid transitions (all persist + audit rows write), attempts 3 invalid ones (all rejected, `Status` unchanged in DB). The three illegal jumps the original write-up flagged (`Draft → Republished`, `Draft → Expired`, `Draft → Expired - No Annual Verification`) are all now rejected. Cert restored to original state + test-added history rows trimmed at test exit.
+
+Switched from a synthetic SQL-cloned cert to the real fixture cert after the cloned cert produced a degraded Edit page render that proved to be a test-script artifact, not a defect — the SQL clone path inadvertently left some join state inconsistent. Using the real cert as test subject + snapshot/restore at test boundaries is simpler and more reliable; documented in the harness file.
+
+### Audit pass closure — all 6 deployable DEFs from 5-19 now fixed locally
+
+| DEF | Severity | Status |
+|---|---|---|
+| **DEF-203** | Major | **Fixed (pending commit)** ← this entry |
+| **DEF-204** | Critical | Fixed (committed) |
+| ~~DEF-205~~ | Retracted | (false-positive — closed same day) |
+| **DEF-206** | Critical | Fixed (committed) |
+| **DEF-208** | Critical | Fixed (committed) |
+| **DEF-209** | Major | Fixed (committed) |
+| **DEF-210** | Major | Fixed (committed) |
+
+The internal QA audit started 2026-05-19 surfaced 6 deployable DEFs + 1 retracted false-positive. All 6 closed inside 48 hours: 3 Critical + 3 Major. Next step is the Plesk deploy batch — same one-time server-side `Move-Item wwwroot\uploads App_Data\uploads` step still applies for DEF-208; DEF-203 ships alongside.

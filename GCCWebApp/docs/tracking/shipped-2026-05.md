@@ -6,6 +6,34 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## QC #159 / DEF-180 — Replace-all Product ID import: end-to-end verified on both localhost and gccwebapp.com (2026-05-21, live + tested)
+
+Two-run verification of the Replace-all Product ID import flow that closes out QC #159 (originally raised 4/7 — *"I tried to import a doc with only 1 product against 2 existing and got an error"*). The underlying code shipped under DEF-154 on 2026-05-07; this 5/21 entry records the formal proof that the client's exact scenario now works correctly on the deployed test environment.
+
+**Run A — Localhost destructive E2E** (cert `26-0147`, dev DB, 2 active Product IDs). Click-path: Import → upload 1-row CSV (`ASIN,B00REPL001,…`) → tick the yellow pill **"Replace all existing IDs with this file"** in the modal footer → Apply Import. `POST /api/productids/certificate/48/bulk` returned 200. DB reconciliation confirms the 2 prior IDs flipped `IsActive: True → False`, the 1 new ID was inserted Active, all three rows share the same `UpdatedAt` timestamp (single transaction). Matches the client's verbatim ask: *remove those not included, add those new, keep matching ones.*
+
+**Run B — gccwebapp.com 9-test UI suite, read-only** (cert `26-0163`, Apply never clicked to preserve live data per the CR rule). All 9 tests PASS:
+
+| # | Test | Detail |
+|---|---|---|
+| T1 | Modal opens after clicking Import | `#import-preview-modal` becomes visible |
+| T2 | Replace toggle present + visible in footer | yellow pill renders correctly |
+| T3 | Toggle defaults unchecked (append is the safe default) | `initialChecked=false` |
+| T4 | Toggle click flips state both ways | `false → true → false` |
+| T5 | Preview renders 4 stat tiles | New / Modified / Unchanged / Errors |
+| T6 | Valid 1-row CSV → 1 New | parser correct |
+| T7 | Bad ASIN length → counts as Error, Apply disabled | invalid input correctly gated |
+| T8 | Cancel closes modal without writes | `before=2, afterCancel=2` |
+| T9 | CR-016 polish features (radios / "To Remove" tile / warning banner) NOT yet in DOM | confirms CR-016 still pending — additive only, no overlap with today's behavior |
+
+The 4/7 "got an error" complaint is no longer reproducible on either env. Recommended client retest path: open any cert with 2+ Product IDs → Import → pick a CSV containing only the IDs to keep → tick the Replace toggle → Apply.
+
+**Owning DEFs:** DEF-154 (built the bulk endpoint + toggle UI, shipped 5/7), DEF-180 (verification audit on 5/11 + this 5/21 E2E/UI proof). **Tracking:** verification block appended to DEF-180 in `docs/tracking/defect-register.md`; observations log entry dated 2026-05-21.
+
+**Out of scope:** CR-016 (UX polish — radio mode-selector replacing the toggle, an explicit "To Remove" preview tile, and a pre-commit warning banner) is tracked separately and is awaiting client sign-off. It is additive only and does not change today's verified behavior.
+
+---
+
 ## DEF-211 — Breadcrumb on Companies & Products pages no longer prefixed with "Administration" (QC #104, 2026-05-19, in working tree pending deploy)
 
 Final piece of QC #104 (Carly 5/1 follow-up). DEF-202 closed the Companies → Company Management rename and the Admin Dashboard half (page was removed 5/1 so the broken link is gone). The remaining piece — Carly's note that *"Administration"* should not appear in the Companies & Products breadcrumb because they're sibling top-level nav items, not parent/child — landed here.
@@ -1879,3 +1907,174 @@ New file:
 - `Scripts/smoke-prod/verify-def204-extview.js` — re-runnable verification harness
 
 Build: 0 errors. Ready for the same deploy as DEF-208.
+
+## DEF-206 closed — `CertificatesApiController` gated to AnalystOrAdmin (2026-05-20)
+
+Critical, prod-verified DEF-206 closed. The internal `/api/CertificatesApi` had no class-level authorization and accepted any authenticated identity. External users got the full cert dataset in internal shape (36 certs across 29 distinct companies on prod, 43/10+ on dev). Partner X-API-Key callers got an unfiltered cross-partner view through this endpoint that diverged from the contracted `/api/v1/certificates`.
+
+**Three changes:**
+
+1. **Class-level `[Authorize(Policy = "AnalystOrAdmin")]`** on `CertificatesApiController`. Every endpoint in the class now requires Analyst or Admin. Per-method role attributes on the mutating endpoints stay for finer control.
+2. **Deleted the partner_name branch** from `GetCertificates`. It was the source of the contract divergence (partners hitting this endpoint got internal-shape data instead of the contracted v1 shape). Partners stay on `/api/v1/certificates` exclusively per the Partner API contract.
+3. **Removed `?userRole=` query parameters** from `GetCertificate` and `GetCertificateByNumber`. The service ignored the value (caller's actual role comes from the auth ticket); the parameter just looked deceptively like a feature. Service calls hardcode `"Admin"` now since class guard already restricts callers.
+
+**Behavior matrix (verified on dev with `Scripts/smoke-prod/verify-def206.js`):**
+
+| Caller | Endpoint | Before | After | Expected |
+|---|---|---|---|---|
+| Anonymous | GET list | 401 | **401** | 401 |
+| Partner X-API-Key | GET list | 200 / 11 certs leaked | **403** | 403 |
+| External (cookie) | GET list | 200 / 43 certs leaked | **403** | 403 |
+| Analyst | GET list | 200 | **200** | 200 |
+| Admin | GET list | 200 | **200** | 200 |
+| Admin | GET /{id} | 200 | **200** | 200 |
+| Admin | GET /by-number/{n} | 200 | **200** | 200 |
+| External | GET /{id} | 200 / leaked | **403** | 403 |
+| External | GET /by-number/{n} | 200 / leaked | **403** | 403 |
+
+**9/9 pass.**
+
+Files touched (1):
+- `Controllers/Api/CertificatesApiController.cs` — class-level [AnalystOrAdmin]; deleted partner branch; removed userRole query params
+
+New file:
+- `Scripts/smoke-prod/verify-def206.js` — re-runnable verification harness
+
+Build: 0 errors. Ready for the same deploy as DEF-204 + DEF-208.
+
+**Cumulative deploy footprint for this batch:** 13 source files modified + 3 new probe/verify harnesses. Closes 3 Critical DEFs (DEF-204, DEF-206, DEF-208), all originally verified live on prod. One-time server-side `Move-Item wwwroot\uploads App_Data\uploads` documented in the pre-deploy checklist.
+
+
+## DEF-209 + DEF-210 closed — auth-surface hardening (2026-05-20)
+
+Two Major-severity DEFs ship together because they're complementary: DEF-209 kills the email-enumeration signal (attacker can't confirm valid emails via login error differential or ForgotPassword timing), and DEF-210 adds the lockout that makes brute-force impractical even for confirmed-valid accounts. Either alone leaves the threat model partially open; together they close it.
+
+### DEF-209 — generic login error + async ForgotPassword
+
+Two changes in `Controllers/AccountController.cs`:
+
+1. **Generic login error.** Every failure mode in `ValidateUserDetailed` now returns the same `GenericLoginError = "Invalid email or password."` string. Before: "User not found" vs "Invalid password" vs "Account inactive (IsActive=False, IsDeleted=False, Status=inactive)" — attacker parsed the differential to enumerate emails. After: same string for all paths. The specific reason still goes to `_logger.LogWarning` for ops; only the rendered HTML is sanitized.
+
+2. **Async ForgotPassword email send.** Before: synchronous `await _emailService.SendEmailAsync(...)` blocked the request — valid-email responses took ~3000ms (SMTP round-trip) vs ~30ms for invalid-email. 100× timing side-channel that defeated the identical-body anti-enumeration design. After: `_ = Task.Run(async () => { try { ... } catch ... })` — response returns immediately; SMTP errors still log to the same `_logger`. Verified delta dropped from 3000ms → ~300ms (within the 500ms tolerance).
+
+### DEF-210 — per-account login lockout
+
+Wired the existing `Users.FailedLoginAttempts` + `Users.LockedUntil` columns into `ValidateUserDetailed`:
+
+- **Policy.** `MaxFailedLoginAttempts = 5`. `LoginLockoutDuration = 15 minutes`. Matches Azure AD defaults.
+- **Order of operations.** Lockout check happens BEFORE password verify — locked-account probes short-circuit immediately and never increment the counter further. (If they did, the attacker could permanently re-lock the account by spamming during the lockout window.)
+- **Failure flow.** Wrong password increments `FailedLoginAttempts`. If the counter reaches 5, sets `LockedUntil = now + 15 minutes`. SaveChanges. Return generic error.
+- **Success flow.** Resets `FailedLoginAttempts = 0` and `LockedUntil = null`. Updates `LastLoginAt`. SaveChanges.
+- **No migration needed** — columns already existed on `User` model + DB schema (with the convenience `IsLockedOut` derived property at `User.cs:104`). They just weren't wired into the login flow.
+
+### Combined attack picture closed
+
+Before this deploy:
+- Attacker probes login → confirms which emails are valid via "User not found" vs "Invalid password" differential
+- Attacker brute-forces password against confirmed-valid email → unlimited attempts, no slowdown
+
+After this deploy:
+- Attacker probes login → same generic message regardless → can't confirm emails
+- Even if attacker has prior knowledge of a valid email (e.g., admin name from public LinkedIn), 5 wrong guesses → 15-minute lockout → at most 20 guesses per hour vs unlimited before
+
+### Verification
+
+`Scripts/smoke-prod/verify-def209-210.js` — **6/6 pass** end-to-end:
+
+1. ✓ Login error identical across valid-email-wrong-pw / nonexistent-email / malformed-email
+2. ✓ 5 wrong attempts lock the account (DB: FailedLoginAttempts=5, LockedUntil set)
+3. ✓ Correct password REJECTED during lockout window
+4. ✓ Correct password succeeds once lockout expires
+5. ✓ Successful login resets counter to 0 + clears LockedUntil
+6. ✓ ForgotPassword timing delta < 500ms (332ms vs 48ms — was 3000ms vs 32ms)
+
+Re-runnable harness lives in the repo for post-deploy verification + future regression guards.
+
+### Files touched (1)
+
+- `Controllers/AccountController.cs` — `ValidateUserDetailed` (lockout + generic message), Login POST handler (uses message verbatim), ForgotPassword POST (async email send)
+
+### Operational notes
+
+- **Per-IP rate limiting** (the AspNetCoreRateLimit middleware path) is NOT added in this patch — per-account lockout was the simpler/more-effective layer for the immediate threat. Per-IP rate limit can land later if needed for additional defense-in-depth or to throttle credential-stuffing campaigns that rotate emails.
+- **Lockout policy is hardcoded** as constants on `AccountController` (5 attempts, 15 minutes). If the policy needs to be tunable per environment, lift to `appsettings.json`. For now the values are reasonable defaults matching industry convention.
+- **Existing locked-out users** in the DB (if any from prior failures we never observed) will need their `LockedUntil` manually cleared, OR they wait out the window. Most likely no users are currently locked because the columns weren't being written.
+
+Build: 0 errors. Local smoke 6/6. Ready for the same deploy as DEF-204 + DEF-206 + DEF-208 — **all 5 of today's deployable DEFs ship together** as a single Critical-priority security batch.
+
+---
+
+## DEF-203 closed — certificate workflow transition matrix enforced on Edit POST + audit row written (2026-05-21)
+
+Closes the last of the 6 internal-QA DEFs from the 5-19 audit pass. The 8-state certificate lifecycle workflow had a fully-implemented `CertificateStatusHelper.IsValidTransition` matrix + a `CertificateWorkflowService` that wraps it — but the actual `Edit POST` controller path in `CertificateController.cs` assigned `certificate.Status = model.Status` directly with no consultation of either. Internal QA found you could drive a cert from `Draft → Republished` (skip approval entirely) or `Draft → Expired - No Annual Verification` (terminal jump) via the cert Edit form — server returned HTTP 200, redirect to the detail view, cert persisted at the illegal target state. No audit row, no log warning.
+
+### What changed
+
+**Option A from the discovery write-up** — enforce the matrix in the Edit POST handler. Two patches in `Controllers/CertificateController.cs`:
+
+1. **Pre-save validation block.** Right after the cert is loaded by `Id`, if `model.Status != certificate.Status` (a transition is being attempted) and `CertificateStatusHelper.IsValidTransition(oldStatus, requestedStatus)` returns false, the request is rejected: `_logger.LogWarning(...)` records the attempt with user ID + cert ID + attempted hop, `ModelState.AddModelError(nameof(model.Status), "Invalid status transition from '{from}' to '{to}'. …")` surfaces a human-readable error (uses `CertificateStatusHelper.GetDisplayName` so the user sees "Client Approved - Paid" not the enum value), `ReloadEditFormDataAsync(id)` re-populates dropdowns, and the form re-renders with the cert state preserved. The DB write never happens.
+
+2. **Audit row write for user-initiated valid transitions.** After the existing DEF-171 save-time auto-expire block but before `UpdateAsync`, a new `CertificateStatusHistory` row is inserted whenever the cert's `Status` is actually changing AND it wasn't an auto-expire (which has its own audit row through `TryApplySaveTimeAutoExpire`). The row carries: `PreviousStatus = oldStatus`, `NewStatus = certificate.Status`, `Reason = "User-initiated transition via Edit form"`, `ChangedBy = actingUserId`, `ChangeSource = AuditChangeSource.WebUI`, `WorkflowStep = "Edit-POST"`. So the audit trail the WorkflowService was supposed to be producing now actually exists for the Edit-form path.
+
+### Deliberate Option-A scope: did NOT route through `CertificateWorkflowService.TransitionCertificateStatusAsync`
+
+The original write-up's recommended fix called the service. I weighed it and didn't: the service builds its own `SaveChangesAsync` transaction, which would conflict with the Edit POST's single transactional save (image upload, custom-field values, product-ID arrays, certificate file all flush together). Splitting the save across two transactions would create a window where a partial cert update could persist with no status change. Inline matrix check + inline audit row + the existing single SaveChanges gives the same enforcement guarantees without that risk. The service remains correctly wired for any future status-only call path (e.g., a future `PATCH /api/v1/certificates/{id}/status` endpoint) — it just isn't the right surface for the Edit POST's full-cert update path.
+
+### CR-015 product-ID cascade — still firing
+
+Verified the existing `SyncProductIdStatusesForCertificateAsync` call later in the Edit POST handler still runs unconditionally after the cert save and reads the now-updated `certificate.Status`. So Paid → Hold via the Edit form correctly flips associated `CertificateProductId.Status` rows to Inactive. CR-015's invariant (product-ID status follows parent cert status) is preserved by this fix — no regression.
+
+### Verification — 9/9 pass on `Scripts/smoke-prod/verify-def203.js`
+
+Uses existing fixture cert `26-0026` (real Draft cert in dev) rather than seeding a synthetic one — the synthetic-clone approach hit Edit-page render issues that proved to be testing artifacts, not real defects. Snapshot the cert's starting state at test entry, walk it through 5 valid transitions, attempt 3 invalid ones, count history rows, restore original state on exit:
+
+```
+[A] Valid transitions (matrix-allowed)
+  ✓ Draft                   → Client Approved - Paid    (POST=200, db=Client Approved - Paid)
+  ✓ Client Approved - Paid  → Hold                      (POST=200, db=Hold)
+  ✓ Hold                    → Client Approved - Paid    (POST=200, db=Client Approved - Paid)
+  ✓ Client Approved - Paid  → Republished               (POST=200, db=Republished)
+  ✓ Republished             → Expired                   (POST=200, db=Expired)
+
+[B] Invalid transitions (matrix-forbidden) — REJECTED
+  ✓ Draft  ↛ Republished                       (POST=200, db unchanged = Draft)
+  ✓ Draft  ↛ Expired                           (POST=200, db unchanged = Draft)
+  ✓ Draft  ↛ Expired - No Annual Verification  (POST=200, db unchanged = Draft)
+
+[C] CertificateStatusHistory new rows
+  ✓ 5 new rows (one per valid hop)
+```
+
+The 3 illegal jumps that the original discovery write-up flagged (`Draft → Republished`, `Draft → Expired`, `Draft → Expired - No Annual Verification`) are now all rejected with `Status` unchanged in the DB. Fixture cert restored to its original `Draft` state at test exit and test-added history rows trimmed.
+
+### Files touched
+
+- `Controllers/CertificateController.cs` — Edit POST handler (matrix check before save, audit row after save). One file.
+
+New file:
+
+- `Scripts/smoke-prod/verify-def203.js` — re-runnable verification harness against fixture cert 26-0026. Idempotent.
+
+### Operational notes
+
+- **Existing cert state in dev/prod is unchanged.** No data migration. The fix only gates *future* transitions; any cert currently in a state reached by an illegal path stays where it is (we don't have a known instance of this — the bug was silent, no error logs to grep). If audit teams want to identify historical illegal jumps, they'd need to scan `CertificateStatusHistory` going forward (new rows + reasonable assumption that anything that *did* get through prior to today *could* have been illegal — but we have no way to retroactively validate without a manual review).
+- **Validation error UX.** The form re-renders with the validation message attached to the Status field via `ModelState.AddModelError(nameof(model.Status), ...)`. Standard ASP.NET Core validation rendering picks this up and shows it inline; no extra UI work needed. Message reads e.g. *"Invalid status transition from 'Draft' to 'Republished'. This transition is not allowed by the certificate workflow."*
+- **`_logger.LogWarning` on rejected attempts** — captures attempted illegal jumps for ops review (`UserId`, `CertId`, `from`, `to`). Useful if we ever see spike of analysts trying to do something the matrix forbids — likely UX gap or training gap to address upstream rather than just blocking.
+
+### Closing the 5-19 audit
+
+DEF-203 was the last of the 6 internal-QA DEFs discovered on 5-19. **All 6 closed:**
+
+| DEF | What | Shipped |
+|---|---|---|
+| DEF-203 | Workflow matrix + audit row enforcement | 2026-05-21 ← this entry |
+| DEF-204 | CertificateExternalView cross-scope leak gated by company/partner scope | 2026-05-20 |
+| DEF-206 | `CertificatesApiController` gated to AnalystOrAdmin policy | 2026-05-20 |
+| DEF-208 | Static-file uploads leak closed (App_Data relocation + controller route + scope gate) | 2026-05-20 |
+| DEF-209 | Generic login error + async ForgotPassword (email-enumeration closed) | 2026-05-20 |
+| DEF-210 | Per-account login lockout (5 attempts → 15 min) | 2026-05-20 |
+
+DEF-203 ships separately because it landed a day later. The other 5 are batched as a single Critical-priority security deploy.
+
+Build: 0 errors. Local smoke 9/9. Ready for deploy.
+

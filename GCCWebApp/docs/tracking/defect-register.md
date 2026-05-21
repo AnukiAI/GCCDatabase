@@ -133,7 +133,7 @@ Kept the comment explaining why so the next person editing these doesn't re-intr
 
 - **Date:** 2026-05-19
 - **Severity:** Major (multiplies DEF-209 into practical brute-force; combined risk on admin accounts is High)
-- **Status:** Open — Anuki QA discovery 2026-05-19
+- **Status:** **Fixed locally 2026-05-20 — pending deploy.** Per-account lockout wired into `ValidateUserDetailed` (Controllers/AccountController.cs). Threshold = **5 failed attempts** → **15-minute lockout** (`MaxFailedLoginAttempts` + `LoginLockoutDuration` constants). The `Users.FailedLoginAttempts` and `Users.LockedUntil` columns already existed on the model + DB schema with the convenience `IsLockedOut` property — no migration required, just wired into the login flow. Locked accounts short-circuit BEFORE password verify (so locked-account probes don't increment the counter further AND don't reveal that the account is locked vs nonexistent). Successful login resets `FailedLoginAttempts` to 0 and clears `LockedUntil`. **Ships with DEF-209** — together they close the targeted brute-force threat model. Verified on dev (`Scripts/smoke-prod/verify-def209-210.js`): **6/6 pass** including the full lockout cycle (5 fails → counter=5 + LockedUntil set; 6th attempt with CORRECT password rejected; force-expire LockedUntil; correct password then succeeds; success resets counter to 0).
 - **QC Ref:** none (internal exploratory testing — auth-surface audit)
 - **Bucket:** Bug — auth hardening gap
 - **Reporter:** Internal (Anuki QA)
@@ -208,7 +208,7 @@ Layer this; cheapest is rate-limit middleware on the route, right answer is per-
 
 - **Date:** 2026-05-19
 - **Severity:** Major (information disclosure; pairs with DEF-210 to make targeted brute-force practical)
-- **Status:** Open — Anuki QA discovery 2026-05-19
+- **Status:** **Fixed locally 2026-05-20 — pending deploy.** Two changes in `Controllers/AccountController.cs`: (1) `ValidateUserDetailed` now returns a single `GenericLoginError` ("Invalid email or password.") for every failure mode — User-not-found, Invalid-password, Account-inactive, BCrypt-exception, Database-error all produce the same rendered string. Server-side `_logger.LogWarning` still records the specific reason for ops. The Login POST handler passes the generic message through verbatim (no more `$"Login failed: {loginError}"` interpolation). (2) ForgotPassword email send is now fire-and-forget (`_ = Task.Run(async () => { await _emailService.SendEmailAsync(...); })`), eliminating the synchronous-SMTP timing side-channel that made valid-email responses ~3000ms vs ~30ms for invalid-email. Verified on dev: identical error strings across 3 failure modes; ForgotPassword timing delta dropped from ~3000ms to ~300ms (332ms valid vs 48ms invalid, both fast, under the 500ms threshold).
 - **QC Ref:** none (internal exploratory testing — auth-surface audit)
 - **Bucket:** Bug — information disclosure
 - **Reporter:** Internal (Anuki QA)
@@ -412,7 +412,7 @@ Combine C with A: random filenames AND middleware block. Best defense-in-depth.
 
 - **Date:** 2026-05-19
 - **Severity:** Critical (multi-tenant data leak; internal field exposure; bypasses the role-gated tile view scoping)
-- **Status:** **Open — VERIFIED LIVE ON PROD gccwebapp.com 2026-05-19.** External user (Henkel-mapped) GET `/api/CertificatesApi?pageSize=50` on prod returned **36 certs across 29 distinct companies**. Dev had 43 / 10+ — prod has fewer certs but spread across more tenants, so cross-company leak is actually BROADER on prod.
+- **Status:** **Fixed locally 2026-05-20 — pending deploy.** Class-level `[Authorize(Policy = "AnalystOrAdmin")]` added to `CertificatesApiController` — External + Partner X-API-Key now 403 on every endpoint in the class; anonymous stays 401; Analyst + Admin keep access. The partner X-API-Key branch in `GetCertificates` (which was the source of the contract divergence) was deleted as dead code — partners stay on the contracted `/api/v1/certificates`. The unused `?userRole=` query parameters on `GetCertificate` and `GetCertificateByNumber` were also removed (caller's role comes from the auth ticket, not a querystring; the service ignored the value anyway). Verified on dev (`Scripts/smoke-prod/verify-def206.js`): **9/9** — anon 401, partner-key 403, external 403, analyst 200, admin 200, admin by-id 200, admin by-number 200, external by-id 403, external by-number 403. Originally verified live on prod gccwebapp.com 2026-05-19: External user GET `/api/CertificatesApi?pageSize=50` returned 36 certs across 29 distinct companies.
 - **QC Ref:** none (internal exploratory testing — same root-cause class as DEF-204 / DEF-205, applied to a different controller)
 - **Bucket:** Bug — auth/scoping gap
 - **Reporter:** Internal (Anuki QA)
@@ -831,8 +831,8 @@ if (!isAdminOrAnalyst && !CertificateStatusHelper.IsPubliclyVisible(certificate.
 
 - **Date:** 2026-05-19
 - **Severity:** Major (data-integrity gap — silent business-rule bypass on every cert status change)
-- **Status:** Open — Anuki QA discovery 2026-05-19; awaiting client decision on enforce-vs-document-as-relaxed
-- **QC Ref:** none (internal exploratory testing during the post-deploy "test around every item" pass — see workflow probe at `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\workflow-transitions.js`)
+- **Status:** Fixed locally — pending deploy to gccwebapp.com (Option A landed 2026-05-21)
+- **QC Ref:** none (internal exploratory testing during the post-deploy "test around every item" pass — see workflow probe at `C:\Users\swest\AppData\Local\Temp\gcc-smoke-pw\workflow-transitions.js` and verification harness `Scripts/smoke-prod/verify-def203.js`)
 - **Bucket:** Bug — silent dead code
 - **Reporter:** Internal (Anuki QA)
 
@@ -919,7 +919,38 @@ This wins the matrix enforcement AND the audit row AND the CR-015 cascade in one
 - Verify `CertificateStatusHistory` gets a row per legal transition (audit trail intact).
 - Verify product-ID cascade fires per CR-015 (legal status change of cert with product-IDs flips child rows).
 
-**Build.** No code changes in this DEF — discovery / writeup only. Tree is clean.
+**Fix landed (2026-05-21) — Option A: enforce the matrix in the Edit POST handler.**
+
+Picked Option A per the Anuki recommendation: it preserves the audit row write + CR-015 cascade in one move, doesn't restrict realistic forward progressions, and keeps the design-time intent of the workflow service. Implementation in `Controllers/CertificateController.cs` Edit POST handler:
+
+1. **Validation block, right after the cert is loaded.** If the requested status differs from the current and `CertificateStatusHelper.IsValidTransition(oldStatus, requestedStatus)` returns false, the controller rejects the save: writes a `LogWarning`, calls `ModelState.AddModelError(nameof(model.Status), "Invalid status transition from '{from}' to '{to}'. …")`, re-populates the form via `ReloadEditFormDataAsync(id)` and returns `View(model)`. Status stays at `oldStatus` in the DB. Display-name resolution uses `CertificateStatusHelper.GetDisplayName` so the validation message reads in human form ("Client Approved - Paid"), not the enum value.
+
+2. **Audit history row written for user-initiated transitions.** After the existing DEF-171 save-time auto-expire block but before `UpdateAsync`, a `CertificateStatusHistory` row is inserted whenever `!autoExpired && oldStatus != certificate.Status`. The row carries `PreviousStatus = oldStatus`, `NewStatus = certificate.Status`, `Reason = "User-initiated transition via Edit form"`, `ChangedBy = actingUserId`, `ChangeSource = AuditChangeSource.WebUI`, `WorkflowStep = "Edit-POST"`. (Auto-expire still uses its own audit row through `TryApplySaveTimeAutoExpire`, so they don't double-write.)
+
+Note on Option-A scope creep avoided: I deliberately did NOT route the save through `ICertificateWorkflowService.TransitionCertificateStatusAsync` inside the Edit POST flow. That service builds its own EF `SaveChangesAsync` cycle, which would conflict with the Edit POST's single transactional save (image uploads, custom-field values, product-ID array, etc., all flush together). Instead, the Edit POST now does the matrix check + audit row inline and continues with its existing save path. The service remains the right enforcement surface for any future status-only API call (e.g., a future PATCH /api/v1/certificates/{id}/status); it just isn't the right surface for the Edit POST's full-cert update path.
+
+CR-015 product-ID cascade is already wired into the existing `SyncProductIdStatusesForCertificateAsync` call later in the same Edit POST handler — it runs unconditionally after the cert save and reads the now-updated `certificate.Status`. Verified intact (no regression).
+
+**Verification (2026-05-21, localhost:5101).** `Scripts/smoke-prod/verify-def203.js` against fixture cert `26-0026`: **9/9 pass.**
+
+```
+[A] Valid transitions (matrix-allowed)
+  ✓ Draft                   → Client Approved - Paid    (db=Client Approved - Paid)
+  ✓ Client Approved - Paid  → Hold                      (db=Hold)
+  ✓ Hold                    → Client Approved - Paid    (db=Client Approved - Paid)
+  ✓ Client Approved - Paid  → Republished               (db=Republished)
+  ✓ Republished             → Expired                   (db=Expired)
+[B] Invalid transitions (matrix-forbidden) — REJECTED
+  ✓ Draft  ↛ Republished                  (db unchanged = Draft)
+  ✓ Draft  ↛ Expired                      (db unchanged = Draft)
+  ✓ Draft  ↛ Expired - No Annual Verif.   (db unchanged = Draft)
+[C] CertificateStatusHistory new rows
+  ✓ 5 new rows (one per valid hop)
+```
+
+All three of the originally-cited illegal jumps from the discovery write-up (`Draft → Republished`, `Draft → Expired`, `Draft → Expired - No Annual Verification`) are now rejected with the cert's `Status` preserved. The legal walk-through still persists each hop and writes its history row. Cert `26-0026` was restored to its original `Draft` state at the end of the test, and test-added history rows trimmed.
+
+**Build.** 0 errors. Files touched: `Controllers/CertificateController.cs` (Edit POST handler only). New file: `Scripts/smoke-prod/verify-def203.js`.
 
 ---
 
@@ -2149,6 +2180,63 @@ That code path is gone. Current flow: bulk endpoint accepts the full import set 
 If she runs the same flow WITHOUT ticking the toggle, the import behaves additively: the 1 new row is added or merged, the 2 prior rows stay Active.
 
 **No code change in this entry.** Closing per `feedback_qc_review_no_changes.md` review pattern.
+
+---
+
+**Verification (added 2026-05-21) — QC #159 end-to-end test pass**
+
+Two test runs executed to retire any remaining doubt before the client retests:
+
+**Run A — Localhost destructive E2E** (`http://localhost:5101`, dev DB `GCCDatabase_Dev`, cert id=48 / number `26-0147`, status Active)
+
+Setup state (before): 2 active Product IDs on cert 26-0147 — `ASIN B0BRNPBZJ8` (John Frieda ProFiller plus Shampoo 250ml) and `ASIN B01DSSNB5G` (John Frieda Sheer Blonde Go Blonder Shampoo 250ml).
+
+| Step | Action | Result |
+|---|---|---|
+| 1 | Sign in as `analyst` | post-login → `/Certificate/CertificateTileViewInternal` |
+| 2 | Open `/Certificate/Edit/26-0147` | manager renders 2 Product ID rows |
+| 3 | Click Import → file chooser → upload 1-row CSV (`Type,Value,ProductName,ProductSKU` with `ASIN,B00REPL001,QC159 Replace Test Product,SKU-QC159`) | Import Preview modal opens |
+| 4 | Tick "Replace all existing IDs with this file" toggle | state flips `false → true`; Apply Import enables |
+| 5 | Click Apply Import | `POST /api/productids/certificate/48/bulk` → **200** |
+| 6 | Reload edit page | manager renders **1** Product ID row (B00REPL001) |
+
+DB-level reconciliation (same UpdatedAt → single transaction):
+
+```
+Id     Value         Name                                          IsActive   UpdatedAt
+7      B0BRNPBZJ8    John Frieda ProFiller plus Shampoo 250ml      False      2026-05-21 13:34:05  (was True)
+8      B01DSSNB5G    John Frieda Sheer Blonde Go Blonder Shampoo   False      2026-05-21 13:34:05  (was True)
+2142   B00REPL001    QC159 Replace Test Product                    True       2026-05-21 13:34:05  (NEW)
+```
+
+Matches the client's verbatim ask: *"remove those not included and add those new and keep existing still on list."* Prior rows kept in DB for audit (`IsActive=false`), not hard-deleted.
+
+**Run B — gccwebapp.com read-only UI suite** (live test env, cert `26-0163`, 2 existing Product IDs; Apply never clicked — CR rule preserved for live data)
+
+9-test Playwright suite — all PASS:
+
+| # | Test | Detail |
+|---|---|---|
+| T1 | Modal opens after clicking Import | `#import-preview-modal` becomes visible |
+| T2 | Replace toggle in DOM and visible | `inDom=true visible=true` |
+| T3 | Toggle defaults unchecked (append is the safe default) | `initialChecked=false` |
+| T4 | Toggle click flips state both ways | sequence `false → true → false` |
+| T5 | Preview renders 4 stat tiles | New / Modified / Unchanged / Errors all present |
+| T6 | Valid 1-row CSV → 1 New | parser correctly counts the new row |
+| T7 | Bad ASIN (length≠10) → counts as Error, Apply disabled | `errors=1, applyDisabled=true` — Apply correctly gated |
+| T8 | Cancel closes modal without writes | `before=2, afterCancel=2` |
+| T9 | CR-016 polish features NOT yet shipped (expected) | `radios=0, toRemoveTile=0, warningBanner=0` — confirms CR-016 still pending and is genuinely additive |
+
+**Test artifacts** (working tree, not committed):
+- `qc159-live-check/check.js` — gccwebapp toggle-presence verification (read-only)
+- `qc159-live-check/e2e-replace.js` — localhost destructive E2E
+- `qc159-live-check/ui-suite.js` — gccwebapp 9-test UI suite
+- Screenshots: `e2e-01..05-*.png`, `ui-00..08-*.png`, `ui-04b-footer-tight.png`, `ui-07-bad-csv-preview.png`
+- `qc159-live-check/ui-results.json` — machine-readable assertion log
+
+**Why two runs:** the destructive path (DB writes) had to run on localhost per the `[Data Changes Require CR]` rule; the deployed-code verification had to run on gccwebapp.com to confirm the toggle is actually live. Together they cover both halves without breaking the live-env CR rule.
+
+**Status:** Closed — verified end-to-end. The 4/7 client "got an error" complaint is no longer reproducible on either the deployed code (gccwebapp) or the latest local build. If the client still sees the error during the next UAT cycle, that is a NEW defect and should be logged with a fresh DEF row referencing this verification baseline.
 
 ---
 

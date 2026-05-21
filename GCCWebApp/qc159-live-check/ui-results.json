@@ -1,0 +1,56 @@
+[
+  {
+    "id": "T1",
+    "name": "Modal opens after Import click",
+    "status": "PASS",
+    "notes": "#import-preview-modal visible"
+  },
+  {
+    "id": "T2",
+    "name": "Replace toggle is in DOM and visible",
+    "status": "PASS",
+    "notes": "inDom=true visible=true"
+  },
+  {
+    "id": "T3",
+    "name": "Toggle defaults unchecked (append is default)",
+    "status": "PASS",
+    "notes": "initialChecked=false"
+  },
+  {
+    "id": "T4",
+    "name": "Toggle click flips state (false→true→false)",
+    "status": "PASS",
+    "notes": "clicks: false→true→false"
+  },
+  {
+    "id": "T5",
+    "name": "Preview shows New / Modified / Unchanged / Errors tiles",
+    "status": "PASS",
+    "notes": "new=true mod=true unch=true err=true"
+  },
+  {
+    "id": "T6",
+    "name": "Valid 1-row CSV → stat shows 1 New",
+    "status": "PASS",
+    "notes": "parsed new count=1"
+  },
+  {
+    "id": "T8",
+    "name": "Cancel preserves existing data (no Apply was clicked)",
+    "status": "PASS",
+    "notes": "before=2 afterCancel=2"
+  },
+  {
+    "id": "T7",
+    "name": "Invalid ASIN counts as Error, Apply disabled",
+    "status": "PASS",
+    "notes": "errors=1 applyDisabled=true"
+  },
+  {
+    "id": "T9",
+    "name": "CR-016 UX polish (radios, To-Remove tile, warning) NOT yet shipped",
+    "status": "PASS",
+    "notes": "radios=0 toRemoveTile=0 warningBanner=0 — all 0 means CR-016 still pending (expected)"
+  }
+]

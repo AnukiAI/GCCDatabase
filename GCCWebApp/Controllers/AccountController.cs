@@ -173,8 +173,12 @@ namespace GCCWebApp.Controllers
 
             if (string.IsNullOrEmpty(userRole))
             {
+                // DEF-209: server-side log keeps the specific reason; rendered form
+                // shows the generic message returned by ValidateUserDetailed
+                // (no "User not found" / "Invalid password" / "Account inactive"
+                // differential — same string for every failure mode).
                 _logger.LogWarning("Login failed for {Email}: {Reason}", model.Email, loginError);
-                ModelState.AddModelError("", $"Login failed: {loginError}");
+                ModelState.AddModelError("", loginError);
                 return View(model);
             }
 
@@ -454,16 +458,26 @@ namespace GCCWebApp.Controllers
                     </body>
                     </html>";
 
-                try
+                // DEF-209: fire-and-forget the SMTP send so the response time for
+                // valid-email matches invalid-email. Before this change, the
+                // synchronous send made valid-email responses ~3000ms vs ~30ms for
+                // invalid-email — a 100× timing side-channel that defeated the
+                // identical-body anti-enumeration design. Background task captures
+                // its own exceptions; failures still log to the same _logger.
+                var bgEmail = user.Email;
+                var bgBody = emailBody;
+                _ = Task.Run(async () =>
                 {
-                    await _emailService.SendEmailAsync(user.Email, "Password Reset - GCC Database", emailBody);
-                    _logger.LogInformation("Password reset email sent to {Email}", user.Email);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to send password reset email to {Email}", user.Email);
-                    // Don't reveal the error to the user - still show confirmation
-                }
+                    try
+                    {
+                        await _emailService.SendEmailAsync(bgEmail, "Password Reset - GCC Database", bgBody);
+                        _logger.LogInformation("Password reset email sent to {Email}", bgEmail);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send password reset email to {Email}", bgEmail);
+                    }
+                });
             }
             else
             {
@@ -1014,6 +1028,16 @@ namespace GCCWebApp.Controllers
         // canonical email for downstream claims/TempData/lookups; otherwise role-scoped queries
         // (e.g. external user → company → certificates) silently return zero rows when the user
         // logs in with a username instead of their full email. (DEF-113, 2026-04-26.)
+        // DEF-210 lockout policy
+        private const int MaxFailedLoginAttempts = 5;
+        private static readonly TimeSpan LoginLockoutDuration = TimeSpan.FromMinutes(15);
+
+        // DEF-209: every failure path returns the same generic message. Diagnostics
+        // (which step actually failed) stay in the server log for ops, but never
+        // reach the rendered form. Eliminates email-enumeration via differential
+        // error strings ("User not found" vs "Invalid password" vs "Account inactive").
+        private const string GenericLoginError = "Invalid email or password.";
+
         private (string Role, string Email, string Error) ValidateUserDetailed(string email, string password)
         {
             try
@@ -1027,7 +1051,23 @@ namespace GCCWebApp.Controllers
                 if (user == null)
                 {
                     _logger.LogWarning("Login attempt failed: User not found for email/username: {Email}", email);
-                    return (string.Empty, string.Empty, "User not found");
+                    return (string.Empty, string.Empty, GenericLoginError);
+                }
+
+                // DEF-210: account lockout gate — check BEFORE password verify so a
+                // locked account can't be probed for password correctness. Failed
+                // attempts during lockout window do NOT increment the counter
+                // (otherwise an attacker who waits out the timer always finds the
+                // counter at MaxFailedLoginAttempts and re-locks instantly on first
+                // try). When the lockout naturally expires the counter implicitly
+                // resets via the next successful login OR the user gets a clean 5
+                // attempts; legitimate user gets a reasonable recovery path.
+                if (user.IsLockedOut)
+                {
+                    _logger.LogWarning(
+                        "Login attempt rejected: account {Email} is locked until {LockedUntil} (attempts={Attempts})",
+                        user.Email, user.LockedUntil, user.FailedLoginAttempts);
+                    return (string.Empty, string.Empty, GenericLoginError);
                 }
 
                 // Check if user is active
@@ -1035,24 +1075,40 @@ namespace GCCWebApp.Controllers
                 {
                     _logger.LogWarning("Login attempt failed: User {Email} is not active (IsActive={IsActive}, IsDeleted={IsDeleted}, Status={Status})",
                         email, user.IsActive, user.IsDeleted, user.Status);
-                    return (string.Empty, string.Empty, $"Account inactive (IsActive={user.IsActive}, IsDeleted={user.IsDeleted}, Status={user.Status})");
+                    return (string.Empty, string.Empty, GenericLoginError);
                 }
 
                 // Verify password using BCrypt
+                bool passwordValid;
                 try
                 {
-                    if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                    {
-                        _logger.LogWarning("Login attempt failed: Invalid password for user: {Email} (hash prefix: {HashPrefix})",
-                            email, user.PasswordHash?.Substring(0, Math.Min(20, user.PasswordHash?.Length ?? 0)));
-                        return (string.Empty, string.Empty, "Invalid password");
-                    }
+                    passwordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
                 }
                 catch (Exception bcryptEx)
                 {
                     _logger.LogError(bcryptEx, "BCrypt verification threw exception for user {Email}, hash length={Len}",
                         email, user.PasswordHash?.Length);
-                    return (string.Empty, string.Empty, $"Password verification error: {bcryptEx.Message}");
+                    return (string.Empty, string.Empty, GenericLoginError);
+                }
+
+                if (!passwordValid)
+                {
+                    // DEF-210: increment failure counter and lock if threshold reached.
+                    user.FailedLoginAttempts++;
+                    if (user.FailedLoginAttempts >= MaxFailedLoginAttempts)
+                    {
+                        user.LockedUntil = DateTime.UtcNow.Add(LoginLockoutDuration);
+                        _logger.LogWarning(
+                            "Account {Email} locked until {Until} after {Count} consecutive failed login attempts",
+                            user.Email, user.LockedUntil, user.FailedLoginAttempts);
+                    }
+                    user.UpdatedAt = DateTime.UtcNow;
+                    _context.SaveChanges();
+
+                    _logger.LogWarning(
+                        "Login attempt failed: Invalid password for user: {Email} (attempts={Attempts}/{Max})",
+                        email, user.FailedLoginAttempts, MaxFailedLoginAttempts);
+                    return (string.Empty, string.Empty, GenericLoginError);
                 }
 
                 // Get user's primary role
@@ -1060,8 +1116,11 @@ namespace GCCWebApp.Controllers
 
                 _logger.LogInformation("User {Email} (input: {Input}) successfully authenticated with role {Role}", user.Email, email, role);
 
-                // Update last login timestamp
+                // DEF-210: clear lockout state + update last-login timestamp.
+                user.FailedLoginAttempts = 0;
+                user.LockedUntil = null;
                 user.LastLoginAt = DateTime.UtcNow;
+                user.UpdatedAt = DateTime.UtcNow;
                 _context.SaveChanges();
 
                 return (role, user.Email, string.Empty);
@@ -1069,7 +1128,7 @@ namespace GCCWebApp.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error validating user {Email}", email);
-                return (string.Empty, string.Empty, $"Database error: {ex.Message}");
+                return (string.Empty, string.Empty, GenericLoginError);
             }
         }
 

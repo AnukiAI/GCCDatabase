@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenCircle Certified Database — User Guide</title>
+    <style>
+        :root {
+            --gcc-green: #2E7D32;
+            --gcc-green-light: #4CAF50;
+            --gcc-green-bg: #E8F5E9;
+            --gcc-dark: #1B5E20;
+            --accent-blue: #1565C0;
+            --accent-blue-light: #E3F2FD;
+            --accent-blue-bg: #E3F2FD;
+            --accent-purple: #6A1B9A;
+            --accent-purple-bg: #F3E5F5;
+            --accent-teal: #00838F;
+            --accent-teal-bg: #E0F7FA;
+            --warning-orange: #E65100;
+            --warning-orange-light: #FFF3E0;
+            --neutral-50: #FAFAFA;
+            --neutral-100: #F5F5F5;
+            --neutral-200: #EEEEEE;
+            --neutral-300: #E0E0E0;
+            --neutral-600: #757575;
+            --neutral-700: #616161;
+            --neutral-800: #424242;
+            --neutral-900: #212121;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--neutral-800);
+            background: #fff;
+        }
+
+        /* --- COVER --- */
+        .cover {
+            background: linear-gradient(135deg, var(--gcc-dark) 0%, var(--gcc-green) 100%);
+            color: #fff;
+            padding: 28px 60px 24px;
+        }
+        .cover .logo-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .cover .company {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.85;
+        }
+        .cover .meta {
+            font-size: 12px;
+            opacity: 0.85;
+            text-align: right;
+            line-height: 1.4;
+        }
+        .cover h1 {
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+        .cover .subtitle {
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0.9;
+            max-width: 720px;
+        }
+        .cover .footer-line {
+            margin-top: 14px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.55;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 8px;
+        }
+
+        /* --- LAYOUT --- */
+        .content {
+            max-width: 1040px;
+            margin: 0 auto;
+            padding: 48px 60px 96px;
+        }
+
+        h2 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--gcc-dark);
+            margin: 56px 0 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gcc-green-bg);
+            scroll-margin-top: 20px;
+        }
+        h2:first-child { margin-top: 0; }
+
+        h3 {
+            font-size: 19px;
+            font-weight: 600;
+            color: var(--neutral-900);
+            margin: 32px 0 12px;
+            scroll-margin-top: 20px;
+        }
+
+        h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--neutral-800);
+            margin: 20px 0 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        p {
+            margin-bottom: 14px;
+            color: var(--neutral-700);
+        }
+
+        ul, ol {
+            margin: 0 0 16px 22px;
+            color: var(--neutral-700);
+        }
+        li { margin-bottom: 6px; }
+
+        a { color: var(--accent-blue); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        code {
+            background: var(--neutral-100);
+            border: 1px solid var(--neutral-200);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            color: var(--neutral-900);
+        }
+
+        /* --- INTRO / CALLOUT BOXES --- */
+        .callout {
+            border-left: 4px solid var(--gcc-green);
+            background: var(--gcc-green-bg);
+            border-radius: 0 8px 8px 0;
+            padding: 18px 22px;
+            margin: 20px 0 28px;
+        }
+        .callout p:last-child { margin-bottom: 0; }
+        .callout-info  { border-left-color: var(--accent-blue); background: var(--accent-blue-bg); }
+        .callout-warn  { border-left-color: var(--warning-orange); background: var(--warning-orange-light); }
+        .callout-tip   { border-left-color: var(--accent-teal); background: var(--accent-teal-bg); }
+        .callout-label {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .callout .callout-label { color: var(--gcc-dark); }
+        .callout-info .callout-label  { color: var(--accent-blue); }
+        .callout-warn .callout-label  { color: var(--warning-orange); }
+        .callout-tip .callout-label   { color: var(--accent-teal); }
+
+        /* --- TABLE OF CONTENTS --- */
+        .toc {
+            background: var(--neutral-50);
+            border: 1px solid var(--neutral-200);
+            border-radius: 8px;
+            padding: 28px 32px;
+            margin: 24px 0 8px;
+        }
+        .toc h2 {
+            margin: 0 0 16px;
+            padding-bottom: 0;
+            border-bottom: none;
+            font-size: 18px;
+        }
+        .toc ol {
+            margin-left: 22px;
+            font-size: 15px;
+        }
+        .toc ol ol {
+            margin-top: 4px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--neutral-600);
+        }
+        .toc li { margin-bottom: 6px; }
+        .toc-group-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gcc-dark);
+            margin: 14px 0 6px;
+        }
+        .toc-group-label:first-of-type { margin-top: 0; }
+        .toc ol { margin-bottom: 4px; }
+        .toc .toc-note {
+            font-size: 13px;
+            color: var(--neutral-600);
+            margin-top: 14px;
+            font-style: italic;
+        }
+        /* Step subheaders inside walkthroughs */
+        h5 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--neutral-900);
+            margin: 18px 0 8px;
+        }
+
+        /* --- ROLE BADGES --- */
+        .role-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 4px 0 16px;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            border: 1px solid transparent;
+        }
+        .role-admin     { background: var(--gcc-green-bg);    color: var(--gcc-dark);      border-color: var(--gcc-green); }
+        .role-analyst   { background: var(--accent-blue-bg);  color: var(--accent-blue);   border-color: var(--accent-blue); }
+        .role-external  { background: var(--accent-purple-bg);color: var(--accent-purple); border-color: var(--accent-purple); }
+        .role-partner   { background: var(--accent-teal-bg);  color: var(--accent-teal);   border-color: var(--accent-teal); }
+        .role-public    { background: var(--neutral-100);     color: var(--neutral-700);   border-color: var(--neutral-300); }
+
+        /* --- ROLE INTRO CARDS --- */
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin: 16px 0 28px;
+        }
+        .role-card {
+            border: 1px solid var(--neutral-200);
+            border-radius: 8px;
+            padding: 18px 20px;
+            background: #fff;
+        }
+        .role-card h4 {
+            margin: 0 0 8px;
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 15px;
+        }
+        .role-card p { font-size: 14px; margin-bottom: 0; }
+
+        /* --- WORKFLOW STEPS --- */
+        .workflow-steps {
+            counter-reset: step;
+            list-style: none;
+            margin: 16px 0 24px;
+            padding: 0;
+        }
+        .workflow-steps li {
+            position: relative;
+            padding: 14px 18px 14px 56px;
+            margin-bottom: 10px;
+            background: #fff;
+            border: 1px solid var(--neutral-200);
+            border-left: 4px solid var(--gcc-green);
+            border-radius: 6px;
+            counter-increment: step;
+        }
+        .workflow-steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gcc-green);
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .workflow-steps .step-title {
+            font-weight: 600;
+            color: var(--neutral-900);
+            display: block;
+            margin-bottom: 2px;
+        }
+        .workflow-steps .step-detail {
+            font-size: 14px;
+            color: var(--neutral-700);
+        }
+
+        /* --- TABLES --- */
+        .table-wrap { overflow-x: auto; margin: 16px 0 24px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: #fff;
+        }
+        thead th {
+            background: var(--neutral-100);
+            color: var(--neutral-800);
+            font-weight: 600;
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 2px solid var(--neutral-300);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        tbody td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--neutral-200);
+            vertical-align: top;
+            color: var(--neutral-700);
+        }
+        tbody td strong { color: var(--neutral-900); }
+        tbody tr:hover { background: var(--neutral-50); }
+        tbody td.req { color: var(--warning-orange); font-weight: 600; }
+        tbody td.opt { color: var(--neutral-600); }
+
+        /* --- FAQ --- */
+        details {
+            border: 1px solid var(--neutral-200);
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            background: #fff;
+        }
+        details summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--neutral-900);
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        details summary::-webkit-details-marker { display: none; }
+        details summary::after {
+            content: '+';
+            color: var(--gcc-green);
+            font-size: 20px;
+            font-weight: 700;
+        }
+        details[open] summary::after { content: '–'; }
+        details summary + * { margin-top: 10px; }
+
+        /* --- KEYBOARD HINTS --- */
+        kbd {
+            background: var(--neutral-100);
+            border: 1px solid var(--neutral-300);
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--neutral-800);
+        }
+
+        /* --- COMING SOON LIST --- */
+        .coming-soon-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px 16px;
+            margin: 12px 0 20px;
+        }
+        .coming-soon-item {
+            font-size: 14px;
+            color: var(--neutral-700);
+            padding: 8px 12px;
+            background: var(--neutral-50);
+            border: 1px dashed var(--neutral-300);
+            border-radius: 4px;
+        }
+        .coming-soon-item .label {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--neutral-600);
+            margin-right: 6px;
+        }
+
+        /* --- PRINT --- */
+        @media print {
+            .cover { padding: 40px; }
+            .content { padding: 24px 40px; }
+            h2 { page-break-after: avoid; }
+            .role-card, .workflow-steps li { page-break-inside: avoid; }
+            details { page-break-inside: avoid; }
+            details > * { display: block !important; }
+            details summary::after { content: ''; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- COVER                                                          -->
+<!-- ============================================================ -->
+<section class="cover">
+    <div class="logo-bar">
+        <div class="company">Anuki Consulting</div>
+        <div class="meta">
+            Version 1.0<br>
+            Prepared: May 2026<br>
+            For: GreenCircle Certified
+        </div>
+    </div>
+    <h1>GreenCircle Certified Database</h1>
+    <div class="subtitle">User Guide — How to use the GCC certification management platform. Covers internal (Admin, Analyst) and external (Company users, Partners) workflows with field-level reference.</div>
+    <div class="footer-line">Confidential — For internal training and onboarding</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- MAIN CONTENT                                                   -->
+<!-- ============================================================ -->
+<div class="content">
+
+    <!-- TABLE OF CONTENTS -->
+    <nav class="toc" aria-label="Table of contents">
+        <h2>Contents</h2>
+        <p class="toc-group-label">Getting oriented</p>
+        <ol>
+            <li><a href="#about">About this guide</a></li>
+            <li><a href="#roles">Who uses the platform</a></li>
+            <li><a href="#getting-started">Getting started — signing in</a></li>
+        </ol>
+        <p class="toc-group-label">Certificates</p>
+        <ol start="4">
+            <li><a href="#cert-upload">Uploading a certificate</a></li>
+            <li><a href="#cert-edit">Editing a certificate</a></li>
+            <li><a href="#cert-import">Bulk-importing certificates</a></li>
+            <li><a href="#cert-detail">The certificate detail page</a></li>
+            <li><a href="#cert-workflow">The 8-state certificate workflow</a></li>
+            <li><a href="#cert-tile">Certificate tile view — browse, filter, search</a></li>
+            <li><a href="#cert-external">Company-user tile view</a></li>
+            <li><a href="#cert-export">Exporting to CSV</a></li>
+        </ol>
+        <p class="toc-group-label">Companies &amp; products</p>
+        <ol start="12">
+            <li><a href="#company-mgmt">Company Management</a></li>
+            <li><a href="#product-mgmt">Product Management</a></li>
+            <li><a href="#product-types">Product Types (3-level hierarchy)</a></li>
+            <li><a href="#product-search">Searching by product identifier</a></li>
+        </ol>
+        <p class="toc-group-label">Administration</p>
+        <ol start="16">
+            <li><a href="#admin-dashboard">Admin Dashboard</a></li>
+            <li><a href="#admin-users">User Management</a></li>
+            <li><a href="#admin-roles">Role Management</a></li>
+            <li><a href="#admin-tags">Tag Management</a></li>
+            <li><a href="#admin-cert-types">Certification Types &amp; custom fields</a></li>
+            <li><a href="#admin-pathways">Pathways (Amazon CPF)</a></li>
+            <li><a href="#admin-partners">Partner Management</a></li>
+            <li><a href="#admin-partner-api">Partner API Access — API keys</a></li>
+        </ol>
+        <p class="toc-group-label">Account &amp; miscellaneous</p>
+        <ol start="24">
+            <li><a href="#account-profile">Account &amp; profile</a></li>
+            <li><a href="#password-reset">Forgotten password &amp; reset</a></li>
+            <li><a href="#notifications">Notifications &amp; toasts</a></li>
+            <li><a href="#partner-api-quickref">Partner API quick reference</a></li>
+        </ol>
+        <p class="toc-group-label">Reference</p>
+        <ol start="28">
+            <li><a href="#appendix-glossary">Appendix — Glossary</a></li>
+        </ol>
+    </nav>
+
+    <!-- ============================================================ -->
+    <!-- 1. ABOUT                                                      -->
+    <!-- ============================================================ -->
+    <h2 id="about">1. About this guide</h2>
+    <p>This guide explains how to use the GreenCircle Certified (GCC) Database — the web application at <code>greencirclecertified.com/database</code> — to manage product certifications, supplier relationships, and partner integrations.</p>
+
+    <p>The guide is organized two ways so you can use whichever fits the moment:</p>
+    <ul>
+        <li><strong>Workflow-driven.</strong> Each section starts with "How to do X" — the steps you take from start to finish for a common task (upload a certificate, approve one, share with a partner, run an export).</li>
+        <li><strong>Field-reference appendix.</strong> Every form field is listed in a table with its purpose, whether it's required, and any validation rules. Use this when you just need to look up "what does this field mean?"</li>
+    </ul>
+
+    <div class="callout callout-info">
+        <span class="callout-label">Heads-up</span>
+        <p>What you see on screen depends on your <a href="#roles">role</a>. If a section in this guide describes a button or field you can't see, your account probably doesn't have permission for it. Contact your administrator if you think that's wrong.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 2. ROLES                                                       -->
+    <!-- ============================================================ -->
+    <h2 id="roles">2. Who uses the platform</h2>
+    <p>Users fall into two broad camps — <strong>internal</strong> (GCC staff who run the certification program) and <strong>external</strong> (everyone else who consumes the data). Each camp has two sub-roles:</p>
+
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+        <span class="role-badge role-partner">Partner (API)</span>
+        <span class="role-badge role-public">Public</span>
+    </div>
+
+    <h3 id="role-group-internal">2.1 Internal users — GCC staff</h3>
+    <div class="roles-grid">
+        <div class="role-card" id="role-admin">
+            <span class="role-badge role-admin">Admin</span>
+            <h4>Administrators</h4>
+            <p>Full access to every screen — user management, role assignment, system settings, tag and product-type administration, partner API key management, and all certificate operations.</p>
+        </div>
+        <div class="role-card" id="role-analyst">
+            <span class="role-badge role-analyst">Analyst</span>
+            <h4>Analysts (day-to-day operators)</h4>
+            <p>The certificate workflow operators. Can create, edit, approve, and transition certificates through the workflow. Can manage companies, products, and identifiers. Cannot manage users, roles, or system-level settings.</p>
+        </div>
+    </div>
+
+    <h3 id="role-group-external">2.2 External users — your clients and partners</h3>
+    <p>External users are the people and systems outside GCC that consume certificate data. There are two sub-types:</p>
+    <div class="roles-grid">
+        <div class="role-card" id="role-external">
+            <span class="role-badge role-external">External</span>
+            <h4>Company users (manufacturers / suppliers)</h4>
+            <p>Real people who sign in to the web app to view their own company's certificates. Read-only, scoped to the company associated with their account. Can view, filter, search, and export their certificates. Cannot create or edit, and never see internal-only data (such as internal tags or analyst notes). The role is named <em>External</em> on the User Management page.</p>
+        </div>
+        <div class="role-card" id="role-partner">
+            <span class="role-badge role-partner">Partner (API)</span>
+            <h4>Partner integrations (machine-to-machine, e.g. Amazon)</h4>
+            <p>Not a web user — partners consume certificate data through the Partner API using a long-lived API key. Partners see only their own scope, and only certificates in approved/published states. Documented separately in the <em>Partner API Developer Guide</em>.</p>
+        </div>
+    </div>
+
+    <div class="callout callout-info">
+        <span class="callout-label">Heads-up on terminology</span>
+        <p>You'll see "external" used two ways in this guide. Lowercase — "external user" — is the umbrella that covers both Company users and Partners. Capitalized as a role badge — <span class="role-badge role-external">External</span> — it refers specifically to the Company-user role (which is what the User Management page calls it).</p>
+    </div>
+
+    <h3 id="role-group-public">2.3 Public — anonymous visitors</h3>
+    <p>Not a "role" so much as a state: anyone who lands on the site without signing in. Public visitors can browse the certificate tile view (§9) but only see certs in the publicly-visible statuses — <em>Client Approved – Paid</em> and <em>Republished</em>. They cannot see internal tags, drafts, expired certs, or anything on hold. The <span class="role-badge role-public">Public</span> badge appears on sections that public visitors can use.</p>
+
+    <!-- ============================================================ -->
+    <!-- 3. GETTING STARTED                                            -->
+    <!-- ============================================================ -->
+    <h2 id="getting-started">3. Getting started — signing in</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+    </div>
+
+    <p>Open <code>https://greencirclecertified.com/database</code> in any modern browser (Chrome, Edge, Firefox, Safari). You'll land on the public certificate tile view — anyone can browse public certificates without signing in.</p>
+
+    <p>To do anything else (create, edit, see internal data, or view supplier-scoped data), click <strong>Sign In</strong> in the top-right.</p>
+
+    <ul>
+        <li><strong>Admin / Analyst:</strong> sign in with your GCC-issued credentials.</li>
+        <li><strong>Company user (External role):</strong> sign in with the credentials your GCC administrator provisioned for you.</li>
+        <li><strong>Partner:</strong> Partners don't sign in to the web app — they integrate via the Partner API using an API key. See §27.</li>
+        <li><strong>Forgot password:</strong> use the <em>Forgot password?</em> link on the sign-in page.</li>
+    </ul>
+
+    <div class="callout callout-warn">
+        <span class="callout-label">Test environment</span>
+        <p>If the site shows a yellow "TEST" banner along the top, you are on the pre-launch staging environment — anything you do here is for testing and may be wiped before launch. Production uses the same URL but without the banner.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 4. UPLOADING A CERTIFICATE                                     -->
+    <!-- ============================================================ -->
+    <h2 id="cert-upload">4. Uploading a certificate</h2>
+
+    <h3 id="cert-upload-who">4.1 Who can do this</h3>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+    </div>
+    <p>Only Admin and Analyst users can upload new certificates. External users — both Company users and Partners — cannot create certificates; they consume the certificates that Analysts have already created and approved.</p>
+
+    <!-- 4.2 QUICKSTART -->
+    <h3 id="cert-upload-quickstart">4.2 Quick steps</h3>
+    <p>If you've done this before and just need the sequence:</p>
+    <ol class="workflow-steps">
+        <li>
+            <span class="step-title">Open the upload page</span>
+            <span class="step-detail">From the Certificate Management screen, click <strong>Add Certificate</strong> in the top-right.</span>
+        </li>
+        <li>
+            <span class="step-title">Pick the company</span>
+            <span class="step-detail">Selecting a company auto-fills the company's email, website, and the list of available products.</span>
+        </li>
+        <li>
+            <span class="step-title">Fill in the required fields</span>
+            <span class="step-detail">Certification Type, Product, Effective Date, Expiration Date, Status. Fields marked with a red asterisk (<span style="color:#C62828">*</span>) are required.</span>
+        </li>
+        <li>
+            <span class="step-title">Upload the certificate PDF</span>
+            <span class="step-detail">Drag a PDF onto the upload zone or click to browse. The first page is auto-converted to a preview image.</span>
+        </li>
+        <li>
+            <span class="step-title">Add product identifiers (optional)</span>
+            <span class="step-detail">ASINs, UPCs, GTINs, etc. Especially important for Amazon partner certificates.</span>
+        </li>
+        <li>
+            <span class="step-title">Save</span>
+            <span class="step-detail">Click <strong>Save</strong>, or <strong>Save &amp; Add Another</strong> if you're uploading several in a row.</span>
+        </li>
+    </ol>
+
+    <!-- 4.3 WALKTHROUGH -->
+    <h3 id="cert-upload-walkthrough">4.3 Detailed walkthrough</h3>
+
+    <h4>Step 1 — Open the upload page</h4>
+    <p>From the main menu, go to <strong>Certificates → Certificate Management</strong>. In the top-right of that page, click <strong>Add Certificate</strong>. You'll arrive at the <em>Create Certificate</em> form.</p>
+    <p>The form is divided into four sections, top to bottom:</p>
+    <ul>
+        <li><strong>Certificate Information</strong> — the main metadata: company, product, dates, status, etc.</li>
+        <li><strong>Certificate PDF Document</strong> — the actual PDF file.</li>
+        <li><strong>Product Identifiers</strong> — ASINs, UPCs, GTINs, model numbers — anything that uniquely identifies the product on a retailer or distributor system.</li>
+        <li><strong>Additional Fields</strong> — extra fields specific to the certification type you chose (these appear dynamically once you pick a type).</li>
+    </ul>
+
+    <h4>Step 2 — Pick the company</h4>
+    <p>Start typing in the <strong>Company</strong> dropdown — it's searchable. When you pick a company:</p>
+    <ul>
+        <li><strong>Company Email</strong> and <strong>Company URL</strong> are auto-filled from the company record.</li>
+        <li>The <strong>Product Name</strong> dropdown loads with just that company's products. If you change either email or URL on this form, the change writes back to the company record.</li>
+        <li>If the company you need doesn't exist yet, use the <strong>+ Add New</strong> option at the bottom of the dropdown to create it inline.</li>
+    </ul>
+
+    <div class="callout callout-tip">
+        <span class="callout-label">Tip</span>
+        <p>Inline-creating a company or product saves a trip to the Admin screens. The new record is created with sensible defaults — you can always go back and fill in details later from Company / Product Management.</p>
+    </div>
+
+    <h4>Step 3 — Certification # is automatic</h4>
+    <p>The <strong>Certification #</strong> field is read-only and shows a preview number. The <em>final</em> number is assigned at the moment of save. If another analyst saves a certificate at the exact same time, you'll be given the next available number automatically — you don't need to do anything.</p>
+
+    <h4>Step 4 — Certification type and subcategories</h4>
+    <p>Pick a parent <strong>Certification Type</strong> (e.g., USDA Organic, ECOCERT, B-Corp). Once you do:</p>
+    <ul>
+        <li>The <strong>Certificate Subcategories</strong> dropdown populates with any sub-types under that parent. Pick as many as apply — they appear as removable pills below the field.</li>
+        <li>The <strong>Additional Fields</strong> section at the bottom of the form may populate with extra fields specific to that certification type. These are configured per type by an Administrator on the Certification Types admin page.</li>
+    </ul>
+
+    <h4>Step 5 — Product and product hierarchy</h4>
+    <p>Pick the <strong>Product Name</strong> from the list loaded for the chosen company. The Product Category, Product Type, and Product Subcategory below it will auto-fill from the product's stored hierarchy. You can override any of them, or leave them blank if the product isn't yet categorized.</p>
+
+    <h4>Step 6 — Dates and status</h4>
+    <ul>
+        <li><strong>Effective Date</strong> — when the certificate becomes valid.</li>
+        <li><strong>Expiration Date</strong> — when it stops being valid. The system uses this to auto-expire certificates when the date passes.</li>
+        <li><strong>Status</strong> — for a brand-new cert, leave this on <em>Draft</em> (the default). The certificate moves through the 8-state workflow afterwards via the dedicated workflow controls on the certificate detail page (see §8).</li>
+    </ul>
+
+    <h4>Step 7 — Partner, certification results, pathway</h4>
+    <ul>
+        <li><strong>Partner</strong> — if this certificate is being supplied to a specific partner (e.g., Amazon), pick them here. Leave as <em>None</em> for general certifications.</li>
+        <li><strong>Certification Results</strong> — optional free-text field for a numeric score, threshold value, or pass/fail note that the partner needs to see (e.g., Amazon may require a percentage value). Up to 1,000 characters.</li>
+        <li><strong>Pathway</strong> — applies only to Amazon Climate Pledge Friendly (CPF) certifications. Pick the CPF pathway the cert qualifies under, or leave blank.</li>
+    </ul>
+
+    <h4>Step 8 — Location and country</h4>
+    <p>Where the certification was issued or where the certified facility is located. Free text for city/state, picker for country.</p>
+
+    <h4>Step 9 — Tags (sidebar)</h4>
+    <p>On the right side of the form:</p>
+    <ul>
+        <li><strong>External Tags</strong> — visible to everyone, including external users (Company users in the web app and Partners via the API). Use these for tags you want everyone to see.</li>
+        <li><strong>Internal Tags</strong> — only visible to Admin and Analyst users. Use these for classification that shouldn't leak to clients or partners.</li>
+    </ul>
+
+    <h4>Step 10 — Upload the PDF</h4>
+    <p>In the <em>Certificate PDF Document</em> section, drag a PDF onto the upload zone or click it to open a file picker. Constraints:</p>
+    <ul>
+        <li>File must be <strong>PDF</strong> format.</li>
+        <li>Maximum size <strong>10 MB</strong>.</li>
+        <li>The first page is automatically converted to a JPEG preview image, which is what appears in the tile views and on the certificate detail page.</li>
+    </ul>
+
+    <h4>Step 11 — Product identifiers</h4>
+    <p>In the <em>Product Identifiers</em> section, click <strong>+ Add</strong> to attach one or more identifiers. For each one, pick the type (ASIN, UPC, GTIN, EAN, ISBN, MPN, or SKU) and enter the value. You can also tag each identifier with its partner and a free-text description.</p>
+    <div class="callout callout-info">
+        <span class="callout-label">Amazon note</span>
+        <p>For Amazon certificates, ASIN is the identifier Amazon uses. SKU is included when known but isn't always available — that's expected.</p>
+    </div>
+
+    <h4>Step 12 — Save</h4>
+    <p>At the bottom of the form, you have four buttons:</p>
+    <ul>
+        <li><strong>Save</strong> — saves the certificate and takes you to the certificate detail page.</li>
+        <li><strong>Save &amp; Add Another</strong> — saves and returns you to a fresh blank form. Use this when uploading several certs in a row for the same company.</li>
+        <li><strong>Cancel</strong> — returns to the Certificate Management list without saving.</li>
+        <li><strong>Reset Form</strong> — clears every field on this form (does <em>not</em> navigate away).</li>
+    </ul>
+    <p>On success, you'll see a green toast notification in the bottom-right.</p>
+
+    <!-- 4.4 FIELD REFERENCE -->
+    <h3 id="cert-upload-fields">4.4 Field reference</h3>
+    <p>Every field on the Create Certificate form, in display order. <strong class="req">Required</strong> fields must have a value before you can save.</p>
+
+    <h4>Certificate Information section</h4>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th style="width:22%">Field</th><th style="width:10%">Required?</th><th>Description / validation</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Company</strong></td><td class="req">Yes</td><td>Dropdown of all companies on file. Searchable. Selecting a company auto-fills email/website and loads the company's products. Inline "+ Add New" creates a new company.</td></tr>
+            <tr><td><strong>Company Email</strong></td><td class="opt">Optional</td><td>Auto-populated from the company record. Up to 255 characters. Editing here updates the company record.</td></tr>
+            <tr><td><strong>Company URL</strong></td><td class="opt">Optional</td><td>Auto-populated from the company record. Up to 500 characters. Must be a valid URL if entered. Editing here updates the company record.</td></tr>
+            <tr><td><strong>Certification #</strong></td><td class="req">Auto</td><td>Read-only. Preview of the certificate number. Final number is assigned at save (uses next available number if another analyst saved at the same time).</td></tr>
+            <tr><td><strong>Certification Type</strong></td><td class="req">Yes</td><td>Dropdown of parent certification types (USDA Organic, ECOCERT, B-Corp, etc.). Searchable. Driven by the Certification Types admin page.</td></tr>
+            <tr><td><strong>Certificate Subcategories</strong></td><td class="opt">Optional</td><td>Multi-select. Populates with subcategories of the parent type you chose above. Selections appear as removable pills.</td></tr>
+            <tr><td><strong>Product Name</strong></td><td class="req">Yes</td><td>Dropdown of products for the selected company. Searchable. Disabled until a Company is picked. Inline "+ Add New" creates a new product attached to the current company.</td></tr>
+            <tr><td><strong>Product Category</strong></td><td class="opt">Optional</td><td>Auto-fills from the selected product. Top level of the 3-level product hierarchy.</td></tr>
+            <tr><td><strong>Product Type</strong></td><td class="opt">Optional</td><td>Auto-fills from the selected product. Filtered by the Product Category.</td></tr>
+            <tr><td><strong>Product Subcategory</strong></td><td class="opt">Optional</td><td>Auto-fills from the selected product. Filtered by the Product Type.</td></tr>
+            <tr><td><strong>Effective Date</strong></td><td class="req">Yes</td><td>Date the certificate becomes valid. Date picker.</td></tr>
+            <tr><td><strong>Expiration Date</strong></td><td class="req">Yes</td><td>Date the certificate stops being valid. Must be on or after Effective Date. System auto-expires when this date passes.</td></tr>
+            <tr><td><strong>Status</strong></td><td class="req">Yes</td><td>Initial workflow state. Defaults to <em>Draft</em>. The full 8-state lifecycle is documented in §8. Move through other states via the workflow controls on the certificate detail page after save.</td></tr>
+            <tr><td><strong>Partner</strong></td><td class="opt">Optional</td><td>Dropdown: None / Amazon / Novi / Other. Defaults to <em>None</em>. Used by the Partner API to filter what each partner can see.</td></tr>
+            <tr><td><strong>Certification Results</strong></td><td class="opt">Optional</td><td>Free-text. Up to 1,000 characters. Use for partner-required threshold values or scores (e.g., Amazon percentages). Numeric values between 0 and 1 are displayed as percentages on detail/API.</td></tr>
+            <tr><td><strong>Pathway</strong></td><td class="opt">Optional</td><td>Dropdown of Amazon CPF pathways. Only relevant for CPF-eligible certs. Leave blank if not applicable.</td></tr>
+            <tr><td><strong>Location</strong></td><td class="opt">Optional</td><td>Free text. Format: City, State. Up to 175 characters.</td></tr>
+            <tr><td><strong>Country</strong></td><td class="opt">Optional</td><td>Searchable dropdown of countries.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h4>Sidebar (Tags)</h4>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Field</th><th style="width:10%">Required?</th><th>Description / validation</th></tr></thead>
+        <tbody>
+            <tr><td><strong>External Tags</strong></td><td class="opt">Optional</td><td>Multi-select. Visible to everyone — including external users (Company users in the web app and Partners via the API).</td></tr>
+            <tr><td><strong>Internal Tags</strong></td><td class="opt">Optional</td><td>Multi-select. Visible to Admin and Analyst only. Never shown to external users and never returned through the Partner API.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h4>Certificate PDF Document</h4>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Field</th><th style="width:10%">Required?</th><th>Description / validation</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Upload PDF Certificate</strong></td><td class="req">Yes</td><td>File upload. PDF only. Maximum 10 MB. First page is auto-converted to a JPEG preview.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h4>Product Identifiers (repeatable)</h4>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Field</th><th style="width:10%">Required?</th><th>Description / validation</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Identifier Type</strong></td><td class="req">Yes</td><td>One of: ASIN, UPC, GTIN, EAN, ISBN, MPN, SKU. (For Amazon, use ASIN.)</td></tr>
+            <tr><td><strong>Identifier Value</strong></td><td class="req">Yes</td><td>The actual identifier string. Validated by type (e.g., ASINs are 10 characters).</td></tr>
+            <tr><td><strong>Partner</strong></td><td class="opt">Optional</td><td>Which partner this identifier is for. Defaults to the certificate's partner if set.</td></tr>
+            <tr><td><strong>Product Name</strong></td><td class="opt">Optional</td><td>Override the product name for this specific identifier — useful when one cert covers multiple SKUs with slight variations.</td></tr>
+            <tr><td><strong>Product SKU</strong></td><td class="opt">Optional</td><td>Manufacturer's SKU for this identifier, when known.</td></tr>
+            <tr><td><strong>Description</strong></td><td class="opt">Optional</td><td>Free-text note about this identifier.</td></tr>
+            <tr><td><strong>Status</strong></td><td class="opt">Auto</td><td>Read-only. Automatically derived from the parent certificate's status (Active when the cert is in a public state, Inactive otherwise).</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <!-- 4.5 TIPS / FAQ -->
+    <h3 id="cert-upload-tips">4.5 Tips &amp; common questions</h3>
+
+    <details>
+        <summary>The company I need isn't in the dropdown.</summary>
+        <p>Type the name into the dropdown — at the bottom of the search results, there's a <strong>+ Add New</strong> option. Clicking it opens a small dialog to create the company without leaving the upload form.</p>
+    </details>
+
+    <details>
+        <summary>The product I need isn't in the dropdown.</summary>
+        <p>Same pattern as company — pick the company first, then if the product isn't listed, use <strong>+ Add New</strong> in the product dropdown to create it. The new product will be attached to the currently-selected company.</p>
+    </details>
+
+    <details>
+        <summary>The PDF upload says "file too large."</summary>
+        <p>The 10 MB ceiling is a hard limit. If your PDF is larger, re-export it from the source with image compression enabled, or use an online "compress PDF" tool, then try again. The visual fidelity needed for the preview image is modest.</p>
+    </details>
+
+    <details>
+        <summary>I saved a certificate but the wrong number was assigned.</summary>
+        <p>You can't change the number after save. If a real mistake (e.g., wrong company), the right path is to set the certificate to a non-public status and create a corrected one. Contact your administrator before deleting — deleted records are not easily recoverable.</p>
+    </details>
+
+    <details>
+        <summary>What's the difference between Internal and External tags?</summary>
+        <p><strong>External tags</strong> are visible everywhere — to external users (Company users in the web app and Partners via the API). Use them for tags that classify the certificate publicly. <strong>Internal tags</strong> are only seen by Admin and Analyst users. They never leave GCC. Use them for internal-only classifications like priority, review status, or who-owns-this.</p>
+    </details>
+
+    <details>
+        <summary>What if I need to upload 50 certificates at once?</summary>
+        <p>Don't use this form — use the bulk Import page instead (covered in §5 of this guide, coming in v1.1). Import accepts a CSV plus a zip of PDFs and creates many certificates in one operation.</p>
+    </details>
+
+    <details>
+        <summary>Why is "Status" defaulted to Draft? Can I change it?</summary>
+        <p>Draft is the default starting state in the 8-state certificate workflow (see §8) — it lets you save partial work without it appearing in public/partner views. You can pick a different initial status here (e.g., if you're uploading an already-approved cert from a previous system), but the normal flow is: save as Draft, review, then advance through the workflow on the detail page.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 5. EDITING A CERTIFICATE                                       -->
+    <!-- ============================================================ -->
+    <h2 id="cert-edit">5. Editing a certificate</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+    </div>
+
+    <h3>5.1 Where to start</h3>
+    <p>From the Certificate Management list (or any tile view in internal mode), click any certificate to open its detail page. In the top-right of the detail page, click <strong>Edit Certificate</strong>. The form is identical in layout to the upload form (§4) — same sections, same fields — pre-filled with the certificate's current values.</p>
+
+    <h3>5.2 What's different from upload</h3>
+    <ul>
+        <li><strong>Certification #</strong> is already assigned and remains read-only.</li>
+        <li><strong>PDF upload</strong> is optional — the existing PDF stays in place unless you upload a replacement.</li>
+        <li><strong>Status</strong> changes here follow the same workflow rules as the dedicated transition controls (see §8). You cannot make an invalid transition (e.g., jump from Draft to Republished).</li>
+        <li><strong>Product Identifier</strong> rows that already exist are editable in-place; their <em>Status</em> is read-only because it follows the parent certificate's status automatically.</li>
+        <li>If the cert is in a public status (Client Approved – Paid, Republished), edits go live immediately on save — to Company users in the web app and to Partners via the API. You'll see a green toast confirming the save.</li>
+    </ul>
+
+    <div class="callout callout-warn">
+        <span class="callout-label">Be careful</span>
+        <p>Editing a publicly-visible certificate is immediate. If you need to take it out of view first, move it to <em>Hold</em>, edit, then move it back. Hold removes the cert from both the public tile view and the Partner API.</p>
+    </div>
+
+    <h3>5.3 Field reference</h3>
+    <p>See §4.4 — every field on the Edit form is identical to the Create form, with the exceptions noted in §5.2 above.</p>
+
+    <h3>5.4 Tips &amp; common questions</h3>
+    <details>
+        <summary>I need to replace the PDF with a corrected version.</summary>
+        <p>On the Edit page, simply upload the new PDF in the same way you would on Create — drag &amp; drop or click to browse. On save, the new PDF replaces the old one and the preview image is regenerated.</p>
+    </details>
+    <details>
+        <summary>Can I change the Certification # of an existing cert?</summary>
+        <p>No. Certification numbers are permanent once assigned. If a real correction is needed, contact your administrator — the safest path is usually to set the wrong-numbered cert to a non-public status and create a corrected one with the right metadata.</p>
+    </details>
+    <details>
+        <summary>I changed the company on an existing cert. Did the product update?</summary>
+        <p>Yes — the Product Name dropdown reloads when you change the Company, just like on the Create form. You'll need to pick a product that belongs to the new company before you can save.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 6. BULK IMPORT                                                 -->
+    <!-- ============================================================ -->
+    <h2 id="cert-import">6. Bulk-importing certificates</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+    </div>
+
+    <p>Bulk import is the right tool when you have more than a handful of certificates to load at once — for example, when on-boarding a new partner, migrating historical certs, or processing a monthly batch from a supplier.</p>
+
+    <h3>6.1 Quick steps</h3>
+    <ol class="workflow-steps">
+        <li>
+            <span class="step-title">Download the import template</span>
+            <span class="step-detail">From <strong>Certificate Management</strong>, click <strong>Template</strong> in the top-right toolbar. This downloads a blank CSV with the correct header row.</span>
+        </li>
+        <li>
+            <span class="step-title">Fill in the template</span>
+            <span class="step-detail">One row per certificate. PDF filename column references a file by name; the file itself goes in the companion zip.</span>
+        </li>
+        <li>
+            <span class="step-title">Zip your PDFs</span>
+            <span class="step-detail">Create a single .zip containing all the PDF files referenced in your CSV. Filenames must match exactly (case-sensitive on some systems).</span>
+        </li>
+        <li>
+            <span class="step-title">Open the Import dialog</span>
+            <span class="step-detail">From <strong>Certificate Management</strong>, click <strong>Import</strong>. Choose the CSV and the zip together.</span>
+        </li>
+        <li>
+            <span class="step-title">Review the preview</span>
+            <span class="step-detail">The system parses the CSV and shows a row-by-row preview with any validation warnings highlighted. Resolve issues in your CSV and re-upload, or proceed with valid rows only.</span>
+        </li>
+        <li>
+            <span class="step-title">Apply</span>
+            <span class="step-detail">Click <strong>Apply Import</strong> to create the certificates. A progress bar shows how many rows have been processed. A summary at the end lists which rows succeeded and which failed.</span>
+        </li>
+    </ol>
+
+    <h3>6.2 Template columns</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:24%">Column</th><th style="width:10%">Required?</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td><strong>CompanyName</strong></td><td class="req">Yes</td><td>Must match an existing company exactly. Create the company first if it's new.</td></tr>
+            <tr><td><strong>ProductName</strong></td><td class="req">Yes</td><td>Must match an existing product for that company.</td></tr>
+            <tr><td><strong>CertificationType</strong></td><td class="req">Yes</td><td>Parent certification type. Must match exactly.</td></tr>
+            <tr><td><strong>SubcategoryNames</strong></td><td class="opt">Optional</td><td>Semicolon-separated list of subcategory names.</td></tr>
+            <tr><td><strong>EffectiveDate</strong></td><td class="req">Yes</td><td>YYYY-MM-DD format.</td></tr>
+            <tr><td><strong>ExpirationDate</strong></td><td class="req">Yes</td><td>YYYY-MM-DD format. Must be on or after EffectiveDate.</td></tr>
+            <tr><td><strong>Status</strong></td><td class="opt">Optional</td><td>Defaults to <em>Draft</em> if blank. Use exact display name (e.g., <em>Client Approved - Paid</em>).</td></tr>
+            <tr><td><strong>Partner</strong></td><td class="opt">Optional</td><td>None / Amazon / Novi / Other. Defaults to None.</td></tr>
+            <tr><td><strong>CertificationResults</strong></td><td class="opt">Optional</td><td>Free text up to 1000 chars.</td></tr>
+            <tr><td><strong>Location</strong></td><td class="opt">Optional</td><td>City, State.</td></tr>
+            <tr><td><strong>Country</strong></td><td class="opt">Optional</td><td>Full country name.</td></tr>
+            <tr><td><strong>PdfFileName</strong></td><td class="req">Yes</td><td>Filename in the companion zip. Must end in <code>.pdf</code>.</td></tr>
+            <tr><td><strong>ExternalTags</strong> / <strong>InternalTags</strong></td><td class="opt">Optional</td><td>Semicolon-separated tag names. Tags must already exist.</td></tr>
+            <tr><td><strong>ProductIdentifiers</strong></td><td class="opt">Optional</td><td>Pipe-separated entries in the form <code>TYPE:VALUE</code> (e.g., <code>ASIN:B07XYZ1234|UPC:012345678905</code>).</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>6.3 Tips &amp; common questions</h3>
+    <details>
+        <summary>An import row failed because the company didn't exist.</summary>
+        <p>Bulk import does not create companies or products on the fly — they must exist before the import runs. The cleanest order is: (1) bulk-create or verify companies, (2) bulk-create or verify products, (3) bulk-create certificates. See §12 and §13 for company/product imports.</p>
+    </details>
+    <details>
+        <summary>The preview shows everything as Draft even though my CSV says Paid.</summary>
+        <p>Double-check the exact spelling — the value must match the display name, e.g., <em>Client Approved - Paid</em> with the hyphens and exact casing. Anything that doesn't match a valid status name falls back to Draft.</p>
+    </details>
+    <details>
+        <summary>What if a PDF in the zip is missing or doesn't match a row?</summary>
+        <p>Missing PDFs cause the corresponding row to fail validation. Extra PDFs in the zip that no row references are ignored without error. The preview screen flags missing files row-by-row.</p>
+    </details>
+    <details>
+        <summary>Can I re-import to update existing certificates?</summary>
+        <p>No — bulk import only creates new certificates. To bulk-update existing certs, contact your administrator; updates of business records require a formal change request.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 7. CERT DETAIL PAGE                                            -->
+    <!-- ============================================================ -->
+    <h2 id="cert-detail">7. The certificate detail page</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+        <span class="role-badge role-public">Public</span>
+    </div>
+
+    <p>Every certificate has a detail page that shows its full record. Click any tile or table row to open it. What you see depends on your role:</p>
+
+    <ul>
+        <li><strong>Public (not signed in):</strong> only certificates in <em>Client Approved – Paid</em> or <em>Republished</em> are visible. Internal tags, analyst notes, and the action toolbar are hidden.</li>
+        <li><strong>Company user (External role):</strong> same as Public, but scoped to certificates for the user's company.</li>
+        <li><strong>Analyst / Admin:</strong> full view including internal tags, status workflow controls, edit/delete buttons, and the action toolbar.</li>
+    </ul>
+
+    <h3>7.1 What's on the page</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Section</th><th>Contents</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Header</strong></td><td>Certification #, status badge, company name, product name, and the action toolbar (Edit, Download PDF, Print, and — for Admin/Analyst — workflow transition controls).</td></tr>
+            <tr><td><strong>Preview image</strong></td><td>First-page preview of the PDF. Zoom and Download icons sit right-aligned next to the image. Clicking the image opens a full-screen zoomed view.</td></tr>
+            <tr><td><strong>Certificate Information</strong></td><td>Certification type and subcategories, dates (effective, expiration), location, country, pathway (if any), certification results (if any). Numeric results between 0 and 1 are auto-formatted as a percentage.</td></tr>
+            <tr><td><strong>Company &amp; product</strong></td><td>Company name and contact info, product name, and the product hierarchy (Category → Type → Subcategory).</td></tr>
+            <tr><td><strong>Product Identifiers</strong></td><td>Table of every ASIN/UPC/GTIN/etc. attached to this cert, with partner and description per row.</td></tr>
+            <tr><td><strong>Tags</strong></td><td>External tags (always visible). Internal tags (Admin/Analyst only).</td></tr>
+            <tr><td><strong>Custom Fields</strong></td><td>Any extra fields configured for this certification type. Grouped under a single &ldquo;Custom Fields&rdquo; section regardless of how many.</td></tr>
+            <tr><td><strong>Audit history</strong><br><span style="font-size:12px;color:#757575;">Admin/Analyst only</span></td><td>Who created the cert, who last updated it, who has transitioned its status and when.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>7.2 Actions you can take</h3>
+    <ul>
+        <li><strong>Download PDF</strong> — saves the original PDF to your machine. Available to anyone who can see the cert.</li>
+        <li><strong>Print</strong> — opens the browser print dialog with a print-friendly layout.</li>
+        <li><strong>Edit Certificate</strong> <span class="role-badge role-admin" style="font-size:10px;padding:2px 8px">Admin</span> <span class="role-badge role-analyst" style="font-size:10px;padding:2px 8px">Analyst</span> — opens the Edit form (§5).</li>
+        <li><strong>Change Status</strong> <span class="role-badge role-admin" style="font-size:10px;padding:2px 8px">Admin</span> <span class="role-badge role-analyst" style="font-size:10px;padding:2px 8px">Analyst</span> — opens the workflow transition control. Only valid next-states are shown (see §8).</li>
+        <li><strong>Delete</strong> <span class="role-badge role-admin" style="font-size:10px;padding:2px 8px">Admin</span> — opens a confirmation modal. Deletion is a hard delete; deletes should be rare and only used to clean up obvious mistakes (test data, duplicates). For most "remove from view" needs, use the <em>Hold</em> status instead.</li>
+        <li><strong>Copy shareable link</strong> — the URL bar already contains a permanent shareable link to this certificate. Copy and send it to anyone — they'll see whatever their role allows.</li>
+    </ul>
+
+    <!-- ============================================================ -->
+    <!-- 8. WORKFLOW                                                     -->
+    <!-- ============================================================ -->
+    <h2 id="cert-workflow">8. The 8-state certificate workflow</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+    </div>
+
+    <p>Every certificate has a <strong>status</strong> that controls who can see it and what can be done with it. The platform has eight statuses, and movement between them is governed by business rules — you can't jump from any state to any other state.</p>
+
+    <h3>8.1 The eight statuses</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:24%">Status</th><th style="width:14%">Visibility</th><th>Meaning</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Draft</strong></td><td>Internal only</td><td>Just created or being edited. Not yet approved. Default for new certs.</td></tr>
+            <tr><td><strong>Client Approved – Not Paid</strong></td><td>Internal only</td><td>GCC has approved the certification but the client hasn't paid for publication yet. Not visible publicly.</td></tr>
+            <tr><td><strong>Client Approved – Confidential</strong></td><td>Internal only</td><td>Approved and paid, but the client has asked for it to remain confidential. Counted in internal "active" stats but not shown publicly or via the Partner API.</td></tr>
+            <tr><td><strong>Client Approved – Paid</strong></td><td><span class="role-badge role-public">Public</span></td><td>Live — visible on the public tile view and returned by the Partner API. The primary "active" state.</td></tr>
+            <tr><td><strong>Hold</strong></td><td>Internal only</td><td>Temporarily removed from public view. Use when re-issuing a corrected PDF or when a client has requested a pause.</td></tr>
+            <tr><td><strong>Expired</strong></td><td>Internal only</td><td>Past its expiration date. The system can auto-move certs to Expired when their expiration date passes.</td></tr>
+            <tr><td><strong>Republished</strong></td><td><span class="role-badge role-public">Public</span></td><td>Was Expired and has been re-issued. Equivalent to Client Approved – Paid for visibility purposes.</td></tr>
+            <tr><td><strong>Expired – No Annual Verification</strong></td><td>Internal only</td><td>Final state for certs that expired and were not renewed with the annual verification. Cannot be transitioned anywhere except back to Draft.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>8.2 Allowed transitions</h3>
+    <p>From each starting status, you can move only to specific next statuses:</p>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:30%">From</th><th>Allowed next statuses</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Draft</strong></td><td>Client Approved – Not Paid · Client Approved – Confidential · Client Approved – Paid · Hold</td></tr>
+            <tr><td><strong>Client Approved – Not Paid</strong></td><td>Client Approved – Paid · Client Approved – Confidential · Hold · Expired</td></tr>
+            <tr><td><strong>Client Approved – Confidential</strong></td><td>Client Approved – Paid · Hold · Expired</td></tr>
+            <tr><td><strong>Client Approved – Paid</strong></td><td>Hold · Expired · Republished · Expired – No Annual Verification</td></tr>
+            <tr><td><strong>Hold</strong></td><td>Draft · Client Approved – Not Paid · Client Approved – Confidential · Client Approved – Paid</td></tr>
+            <tr><td><strong>Expired</strong></td><td>Republished · Draft</td></tr>
+            <tr><td><strong>Republished</strong></td><td>Expired · Expired – No Annual Verification · Hold</td></tr>
+            <tr><td><strong>Expired – No Annual Verification</strong></td><td>Draft (only)</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>8.3 How to change a status</h3>
+    <ol>
+        <li>Open the certificate detail page.</li>
+        <li>In the action toolbar, click <strong>Change Status</strong>.</li>
+        <li>The dropdown only shows valid next statuses for the current state.</li>
+        <li>Pick one and confirm. The change is immediate and logged in the audit history.</li>
+    </ol>
+
+    <h3>8.4 Auto-expiration</h3>
+    <p>The system runs a background check daily. Any certificate whose Expiration Date has passed and which is in a publicly-visible state (Paid or Republished) is automatically moved to <em>Expired</em>. The audit history records this as a system change.</p>
+
+    <h3>8.5 Tips &amp; common questions</h3>
+    <details>
+        <summary>I tried to move a cert from Draft to Republished and it wasn't an option.</summary>
+        <p>You can't — that's not a valid transition. Republished only comes from <em>Expired</em>. To make a brand-new cert live, the path is Draft → one of the Client Approved variants.</p>
+    </details>
+    <details>
+        <summary>What if I need to temporarily hide a cert from public/partner view?</summary>
+        <p>Use <em>Hold</em>. It removes the cert from the public tile view and the Partner API, but keeps it visible to Admin/Analyst. Move it back to Client Approved – Paid when ready.</p>
+    </details>
+    <details>
+        <summary>Why are there three "Client Approved" variants?</summary>
+        <p>To distinguish billing/publication state from approval state. <em>Not Paid</em> means GCC has signed off but the client hasn't paid yet — no public visibility. <em>Confidential</em> means the client has paid but specifically asked for the cert not to be shown publicly. <em>Paid</em> is the normal published state.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 9. TILE VIEW                                                    -->
+    <!-- ============================================================ -->
+    <h2 id="cert-tile">9. Certificate tile view — browse, filter, search</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-public">Public</span>
+    </div>
+
+    <p>The tile view is the main browse-and-discover screen. Each certificate appears as a card with its preview image, certification number, company, product, certification type, and status. There are two versions of this page:</p>
+
+    <ul>
+        <li><strong>Public tile view</strong> — anyone (signed in or not) can see all certificates in <em>Client Approved – Paid</em> or <em>Republished</em>.</li>
+        <li><strong>Internal tile view</strong> — Admin/Analyst sees every certificate regardless of status, plus internal-only fields and bulk actions.</li>
+    </ul>
+
+    <h3>9.1 The toolbar</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Control</th><th>What it does</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Search box</strong></td><td>Free-text search across certification #, company, product, certification type, tags, and product identifiers (ASIN, UPC, etc.). Updates the results as you type.</td></tr>
+            <tr><td><strong>Filters sidebar</strong></td><td>Multi-select filters for Company, Certification Type, Partner, Status (internal only), Tags, Date range, Country. Open by clicking <em>Show Filters</em> on mobile/tablet.</td></tr>
+            <tr><td><strong>Sort</strong></td><td>Sort by Most Recent, Certification # (asc/desc), Expiration Date (asc/desc), Company A–Z.</td></tr>
+            <tr><td><strong>Add Certificate</strong> <span class="role-badge role-admin" style="font-size:10px;padding:2px 8px">Admin</span> <span class="role-badge role-analyst" style="font-size:10px;padding:2px 8px">Analyst</span></td><td>Opens the Create Certificate form (§4).</td></tr>
+            <tr><td><strong>Import / Template</strong> <span class="role-badge role-admin" style="font-size:10px;padding:2px 8px">Admin</span> <span class="role-badge role-analyst" style="font-size:10px;padding:2px 8px">Analyst</span></td><td>Bulk import (§6).</td></tr>
+            <tr><td><strong>Export</strong></td><td>Downloads the currently-filtered list as a CSV (§11).</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>9.2 Working with the tiles</h3>
+    <ul>
+        <li><strong>Click a tile</strong> to open its detail page (§7).</li>
+        <li><strong>Infinite scroll</strong> — as you scroll near the bottom, more tiles load automatically. There's no pagination.</li>
+        <li><strong>Tile count</strong> in the footer shows how many certificates match the current filters out of the total in the database.</li>
+    </ul>
+
+    <h3>9.3 Shareable URLs</h3>
+    <p>Every filter, search, and sort you apply updates the URL in the address bar. Copy the URL and send it to a colleague — when they open it, they'll see the same filtered view (subject to their role permissions). This is the easiest way to share, for example, "all Amazon-tagged certs expiring this month."</p>
+
+    <h3>9.4 Tips &amp; common questions</h3>
+    <details>
+        <summary>The search isn't finding a cert I know exists.</summary>
+        <p>Public users only see certs in Paid or Republished status. If you're not signed in, certs in Draft / Hold / Expired won't appear. Sign in as Admin/Analyst to see everything.</p>
+    </details>
+    <details>
+        <summary>I want to send a colleague a link to "all expired certs."</summary>
+        <p>Apply the filter, then copy the URL from the address bar. The URL contains your current filter state.</p>
+    </details>
+    <details>
+        <summary>The filter sidebar is hiding the content on my tablet.</summary>
+        <p>On screens ≤ 1024 px the sidebar collapses by default. Click <strong>Show Filters</strong> at the top of the list to open it.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 10. EXTERNAL VIEW                                              -->
+    <!-- ============================================================ -->
+    <h2 id="cert-external">10. Company-user tile view</h2>
+    <div class="role-row">
+        <span class="role-badge role-external">External</span>
+    </div>
+
+    <p>This section covers the tile view as it appears for <strong>Company users</strong> — the people from manufacturers and suppliers who sign in to see their own organization's certificates. (Partners — the other type of external user — don't use the web UI; they consume data via the API. See §27.)</p>
+
+    <p>The Company-user tile view is a tailored variant of the main tile view (§9), automatically scoped to the user's company. The differences from the public view:</p>
+
+    <ul>
+        <li>Only certificates whose Company matches the signed-in user's company are shown.</li>
+        <li><strong>Internal tags</strong> are hidden everywhere — list, detail, exports.</li>
+        <li>No <strong>Add Certificate</strong> button. Company users cannot create certificates.</li>
+        <li>No <strong>Edit</strong> or <strong>Delete</strong> actions on detail pages.</li>
+        <li>No <strong>Actions</strong> column on related views (e.g., Product Management).</li>
+        <li>Otherwise the search, filters, sort, infinite scroll, and CSV export work the same way.</li>
+    </ul>
+
+    <h3>10.1 What a Company user can do</h3>
+    <ul>
+        <li>Browse, search, and filter their company's certificates.</li>
+        <li>Open detail pages and download PDFs.</li>
+        <li>Export their visible list to CSV.</li>
+        <li>Edit their own account profile (name, email, password).</li>
+    </ul>
+
+    <div class="callout callout-info">
+        <span class="callout-label">For administrators</span>
+        <p>When provisioning a Company user (the <em>External</em> role in User Management), you must associate the account with a Company on the User Management page (§17). Without that association, the user will see an empty list.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 11. EXPORT                                                     -->
+    <!-- ============================================================ -->
+    <h2 id="cert-export">11. Exporting to CSV</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+    </div>
+
+    <p>Every list view in the platform — Certificates, Companies, Products, Users, Tags, Roles, Partners — has an <strong>Export</strong> button in the top-right toolbar. CSV is the only export format (no Excel, JSON, or PDF) — this is a deliberate standard so the file is universally importable.</p>
+
+    <h3>11.1 How export works</h3>
+    <ul>
+        <li>The export reflects the <strong>currently-filtered view</strong>. If you have search and filters active, only matching rows are exported.</li>
+        <li>The file is downloaded immediately — no email, no background job.</li>
+        <li>The filename includes the date you exported (e.g., <code>certificates_2026-05-21.csv</code>).</li>
+        <li>Company users' exports only contain rows their account is scoped to.</li>
+    </ul>
+
+    <h3>11.2 Tips &amp; common questions</h3>
+    <details>
+        <summary>The export only has a few rows but the list shows many more.</summary>
+        <p>Active filters are applied to the export. Clear filters first if you want everything.</p>
+    </details>
+    <details>
+        <summary>Can I get a JSON or Excel export?</summary>
+        <p>No — by policy, exports are CSV only. Most spreadsheet apps (Excel, Google Sheets, Numbers) open CSVs natively and can save them as Excel from there if needed.</p>
+    </details>
+    <details>
+        <summary>The exported CSV looks garbled when I open it in Excel.</summary>
+        <p>This usually means a character-encoding mismatch. Open the CSV using <em>Data → Get External Data → From Text/CSV</em> in Excel and choose UTF-8 encoding. (Modern Excel versions handle this automatically.)</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 12. COMPANY MGMT                                               -->
+    <!-- ============================================================ -->
+    <h2 id="company-mgmt">12. Company Management</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+    </div>
+
+    <p>Companies are the suppliers/manufacturers whose products you're certifying. Every certificate is attached to a company. Manage them at <strong>Companies → Management</strong>.</p>
+
+    <h3>12.1 What you can do</h3>
+    <ul>
+        <li><strong>Search</strong> by name, email, or URL.</li>
+        <li><strong>Add New Company</strong> opens a modal with name / email / URL fields.</li>
+        <li><strong>Edit</strong> a row inline (or via the actions menu) — same three fields.</li>
+        <li><strong>Import / Template / Export</strong> for bulk operations (CSV).</li>
+    </ul>
+
+    <h3>12.2 Field reference</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Field</th><th style="width:10%">Required?</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Company Name</strong></td><td class="req">Yes</td><td>Must be unique. Up to 200 characters.</td></tr>
+            <tr><td><strong>Email</strong></td><td class="opt">Optional</td><td>Primary contact email. Up to 255 characters. Validated as email format.</td></tr>
+            <tr><td><strong>URL</strong></td><td class="opt">Optional</td><td>Company website. Up to 500 characters. Must start with <code>http://</code> or <code>https://</code>.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>12.3 Tips</h3>
+    <details>
+        <summary>I can't delete a company.</summary>
+        <p>Companies that have certificates or products attached cannot be deleted — that would orphan the related records. Either move the related records to a different company first, or keep the company record for historical reference.</p>
+    </details>
+    <details>
+        <summary>I changed a company's email here but it didn't show on the certificate.</summary>
+        <p>The certificate's company email is auto-populated at creation time. On the cert Edit form, edits to the company email there write back to the company record. From this Company Management page, changes flow forward — future certs will pick up the new email automatically.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 13. PRODUCT MGMT                                               -->
+    <!-- ============================================================ -->
+    <h2 id="product-mgmt">13. Product Management</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+    </div>
+
+    <p>Products are the items being certified. Every product is owned by exactly one Company, and every certificate references exactly one Product. Manage them at <strong>Products → Management</strong>.</p>
+
+    <h3>13.1 What's on the page</h3>
+    <ul>
+        <li><strong>Table</strong> of all products with Company, Product Name, Category, Product Type, Subcategory, Certificate count, and Identifier count columns.</li>
+        <li><strong>Search</strong> across all columns.</li>
+        <li><strong>Sort</strong> by any column.</li>
+        <li><strong>Pagination</strong> — 50 products per page.</li>
+        <li><strong>Add New Product</strong> opens a modal.</li>
+        <li><strong>Actions</strong> column lets you Edit or Deactivate a product.</li>
+    </ul>
+
+    <h3>13.2 Field reference</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Field</th><th style="width:10%">Required?</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Company</strong></td><td class="req">Yes</td><td>The company this product belongs to. Cannot be changed after creation.</td></tr>
+            <tr><td><strong>Product Name</strong></td><td class="req">Yes</td><td>How the product appears throughout the platform.</td></tr>
+            <tr><td><strong>Product Category</strong></td><td class="opt">Optional</td><td>Top level of the 3-level hierarchy (§14).</td></tr>
+            <tr><td><strong>Product Type</strong></td><td class="opt">Optional</td><td>Middle level. Filtered by Category.</td></tr>
+            <tr><td><strong>Product Subcategory</strong></td><td class="opt">Optional</td><td>Bottom level. Filtered by Type.</td></tr>
+        </tbody>
+    </table>
+    </div>
+    <p><em>Note:</em> Product Identifiers (ASIN, UPC, GTIN, etc.) are attached to individual <em>certificates</em>, not to products themselves. See §4 step 11.</p>
+
+    <h3>13.3 Tips</h3>
+    <details>
+        <summary>Why can't I edit Status, SKU, or Model Number on the product form?</summary>
+        <p>Those fields were removed per requirements — products are a simple Company + Name + 3-level hierarchy. Anything more specific (SKU, model, ASIN, etc.) lives on the certificate's Product Identifiers section, where it can vary per-certificate.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 14. PRODUCT TYPES                                              -->
+    <!-- ============================================================ -->
+    <h2 id="product-types">14. Product Types (3-level hierarchy)</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+    </div>
+
+    <p>Products are organized into a three-level hierarchy: <strong>Category → Type → Subcategory</strong>. Administrators define and maintain the hierarchy at <strong>Administration → Product Types</strong>.</p>
+
+    <h3>14.1 The three levels</h3>
+    <ul>
+        <li><strong>Category</strong> — broadest grouping (e.g., "Personal Care", "Food &amp; Beverage").</li>
+        <li><strong>Type</strong> — a kind of product within a Category (e.g., "Skincare" within Personal Care).</li>
+        <li><strong>Subcategory</strong> — a specific class of Type (e.g., "Moisturizers" within Skincare).</li>
+    </ul>
+
+    <h3>14.2 What you can do</h3>
+    <ul>
+        <li>Add a new node at any level.</li>
+        <li>Re-parent a node by editing its parent reference.</li>
+        <li>Rename a node — the change propagates to every product and certificate referencing it.</li>
+        <li>Delete a node — only if it has no products attached.</li>
+    </ul>
+
+    <h3>14.3 Tips</h3>
+    <details>
+        <summary>I added a root-level category but everything shows up under "Chemicals and Raw Materials."</summary>
+        <p>This was a known bug fixed in March 2026 — new root categories are now created correctly. If you still see this, contact your administrator.</p>
+    </details>
+    <details>
+        <summary>I renamed a category — will old certificates show the new name?</summary>
+        <p>Yes — the certificate references the category by ID, not name. Renaming updates the display everywhere.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 15. PRODUCT ID SEARCH                                           -->
+    <!-- ============================================================ -->
+    <h2 id="product-search">15. Searching by product identifier</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+        <span class="role-badge role-public">Public</span>
+    </div>
+
+    <p>If you have an ASIN, UPC, GTIN, or other identifier and want to know which certificate(s) it's attached to, drop it into the search box on the certificate tile view (§9). The search matches against all identifier values across all certificates.</p>
+
+    <p>Partners can also do this via the API:</p>
+    <ul>
+        <li><code>GET /api/v1/certificates/search?productId=B07XYZ1234</code></li>
+        <li>Returns every certificate that has this identifier attached, with full details.</li>
+        <li>See the <em>Partner API Developer Guide</em> for the full request/response shape.</li>
+    </ul>
+
+    <!-- ============================================================ -->
+    <!-- 16. ADMIN DASHBOARD                                            -->
+    <!-- ============================================================ -->
+    <h2 id="admin-dashboard">16. Admin Dashboard</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+    </div>
+
+    <p>The dashboard is the landing page for Admin users — a quick at-a-glance view of system health and recent activity. Access it at <strong>Administration → Dashboard</strong>.</p>
+
+    <h3>16.1 What's on the dashboard</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:30%">Tile / section</th><th>Content</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Active Certificates</strong></td><td>Count of certs in Client Approved – Paid, Republished, or Client Approved – Confidential.</td></tr>
+            <tr><td><strong>Certs Expiring (next 30 days)</strong></td><td>Count of active certs whose Expiration Date is within 30 days.</td></tr>
+            <tr><td><strong>Certs Expired Last Month</strong></td><td>Count of certs that moved into an Expired state during the previous calendar month.</td></tr>
+            <tr><td><strong>Pending Approvals</strong></td><td>Count of certs in Draft + Client Approved – Not Paid — work-in-progress queue.</td></tr>
+            <tr><td><strong>Total Companies / Products / Users</strong></td><td>Headline counts.</td></tr>
+            <tr><td><strong>Recent Activity</strong></td><td>Last 10 status transitions across all certificates.</td></tr>
+            <tr><td><strong>Quick Links</strong></td><td>Shortcuts to User Management, Tag Management, Partner API.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 17. USER MGMT                                                  -->
+    <!-- ============================================================ -->
+    <h2 id="admin-users">17. User Management</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+    </div>
+
+    <p>Manage every account that can sign into the platform. Find it at <strong>Administration → User Management</strong>.</p>
+
+    <h3>17.1 What's on the page</h3>
+    <ul>
+        <li>Table of users with Name, Email, Role, Company, Status (active/inactive), Last Login.</li>
+        <li>Search, filter by Status / Role / Company.</li>
+        <li>Buttons: Template / Import / Export / Add New User.</li>
+        <li>Actions per row: Edit, Activate/Deactivate, Reset Password.</li>
+    </ul>
+
+    <h3>17.2 Adding a user</h3>
+    <ol class="workflow-steps">
+        <li>
+            <span class="step-title">Click "Add New User"</span>
+            <span class="step-detail">Opens the user modal.</span>
+        </li>
+        <li>
+            <span class="step-title">Fill in the fields</span>
+            <span class="step-detail">First name, last name, email, role. Company is required for External users; optional for Analyst/Admin; not shown for Partner accounts.</span>
+        </li>
+        <li>
+            <span class="step-title">Pick the role</span>
+            <span class="step-detail">Admin, Analyst, External, or Partner. The role controls what the user can see and do (see §18).</span>
+        </li>
+        <li>
+            <span class="step-title">Save</span>
+            <span class="step-detail">The user receives an email with their initial sign-in link. They'll be prompted to set a password on first sign-in.</span>
+        </li>
+    </ol>
+
+    <h3>17.3 Field reference</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Field</th><th style="width:10%">Required?</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td><strong>First / Last Name</strong></td><td class="req">Yes</td><td>Up to 100 characters each.</td></tr>
+            <tr><td><strong>Email</strong></td><td class="req">Yes</td><td>Must be unique across the platform. This is the username for sign-in.</td></tr>
+            <tr><td><strong>Role</strong></td><td class="req">Yes</td><td>Admin / Analyst / External / Partner.</td></tr>
+            <tr><td><strong>Company</strong></td><td>Conditional</td><td>Required for External users. Optional for Analyst/Admin. Hidden for Partner.</td></tr>
+            <tr><td><strong>Active</strong></td><td>Auto</td><td>Defaults to true. Toggle off to disable sign-in without deleting the account.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>17.4 Tips</h3>
+    <details>
+        <summary>I get "Failed to create user."</summary>
+        <p>Most often this means the email is already in use. Errors now include the specific reason — check the toast notification text. If unclear, contact your administrator.</p>
+    </details>
+    <details>
+        <summary>How do I delete a user?</summary>
+        <p>Use <strong>Deactivate</strong> instead of delete. Deactivated users cannot sign in, but their historical audit-trail entries remain intact. The platform's default admin account cannot be deactivated or deleted.</p>
+    </details>
+    <details>
+        <summary>An External user logged in but sees nothing.</summary>
+        <p>Check that the user's Company is set on their profile. Without a Company, the External user's filtered view returns zero certs.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 18. ROLES                                                       -->
+    <!-- ============================================================ -->
+    <h2 id="admin-roles">18. Role Management</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+    </div>
+
+    <p>Roles define what a user can see and do. Find them at <strong>Administration → Role Management</strong>.</p>
+
+    <h3>18.1 The standard roles</h3>
+    <p>Two are <strong>internal</strong> (GCC staff) and two are <strong>external</strong> (clients and partners). See §2 for the broader context.</p>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:18%">Role</th><th style="width:14%">Camp</th><th>What it can do</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Admin</strong></td><td>Internal</td><td>Everything. Cannot be deleted from the system.</td></tr>
+            <tr><td><strong>Analyst</strong></td><td>Internal</td><td>All certificate operations, company/product management. No access to Administration screens (users, roles, tags, system settings).</td></tr>
+            <tr><td><strong>External</strong></td><td>External (Company users)</td><td>Read-only, scoped to the company associated with their account.</td></tr>
+            <tr><td><strong>Partner</strong></td><td>External (API integrations)</td><td>Machine-to-machine via API key only. Cannot sign in to the web UI.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>18.2 Adding or editing a role</h3>
+    <p>Click <strong>Add New Role</strong> or the Edit action on any non-system role. A role has:</p>
+    <ul>
+        <li><strong>Name</strong> — used to assign the role to users.</li>
+        <li><strong>Description</strong> — internal label, shown next to the name on the User form.</li>
+        <li><strong>Permissions</strong> — checkboxes for individual permissions. The standard roles' permission grids are documented in the description text of each permission.</li>
+    </ul>
+
+    <div class="callout callout-warn">
+        <span class="callout-label">Caveat</span>
+        <p>Not every permission flag is enforced by code today. The standard roles (Admin/Analyst/External/Partner) are gated by role name throughout the application. Custom roles can be created but their effect is currently limited — consult your administrator before relying on a custom role.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 19. TAGS                                                        -->
+    <!-- ============================================================ -->
+    <h2 id="admin-tags">19. Tag Management</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+    </div>
+
+    <p>Tags are labels you attach to certificates for ad-hoc classification. Two parallel taxonomies are maintained: <strong>External</strong> tags (visible to everyone) and <strong>Internal</strong> tags (visible only to Admin/Analyst). Manage them at <strong>Administration → Tags</strong>.</p>
+
+    <h3>19.1 What you can do</h3>
+    <ul>
+        <li>Add / edit / delete individual tags.</li>
+        <li>Filter the list by tag type (External / Internal).</li>
+        <li>Import &amp; export tags via CSV.</li>
+    </ul>
+
+    <h3>19.2 Field reference</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Field</th><th style="width:10%">Required?</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Tag Name</strong></td><td class="req">Yes</td><td>Must be unique within its type. Up to 100 characters.</td></tr>
+            <tr><td><strong>Tag Type</strong></td><td class="req">Yes</td><td>External (everyone sees it) or Internal (Admin/Analyst only). Cannot be changed after creation.</td></tr>
+            <tr><td><strong>Description</strong></td><td class="opt">Optional</td><td>Free text up to 500 chars. Shown as a tooltip when hovering a tag pill.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>19.3 Tips</h3>
+    <details>
+        <summary>I deleted a tag — what happens to certificates that used it?</summary>
+        <p>The tag is removed from every certificate that referenced it. The certificate itself is unaffected.</p>
+    </details>
+    <details>
+        <summary>Can I convert an External tag to Internal?</summary>
+        <p>No — the tag type is fixed at creation. If you need a tag with the opposite visibility, create a new tag and migrate the references.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 20. CERTIFICATION TYPES                                         -->
+    <!-- ============================================================ -->
+    <h2 id="admin-cert-types">20. Certification Types &amp; custom fields</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+    </div>
+
+    <p>Certification Types are the certification programs you support (USDA Organic, ECOCERT, B-Corp, etc.). They form a two-level hierarchy: <strong>parent type → subcategories</strong>. Manage them at <strong>Administration → Certification Types</strong>.</p>
+
+    <h3>20.1 What you can do</h3>
+    <ul>
+        <li>Add / edit / delete parent types and subcategories.</li>
+        <li>Re-parent a subcategory to a different parent.</li>
+        <li>Attach <strong>custom fields</strong> to a parent type — extra form fields that appear on Create/Edit for any cert of that type.</li>
+    </ul>
+
+    <h3>20.2 Custom fields</h3>
+    <p>For each certification type, you can add extra fields the analyst will fill in when uploading. These fields appear in a single "Custom Fields" section on the cert form, on the cert detail page, and (if marked public) on the Partner API.</p>
+
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Field property</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Field Label</strong></td><td>The text shown above the input.</td></tr>
+            <tr><td><strong>Field Type</strong></td><td>Text / Number / Date / Select (with predefined options).</td></tr>
+            <tr><td><strong>Required</strong></td><td>If true, the analyst must fill it in before saving.</td></tr>
+            <tr><td><strong>Display order</strong></td><td>Numeric. Lower numbers appear first.</td></tr>
+            <tr><td><strong>Help text</strong></td><td>Optional tooltip / hint shown below the field.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>20.3 Tips</h3>
+    <details>
+        <summary>I added a custom field to a type but it isn't appearing on existing certs.</summary>
+        <p>Custom field values are stored per-certificate. Adding the field to the type makes it appear on the Create/Edit form for that type from that moment forward. Existing certs will show the new field as blank until you edit and fill it in.</p>
+    </details>
+
+    <!-- ============================================================ -->
+    <!-- 21. PATHWAYS                                                    -->
+    <!-- ============================================================ -->
+    <h2 id="admin-pathways">21. Pathways (Amazon CPF)</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+    </div>
+
+    <p>Pathways are the eligibility tracks within Amazon's <strong>Climate Pledge Friendly</strong> (CPF) program. Each CPF-eligible certification can be assigned to a specific Pathway — a label Amazon uses when displaying the CPF badge. Manage at <strong>Administration → Pathways</strong>.</p>
+
+    <h3>21.1 What you can do</h3>
+    <ul>
+        <li>Add, edit, and deactivate pathways.</li>
+        <li>Each pathway has a Name and (optionally) a Description.</li>
+        <li>Pathways appear in the Pathway dropdown on the Create/Edit Certificate form (§4).</li>
+    </ul>
+
+    <p>Most installations need to maintain this list only when Amazon publishes new pathway names; day-to-day operations rarely require changes here.</p>
+
+    <!-- ============================================================ -->
+    <!-- 22. PARTNER MGMT                                                -->
+    <!-- ============================================================ -->
+    <h2 id="admin-partners">22. Partner Management</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+    </div>
+
+    <p>Partners are the external organizations that consume certificate data through the Partner API — currently Amazon, Novi, and Other. Manage them at <strong>Administration → Partners</strong>.</p>
+
+    <h3>22.1 What you can do</h3>
+    <ul>
+        <li>Add / edit / deactivate partner organizations.</li>
+        <li>Export the partner list as CSV.</li>
+        <li>See how many certificates and API keys are associated with each partner.</li>
+    </ul>
+
+    <p><em>Note:</em> Partner management is intentionally lighter than the other admin screens — only Export and Add buttons. There is no template/import flow because partner records are core entities, not bulk data.</p>
+
+    <h3>22.2 Field reference</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:22%">Field</th><th style="width:10%">Required?</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Partner Name</strong></td><td class="req">Yes</td><td>Must be unique. Up to 100 characters.</td></tr>
+            <tr><td><strong>Description</strong></td><td class="opt">Optional</td><td>Free text up to 500 chars.</td></tr>
+            <tr><td><strong>Active</strong></td><td>Auto</td><td>Defaults to true. Deactivating a partner does not delete their API keys, but does revoke their API access on next request.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 23. PARTNER API ACCESS                                         -->
+    <!-- ============================================================ -->
+    <h2 id="admin-partner-api">23. Partner API Access — API keys</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+    </div>
+
+    <p>This is where you generate and manage the API keys that partners use to call the Partner API. Find it at <strong>Administration → Partner API Access</strong>.</p>
+
+    <h3>23.1 The toolbar</h3>
+    <ul>
+        <li><strong>Refresh</strong> — reloads the table.</li>
+        <li><strong>Copy Docs Link</strong> — copies a shareable link to the Partner API Developer Guide for sending to the partner's engineering team.</li>
+        <li><strong>API Docs</strong> — opens the live Swagger reference for the API.</li>
+        <li><strong>Generate API Key</strong> — opens the key-generation flow.</li>
+    </ul>
+
+    <h3>23.2 Generating a key</h3>
+    <ol class="workflow-steps">
+        <li>
+            <span class="step-title">Click "Generate API Key"</span>
+            <span class="step-detail">Modal opens.</span>
+        </li>
+        <li>
+            <span class="step-title">Pick the partner and a label</span>
+            <span class="step-detail">The label is internal — call it something like "Amazon production" or "Amazon staging" so you can tell keys apart.</span>
+        </li>
+        <li>
+            <span class="step-title">Set an expiration (optional)</span>
+            <span class="step-detail">Leave blank for no expiration, or pick a date. Keys can also be revoked manually any time.</span>
+        </li>
+        <li>
+            <span class="step-title">Generate &amp; copy</span>
+            <span class="step-detail">The key is displayed exactly once — copy it now and send it to the partner over a secure channel. After you close this modal, you can never see the key again (only revoke and regenerate).</span>
+        </li>
+    </ol>
+
+    <div class="callout callout-warn">
+        <span class="callout-label">Security</span>
+        <p>Treat API keys like passwords. Don't paste them into chat or email — use a password manager or another secure channel to deliver. If a key is ever exposed, revoke it immediately and issue a new one.</p>
+    </div>
+
+    <h3>23.3 What partners do with the key</h3>
+    <p>Partners include the key as an <code>X-API-Key</code> header on every API request. The full request/response reference, error codes, and integration examples live in the separate <strong>Partner API Developer Guide</strong>.</p>
+
+    <!-- ============================================================ -->
+    <!-- 24. ACCOUNT & PROFILE                                          -->
+    <!-- ============================================================ -->
+    <h2 id="account-profile">24. Account &amp; profile</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+    </div>
+
+    <p>Every signed-in user can view and edit their own profile from the user-menu in the top-right corner of any page → <strong>My Profile</strong>.</p>
+
+    <h3>24.1 What you can change yourself</h3>
+    <ul>
+        <li>First name, last name.</li>
+        <li>Email (must remain unique).</li>
+        <li>Password.</li>
+        <li>Display preferences (where supported).</li>
+    </ul>
+
+    <h3>24.2 What only an Administrator can change</h3>
+    <ul>
+        <li>Your <strong>Role</strong>.</li>
+        <li>Your <strong>Company</strong> (for External users).</li>
+        <li>Your account's <strong>Active</strong> status.</li>
+    </ul>
+
+    <!-- ============================================================ -->
+    <!-- 25. PASSWORD RESET                                             -->
+    <!-- ============================================================ -->
+    <h2 id="password-reset">25. Forgotten password &amp; reset</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+    </div>
+
+    <p>If you can't remember your password:</p>
+
+    <ol>
+        <li>On the sign-in page, click <strong>Forgot password?</strong></li>
+        <li>Enter the email address on your account.</li>
+        <li>You'll receive a reset link by email (check spam if it doesn't arrive within a minute or two).</li>
+        <li>Click the link, enter a new password (minimum 8 characters with a mix of letters, numbers, and a symbol), and sign in.</li>
+    </ol>
+
+    <p>If you're locked out and the reset email isn't arriving, contact your administrator. Admin can issue a new temporary password from the User Management page (§17).</p>
+
+    <!-- ============================================================ -->
+    <!-- 26. NOTIFICATIONS                                              -->
+    <!-- ============================================================ -->
+    <h2 id="notifications">26. Notifications &amp; toasts</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-analyst">Analyst</span>
+        <span class="role-badge role-external">External</span>
+    </div>
+
+    <p>The platform communicates success, warning, and error states using small "toast" notifications that pop up briefly in the bottom-right corner:</p>
+
+    <ul>
+        <li><strong>Green</strong> toast — success (e.g., "Certificate saved").</li>
+        <li><strong>Yellow / orange</strong> toast — warning (e.g., "This will overwrite the existing PDF").</li>
+        <li><strong>Red</strong> toast — error (e.g., "Failed to save — see details below").</li>
+    </ul>
+
+    <p>Toasts auto-dismiss after a few seconds. Click anywhere on the toast to dismiss it early.</p>
+
+    <p>For irreversible actions (delete, deactivate, status transition to a final state), the platform shows a <strong>confirmation modal</strong> before performing the action — a single Yes/Cancel choice. Native browser confirms and alerts are intentionally not used.</p>
+
+    <!-- ============================================================ -->
+    <!-- 27. PARTNER API QUICK REFERENCE                                -->
+    <!-- ============================================================ -->
+    <h2 id="partner-api-quickref">27. Partner API quick reference</h2>
+    <div class="role-row">
+        <span class="role-badge role-admin">Admin</span>
+        <span class="role-badge role-partner">Partner</span>
+    </div>
+
+    <p>This section is a brief overview for administrators provisioning partner access. The full developer reference (request/response shapes, error codes, sample code, integration patterns) lives in the separate <strong>GCC Database Partner API — Amazon Developer Guide</strong> distributed to partner engineering teams.</p>
+
+    <h3>27.1 Base URL</h3>
+    <p><code>https://greencirclecertified.com/database/api/v1</code></p>
+
+    <h3>27.2 Authentication</h3>
+    <p>Every request must include an <code>X-API-Key</code> header containing a key generated on the Partner API Access page (§23). Keys are long-lived but can be revoked at any time. There is no separate session or token exchange.</p>
+
+    <h3>27.3 Main endpoints (partner-scoped)</h3>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:42%">Endpoint</th><th>Purpose</th></tr></thead>
+        <tbody>
+            <tr><td><code>GET /certificates</code></td><td>List all certificates the calling partner is entitled to see (Paid + Republished, filtered to the partner).</td></tr>
+            <tr><td><code>GET /certificates/{id}</code></td><td>Single certificate by internal ID.</td></tr>
+            <tr><td><code>GET /certificates/by-number/{n}</code></td><td>Single certificate by certification number.</td></tr>
+            <tr><td><code>GET /certificates/search?productId=...</code></td><td>Find certificates by attached product identifier (ASIN, UPC, etc.).</td></tr>
+            <tr><td><code>GET /certificates/gs1</code></td><td>GS1-formatted variant used by certain partners' ingestion pipelines.</td></tr>
+            <tr><td><code>GET /certificates/{id}/pdf</code></td><td>Download the certificate PDF binary.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <h3>27.4 What partners see (and don't)</h3>
+    <ul>
+        <li>Only certs in <em>Client Approved – Paid</em> or <em>Republished</em> status.</li>
+        <li>Only certs scoped to the calling partner.</li>
+        <li>Status is always returned as <code>"Active"</code> (the internal lifecycle status names are not leaked).</li>
+        <li>Internal tags are never returned. External tags are.</li>
+        <li>Internal-only fields (analyst notes, audit history) are never returned.</li>
+    </ul>
+
+    <div class="callout callout-info">
+        <span class="callout-label">For partner engineers</span>
+        <p>This guide is for administrators provisioning access. Partner engineering teams should work from the <em>Partner API Developer Guide</em>, which has the full schema, all error codes, and language-specific code samples.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- APPENDIX - GLOSSARY                                            -->
+    <!-- ============================================================ -->
+    <h2 id="appendix-glossary">Appendix — Glossary</h2>
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th style="width:24%">Term</th><th>Definition</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Admin</strong></td><td>Internal-user role. Full system access — including user, role, tag, partner, and API-key administration. Cannot be deleted.</td></tr>
+            <tr><td><strong>Analyst</strong></td><td>Internal-user role. Operates the certificate workflow day-to-day. Can create, edit, approve. No access to system administration screens.</td></tr>
+            <tr><td><strong>ASIN</strong></td><td>Amazon Standard Identification Number — the identifier Amazon uses to track every product on its platform.</td></tr>
+            <tr><td><strong>Certification #</strong></td><td>The unique number assigned by GCC to each certificate at the moment of save.</td></tr>
+            <tr><td><strong>Company user</strong></td><td>One of the two sub-types of external user. A real person from a manufacturer or supplier who signs in to view their own organization's certificates. The role is named <em>External</em> on the User Management page.</td></tr>
+            <tr><td><strong>CPF</strong></td><td>Amazon's Climate Pledge Friendly program. Certain certifications qualify products for the CPF badge.</td></tr>
+            <tr><td><strong>Custom field</strong></td><td>An extra field attached to a specific certification type. Configured by an Administrator on the Certification Types admin page.</td></tr>
+            <tr><td><strong>External (role)</strong></td><td>Capitalized — the role on the User Management page that grants Company-user access. Read-only, scoped to one company.</td></tr>
+            <tr><td><strong>external user</strong></td><td>Lowercase — the umbrella term covering both Company users (web UI) and Partners (API). Anyone outside of GCC who consumes certificate data.</td></tr>
+            <tr><td><strong>External tag / Internal tag</strong></td><td>Two parallel tag taxonomies. External tags are visible to everyone (including Company users and Partners); Internal tags are visible only to GCC staff (Admin/Analyst).</td></tr>
+            <tr><td><strong>GTIN / UPC / EAN</strong></td><td>Global product identifier standards. GTIN-12 = UPC, GTIN-13 = EAN. Used by most retailers outside of Amazon.</td></tr>
+            <tr><td><strong>Internal user</strong></td><td>Umbrella term for GCC staff — Admin and Analyst.</td></tr>
+            <tr><td><strong>Partner</strong></td><td>The other sub-type of external user — an external organization (e.g., Amazon, Novi) that consumes certificate data via the Partner API. Not a web user.</td></tr>
+            <tr><td><strong>Partner API</strong></td><td>The machine-to-machine REST API used by Partners. Documented separately in the Partner API Developer Guide.</td></tr>
+            <tr><td><strong>Pathway</strong></td><td>Within Amazon CPF, the specific eligibility track a certification falls under.</td></tr>
+            <tr><td><strong>Product hierarchy</strong></td><td>The 3-level classification Category → Type → Subcategory used to organize products in the catalog.</td></tr>
+            <tr><td><strong>Status (8-state workflow)</strong></td><td>The lifecycle state of a certificate — Draft, Client Approved (3 variants), Hold, Expired, Republished, Expired - No Annual Verification. Determines whether the certificate is visible publicly and to Partners. Full details in §8.</td></tr>
+            <tr><td><strong>Tile view</strong></td><td>The main certificate browsing screen — a grid of cards showing each certificate's preview image, key fields, and link to detail.</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <hr style="border:none; border-top:1px solid var(--neutral-200); margin:48px 0 16px;">
+    <p style="text-align:center; font-size:13px; color:var(--neutral-600);">
+        GreenCircle Certified Database — User Guide v1.0 — Prepared by Anuki Consulting, May 2026
+    </p>
+
+</div><!-- /.content -->
+
+</body>
+</html>

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "QC215-GET-not-invalid",
+    "name": "GET handler does NOT show \"invalid or has expired\" for `+`-containing token",
+    "status": "PASS",
+    "notes": "body length=4500, showsInvalid=false"
+  },
+  {
+    "id": "QC215-GET-form-rendered",
+    "name": "GET handler renders the reset-password form",
+    "status": "PASS",
+    "notes": "hasResetForm=true"
+  },
+  {
+    "id": "QC215-POST-roundtrip-not-invalid",
+    "name": "POST round-trip does NOT show \"invalid or has expired\" (hidden-field bug fixed)",
+    "status": "PASS",
+    "notes": "postShowsInvalid=false status=200"
+  },
+  {
+    "id": "QC215-POST-success",
+    "name": "POST result indicates successful password reset (302 redirect or success message)",
+    "status": "PASS",
+    "notes": "status=200, body sample=\"Password Reset Successful - GreenCircle Certified Database /* PasswordResetSuccess page-specific */ .auth-container { text-align: center; } .auth-head\""
+  },
+  {
+    "id": "QC215-PWHASH-changed",
+    "name": "PasswordHash actually changed in DB after successful reset",
+    "status": "PASS",
+    "notes": "hash differs=true"
+  }
+]

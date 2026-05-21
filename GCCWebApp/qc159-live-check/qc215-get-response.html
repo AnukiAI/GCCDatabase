@@ -1,0 +1,95 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In - GreenCircle Certified Database</title>
+    <link href="/css/main.css" rel="stylesheet" />
+    <link href="/css/auth.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" rel="stylesheet" />
+    <style>
+        /* ResetPassword page-specific overrides */
+        :root {
+            --auth-left-gradient: linear-gradient(135deg, #4a7c23 0%, #447638 100%);
+        }
+        .form-group label { font-size: 14px; }
+        .link { font-size: 0.9rem; }
+        .security-notice strong { font-size: 14px; }
+        .security-notice p { font-size: 12px; }
+        .divider { font-size: 14px; }
+    </style>
+</head>
+<body class="login-page">
+    <main class="login-container" role="main">
+        <div class="login-left">
+            <img src="/img/gcclogo.png" alt="GreenCircle Logo" class="login-logo" />
+            <div class="login-brand">
+                <h1>GreenCircle Certified Database</h1>
+                <p>Access your sustainability certification database.</p>
+            </div>
+        </div>
+
+        <div class="login-right">
+            <div class="login-header">
+                <h2>Reset Password</h2>
+                <p>Enter your new password</p>
+            </div>
+
+
+
+
+            <div class="login-form-section">
+                <form method="post" action="/Account/ResetPasswordWithToken">
+                    <input type="hidden" name="Token" value="AAAA&#x2B;BBBB&#x2B;CCCC&#x2B;DDDD&#x2B;EEEE&#x2B;FFFF&#x2B;GGGG&#x2B;HHHH=" />
+                    <input type="hidden" name="Email" value="jane.analyst@anukiconsulting.com" />
+
+                    <div class="form-group">
+                        <label for="Password">New Password <span class="text-danger" aria-hidden="true">*</span><span class="sr-only">required</span></label>
+                        <input type="password" id="Password" name="Password" class="form-control" placeholder="Enter your new password" required aria-required="true" minlength="6" aria-describedby="password-help" autocomplete="new-password" />
+                        <small id="password-help" class="form-text">Password must be at least 6 characters long</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ConfirmPassword">Confirm Password <span class="text-danger" aria-hidden="true">*</span><span class="sr-only">required</span></label>
+                        <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="form-control" placeholder="Confirm your new password" required aria-required="true" autocomplete="new-password" />
+                    </div>
+
+                    <button type="submit" class="btn-lime" aria-label="Reset your password">Reset Password</button>
+
+                    <div class="link">
+                        <a href="/Account/Login">Back to Login</a>
+                    </div>
+                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8LNNT8DGfcNDt_2Iyir4gv8MB5qKAyyRuT_xeobEBnznPSVHcbI6dCrcwlbnwrLOCB-UKLnPpk8afPL1dzRkoOLCV2LMsNsVX-2xMIlUPi8LdB-YHIGvLBhl63XyUMA2Yg8xJq4eCkdIbQOFPD3Ea_c" /></form>
+            </div>
+            <div class="security-notice">
+                <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                <div>
+                    <strong>Secure Authentication</strong>
+                    <p>Your credentials are protected with industry-standard encryption</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Optional: Add some loading functionality -->
+    <script>
+              document.addEventListener('DOMContentLoaded', function() {
+            // Add loading state to login button
+            const loginButton = document.querySelector('.login-button');
+            const loginForm = document.querySelector('form');
+
+            if (loginForm) {
+                loginForm.addEventListener('submit', function() {
+                    if (loginButton) {
+                        loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Signing in...</span>';
+                        loginButton.style.pointerEvents = 'none';
+                    }
+                });
+            }
+
+            // Rest of your existing JavaScript code...
+        });
+    </script>
+</body>
+</html>

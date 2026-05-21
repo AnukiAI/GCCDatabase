@@ -1,0 +1,8 @@
+[
+  {
+    "id": "QC208-discovery",
+    "name": "Discover real /uploads/ filename via authenticated access",
+    "status": "FAIL",
+    "notes": "no upload paths found in cert edit HTML"
+  }
+]

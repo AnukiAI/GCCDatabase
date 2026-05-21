@@ -1,0 +1,38 @@
+[
+  {
+    "id": "QC208-no-samples",
+    "name": "No /uploads/ URLs discovered to probe",
+    "status": "WARN",
+    "notes": "public tile view did not surface any upload paths"
+  },
+  {
+    "id": "QC206-anon-401",
+    "name": "Anonymous /api/CertificatesApi returns 401 (unauthenticated)",
+    "status": "PASS",
+    "notes": "HTTP 401"
+  },
+  {
+    "id": "QC206-external-403",
+    "name": "External-role /api/CertificatesApi returns 403 (forbidden — not AnalystOrAdmin)",
+    "status": "PASS",
+    "notes": "HTTP 403 — if 200, fix may not be deployed; if 404, route mismatch"
+  },
+  {
+    "id": "QC206-admin-200",
+    "name": "Admin /api/CertificatesApi returns 200 (regression: AnalystOrAdmin still works)",
+    "status": "PASS",
+    "notes": "HTTP 200"
+  },
+  {
+    "id": "QC204-gate-filters",
+    "name": "ViewCertificateFile anonymous gate produces some 404s (proves DEF-164/204/208 gate active)",
+    "status": "PASS",
+    "notes": "200s=1, 404s=4 (mix expected; all-200 = leak; all-404 = gate maybe too aggressive)"
+  },
+  {
+    "id": "QC203-skipped",
+    "name": "DEF-203 verification skipped on prod (destructive POST to Cert Edit)",
+    "status": "WARN",
+    "notes": "localhost-only verification recommended"
+  }
+]

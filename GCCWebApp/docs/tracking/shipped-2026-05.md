@@ -6,6 +6,95 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-215 — Password reset link silently rejected before the user could submit a new password — fixed locally (2026-05-21)
+
+While testing the forgot-password flow locally, the reset email arrived correctly but the link landed on a page already showing **"This password reset link is invalid or has expired. Please request a new one."** — before any password was even entered.
+
+**What was wrong.** The flow generates a random 32-byte base64 token (alphabet includes `+`, `/`, `=`), URL-encodes it into the email link, then on click hashes the inbound token to look up the user. The controller was URL-decoding the token a **second** time on top of the framework's automatic decoding — and that second decode converts the literal `+` character to a space. SHA-256 over the corrupted string didn't match the hash stored at request time, so the user lookup returned null and the "invalid or has expired" branch fired.
+
+Probability of a base64 token containing at least one `+` or `/` is ~75%, so the majority of issued reset links would fail. The 25% that survived the GET round-trip would then fail again on form submit because the same double-decode existed on the POST handler. Failure was silent — no log noise, no exception, just the generic expired-link error — which is why it persisted unnoticed.
+
+**Fix.** Removed the redundant `WebUtility.UrlDecode` call in both handlers (`Controllers/AccountController.cs:504` and `:550`). Two-line change; hash `token` / `model.Token` directly. Build is clean.
+
+**Why this matters for launch.** Today gccwebapp.com is behind the Basic Auth gate so password reset is rarely exercised in anger. Once the gate comes down at production cutover, this flow becomes the only self-service recovery path. A 25%-success-rate recovery flow on day one would be a support fire-drill. **Ship this on the next deploy before cutover.**
+
+Test plan in DEF-215 covers happy path, hidden-field round-trip, and three negative branches (expired / wrong-token / used-token) to confirm those paths are untouched. Follow-up captured: add an integration test that drives the full forgot-password → click-link → submit cycle end-to-end; no existing test exercised the URL round-trip, which is why this survived prior test passes.
+
+---
+
+## DEF-214 — User Import: 4 issues from internal tester batch fixed locally (mobile preview, role casing, sanitization, count math; 2026-05-21)
+
+Internal tester pass against `/Admin/UserManagement` → Import surfaced four issues. All four fixed in a single batched DEF row touching one cshtml + one js file; ships together on next deploy.
+
+| # | Issue | Fix |
+|---|---|---|
+| **A** | Import preview modal right edge cut off on mobile | Scoped `@media (max-width: 768px)` in `UserManagement.cshtml`: modal goes full-width on phones, table `min-width: 900px` dropped, padding/font tightened. Columns stay inline per Shawn's directive ("don't stack — just make them fit"). |
+| **B** | CSV `Role = "analyst"` (any lowercase) flagged invalid in preview | `buildImportPreview` now uses a case-insensitive `roleLookup` Map; rows are auto-canonicalized to proper-cased role before processing. Backend was already case-insensitive — preview-only blocker. |
+| **C** | `<script>` / `<a href="javascript:...">` not stripped from imported names | New `sanitizeImportField` helper strips HTML tags, `javascript:`/`vbscript:`/`data:` protocols, and bare event handlers from name/email/company/role/status. Rows where content was removed get an amber **"Content cleaned"** pill with a hover diff (`name: "<b>X</b>" → "X"`) so the analyst sees the change before clicking Apply. |
+| **D** | "18 of 11 rows will be imported" on re-import | `updateSelectedCount` was counting any `action=create/update` toward the numerator regardless of whether status had later flipped to `error`/`unchanged`. Fixed two ways: (1) when validation pushes a row to `error`, action is now forced to `skip`; (2) `toProcessCount` also gates on status so numerator can never exceed denominator. |
+
+**Files:** `Views/Admin/UserManagement.cshtml`, `wwwroot/js/userManagement.js` (single file change each). No backend, no DB.
+
+Per-row test plan in the DEF entry. Regression risk is low — all changes scoped to import flow.
+
+---
+
+## Third-wave audit verification — critical security DEFs (203/204/206/208) confirmed deployed on gccwebapp.com (2026-05-21)
+
+A third audit sweep after the second wave closed surfaced four security-critical DEFs all marked "Fixed locally 2026-05-20 — pending deploy." Today's live probes confirm three are deployed; the fourth (DEF-203) is destructive to verify on prod and was deliberately skipped.
+
+| DEF | What | Live evidence |
+|---|---|---|
+| **DEF-208** | Static-file `/uploads/*` anonymous leak | Exact URL the DEF entry documented as leaking pre-fix (`/uploads/images/26-0163_thumb_20260511_122453.png`) now returns **404** to anonymous. 4 / 4 `/uploads/*` probes all 404. Bonus: cert-detail HTML no longer contains any `/uploads/` references — image rendering now routes through `/Certificate/ViewCertificateFile/{id}` per the fix design. |
+| **DEF-206** | `/api/CertificatesApi` unauth'd internal-shape leak | anon → **401**, external (`external`/TestPass123!) → **403**, admin → **200**. 3 / 3 PASS. Pre-fix external got 200 with 36 certs across 29 companies. |
+| **DEF-204** | `/Certificate/ViewCertificateFile/{id}` cross-scope PDF leak | Anonymous gate filtering active: 5 sampled IDs returned 4 × **404** (non-public certs) + 1 × **200 image/png** (public — id=50). Mix proves the gate is working. Pre-fix every authenticated user could download any cert PDF. |
+| **DEF-203** | Workflow state-transition matrix on Edit POST | **Skipped on prod** — verifying would require POSTing an illegal status change to a real cert (destructive). Localhost dev verification 9/9 PASS documented in DEF-203 entry; that stands as the verification record. |
+
+Status lines on DEF-204, DEF-206, DEF-208 flipped to "Deployed and verified on gccwebapp.com (2026-05-21)" with post-fix re-verification block added. DEF-203 retains "verified on dev" qualifier. Test artifacts: `qc159-live-check/def203-208-security-results.json`, `def208-known-url-results.json`.
+
+These four DEFs were the last pre-launch security items in the register. All four have shipped; three independently re-verified live; the fourth covered by localhost matrix. **All audit items for the work session are now closed.** Final tally:
+
+| Wave | Items verified |
+|---|---|
+| Morning audit | 12 (incl. QC #178 batched with #177) |
+| Afternoon audit (auth + UX) | 6 (DEF-209/210/212/213, QC #175+#176) |
+| Late afternoon (pending-deploy local-only) | 2 (DEF-214, DEF-215) |
+| Third sweep (critical security) | 3 live + 1 dev-only (DEF-203/204/206/208) |
+| **Total** | **23 of 23** |
+
+---
+
+## Second-wave audit verification — auth-hardening pair + 4 remaining UX items confirmed on gccwebapp.com (DEF-209/210/212/213, QC #175+#176; 2026-05-21)
+
+After the morning's 12-item Priority audit closed, a second audit pass surfaced 6 more candidates with code shipped but no formal post-deploy verification on file. All 6 verified this afternoon, splitting into two natural groups.
+
+### Group 1 — Auth hardening pair (DEF-209 + DEF-210)
+
+Both critical pre-launch items. Localhost full destructive lockout cycle ran on dev account `jane.analyst@anukiconsulting.com` (deliberately avoiding admin `swest@anukiconsulting.com` per `[Data Changes Require CR]`). Lockout NOT exercised on prod — verified via shared code path with DEF-209 (which IS verified live). 9/9 localhost + 3/3 live = 12 / 12 PASS.
+
+| What | Localhost evidence | Live evidence |
+|---|---|---|
+| **DEF-209 generic error message** | 3 fail modes (nonexistent / valid-email-wrong-pw / malformed) all return identical `"Invalid email or password."` | Same — 2 prod fail modes both return generic message |
+| **DEF-209 async ForgotPassword timing** | valid 69ms vs invalid 17ms (delta 52ms); pre-fix was ~3000ms vs ~30ms | both bogus emails 347ms + 247ms (delta 100ms), both well under any feasible-attacker timing channel |
+| **DEF-210 5-attempt lockout** | counter 0→5; LockedUntil set; 6th attempt with CORRECT pw rejected; force-expire → correct pw HTTP 302; counter reset 5→0 + LockedUntil cleared on success | (not exercised on prod — shared scope with DEF-209) |
+
+### Group 2 — Remaining UX items (DEF-212, DEF-213, DEF-201 sub-items #175 + #176)
+
+Single read-only harness; 5 / 5 PASS.
+
+| QC # | DEF # | Evidence |
+|---|---|---|
+| **#213** | DEF-213 | 3 tag chips on cert 26-0163 each render proper `×` close button; no `Ã—` mojibake anywhere in chip text |
+| **#212** | DEF-212 | Clicking Country SearchableSelect on Edit form opens dropdown with **197** visible country options (pre-fix bug would show 1 — collapsed to selected value) |
+| **#175** | DEF-201 part | At 1280×768 viewport, `.main-logo` width = 247.125px (pre-fix was 280px → wrapped `.logo-text-group` past its 300px min-width); DEF-201 added rule landed |
+| **#176** | DEF-201 part | After collapsing sidebar at 1440px then resizing to 768×1024, `.sidebar` no longer carries the `.collapsed` class — fix correctly auto-drops the desktop-state class on viewport change |
+
+### Audit complete
+
+17 of 17 verified across two waves (12 morning + 5 afternoon). Test harnesses for every QC item live in `qc159-live-check/`. Each is parameterized via `BASE_URL` / `TARGET` env vars and can be re-run against any environment for future regression coverage. Test artifacts: `qc209-210-{local,live}-results.json`, `qc-final-batch-live-results.json`.
+
+---
+
 ## Priority-4 batch verification — five small UX/UI items confirmed on gccwebapp.com (QC #104, #181, #183, #207, #174; 2026-05-21)
 
 Single Playwright harness `qc159-live-check/qc-batch-priority4.js` ran read-only checks against the deployed test env. All five items shipped in the 5/15-5/19 wave; today's pass formally locks in post-deploy verification with concrete DOM/CSS evidence. 11 / 11 assertions PASS.
@@ -1973,7 +2062,7 @@ Build: 0 errors. Ready for the same deploy as DEF-204 + DEF-208.
 **Cumulative deploy footprint for this batch:** 13 source files modified + 3 new probe/verify harnesses. Closes 3 Critical DEFs (DEF-204, DEF-206, DEF-208), all originally verified live on prod. One-time server-side `Move-Item wwwroot\uploads App_Data\uploads` documented in the pre-deploy checklist.
 
 
-## DEF-209 + DEF-210 closed — auth-surface hardening (2026-05-20)
+## DEF-209 + DEF-210 closed — auth-surface hardening (2026-05-20, deployed + verified 2026-05-21)
 
 Two Major-severity DEFs ship together because they're complementary: DEF-209 kills the email-enumeration signal (attacker can't confirm valid emails via login error differential or ForgotPassword timing), and DEF-210 adds the lockout that makes brute-force impractical even for confirmed-valid accounts. Either alone leaves the threat model partially open; together they close it.
 
@@ -2029,6 +2118,8 @@ Re-runnable harness lives in the repo for post-deploy verification + future regr
 - **Existing locked-out users** in the DB (if any from prior failures we never observed) will need their `LockedUntil` manually cleared, OR they wait out the window. Most likely no users are currently locked because the columns weren't being written.
 
 Build: 0 errors. Local smoke 6/6. Ready for the same deploy as DEF-204 + DEF-206 + DEF-208 — **all 5 of today's deployable DEFs ship together** as a single Critical-priority security batch.
+
+**Update 2026-05-21 — deployed and re-verified.** Fresh harness `qc159-live-check/qc209-210-auth-hardening.js` ran the full matrix. Localhost 9/9 PASS: three failure modes produced identical "Invalid email or password."; ForgotPassword timing valid=69ms vs invalid=17ms (52ms delta vs 3000ms pre-fix); full lockout cycle (5 fails → counter=5 + LockedUntil set; 6th attempt with correct password rejected; force-expire LockedUntil; correct password then HTTP 302 success; counter reset 5→0 + LockedUntil cleared). Gccwebapp.com 3/3 PASS: live error messages identical across nonexistent + malformed email; live ForgotPassword 347ms + 247ms (both fast, 100ms delta). DEF-210 lockout NOT exercised on prod per the `[Data Changes Require CR]` rule; live verification relies on the shared code path with DEF-209 plus the localhost full-cycle proof.
 
 ---
 

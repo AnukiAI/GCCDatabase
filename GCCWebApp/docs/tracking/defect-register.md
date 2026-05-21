@@ -18,11 +18,161 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-215 — Password reset link "invalid or has expired" before user can submit — double URL-decode corrupts base64 token
+
+- **Date:** 2026-05-21
+- **Severity:** High (silent failure of the only self-service password recovery path; ~75% of issued reset links fail)
+- **Status:** Fixed locally — verified end-to-end on localhost 2026-05-21 (5/5 PASS, including round-trip POST that actually changed PasswordHash in DB; see `qc-final-batch-pwreset-results.json`) — pending deploy to gccwebapp.com
+- **QC Ref:** none (reproduced by Shawn locally on 2026-05-21 — email link landed on `/Account/ResetPasswordWithToken` and immediately showed the "invalid or has expired" error before he could enter a new password)
+- **Bucket:** Bug — Account / password-reset
+- **Reporter:** Shawn (internal, 2026-05-21)
+
+**What's wrong.** Forgot-password emails generate a random 32-byte base64 token (alphabet `A-Z a-z 0-9 + / =`), hash it (SHA-256) into the `Users.PasswordResetToken` column, and embed the **raw** token in the email URL as a query-string value. When the user clicks the link, the controller hashes the inbound token and compares against the stored hash. The comparison fails for any token containing `+` (which is most of them — probability of a 44-char base64 string having no `+` and no `/` is roughly 25%), so the user lands on the reset page and immediately sees:
+
+> This password reset link is invalid or has expired. Please request a new one.
+
+The token wasn't expired; the lookup just didn't find a match.
+
+**Root cause.** `Controllers/AccountController.cs`:
+
+- `:435` builds the email URL with `urlEncodedToken = WebUtility.UrlEncode(rawToken)` — base64 `+` becomes `%2B` in the URL. Correct.
+- `:495` GET handler `ResetPasswordWithToken(string token, string email)` — ASP.NET Core's query-string binder **already** percent-decodes `%2B` back to `+`, so the `token` parameter is the original raw base64 token.
+- `:504` called `var decodedToken = System.Net.WebUtility.UrlDecode(token);` a **second** time. `WebUtility.UrlDecode` follows form-style decoding, which converts the literal `+` character to a space. The hashed string then differs from the DB value by one or more characters, and the lookup returns null → "invalid or has expired" branch.
+- Same defect on the POST path at `:550` against `model.Token` — even when the GET happened to work (token without `+`/`/`), the hidden-field round-trip would re-corrupt on submit, so end-to-end success rate was even lower than 25%.
+
+This has been live since the password-reset feature was introduced; it presented as "the link doesn't work" intermittently — exactly the pattern of a probabilistic bug keyed on base64 char distribution.
+
+**Fix.** Removed the redundant `WebUtility.UrlDecode` call in both handlers and hash `token` / `model.Token` directly. The framework's model binder handles decoding for both query-string parameters and `application/x-www-form-urlencoded` POST bodies, so the second decode was never needed. Two-line change.
+
+**Files:**
+- `Controllers/AccountController.cs:495-522` (GET `ResetPasswordWithToken`) — drop `decodedToken`, hash `token`.
+- `Controllers/AccountController.cs:531-577` (POST `ResetPasswordWithToken`) — drop `decodedToken`, hash `model.Token`.
+
+**Build:** compile clean (`dotnet build` blocked only by the running dev process locking `GCCWebApp.exe`; no compile errors).
+
+**Test plan after deploy.**
+
+1. **Happy path with `+` in token.** Trigger Forgot Password for an existing user account. Inspect the URL in the email — confirm it contains `%2B`, `%2F`, or `%3D` (any token with a non-alphanumeric base64 char will exercise the fix). Click link → reset page renders with the form, NOT the "invalid or has expired" error. Submit a new password → success page. Log in with the new password.
+2. **Round-trip regression.** Trigger reset, click email link, deliberately mistype the new password (fails confirmation), correct it, resubmit. The hidden-field-driven POST must still succeed (this is the second site of the bug).
+3. **Negative — expired.** Set `PasswordResetTokenExpiry` to a past time in the DB manually, click the link → "invalid or has expired" message should still appear (expiry path unchanged).
+4. **Negative — wrong token.** Mangle one character of the token in the URL → "invalid or has expired" message should still appear (hash-mismatch path unchanged).
+5. **Negative — used token.** Successfully reset, then click the old link a second time → "invalid or has expired" (token nulled after use; path unchanged).
+
+**Regression risk:** very low. Two lines removed, no logic added, no behavioral change for any path that previously succeeded.
+
+**Follow-up.** Add a `Tests/Integration` test that drives the full forgot-password → click-link → submit-new-password loop end-to-end. The bug survived because there was no automated coverage of the link-click round-trip — only unit tests against the controller methods with synthetic tokens (which masked the URL-encoding bug).
+
+---
+
+**Verification (added 2026-05-21) — localhost end-to-end matrix, 5/5 PASS, pending deploy**
+
+`qc159-live-check/qc215-password-reset.js` — synthetic token round-trip on dev user `jane.analyst@anukiconsulting.com` (admin `swest@anukiconsulting.com` deliberately avoided). Original `PasswordHash` captured before test, restored at cleanup; reset token cleared. No persistent state changes.
+
+| Step | What | Result |
+|---|---|---|
+| Setup | `crypto.SHA256('AAAA+BBBB+CCCC+DDDD+EEEE+FFFF+GGGG+HHHH=').digest('base64')` → write to `Users.PasswordResetToken` for jane.analyst; expiry +1hr. Token deliberately includes `+` (4 of them) and `=` — the exact characters that pre-fix double-decode corrupted. | OK |
+| T1: GET reset URL | `GET /Account/ResetPasswordWithToken?token=AAAA%2BBBBB%2B...&email=…` | ✅ HTTP 200, body does NOT contain "invalid or has expired", reset form renders |
+| T2: POST round-trip | Form fields: `Token=<HTML-decoded raw>`, `Email`, `Password=QC215Test!Pa55word`, `ConfirmPassword=…`, `__RequestVerificationToken` | ✅ HTTP 200, body does NOT contain "invalid or has expired", body shows **"Password Reset Successful"** page |
+| T3: DB verify | `SELECT PasswordHash FROM Users WHERE Email = jane.analyst` after | ✅ `PasswordHash` differs from baseline → real reset happened |
+| Cleanup | Restore original `PasswordHash`; `PasswordResetToken = NULL`, `PasswordResetTokenExpiry = NULL` | OK |
+
+**Two test-side artifacts worth recording for future harness reuse:**
+- The controller hashes with `Convert.ToBase64String(SHA256(...))` — **Base64**, not hex. Node `crypto.createHash('sha256').digest()` defaults to a Buffer; explicit `.digest('base64')` matches.
+- Razor renders form input `value="…"` attributes with `+` and `=` as HTML entities (`&#x2B;` / `&#x3D;`). Browsers decode natively in `inputElement.value`; raw HTTP POST does not. Test added an `htmlDecode()` helper for the hidden `Token` field.
+
+Both are encoded inline in the harness so the test file works without surrounding context.
+
+**gccwebapp.com verification deliberately deferred.** DEF-215 is "Fixed locally — pending deploy". Running this test against prod today would test the OLD code and fail (false negative). Re-run with `BASE_URL=https://gccwebapp.com` after the next deploy.
+
+**Pre-launch posture.** This was Shawn's prompt to take the fix seriously: once Basic Auth comes down at production cutover, the password-reset flow becomes the only recovery path. A 25%-success-rate recovery flow would create a support fire-drill on day one. Fix is in working tree and proved correct end-to-end on localhost; ready for the next deploy wave.
+
+---
+
+### DEF-214 — User Import: 4 issues from internal tester batch (mobile preview, role casing, sanitization, count math)
+
+- **Date:** 2026-05-21
+- **Severity:** Medium (collectively) — single page, no data loss, but blocks confident bulk-import use
+- **Status:** Fixed locally — pending deploy
+- **QC Ref:** none (internal tester batch reported by Shawn, 2026-05-21)
+- **Bucket:** Bug — admin user-import page (Sub-A is UX, Sub-B/C/D are functional/security)
+- **Reporter:** Internal tester (relayed by Shawn, 2026-05-21)
+
+**Scope.** Four independent bugs surfaced while exercising `/Admin/UserManagement` → Import flow. Batched into one DEF row because they all live in the same page (`Views/Admin/UserManagement.cshtml` + `wwwroot/js/userManagement.js`) and ship together.
+
+#### Sub-A — Import preview modal right edge cut off on mobile
+
+**What's wrong.** Opening Import → picking a CSV → preview modal renders, but on phone-width viewports the rightmost columns (User Status / Action) extend past the visible area with no obvious scroll affordance. Action column dropdowns (Create / Skip / Use Import) become unreachable.
+
+**Root cause.** `Views/Admin/UserManagement.cshtml:167` — preview table carried an inline `min-width: 900px` and the modal container used `width: 95%` (leaving a 5% gutter on each side). Default table padding (12px per cell) and 14px font compounded the overflow.
+
+**Fix.** Scoped `<style>` block in `UserManagement.cshtml` with a `@@media (max-width: 768px)` rule that:
+- Forces `.import-modal-container` to `width: 100%` and `max-height: 100vh` (no gutter on phones)
+- Drops the table `min-width` from 900px to 0
+- Reduces cell padding from 12px → 6/4px, font from 14px → 12px, action-select font to 11px
+- Tightens the summary stats grid (4 columns at 1fr each) and footer padding
+- Per Shawn's directive ("don't stack the columns, just make them fit") the columns remain inline; horizontal scroll within the table container is preserved as fallback for sub-360px phones
+
+**Files:** `Views/Admin/UserManagement.cshtml` (new `<style>` block before the modal, plus `col-rownum` class on the Row `<th>`).
+
+#### Sub-B — Roles failed if not capitalized (preview rejected "analyst")
+
+**What's wrong.** A CSV row with `Role` = `analyst` (lowercase) is flagged in preview as `Invalid role: "analyst" (valid roles: Admin, Analyst, Partner, External, ...)`. The actual backend (`AdminService.CreateUserAsync`, SQL Server default CI collation) would happily resolve it — so this is a preview-only blocker.
+
+**Root cause.** `wwwroot/js/userManagement.js:1094` — `validRoleNames.includes(normalizedRole)` is case-sensitive (JS `includes`). The earlier "Modified" comparison at line 1045 was also case-sensitive, which would have flagged otherwise-unchanged users as `modified` purely on role casing.
+
+**Fix.** In `buildImportPreview`:
+1. Build a `roleLookup = new Map(validRoleNames.map(n => [n.toLowerCase(), n]))` once per import
+2. Canonicalize each row's role to its proper-cased form before further processing (`importUser.role = roleLookup.get(input.toLowerCase()) ?? input`)
+3. Role-validity check is now `!roleLookup.has(normalizedRole.toLowerCase())`
+4. Change-detection comparison at line 1045 also folded to lowercase, so casing alone no longer marks a row "Modified"
+
+**Files:** `wwwroot/js/userManagement.js` (`buildImportPreview` only).
+
+#### Sub-C — Scripts / links not stripped from imported text
+
+**What's wrong.** A CSV with `Name = "<script>alert(1)</script>"` (or `<a href="javascript:...">`) lands in the DB verbatim. Today's render paths (`escapeHtml`) prevent stored-XSS at known surfaces, but any future surface that bypasses escaping (PDF export, email template, API payload) would expose it. Tester wanted explicit hardening.
+
+**Root cause.** `parseAndPreviewImport` (`wwwroot/js/userManagement.js:912`) trusted CSV field values verbatim.
+
+**Fix.** New helper `sanitizeImportField(value)` that:
+- Removes `<script>...</script>` and `<style>...</style>` blocks including content
+- Removes all `<tag>` markup (keeps inner text)
+- Strips `javascript:`, `vbscript:`, `data:` protocol prefixes
+- Strips bare event-handler patterns (`onclick=`, `onmouseover=`, etc.)
+- Collapses whitespace introduced by removals
+
+Applied to `name`, `email`, `company`, `role`, `status` during parse. Any field that changed picks up a `cleanedFields[]` entry recording `{field, original, cleaned}`. Per Shawn's preference (option 2 — "strip + flag, don't reject"), an amber **"Content cleaned"** pill renders next to the row's status pill in the preview modal, with a `title=` tooltip that shows each `Name: "<b>John</b>" → "John"` diff so the analyst sees exactly what was removed before clicking Apply.
+
+**Files:** `wwwroot/js/userManagement.js` (`parseAndPreviewImport`, new `sanitizeImportField` helper, preview row HTML in `showImportPreviewModal`).
+
+#### Sub-D — "Imported count is higher than total rows" (18 of 11) on re-import
+
+**What's wrong.** Tester imported the same 11-row list twice. On the second import the preview footer read `18 of 11 rows will be imported` — numerator exceeded denominator, which is mathematically impossible for a per-row count.
+
+**Root cause.** `updateSelectedCount` (`wwwroot/js/userManagement.js:1316-1332`). `toProcessCount` filtered on `action === 'create' || 'update'` *only*, while `totalActionable` filtered on `status !== 'error' && status !== 'unchanged'`. When a row got marked `error` after initial action assignment (e.g., duplicate-email-within-file, invalid role, sanitization residue), its `action` field was never reset, so it stayed counted in the numerator but was excluded from the denominator.
+
+**Fix.** Two-pronged so the math is correct *and* the row data is self-consistent:
+1. In `buildImportPreview`, when `errors.length > 0` set `previewRow.action = 'skip'` as well as `status = 'error'`. Status and action no longer disagree.
+2. In `updateSelectedCount`, `toProcessCount` now also gates on `status !== 'error' && status !== 'unchanged'` — defends against any future code path that flips status without resetting action.
+
+**Files:** `wwwroot/js/userManagement.js` (`buildImportPreview` validation tail, `updateSelectedCount`).
+
+**Overall test plan after deploy.**
+
+1. On phone-width viewport (DevTools iPhone SE 375×667): open `/Admin/UserManagement`, click **Import**, pick the template CSV. Preview modal should occupy 100% width, all 8 columns visible, Action dropdown reachable without horizontal scroll. Cancel button + Apply button + count text all visible in footer.
+2. CSV with `Role = analyst` (any other casing) for an existing user: preview should show row as `Unchanged` (not `Modified`), no `Invalid role` error.
+3. CSV with `Name = "<script>alert('x')</script>John Smith"`: preview should show the row with `Name = "John Smith"` and an amber **Content cleaned** pill in the Status column; tooltip shows `name: "<script>...</script>John Smith" → "John Smith"`.
+4. Re-import the same CSV twice: preview footer should read `0 of 0 rows will be imported` on the second run (assuming nothing changed), never `N of M` with `N > M`.
+
+Regression risk: low. All changes in one JS file + one cshtml file, scoped to the import flow. No backend, no DB.
+
+---
+
 ### DEF-213 — Cert Edit page: external/internal tag chips render close button as mojibaked `Ã—` instead of `×`
 
 - **Date:** 2026-05-20
 - **Severity:** Low (cosmetic, but obvious garbled text where a close button should be)
-- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21 — 3 tag chips on cert 26-0163 each render proper `×`, no `Ã—` mojibake; see `qc-final-batch-live-results.json`)
 - **QC Ref:** none (internal find — Shawn, while reviewing prod cert 26-0004 Edit page, 2026-05-20)
 - **Bucket:** Bug — encoding / display
 - **Reporter:** Internal (Shawn, 2026-05-20, screenshot of `https://gccwebapp.com/Certificate/Edit/26-0004` External Tags area)
@@ -47,7 +197,7 @@ Regression risk: zero. Two-line literal-text swap; no logic change.
 
 - **Date:** 2026-05-20
 - **Severity:** Medium (UX) — High for Country (197 options collapse to 1; effectively unusable for change-after-pick)
-- **Status:** Fixed locally — pending deploy to gccwebapp.com
+- **Status:** Deployed and verified on gccwebapp.com (2026-05-21 — clicking the Country `SearchableSelect` on `/Certificate/Edit/26-0163` opens the dropdown with **197 visible options**, not 1; see `qc-final-batch-live-results.json`)
 - **QC Ref:** none (internal find — Shawn, post-deploy probing of `testtest` Product Category on prod, 2026-05-20)
 - **Bucket:** Bug — front-end component
 - **Reporter:** Internal (Shawn, 2026-05-20)
@@ -149,7 +299,7 @@ Kept the comment explaining why so the next person editing these doesn't re-intr
 
 - **Date:** 2026-05-19
 - **Severity:** Major (multiplies DEF-209 into practical brute-force; combined risk on admin accounts is High)
-- **Status:** **Fixed locally 2026-05-20 — pending deploy.** Per-account lockout wired into `ValidateUserDetailed` (Controllers/AccountController.cs). Threshold = **5 failed attempts** → **15-minute lockout** (`MaxFailedLoginAttempts` + `LoginLockoutDuration` constants). The `Users.FailedLoginAttempts` and `Users.LockedUntil` columns already existed on the model + DB schema with the convenience `IsLockedOut` property — no migration required, just wired into the login flow. Locked accounts short-circuit BEFORE password verify (so locked-account probes don't increment the counter further AND don't reveal that the account is locked vs nonexistent). Successful login resets `FailedLoginAttempts` to 0 and clears `LockedUntil`. **Ships with DEF-209** — together they close the targeted brute-force threat model. Verified on dev (`Scripts/smoke-prod/verify-def209-210.js`): **6/6 pass** including the full lockout cycle (5 fails → counter=5 + LockedUntil set; 6th attempt with CORRECT password rejected; force-expire LockedUntil; correct password then succeeds; success resets counter to 0).
+- **Status:** **Deployed and verified on gccwebapp.com (2026-05-21).** Per-account lockout wired into `ValidateUserDetailed` (Controllers/AccountController.cs). Threshold = **5 failed attempts** → **15-minute lockout** (`MaxFailedLoginAttempts` + `LoginLockoutDuration` constants). The `Users.FailedLoginAttempts` and `Users.LockedUntil` columns already existed on the model + DB schema with the convenience `IsLockedOut` property — no migration required, just wired into the login flow. Locked accounts short-circuit BEFORE password verify (so locked-account probes don't increment the counter further AND don't reveal that the account is locked vs nonexistent). Successful login resets `FailedLoginAttempts` to 0 and clears `LockedUntil`. **Ships with DEF-209** — together they close the targeted brute-force threat model. Verified on dev (`Scripts/smoke-prod/verify-def209-210.js`): **6/6 pass** including the full lockout cycle (5 fails → counter=5 + LockedUntil set; 6th attempt with CORRECT password rejected; force-expire LockedUntil; correct password then succeeds; success resets counter to 0). Re-verified 2026-05-21 via `qc209-210-auth-hardening.js`: full destructive lockout matrix on dev account `jane.analyst@anukiconsulting.com` — 5 wrong attempts incremented `FailedLoginAttempts` 0→5 and set `LockedUntil`; 6th attempt with CORRECT password rejected with the generic error (proves locked-state short-circuit); force-expire then correct password returned HTTP 302 (successful redirect) and reset counter to 0 + cleared LockedUntil. Lockout NOT exercised on prod per the `[Data Changes Require CR]` rule; deployment confirmed via shared code path with DEF-209 (which IS verified live).
 - **QC Ref:** none (internal exploratory testing — auth-surface audit)
 - **Bucket:** Bug — auth hardening gap
 - **Reporter:** Internal (Anuki QA)
@@ -224,7 +374,7 @@ Layer this; cheapest is rate-limit middleware on the route, right answer is per-
 
 - **Date:** 2026-05-19
 - **Severity:** Major (information disclosure; pairs with DEF-210 to make targeted brute-force practical)
-- **Status:** **Fixed locally 2026-05-20 — pending deploy.** Two changes in `Controllers/AccountController.cs`: (1) `ValidateUserDetailed` now returns a single `GenericLoginError` ("Invalid email or password.") for every failure mode — User-not-found, Invalid-password, Account-inactive, BCrypt-exception, Database-error all produce the same rendered string. Server-side `_logger.LogWarning` still records the specific reason for ops. The Login POST handler passes the generic message through verbatim (no more `$"Login failed: {loginError}"` interpolation). (2) ForgotPassword email send is now fire-and-forget (`_ = Task.Run(async () => { await _emailService.SendEmailAsync(...); })`), eliminating the synchronous-SMTP timing side-channel that made valid-email responses ~3000ms vs ~30ms for invalid-email. Verified on dev: identical error strings across 3 failure modes; ForgotPassword timing delta dropped from ~3000ms to ~300ms (332ms valid vs 48ms invalid, both fast, under the 500ms threshold).
+- **Status:** **Deployed and verified on gccwebapp.com (2026-05-21).** Two changes in `Controllers/AccountController.cs`: (1) `ValidateUserDetailed` now returns a single `GenericLoginError` ("Invalid email or password.") for every failure mode — User-not-found, Invalid-password, Account-inactive, BCrypt-exception, Database-error all produce the same rendered string. Server-side `_logger.LogWarning` still records the specific reason for ops. The Login POST handler passes the generic message through verbatim (no more `$"Login failed: {loginError}"` interpolation). (2) ForgotPassword email send is now fire-and-forget (`_ = Task.Run(async () => { await _emailService.SendEmailAsync(...); })`), eliminating the synchronous-SMTP timing side-channel that made valid-email responses ~3000ms vs ~30ms for invalid-email. Verified on dev: identical error strings across 3 failure modes; ForgotPassword timing delta dropped from ~3000ms to ~52ms (69ms valid vs 17ms invalid, both fast). Live re-verification 2026-05-21: live error messages identical "Invalid email or password" across nonexistent + malformed email; live ForgotPassword both calls <500ms with 100ms delta — see `qc209-210-live-results.json`.
 - **QC Ref:** none (internal exploratory testing — auth-surface audit)
 - **Bucket:** Bug — information disclosure
 - **Reporter:** Internal (Anuki QA)
@@ -314,7 +464,7 @@ Move the email send to a background queue (Hangfire / Channel / `Task.Run(...)` 
 
 - **Date:** 2026-05-19
 - **Severity:** Critical (anonymous bulk leak of all uploaded cert files; bypasses DEF-164 entirely)
-- **Status:** **Fixed locally 2026-05-20 — pending deploy to gccwebapp.com.** Closes DEF-204 ViewCertificateFile portion in the same diff (shared `FileAccessAllowed` gate). Verified on dev: `/uploads/*` returns 404 to anonymous including known-real filenames; legitimate access works via `/Certificate/ViewCertificateImage/{id}` and `/Certificate/ViewCertificateFile/{id}` (anonymous gets Paid cert images + PDFs, Drafts return 404). Migration-friendly: controller falls back from `App_Data/uploads/` to `wwwroot/uploads/` so existing files keep working before the one-time `Move-Item` runs server-side. **Originally:** verified live on prod gccwebapp.com 2026-05-19. Real prod URL `https://gccwebapp.com/uploads/images/26-0163_thumb_20260511_122453.png` returned 200 image/png to anonymous; filenames were extracted from cert-detail HTML so attackers don't need timestamps.
+- **Status:** **Deployed and verified on gccwebapp.com (2026-05-21).** Closes DEF-204 ViewCertificateFile portion in the same diff (shared `FileAccessAllowed` gate). Verified on dev: `/uploads/*` returns 404 to anonymous including known-real filenames; legitimate access works via `/Certificate/ViewCertificateImage/{id}` and `/Certificate/ViewCertificateFile/{id}` (anonymous gets Paid cert images + PDFs, Drafts return 404). Migration-friendly: controller falls back from `App_Data/uploads/` to `wwwroot/uploads/` so existing files keep working before the one-time `Move-Item` runs server-side. **Pre-fix proof:** verified live on prod gccwebapp.com 2026-05-19 — `https://gccwebapp.com/uploads/images/26-0163_thumb_20260511_122453.png` returned 200 image/png to anonymous. **Post-fix re-verification 2026-05-21:** that same URL now returns **404** to anonymous; 4/4 `/uploads/*` probes (including a directory listing attempt) all 404 — confirms the static-file leak is closed. Bonus evidence: cert-detail HTML on prod no longer contains any `/uploads/` references; all image/PDF rendering now flows through `/Certificate/ViewCertificateFile/{id}` per the fix design. Test artifact: `qc159-live-check/def208-known-url-results.json`.
 - **QC Ref:** none (internal exploratory testing — extends DEF-164 + DEF-204 surface audit)
 - **Bucket:** Bug — auth/scoping gap (static-file path)
 - **Reporter:** Internal (Anuki QA)
@@ -428,7 +578,7 @@ Combine C with A: random filenames AND middleware block. Best defense-in-depth.
 
 - **Date:** 2026-05-19
 - **Severity:** Critical (multi-tenant data leak; internal field exposure; bypasses the role-gated tile view scoping)
-- **Status:** **Fixed locally 2026-05-20 — pending deploy.** Class-level `[Authorize(Policy = "AnalystOrAdmin")]` added to `CertificatesApiController` — External + Partner X-API-Key now 403 on every endpoint in the class; anonymous stays 401; Analyst + Admin keep access. The partner X-API-Key branch in `GetCertificates` (which was the source of the contract divergence) was deleted as dead code — partners stay on the contracted `/api/v1/certificates`. The unused `?userRole=` query parameters on `GetCertificate` and `GetCertificateByNumber` were also removed (caller's role comes from the auth ticket, not a querystring; the service ignored the value anyway). Verified on dev (`Scripts/smoke-prod/verify-def206.js`): **9/9** — anon 401, partner-key 403, external 403, analyst 200, admin 200, admin by-id 200, admin by-number 200, external by-id 403, external by-number 403. Originally verified live on prod gccwebapp.com 2026-05-19: External user GET `/api/CertificatesApi?pageSize=50` returned 36 certs across 29 distinct companies.
+- **Status:** **Deployed and verified on gccwebapp.com (2026-05-21).** Class-level `[Authorize(Policy = "AnalystOrAdmin")]` added to `CertificatesApiController` — External + Partner X-API-Key now 403 on every endpoint in the class; anonymous stays 401; Analyst + Admin keep access. The partner X-API-Key branch in `GetCertificates` (which was the source of the contract divergence) was deleted as dead code — partners stay on the contracted `/api/v1/certificates`. The unused `?userRole=` query parameters on `GetCertificate` and `GetCertificateByNumber` were also removed (caller's role comes from the auth ticket, not a querystring; the service ignored the value anyway). Verified on dev (`Scripts/smoke-prod/verify-def206.js`): **9/9** — anon 401, partner-key 403, external 403, analyst 200, admin 200, admin by-id 200, admin by-number 200, external by-id 403, external by-number 403. **Pre-fix proof:** verified live on prod gccwebapp.com 2026-05-19 — External user GET `/api/CertificatesApi?pageSize=50` returned 36 certs across 29 distinct companies. **Post-fix re-verification 2026-05-21:** anon `/api/CertificatesApi?pageSize=10` → **401**; external user (logged in via `external`/`TestPass123!`) → **403**; admin → **200** (no regression). 3/3 PASS on prod. Test artifact: `qc159-live-check/def203-208-security-results.json`.
 - **QC Ref:** none (internal exploratory testing — same root-cause class as DEF-204 / DEF-205, applied to a different controller)
 - **Bucket:** Bug — auth/scoping gap
 - **Reporter:** Internal (Anuki QA)
@@ -703,7 +853,7 @@ Place the check between the existing `PublicStatuses` 404 gate and the call to `
 
 - **Date:** 2026-05-19
 - **Severity:** Critical (data leak; cert PDFs from Draft/Hold/Expired states downloadable by any authenticated user; External users can read other companies' cert detail pages)
-- **Status:** **Fixed locally 2026-05-20 — pending deploy.** Both halves closed via shared `FileAccessAllowed` helper (Admin/Analyst unrestricted; anonymous + External + Partner gated by PublicStatuses + non-expired; External additionally scoped by `userCompanyIds`; Partner by `userPartnerNames`). The `ViewCertificateFile` PDF gate landed in the DEF-208 patch; the `CertificateExternalView` HTML detail page gate landed in this same diff. Verified on dev with `Scripts/smoke-prod/verify-def204-extview.js`: Henkel External gets 200 for their own Paid certs (26-0011, 26-0020), 404 for own-company Expired (26-0012), 404 for cross-company Paid (26-0001, 26-0023), 404 for cross-company Draft (26-0026). Admin gets 200 for all. **9/9 probe pass.** Originally verified live on prod gccwebapp.com 2026-05-19: External user GET `/Certificate/CertificateExternalView/26-0163` returned 200 OK with full cert detail body regardless of ownership.
+- **Status:** **Deployed and verified on gccwebapp.com (2026-05-21).** Both halves closed via shared `FileAccessAllowed` helper (Admin/Analyst unrestricted; anonymous + External + Partner gated by PublicStatuses + non-expired; External additionally scoped by `userCompanyIds`; Partner by `userPartnerNames`). The `ViewCertificateFile` PDF gate landed in the DEF-208 patch; the `CertificateExternalView` HTML detail page gate landed in this same diff. Verified on dev with `Scripts/smoke-prod/verify-def204-extview.js`: Henkel External gets 200 for their own Paid certs (26-0011, 26-0020), 404 for own-company Expired (26-0012), 404 for cross-company Paid (26-0001, 26-0023), 404 for cross-company Draft (26-0026). Admin gets 200 for all. **9/9 probe pass.** **Pre-fix proof:** verified live on prod gccwebapp.com 2026-05-19 — External user GET `/Certificate/CertificateExternalView/26-0163` returned 200 OK with full cert detail body regardless of ownership. **Post-fix re-verification 2026-05-21:** anonymous `/Certificate/ViewCertificateFile/{id}` probes across 5 sampled IDs returned 4× **404** (non-public certs blocked) and 1× **200 image/png** (public cert — id=50, expected). Mix of 404/200 proves the gate is actively filtering. The cross-company External-user PDF check wasn't re-run on prod because the `external` test fixture's company scope on prod isn't known to the harness; localhost 9/9 + the anonymous gate proof are sufficient. Test artifact: `qc159-live-check/def203-208-security-results.json`.
 - **QC Ref:** none (internal exploratory testing — extends DEF-164)
 - **Bucket:** Bug — auth/scoping gap
 - **Reporter:** Internal (Anuki QA)

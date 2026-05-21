@@ -940,15 +940,35 @@ class UserManagement {
             const email = user.email || '';
             if (!name && !email) continue;
 
-            parsedUsers.push({
-                rowNumber: i,
-                name: name,
-                email: email,
+            // Sanitize free-text fields: strip HTML tags + javascript: URLs.
+            // Track cleaned fields so the preview can show an "amber pill" + diff.
+            const rawRow = {
+                name,
+                email,
                 company: user.company || '',
                 role: user.role || 'External',
-                status: (user.status || 'active').toLowerCase(),
+                status: (user.status || 'active').toLowerCase()
+            };
+            const cleanedRow = {};
+            const cleanedFields = [];
+            for (const [field, value] of Object.entries(rawRow)) {
+                const cleaned = this.sanitizeImportField(value);
+                cleanedRow[field] = cleaned;
+                if (cleaned !== value) {
+                    cleanedFields.push({ field, original: value, cleaned });
+                }
+            }
+
+            parsedUsers.push({
+                rowNumber: i,
+                name: cleanedRow.name,
+                email: cleanedRow.email,
+                company: cleanedRow.company,
+                role: cleanedRow.role,
+                status: cleanedRow.status,
                 password: user.password || '',
-                requirePasswordReset: (user.requirepasswordreset || '').toLowerCase() === 'true'
+                requirePasswordReset: (user.requirepasswordreset || '').toLowerCase() === 'true',
+                cleanedFields
             });
         }
 
@@ -959,6 +979,26 @@ class UserManagement {
 
         // Compare with existing users and build preview
         await this.buildImportPreview(parsedUsers);
+    }
+
+    /**
+     * Strip HTML tags, javascript: URLs, and control characters from imported text.
+     * Returns the cleaned string; caller compares to original to detect modification.
+     */
+    sanitizeImportField(value) {
+        if (value == null) return '';
+        let cleaned = String(value);
+        // Remove tags and anything inside them (including <script>...</script> content)
+        cleaned = cleaned.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '');
+        cleaned = cleaned.replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, '');
+        cleaned = cleaned.replace(/<\/?[a-z][\s\S]*?>/gi, '');
+        // Defang javascript:, vbscript:, data: protocols (case-insensitive, ignore inner whitespace)
+        cleaned = cleaned.replace(/\b(javascript|vbscript|data)\s*:/gi, '');
+        // Strip event handler patterns left bare (e.g., "onclick=alert(1)")
+        cleaned = cleaned.replace(/\bon[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+        // Collapse runs of whitespace introduced by removals
+        cleaned = cleaned.replace(/\s+/g, ' ').trim();
+        return cleaned;
     }
 
     /**
@@ -1018,7 +1058,18 @@ class UserManagement {
         // Track emails seen in this import for duplicate detection within file
         const emailsInImport = new Map(); // email -> rowNumber
 
+        // Build case-insensitive role lookup once (issue #2 — accept "analyst", "ANALYST", etc.)
+        const validRoleNames = this.roles.map(r => r.name);
+        const roleLookup = new Map(validRoleNames.map(n => [n.toLowerCase(), n]));
+
         for (const importUser of parsedUsers) {
+            // Normalize role casing to canonical form when it matches a known role
+            const inputRole = (importUser.role || '').trim();
+            const canonicalRole = roleLookup.get(inputRole.toLowerCase());
+            if (canonicalRole) {
+                importUser.role = canonicalRole;
+            }
+
             // Match by email (primary identifier for users)
             const existingUser = this.users.find(u =>
                 u.email?.toLowerCase() === importUser.email?.toLowerCase()
@@ -1031,6 +1082,7 @@ class UserManagement {
                 status: 'new',
                 changes: [],
                 errors: [],
+                cleanedFields: importUser.cleanedFields || [],
                 selected: true,
                 action: 'create'
             };
@@ -1042,7 +1094,7 @@ class UserManagement {
                 if ((existingUser.name || '').trim().toLowerCase() !== (importUser.name || '').trim().toLowerCase()) {
                     changes.push({ field: 'Name', oldValue: existingUser.name || '', newValue: importUser.name || '' });
                 }
-                if ((existingUser.role || '').trim() !== (importUser.role || '').trim()) {
+                if ((existingUser.role || '').trim().toLowerCase() !== (importUser.role || '').trim().toLowerCase()) {
                     changes.push({ field: 'Role', oldValue: existingUser.role || '', newValue: importUser.role || '' });
                 }
                 if ((existingUser.status || '').trim().toLowerCase() !== (importUser.status || '').trim().toLowerCase()) {
@@ -1088,16 +1140,18 @@ class UserManagement {
                     emailsInImport.set(emailLower, importUser.rowNumber);
                 }
             }
-            // Validate role against dynamically loaded roles
+            // Validate role against dynamically loaded roles (case-insensitive)
             const normalizedRole = (importUser.role || '').trim();
-            const validRoleNames = this.roles.map(r => r.name);
-            if (normalizedRole && !validRoleNames.includes(normalizedRole)) {
+            if (normalizedRole && !roleLookup.has(normalizedRole.toLowerCase())) {
                 previewRow.errors.push(`Invalid role: "${normalizedRole}" (valid roles: ${validRoleNames.join(', ')})`);
             }
 
             if (previewRow.errors.length > 0) {
                 previewRow.status = 'error';
                 previewRow.selected = false;
+                previewRow.action = 'skip';   // #4: keep action consistent with status so count math stays sane
+            } else if (previewRow.status === 'unchanged') {
+                previewRow.action = 'skip';   // #4: redundant safety — already set above, defends against future code paths
             }
 
             this.importPreviewData.push(previewRow);
@@ -1149,6 +1203,16 @@ class UserManagement {
                 changesSummary = `<div style="font-size: 10px; color: #666; margin-top: 4px;">${row.changes.map(c => c.field).join(', ')} changed</div>`;
             }
 
+            // #3: surface that HTML/script content was stripped, with a hover diff.
+            let cleanedPill = '';
+            if (row.cleanedFields && row.cleanedFields.length > 0) {
+                const diffText = row.cleanedFields.map(c =>
+                    `${c.field}: "${c.original}" → "${c.cleaned}"`
+                ).join('\n');
+                const titleAttr = this.escapeHtml(diffText);
+                cleanedPill = `<div class="import-cleaned-pill" title="${titleAttr}" style="margin-top: 4px; display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; cursor: help;"><i class="fas fa-shield-alt" aria-hidden="true" style="margin-right: 3px;"></i>Content cleaned</div>`;
+            }
+
             tr.innerHTML = `
                 <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                     <input type="checkbox" class="import-row-checkbox"
@@ -1157,12 +1221,13 @@ class UserManagement {
                            ${row.status === 'error' || row.status === 'unchanged' ? 'disabled' : ''}
                            onchange="userManagement.updateImportRowSelection(${index}, this.checked)">
                 </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; font-family: monospace; vertical-align: top;">${row.rowNumber}</td>
+                <td class="col-rownum" style="padding: 10px; border-bottom: 1px solid #e9ecef; font-family: monospace; vertical-align: top;">${row.rowNumber}</td>
                 <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                     <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: ${statusStyle.bg}; color: ${statusStyle.color};">
                         ${statusStyle.label}
                     </span>
                     ${changesSummary}
+                    ${cleanedPill}
                 </td>
                 <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                     ${this.renderFieldWithDiff(row, 'name')}
@@ -1314,8 +1379,12 @@ class UserManagement {
     }
 
     updateSelectedCount() {
+        // #4: a row can only count toward "will be imported" if its status permits it
+        // AND its action is create/update. Without the status guard the numerator
+        // could exceed the denominator ("18 of 11") on re-imports.
         const toProcessCount = this.importPreviewData.filter(r =>
-            r.action === 'create' || r.action === 'update'
+            (r.action === 'create' || r.action === 'update') &&
+            r.status !== 'error' && r.status !== 'unchanged'
         ).length;
         const keptCount = this.importPreviewData.filter(r => r.action === 'keep').length;
         const totalActionable = this.importPreviewData.filter(r =>

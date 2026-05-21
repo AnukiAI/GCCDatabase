@@ -1,0 +1,32 @@
+[
+  {
+    "id": "QC213-no-mojibake",
+    "name": "Tag chips contain NO `Ã—` mojibake",
+    "status": "PASS",
+    "notes": "samples (first 3)=[{\"classes\":\"tag-remove\",\"text\":\"×\"},{\"classes\":\"tag-remove\",\"text\":\"×\"},{\"classes\":\"tag-remove\",\"text\":\"×\"}]"
+  },
+  {
+    "id": "QC213-has-times",
+    "name": "Tag chips contain proper `×` close-button character (or no chips on this cert)",
+    "status": "PASS",
+    "notes": "chips found=3, sample=\"× | × | ×\""
+  },
+  {
+    "id": "QC212-full-list",
+    "name": "Refocus on populated Country dropdown shows full option list (>1, ideally ~197)",
+    "status": "PASS",
+    "notes": "preFocusValue=\"\" visible=true optionsVisible=197 (pre-fix bug would show 1)"
+  },
+  {
+    "id": "QC175-logo-sized",
+    "name": "Logo width in 1280px viewport is <280px (fix landed; was 280 pre-fix → wrap)",
+    "status": "PASS",
+    "notes": "width=247.125px (expecting ~220px per DEF-201 fix)"
+  },
+  {
+    "id": "QC176-no-stuck-collapsed",
+    "name": "Sidebar .collapsed class does NOT persist when viewport drops below 1024px",
+    "status": "PASS",
+    "notes": "classes=\"sidebar\" collapsed=false"
+  }
+]

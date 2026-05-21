@@ -1,0 +1,176 @@
+{
+  "date": "2026-05-21T23:03:55.328Z",
+  "base": "http://localhost:5101",
+  "results": [
+    {
+      "id": "DEF214-A1",
+      "name": "Modal width fits viewport (offsetWidth + backdrop right edge check)",
+      "status": "PASS",
+      "notes": "viewport=320 offsetWidth=320 backdropRight=320"
+    },
+    {
+      "id": "DEF214-A2",
+      "name": "Action column dropdown reachable (either fits or scrollable)",
+      "status": "PASS",
+      "notes": "action.width=68.0 tableScrollable=true"
+    },
+    {
+      "id": "DEF214-A3",
+      "name": "Table container clientWidth fits viewport",
+      "status": "PASS",
+      "notes": "container.clientWidth=294 viewport=320"
+    },
+    {
+      "id": "DEF214-B1",
+      "name": "Lowercase \"analyst\" role accepted (no Invalid role error)",
+      "status": "PASS",
+      "notes": "row2.role=\"Analyst\" errors=[]"
+    },
+    {
+      "id": "DEF214-B2",
+      "name": "Lowercase \"analyst\" canonicalized to \"Analyst\"",
+      "status": "PASS",
+      "notes": "row2.role=\"Analyst\""
+    },
+    {
+      "id": "DEF214-C1",
+      "name": "Row 3 cleanedFields has at least one entry",
+      "status": "PASS",
+      "notes": "cleanedFields=[{\"field\":\"name\",\"original\":\"DEF214 <script>alert(1)</script>Three\",\"cleaned\":\"DEF214 Three\"},{\"field\":\"company\",\"original\":\"javascript:void(0)\",\"cleaned\":\"void(0)\"}]"
+    },
+    {
+      "id": "DEF214-C2",
+      "name": "<script> removed from name field",
+      "status": "PASS",
+      "notes": "name field cleaned=\"DEF214 Three\""
+    },
+    {
+      "id": "DEF214-C3",
+      "name": "\"Content cleaned\" pill rendered in preview",
+      "status": "PASS",
+      "notes": "pills=1"
+    },
+    {
+      "id": "DEF214-D1",
+      "name": "Count numerator <= denominator (no \"18 of 11\" bug)",
+      "status": "PASS",
+      "notes": "label=\"3 of 3 rows will be imported\""
+    },
+    {
+      "id": "DEF214-A4",
+      "name": "Tablet (768) modal fits viewport",
+      "status": "PASS",
+      "notes": "viewport=768 offsetWidth=768 backdropRight=768"
+    }
+  ],
+  "measurements": {
+    "viewportWidth": 320,
+    "docClientWidth": 320,
+    "docScrollWidth": 320,
+    "modalRect": {
+      "x": 24,
+      "y": 24,
+      "width": 320,
+      "height": 568,
+      "top": 24,
+      "right": 344,
+      "bottom": 592,
+      "left": 24
+    },
+    "modalComputed": {
+      "width": "320px",
+      "maxWidth": "100%",
+      "left": "160px",
+      "transform": "matrix(1, 0, 0, 1, -160, -284)",
+      "position": "fixed"
+    },
+    "tableContainerRect": {
+      "x": 36,
+      "y": 209,
+      "width": 296,
+      "height": 549,
+      "top": 209,
+      "right": 332,
+      "bottom": 758,
+      "left": 36
+    },
+    "tableScrollWidth": 589,
+    "tableClientWidth": 294,
+    "actionThRect": {
+      "x": 548.953125,
+      "y": 210.5,
+      "width": 77,
+      "height": 63.5,
+      "top": 210.5,
+      "right": 625.953125,
+      "bottom": 274,
+      "left": 548.953125
+    },
+    "actionSelectRect": {
+      "x": 553.453125,
+      "y": 281,
+      "width": 68,
+      "height": 44,
+      "top": 281,
+      "right": 621.453125,
+      "bottom": 325,
+      "left": 553.453125
+    }
+  },
+  "previewRows": [
+    {
+      "rowNumber": 1,
+      "email": "def214-one@example.com",
+      "role": "External",
+      "status": "new",
+      "action": "create",
+      "errors": [],
+      "cleanedFields": []
+    },
+    {
+      "rowNumber": 2,
+      "email": "def214-two@example.com",
+      "role": "Analyst",
+      "status": "new",
+      "action": "create",
+      "errors": [],
+      "cleanedFields": []
+    },
+    {
+      "rowNumber": 3,
+      "email": "def214-three@example.com",
+      "role": "External",
+      "status": "new",
+      "action": "create",
+      "errors": [],
+      "cleanedFields": [
+        {
+          "field": "name",
+          "original": "DEF214 <script>alert(1)</script>Three",
+          "cleaned": "DEF214 Three"
+        },
+        {
+          "field": "company",
+          "original": "javascript:void(0)",
+          "cleaned": "void(0)"
+        }
+      ]
+    },
+    {
+      "rowNumber": 4,
+      "email": "def214-one@example.com",
+      "role": "External",
+      "status": "error",
+      "action": "skip",
+      "errors": [
+        "Duplicate email in import file (first seen on row 1)"
+      ],
+      "cleanedFields": []
+    }
+  ],
+  "counts": {
+    "label": "3 of 3 rows will be imported",
+    "numerator": 3,
+    "denominator": 3
+  }
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "QC208-no-static-leak",
+    "name": "No /uploads/* anonymous 200s — DEF-208 static-file gate deployed",
+    "status": "PASS",
+    "notes": "out of 4 probes (including the explicit leaked-URL from DEF-208): 200s=0, 404s=4, other=0"
+  }
+]

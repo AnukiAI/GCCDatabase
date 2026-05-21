@@ -500,10 +500,11 @@ namespace GCCWebApp.Controllers
                 return View("ResetPassword");
             }
 
-            // Validate the token
-            var decodedToken = System.Net.WebUtility.UrlDecode(token);
+            // Validate the token. The framework's query-string binder already
+            // URL-decodes `token`; a second WebUtility.UrlDecode converts '+'
+            // (a valid base64 char) into a space and breaks the hash compare.
             using var sha256 = System.Security.Cryptography.SHA256.Create();
-            var hashedToken = Convert.ToBase64String(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(decodedToken)));
+            var hashedToken = Convert.ToBase64String(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token)));
 
             var user = await _context.Users.FirstOrDefaultAsync(u =>
                 u.Email == email &&
@@ -546,10 +547,11 @@ namespace GCCWebApp.Controllers
                 return View("ResetPassword");
             }
 
-            // Validate token
-            var decodedToken = System.Net.WebUtility.UrlDecode(model.Token);
+            // Validate token. The MVC model binder already URL-decodes form
+            // posts; a second WebUtility.UrlDecode converts '+' (a valid
+            // base64 char) into a space and breaks the hash compare.
             using var sha256 = System.Security.Cryptography.SHA256.Create();
-            var hashedToken = Convert.ToBase64String(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(decodedToken)));
+            var hashedToken = Convert.ToBase64String(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(model.Token)));
 
             var user = await _context.Users.FirstOrDefaultAsync(u =>
                 u.Email == model.Email &&

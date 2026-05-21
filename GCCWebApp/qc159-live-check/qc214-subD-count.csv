@@ -1,0 +1,3 @@
+Name,Email,Company,Role,Status
+QC214 SubD Good,qc214-subd-good@example.com,Test Co,Analyst,active
+QC214 SubD Bad,qc214-subd-bad@example.com,Test Co,NotARealRole,active

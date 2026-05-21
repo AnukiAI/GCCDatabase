@@ -1,0 +1,56 @@
+[
+  {
+    "id": "QC209-msg-generic",
+    "name": "All three failure modes produce identical generic error",
+    "status": "PASS",
+    "notes": "distinct=[\"Invalid email or password.\"]"
+  },
+  {
+    "id": "QC209-msg-no-leak",
+    "name": "Error text does NOT contain \"User not found\" or \"Invalid password\"",
+    "status": "PASS",
+    "notes": "samples=\"Invalid email or password.\" | \"Invalid email or password.\" | \"Invalid email or password.\""
+  },
+  {
+    "id": "QC209-fp-both-fast",
+    "name": "ForgotPassword both responses <1000ms (no synchronous SMTP)",
+    "status": "PASS",
+    "notes": "valid=69ms invalid=17ms"
+  },
+  {
+    "id": "QC209-fp-delta",
+    "name": "ForgotPassword timing delta < 1000ms (was ~3000ms pre-fix)",
+    "status": "PASS",
+    "notes": "delta=52ms (pre-fix was ~3000ms)"
+  },
+  {
+    "id": "QC210-counter-incremented",
+    "name": "FailedLoginAttempts incremented to 5 after 5 fails",
+    "status": "PASS",
+    "notes": "counter=5"
+  },
+  {
+    "id": "QC210-locked-until-set",
+    "name": "LockedUntil set after 5th failure",
+    "status": "PASS",
+    "notes": "LockedUntil=2026-05-21 22:11:53"
+  },
+  {
+    "id": "QC210-locked-rejects-correct-pw",
+    "name": "6th attempt with CORRECT password rejected while locked",
+    "status": "PASS",
+    "notes": "errMsg present=true, http=200"
+  },
+  {
+    "id": "QC210-unlock-after-expiry",
+    "name": "Correct password succeeds after LockedUntil expires",
+    "status": "PASS",
+    "notes": "http=302, errMsg=\"\""
+  },
+  {
+    "id": "QC210-counter-reset-on-success",
+    "name": "FailedLoginAttempts reset to 0 + LockedUntil cleared on successful login",
+    "status": "PASS",
+    "notes": "counter=0 LockedUntil=NULL"
+  }
+]

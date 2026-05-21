@@ -125,6 +125,29 @@
     </div> <!-- End admin-body-content -->
 </div>
 
+<!-- Mobile/tablet adjustments for the Import Preview modal (issue #1 — right edge cut off) -->
+<style>
+    @@media (max-width: 768px) {
+        .import-modal-container { width: 100% !important; max-width: 100% !important; max-height: 100vh !important; border-radius: 0 !important; }
+        .import-modal-container .admin-modal-body { padding: 12px !important; }
+        .import-preview-table-container { overflow-x: auto; }
+        .import-preview-table { min-width: 0 !important; font-size: 12px !important; }
+        .import-preview-table th, .import-preview-table td { padding: 6px 4px !important; }
+        /* Shrink action select font so it fits */
+        .import-preview-table .import-action-select { font-size: 11px !important; padding: 3px 4px !important; }
+        /* Stats grid wraps tighter */
+        #import-summary { grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; }
+        #import-summary .import-stat { padding: 6px !important; }
+        #import-summary .import-stat-value { font-size: 16px !important; }
+        #import-summary .import-stat-label { font-size: 10px !important; }
+        /* Keep footer inline but compact — count text wraps if needed */
+        .import-modal-container .admin-modal-footer { padding: 12px !important; gap: 8px !important; }
+        .import-modal-container .admin-modal-footer .import-selected-count { font-size: 12px !important; line-height: 1.3; }
+        .import-modal-container .admin-modal-footer .admin-modal-actions { gap: 8px !important; flex-shrink: 0; }
+        .import-modal-container .admin-modal-footer .admin-btn { padding: 8px 12px !important; font-size: 13px !important; }
+    }
+</style>
+
 <!-- Import Preview Modal (US-015 Backdrop Standard) -->
 <div id="import-preview-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9997;" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
     <!-- Backdrop (sibling) -->
@@ -170,7 +193,7 @@
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 40px;">
                                 <input type="checkbox" id="select-all-import" checked onchange="userManagement.toggleAllImportRows(this)">
                             </th>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 50px;">Row</th>
+                            <th class="col-rownum" style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 50px;">Row</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 100px;">Import Status</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef;">Name</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef;">Email</th>

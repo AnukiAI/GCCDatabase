@@ -1,0 +1,44 @@
+[
+  {
+    "id": "QC214-A-modal-fits",
+    "name": "Import modal occupies ~100% viewport at 375px (no 5% gutter)",
+    "status": "PASS",
+    "notes": "modalW=375, viewportW=375, css=375px"
+  },
+  {
+    "id": "QC214-A-table-min-width",
+    "name": "Preview table min-width dropped (was 900px, now 0)",
+    "status": "PASS",
+    "notes": "min-width=0px"
+  },
+  {
+    "id": "QC214-B-no-invalid-role",
+    "name": "Lowercase \"analyst\" role NOT flagged as invalid in preview",
+    "status": "PASS",
+    "notes": "row text=\"1 New QC214 SubB Test qc214-subb@example.com Analyst active Create Skip\""
+  },
+  {
+    "id": "QC214-C-script-stripped",
+    "name": "Imported Name no longer contains <script> tag in preview HTML",
+    "status": "PASS",
+    "notes": "hasScriptTag=false"
+  },
+  {
+    "id": "QC214-C-name-preserved",
+    "name": "Sanitized Name still shows \"John Smith\"",
+    "status": "PASS",
+    "notes": "name visible=\"true\""
+  },
+  {
+    "id": "QC214-C-cleaned-pill",
+    "name": "Amber \"Content cleaned\" pill present on the sanitized row",
+    "status": "PASS",
+    "notes": "hasCleanedPill=true"
+  },
+  {
+    "id": "QC214-D-count-math",
+    "name": "Count math: numerator ≤ denominator (pre-fix produced 18 of 11)",
+    "status": "PASS",
+    "notes": "0 of 0"
+  }
+]

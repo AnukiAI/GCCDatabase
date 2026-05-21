@@ -1,0 +1,20 @@
+[
+  {
+    "id": "QC209-LIVE-msg-generic",
+    "name": "Live: both fail modes produce same generic error",
+    "status": "PASS",
+    "notes": "distinct=[\"Invalid email or password.\"]"
+  },
+  {
+    "id": "QC209-LIVE-msg-no-leak",
+    "name": "Live: error text contains no \"User not found\" / \"Invalid password\"",
+    "status": "PASS",
+    "notes": "r1=\"Invalid email or password.\" r2=\"Invalid email or password.\""
+  },
+  {
+    "id": "QC209-LIVE-fp-timing-fast",
+    "name": "Live: ForgotPassword returns in <500ms (no synchronous SMTP)",
+    "status": "PASS",
+    "notes": "fp1=347ms fp2=247ms (both invalid — proves the fast path)"
+  }
+]

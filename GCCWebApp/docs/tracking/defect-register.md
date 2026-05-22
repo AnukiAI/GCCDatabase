@@ -18,11 +18,50 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-216 — Certificate Create/Edit breadcrumbs wrongly nested under "Administration" (QC #104 scope miss)
+
+- **Date:** 2026-05-21
+- **Severity:** Low (cosmetic / IA correctness, Admin-role only)
+- **Status:** Fixed locally — pending rebuild + deploy
+- **QC Ref:** #104 (5/1 follow-up — same client complaint pattern DEF-211 closed for Companies & Products)
+- **Bucket:** UX — information architecture
+- **Reporter:** Internal audit during QC #104 verification pass on 2026-05-21
+
+**What's wrong.** `Views/Certificate/Create.cshtml:16-25` and `Views/Certificate/Edit.cshtml:16-25` rendered breadcrumb trail `Home › Administration › Certificate Management › <action>`. Per `_Layout.cshtml:200-218`, "Certificate Management" (the Certificates dropdown) is a **top-level nav item**, sibling to "Administration" — not a child of it. The "Administration ›" segment mis-described the site IA, identical to the bug DEF-211 fixed on the Company / Product side. Same client wording from QC #104 5/1 applies: *"You are also showing 'Administration' under the [section] which is not correct - its unrelated to this based on nav structure. Please use breadcrumbs as intended on websites."*
+
+**Why DEF-211 didn't catch this.** DEF-211 scoped to `Views/Company/Index.cshtml` and `Views/Product/Management.cshtml` — the two views explicitly cited in the 5/1 client message. The Certificate Create/Edit forms have the same anti-pattern but weren't surfaced by client testing because (a) Carly's UAT focused on the named pages, and (b) breadcrumbs are gated `role-admin-show` so only the Admin role sees them — Carly tests primarily as Analyst per `feedback_qc_review_no_changes` workflow.
+
+Same scope-check pattern as `feedback_scoping_check_adjacent_endpoints`: the list/index pages got the fix, the detail-form pages didn't.
+
+**Fix.** Removed the leading `<a href="/">Home</a> › <span>Administration</span> ›` segments from the breadcrumb. Both Create and Edit now read `Certificate Management › <action>` — symmetric with DEF-211's `Companies & Products › Company Management` / `Product Management`. Kept the comment in each view referencing DEF-211 so the next person editing these doesn't re-introduce the nesting.
+
+- `Views/Certificate/Create.cshtml:16-26` — now `Certificate Management (link) › Create Certificate (current)`
+- `Views/Certificate/Edit.cshtml:16-26` — now `Certificate Management (link) › Edit Certificate #<n> (current)`
+
+Why drop `Home` too: no other breadcrumb in the app uses a `Home` crumb — all 20 other views start at their top-level nav item. Removing it brings Cert Create/Edit into the established pattern (12 Admin views start at `Administration`, Company/Product start at `Companies & Products`, Cert Import starts at `Certificates`).
+
+**Not touched (deliberate).**
+
+- `Views/Product/ManagementAlt.cshtml`, `Views/Product/ManagementV2.cshtml` — verified by grep on `*.cs` that no controller route references either. Dead code; leave for a future housekeeping CR.
+- Cert Create/Edit views are reached via the `role-admin-show + role-analyst-show` wrapper; breadcrumb `<nav>` itself is gated `role-admin-show` at `_Layout.cshtml:299` so only Admin role actually sees the breadcrumb. Limits blast radius.
+
+**Verification.** Pre-edit live HTML on http://localhost:5101 confirmed the dev server still serves the OLD precompiled view containing `<span>Administration</span>`. Razor runtime compilation is **not** enabled (`Program.cs` has no `AddRazorRuntimeCompilation` call), so the running `GCCWebApp.exe` will keep serving the cached view until a clean rebuild + restart. Next dev-server restart will pick up the edit; deploy-time publish includes the Razor recompile automatically.
+
+**Test plan after deploy.** Log in as Admin. Navigate to `/Certificate/Create` — breadcrumb reads `Certificate Management › Create Certificate` (no "Home", no "Administration"). Open an existing cert, click Edit — breadcrumb reads `Certificate Management › Edit Certificate <number>`. Confirm no console / network errors on either page.
+
+**Files changed (2):**
+- `Views/Certificate/Create.cshtml`
+- `Views/Certificate/Edit.cshtml`
+
+**Cross-ref:** DEF-211 (sibling fix for Companies & Products), DEF-202 (Companies → Company Management rename, also QC #104).
+
+---
+
 ### DEF-215 — Password reset link "invalid or has expired" before user can submit — double URL-decode corrupts base64 token
 
 - **Date:** 2026-05-21
 - **Severity:** High (silent failure of the only self-service password recovery path; ~75% of issued reset links fail)
-- **Status:** Fixed locally — verified end-to-end on localhost 2026-05-21 (5/5 PASS, including round-trip POST that actually changed PasswordHash in DB; see `qc-final-batch-pwreset-results.json`) — pending deploy to gccwebapp.com
+- **Status:** Fixed locally — verified end-to-end on localhost 2026-05-21 (5/5 PASS, including round-trip POST that actually changed PasswordHash in DB) — **pending deploy to gccwebapp.com (confirmed NOT deployed as of 2026-05-21 — deploy-state probe could only verify route still serves 200; fix itself can't be fingerprinted from outside without DB-side token setup, so deploy-state assumed not-deployed pending Shawn's next push)**
 - **QC Ref:** none (reproduced by Shawn locally on 2026-05-21 — email link landed on `/Account/ResetPasswordWithToken` and immediately showed the "invalid or has expired" error before he could enter a new password)
 - **Bucket:** Bug — Account / password-reset
 - **Reporter:** Shawn (internal, 2026-05-21)
@@ -86,13 +125,15 @@ Both are encoded inline in the harness so the test file works without surroundin
 
 **Pre-launch posture.** This was Shawn's prompt to take the fix seriously: once Basic Auth comes down at production cutover, the password-reset flow becomes the only recovery path. A 25%-success-rate recovery flow would create a support fire-drill on day one. Fix is in working tree and proved correct end-to-end on localhost; ready for the next deploy wave.
 
+**Deploy-state probe (added 2026-05-21).** The DEF-215 fix is a controller-only change (`AccountController.cs`); it can't be fingerprinted from outside without setting up a DB-side reset token on prod (which requires modifying real user records — declined per `[Data Changes Require CR]`). Live probe of `GET /Account/ResetPasswordWithToken?token=AAAA+BBBB+CCCC=&email=nobody@e2e-test.invalid` returned HTTP 200 with the expected "invalid or has expired" page (no DB-side token, so the fix's success path can't be exercised). What this proves: the route handler is alive and doesn't crash on `+`-containing tokens. What it does NOT prove: that the `WebUtility.UrlDecode` removal has actually shipped. Treat as **deploy-state unknown — assume not deployed**; flip status post-deploy by re-running `qc215-password-reset.js` against gccwebapp.com after setting up a fresh token via the normal Forgot Password flow. Test artifact: `qc159-live-check/def214-215-deploy-probe-results.json`.
+
 ---
 
 ### DEF-214 — User Import: 4 issues from internal tester batch (mobile preview, role casing, sanitization, count math)
 
 - **Date:** 2026-05-21
 - **Severity:** Medium (collectively) — single page, no data loss, but blocks confident bulk-import use
-- **Status:** Fixed locally — pending deploy
+- **Status:** Fixed locally — verified on localhost 2026-05-21 (7/7 PASS) — **deploy state: Sub-A/B/C NOT deployed, Sub-D already deployed (confirmed via fingerprint probe 2026-05-21, see Deploy-state probe below)**
 - **QC Ref:** none (internal tester batch reported by Shawn, 2026-05-21)
 - **Bucket:** Bug — admin user-import page (Sub-A is UX, Sub-B/C/D are functional/security)
 - **Reporter:** Internal tester (relayed by Shawn, 2026-05-21)
@@ -165,6 +206,21 @@ Applied to `name`, `email`, `company`, `role`, `status` during parse. Any field 
 4. Re-import the same CSV twice: preview footer should read `0 of 0 rows will be imported` on the second run (assuming nothing changed), never `N of M` with `N > M`.
 
 Regression risk: low. All changes in one JS file + one cshtml file, scoped to the import flow. No backend, no DB.
+
+**Verification (2026-05-21) — localhost matrix + live deploy-state fingerprint probe**
+
+Localhost matrix via `qc214-user-import.js`: 7/7 PASS across all 4 sub-issues (Sub-A modal width @ 375px, Sub-B lowercase role accepted, Sub-C `<script>` stripped + Content-cleaned pill, Sub-D count math).
+
+**Deploy-state probe** (fetched deployed `wwwroot/js/userManagement.js` from gccwebapp.com + GET on `/Admin/UserManagement` page, grepped for fix fingerprints):
+
+| Sub-issue | Fingerprint | Live on gccwebapp.com? |
+|---|---|---|
+| Sub-A — mobile preview | `@media (max-width: 768px)` + `.import-modal-container` rule + `col-rownum` class | ❌ Not deployed |
+| Sub-B — role canonicalization | `roleLookup = new Map(...)` in deployed JS | ❌ Not deployed |
+| Sub-C — HTML sanitization | `sanitizeImportField(...)` helper + `cleanedFields` array | ❌ Not deployed |
+| Sub-D — count math | `action = 'skip'` post-error in deployed JS | ✅ Already deployed (likely landed earlier) |
+
+So 3 of 4 sub-issues still need to ship; Sub-D already live. After next deploy, re-run `BASE_URL=https://gccwebapp.com TARGET=live node qc214-user-import.js` to flip all 4 to "deployed + verified." Test artifact: `qc159-live-check/def214-215-deploy-probe-results.json`.
 
 ---
 

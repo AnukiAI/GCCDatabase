@@ -1,0 +1,50 @@
+[
+  {
+    "id": "QC214-deploy-sanitize",
+    "name": "Sub-C: sanitizeImportField helper present in deployed JS",
+    "status": "FAIL",
+    "notes": "present=false"
+  },
+  {
+    "id": "QC214-deploy-roleLookup",
+    "name": "Sub-B: roleLookup Map present in deployed JS",
+    "status": "FAIL",
+    "notes": "present=false"
+  },
+  {
+    "id": "QC214-deploy-cleanedFields",
+    "name": "Sub-C tracking: cleanedFields array present in deployed JS",
+    "status": "FAIL",
+    "notes": "present=false"
+  },
+  {
+    "id": "QC214-deploy-action-skip",
+    "name": "Sub-D: error→skip remapping present in deployed JS",
+    "status": "PASS",
+    "notes": "present=true"
+  },
+  {
+    "id": "QC214-deploy-mobile-style",
+    "name": "Sub-A: @media (max-width: 768px) block present on deployed UserManagement page",
+    "status": "FAIL",
+    "notes": "media=false, import-modal-container rule=false"
+  },
+  {
+    "id": "QC214-deploy-col-rownum",
+    "name": "Sub-A: col-rownum class on Row <th> present in deployed page",
+    "status": "FAIL",
+    "notes": "present=false"
+  },
+  {
+    "id": "QC215-deploy-route-alive",
+    "name": "ResetPasswordWithToken route responds (200) — handler not crashed by fix",
+    "status": "PASS",
+    "notes": "HTTP 200, body length=4675"
+  },
+  {
+    "id": "QC215-deploy-confidence",
+    "name": "Full E2E E2E verification was done on localhost (5/5 PASS); live shape probe confirms route still alive",
+    "status": "WARN",
+    "notes": "live verification of the fix itself requires DB-side token setup (not done on prod); localhost matrix stands"
+  }
+]

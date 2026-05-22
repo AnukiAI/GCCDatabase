@@ -1,5 +1,35 @@
 # Observations Log
 
+## 2026-05-21 — DEF-216 (QC #104 scope miss on Certificate Create/Edit breadcrumbs)
+
+During the post-deploy verification of QC #104 / DEF-202 + DEF-211, audited all 22 views that render a breadcrumb section. Found two views still carrying the same wrong "Administration ›" parent that DEF-211 removed from Companies & Products: `Views/Certificate/Create.cshtml` and `Views/Certificate/Edit.cshtml`. Both rendered `Home › Administration › Certificate Management › <action>` even though Certificate Management is a top-level nav item per `_Layout.cshtml`, not a child of Administration.
+
+**Why this was missed:** breadcrumbs are gated `role-admin-show` (only Admin sees them). Carly UATs primarily as Analyst, so even though the same anti-pattern was present on Cert Create/Edit, it never surfaced in QC. Same scope pattern as `feedback_scoping_check_adjacent_endpoints` — list pages got the fix, detail/edit forms didn't.
+
+**Fix applied locally** (2 file edits): both views now read `Certificate Management (link) › <action> (current)`, matching the symmetry DEF-211 established for Company / Product. Also dropped the leftover `Home` crumb (no other view in the app uses one). Tracked as DEF-216 + appended to `shipped-2026-05.md`. Pending rebuild + deploy — dev server has no Razor runtime compilation so live verification has to wait until next restart.
+
+**Adjacent finding (no action):** `Views/Product/ManagementAlt.cshtml` and `Views/Product/ManagementV2.cshtml` carry an older `Companies & Products › Products › <page>` pattern but verified via grep that no controller route references them. Dead code; left for a future cleanup CR.
+
+---
+
+## 2026-05-21 — Deploy-state probe for DEF-214/215: actionable info for next release
+
+Confirmed via fingerprint probe that DEF-214 sub-issues A/B/C and the DEF-215 controller fix are **NOT yet deployed to gccwebapp.com**. Sub-D of DEF-214 is the only piece already live (likely landed in an earlier sweep).
+
+How verified: fetched deployed `wwwroot/js/userManagement.js` from gccwebapp.com and grepped for the fix's distinctive helpers (`sanitizeImportField`, `roleLookup = new Map`, `cleanedFields`). All three returned absent. Also probed the live `/Admin/UserManagement` page HTML for `@media (max-width: 768px)` + `.import-modal-container` + `col-rownum` — also absent. The `action = 'skip'` Sub-D fingerprint WAS present, so that part of DEF-214 IS already live.
+
+DEF-215 fix is controller-only (`AccountController.cs`) — can't be fingerprinted from outside without setting up a DB-side reset token on prod (declined per `[Data Changes Require CR]`). The route `/Account/ResetPasswordWithToken` still serves HTTP 200, so the handler is alive; assume not-deployed pending Shawn's next push.
+
+When DEF-214/215 do eventually ship (Shawn's call on timing — still resolving other defects), the re-verify path is:
+- `BASE_URL=https://gccwebapp.com TARGET=live node qc214-user-import.js` — expect all 4 sub-issues to flip to PASS
+- `qc215-password-reset.js` against gccwebapp.com after generating a fresh reset token via Forgot Password flow
+
+DEF-214/215 status lines in the register updated with this deploy-state probe result. shipped-2026-05.md not updated yet (no deploy = no shipping entry).
+
+Test artifact: `qc159-live-check/def214-215-deploy-probe-results.json`.
+
+---
+
 ## 2026-05-21 — Third audit sweep: 4 critical security DEFs (203/204/206/208) — 3 live-verified + 1 dev-only
 
 After the DEF-214/215 batch closed, ran another audit sweep to find any remaining "pending deploy" items. Surfaced four security-critical fixes from 2026-05-20 that were never formally re-verified post-deploy.

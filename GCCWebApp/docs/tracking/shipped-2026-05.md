@@ -6,6 +6,22 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-216 — Certificate Create/Edit breadcrumbs cleaned up (QC #104 scope miss; fixed locally 2026-05-21)
+
+During the QC #104 verification pass on 2026-05-21 we re-audited all 22 views that render a breadcrumb section. The deploy earlier the same day closed the Companies & Products half of the complaint (DEF-211) — but the same anti-pattern was sitting on `Views/Certificate/Create.cshtml` and `Views/Certificate/Edit.cshtml`, which the client had not yet flagged. Both pages were rendering `Home › Administration › Certificate Management › <action>` even though Certificate Management is a top-level nav item, not a child of Administration.
+
+**Why this slipped past DEF-211.** Client's 5/1 wording named the Companies & Products page specifically. Breadcrumbs are gated `role-admin-show` and Carly tests primarily as Analyst, so the Cert Create/Edit forms — which carry the same anti-pattern — never surfaced in UAT. Same "list pages get the fix, detail/edit forms don't" pattern as DEF-103, DEF-164, and the other entries in `feedback_scoping_check_adjacent_endpoints`.
+
+**Fix.** Two `.cshtml` edits, mirror of DEF-211. Both Create and Edit now read `Certificate Management › <action>` (linkable parent + non-clickable current), matching the symmetry already established for Company / Product. Dropped the leftover `Home` crumb too — no other view in the app uses one, so this brings Cert Create/Edit into the established 22-view pattern.
+
+**Files:** `Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`.
+
+**Test plan.** Log in as Admin → `/Certificate/Create` → breadcrumb reads `Certificate Management › Create Certificate`. Open any existing cert → Edit → breadcrumb reads `Certificate Management › Edit Certificate <number>`. Pre-edit live HTML check confirmed the running dev server still serves the OLD precompiled view (Razor runtime compilation is not enabled in this project), so this fix lands at the next rebuild / restart and is included in the next deploy automatically.
+
+**Why this matters.** Closes the QC #104 client complaint pattern across the entire admin breadcrumb surface — no more `Administration ›` mis-nesting anywhere. If Carly happens to test cert Edit during UAT this week, the original 5/1 complaint is already pre-empted.
+
+---
+
 ## DEF-215 — Password reset link silently rejected before the user could submit a new password — fixed locally (2026-05-21)
 
 While testing the forgot-password flow locally, the reset email arrived correctly but the link landed on a page already showing **"This password reset link is invalid or has expired. Please request a new one."** — before any password was even entered.

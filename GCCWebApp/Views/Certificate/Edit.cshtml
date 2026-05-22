@@ -14,11 +14,10 @@
 }
 
 @section Breadcrumbs {
+    @* QC #104 (5\1 follow-up): "Certificate Management" is a top-level nav item, not a child
+       of "Administration" — so the trail starts at Certificate Management, not under
+       Administration. Same scope-miss pattern as DEF-211 fixed for Companies & Products. *@
     <span class="role-element role-analyst-show role-admin-show">
-        <a href="/">Home</a>
-        <span class="separator"><i class="fas fa-chevron-right"></i></span>
-        <span>Administration</span>
-        <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <a asp-controller="Certificate" asp-action="CertificateTileViewInternal">Certificate Management</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span class="current">Edit Certificate @Model.Number</span>

@@ -1,0 +1,191 @@
+[
+  {
+    "id": "DEF-103",
+    "surface": "A",
+    "name": "Partner API by-id route exists (401 on anonymous = contract surface deployed)",
+    "status": "PASS",
+    "notes": "HTTP 401"
+  },
+  {
+    "id": "DEF-124",
+    "surface": "A",
+    "name": "/api/v1/certificates/expiring auth-gated (anon=401 or 404 if removed)",
+    "status": "PASS",
+    "notes": "HTTP 401"
+  },
+  {
+    "id": "DEF-129",
+    "surface": "A",
+    "name": "/api/v1/certificates/search auth-gated",
+    "status": "PASS",
+    "notes": "HTTP 401"
+  },
+  {
+    "id": "DEF-131",
+    "surface": "A",
+    "name": "Partner API /bulk/* POST blocked anon (was leaking write capability)",
+    "status": "PASS",
+    "notes": "HTTP 401"
+  },
+  {
+    "id": "DEF-144",
+    "surface": "B",
+    "name": "Countries dropdown lists United States first (DEF-144 deployed)",
+    "status": "PASS",
+    "notes": "firstCountry=United States, total=6"
+  },
+  {
+    "id": "DEF-100",
+    "surface": "B",
+    "name": "Tile lazy-load accumulates (not wipes): rows grow after scroll",
+    "status": "PASS",
+    "notes": "before=20 after-2-scrolls=37"
+  },
+  {
+    "id": "DEF-115",
+    "surface": "B",
+    "name": "Columns toggle button exists on internal tile view",
+    "status": "PASS",
+    "notes": "count=1"
+  },
+  {
+    "id": "DEF-167",
+    "surface": "B",
+    "name": "Filter API returns productCategoriesHierarchy (nested subcategories)",
+    "status": "WARN",
+    "notes": "isArray=false count=undefined"
+  },
+  {
+    "id": "DEF-181",
+    "surface": "B",
+    "name": "asin vs asin-za sort returns different ordering (sort handler deployed)",
+    "status": "WARN",
+    "notes": "asin=200 asin-za=200"
+  },
+  {
+    "id": "DEF-155",
+    "surface": "B",
+    "name": "URL/Listing field width fits in mobile viewport",
+    "status": "WARN",
+    "notes": "null"
+  },
+  {
+    "id": "DEF-098",
+    "surface": "B",
+    "name": "Tablet (1024px): no duplicate Hide Filters buttons (count ≤ 1)",
+    "status": "WARN",
+    "notes": "count=2"
+  },
+  {
+    "id": "DEF-161",
+    "surface": "C",
+    "name": "product-id-manager.js ASIN regex is case-insensitive (DEF-161)",
+    "status": "PASS",
+    "notes": "ciAsinRegex=true"
+  },
+  {
+    "id": "DEF-119",
+    "surface": "C",
+    "name": "Add Product ID modal width sufficient (>700px desktop)",
+    "status": "PASS",
+    "notes": "width=1140"
+  },
+  {
+    "id": "DEF-143",
+    "surface": "C",
+    "name": "Cert detail does NOT load stale /js/certificates.js (DEF-143)",
+    "status": "PASS",
+    "notes": "hasStaleJs=false"
+  },
+  {
+    "id": "DEF-126",
+    "surface": "C",
+    "name": "(visual — skipped) stray ⚠ on Add/Edit Product ID modal initial open",
+    "status": "WARN",
+    "notes": "requires visual diff vs prior screenshot"
+  },
+  {
+    "id": "DEF-190",
+    "surface": "D",
+    "name": "Import Preview modal has at most 1 \"Download Template\" button",
+    "status": "PASS",
+    "notes": "references in JS=0"
+  },
+  {
+    "id": "DEF-148",
+    "surface": "D",
+    "name": "product-id-manager.js still uses monospace where intended (or removed per fix)",
+    "status": "PASS",
+    "notes": "monospace ref present=true (acceptable either way; visual fix)"
+  },
+  {
+    "id": "DEF-150",
+    "surface": "D",
+    "name": "product-id-manager.js has column-sort handler (DEF-150 deployed)",
+    "status": "PASS",
+    "notes": "hasSortHandler=true"
+  },
+  {
+    "id": "DEF-120",
+    "surface": "D",
+    "name": "product-id-manager.js renders createdBy as username (DEF-120)",
+    "status": "PASS",
+    "notes": "hasUsername=true"
+  },
+  {
+    "id": "DEF-122",
+    "surface": "E",
+    "name": "Dashboard tile \"# Product Categories with Active Certs\" present",
+    "status": "PASS",
+    "notes": "tile titles include match: true"
+  },
+  {
+    "id": "DEF-114",
+    "surface": "E",
+    "name": "Dashboard stats-grid fits mobile viewport (no horizontal clip)",
+    "status": "PASS",
+    "notes": "{\"width\":289,\"vp\":375}"
+  },
+  {
+    "id": "DEF-141",
+    "surface": "F",
+    "name": "/Product/Management does NOT fire /Admin/GetProducts on load",
+    "status": "PASS",
+    "notes": "requests captured: 0"
+  },
+  {
+    "id": "DEF-173",
+    "surface": "F",
+    "name": "User Management has \"Company Access\" column header (DEF-173)",
+    "status": "WARN",
+    "notes": "headers=[\"Name ▼\",\"User Company ▼\",\"Email ▼\",\"Role ▼\",\"Status ▼\",\"Last Login ▼\",\"2FA ▼\",\"Actions\",\"\",\"Row\"]"
+  },
+  {
+    "id": "DEF-174",
+    "surface": "F",
+    "name": "productManagement.js export uses \"Product Name\" header (template parity)",
+    "status": "PASS",
+    "notes": "hasProductName=true"
+  },
+  {
+    "id": "DEF-107",
+    "surface": "G",
+    "name": "Permissions-Policy header is single (not duplicated)",
+    "status": "FAIL",
+    "notes": "Permissions-Policy header count=2"
+  },
+  {
+    "id": "DEF-108",
+    "surface": "G",
+    "name": "COEP header is NOT require-corp (allows GA)",
+    "status": "PASS",
+    "notes": "COEP=unsafe-none"
+  },
+  {
+    "id": "DEF-135",
+    "surface": "G",
+    "name": "CSP allows Google analytics domains",
+    "status": "PASS",
+    "notes": "CSP present=true, allowsGoogle=true"
+  }
+]

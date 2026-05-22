@@ -29,6 +29,10 @@
         customFieldDefinitions: [] // CR-007: admin-managed custom field columns
     };
 
+    // Set on pagehide so fetches aborted by navigation don't log noise.
+    let pageUnloading = false;
+    window.addEventListener('pagehide', () => { pageUnloading = true; });
+
     async function initialize() {
         setupUrlParameters(); // Parse URL params into state.filters first
         setupMobileFilterToggle(); // Bind toggle synchronously so it works while API calls are pending
@@ -242,6 +246,7 @@
                 updateResultsCount();
             }
         } catch (error) {
+            if (pageUnloading) return; // fetch was aborted by navigation, not a real failure
             console.error('Error loading certificates:', error);
             showError('Failed to load certificates. Please try again.');
         } finally {

@@ -1445,10 +1445,11 @@ The original March fix only patched `wwwroot/js/certificate-tile-view.js`; the n
 
 **Status:** **NEEDS VISUAL REVIEW - 2026-05-01.** Captured mobile cert detail screenshot at 390x844 (qc153_mobile_cert.png). Confirm: image positioned BELOW content (not above), action buttons centered under image. Per QC #153 fix: order:1 on image instead of -1; justify-content:center on action icons mobile.
 
-### TC-QC-159 [QUESTION / Pri: - / Status: Open]
+### TC-QC-159 [UX / Pri: - / Status: Closed - Verified]
 - **Page:** Cert Creation Page - Product Identifier Section
 - **Raised by:** client
 - **Sprint 2:** Ready for UAT
+- **Reclassified 2026-05-21:** Originally logged as QUESTION/Enhancement (CR-Required). Triage confirmed the function (replace-all CSV import: deactivate not-in-file + add new + keep matching) was already shipped under DEF-154 and DEF-165D. Root cause of the client's original report was UX discoverability of the Replace-all toggle, not missing functionality. Re-classified as UX. CR-016 (radios / To-Remove tile / warning banner) is a separate scope item still pending CR signoff — tracked apart from this card.
 - **Defect:** DISCUSS: I see how someone would edit or add to the Product list individually. |  | What if someone wanted to replace all the existing with a new list that could have a thousand records tied to it? So it would remove those not included and add those new and keep existing still on list? |  | I tried a version of this and got an error. There were 2 listed from a prior import. I tried to import a doc with only 1 product.
 - **Fix summary (4/10 SP2 comment):** QC #159 — Product ID bulk import errors and no replace option: Two bugs fixed. (1) |   GetValidationErrorsAsync() in ProductIdService.cs called CheckDuplicateAsync() without |   passing certificateId, causing a global duplicate check across all certificates instead of |   scoping to the current one — fixed by adding certificateId parameter and passing it through. |   (2) The API's overwriteExisting parameter was accepted but never used — implemented full |   replace logic: when enabled, existing active product IDs not present in the import file are |   deactivated before new ones are added. Duplicates that already exist on the certificate are |   silently skipped in overwrite mode. Added "Replace all existing" checkbox to the import |   preview modal in _ProductIdManager.cshtml. Client-side applyImport() in product-id-manager.js |    updated to delete existing IDs not in the import when toggle is checked.
 
@@ -1464,7 +1465,7 @@ The original March fix only patched `wwwroot/js/certificate-tile-view.js`; the n
 
 **Cross-role / Cross-viewport:** TODO during execution
 
-**Status:** **UAT PASS — 2026-05-08 on localhost:5101 / GCCDatabase_Dev. PROD-VERIFIED 2026-05-11 on gccwebapp.com.**
+**Status:** **CLOSED — VERIFIED.** UAT PASS 2026-05-08 (localhost:5101 / GCCDatabase_Dev). PROD-VERIFIED 2026-05-11 (gccwebapp.com DOM parity check). Third end-to-end pass 2026-05-21 — see `defect-register.md` DEF-180 verification block (replace-all round-trip on cert seeded with prior IDs; soft-deactivation + new-row insert confirmed). Triage 2026-05-21 reclassified the QC log row from Enhancement/CR-Required → UX/Closed; CR-016 polish split into its own row.
 
 **Localhost UAT (2026-05-08):** Client's repro reproduced and resolved end-to-end via Playwright. Cert 26-0001 seeded with 2 active ASINs (B08N5WRWNW, B07XJ8C8F5). Logged in as analyst → opened Edit → Import → uploaded CSV with 1 different ASIN (B09KMVN3R8) → preview showed `1 New / 0 Modified / 0 Unchanged / 0 Errors` (no spurious global-duplicate flag) → toggled "Replace all existing" → Apply Import. **Result:** cert 26-0001 ended with 1 active row (B09KMVN3R8) + 2 soft-deleted (IsActive=0). **Per-cert dup scope:** posting same ASIN B09KMVN3R8 to cert 26-0003 returned 200 success (cross-cert allowed). **Intra-cert dup still rejected:** re-posting B09KMVN3R8 to cert 26-0001 returned `"Product ID already exists on this certificate"` (correct). Screenshots: `C:\Users\swest\AppData\Local\Temp\uitest\qc159-shots\` (01–06). Test rows cleaned post-run. Earlier 2026-05-01 status was code-level only; this supersedes it.
 

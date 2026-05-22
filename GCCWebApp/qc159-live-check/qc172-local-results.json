@@ -1,68 +1,8 @@
 [
   {
-    "id": "QC172-A1",
-    "name": "Select-all header checkbox present",
-    "status": "PASS",
-    "notes": "count=1"
-  },
-  {
-    "id": "QC172-A2",
-    "name": "Bulk delete button hidden before selection",
-    "status": "PASS",
-    "notes": "visible=false"
-  },
-  {
-    "id": "QC172-A3",
-    "name": "Three filtered test rows visible",
-    "status": "PASS",
-    "notes": "visible=3"
-  },
-  {
-    "id": "QC172-B1",
-    "name": "Bulk delete button appears after 1 selection",
-    "status": "PASS",
-    "notes": "visible=true"
-  },
-  {
-    "id": "QC172-B2",
-    "name": "Bulk delete shows \"Delete Selected (1)\"",
-    "status": "PASS",
-    "notes": "count=1"
-  },
-  {
-    "id": "QC172-B3",
-    "name": "Select-all checks all 3 visible rows → count=3",
-    "status": "PASS",
-    "notes": "count=3"
-  },
-  {
-    "id": "QC172-C1",
-    "name": "All 3 test rows deleted from DB",
-    "status": "PASS",
-    "notes": "remaining=0"
-  },
-  {
-    "id": "QC172-D1",
-    "name": "Page 1: one row selected → count=1",
-    "status": "PASS",
-    "notes": "count=1"
-  },
-  {
-    "id": "QC172-D2",
-    "name": "After page → page 2 nav: count persists (=1)",
-    "status": "PASS",
-    "notes": "count=1"
-  },
-  {
-    "id": "QC172-D3",
-    "name": "Page 2 + 1 more selected: count=2",
-    "status": "PASS",
-    "notes": "count=2"
-  },
-  {
-    "id": "QC172-D4",
-    "name": "Page 1 revisited: first row still checked (selectedIds preserves state)",
-    "status": "PASS",
-    "notes": "checked=true"
+    "id": "ERR",
+    "name": "Unexpected exception",
+    "status": "FAIL",
+    "notes": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Certificate/Edit/26-0023\", waiting until \"networkidle\"\u001b[22m\n"
   }
 ]

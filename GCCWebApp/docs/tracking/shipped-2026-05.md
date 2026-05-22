@@ -2,7 +2,52 @@
 
 Snapshot of delivery for May 2026. Stakeholder-readable log.
 
-Period: 2026-05-01 → ongoing
+Period: 2026-05-01 → ongoing (snapshot as of 2026-05-21)
+
+## May 2026 — at-a-glance
+
+| | Count |
+|---|---|
+| **Total fixes shipped this month** | **101** (DEF-109 through DEF-217) |
+| Deployed and verified live on gccwebapp.com | ~50 (carried by the 2026-05-04, 2026-05-15, and 2026-05-21 deploys) |
+| In working tree, queued for the next deploy | ~51 |
+
+Highlights of the month: closed two confirmed authenticated cross-scope leaks (DEF-204, DEF-208), shipped login rate-limit + error-message-uniformity hardening (DEF-209, DEF-210), eliminated the password-reset email-link `+`-corruption bug (DEF-215), reconciled all dashboard tile/export count divergences (DEF-200), cleaned the admin breadcrumb information architecture (DEF-211, DEF-216), and corrected the admin custom-field workflow (DEF-217).
+
+---
+
+## Internal cleanup — tile-view console noise silenced during navigation (fixed locally 2026-05-22)
+
+Not a client-reported defect; surfaced during internal verification of the Product ID bulk-delete feature (DEF-194 / QC #172). When an analyst lands on the Internal tile view after login and then quickly navigates to another page (e.g. `/Certificate/Edit/...`), the in-flight `fetch('/api/certificate-tiles-internal?...')` was aborted by the navigation and the catch block logged `Error loading certificates: TypeError: Failed to fetch` to the browser console and also (on the public view) kicked off the exponential-backoff retry loop. End users never saw it — the noise lived in DevTools and in test logs — but it polluted Playwright runs and obscured real errors during QA.
+
+**Fix.** Added a module-level `pageUnloading` flag set on `pagehide` in each of the three tile-view scripts. The fetch's catch block returns early when the flag is set, so an aborted-by-navigation fetch is silent. Real network errors (offline / DNS / server down — same `TypeError: Failed to fetch` shape but on a still-loaded page) still log, still surface the user-facing error UI, and on the public view still trigger the retry loop. Three near-identical edits, no behavior change for end users.
+
+**Files:** `wwwroot/js/certificate-tile-view-internal.js`, `wwwroot/js/certificate-tile-view-external.js`, `wwwroot/js/certificate-tile-view.js`.
+
+**Verification.** Re-ran `qc159-live-check/qc172-bulk-delete-v2.js` against localhost: 11/11 PASS (bulk-select UI, count badge, select-all, DB-level delete verify, cross-page selection persistence) with zero `[console.error]` lines in output. Prior runs surfaced the noise; current run is clean.
+
+**Why this matters.** Cosmetic, but it removes a recurring red herring from internal QA runs. The fetch-abort error had been mis-attributed to the Edit page twice this month before being traced to its actual source (the prior page's in-flight init). Future test runs and DevTools sessions can now treat any `Error loading certificates` line as a real signal worth investigating.
+
+---
+
+## DEF-217 — QC #118 — Custom certification fields: "Failed to save" error on new field + section sub-headers cluttering Create/Edit forms (fixed locally 2026-05-21)
+
+Both halves of **QC #118** (`Certificate Field Management`) resolved in a single change. Client's original 3/13 wording: *"I don't think we need section headers and they can all just go under Additional Information."* Client's 4/6 follow-up on the same row: *"Getting error message when trying to add could not test. See image 45."* Both touch the admin custom-field workflow.
+
+**Issue A — "Failed to save" when adding a new custom certification field.** Creating a custom field through Admin → Certificate Fields could fail with a generic save error on some databases. Root cause: the save routine attached the new field to a fixed default certification-type record assumed to exist at a specific position in the table. On databases where that position was empty (re-seeded environments, fresh prod imports), the database rejected the save with a foreign-key error that surfaced to the user as a generic "Failed to save."
+
+**Fix A.** Save routine now dynamically looks up an available certification type at write time rather than assuming one exists at a fixed position. If no certification types exist at all, the user now gets a clear, actionable message ("No certificate types exist in database. Please add a certificate type first.") instead of a silent failure. File: `Services/AdminService.cs:CreateCertificateFieldAsync`. Update routine doesn't touch the type linkage at all, so it was safe by design.
+
+**Issue B — Custom fields rendered under internal "Section" sub-headers on Create/Edit forms.** Custom fields were being grouped on the certificate Create and Edit pages by their internal `Section` value (an admin-only organization field), producing multiple cluttered sub-groups on the form.
+
+**Fix B.** All custom fields now render in a single flat list under one `Additional Fields` heading on both Create and Edit pages, per the [[feedback_custom_fields_single_section]] rule already established for the detail/external/public views. The `Section` column is preserved on the admin custom-field table for internal organization, but it no longer drives form rendering. Files: `Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`, `wwwroot/js/certificate-custom-fields.js`.
+
+**Test plan.**
+- Admin → Certificate Fields → add a new field → confirm save succeeds without error.
+- Certificate → Create → pick any certification type → confirm custom fields appear in one flat group under "Additional Fields" (no section sub-headers).
+- Certificate → Edit on an existing cert → same check.
+
+**Why this matters.** Issue A blocked admins from extending the custom-field set in any non-dev environment — a launch blocker for client-side admin training. Issue B was the second half of the [[feedback_custom_fields_single_section]] rule that had been applied to detail/view surfaces but not to the create/edit forms; this closes the inconsistency across all custom-field render surfaces.
 
 ---
 

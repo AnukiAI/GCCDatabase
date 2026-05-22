@@ -1,5 +1,97 @@
 # Observations Log
 
+## 2026-05-21 — DEF-173 resolved as no-action: client confirmed "User Company" is the desired label
+
+The 2026-05-21 status-sync sweep flagged DEF-173 because the User Management table header reads "User Company" but the entry's stated intent was "Company Access". Investigation surfaced a back-and-forth in the QC log on the label:
+
+- **QC #108** (originally): client asked for "User Company"
+- **DEF-101** (2026-04-26): export header set to "User Company" per QC #108
+- **5/8 UAT comment on QC #106** (basis for DEF-173): said "should be called Company Access"
+- **DEF-186** (2026-05-12, one day after DEF-173): new 5-column template explicitly kept "User Company" — reporter line literally says *"raised during the Company Access → User Company rename review"*
+- **2026-05-21**: client confirmed (per Shawn) that "User Company" is the desired label
+
+Net: the client flipped twice and landed back on the original preference. The most recent code work (DEF-186) and the current deployed state both match the final client direction.
+
+Action: DEF-173 entry closed with explicit "Closed — no rename needed" status and a conflict-history block recording the full back-and-forth so this question doesn't get re-opened a third time. The "All" display + import round-trip half of DEF-173 did land (`getCompanyAccessDisplay`, `resolveCompanyIds`, `normalizeUserHeaderName` accepts both `companyaccess` and `usercompany`) and remains valuable regardless of label. Only the label rename was rolled back.
+
+No code change. Status-sync batch entry at top of `defect-register.md` updated — DEF-173 moved from "worth a closer look" to "resolved no-action-needed".
+
+This was the right kind of "look into" outcome — the flag was real (header didn't match the recorded intent), but the resolution was a docs/scope clarification rather than a code fix. Worth keeping the helper-functions-landed-without-label-rename pattern in mind for future fixes that bundle behavior + cosmetic changes together: when scope shifts mid-flight, the helpers should still be kept (they're the value-add) but the cosmetic change can be peeled off.
+
+---
+
+## 2026-05-21 — DEF-107 root cause fully traced: web.config + middleware double-injection (fix landed)
+
+Today's grouped sweep flagged `Permissions-Policy` header still duplicated on prod despite DEF-107 being marked "Fixed locally". Investigated and found the original 5/1 fix was correct but **incomplete** — it removed the legacy `Feature-Policy` header from the middleware, but the actual prod-side duplication was a separate issue.
+
+**Root cause (the bigger picture):** Security headers were being added at TWO layers:
+- **IIS** via `web.config` `<httpProtocol><customHeaders>` — X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Strict-Transport-Security, Content-Security-Policy, Referrer-Policy, Permissions-Policy
+- **ASP.NET Core middleware** (`SecurityHeadersMiddleware.cs`) — same set + a few extras
+
+`response.Headers.Append(...)` in middleware adds a SECOND value on a header IIS already set. The browser sees BOTH. Some values disagreed (X-Frame-Options: SAMEORIGIN in IIS vs DENY in middleware; X-XSS-Protection: "1; mode=block" vs "0"; CSP differed too). On Kestrel (dev) this never reproduced because Kestrel doesn't honor web.config — only IIS does.
+
+**Fix:** Removed the entire `<httpProtocol>` block from `web.config:22-36` and replaced with an explanatory comment. Middleware is now the single source of truth — environment-aware (different CSP dev vs prod), applies before `UseStaticFiles` so static assets get the same headers, and works identically across Kestrel and IIS.
+
+**Verified on localhost:** `HEAD /` returns exactly 1 of each header. Single Permissions-Policy, single X-Frame-Options (DENY), single CSP (the comprehensive middleware-built one). Localhost was always clean — the test confirms middleware still emits everything correctly. Final prod verification deferred to next deploy.
+
+**DEF-107 register entry rewritten** to capture the full scope of the bug (not just Feature-Policy → Permissions-Policy, but every duplicated header), the 2026-05-21 re-discovery via status-sync sweep, the consolidated fix, and a cross-ref to DEF-135 / DEF-108 (CSP maintenance now happens in one place).
+
+**Why the original 5/1 entry was misleading:** It said "Fixed locally — pending deploy" with the Feature-Policy comment, but the wider IIS-layer duplication was never caught. Anyone reading the entry between 5/1 and 5/21 reasonably assumed it was closed. The status-sync sweep saved the day — without it, this would have shipped to production launch with conflicting X-Frame-Options values and a duplicate CSP.
+
+Cross-cutting lesson worth flagging for similar future cases: **when a header/policy is configured in multiple layers (IIS web.config, middleware, response decorator), every layer's output stacks.** Don't trust "Fixed locally" status without checking the deployed HTTP response for the count of each header.
+
+---
+
+## 2026-05-21 — Grouped older-DEFs sweep: 20 confirmed deployed, 1 still failing, 6 inconclusive
+
+Extension of the 4-item morning sweep — ran 27 targeted probes across 7 surfaces (Partner API, cert tile views, cert create/edit, product ID manager, dashboard, admin/product mgmt, auth/headers/misc) via `older-defs-grouped-sweep.js`. Confirms the hypothesis that most older "Fixed locally — pending deploy" labels are stale.
+
+**Results: 20 PASS / 1 FAIL / 6 WARN.**
+
+Confirmed deployed (20):
+- **Partner API/Security:** DEF-103, 124, 129, 131 — all `/api/v1/*` routes auth-gated correctly (401 anon)
+- **Cert tile views:** DEF-100 (lazy-load accumulates), 115 (Columns button), 144 (US first), 176 (no chip prefixes), 189 (preview square)
+- **Cert Create/Edit:** DEF-119 (modal 1140px), 143 (no stale JS), 161 (case-insensitive ASIN regex)
+- **Product ID Manager:** DEF-120 (createdBy username), 148 (polish), 150 (sort handler), 190 (no dup template), 191 (unchanged status)
+- **Dashboard:** DEF-114 (mobile fits), 122 (categories tile)
+- **Admin/Product Mgmt:** DEF-101 (icons), 141 (no stale /Admin/GetProducts), 174 (Product Name header)
+- **Headers:** DEF-108 (no require-corp), 135 (CSP allows Google)
+
+**🔴 Real finding — DEF-107 is failing on prod:** `Permissions-Policy` response header is still **duplicated** (count=2). The fix was recorded as shipped, but the duplicate is back. Could be a regression OR a middleware that double-injects. **Flagged for reinvestigation.** Not catastrophic (browser warning, not functional break) but it's a real bug.
+
+**🟡 DEF-173 worth a second look:** User Management table header reads "User Company" but the fix's intent was "Company Access." Either the fix used a different label than recorded, or the deploy didn't carry the rename. Inconclusive — worth eyeballing the live page to decide.
+
+Other inconclusives (DEF-128/155/167/181/098/126) are selector-match failures or visual-only diff items — not evidence of regression.
+
+Rather than rewriting 20 individual Status lines (risk of mismatched edits across varied phrasings), added a single **"Status-sync batch — 2026-05-21"** section at the top of `docs/tracking/defect-register.md` that lists all 20 confirmed-deployed DEFs in one table with the specific evidence per DEF. That section overrides the per-entry Status lines and is the canonical sync record. Future hygiene passes can either consolidate similarly or rewrite individual lines from the same evidence base.
+
+Test harness `qc159-live-check/older-defs-grouped-sweep.js` is re-runnable any time. Re-run after the next deploy to confirm no regressions in this set.
+
+---
+
+## 2026-05-21 — Older-DEFs status-sync sweep: 4 flipped to "Deployed and verified", broader hygiene picture documented
+
+The defect register carries ~70 entries with "Fixed locally — pending deploy" status, the bulk of which are stale labels from earlier sprints that did ship but never had their status flipped. Ran a sampled probe against gccwebapp.com (`older-defs-status-sweep.js`) on 8 representative DEFs across UI/CSS/JS/API surfaces:
+
+| DEF | Surface | Result |
+|---|---|---|
+| **DEF-101** | Import/Export icon arrow direction on /Product/Management | ✅ Deployed (`fa-file-arrow-down` + `fa-file-arrow-up` both present; no `fa-download` residue) |
+| **DEF-176** | Filter chip prefix cleanup (no "Type:/Company:/Search:" prefix) | ✅ Deployed (zero prefix matches in chip HTML) |
+| **DEF-189** | Cert preview aspect ratio (was portrait, should be square) | ✅ Deployed (preview container measures 330×330 = 1:1 on `/Certificate/Edit/26-0163`) |
+| **DEF-191** | Product ID import handles "unchanged" rows | ✅ Deployed (deployed `product-id-manager.js` contains `'unchanged'` status string) |
+| DEF-128 | ExportCertificates auth gate | ⚠️ Inconclusive — anon returns 200, but per DEF-198 anon now scoped to PublicStatuses-only so this is acceptable |
+| DEF-119 | Add Product ID modal width | ⚠️ Inconclusive — modal selector didn't open via current addBtn click path |
+| DEF-138 | Product Mgmt save sku/model preservation | ⚠️ Inconclusive — selectors for sku/model in deployed JS didn't match |
+| DEF-167 | Filter API hierarchical subcategories | ⚠️ Inconclusive — anon GET on /api/certificate-tiles/filters returned non-200 |
+
+**4 confirmed deployed, 4 inconclusive (no DISCONFIRMATION).** The 4 PASS results validate the hypothesis that most older "pending deploy" entries are actually deployed; status hygiene was just skipped in the deploy passes.
+
+Action taken: flipped status on the 4 confirmed-deployed entries (DEF-101, DEF-176, DEF-189, DEF-191) with the specific evidence footnote. Did NOT bulk-flip the rest — without per-DEF fingerprint evidence, blanket flips would lose information. The remaining ~66 older entries are best treated as "presumed deployed, status not synced" until probed individually.
+
+If a future deploy includes a status-hygiene pass, recommend grouping older entries by surface (admin UI, partner API, dashboard, cert flows) and running a targeted probe per group. Most should flip cleanly. Test harness lives at `qc159-live-check/older-defs-status-sweep.js` and is extensible — each new probe adds a single block.
+
+---
+
 ## 2026-05-21 — DEF-216 (QC #104 scope miss on Certificate Create/Edit breadcrumbs)
 
 During the post-deploy verification of QC #104 / DEF-202 + DEF-211, audited all 22 views that render a breadcrumb section. Found two views still carrying the same wrong "Administration ›" parent that DEF-211 removed from Companies & Products: `Views/Certificate/Create.cshtml` and `Views/Certificate/Edit.cshtml`. Both rendered `Home › Administration › Certificate Management › <action>` even though Certificate Management is a top-level nav item per `_Layout.cshtml`, not a child of Administration.
@@ -6337,3 +6429,29 @@ Two files touched, no backend, no DB. Ships on next deploy. Pending Shawn's comm
 - Single batched DEF row (not 4 separate) — matches "Strength in Numbers" guidance for related items in one surface area
 - Mobile fix avoided column stacking and column hiding per Shawn's explicit "make them fit" directive; relies on padding/font compression + horizontal scroll fallback for sub-360px phones
 - Sanitization went with "strip + flag" (not "reject"); analyst sees the diff in a tooltip so the change isn't mysterious
+
+---
+
+## 2026-05-22 — Tile-view `Failed to fetch` console noise traced to nav-aborted fetch; silenced via `pagehide` flag
+
+While re-verifying DEF-194 / QC #172 (Product ID bulk delete on the Edit page) with `qc159-live-check/qc172-bulk-delete-v2.js`, Playwright reported `[console.error] Error loading certificates: TypeError: Failed to fetch` from `certificate-tile-view-internal.js:210`. Initial reading was that the Edit page had a broken JS dependency. **It does not.**
+
+**Actual sequence:**
+1. Analyst logs in → `AccountController.RedirectToLocal` (`Controllers/AccountController.cs:1248`) routes Analyst/Admin to `/Certificate/CertificateTileViewInternal` (NOT the public `/Certificate/CertificateTileView` that anonymous users get). Easy to miss because the success post-login redirects in `Login()` itself point at the public action — the role-aware redirect lives in `RedirectToLocal` further down.
+2. `CertificateTileViewInternal.cshtml` loads `certificate-tile-view-internal.js`, whose `initialize()` immediately fires `loadInitialCertificates()` → `fetch('/api/certificate-tiles-internal?...')`.
+3. Test calls `page.goto('/Certificate/Edit/...')` before that fetch resolves. Navigation aborts the in-flight fetch, which rejects with `TypeError: Failed to fetch`.
+4. Catch block at line 245 logs `console.error('Error loading certificates:', error)` — Playwright timestamps the line during the next page and surfaces it as if it came from `/Certificate/Edit`.
+5. `Views/Certificate/Edit.cshtml` itself loads only `product-id-manager.js`, `certificate-custom-fields.js`, `certificate-create.js`, `certificate-inline-create.js`, `searchable-select.js` (lines 459-463). It never touches the tile-view JS. The error message was a misattribution by ~120ms of navigation timing.
+
+**Non-obvious gotcha for future debugging.** Chromium throws `TypeError: Failed to fetch` for **both** (a) fetches aborted by navigation and (b) real network failures (offline / DNS / CORS / mixed content). Cannot distinguish by error shape alone — `error.name === 'TypeError'` and `error.message === 'Failed to fetch'` are identical in both cases. The retry logic at `certificate-tile-view.js:279` was using exactly that shape match, which means a nav-aborted fetch on the public view would have also kicked off an exponential-backoff retry loop targeting a dead page.
+
+**Fix applied (working tree, not yet deployed).** Added a module-level `let pageUnloading = false;` and `window.addEventListener('pagehide', () => { pageUnloading = true; });` to all three tile-view scripts. Catch block returns early when `pageUnloading` is true. Real network errors (page still loaded → flag still false) still log + showError + (public view) retry. Three near-identical edits to:
+- `wwwroot/js/certificate-tile-view-internal.js`
+- `wwwroot/js/certificate-tile-view-external.js`
+- `wwwroot/js/certificate-tile-view.js`
+
+**Why use `pagehide` instead of matching `error.name`/`error.message`.** A literal `if (error instanceof TypeError && error.message === 'Failed to fetch') return;` guard would silently swallow real outage errors on the user's screen. The `pagehide` flag is a positive signal that the page is genuinely being torn down — no false negatives on real network failures.
+
+**Verification.** Re-ran `qc172-bulk-delete-v2.js` against localhost: 11/11 PASS (the seven primary checks PLUS the four cross-page selection-persistence checks that had previously been blocked by the same kind of timing/visibility flakiness). Zero `[console.error]` and zero `[pageerror]` lines. Shipped log entry added to `docs/tracking/shipped-2026-05.md` under "Internal cleanup" (no DEF number — no originating client QC item; cosmetic).
+
+**Lesson worth retaining.** When a JS error appears to fire on page X but the script trace clearly belongs to a different page, suspect a fetch from the previous page that the new navigation aborted. Run the same test with the prior page's JS files temporarily silenced to confirm; don't waste time grepping page X's script chain for a script it doesn't include.

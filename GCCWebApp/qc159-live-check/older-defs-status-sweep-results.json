@@ -1,0 +1,50 @@
+[
+  {
+    "id": "DEF-101",
+    "name": "Import/Export icons use file-arrow-down/up (DEF-101 deployed)",
+    "status": "PASS",
+    "notes": "{\"hasArrowDown\":true,\"hasArrowUp\":true,\"hasOldDownload\":false}"
+  },
+  {
+    "id": "DEF-128",
+    "name": "ExportCertificates redirects/blocks anonymous (was [AllowAnonymous])",
+    "status": "WARN",
+    "notes": "HTTP 200 — 302/401 = auth gate; 200 = still anonymous (DEF-198 already wraps this with scope filter so anon gets PublicStatuses-only)"
+  },
+  {
+    "id": "DEF-119",
+    "name": "Add Product ID modal width sufficient (>600px desktop)",
+    "status": "WARN",
+    "notes": "width=undefined"
+  },
+  {
+    "id": "DEF-138",
+    "name": "Deployed productManagement.js sends sku+model fields (DEF-138 deployed)",
+    "status": "WARN",
+    "notes": "sku=false model=false"
+  },
+  {
+    "id": "DEF-176",
+    "name": "Filter chips do NOT contain pre-fix prefixes (Type:/Company:/Search:)",
+    "status": "PASS",
+    "notes": "{\"hasTypeColon\":false,\"hasCompanyColon\":false,\"hasSearchColon\":false} (note: chips only render when filters are active — empty = inconclusive)"
+  },
+  {
+    "id": "DEF-167",
+    "name": "Filter API probe",
+    "status": "WARN",
+    "notes": "not 200"
+  },
+  {
+    "id": "DEF-189",
+    "name": "Cert preview not stuck in portrait orientation (ratio ~1, not <0.85)",
+    "status": "PASS",
+    "notes": "ratio=1.00 w=330 h=330"
+  },
+  {
+    "id": "DEF-191",
+    "name": "product-id-manager.js handles \"unchanged\" status (DEF-191 deployed)",
+    "status": "PASS",
+    "notes": "hasUnchanged=true"
+  }
+]

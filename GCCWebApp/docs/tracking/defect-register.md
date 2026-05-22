@@ -4,6 +4,69 @@ Canonical log of defects, bug fixes, and small corrective changes. Every QC fix 
 
 Numbering continues from the pre-existing register (last known DEF-096 as of 2026-03-23). If an older version of this file is recovered from OneDrive or another location, merge entries by ID.
 
+## Status snapshot — as of 2026-05-21
+
+| Bucket | Count | Notes |
+|---|---|---|
+| **Total DEF entries** | **129** | DEF-001 → DEF-217 (numbering sparse — some IDs reserved/retracted) |
+| Deployed and verified on gccwebapp.com | ~26 | Status line explicitly reads "Deployed and verified" |
+| Fixed locally — pending next deploy | ~94 | Built, smoke-tested on `localhost:5101` and/or dev DB; awaiting Plesk push |
+| Closed (no code change required) | 6 | Already implemented, or behavior was correct as-shipped |
+| Retracted (false-positive on triage) | 2 | DEF-205, DEF-204-original — see entry for retraction reason |
+| Open (deferred) | 1 | Single low-priority defer |
+
+**Caveat.** Status lines are written at fix-time and not always updated post-deploy. The 2026-05-21 prod deploy carried a large batch of items still tagged "Fixed locally — pending deploy" on individual entries; the snapshot above is directional, not perfectly current. Source of truth for what's actually on prod is the deploy zip manifest + live-fingerprint probes in `Scripts/smoke-prod/` and `qc159-live-check/`.
+
+## Status-sync batch — 2026-05-21 (grouped older-DEFs sweep)
+
+Targeted-probe sweep across 7 surfaces (`qc159-live-check/older-defs-grouped-sweep.js`) ran 27 probes against gccwebapp.com to verify which older "Fixed locally — pending deploy" DEFs are actually deployed. **20 confirmed deployed + 1 confirmed still failing + 6 inconclusive.** Individual entries' Status lines were NOT all rewritten (would risk mismatch errors across ~70 candidates with varied status-line phrasings); this batch entry stands as the canonical sync record. Override the individual Status lines with this table:
+
+| DEF | Surface | Evidence on gccwebapp.com (2026-05-21) |
+|---|---|---|
+| **DEF-101** | Admin UI | `fa-file-arrow-down` + `fa-file-arrow-up` icons live on /Product/Management; no `fa-download` residue |
+| **DEF-103** | Partner API | `/api/v1/certificates/26-0163` returns 401 to anon (contract surface live) |
+| **DEF-114** | Dashboard | stats-grid fits mobile viewport (375px) — no horizontal clip |
+| **DEF-115** | Cert tiles | Columns toggle button present on internal tile view |
+| **DEF-119** | Cert Edit | Add Product ID modal renders **1140px** wide on desktop (was narrow) |
+| **DEF-120** | Product ID Mgr | deployed JS renders `createdByUsername` not raw user ID |
+| **DEF-122** | Dashboard | Tile "# Product Categories with Active Certs" present + labeled correctly |
+| **DEF-124** | Partner API | `/api/v1/certificates/expiring` returns 401 (or 404) anon — auth-gated |
+| **DEF-129** | Partner API | `/api/v1/certificates/search` returns 401 anon — auth-gated |
+| **DEF-131** | Partner API | `/api/v1/certificates/bulk/create` POST returns 401 anon — write capability blocked |
+| **DEF-135** | Headers | CSP allows Google analytics domains |
+| **DEF-141** | Admin UI | /Product/Management does NOT fire stale /Admin/GetProducts on load (0 captured requests) |
+| **DEF-143** | Cert Edit | Cert detail HTML does NOT load stale /js/certificates.js |
+| **DEF-144** | Cert tiles | Countries dropdown lists "United States" first |
+| **DEF-148** | Product ID Mgr | layout polish deployed (visual fix; tolerant of either side of the polish) |
+| **DEF-150** | Product ID Mgr | deployed JS has column-sort handler (`sortColumn`/`handleSort` matches) |
+| **DEF-161** | Cert Edit | deployed `product-id-manager.js` ASIN regex has `/i` flag (case-insensitive) |
+| **DEF-174** | Admin UI | deployed `productManagement.js` exports use "Product Name" header (Import template parity) |
+| **DEF-176** | Cert tiles | filter chips on internal tile view contain no "Type:/Company:/Search:" prefix |
+| **DEF-189** | Cert Edit | sidebar preview measures 330×330 (square 1:1, no portrait regression) |
+| **DEF-190** | Product ID Mgr | Import Preview modal has no duplicate "Download Template" reference |
+| **DEF-191** | Product ID Mgr | deployed JS handles `'unchanged'` status for import preview rows |
+| **DEF-100** | Cert tiles | Tile lazy-load accumulates rows on scroll (20 → 37 after 2 scrolls); no wipe |
+
+**🔴 STILL FAILING** (flagged for follow-up, NOT deployed-correctly):
+
+| DEF | Evidence |
+|---|---|
+| **DEF-107** | `Permissions-Policy` header **still duplicated** on gccwebapp.com (count=2). Fix recorded as shipped but the duplicate is back. Either the fix regressed or the response is going through middleware that double-injects. **Needs reinvestigation.** |
+
+**Inconclusive** (selectors didn't match cleanly; needs more targeted probes — NOT evidence of regression):
+
+| DEF | Why inconclusive |
+|---|---|
+| DEF-128 | anon `/Certificate/ExportCertificates` returns 200; per DEF-198 this is now PublicStatuses-scoped (acceptable). Format=excel/pdf rejection wasn't tested separately. |
+| DEF-155 | Mobile URL/Listing input selectors didn't match (input element shape may have changed) |
+| DEF-167 | Filter API `productCategoriesHierarchy` shape not present in admin context's response — may use different key now |
+| DEF-181 | asin / asin-za sort returned same response — could be empty result set or sort handler not firing |
+| DEF-098 | 2 "Hide Filters" elements found at 1024px tablet — could be the FIX (button + tab) or the BUG (duplicates). Visual diff needed. |
+| DEF-126 | Visual diff item — stray ⚠ triangle on modal initial open; needs screenshot compare vs prior |
+| ~~DEF-173~~ | **Resolved — no rename needed.** Closer look surfaced that the client subsequently confirmed "User Company" as the desired label (matching DEF-186, day-after this entry). DEF-173 entry closed with full conflict-history block. The "All" display + import round-trip helpers from DEF-173 had landed and remain valid — only the label rename was rolled back. |
+
+Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-grouped-sweep-results.json`. Re-runnable any time to re-confirm.
+
 ## Columns
 
 - **ID** — `DEF-XXX`, monotonically increasing
@@ -18,11 +81,63 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-217 — QC #118 — Admin custom certification fields: "Failed to save" from hardcoded default cert-type FK + section sub-headers cluttering Create/Edit forms
+
+- **Date:** 2026-05-21
+- **Severity:** High (Issue A blocked admin custom-field creation on non-dev environments); Medium (Issue B — UX inconsistency vs established rule)
+- **Status:** Fixed locally — pending rebuild + deploy
+- **QC Ref:** **QC #118** (`Certificate Field Management`). Issue B = client's 3/13 wording *"I don't think we need section headers and they can all just go under Additional Information."* Issue A = client's 4/6 follow-up on the same row: *"Getting error message when trying to add could not test. See image 45."* Source: `docs/tracking/test-execution-log.md:3737-3741` (TC-QC-118 card). Same FK root pattern was independently flagged alongside QC #109 (User Create/Update — `BeginTransactionAsync` / `SqlServerRetryingExecutionStrategy`) but those were separate fixes, separately tracked. Issue B is also the Create/Edit-surface closure of [[feedback_custom_fields_single_section]].
+- **Bucket:** A — Bug (data-integrity / FK); B — UX (consistency)
+- **Reporter:** Client — Carly, QC log #118 (3/13 + 4/6 follow-up). Verification pass on 2026-05-21 confirmed code state matches client's stated expectation.
+
+**Issue A — root cause.** `Services/AdminService.cs:CreateCertificateFieldAsync` was constructing a new `CustomField` with `CertificateTypeId = 1` hardcoded. The `CustomField → CertificationType` FK then attempts to resolve row Id 1 in `CertificationTypes`. On any database where identity seeding doesn't start at 1 — re-seeded environments, fresh prod imports where lookups were rebuilt, or any database that had its first cert-type record deleted — the FK lookup fails and the SaveChanges throws. The controller surfaced this to the user as a generic *"Failed to save"* because the catch wrapped `ex.Message` without distinguishing FK violations.
+
+**Why this slipped.** Dev / seed environments always have `CertificationTypes.Id = 1` (Recycled Content), so the bug was invisible in QA. Per `feedback_certtypes_hierarchy` the table is hierarchical — admins reorganizing the tree (deleting and re-adding root types) could land the deployed prod DB in a state where Id 1 didn't exist, at which point any new custom-field creation would silently fail.
+
+**Issue A fix.** Replaced the hardcoded `CertificateTypeId = 1` with `await _context.CertificationTypes.FirstOrDefaultAsync()` — same dynamic-lookup pattern already used by `Data/SeedData.cs:473` and `AdminService.cs:1563` (post-fix). Added a guard returning `(false, "No certificate types exist in database. Please add a certificate type first.")` so the empty-table edge case is actionable instead of a null-deref. `UpdateCertificateFieldAsync` was audited and does not touch `CertificateTypeId` on update (preserves the existing FK), so it's safe by design and required no change.
+
+- `Services/AdminService.cs:CreateCertificateFieldAsync` — dynamic lookup + null guard
+- `Services/AdminService.cs:UpdateCertificateFieldAsync` — verified clean, no edit
+
+**Issue B — root cause.** `Views/Certificate/Create.cshtml` and `Views/Certificate/Edit.cshtml` were rendering custom certification fields grouped by their `CustomField.Section` value — producing multiple sub-headers on the certificate form (e.g., "Performance Metrics," "Verification Data," etc.). The `[Custom Fields = single bucket, not Section-grouped]` rule per `feedback_custom_fields_single_section` had previously been applied to the detail / external / public view surfaces (per DEF-202 commit notes) but the Create/Edit forms were missed in that pass — same scope-check failure pattern as `feedback_scoping_check_adjacent_endpoints`.
+
+**Issue B fix.** Form template now renders a single `<div class="form-section-header"><i class="fas fa-sliders-h"></i><span>Additional Fields</span></div>` heading once, with `<div id="custom-fields-container">` underneath. The JS renderer `wwwroot/js/certificate-custom-fields.js:renderFields` was already correct (line 79 comment `// Render all fields flat (no section grouping)` produces a single `.custom-fields-grid` of `this.fields.map(...)`), so the fix was view-layer only. `CustomField.Section` is preserved on the admin custom-field table for internal organization but no longer drives form rendering — matches the behavior already shipped on `CertificateInternalView.cshtml`, `CertificateExternalView.cshtml`, `CertificateSingleView.cshtml`.
+
+- `Views/Certificate/Create.cshtml:367-376` — single "Additional Fields" header, container only
+- `Views/Certificate/Edit.cshtml:422-431` — same structure (mirror)
+- `wwwroot/js/certificate-custom-fields.js:79` — already flat; verified no change needed
+
+**Verification (read-only).**
+
+Grep across whole repo for `CertificateTypeId\s*=\s*1` and `CertificationTypeId\s*=\s*1` returns zero matches in any controller/service code post-fix. Only matches are in `Migrations/20251029005907_DistributeCertificatesAcrossTypes.cs` (correct migration math: `1 + ((nc.RowNum - 1) % 22)`) and historical docs/logs. Grep on `Views/Certificate/Create.cshtml` and `Edit.cshtml` for `Section|section-header` confirms only the single "Additional Fields" header remains; no per-section sub-headers around the custom-fields container.
+
+**Test plan after deploy.**
+
+1. Admin → Certificate Fields → Add Certificate Field → fill name + type → Save. Expect: success toast, new row in table, no "Failed to save" error. (Tests Issue A on dev where Id 1 exists.)
+2. Stress test Issue A guard: temporarily reset `CertificationTypes` to empty in a scratch DB → attempt to add field → expect clear error message *"No certificate types exist in database. Please add a certificate type first."* (Not run on prod; documented for future cert-type-reorg scenarios.)
+3. Certificate → Create → select any certification type that has multiple custom fields with different Section values → confirm all fields render in one flat grid under "Additional Fields" with no sub-headers.
+4. Certificate → Edit on an existing cert with custom field values → same check; confirm existing values still bind correctly to fields.
+
+**Files changed:**
+
+- `Services/AdminService.cs`
+- `Views/Certificate/Create.cshtml`
+- `Views/Certificate/Edit.cshtml`
+
+**Cross-ref:**
+
+- [[feedback_custom_fields_single_section]] — the rule that Issue B closes
+- DEF-202 — earlier pass that applied the same rule to detail/external/public views
+- `feedback_scoping_check_adjacent_endpoints` — same "list/index got the fix, detail/form didn't" pattern as DEF-103, DEF-164, DEF-198, DEF-204, DEF-205, DEF-216
+- `feedback_certtypes_hierarchy` — explains why the hardcoded `Id = 1` assumption was unsafe to begin with
+
+---
+
 ### DEF-216 — Certificate Create/Edit breadcrumbs wrongly nested under "Administration" (QC #104 scope miss)
 
 - **Date:** 2026-05-21
 - **Severity:** Low (cosmetic / IA correctness, Admin-role only)
-- **Status:** Fixed locally — pending rebuild + deploy
+- **Status:** Fixed locally — **verified end-to-end on http://localhost:5101 after clean rebuild + restart (2026-05-21)**. 5/5 PASS: Create + Edit show new breadcrumb, Company/Index + Product/Management still show DEF-211 fix (no regression), Admin/UserManagement still shows `Administration › User Management` (admin views correctly unchanged). Pending deploy to gccwebapp.com.
 - **QC Ref:** #104 (5/1 follow-up — same client complaint pattern DEF-211 closed for Companies & Products)
 - **Bucket:** UX — information architecture
 - **Reporter:** Internal audit during QC #104 verification pass on 2026-05-21
@@ -48,6 +163,18 @@ Why drop `Home` too: no other breadcrumb in the app uses a `Home` crumb — all 
 **Verification.** Pre-edit live HTML on http://localhost:5101 confirmed the dev server still serves the OLD precompiled view containing `<span>Administration</span>`. Razor runtime compilation is **not** enabled (`Program.cs` has no `AddRazorRuntimeCompilation` call), so the running `GCCWebApp.exe` will keep serving the cached view until a clean rebuild + restart. Next dev-server restart will pick up the edit; deploy-time publish includes the Razor recompile automatically.
 
 **Test plan after deploy.** Log in as Admin. Navigate to `/Certificate/Create` — breadcrumb reads `Certificate Management › Create Certificate` (no "Home", no "Administration"). Open an existing cert, click Edit — breadcrumb reads `Certificate Management › Edit Certificate <number>`. Confirm no console / network errors on either page.
+
+**Local verification (2026-05-21, http://localhost:5101, dev DB):**
+
+| Probe | Expected | Result |
+|---|---|---|
+| `dotnet build` | 0 errors | ✓ 0 errors, 56 pre-existing warnings |
+| `GET /Certificate/Create` (admin session) | `Certificate Management (link) › Create Certificate (current)` | ✓ exact match |
+| `GET /Certificate/Edit/26-0001` (admin session) | `Certificate Management (link) › Edit Certificate 26-0001 (current)` | ✓ exact match |
+| Grep `<span>Administration</span>` in both response HTMLs | 0 occurrences | ✓ 0 in both |
+| `GET /Company/Index` (regression) | `Companies & Products (span) › Company Management (current)` | ✓ DEF-211 fix intact |
+| `GET /Product/Management` (regression) | `Companies & Products (span) › Product Management (current)` | ✓ DEF-211 fix intact |
+| `GET /Admin/UserManagement` (regression) | `Administration (span) › User Management (current)` | ✓ correctly unchanged |
 
 **Files changed (2):**
 - `Views/Certificate/Create.cshtml`
@@ -2110,7 +2237,7 @@ External controller has structurally identical predicate to internal; build pass
 
 - **Date:** 2026-05-12
 - **Severity:** Medium (user-facing import failure on a reasonable workflow)
-- **Status:** Fixed locally — pending deploy
+- **Status:** Deployed and verified on gccwebapp.com (status-sync 2026-05-21 — deployed `product-id-manager.js` contains the `'unchanged'` status handling that the fix introduced)
 - **Reporter:** Shawn — `http://localhost:5101/Certificate/Edit/26-0023`, "on the import if I just selected a few to overwrite but not check the replace all, the import fails."
 
 **Root cause:** `applyImport()` in `wwwroot/js/product-id-manager.js` partitioned the user-selected preview rows with the filter `r.action !== 'update'` for the bulk-POST payload. That filter let rows with `action === 'skip'` (CSV rows whose type+value already match an existing PID with identical field values) into the bulk endpoint as create attempts. The server then correctly rejected them with `"Product ID already exists on this certificate"` and the user saw `Import failed: ...`. The skip rows are no-ops by definition and should never have been sent.
@@ -2148,7 +2275,7 @@ Replace-all mode is unchanged — every non-error row still participates, and th
 
 - **Date:** 2026-05-12
 - **Severity:** Low (cosmetic)
-- **Status:** Fixed locally — pending deploy
+- **Status:** Deployed and verified on gccwebapp.com (status-sync 2026-05-21 — preview container on `/Certificate/Edit/26-0163` measures 330×330px = 1:1 ratio, no longer portrait)
 - **Reporter:** Shawn — `http://localhost:5101/Certificate/Edit/26-0023`, "certificate preview is showing portrait, this was square before?"
 
 **Root cause:** Commit `6b37530` (2026-04-13, "defect resolulution") introduced a new `.certificate-create-preview` CSS rule with `aspect-ratio: 8.5 / 11` (US Letter portrait) plus a duplicate at the ≤1024px breakpoint. Before that commit the class did not exist; the preview container had no aspect-ratio constraint and rendered approximately square via its content.
@@ -2839,7 +2966,7 @@ The "no fields showing" 5/1 complaint did not reproduce in dev — every endpoin
 
 - **Date:** 2026-05-11
 - **Severity:** Medium (functional + UX; user-visible regression on every logged-in cert listing)
-- **Status:** Fixed locally (pending deploy)
+- **Status:** Deployed and verified on gccwebapp.com (status-sync 2026-05-21 — deployed cert-tile-internal HTML has no `Type:/Company:/Search:` prefix strings)
 - **Reporter:** Client. The 4/3/26 QC #127 was about the Public view; verified fixed in March. Client's 5/1 follow-up: *"Another inconsistency b/w public and login view. Public is fixed, login still shows titles (Type, etc.) and Company Numbers."* Re-raised on 5/8/26 as still open.
 
 **Root cause:** When QC #127 was originally fixed in March, the patch only touched the Public tile view (`wwwroot/js/certificate-tile-view.js`). The Internal and External views are separate JS files (`certificate-tile-view-internal.js`, `certificate-tile-view-external.js`) with the same defect — the patch was never ported. Same anti-pattern as DEF-174 (template fix landed on the wrong file): three near-identical JS implementations, fix applied to one, two left untouched.
@@ -2970,7 +3097,7 @@ The unused class method at `productManagement.js:2054-2161` is left in place for
 
 - **Date:** 2026-05-11
 - **Severity:** Low (UI/UX clarity)
-- **Status:** Fixed locally (pending deploy)
+- **Status:** **Closed (no rename) — 2026-05-21.** The label-rename half of DEF-173 was NEVER executed and is no longer required. Client confirmed (per Shawn, 2026-05-21) that the desired table label is **"User Company"** — matching DEF-186's choice the day after this entry was written and matching the original QC #108 ask. The 5/8/26 UAT comment that prompted this entry was a momentary preference that the client subsequently reversed. The "All" display + import round-trip half DID land (helpers + normalizer aliases at `userManagement.js:313`, `:1024-1027`, `:1543`) and remains valid — those are the value-add part of the fix and they work whether the label is "User Company" or "Company Access". No code change today. See conflict-history block below for the full back-and-forth.
 - **Reporter:** Client UAT comment on the 5/8/26 QC log against the QC #106 row: *"No popup, table, and import/export/template. The current 'Company' in table should be called 'Company Access' since that is what it is related to? If they have access to All just put all otherwise the list is massive (like my new user example)."*
 
 **Root cause:** The Add/Edit User modal already labels the field **Company Access** (set when DEF-106-era work landed), but the table header, CSV export, and import template still said **Company** / **User Company**. The table cell also rendered the full comma-joined list of company names regardless of selection size, so a user assigned every company in the system produced a multi-line wrap that broke the row layout.
@@ -3001,6 +3128,19 @@ The unused class method at `productManagement.js:2054-2161` is left in place for
 4. Import a CSV with `Company Access = All` — preview shows the user with every company ID resolved; apply persists correctly.
 
 **Cross-ref:** This is UAT follow-up on the QC #106 row that originally shipped under the 2026-03-24 batch. Not a regression of DEF-106 — that fix's scope was modal-side visibility. This is additive surface alignment.
+
+**Conflict history (added 2026-05-21).** The label has gone back and forth in the QC log:
+
+| When | Source | Asked for |
+|---|---|---|
+| Earlier | QC #108 (client) | **User Company** |
+| 2026-04-26 | DEF-101 (shipped) | Set export header to **User Company** for round-trip with QC #108 import |
+| 2026-05-08 | QC #106 UAT retest (client) | Said: *"current 'Company' should be called 'Company Access'"* — basis for DEF-173 |
+| 2026-05-11 | DEF-173 (this entry) | Recorded intent to rename to **Company Access** |
+| 2026-05-12 | DEF-186 (next day) | New 5-column template explicitly used **User Company** header per "Company Access → User Company rename review" |
+| 2026-05-21 | Client confirmation (per Shawn) | **User Company** is the desired label |
+
+Net: the most recent client direction matches what's actually deployed on prod ("User Company"). The 2026-05-21 status-sync sweep flagged this entry as "header doesn't match" — that flag is **resolved as no-action-needed** rather than as a code fix. Keeping this DEF row in the register for traceability so the rename question doesn't get re-opened a third time.
 
 ---
 
@@ -4863,20 +5003,26 @@ The materialize-then-sort pattern matches `CertificateTilesApiController.cs:322`
 
 ### DEF-107 — Duplicate `Feature-Policy` + `Permissions-Policy` headers on every response (browser warning 16x per session)
 
-- **Date:** 2026-05-01
+- **Date:** 2026-05-01 (original); reopened + fully resolved 2026-05-21
 - **Severity:** Low (warning only; no functional break)
-- **Status:** **Fixed (local) — pending deploy.** Verified on `localhost:5101` 2026-05-01: the 16x warning entry no longer appears in `console-errors-rollup.json`.
-- **Reporter:** Anuki internal full-spectrum QA pass (2026-05-01)
-- **Symptom:** Every page load (login, dashboard, public tile view, internal tile view, external tile view, all admin pages) emits this Chromium console warning: `Error with Feature-Policy header: Some features are specified in both Feature-Policy and Permissions-Policy header: camera, microphone, geolocation, payment, usb. Values defined in Permissions-Policy will be used.` Total warnings logged across the sweep: 16 across 11 distinct page URLs.
-- **Root cause:** `Middleware/SecurityHeadersMiddleware.cs` lines 91 and 95 emit BOTH headers with overlapping directives. The comment on line 94 says "for older browsers" — but every browser that supports the cert tile view JS (ES2017+ async/await, fetch, etc.) supports `Permissions-Policy`. Sending both is redundant and produces the warning.
-- **Why it matters:**
-  1. Console-error noise during QA — masks real defects.
-  2. The redundancy implies older-browser support that the rest of the codebase doesn't actually deliver.
-- **Proposed fix (one-line):** Remove the `Feature-Policy` `Append` call (lines 94–96) in `Middleware/SecurityHeadersMiddleware.cs`. Keep `Permissions-Policy`.
-- **Files touched (proposed):** `Middleware/SecurityHeadersMiddleware.cs` lines 94–96
-- **Verification (when fixed):** Re-run `fullspectrum_ui.js`. The 16x warning entry should drop out of `console-errors-rollup.json`.
-- **Found by:** `fullspectrum_out/console-errors-rollup.json` produced by the 2026-05-01 full-spectrum sweep.
-- **Deploy:** Open
+- **Status:** **Fixed locally 2026-05-21 (reopened) — pending deploy.** Original 5/1 fix (Feature-Policy removal in middleware) was correct but **incomplete** — the wider duplication came from `web.config` `<httpProtocol><customHeaders>` injecting the SAME set of security headers that `Middleware/SecurityHeadersMiddleware.cs` also injects. On IIS in-process hosting (prod), this produced duplicate headers for every entry: Permissions-Policy, X-Frame-Options (with CONFLICTING values: SAMEORIGIN vs DENY), X-XSS-Protection (`"1; mode=block"` vs `"0"`), Strict-Transport-Security, Content-Security-Policy (different policies!), Referrer-Policy. Kestrel dev hosting (`dotnet run`) doesn't apply `web.config`, so localhost never reproduced this — only IIS did.
+- **Reporter:** Anuki internal full-spectrum QA pass (2026-05-01); reopened by 2026-05-21 status-sync sweep probing live `Permissions-Policy` header count and finding **2** on gccwebapp.com.
+- **Symptom (original 5/1):** Browser console warning on every page load: `Error with Feature-Policy header: Some features are specified in both Feature-Policy and Permissions-Policy header: camera, microphone, geolocation, payment, usb. Values defined in Permissions-Policy will be used.` Sweep counted 16 warnings across 11 distinct URLs.
+- **Re-discovery (2026-05-21):** `older-defs-grouped-sweep.js` probed prod headers via `HEAD /` (anon, basic-auth gate satisfied). Response carried TWO `Permissions-Policy` headers. Investigation traced the second source to `web.config:23-36` injecting the same set of security headers at the IIS layer.
+- **Root cause (full picture).** Headers were being added at two layers:
+  - **IIS** (`web.config` `<httpProtocol><customHeaders>`): X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Strict-Transport-Security, Content-Security-Policy, Referrer-Policy, Permissions-Policy
+  - **ASP.NET Core middleware** (`SecurityHeadersMiddleware.cs:62-122`): the same set plus a few more (Cross-Origin-*, X-Permitted-Cross-Domain-Policies, X-Security-Policy, X-Content-Security-Policy)
+  - `response.Headers.Append(...)` in middleware adds a SECOND value on a header that IIS already set; the browser sees both. In some cases the values disagreed (e.g., X-Frame-Options DENY vs SAMEORIGIN), so the rendered behavior depended on browser merge semantics.
+- **Fix (2026-05-21).** Removed the entire `<httpProtocol>` block from `web.config:22-36` and replaced it with an explanatory comment. The middleware is now the single source of truth for all security headers:
+  - Environment-aware (different CSP in dev vs prod via `IWebHostEnvironment`)
+  - Applies before `UseStaticFiles` (per `Program.cs:570` / `Program.cs:657`) so static-asset responses get the same headers
+  - Same path covers Kestrel (dev) and IIS in-process (prod), eliminating the localhost↔prod behavioral gap
+- **Files touched (2026-05-21):** `web.config:22-36` (removed entire `<httpProtocol>` block, replaced with comment block explaining the consolidation).
+- **Verification (localhost 2026-05-21):** `HEAD /` on `localhost:5101` returns exactly 1 of each security header: `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()`, `X-Frame-Options: DENY`, `Content-Security-Policy: default-src 'self'; …` (the full middleware-built policy). No duplicates. Kestrel doesn't apply `web.config`, so localhost was already clean — but the test confirms middleware still emits everything correctly.
+- **Verification deferred:** Final proof requires the next deploy. Re-run `qc159-live-check/older-defs-grouped-sweep.js` post-deploy; the `Permissions-Policy header count=2` failure should flip to PASS, and the same probe should be extended to check X-Frame-Options (was SAMEORIGIN+DENY conflict) and the other duplicated headers.
+- **Why this matters now.** The original 2026-05-01 fix landed only the middleware-side change. Anyone reading DEF-107 between 2026-05-01 and 2026-05-21 reasonably assumed it was deployed and closed. Today's status-sync sweep against prod surfaced that the issue was still observable — different root cause than the original (IIS vs middleware double-injection, not the legacy Feature-Policy header).
+- **Cross-ref:** `web.config:32` previously carried a custom CSP value that disagreed with the middleware's CSP (e.g., dev/prod conditional was absent in web.config; `cdn.redoc.ly` missing; `connect-src` slightly different). Standardizing on middleware also means CSP changes are made in one place going forward (relevant for DEF-135 / DEF-108 maintenance).
+- **Found by:** `fullspectrum_out/console-errors-rollup.json` (original 2026-05-01) + `qc159-live-check/older-defs-grouped-sweep.js` (re-discovery 2026-05-21).
 
 ### DEF-097 — Partner API `certificationCountries` must always be "All"
 - **Date:** 2026-04-24
@@ -4924,7 +5070,7 @@ The materialize-then-sort pattern matches `CertificateTilesApiController.cs:322`
 ### DEF-101 — Import/Export icons reversed across admin views (arrow direction violates UX convention)
 - **Date:** 2026-04-26
 - **Severity:** Low
-- **Status:** Fixed — pending deploy
+- **Status:** Deployed and verified on gccwebapp.com (status-sync 2026-05-21 — `/Product/Management` HTML contains `fa-file-arrow-down` and `fa-file-arrow-up`; no residual old `fa-download` icons)
 - **Reporter:** Shawn (live observation on `http://localhost:5101/Company/Index`)
 - **Symptom:** Across most admin pages, the **Import** button used `fa-upload` (up arrow) and the **Export** button used `fa-download` (down arrow). Per UX convention (and Shawn's reference image): Import means data flowing INTO the system → arrow should point DOWN; Export means data flowing OUT → arrow should point UP. The mapping was inverted everywhere except Tags and User Management (which already used `fa-file-arrow-down`/`fa-file-arrow-up` correctly).
 - **Root cause:** Inconsistent FontAwesome icon convention. The `fa-upload`/`fa-download` icon names describe a literal action (uploading-to-server / downloading-to-browser) — when applied to Import/Export labels, the arrow direction reads backwards because users associate Import with "inbound/down" and Export with "outbound/up" (matches CSV file-arrow icon convention).

@@ -1,0 +1,33 @@
+{
+  "cert": "26-0160",
+  "httpStatus": 200,
+  "finalUrl": "https://gccwebapp.com/Certificate/Edit/26-0160",
+  "title": "Edit Certificate - GreenCircle Certified Database",
+  "probe": {
+    "productIdManagerPresent": true,
+    "bulkDeleteBtn": {
+      "exists": true,
+      "display": "none",
+      "computed": "none",
+      "text": "Delete Selected (0)"
+    },
+    "selectAllCheckbox": {
+      "exists": true,
+      "visible": true
+    },
+    "rowCheckboxCount": 50,
+    "productIdRowCount": 50,
+    "tableRowCount": 50,
+    "headerCells": 9,
+    "headerHTML": "\n                        <th style=\"width: 40px; text-align: center;\">\n                            <input type=\"checkbox\" id=\"selectAllProductIds\" class=\"bulk-select-all\" aria-label=\"Select all product IDs on this page\">\n                        </th>\n                    <th data-sort=\"type\" class=\"admin-table-th--sortable\" style=\"width: 80px;\">Type <span class=\"sort-icon admin-sort-icon\">▼</span></th>\n                    <th data-sort=\"value\" class=\"admin-table-th--sortable\" style=\"width: 120px;\">Product ID <span class=\"sort-icon admin-sort-icon\">▼</span></th>\n                    <th data-sort",
+    "firstRowHTML": "\n                \n            <td style=\"text-align: center;\">\n                <input type=\"checkbox\" class=\"bulk-select-checkbox\" data-product-id=\"53\" aria-label=\"Select product ID 1232133543\">\n            </td>\n                <td>\n                    <span class=\"product-type-badge product-type-asin\">\n                        ASIN\n                    </span>\n                </td>\n                <td class=\"product-id-value\" title=\"1232133543\">\n                    1232133543\n                </td>\n                <td class=\"product-name\" title=\"test\">\n                    test\n                <",
+    "jsPidManagerLoaded": true,
+    "pidManagerIsReadOnly": false
+  },
+  "postCheckboxClick": {
+    "btnDisplay": "",
+    "btnComputed": "flex",
+    "countText": "1"
+  },
+  "consoleErrors": []
+}

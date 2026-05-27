@@ -16,6 +16,159 @@ Highlights of the month: closed two confirmed authenticated cross-scope leaks (D
 
 ---
 
+## DEF-222 — Dashboard breakdown stats now use cert-direct override first (matches export + per-cert detail view + CR-014); resolves "3 distinct categories in export but only 2 shown on table" (fixed locally 2026-05-26)
+
+Shawn surfaced this during the live data validation: the export shows 3 distinct Product Categories (Chemicals, Carly Test, Electronics) but the "Top 5 Product Categories by Active Cert Count" table only shows 2 rows. Same issue affects Product Types and Product Subcategories.
+
+**Root cause.** The dashboard breakdown queries (`GetProductCategoryStatisticsAsync`, `GetProductTypeStatisticsAsync`, `GetProductSubcategoryStatisticsAsync`, plus the 3 distinct-count blocks in `GetCertificateStatisticsAsync` that feed the # Product Categories / # Product Types / # Subcategories badges) resolved values from the **Product hierarchy first** (`c.Product.Category`), falling back to the cert-direct override (`c.ProductCategory`) only when the Product-derived value was null. The export CSV does the opposite — cert-direct first, then Product fallback (`cert.ProductCategory ?? cert.Product.Category`). For cert 26-0158 which has BOTH set (`Product.Category = "Carly Test"` from the linked product, `cert.ProductCategory = "Electronics, Computers, and Accessories"` as analyst override), the breakdown counted it under "Carly Test" while the export displayed it under "Electronics". Two different categorizations for the same cert depending on which surface you looked at.
+
+**Fix.** Flipped resolution order in all 4 functions to cert-direct first, Product fallback. Per CR-014, the cert-direct override is the analyst's explicit choice and should win everywhere. Matches the export, the per-cert detail view, and the rest of the UI.
+
+**Files.** `Repositories/CertificateRepository.cs` — `GetProductCategoryStatisticsAsync`, `GetProductTypeStatisticsAsync`, `GetProductSubcategoryStatisticsAsync`, and the three distinct-count blocks in `GetCertificateStatisticsAsync`.
+
+**Impact on live (2026-05-26).** Combined with DEF-223 narrowing Active to {Paid, Republished}:
+- `# Product Categories with Active Certs` badge: currently 2 → expected 3 (Electronics gets its own bucket because cert 26-0158's cert-direct override now wins).
+- "Top 5 Product Categories" table: 2 rows → 3 rows (Chemicals 22, Carly Test 3, Electronics 1 — matches the export exactly).
+- "Top 10 Product Types" and "# Product Type Subcategories" badge: small or no shift today (only 4/26 certs have a Product Type set; few overrides differ between cert-direct and product-derived).
+
+**Verification.** `dotnet build`: 0 errors. Post-deploy: re-run `qc159-live-check/qc222-full-dashboard-matrix.js` — the visible table for Product Categories should report 3 rows summing to ~25 (after DEF-223 drops Confidential), matching the export row count exactly. Per-cert matrix in the Excel validation workbook will show cert 26-0158 under "Electronics" everywhere.
+
+Bundled into the same deploy zip as DEF-220 + DEF-221 + DEF-223 + DEF-224: `deployment-drops/GCCWebApp-deploy-20260526-2305.zip`.
+
+---
+
+## DEF-224 — Top-N dashboard table downloads now contain only the certs from the top-N entities, not every active cert in the system (fixed locally 2026-05-26)
+
+Shawn pulled the live `Top 10 Companies by Active Cert Count` table download and got a CSV with 26 rows of certs across 22 different companies — not the 10 companies the table actually shows. Same pattern affected the Top Product Types and Top Product Categories table downloads. User experience: open the file, see companies that aren't even in the top-10 list, lose trust in the data.
+
+**Fix.** Each of the 3 capped table-download endpoints (`top-companies`, `product-types`, `product-categories`) now filters the certs to those whose Company / Product Type / Product Category is in the corresponding top-N ranking. The CSV report title was updated to say "Certificates in Top N …" so the file header matches the row scope. Per-cert detail (status, dates, location, certification type, etc.) is preserved — the CSV is still rich per-cert data, just bounded to what the table actually represents.
+
+**Files.** `Controllers/DashboardController.cs` (3 case blocks in `GetCertificatesForTable`). The two non-capped tables (`cert-types`, `cert-status`) are unchanged — they were already correctly scoped.
+
+**Verification.** `dotnet build`: 0 errors. Post-deploy: re-run the dashboard validation matrix (`qc159-live-check/qc222-full-dashboard-matrix.js` + `generate-matrix-xlsx.js`); the 3 TABLE rows in the Validation sheet that were previously yellow (visible_sum ≠ export_count, expected mismatch) should turn green — visible aggregation now equals export row count.
+
+Combined with DEF-223 narrowing Active to {Paid, Republished}, the post-deploy `top-companies` CSV will be ~13 rows (top-10 companies, minus the Confidential cert that drops out of Active). Final numbers depend on top-N tier ties after DEF-223 narrows the Active pool from 26 to 25.
+
+Bundled into the same deploy zip as DEF-220 + DEF-221 + DEF-223 + the title rename: `deployment-drops/GCCWebApp-deploy-20260526-2228.zip`.
+
+---
+
+## DEF-223 — "Active" badge / export no longer includes Confidential certs; matches the public-facing definition (fixed locally 2026-05-26)
+
+Shawn flagged during the dashboard data audit that the *Total Active Certs* CSV was including rows tagged `Client Approved - Confidential` (cert 25-9312 Esko Graphics on live), and asked: *"is this correct"* → call: *"just active"*.
+
+**Why this matters.** The codebase had two contradictory definitions of "Active" living in the same helper class: `DashboardStatuses` = `{Paid, Republished, Confidential}` vs `IsActiveStatus()` returning true only for `{Paid, Republished}`. So the internal dashboard counted Confidential as active while the public tile view did not — same word, two numbers, depending on which surface you looked at. Confidential is paid-but-embargoed (the work is done, the client opted to keep it private), so business-side it's a judgment call. Shawn's call: *"Active" should mean the same thing internally and publicly* — Confidential drops out of every "Active" count.
+
+**Fix.** One line in `Models/CertificateStatus.cs`: `DashboardStatuses` narrowed to `{Paid, Republished}`. All 7 internal "Active" badges, 5 dashboard tables, the chart JS, the `/Export/DownloadStat` parallel endpoints, and `GetActiveCertificatesAsync` automatically pick up the narrower filter because they all route through the single constant.
+
+**Impact on live (2026-05-26).** 1 active Confidential cert today (25-9312):
+- Total Active Certs: 26 → 25
+- # Companies with Active Certs: 22 → 21 (Esko Graphics drops out — sole active cert was 25-9312)
+- # Products with Active Certs: 26 → 25
+- Other badges either unchanged (cert-status table covers all statuses) or marginally shifted depending on date ranges.
+
+**Verification.** `dotnet build`: 0 errors, 56 pre-existing warnings unchanged. Post-deploy: re-run `qc159-live-check/qc220-dashboard-full-audit.js` against gccwebapp.com, expect Total Active Certs = 25 and no `Confidential` rows in any "Active …" CSV.
+
+Bundled into the same deploy zip as DEF-220 + DEF-221 + the Top-N title rename: `deployment-drops/GCCWebApp-deploy-20260526-2054.zip`.
+
+---
+
+## DEF-221 — Dashboard breakdown tables now show row-level totals so you can verify against the badge without doing mental math (fixed locally 2026-05-26)
+
+Direct response to Shawn's QC #180 5/26 follow-up: *"The tables do not have totals."* Each of the 5 dashboard tables (Cert Types, Top 10 Companies, Cert Status, Top 10 Product Types, Top 5 Product Categories) now ends with a styled footer row labeled `Total: N` that sums the visible Count column. (An attempted title-rename to drop "Top 10 / Top 5" from the capped tables was REVERTED — those titles came from the client's spec and are immutable regardless of whether real data fills the cap. The correct fix when the export doesn't match the title's promise is to fix the export, not change the title — see DEF-224.)
+
+**Files.**
+- `Views/Dashboard/Index.cshtml` — five new `<tfoot class="dashboard-table-total">` blocks, each gated on the same `.Any()` guard as the table body so empty / restricted-access tables don't render a misleading "Total: 0" row.
+- `wwwroot/css/pages/dashboard.css` — `.table-section tfoot.dashboard-table-total td` styling (gray background, bold + uppercase to match the column header weight, `border-top: 2px` separator from the data rows).
+
+**Verification.** `dotnet build`: 0 errors, 56 pre-existing warnings unchanged. Local visual probe screenshot at `qc159-live-check/qc221-local-tables-with-totals.png` confirms all 5 footers render correctly on the dev DB (22 active certs across 9 companies and 1 product category, plus 45 total certs across all 8 statuses).
+
+**Companion finding (DEF-222, deferred).** The 5/26 audit also surfaced a separate data-correctness issue: the dashboard breakdown queries resolve `Product Category / Type / Subcategory` via Product-hierarchy-first / cert-direct-fallback, while the export CSV uses cert-direct-first / Product-fallback. Same cert ends up categorized differently in the visible table vs the export (e.g. cert 26-0158 shows under "Carly Test" in the visible breakdown but under "Electronics" in the export). This is a real bug, but fixing it changes prod badge counts ("# Product Categories" 2 → 3), so it's recorded in `defect-register.md` as Status `Investigated, fix NOT applied — pending business decision` and not shipped with DEF-221.
+
+**Why this matters.** Carly's underlying complaint on QC #180 was *"Anuki needs to do that"* — she shouldn't have to download the CSV to verify the numbers. Totals in the visible table let her do that check without leaving the page. Combined with DEF-220 (semantic correctness of the expired card) and the upcoming DEF-222 decision, the dashboard becomes self-verifying.
+
+---
+
+## DEF-220 — "Certs Expired Last Month" export no longer leaks Republished / Paid / Confidential certs (fixed locally 2026-05-26, amends DEF-200 shipped 2026-05-19)
+
+Client retested QC #180 (the "tile counts must match export row counts" defect we closed on 5/21) and flagged that the *Certs Expired Last Month* export was still surfacing certs whose status is **not** actually expired — specifically Republished (re-active), Paid, and Confidential rows. The numerical tile=export contract from DEF-200 was holding (and re-verified 12/12 today on prod), but the underlying filter that both the tile and the export use was too wide.
+
+**Fix.** Renamed and narrowed the status filter from `EverPublishedStatuses` (Paid + Republished + Confidential + Expired + ExpiredNoAnnualVerification) to `CurrentlyExpiredStatuses` (Expired + ExpiredNoAnnualVerification only). Applied symmetrically to the tile count in `CertificateRepository.GetCertificateStatisticsAsync`, the dashboard export case in `DashboardController.GetCertificatesForStat`, and the parallel `ExportController` endpoint — so tile and both export paths stay in lockstep.
+
+**Files.**
+- `Models/CertificateStatus.cs` — replaced `EverPublishedStatuses` with `CurrentlyExpiredStatuses`.
+- `Repositories/CertificateRepository.cs` — `ExpiredLastMonth` stat uses the narrower filter.
+- `Controllers/DashboardController.cs` — `certs-expired-last-month` export case aligned.
+- `Controllers/ExportController.cs` — parallel `/Export/DownloadStat` case aligned.
+
+**Verification.** `dotnet build`: 0 errors, 56 pre-existing warnings unchanged. Today's live probe (`qc159-live-check/qc180-live-2026-05-26-results.json`) confirms all 12 dashboard cards still tile=export, and the 6 rows in the current expired-last-month CSV are all `Status=Expired` (so the gap was latent on today's data — the fix prevents a future Republished/Paid cert with a past expiration date from leaking). Post-deploy: re-run the same probe and add a row-level Status column check to the assertion.
+
+**Why this matters.** DEF-200 fixed the numerical contract (tile count = export row count); DEF-220 fixes the semantic contract (a row in the "expired" export is actually currently expired). Carly's explicit note — *"Anuki needs to do that"* — that verification of count-vs-data is on us, not the client, is acknowledged: future dashboard probes assert both (a) tile=export numerically AND (b) every row's Status column matches the card's semantic label.
+
+---
+
+## DEF-194 v2 — Bulk-delete Product Identifiers now works across pages, not just the current 50 (fixed locally 2026-05-22, amends v1 shipped 2026-05-14 / verified 2026-05-21)
+
+Shawn flagged on `https://gccwebapp.com/Certificate/Edit/26-0160` (1001 Product IDs across 21 pages): the bulk-delete shipped on 2026-05-14 only operated on the 50 rows visible on the current page. Wiping a cert's full identifier list still required clicking through every page and select-all'ing 21 times. That honored the literal text of QC #172 ("check all for mass delete") but missed the practical point.
+
+**Fix.** Added a Gmail-style banner above the Product ID Manager table. After the user ticks the header select-all (and the cert has more rows than fit on one page), the banner appears: *"All 50 on this page are selected. Select all 1001 product IDs"*. Clicking the link flips the table into a cross-page selection mode — every visible row stays ticked as the user pages forward, the "Delete Selected" button shows the full total (1001), and the next bulk delete runs as a single server call. New endpoint `POST /api/productids/certificate/{certId}/bulk-delete` accepts either an explicit `ids[]` payload or a `deleteAll:true` payload with the current filter chips (search/type/partner), so what the user sees on the table is exactly what gets deleted. Server uses one SQL DELETE round-trip via `ExecuteDeleteAsync` instead of fanning out 1001 parallel HTTP DELETEs (which would also have tripped the `/api/*` rate limit).
+
+Cross-page selection is invalidated automatically by any of: unchecking the header select-all, unchecking any individual row, changing a filter, or clicking the explicit *Clear selection* link in the banner — so the user can never claim "all N selected" while N has changed underneath them.
+
+**Files.**
+- `Services/ProductIdService.cs` — added `BulkDeleteProductIdsAsync` (constrains every delete to the supplied cert ID as defense-in-depth so a forged payload can't reach a sibling cert's identifiers).
+- `Controllers/Api/ProductIdApiController.cs` — new `POST /api/productids/certificate/{certId}/bulk-delete` endpoint + DTO.
+- `Views/Shared/_ProductIdManager.cshtml` — new `#bulkSelectAllBanner` element (hidden by default).
+- `wwwroot/css/product-id-manager.css` — banner styles (yellow neutral state, blue active state).
+- `wwwroot/js/product-id-manager.js` — `selectAllAcrossPages` flag, banner state machine in `updateBulkActionsUI`, rewrote `handleBulkDelete` to post once to the new endpoint, `applyFilters` clears cross-page selection.
+
+**Verification.** Local Playwright smoke test against cert 26-0023 (dev DB, 1004 product IDs):
+
+```
+✓ Banner hidden initially
+✓ Banner visible after header select-all
+✓ Link prompts: "Select all 1004 product IDs"
+✓ Delete-Selected count = 50 before clicking the link
+✓ After clicking link: count = 1004, banner becomes active
+✓ selectAllAcrossPages flag = true, Clear-selection button visible
+✓ Bulk-delete endpoint OK with {deleteAll:true, search:"ZZ_NONEXISTENT_ZZ"} → {"deleted":0}
+✓ Bulk-delete endpoint OK with {ids:[-99999]} → no-op 200
+✓ Clear-selection link resets banner and flag
+13/13 checks passed
+```
+
+Visual evidence: `qc159-live-check/crosspage-active.png`. Destructive matrix on 1004-row cert intentionally skipped per `[Data Changes Require CR]`. Build: 0 errors, 56 pre-existing warnings unchanged. Pending deploy to gccwebapp.com.
+
+**Why this matters.** v1 (shipped 5/14, verified 5/21) made bulk-delete possible but capped it at the visible page. For a cert with 1001 product IDs that meant 21 sweeps through the same workflow — not faster than per-row delete in practice. v2 closes the loop: one click, one confirm, one server call, full wipe. The change keeps the existing per-row selection model intact for users who want to delete a handful of specific rows; cross-page mode only kicks in when the user explicitly opts into it via the banner link, so accidental mass-deletes aren't easier than before.
+
+---
+
+## DEF-219 — Cert internal tile view: "Additional" sidebar filter only listed external tags; internal tags missing (fixed locally 2026-05-22)
+
+Shawn flagged on `https://gccwebapp.com/Certificate/CertificateTileViewInternal`: the left-sidebar **Additional** filter panel was only showing external tags for Admin. Per requirements, internal users (Admin and Analyst) should be able to filter by both internal and external tags from this panel — internal tags simply weren't in the dropdown list.
+
+**Fix.** One-line scope change in the filter-options endpoint feeding the internal tile view. The query that built the *Additional* tag list was hardcoded to `TagType == "external"`; widened it to include both internal and external tag types, with a de-duplication pass so a name that happens to exist as both types appears only once in the list. The endpoint is gated by the AnalystOrAdmin policy — External-role users hit a different controller — so this change cannot leak internal tags to company / partner users.
+
+**File:** `Controllers/Api/CertificateTileInternalApiController.cs` (filter-options endpoint, line ~582).
+
+**Verification.** `dotnet build` clean (0 errors, 56 pre-existing warnings unchanged). External tile view controller untouched — the "External users cannot view internal tags" rule from CLAUDE.md is enforced at the controller boundary, not at this filter projection, so visibility is preserved. Pending deploy to gccwebapp.com.
+
+**Why this matters.** Internal tags exist precisely so analysts can flag certs with internal-only classifications (review queues, vendor-management notes, etc.) and then quickly filter the tile view to that subset. With the sidebar dropping internal tags entirely, that workflow was broken — analysts had to fall back to searching the tag name in the global search box, which doesn't scope cleanly. Same root pattern as `feedback_scoping_check_adjacent_endpoints`: a sibling field on the same endpoint (`internalTags` / `externalTags`) was correctly typed, but the field the UI actually reads (`additionalTags`) was missed.
+
+---
+
+## DEF-218 — Cert internal view: Product Identifiers "Show all" button buried + no collapse (fixed locally 2026-05-22)
+
+Shawn flagged on `https://gccwebapp.com/Certificate/CertificateInternalView/26-0160` — cert 26-0160 has 1001 Product Identifiers. The *"Show all 1001 product identifiers"* button was placed inside the 400px scrollable list at the very bottom, so it sat below the fold of the visible scroll viewport and was hard to find. Worse, the click handler was one-shot: once you clicked it, the list expanded and there was no way to collapse it back to the original 20-row preview.
+
+**Fix.** Hoisted the toggle out of the scrollable container into the section header row, right-aligned next to the *Product Identifiers (N)* title — always visible regardless of scroll position. Replaced the one-shot handler with a proper toggle that flips the button label between *"Show all N"* and *"Show less"* and resets scroll-to-top on collapse, so the user lands on row 1 instead of mid-list. `aria-expanded` attribute added for screen readers.
+
+**File:** `Views/Certificate/CertificateInternalView.cshtml` (Product Identifiers section, lines 145–198 region).
+
+**Verification.** `dotnet build` clean (0 errors). The header-row layout is flex with `flex-wrap: wrap`, so on narrow viewports the button drops below the title rather than overlapping. Pending deploy to gccwebapp.com.
+
+---
+
 ## Internal cleanup — tile-view console noise silenced during navigation (fixed locally 2026-05-22)
 
 Not a client-reported defect; surfaced during internal verification of the Product ID bulk-delete feature (DEF-194 / QC #172). When an analyst lands on the Internal tile view after login and then quickly navigates to another page (e.g. `/Certificate/Edit/...`), the in-flight `fetch('/api/certificate-tiles-internal?...')` was aborted by the navigation and the catch block logged `Error loading certificates: TypeError: Failed to fetch` to the browser console and also (on the public view) kicked off the exponential-backoff retry loop. End users never saw it — the noise lived in DevTools and in test logs — but it polluted Playwright runs and obscured real errors during QA.

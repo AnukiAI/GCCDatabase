@@ -1,0 +1,48 @@
+{
+  "totalProducts": 108,
+  "withSkuCount": 0,
+  "withPartnersCount": 6,
+  "firstKeys": [
+    "categoryId",
+    "categoryName",
+    "certificateCount",
+    "companyId",
+    "companyName",
+    "createdAt",
+    "description",
+    "id",
+    "identifiers",
+    "model",
+    "name",
+    "partners",
+    "productSubcategoryId",
+    "productSubcategoryName",
+    "productTypeId",
+    "productTypeName",
+    "sku",
+    "status"
+  ],
+  "hasSkuField": true,
+  "hasPartnersField": true,
+  "sampleWithBoth": null,
+  "sampleFirstThree": [
+    {
+      "name": "Standard Exit Device - Model 9800",
+      "sku": null,
+      "partners": [],
+      "companyName": "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division"
+    },
+    {
+      "name": "Heavy-Duty Exit Hardware - Series 2000",
+      "sku": null,
+      "partners": [],
+      "companyName": "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division"
+    },
+    {
+      "name": "Commercial Door Closer - DC300",
+      "sku": null,
+      "partners": [],
+      "companyName": "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division"
+    }
+  ]
+}

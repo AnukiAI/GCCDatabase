@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dashboard Data-Accuracy Matrix</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; max-width: 1600px; margin: 24px auto; padding: 0 24px; color: #222; line-height: 1.5; }
+  h1 { color: #1a3a5c; border-bottom: 3px solid #0099d6; padding-bottom: 8px; }
+  h2 { color: #1a3a5c; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 32px; }
+  h3 { color: #444; margin-top: 24px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0 24px 0; font-size: 13px; }
+  th { background: #f0f4f8; text-align: left; padding: 8px 10px; border-bottom: 2px solid #b0c0d0; white-space: nowrap; font-weight: 700; color: #1a3a5c; }
+  td { padding: 6px 10px; border-bottom: 1px solid #e8eef2; vertical-align: top; }
+  tbody tr:hover { background: #f8fafd; }
+  td.ok { color: #1c7a3c; font-weight: 700; text-align: center; }
+  td.fail { color: #b00020; font-weight: 700; text-align: center; }
+  td.na { color: #888; text-align: center; }
+  code { background: #f4f6f8; padding: 1px 6px; border-radius: 3px; font-size: 0.92em; color: #333; }
+  ul, ol { margin: 8px 0 16px 0; padding-left: 28px; }
+  li { margin: 4px 0; }
+  p { margin: 8px 0; }
+  strong { color: #1a3a5c; }
+  /* Wide per-cert matrix needs horizontal scroll without page-wide overflow */
+  table { display: block; overflow-x: auto; }
+  thead, tbody { display: table; width: 100%; }
+  /* Subtle row banding for the per-cert matrix */
+  tbody tr:nth-child(even) { background: #fafbfc; }
+  /* Status column highlight */
+  td:nth-child(2) { font-size: 12px; color: #555; }
+</style>
+</head>
+<body>
+<h1>Dashboard Data-Accuracy Matrix — LIVE</h1>
+<ul>
+  <li><strong>Source:</strong> <code>https://gccwebapp.com</code></li>
+  <li><strong>Run at:</strong> 2026-05-27T01:46:20.165Z</li>
+  <li><strong>Today (US/Eastern, used by server):</strong> 2026-05-26</li>
+  <li><strong>Status sets:</strong></li>
+  <li><code>DashboardStatuses</code> (post-DEF-223): <code>{Client Approved - Paid, Republished}</code></li>
+  <li><code>PublicStatuses</code>: <code>{Client Approved - Paid, Republished}</code> (equal post-DEF-223)</li>
+  <li><code>CurrentlyExpiredStatuses</code> (post-DEF-220): <code>{Expired, Expired - No Annual Verification}</code></li>
+  <li><strong>NOTE:</strong> Live still has the pre-DEF-223 wider set including <code>Client Approved - Confidential</code> until the pending zip deploys. Semantic checks here use the wider set for live to avoid false failures.</li>
+</ul>
+<h2>Date windows resolved for today</h2>
+<table>
+  <thead><tr><th>Label</th><th>Type</th><th>Window</th></tr></thead>
+  <tbody>
+    <tr><td>Last Month</td><td>calendar</td><td>2026-04-01 .. 2026-04-30</td></tr>
+    <tr><td>This Month</td><td>calendar</td><td>2026-05-01 .. 2026-05-31</td></tr>
+    <tr><td>Next Month</td><td>calendar</td><td>2026-06-01 .. 2026-06-30</td></tr>
+    <tr><td>This Year-to-Date</td><td>calendar</td><td>2026-01-01 .. 2026-05-26</td></tr>
+    <tr><td>Last Year</td><td>calendar</td><td>2025-01-01 .. 2025-12-31</td></tr>
+    <tr><td>Next 30 Days</td><td><strong>rolling</strong></td><td>2026-05-26 .. 2026-06-25</td></tr>
+    <tr><td>Next 3 Months</td><td><strong>rolling</strong></td><td>2026-05-26 .. 2026-08-26</td></tr>
+  </tbody>
+</table>
+<h2>Per-report matrix</h2>
+<p>Every report surface, the filter it actually applies, the number on screen, the number in the export, and whether they reconcile. Click any URL for the raw endpoint.</p>
+<table>
+  <thead><tr><th>#</th><th>Kind</th><th>Source</th><th>Title</th><th>Status filter</th><th>Date filter</th><th>On-screen</th><th>Export</th><th>Match</th><th>Semantic</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=total-active-certs</code></td><td>Total Active Certs</td><td>DashboardStatuses (Paid + Republished + [Confidential on live until deploy])</td><td>ExpirationDate null OR &gt;= today</td><td>26</td><td>26</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>2</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=companies-with-active-certs</code></td><td># Companies with Active Certs</td><td>DashboardStatuses + ExpirationDate &gt;= today (aggregate)</td><td class="na">—</td><td>22</td><td>22</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>3</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=product-categories-with-active-certs</code></td><td># Product Categories with Active Certs</td><td>DashboardStatuses (aggregate)</td><td class="na">—</td><td>2</td><td>2</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>4</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=product-types-with-active-certs</code></td><td># Product Types with Active Certs</td><td>DashboardStatuses (aggregate)</td><td class="na">—</td><td>2</td><td>2</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>5</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=product-subcategories-with-active-certs</code></td><td># Product Type Subcategories with Active Certs</td><td>DashboardStatuses (aggregate)</td><td class="na">—</td><td>2</td><td>2</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>6</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=products-with-active-certs</code></td><td># Products with Active Certs</td><td>DashboardStatuses (aggregate)</td><td class="na">—</td><td>26</td><td>26</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>7</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=certs-published-last-month</code></td><td># Active Certs Published Last Month</td><td>DashboardStatuses</td><td>EffectiveDate in calendar [2026-04-01..2026-04-30]</td><td>5</td><td>5</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>8</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=certs-expiring-this-month</code></td><td># Certs Expiring This Month</td><td>DashboardStatuses</td><td>ExpirationDate in calendar [2026-05-01..2026-05-31]</td><td>1</td><td>1</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>9</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=certs-expired-last-month</code></td><td># Certs Expired Last Month</td><td>CurrentlyExpiredStatuses (Expired + ExpiredNoAnnualVerification)</td><td>ExpirationDate in calendar [2026-04-01..2026-04-30]</td><td>6</td><td>6</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>10</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=certs-expiring-next-month</code></td><td># Certs Expiring Next Month</td><td>DashboardStatuses</td><td>ExpirationDate in calendar [2026-06-01..2026-06-30]</td><td>1</td><td>1</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>11</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=certs-published-this-year</code></td><td># Active Certs Published This Year</td><td>DashboardStatuses</td><td>EffectiveDate in [2026-01-01..2026-05-26]</td><td>13</td><td>13</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>12</td><td>STAT</td><td><code>/Dashboard/DownloadStat?type=certs-published-last-year</code></td><td># Active Certs Published Last Year</td><td>DashboardStatuses</td><td>EffectiveDate in [2025-01-01..2025-12-31]</td><td>4</td><td>4</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>13</td><td>TABLE</td><td><code>/Dashboard/DownloadTable?type=cert-types</code></td><td>Total Active Certs by Certification Type</td><td>DashboardStatuses</td><td>ExpirationDate null OR &gt;= today</td><td>sum=26 (12 rows)</td><td>26</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>14</td><td>TABLE</td><td><code>/Dashboard/DownloadTable?type=top-companies</code></td><td>Companies by Active Cert Count (cap 10)</td><td>DashboardStatuses</td><td>ExpirationDate null OR &gt;= today</td><td>sum=14 (10 rows)</td><td>26</td><td class="fail">❌</td><td class="ok">✅</td></tr>
+    <tr><td>15</td><td>TABLE</td><td><code>/Dashboard/DownloadTable?type=cert-status</code></td><td># Certs by Status</td><td>ALL statuses (no filter)</td><td>all dates</td><td>sum=37 (8 rows)</td><td>37</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>16</td><td>TABLE</td><td><code>/Dashboard/DownloadTable?type=product-types</code></td><td>Product Types by Active Cert Count (cap 10)</td><td>DashboardStatuses</td><td>ExpirationDate null OR &gt;= today</td><td>sum=4 (2 rows)</td><td>26</td><td class="fail">❌</td><td class="ok">✅</td></tr>
+    <tr><td>17</td><td>TABLE</td><td><code>/Dashboard/DownloadTable?type=product-categories</code></td><td>Product Categories by Active Cert Count (cap 5)</td><td>DashboardStatuses</td><td>ExpirationDate null OR &gt;= today</td><td>sum=26 (2 rows)</td><td>26</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+    <tr><td>18</td><td>ACTION</td><td><code>/Export/DownloadReport?type=active-certificates&amp;format=csv</code></td><td>Download Current Active Certs Report</td><td>PublicStatuses (Paid + Republished)</td><td>ExpirationDate null OR &gt;= today</td><td>(no on-screen counter — button only)</td><td>25</td><td class="na">—</td><td class="ok">✅</td></tr>
+    <tr><td>19</td><td>ACTION</td><td><code>/Export/DownloadReport?type=expiring-30-days&amp;format=csv</code></td><td>Download Expiring Certs Report (Next 30 Days)</td><td>PublicStatuses (Paid + Republished)</td><td>ExpirationDate in ROLLING [2026-05-26..2026-06-25]</td><td>(no on-screen counter — button only)</td><td>1</td><td class="na">—</td><td class="ok">✅</td></tr>
+    <tr><td>20</td><td>ACTION</td><td><code>/Export/DownloadReport?type=expiring-3-months&amp;format=csv</code></td><td>Download Expiring Certs Report (Next 3 Months)</td><td>PublicStatuses (Paid + Republished)</td><td>ExpirationDate in ROLLING [2026-05-26..2026-08-26]</td><td>(no on-screen counter — button only)</td><td>2</td><td class="na">—</td><td class="ok">✅</td></tr>
+  </tbody>
+</table>
+<h2>Per-row semantic failures</h2>
+<p>None. Every row in every per-cert export matched its report's stated status + date filters.</p>
+<h2>Per-cert appearance matrix</h2>
+<p>Each cert appearing in any per-cert export, and which reports it shows up in. Useful for spotting "why is this cert in report X but not Y?" questions.</p>
+<table>
+  <thead><tr><th>Cert #</th><th>Status</th><th><code>total-active-cer</code></th><th><code>certs-published-</code></th><th><code>certs-expiring-t</code></th><th><code>certs-expired-la</code></th><th><code>certs-expiring-n</code></th><th><code>certs-published-</code></th><th><code>certs-published-</code></th><th><code>cert-types</code></th><th><code>top-companies</code></th><th><code>cert-status</code></th><th><code>product-types</code></th><th><code>product-categori</code></th><th><code>active-certifica</code></th><th><code>expiring-30-days</code></th><th><code>expiring-3-month</code></th></tr></thead>
+  <tbody>
+    <tr><td>23-0358</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>23-0375</td><td>Republished</td><td class="ok">✓</td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td></tr>
+    <tr><td>23-0753</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>23-0925</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>23-1048</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>24-0298</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>24-0304</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>24-0321</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>24-0485</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>25-0123</td><td>Expired</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>25-0124</td><td>Expired</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>25-0245</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td class="ok">✓</td></tr>
+    <tr><td>25-0246</td><td>Expired</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>25-8484</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>25-8485</td><td>Expired</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>25-8760</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>25-8777</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>25-9303</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>25-9312</td><td>Client Approved - Confidential</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td><td></td></tr>
+    <tr><td>26-0002</td><td>Expired - No Annual Verification</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>26-0003</td><td>Expired</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>26-0004</td><td>Expired</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>26-0005</td><td>Expired</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>26-0006</td><td>Expired</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>26-0106</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0146</td><td>Client Approved - Paid</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0147</td><td>Client Approved - Paid</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0150</td><td>Client Approved - Paid</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0151</td><td>Client Approved - Paid</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0157</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0158</td><td>Client Approved - Paid</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0159</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0160</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0161</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0162</td><td>Draft</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>26-0163</td><td>Client Approved - Paid</td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td></td><td></td></tr>
+    <tr><td>26-0164</td><td>Expired</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="ok">✓</td><td></td><td></td><td></td><td></td><td></td></tr>
+  </tbody>
+</table>
+<h2>Reconciliation guide — why some numbers don't add up cleanly</h2>
+<p>Several reports look like they should compose into each other but don't. Each non-composition has a specific reason — none of them are bugs in the data, but the <strong>definitions diverge</strong>:</p>
+<ol>
+  <li><strong>"Next 3 Months" ACTION export vs the calendar-month badges.</strong></li>
+</ol>
+<ul>
+  <li>Action button window: rolling <code>[2026-05-26 .. 2026-08-26]</code> (today through today+3 calendar months), <strong>future-only</strong> (<code>ExpDate &gt;= today</code>).</li>
+  <li>"Expiring This Month" badge: calendar <code>[2026-05-01 .. 2026-05-31]</code> — <strong>includes dates earlier in the current month that have already passed</strong>.</li>
+  <li>"Expiring Next Month" badge: calendar <code>[2026-06-01 .. 2026-06-30]</code>.</li>
+  <li>So <code>Next3moAction ≠ ExpThisMonth + ExpNextMonth + ExpMonthAfter</code> by design.</li>
+</ul>
+<ol>
+  <li><strong>"Expired Last Month" badge does NOT belong in any "Expiring" report.</strong></li>
+</ol>
+<ul>
+  <li>"Expired Last Month" = certs whose date was in last month AND status is now <code>Expired</code> (already past).</li>
+  <li>Any "Expiring" report = future-facing only (date &gt;= today). The 6 Expired-Last-Month certs are not in the Next 30 / Next 3 Months exports because their date is past.</li>
+</ul>
+<ol>
+  <li><strong>Top-N table totals (Companies, Product Types, Product Categories).</strong></li>
+</ol>
+<ul>
+  <li>Visible "Total" on the table = sum of the top-N rows shown (capped at 10 or 5).</li>
+  <li>Export = ALL active certs (no top-N cap). So <code>visible_sum ≤ export_rows</code> is normal; equality only when fewer than the cap exist.</li>
+  <li>Specific to <strong>Product Types</strong>: most active certs don't have a Product Type assigned, so <code>visible_sum</code> is small (~4) while <code>export</code> = all 26 active certs. The export is showing the certs <strong>so you can see which ones are missing a Product Type</strong>, not just the top types.</li>
+</ul>
+<ol>
+  <li><strong>"# Certs by Status" table includes all 8 statuses including non-Active.</strong></li>
+</ol>
+<ul>
+  <li>Sum of all 8 status counts = ALL certificates in the database (Draft + Hold + Expired + etc.), not just active.</li>
+  <li>That's why the visible total is larger than "Total Active Certs" — it's a different scope by design.</li>
+</ul>
+<hr>
+<p style="color:#888;font-size:12px;">Generated from <code>qc222-live-2026-05-27-01-45-58-MATRIX.md</code> at 5/26/2026, 9:52:46 PM</p>
+</body>
+</html>

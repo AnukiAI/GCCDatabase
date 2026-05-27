@@ -401,15 +401,12 @@ namespace GCCWebApp.Controllers
 
                 case "certs-expired-last-month":
                 {
-                    // DEF-200 (QC #180): two bugs in the original line. First, GetCertificatesByDateRangeAsync
-                    // filters by EffectiveDate — so "expired last month" was returning certs that became
-                    // effective last month, a completely different set. Switched to the new
-                    // GetCertificatesByExpirationDateRangeAsync helper. Second, no status filter meant
-                    // Draft / Hold rows with a stale ExpirationDate in last month were treated as
-                    // "expired" even though they never went live. Matched the tile's EverPublishedStatuses
-                    // filter from GetCertificateStatisticsAsync.
+                    // DEF-200 + DEF-220 (QC #180): use ExpirationDate column, and narrow status
+                    // filter to CurrentlyExpiredStatuses (Expired + ExpiredNoAnnualVerification only).
+                    // DEF-200's EverPublishedStatuses was too wide — it leaked Republished
+                    // (re-active) and Paid/Confidential certs into the expired export.
                     var certs = await _certificateRepository.GetCertificatesByExpirationDateRangeAsync(startOfLastMonth, endOfLastMonth);
-                    return (certs.Where(c => CertificateStatusHelper.EverPublishedStatuses.Contains(c.Status)),
+                    return (certs.Where(c => CertificateStatusHelper.CurrentlyExpiredStatuses.Contains(c.Status)),
                         "Certificates Expired Last Month");
                 }
 
@@ -442,12 +439,22 @@ namespace GCCWebApp.Controllers
             switch (type)
             {
                 case "cert-types":
+                    // Cert-types breakdown has no top-N cap, so the export = every active cert.
                     return (await _certificateRepository.GetActiveCertificatesAsync(),
                         "Total Active Certs by Certification Type");
 
                 case "top-companies":
-                    return (await _certificateRepository.GetActiveCertificatesAsync(),
-                        "Top 10 Companies by Active Cert Count");
+                {
+                    // DEF-224 (Shawn, 2026-05-26): the visible table caps at top 10 companies,
+                    // but the export was returning ALL active certs (~26 on live). Now filtered
+                    // to certs whose Company is in the top-10 ranking — matches what the user
+                    // sees on screen.
+                    var topCompanies = await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
+                    var topCompanyNames = new HashSet<string>(topCompanies.Select(t => t.Name));
+                    var activeCerts = await _certificateRepository.GetActiveCertificatesAsync();
+                    return (activeCerts.Where(c => c.Company != null && topCompanyNames.Contains(c.Company.Name)),
+                        "Certificates in Top 10 Companies by Active Cert Count");
+                }
 
                 case "cert-status":
                     // QC #141: pull EVERY certificate regardless of status. The prior hardcoded
@@ -460,12 +467,32 @@ namespace GCCWebApp.Controllers
                         "Certificates by Status");
 
                 case "product-types":
-                    return (await _certificateRepository.GetActiveCertificatesAsync(),
-                        "Top 10 Product Types by Active Cert Count");
+                {
+                    // DEF-224: filter to certs whose Product Type (cert-direct OR derived) is
+                    // in the top-10 ranking. Mirrors the visible table's row set.
+                    var topTypes = await _certificateRepository.GetProductTypeStatisticsAsync(10);
+                    var topTypeNames = new HashSet<string>(topTypes.Select(t => t.Name));
+                    var activeCertsT = await _certificateRepository.GetActiveCertificatesAsync();
+                    return (activeCertsT.Where(c =>
+                    {
+                        var name = c.ProductType?.Name ?? c.Product?.ProductType?.Name;
+                        return name != null && topTypeNames.Contains(name);
+                    }), "Certificates in Top 10 Product Types by Active Cert Count");
+                }
 
                 case "product-categories":
-                    return (await _certificateRepository.GetActiveCertificatesAsync(),
-                        "Top 5 Product Categories by Active Cert Count");
+                {
+                    // DEF-224: filter to certs whose Product Category (cert-direct OR derived)
+                    // is in the top-5 ranking. Mirrors the visible table's row set.
+                    var topCats = await _certificateRepository.GetProductCategoryStatisticsAsync(5);
+                    var topCatNames = new HashSet<string>(topCats.Select(t => t.Name));
+                    var activeCertsC = await _certificateRepository.GetActiveCertificatesAsync();
+                    return (activeCertsC.Where(c =>
+                    {
+                        var name = c.ProductCategory?.Name ?? c.Product?.Category?.Name;
+                        return name != null && topCatNames.Contains(name);
+                    }), "Certificates in Top 5 Product Categories by Active Cert Count");
+                }
 
                 default:
                     return (Enumerable.Empty<Certificate>(), null);

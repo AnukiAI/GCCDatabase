@@ -299,6 +299,68 @@ namespace GCCWebApp.Controllers.Api
         }
 
         /// <summary>
+        /// DEF-194 cross-page completion: bulk-delete product IDs for a cert
+        /// in a single request. Two modes:
+        ///   { ids: [1,2,3] }                          — delete just these IDs
+        ///   { deleteAll: true, search, type, partner } — delete every row on
+        ///     the cert that matches the supplied filters (empty filters =
+        ///     wipe everything on the cert).
+        /// The service constrains all deletes to certificateId, so a forged
+        /// payload can't reach product IDs on a different cert.
+        /// </summary>
+        [HttpPost("certificate/{certificateId}/bulk-delete")]
+        public async Task<ActionResult<ApiResponse<object>>> BulkDeleteProductIds(
+            int certificateId,
+            [FromBody] BulkProductIdDeleteRequest request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Request body is required"
+                    });
+                }
+
+                if (!request.DeleteAll && (request.Ids == null || request.Ids.Count == 0))
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Either ids or deleteAll must be provided"
+                    });
+                }
+
+                var deleted = await _productIdService.BulkDeleteProductIdsAsync(
+                    certificateId,
+                    request.DeleteAll ? null : request.Ids,
+                    request.Search,
+                    request.Type,
+                    request.Partner);
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = new { deleted },
+                    Message = $"Deleted {deleted} product ID(s)"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error bulk-deleting product IDs for certificate {CertificateId}",
+                    certificateId);
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error processing bulk delete"
+                });
+            }
+        }
+
+        /// <summary>
         /// Bulk-create product IDs from a JSON payload of pre-parsed items.
         ///
         /// DEF-112: the previous frontend made one POST per row, hitting the
@@ -505,6 +567,20 @@ namespace GCCWebApp.Controllers.Api
     {
         public List<ProductIdImportItem> Items { get; set; } = new();
         public bool OverwriteExisting { get; set; } = false;
+    }
+
+    /// <summary>
+    /// JSON body for the bulk-delete endpoint (DEF-194 cross-page).
+    /// Either supply Ids (specific rows) OR set DeleteAll=true with optional
+    /// Search/Type/Partner filters that mirror the table's current filter chips.
+    /// </summary>
+    public class BulkProductIdDeleteRequest
+    {
+        public List<int>? Ids { get; set; }
+        public bool DeleteAll { get; set; } = false;
+        public string? Search { get; set; }
+        public string? Type { get; set; }
+        public string? Partner { get; set; }
     }
 
     /// <summary>

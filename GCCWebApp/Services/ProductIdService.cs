@@ -45,6 +45,26 @@ namespace GCCWebApp.Services
         Task<CertificateProductId> CreateProductIdAsync(CertificateProductId productId);
         Task<CertificateProductId> UpdateProductIdAsync(CertificateProductId productId);
         Task<bool> DeleteProductIdAsync(int id);
+
+        /// <summary>
+        /// DEF-194 cross-page completion: bulk-delete product IDs in a single
+        /// SQL round-trip. Two modes:
+        ///   - ids != null: delete only the listed IDs (server-side
+        ///     constrained to the cert so a forged payload can't delete
+        ///     siblings on another cert).
+        ///   - ids == null (deleteAll): delete every product ID on the cert
+        ///     that matches the supplied filters. Filter semantics mirror
+        ///     GetProductIdsByCertificatePagedAsync so what the user sees on
+        ///     the table is exactly what gets deleted.
+        /// Returns the number of rows deleted.
+        /// </summary>
+        Task<int> BulkDeleteProductIdsAsync(
+            int certificateId,
+            List<int>? ids,
+            string? search = null,
+            string? typeFilter = null,
+            string? partnerFilter = null);
+
         /// <summary>
         /// Syncs all product IDs on a certificate to the auto-derived status from the cert's status (CR-015).
         /// Called whenever a cert's status changes (manual edit, bulk update, auto-expire).
@@ -329,6 +349,63 @@ namespace GCCWebApp.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting product ID {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task<int> BulkDeleteProductIdsAsync(
+            int certificateId,
+            List<int>? ids,
+            string? search = null,
+            string? typeFilter = null,
+            string? partnerFilter = null)
+        {
+            try
+            {
+                IQueryable<CertificateProductId> q = _context.CertificateProductIds
+                    .Where(p => p.CertificateId == certificateId);
+
+                if (ids != null)
+                {
+                    if (ids.Count == 0) return 0;
+                    q = q.Where(p => ids.Contains(p.Id));
+                }
+                else
+                {
+                    // deleteAll path — apply the same filter semantics as the
+                    // paged GET so the rows deleted match the rows the user
+                    // can see in the table when they clicked "Select all N".
+                    if (!string.IsNullOrWhiteSpace(typeFilter))
+                    {
+                        q = q.Where(p => p.ProductIdType == typeFilter);
+                    }
+                    if (!string.IsNullOrWhiteSpace(partnerFilter))
+                    {
+                        q = q.Where(p => p.Partner == partnerFilter);
+                    }
+                    if (!string.IsNullOrWhiteSpace(search))
+                    {
+                        var s = search.Trim();
+                        q = q.Where(p =>
+                            EF.Functions.Like(p.ProductIdValue, $"%{s}%") ||
+                            (p.ProductName != null && EF.Functions.Like(p.ProductName, $"%{s}%")) ||
+                            (p.ProductSku != null && EF.Functions.Like(p.ProductSku, $"%{s}%")));
+                    }
+                }
+
+                var deleted = await q.ExecuteDeleteAsync();
+
+                _logger.LogInformation(
+                    "Bulk-deleted {Count} product IDs for certificate {CertificateId} (mode: {Mode})",
+                    deleted, certificateId, ids == null ? "deleteAll" : "ids");
+
+                return deleted;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error bulk-deleting product IDs for certificate {CertificateId}",
+                    certificateId);
                 throw;
             }
         }

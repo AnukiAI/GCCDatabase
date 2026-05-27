@@ -239,6 +239,20 @@
     border-bottom: none;
 }
 
+/* DEF-220 follow-up: per-table totals so users can compare visible sum
+   against the corresponding badge without doing mental math. Top-N tables
+   show "Top N Subtotal" so users understand why the number may be lower
+   than the active-certs badge. */
+.table-section tfoot.dashboard-table-total td {
+    border-top: 2px solid var(--border-color-dark, #dee2e6);
+    border-bottom: none;
+    background-color: var(--bg-light, #f8f9fa);
+    font-weight: 700;
+    color: var(--text-primary, #333);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 /* =============================================================================
    ACTION BUTTONS
    ============================================================================= */

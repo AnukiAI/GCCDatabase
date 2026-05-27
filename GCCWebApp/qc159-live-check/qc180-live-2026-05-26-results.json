@@ -1,0 +1,98 @@
+[
+  {
+    "statType": "total-active-certs",
+    "title": "Total Active Certs",
+    "tile": 26,
+    "exportRows": 26,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "companies-with-active-certs",
+    "title": "# Companies with Active Certs",
+    "tile": 22,
+    "exportRows": 22,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "product-categories-with-active-certs",
+    "title": "# Product Categories with Active Certs",
+    "tile": 2,
+    "exportRows": 2,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "product-types-with-active-certs",
+    "title": "# Product Types with Active Certs",
+    "tile": 2,
+    "exportRows": 2,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "product-subcategories-with-active-certs",
+    "title": "# Product Type Subcategories with Active Certs",
+    "tile": 2,
+    "exportRows": 2,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "products-with-active-certs",
+    "title": "# Products with Active Certs",
+    "tile": 26,
+    "exportRows": 26,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "certs-published-last-month",
+    "title": "# Active Certs Published Last Month",
+    "tile": 5,
+    "exportRows": 5,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "certs-expiring-this-month",
+    "title": "# Certs Expiring This Month",
+    "tile": 1,
+    "exportRows": 1,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "certs-expired-last-month",
+    "title": "# Certs Expired Last Month",
+    "tile": 6,
+    "exportRows": 6,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "certs-expiring-next-month",
+    "title": "# Certs Expiring Next Month",
+    "tile": 1,
+    "exportRows": 1,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "certs-published-this-year",
+    "title": "# Active Certs Published This Year",
+    "tile": 13,
+    "exportRows": 13,
+    "httpStatus": 200,
+    "pass": true
+  },
+  {
+    "statType": "certs-published-last-year",
+    "title": "# Active Certs Published Last Year",
+    "tile": 4,
+    "exportRows": 4,
+    "httpStatus": 200,
+    "pass": true
+  }
+]

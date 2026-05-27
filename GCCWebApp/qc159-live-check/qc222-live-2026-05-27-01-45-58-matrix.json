@@ -1,0 +1,695 @@
+{
+  "results": [
+    {
+      "kind": "STAT",
+      "name": "total-active-certs",
+      "title": "Total Active Certs",
+      "sourceUrl": "/Dashboard/DownloadStat?type=total-active-certs",
+      "statusFilter": "DashboardStatuses (Paid + Republished + [Confidential on live until deploy])",
+      "dateFilter": "ExpirationDate null OR >= today",
+      "httpStatus": 200,
+      "exportCount": 26,
+      "onScreen": 26,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "companies-with-active-certs",
+      "title": "# Companies with Active Certs",
+      "sourceUrl": "/Dashboard/DownloadStat?type=companies-with-active-certs",
+      "statusFilter": "DashboardStatuses + ExpirationDate >= today (aggregate)",
+      "dateFilter": "—",
+      "httpStatus": 200,
+      "exportCount": 22,
+      "onScreen": 22,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "product-categories-with-active-certs",
+      "title": "# Product Categories with Active Certs",
+      "sourceUrl": "/Dashboard/DownloadStat?type=product-categories-with-active-certs",
+      "statusFilter": "DashboardStatuses (aggregate)",
+      "dateFilter": "—",
+      "httpStatus": 200,
+      "exportCount": 2,
+      "onScreen": 2,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "product-types-with-active-certs",
+      "title": "# Product Types with Active Certs",
+      "sourceUrl": "/Dashboard/DownloadStat?type=product-types-with-active-certs",
+      "statusFilter": "DashboardStatuses (aggregate)",
+      "dateFilter": "—",
+      "httpStatus": 200,
+      "exportCount": 2,
+      "onScreen": 2,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "product-subcategories-with-active-certs",
+      "title": "# Product Type Subcategories with Active Certs",
+      "sourceUrl": "/Dashboard/DownloadStat?type=product-subcategories-with-active-certs",
+      "statusFilter": "DashboardStatuses (aggregate)",
+      "dateFilter": "—",
+      "httpStatus": 200,
+      "exportCount": 2,
+      "onScreen": 2,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "products-with-active-certs",
+      "title": "# Products with Active Certs",
+      "sourceUrl": "/Dashboard/DownloadStat?type=products-with-active-certs",
+      "statusFilter": "DashboardStatuses (aggregate)",
+      "dateFilter": "—",
+      "httpStatus": 200,
+      "exportCount": 26,
+      "onScreen": 26,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "certs-published-last-month",
+      "title": "# Active Certs Published Last Month",
+      "sourceUrl": "/Dashboard/DownloadStat?type=certs-published-last-month",
+      "statusFilter": "DashboardStatuses",
+      "dateFilter": "EffectiveDate in calendar [2026-04-01..2026-04-30]",
+      "httpStatus": 200,
+      "exportCount": 5,
+      "onScreen": 5,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "certs-expiring-this-month",
+      "title": "# Certs Expiring This Month",
+      "sourceUrl": "/Dashboard/DownloadStat?type=certs-expiring-this-month",
+      "statusFilter": "DashboardStatuses",
+      "dateFilter": "ExpirationDate in calendar [2026-05-01..2026-05-31]",
+      "httpStatus": 200,
+      "exportCount": 1,
+      "onScreen": 1,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "certs-expired-last-month",
+      "title": "# Certs Expired Last Month",
+      "sourceUrl": "/Dashboard/DownloadStat?type=certs-expired-last-month",
+      "statusFilter": "CurrentlyExpiredStatuses (Expired + ExpiredNoAnnualVerification)",
+      "dateFilter": "ExpirationDate in calendar [2026-04-01..2026-04-30]",
+      "httpStatus": 200,
+      "exportCount": 6,
+      "onScreen": 6,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "certs-expiring-next-month",
+      "title": "# Certs Expiring Next Month",
+      "sourceUrl": "/Dashboard/DownloadStat?type=certs-expiring-next-month",
+      "statusFilter": "DashboardStatuses",
+      "dateFilter": "ExpirationDate in calendar [2026-06-01..2026-06-30]",
+      "httpStatus": 200,
+      "exportCount": 1,
+      "onScreen": 1,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "certs-published-this-year",
+      "title": "# Active Certs Published This Year",
+      "sourceUrl": "/Dashboard/DownloadStat?type=certs-published-this-year",
+      "statusFilter": "DashboardStatuses",
+      "dateFilter": "EffectiveDate in [2026-01-01..2026-05-26]",
+      "httpStatus": 200,
+      "exportCount": 13,
+      "onScreen": 13,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "STAT",
+      "name": "certs-published-last-year",
+      "title": "# Active Certs Published Last Year",
+      "sourceUrl": "/Dashboard/DownloadStat?type=certs-published-last-year",
+      "statusFilter": "DashboardStatuses",
+      "dateFilter": "EffectiveDate in [2025-01-01..2025-12-31]",
+      "httpStatus": 200,
+      "exportCount": 4,
+      "onScreen": 4,
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "TABLE",
+      "name": "cert-types",
+      "title": "Total Active Certs by Certification Type",
+      "sourceUrl": "/Dashboard/DownloadTable?type=cert-types",
+      "statusFilter": "DashboardStatuses",
+      "dateFilter": "ExpirationDate null OR >= today",
+      "visibleSumExpected": "equals export rows (no cap)",
+      "httpStatus": 200,
+      "exportCount": 26,
+      "onScreen": "sum=26 (12 rows)",
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "TABLE",
+      "name": "top-companies",
+      "title": "Companies by Active Cert Count (cap 10)",
+      "sourceUrl": "/Dashboard/DownloadTable?type=top-companies",
+      "statusFilter": "DashboardStatuses",
+      "dateFilter": "ExpirationDate null OR >= today",
+      "visibleSumExpected": "visible_sum ≤ export rows (cap at top 10)",
+      "httpStatus": 200,
+      "exportCount": 26,
+      "onScreen": "sum=14 (10 rows)",
+      "countMatch": false,
+      "semFails": []
+    },
+    {
+      "kind": "TABLE",
+      "name": "cert-status",
+      "title": "# Certs by Status",
+      "sourceUrl": "/Dashboard/DownloadTable?type=cert-status",
+      "statusFilter": "ALL statuses (no filter)",
+      "dateFilter": "all dates",
+      "visibleSumExpected": "equals Statistics[\"Total\"] count of all certs",
+      "httpStatus": 200,
+      "exportCount": 37,
+      "onScreen": "sum=37 (8 rows)",
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "TABLE",
+      "name": "product-types",
+      "title": "Product Types by Active Cert Count (cap 10)",
+      "sourceUrl": "/Dashboard/DownloadTable?type=product-types",
+      "statusFilter": "DashboardStatuses",
+      "dateFilter": "ExpirationDate null OR >= today",
+      "visibleSumExpected": "visible_sum may be < export (export = all active certs; many lack ProductType)",
+      "httpStatus": 200,
+      "exportCount": 26,
+      "onScreen": "sum=4 (2 rows)",
+      "countMatch": false,
+      "semFails": []
+    },
+    {
+      "kind": "TABLE",
+      "name": "product-categories",
+      "title": "Product Categories by Active Cert Count (cap 5)",
+      "sourceUrl": "/Dashboard/DownloadTable?type=product-categories",
+      "statusFilter": "DashboardStatuses",
+      "dateFilter": "ExpirationDate null OR >= today",
+      "visibleSumExpected": "visible_sum ≤ export rows (cap at top 5)",
+      "httpStatus": 200,
+      "exportCount": 26,
+      "onScreen": "sum=26 (2 rows)",
+      "countMatch": true,
+      "semFails": []
+    },
+    {
+      "kind": "ACTION",
+      "name": "active-certificates",
+      "title": "Download Current Active Certs Report",
+      "sourceUrl": "/Export/DownloadReport?type=active-certificates&format=csv",
+      "statusFilter": "PublicStatuses (Paid + Republished)",
+      "dateFilter": "ExpirationDate null OR >= today",
+      "httpStatus": 200,
+      "exportCount": 25,
+      "onScreen": "(no on-screen counter — button only)",
+      "countMatch": null,
+      "semFails": []
+    },
+    {
+      "kind": "ACTION",
+      "name": "expiring-30-days",
+      "title": "Download Expiring Certs Report (Next 30 Days)",
+      "sourceUrl": "/Export/DownloadReport?type=expiring-30-days&format=csv",
+      "statusFilter": "PublicStatuses (Paid + Republished)",
+      "dateFilter": "ExpirationDate in ROLLING [2026-05-26..2026-06-25]",
+      "httpStatus": 200,
+      "exportCount": 1,
+      "onScreen": "(no on-screen counter — button only)",
+      "countMatch": null,
+      "semFails": []
+    },
+    {
+      "kind": "ACTION",
+      "name": "expiring-3-months",
+      "title": "Download Expiring Certs Report (Next 3 Months)",
+      "sourceUrl": "/Export/DownloadReport?type=expiring-3-months&format=csv",
+      "statusFilter": "PublicStatuses (Paid + Republished)",
+      "dateFilter": "ExpirationDate in ROLLING [2026-05-26..2026-08-26]",
+      "httpStatus": 200,
+      "exportCount": 2,
+      "onScreen": "(no on-screen counter — button only)",
+      "countMatch": null,
+      "semFails": []
+    }
+  ],
+  "certAppearance": {
+    "23-0358": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "23-0375": {
+      "status": "Republished",
+      "reports": [
+        "total-active-certs",
+        "certs-expiring-this-month",
+        "certs-published-last-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates",
+        "expiring-30-days",
+        "expiring-3-months"
+      ]
+    },
+    "23-0753": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "23-0925": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "23-1048": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "24-0298": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "24-0304": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "24-0321": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "24-0485": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "25-0245": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-expiring-next-month",
+        "certs-published-last-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates",
+        "expiring-3-months"
+      ]
+    },
+    "25-8484": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-last-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "25-9303": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "25-9312": {
+      "status": "Client Approved - Confidential",
+      "reports": [
+        "total-active-certs",
+        "certs-published-last-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories"
+      ]
+    },
+    "25-8760": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "25-8777": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0146": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-last-month",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0147": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-last-month",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0150": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-last-month",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0151": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-last-month",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0106": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0157": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0158": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-last-month",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0159": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0160": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0161": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0163": {
+      "status": "Client Approved - Paid",
+      "reports": [
+        "total-active-certs",
+        "certs-published-this-year",
+        "cert-types",
+        "top-companies",
+        "cert-status",
+        "product-types",
+        "product-categories",
+        "active-certificates"
+      ]
+    },
+    "26-0004": {
+      "status": "Expired",
+      "reports": [
+        "certs-expired-last-month",
+        "cert-status"
+      ]
+    },
+    "26-0005": {
+      "status": "Expired",
+      "reports": [
+        "certs-expired-last-month",
+        "cert-status"
+      ]
+    },
+    "25-0124": {
+      "status": "Expired",
+      "reports": [
+        "certs-expired-last-month",
+        "cert-status"
+      ]
+    },
+    "26-0003": {
+      "status": "Expired",
+      "reports": [
+        "certs-expired-last-month",
+        "cert-status"
+      ]
+    },
+    "25-0246": {
+      "status": "Expired",
+      "reports": [
+        "certs-expired-last-month",
+        "cert-status"
+      ]
+    },
+    "26-0006": {
+      "status": "Expired",
+      "reports": [
+        "certs-expired-last-month",
+        "cert-status"
+      ]
+    },
+    "26-0162": {
+      "status": "Draft",
+      "reports": [
+        "cert-status"
+      ]
+    },
+    "25-0123": {
+      "status": "Expired",
+      "reports": [
+        "cert-status"
+      ]
+    },
+    "25-8485": {
+      "status": "Expired",
+      "reports": [
+        "cert-status"
+      ]
+    },
+    "26-0164": {
+      "status": "Expired",
+      "reports": [
+        "cert-status"
+      ]
+    },
+    "26-0002": {
+      "status": "Expired - No Annual Verification",
+      "reports": [
+        "cert-status"
+      ]
+    }
+  },
+  "windows": {
+    "today": "2026-05-26T04:00:00.000Z",
+    "startOfMonth": "2026-05-01T04:00:00.000Z",
+    "endOfMonth": "2026-05-31T04:00:00.000Z",
+    "startOfLastMonth": "2026-04-01T04:00:00.000Z",
+    "endOfLastMonth": "2026-04-30T04:00:00.000Z",
+    "startOfNextMonth": "2026-06-01T04:00:00.000Z",
+    "endOfNextMonth": "2026-06-30T04:00:00.000Z",
+    "startOfYear": "2026-01-01T05:00:00.000Z",
+    "startOfLastYear": "2025-01-01T05:00:00.000Z",
+    "endOfLastYear": "2025-12-31T05:00:00.000Z",
+    "plus30": "2026-06-25T04:00:00.000Z",
+    "plus3mo": "2026-08-26T04:00:00.000Z"
+  }
+}

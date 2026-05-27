@@ -586,3 +586,46 @@
     color: #6c757d;
     font-size: 14px;
 }
+
+/* DEF-194 cross-page: Gmail-style "Select all N" banner. Appears when the
+   user ticks the header select-all and there are more rows than fit on the
+   current page. */
+.bulk-select-all-banner {
+    margin: 0 24px 12px 24px;
+    padding: 10px 16px;
+    background: #fff8e6;
+    border: 1px solid #f0ad4e;
+    border-radius: 6px;
+    font-size: 16px;
+    color: #5a3e00;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.bulk-select-all-banner .bulk-select-all-link,
+.bulk-select-all-banner .bulk-select-all-clear {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #002B76;
+    font-weight: 600;
+    font-size: 16px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.bulk-select-all-banner .bulk-select-all-link:hover,
+.bulk-select-all-banner .bulk-select-all-clear:hover {
+    color: #001a4d;
+}
+
+.bulk-select-all-banner.bulk-select-all-active {
+    background: #e6f7ff;
+    border-color: #002B76;
+    color: #001a4d;
+    font-weight: 500;
+}

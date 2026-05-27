@@ -40,6 +40,23 @@
         }
     </div>
 
+    @* DEF-194 cross-page: Gmail-style banner. Shown after the user ticks the
+       header select-all (i.e. every visible row is selected). Click the link
+       to flip into "select all N matching" mode — the bulk-delete then hits
+       the bulk endpoint with deleteAll=true + current filter chips. *@
+    @if (!isReadOnly)
+    {
+        <div id="bulkSelectAllBanner" class="bulk-select-all-banner" style="display: none;" role="status" aria-live="polite">
+            <span id="bulkSelectAllBannerText">All <span id="bulkBannerVisibleCount">0</span> on this page are selected.</span>
+            <button type="button" class="bulk-select-all-link" id="bulkSelectAllLink">
+                Select all <span id="bulkBannerTotalCount">0</span> product IDs
+            </button>
+            <button type="button" class="bulk-select-all-clear" id="bulkSelectAllClear" style="display: none;">
+                Clear selection
+            </button>
+        </div>
+    }
+
     <!-- Filter Section -->
     <div class="product-manager-filters mb-3">
         <div class="product-manager-filter-row">

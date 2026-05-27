@@ -1,0 +1,3 @@
+Name,Company,Description,Product Type,Status
+,Acme Corporation,Missing name should error,Personal Care,Active
+QCTest Product Lima,Acme Corporation,Valid row alongside an invalid one,Personal Care,Active

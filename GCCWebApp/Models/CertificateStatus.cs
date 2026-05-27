@@ -68,27 +68,32 @@ namespace GCCWebApp.Models
         };
 
         /// <summary>
-        /// Statuses counted as "active" for internal dashboard reporting.
-        /// Includes Confidential certs which are not publicly visible but are still active.
+        /// Statuses counted as "active" everywhere (public site, internal dashboard, API).
+        /// DEF-223 (Shawn, 2026-05-26): narrowed from {Paid, Republished, Confidential} to
+        /// {Paid, Republished} so "Active" means the same thing internally and publicly.
+        /// Confidential is paid-but-embargoed — work is done, but the client opted to keep
+        /// it private; treating it as "active" on internal counts confused things because
+        /// the badge label and the export rows now strictly mean "actively certified" (the
+        /// state IsActiveStatus() has always returned true for). Equal to PublicStatuses.
         /// </summary>
         public static readonly string[] DashboardStatuses = new[]
         {
             StatusClientApprovedPaid,
-            StatusRepublished,
-            StatusClientApprovedConfidential
+            StatusRepublished
         };
 
         /// <summary>
-        /// DEF-200 (QC #180): statuses that count for "Certs Expired Last Month" — certs that
-        /// were ever published (or are now flagged Expired). Excludes Draft / Hold /
-        /// ClientApprovedNotPaid because a cert that never went live shouldn't be counted as
-        /// having "expired" just because it happens to have an expiration date in the past.
+        /// DEF-220 (QC #180 5/26 follow-up): statuses that count for "Certs Expired Last Month".
+        /// A cert is only "expired" if its CURRENT status is Expired or ExpiredNoAnnualVerification.
+        /// Republished means the cert was re-published (re-active) with a fresh expiration —
+        /// including it in the expired report was wrong. Paid/Confidential with a past
+        /// ExpirationDate is a data anomaly (background service should auto-flip to Expired)
+        /// and shouldn't be reported as expired either. Draft/Hold/ClientApprovedNotPaid stay
+        /// excluded for the same reason as the original DEF-200 fix — never-published certs
+        /// never "expire."
         /// </summary>
-        public static readonly string[] EverPublishedStatuses = new[]
+        public static readonly string[] CurrentlyExpiredStatuses = new[]
         {
-            StatusClientApprovedPaid,
-            StatusRepublished,
-            StatusClientApprovedConfidential,
             StatusExpired,
             StatusExpiredNoAnnualVerification
         };

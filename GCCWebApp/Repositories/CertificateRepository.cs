@@ -520,44 +520,48 @@ namespace GCCWebApp.Repositories
                 .Distinct()
                 .CountAsync();
 
-            // Distinct product types with active certificates (two queries to avoid EF Core translation issues)
-            var ptFromProduct = await activeCertQuery
-                .Where(c => c.Product != null && c.Product.ProductType != null)
-                .Select(c => c.Product!.ProductType!.Name)
-                .Distinct()
-                .ToListAsync();
+            // Distinct product types with active certificates.
+            // DEF-222: cert-direct override wins per CR-014. fromCertDirect picks every
+            // cert that has the override set; fromProduct only kicks in when override
+            // is null. Otherwise certs with both would be double-counted across two
+            // category names (the override and the product-derived).
             var ptFromCertDirect = await activeCertQuery
-                .Where(c => c.ProductType != null && (c.Product == null || c.Product.ProductType == null))
+                .Where(c => c.ProductType != null)
                 .Select(c => c.ProductType!.Name)
                 .Distinct()
                 .ToListAsync();
-            stats["ProductTypesWithActiveCerts"] = ptFromProduct.Concat(ptFromCertDirect).Distinct().Count();
-
-            // Distinct product subcategories with active certificates (two queries to avoid EF Core translation issues)
-            var pscFromProduct = await activeCertQuery
-                .Where(c => c.Product != null && c.Product.ProductSubcategory != null)
-                .Select(c => c.Product!.ProductSubcategory!.Name)
+            var ptFromProduct = await activeCertQuery
+                .Where(c => c.ProductType == null && c.Product != null && c.Product.ProductType != null)
+                .Select(c => c.Product!.ProductType!.Name)
                 .Distinct()
                 .ToListAsync();
+            stats["ProductTypesWithActiveCerts"] = ptFromCertDirect.Concat(ptFromProduct).Distinct().Count();
+
+            // Distinct product subcategories with active certificates.
             var pscFromCertDirect = await activeCertQuery
-                .Where(c => c.ProductSubcategory != null && (c.Product == null || c.Product.ProductSubcategory == null))
+                .Where(c => c.ProductSubcategory != null)
                 .Select(c => c.ProductSubcategory!.Name)
                 .Distinct()
                 .ToListAsync();
-            stats["ProductSubcategories"] = pscFromProduct.Concat(pscFromCertDirect).Distinct().Count();
-
-            // Distinct product categories with active certificates (two queries to avoid EF Core translation issues)
-            var pcFromProduct = await activeCertQuery
-                .Where(c => c.Product != null && c.Product.Category != null)
-                .Select(c => c.Product!.Category!.Name)
+            var pscFromProduct = await activeCertQuery
+                .Where(c => c.ProductSubcategory == null && c.Product != null && c.Product.ProductSubcategory != null)
+                .Select(c => c.Product!.ProductSubcategory!.Name)
                 .Distinct()
                 .ToListAsync();
+            stats["ProductSubcategories"] = pscFromCertDirect.Concat(pscFromProduct).Distinct().Count();
+
+            // Distinct product categories with active certificates.
             var pcFromCertDirect = await activeCertQuery
-                .Where(c => c.ProductCategory != null && (c.Product == null || c.Product.Category == null))
+                .Where(c => c.ProductCategory != null)
                 .Select(c => c.ProductCategory!.Name)
                 .Distinct()
                 .ToListAsync();
-            stats["ProductCategoriesWithActiveCerts"] = pcFromProduct.Concat(pcFromCertDirect).Distinct().Count();
+            var pcFromProduct = await activeCertQuery
+                .Where(c => c.ProductCategory == null && c.Product != null && c.Product.Category != null)
+                .Select(c => c.Product!.Category!.Name)
+                .Distinct()
+                .ToListAsync();
+            stats["ProductCategoriesWithActiveCerts"] = pcFromCertDirect.Concat(pcFromProduct).Distinct().Count();
 
             // Products with active certificates
             stats["ActiveProducts"] = await activeCertQuery
@@ -587,13 +591,14 @@ namespace GCCWebApp.Repositories
                 c.ExpirationDate >= startOfMonth &&
                 c.ExpirationDate < startOfNextMonth);
 
-            // Expired last month — DEF-200 (QC #180): added EverPublishedStatuses filter so a
-            // Draft or Hold cert with an ExpirationDate in last month no longer counts as
-            // having "expired." Previously the tile counted any cert with an expiration date
-            // in last month regardless of whether it ever went live.
-            var everPublished = CertificateStatusHelper.EverPublishedStatuses;
+            // Expired last month — DEF-220 (QC #180 5/26 follow-up): narrowed to
+            // CurrentlyExpiredStatuses. DEF-200's EverPublishedStatuses incorrectly included
+            // Republished (a re-active state) and Paid/Confidential (active). A cert with
+            // a past ExpirationDate but Status=Republished/Paid is either being actively
+            // extended or is a data anomaly — neither belongs in "expired last month."
+            var currentlyExpired = CertificateStatusHelper.CurrentlyExpiredStatuses;
             stats["ExpiredLastMonth"] = await _dbSet.CountAsync(c =>
-                everPublished.Contains(c.Status) &&
+                currentlyExpired.Contains(c.Status) &&
                 c.ExpirationDate >= startOfLastMonth &&
                 c.ExpirationDate <= endOfLastMonth);
 
@@ -661,24 +666,26 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<(string Name, int Count)>> GetProductTypeStatisticsAsync(int topCount = 10)
         {
-            // Get product types from Product hierarchy
-            var fromProduct = await _dbSet
-                .Include(c => c.Product)
-                    .ThenInclude(p => p.ProductType)
-                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.Product != null && c.Product.ProductType != null)
-                .Select(c => new { CertId = c.Id, ProductTypeName = c.Product!.ProductType!.Name })
-                .ToListAsync();
-
-            // Get product types from Certificate's direct ProductType field (fallback)
+            // DEF-222: cert-direct first, Product-hierarchy fallback. Matches CR-014
+            // override semantics + GenerateCertificateCsv resolution order.
             var fromCertDirect = await _dbSet
                 .Include(c => c.ProductType)
-                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductType != null
-                    && (c.Product == null || c.Product.ProductType == null))
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductType != null)
                 .Select(c => new { CertId = c.Id, ProductTypeName = c.ProductType!.Name })
                 .ToListAsync();
 
-            // Combine, deduplicate by CertId, group by name
-            var combined = fromProduct.Concat(fromCertDirect)
+            var fromProduct = await _dbSet
+                .Include(c => c.Product)
+                    .ThenInclude(p => p.ProductType)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductType == null
+                    && c.Product != null && c.Product.ProductType != null)
+                .Select(c => new { CertId = c.Id, ProductTypeName = c.Product!.ProductType!.Name })
+                .ToListAsync();
+
+            // Combine, deduplicate by CertId (cert-direct already won by ordering),
+            // then group by name. DEF-222: cert-direct rows come first in the concat
+            // so .Select(g => g.First()) preserves the override when both exist.
+            var combined = fromCertDirect.Concat(fromProduct)
                 .GroupBy(x => x.CertId)
                 .Select(g => g.First())
                 .GroupBy(x => x.ProductTypeName)
@@ -692,24 +699,28 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<(string Name, int Count)>> GetProductCategoryStatisticsAsync(int topCount = 5)
         {
-            // Get product categories from Product hierarchy (Product.Category)
-            var fromProduct = await _dbSet
-                .Include(c => c.Product)
-                    .ThenInclude(p => p.Category)
-                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.Product != null && c.Product.Category != null)
-                .Select(c => new { CertId = c.Id, CategoryName = c.Product!.Category!.Name })
-                .ToListAsync();
-
-            // Get product categories from Certificate's direct ProductCategory field (fallback)
+            // DEF-222 (Shawn, 2026-05-26): cert-direct override wins per CR-014 — must
+            // match GenerateCertificateCsv ("cert.ProductCategory ?? cert.Product.Category")
+            // and the per-cert detail view. Previously this query used Product-hierarchy
+            // FIRST, so cert 26-0158 (cert-direct="Electronics", Product.Category="Carly
+            // Test") was counted under "Carly Test" in the breakdown while the export
+            // showed it under "Electronics" — 3 distinct categories in the data but only
+            // 2 rows in the table. Flipping priority below resolves the divergence.
             var fromCertDirect = await _dbSet
                 .Include(c => c.ProductCategory)
-                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductCategory != null
-                    && (c.Product == null || c.Product.Category == null))
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductCategory != null)
                 .Select(c => new { CertId = c.Id, CategoryName = c.ProductCategory!.Name })
                 .ToListAsync();
 
-            // Combine, deduplicate by CertId, group by name
-            var combined = fromProduct.Concat(fromCertDirect)
+            var fromProduct = await _dbSet
+                .Include(c => c.Product)
+                    .ThenInclude(p => p.Category)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductCategory == null
+                    && c.Product != null && c.Product.Category != null)
+                .Select(c => new { CertId = c.Id, CategoryName = c.Product!.Category!.Name })
+                .ToListAsync();
+
+            var combined = fromCertDirect.Concat(fromProduct)
                 .GroupBy(x => x.CertId)
                 .Select(g => g.First())
                 .GroupBy(x => x.CategoryName)
@@ -723,21 +734,22 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<(string Name, int Count)>> GetProductSubcategoryStatisticsAsync(int topCount = 10)
         {
-            var fromProduct = await _dbSet
-                .Include(c => c.Product)
-                    .ThenInclude(p => p.ProductSubcategory)
-                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.Product != null && c.Product.ProductSubcategory != null)
-                .Select(c => new { CertId = c.Id, SubcategoryName = c.Product!.ProductSubcategory!.Name })
-                .ToListAsync();
-
+            // DEF-222: cert-direct first, Product-hierarchy fallback.
             var fromCertDirect = await _dbSet
                 .Include(c => c.ProductSubcategory)
-                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductSubcategory != null
-                    && (c.Product == null || c.Product.ProductSubcategory == null))
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductSubcategory != null)
                 .Select(c => new { CertId = c.Id, SubcategoryName = c.ProductSubcategory!.Name })
                 .ToListAsync();
 
-            var combined = fromProduct.Concat(fromCertDirect)
+            var fromProduct = await _dbSet
+                .Include(c => c.Product)
+                    .ThenInclude(p => p.ProductSubcategory)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductSubcategory == null
+                    && c.Product != null && c.Product.ProductSubcategory != null)
+                .Select(c => new { CertId = c.Id, SubcategoryName = c.Product!.ProductSubcategory!.Name })
+                .ToListAsync();
+
+            var combined = fromCertDirect.Concat(fromProduct)
                 .GroupBy(x => x.CertId)
                 .Select(g => g.First())
                 .GroupBy(x => x.SubcategoryName)

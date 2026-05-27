@@ -580,9 +580,10 @@ namespace GCCWebApp.Controllers.Api
                         .ToListAsync(),
 
                     additionalTags = await _context.Tags
-                        .Where(t => t.IsActive && t.TagType == "external")
-                        .OrderBy(t => t.Name)
+                        .Where(t => t.IsActive && (t.TagType == "external" || t.TagType == "internal"))
                         .Select(t => t.Name)
+                        .Distinct()
+                        .OrderBy(n => n)
                         .ToListAsync()
                 };
 

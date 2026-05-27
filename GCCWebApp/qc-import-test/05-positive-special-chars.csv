@@ -1,0 +1,4 @@
+Name,Company,Description,Product Type,Status
+"QCTest, Product India (Pro)",Acme Corporation,"Quoted name with comma, and (parens)",Personal Care,Active
+"QCTest Product ""Juliet"" Plus",Acme Corporation,Embedded double-quotes,Personal Care,Active
+QCTest Product Kilo Café Über 日本,Acme Corporation,Unicode test,Personal Care,Active

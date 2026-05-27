@@ -1,0 +1,70 @@
+{
+  "base": "https://gccwebapp.com",
+  "timestamp": "2026-05-26T12:50:42.970Z",
+  "api": {
+    "totalProducts": 108,
+    "withSkuCount": 0,
+    "withPartnersCount": 6,
+    "firstKeys": [
+      "categoryId",
+      "categoryName",
+      "certificateCount",
+      "companyId",
+      "companyName",
+      "createdAt",
+      "description",
+      "id",
+      "identifiers",
+      "model",
+      "name",
+      "partners",
+      "productSubcategoryId",
+      "productSubcategoryName",
+      "productTypeId",
+      "productTypeName",
+      "sku",
+      "status"
+    ],
+    "hasSkuField": true,
+    "hasPartnersField": true,
+    "sampleWithBoth": null,
+    "sampleFirstThree": [
+      {
+        "name": "Standard Exit Device - Model 9800",
+        "sku": null,
+        "partners": [],
+        "companyName": "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division"
+      },
+      {
+        "name": "Heavy-Duty Exit Hardware - Series 2000",
+        "sku": null,
+        "partners": [],
+        "companyName": "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division"
+      },
+      {
+        "name": "Commercial Door Closer - DC300",
+        "sku": null,
+        "partners": [],
+        "companyName": "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division"
+      }
+    ]
+  },
+  "csv": {
+    "savedTo": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\qc184-live-check\\products_export.csv",
+    "headers": "\"Product Name\",\"SKU\",\"Partners\",\"Company\",\"Description\",\"Category\",\"Product Type\",\"Subcategory\",\"Identifier Type\",\"Identifier Value\"",
+    "dataRows": 1119,
+    "firstDataRow": "\"Standard Exit Device - Model 9800\",\"\",\"\",\"ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division\",\"Commercial grade exit device\",\"Chemicals and Raw Materials\",\"\",\"\",\"\",\"\"",
+    "skuColumnIndex": 1,
+    "partnersColumnIndex": 2,
+    "sampleSkuValues": [],
+    "samplePartnerValues": []
+  },
+  "verdict": {
+    "apiHasSku": true,
+    "apiHasPartners": true,
+    "csvHasSkuHeader": true,
+    "csvHasPartnersHeader": true,
+    "anySkuPopulated": false,
+    "anyPartnersPopulated": false
+  }
+}

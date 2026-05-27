@@ -1,0 +1,379 @@
+{
+  "stats": [
+    {
+      "statType": "total-active-certs",
+      "title": "Total Active Certs",
+      "tile": 26,
+      "exportRows": 26,
+      "httpStatus": 200,
+      "csvBytes": 5846,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 26,
+        "sample": []
+      }
+    },
+    {
+      "statType": "companies-with-active-certs",
+      "title": "# Companies with Active Certs",
+      "tile": 22,
+      "exportRows": 22,
+      "httpStatus": 200,
+      "csvBytes": 753,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 22,
+        "sample": []
+      }
+    },
+    {
+      "statType": "product-categories-with-active-certs",
+      "title": "# Product Categories with Active Certs",
+      "tile": 2,
+      "exportRows": 2,
+      "httpStatus": 200,
+      "csvBytes": 213,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 2,
+        "sample": []
+      }
+    },
+    {
+      "statType": "product-types-with-active-certs",
+      "title": "# Product Types with Active Certs",
+      "tile": 2,
+      "exportRows": 2,
+      "httpStatus": 200,
+      "csvBytes": 191,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 2,
+        "sample": []
+      }
+    },
+    {
+      "statType": "product-subcategories-with-active-certs",
+      "title": "# Product Type Subcategories with Active Certs",
+      "tile": 2,
+      "exportRows": 2,
+      "httpStatus": 200,
+      "csvBytes": 191,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 2,
+        "sample": []
+      }
+    },
+    {
+      "statType": "products-with-active-certs",
+      "title": "# Products with Active Certs",
+      "tile": 26,
+      "exportRows": 26,
+      "httpStatus": 200,
+      "csvBytes": 1026,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 26,
+        "sample": []
+      }
+    },
+    {
+      "statType": "certs-published-last-month",
+      "title": "# Active Certs Published Last Month",
+      "tile": 5,
+      "exportRows": 5,
+      "httpStatus": 200,
+      "csvBytes": 1279,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 5,
+        "sample": []
+      }
+    },
+    {
+      "statType": "certs-expiring-this-month",
+      "title": "# Certs Expiring This Month",
+      "tile": 1,
+      "exportRows": 1,
+      "httpStatus": 200,
+      "csvBytes": 420,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 1,
+        "sample": []
+      }
+    },
+    {
+      "statType": "certs-expired-last-month",
+      "title": "# Certs Expired Last Month",
+      "tile": 6,
+      "exportRows": 6,
+      "httpStatus": 200,
+      "csvBytes": 1401,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 6,
+        "sample": []
+      }
+    },
+    {
+      "statType": "certs-expiring-next-month",
+      "title": "# Certs Expiring Next Month",
+      "tile": 1,
+      "exportRows": 1,
+      "httpStatus": 200,
+      "csvBytes": 456,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 1,
+        "sample": []
+      }
+    },
+    {
+      "statType": "certs-published-this-year",
+      "title": "# Active Certs Published This Year",
+      "tile": 13,
+      "exportRows": 13,
+      "httpStatus": 200,
+      "csvBytes": 3105,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 13,
+        "sample": []
+      }
+    },
+    {
+      "statType": "certs-published-last-year",
+      "title": "# Active Certs Published Last Year",
+      "tile": 4,
+      "exportRows": 4,
+      "httpStatus": 200,
+      "csvBytes": 1061,
+      "countPass": true,
+      "semPass": true,
+      "semanticFailures": {
+        "failed": 0,
+        "total": 4,
+        "sample": []
+      }
+    }
+  ],
+  "tables": [
+    {
+      "tableType": "cert-types",
+      "title": "Total Active Certs by Certification Type",
+      "visiblePairs": [
+        {
+          "name": "Sustainable Energy Practices",
+          "count": 5
+        },
+        {
+          "name": "Carbon Footprint Reduction",
+          "count": 4
+        },
+        {
+          "name": "Certified Energy Savings",
+          "count": 3
+        },
+        {
+          "name": "Certified Environmental Facts",
+          "count": 3
+        },
+        {
+          "name": "Recycled Content",
+          "count": 3
+        },
+        {
+          "name": "Certified Sustainability Facts",
+          "count": 2
+        },
+        {
+          "name": "Certified Water Savings",
+          "count": 1
+        },
+        {
+          "name": "Closed Loop Product",
+          "count": 1
+        },
+        {
+          "name": "Dematerialization",
+          "count": 1
+        },
+        {
+          "name": "GreenCircle Audited",
+          "count": 1
+        },
+        {
+          "name": "Life Cycle Assessment (LCA) Optimized",
+          "count": 1
+        },
+        {
+          "name": "Sustainable Manufacturing Practices",
+          "count": 1
+        }
+      ],
+      "visibleTotal": 26,
+      "exportRows": 26,
+      "httpStatus": 200,
+      "issues": [],
+      "pass": true
+    },
+    {
+      "tableType": "top-companies",
+      "title": "Top 10 Companies by Active Cert Count",
+      "visiblePairs": [
+        {
+          "name": "KAO",
+          "count": 4
+        },
+        {
+          "name": "CertainTeed Insulation Group",
+          "count": 2
+        },
+        {
+          "name": "Sonos",
+          "count": 1
+        },
+        {
+          "name": "Company Symbol Test é™®ä",
+          "count": 1
+        },
+        {
+          "name": "Testing Very Very Long Company Name That’s Over 100 Characters Very Very Very Very Very Veryyyy Long",
+          "count": 1
+        },
+        {
+          "name": "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division",
+          "count": 1
+        },
+        {
+          "name": "Procter & Gamble",
+          "count": 1
+        },
+        {
+          "name": "Philips",
+          "count": 1
+        },
+        {
+          "name": "3M",
+          "count": 1
+        },
+        {
+          "name": "Balcan Innovations",
+          "count": 1
+        }
+      ],
+      "visibleTotal": 14,
+      "exportRows": 26,
+      "httpStatus": 200,
+      "issues": [],
+      "pass": true
+    },
+    {
+      "tableType": "cert-status",
+      "title": "# Certs by Status",
+      "visiblePairs": [
+        {
+          "name": "Draft",
+          "count": 1
+        },
+        {
+          "name": "Client Approved - Not Paid",
+          "count": 0
+        },
+        {
+          "name": "Client Approved - Confidential",
+          "count": 1
+        },
+        {
+          "name": "Client Approved - Paid",
+          "count": 24
+        },
+        {
+          "name": "Hold",
+          "count": 0
+        },
+        {
+          "name": "Expired",
+          "count": 9
+        },
+        {
+          "name": "Republished",
+          "count": 1
+        },
+        {
+          "name": "Expired - No Annual Verification",
+          "count": 1
+        }
+      ],
+      "visibleTotal": 37,
+      "exportRows": 37,
+      "httpStatus": 200,
+      "issues": [],
+      "pass": true
+    },
+    {
+      "tableType": "product-types",
+      "title": "Top 10 Product Types by Active Cert Count",
+      "visiblePairs": [
+        {
+          "name": "Plastics",
+          "count": 3
+        },
+        {
+          "name": "Electronic Accessories",
+          "count": 1
+        }
+      ],
+      "visibleTotal": 4,
+      "exportRows": 26,
+      "httpStatus": 200,
+      "issues": [],
+      "pass": true
+    },
+    {
+      "tableType": "product-categories",
+      "title": "Top 5 Product Categories by Active Cert Count",
+      "visiblePairs": [
+        {
+          "name": "Chemicals and Raw Materials",
+          "count": 22
+        },
+        {
+          "name": "Carly Test",
+          "count": 4
+        }
+      ],
+      "visibleTotal": 26,
+      "exportRows": 26,
+      "httpStatus": 200,
+      "issues": [
+        "group \"Carly Test\": visible=4, export=3"
+      ],
+      "pass": false
+    }
+  ]
+}

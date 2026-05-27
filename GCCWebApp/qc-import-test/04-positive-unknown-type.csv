@@ -1,0 +1,2 @@
+Name,Company,Description,Product Type,Status
+QCTest Product Hotel,Acme Corporation,Unknown product type should warn but import,NonexistentProductType123,Active

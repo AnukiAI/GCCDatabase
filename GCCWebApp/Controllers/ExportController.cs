@@ -355,15 +355,15 @@ namespace GCCWebApp.Controllers
                     return new { Certificates = expiringThisMonth, Description = "Certificates Expiring This Month" };
 
                 case "certs-expired-last-month":
-                    // DEF-200 (QC #180): mirror the tile's EverPublishedStatuses filter so a
-                    // Draft cert with an expiration date in last month no longer appears as
-                    // "expired." Redundant `< now` clause dropped — endOfLastMonth is already
-                    // strictly before today.
+                    // DEF-200 + DEF-220 (QC #180): mirror the tile's CurrentlyExpiredStatuses
+                    // filter (Expired + ExpiredNoAnnualVerification only). EverPublishedStatuses
+                    // was too wide and leaked Republished/Paid/Confidential certs into the
+                    // expired export, contradicting the card title.
                     var expiredLastMonth = await _context.Certificates
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => CertificateStatusHelper.EverPublishedStatuses.Contains(c.Status) &&
+                        .Where(c => CertificateStatusHelper.CurrentlyExpiredStatuses.Contains(c.Status) &&
                                    c.ExpirationDate >= startOfLastMonth && c.ExpirationDate <= endOfLastMonth)
                         .OrderBy(c => c.ExpirationDate)
                         .ThenBy(c => c.Number)

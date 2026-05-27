@@ -215,6 +215,15 @@
                         <tr><td colspan="2" style="text-align: center; font-style: italic;">No certification type data available</td></tr>
                     }
                 </tbody>
+                @if (Model.CertificationTypeBreakdown.Any())
+                {
+                    <tfoot class="dashboard-table-total">
+                        <tr>
+                            <td>Total</td>
+                            <td>@Model.CertificationTypeBreakdown.Sum(c => c.Count).ToString("N0")</td>
+                        </tr>
+                    </tfoot>
+                }
             </table>
         </div>
 
@@ -257,6 +266,15 @@
                         <tr><td colspan="2" style="text-align: center; font-style: italic;">Access restricted to internal users</td></tr>
                     }
                 </tbody>
+                @if (Model.IsInternal && Model.TopCompaniesBreakdown.Any())
+                {
+                    <tfoot class="dashboard-table-total">
+                        <tr>
+                            <td>Total</td>
+                            <td>@Model.TopCompaniesBreakdown.Sum(c => c.Count).ToString("N0")</td>
+                        </tr>
+                    </tfoot>
+                }
             </table>
         </div>
 
@@ -300,6 +318,15 @@
                         <tr><td colspan="2" style="text-align: center; font-style: italic;">No certificate status data available</td></tr>
                     }
                 </tbody>
+                @if (Model.Statistics.Any())
+                {
+                    <tfoot class="dashboard-table-total">
+                        <tr>
+                            <td>Total</td>
+                            <td>@Model.Statistics.GetValueOrDefault("Total", 0).ToString("N0")</td>
+                        </tr>
+                    </tfoot>
+                }
             </table>
         </div>
 
@@ -342,6 +369,15 @@
                         <tr><td colspan="2" style="text-align: center; font-style: italic;">Access restricted to internal users</td></tr>
                     }
                 </tbody>
+                @if (Model.IsInternal && Model.ProductTypeBreakdown.Any())
+                {
+                    <tfoot class="dashboard-table-total">
+                        <tr>
+                            <td>Total</td>
+                            <td>@Model.ProductTypeBreakdown.Sum(c => c.Count).ToString("N0")</td>
+                        </tr>
+                    </tfoot>
+                }
             </table>
         </div>
 
@@ -384,6 +420,15 @@
                         <tr><td colspan="2" style="text-align: center; font-style: italic;">Access restricted to internal users</td></tr>
                     }
                 </tbody>
+                @if (Model.IsInternal && Model.ProductCategoryBreakdown.Any())
+                {
+                    <tfoot class="dashboard-table-total">
+                        <tr>
+                            <td>Total</td>
+                            <td>@Model.ProductCategoryBreakdown.Sum(c => c.Count).ToString("N0")</td>
+                        </tr>
+                    </tfoot>
+                }
             </table>
         </div>
     </div>

@@ -1,0 +1,6 @@
+Name,Company,Description,Product Type,Status
+QCTest Product Bravo,Acme Corporation,Multi-row test 1,Personal Care,Active
+QCTest Product Charlie,Acme Corporation,Multi-row test 2,Personal Care,Active
+QCTest Product Delta,Acme Corporation,Multi-row test 3,Personal Care,Inactive
+QCTest Product Echo,Acme Corporation,Multi-row test 4,Personal Care,Active
+QCTest Product Foxtrot,Acme Corporation,Multi-row test 5,Personal Care,Active

@@ -1,0 +1,2 @@
+Name,Company,Description,Product Type,Status
+QCTest Product Alpha,Acme Corporation,Same Name+Company as #01 - should be rejected as duplicate,Personal Care,Active

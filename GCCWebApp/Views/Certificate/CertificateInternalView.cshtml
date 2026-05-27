@@ -150,10 +150,20 @@
                             var initialLimit = 20;
                             var hasMore = pidCount > initialLimit;
                         }
-                        <h3 class="certificate-section-title">Product Identifiers <span style="font-size: 14px; font-weight: 400; color: #666;">(@pidCount)</span></h3>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                            <h3 class="certificate-section-title" style="margin-bottom: 0;">Product Identifiers <span style="font-size: 14px; font-weight: 400; color: #666;">(@pidCount)</span></h3>
+                            @if (hasMore)
+                            {
+                                <button type="button" id="pid-toggle-btn" onclick="togglePidShowAll()"
+                                    aria-expanded="false" aria-controls="pid-remaining"
+                                    style="padding: 6px 14px; background: #f8f9fa; border: 1px solid #ced4da; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                                    Show all @pidCount
+                                </button>
+                            }
+                        </div>
                         @if (pidCount > 0)
                         {
-                            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 6px; padding: 8px;" id="pid-container">
+                            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 6px; padding: 8px; margin-top: 8px;" id="pid-container">
                                 @foreach (var pid in allPids.Take(initialLimit))
                                 {
                                     <div class="certificate-field"><strong>@pid.ProductIdType:</strong> <span>@pid.ProductIdValue</span></div>
@@ -166,12 +176,28 @@
                                             <div class="certificate-field"><strong>@pid.ProductIdType:</strong> <span>@pid.ProductIdValue</span></div>
                                         }
                                     </div>
-                                    <button type="button" id="pid-show-all" onclick="document.getElementById('pid-remaining').style.display='block'; this.style.display='none';"
-                                        style="margin-top: 8px; padding: 6px 16px; background: #f8f9fa; border: 1px solid #ced4da; border-radius: 4px; cursor: pointer; font-size: 14px; width: 100%; text-align: center;">
-                                        Show all @pidCount product identifiers
-                                    </button>
                                 }
                             </div>
+                            @if (hasMore)
+                            {
+                                <script>
+                                    function togglePidShowAll() {
+                                        var remaining = document.getElementById('pid-remaining');
+                                        var btn = document.getElementById('pid-toggle-btn');
+                                        var expanded = remaining.style.display === 'block';
+                                        if (expanded) {
+                                            remaining.style.display = 'none';
+                                            btn.textContent = 'Show all @pidCount';
+                                            btn.setAttribute('aria-expanded', 'false');
+                                            document.getElementById('pid-container').scrollTop = 0;
+                                        } else {
+                                            remaining.style.display = 'block';
+                                            btn.textContent = 'Show less';
+                                            btn.setAttribute('aria-expanded', 'true');
+                                        }
+                                    }
+                                </script>
+                            }
                         }
                         else
                         {

@@ -34,6 +34,11 @@ class ProductIdManager {
         // changes, and (in server-paged mode) page changes — so a user can
         // accumulate selections across multiple pages and delete in one shot.
         this.selectedIds = new Set();
+        // DEF-194 cross-page: when true, the user has clicked "Select all N
+        // product IDs" in the banner. selectedIds is ignored and the bulk
+        // delete posts {deleteAll:true} + current filters. Cleared on filter
+        // change, on "Clear selection", or when the user unchecks any row.
+        this.selectAllAcrossPages = false;
 
         this.init();
     }
@@ -287,6 +292,16 @@ class ProductIdManager {
         const bulkDeleteBtn = document.getElementById('bulkDeleteProductIds');
         if (bulkDeleteBtn) {
             bulkDeleteBtn.addEventListener('click', () => this.handleBulkDelete());
+        }
+
+        // DEF-194 cross-page: banner controls.
+        const bannerLink = document.getElementById('bulkSelectAllLink');
+        if (bannerLink) {
+            bannerLink.addEventListener('click', () => this.enableSelectAllAcrossPages());
+        }
+        const bannerClear = document.getElementById('bulkSelectAllClear');
+        if (bannerClear) {
+            bannerClear.addEventListener('click', () => this.clearAllSelection());
         }
     }
 
@@ -554,6 +569,14 @@ class ProductIdManager {
     }
 
     applyFilters() {
+        // DEF-194 cross-page: any filter change invalidates "select all N"
+        // because N itself changes. Drop the selection state so the next
+        // table render starts with a clean slate.
+        if (this.selectAllAcrossPages || this.selectedIds.size > 0) {
+            this.selectAllAcrossPages = false;
+            this.selectedIds.clear();
+        }
+
         // CR-018: server-paged mode round-trips for filter/search changes.
         // Search input fires per-keystroke, so debounce to 250 ms; the type
         // and partner dropdowns fire on change and don't need debouncing,
@@ -850,7 +873,22 @@ class ProductIdManager {
     // currently visible rows; the count badge and confirm dialog reflect the
     // global selection.
     handleRowCheckboxToggle(productIdId, checked) {
-        if (checked) {
+        // Unchecking any row exits cross-page mode — you can't claim
+        // "all N selected" once you've deselected one of them.
+        if (!checked && this.selectAllAcrossPages) {
+            this.selectAllAcrossPages = false;
+            // Seed selectedIds with the *other* currently visible rows so
+            // the badge count drops by one (not to zero) — matches user
+            // intent of "I had everything, minus this one."
+            const tableBody = document.getElementById('productIdsTableBody');
+            this.selectedIds.clear();
+            if (tableBody) {
+                tableBody.querySelectorAll('.bulk-select-checkbox').forEach(box => {
+                    const id = parseInt(box.getAttribute('data-product-id'));
+                    if (!isNaN(id) && box.checked) this.selectedIds.add(id);
+                });
+            }
+        } else if (checked) {
             this.selectedIds.add(productIdId);
         } else {
             this.selectedIds.delete(productIdId);
@@ -861,6 +899,17 @@ class ProductIdManager {
     handleSelectAllToggle(checked) {
         const tableBody = document.getElementById('productIdsTableBody');
         if (!tableBody) return;
+
+        // Unticking the header select-all also exits cross-page mode and
+        // clears everything (Gmail-equivalent behavior).
+        if (!checked && this.selectAllAcrossPages) {
+            this.selectAllAcrossPages = false;
+            this.selectedIds.clear();
+            tableBody.querySelectorAll('.bulk-select-checkbox').forEach(box => { box.checked = false; });
+            this.updateBulkActionsUI();
+            return;
+        }
+
         const rowBoxes = tableBody.querySelectorAll('.bulk-select-checkbox');
         rowBoxes.forEach(box => {
             const id = parseInt(box.getAttribute('data-product-id'));
@@ -875,10 +924,49 @@ class ProductIdManager {
         this.updateBulkActionsUI();
     }
 
+    // DEF-194 cross-page: user clicked the "Select all N" link in the banner.
+    // Flip into cross-page mode. The selectedIds set is intentionally NOT
+    // populated — bulk delete will use the deleteAll path with current filters.
+    enableSelectAllAcrossPages() {
+        this.selectAllAcrossPages = true;
+        // Pre-check every visible row for visual consistency.
+        const tableBody = document.getElementById('productIdsTableBody');
+        if (tableBody) {
+            tableBody.querySelectorAll('.bulk-select-checkbox').forEach(box => { box.checked = true; });
+        }
+        this.updateBulkActionsUI();
+    }
+
+    // Clear all selection state (Clear-selection link in banner, or post-delete).
+    clearAllSelection() {
+        this.selectAllAcrossPages = false;
+        this.selectedIds.clear();
+        const tableBody = document.getElementById('productIdsTableBody');
+        if (tableBody) {
+            tableBody.querySelectorAll('.bulk-select-checkbox').forEach(box => { box.checked = false; });
+        }
+        const selectAll = document.getElementById('selectAllProductIds');
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        }
+        this.updateBulkActionsUI();
+    }
+
     updateBulkActionsUI() {
         if (this.isReadOnly) return;
 
-        const count = this.selectedIds.size;
+        // DEF-194 cross-page: when "select all N" is active, every newly
+        // rendered row (e.g. after a page change) should also appear ticked.
+        if (this.selectAllAcrossPages) {
+            const tbody = document.getElementById('productIdsTableBody');
+            if (tbody) {
+                tbody.querySelectorAll('.bulk-select-checkbox').forEach(b => { b.checked = true; });
+            }
+        }
+
+        // Count: total when in cross-page mode, else size of accumulated set.
+        const count = this.selectAllAcrossPages ? this.totalCount : this.selectedIds.size;
         const btn = document.getElementById('bulkDeleteProductIds');
         const countSpan = document.getElementById('bulkDeleteCount');
         if (btn) btn.style.display = count > 0 ? '' : 'none';
@@ -888,32 +976,78 @@ class ProductIdManager {
         // indeterminate when partial, unchecked when none.
         const selectAll = document.getElementById('selectAllProductIds');
         const tableBody = document.getElementById('productIdsTableBody');
-        if (!selectAll || !tableBody) return;
-
-        const rowBoxes = tableBody.querySelectorAll('.bulk-select-checkbox');
-        if (rowBoxes.length === 0) {
-            selectAll.checked = false;
-            selectAll.indeterminate = false;
-            return;
+        const rowBoxes = tableBody ? tableBody.querySelectorAll('.bulk-select-checkbox') : [];
+        if (selectAll && tableBody) {
+            if (rowBoxes.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else {
+                let checkedVisible = 0;
+                rowBoxes.forEach(box => { if (box.checked) checkedVisible++; });
+                if (checkedVisible === 0) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                } else if (checkedVisible === rowBoxes.length) {
+                    selectAll.checked = true;
+                    selectAll.indeterminate = false;
+                } else {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = true;
+                }
+            }
         }
-        let checkedVisible = 0;
-        rowBoxes.forEach(box => { if (box.checked) checkedVisible++; });
-        if (checkedVisible === 0) {
-            selectAll.checked = false;
-            selectAll.indeterminate = false;
-        } else if (checkedVisible === rowBoxes.length) {
-            selectAll.checked = true;
-            selectAll.indeterminate = false;
-        } else {
-            selectAll.checked = false;
-            selectAll.indeterminate = true;
+
+        // DEF-194 cross-page: banner visibility / state.
+        //   - hidden when nothing's selected or only a partial page is selected
+        //   - "Select all N" prompt when every visible row is selected AND
+        //     totalCount > visible rows AND not already in cross-page mode
+        //   - "All N selected" + Clear when in cross-page mode
+        const banner = document.getElementById('bulkSelectAllBanner');
+        const link = document.getElementById('bulkSelectAllLink');
+        const clearBtn = document.getElementById('bulkSelectAllClear');
+        const visibleCountSpan = document.getElementById('bulkBannerVisibleCount');
+        const totalCountSpan = document.getElementById('bulkBannerTotalCount');
+        const bannerText = document.getElementById('bulkSelectAllBannerText');
+        if (banner) {
+            const visible = rowBoxes.length;
+            const total = this.totalCount || visible;
+            const wholePageSelected = visible > 0 && rowBoxes.length > 0 &&
+                Array.from(rowBoxes).every(b => b.checked);
+            const moreOffPage = total > visible;
+
+            if (this.selectAllAcrossPages) {
+                banner.style.display = '';
+                banner.classList.add('bulk-select-all-active');
+                if (bannerText) bannerText.textContent = `All ${total} product IDs are selected.`;
+                if (link) link.style.display = 'none';
+                if (clearBtn) clearBtn.style.display = '';
+            } else if (wholePageSelected && moreOffPage) {
+                banner.style.display = '';
+                banner.classList.remove('bulk-select-all-active');
+                if (visibleCountSpan) visibleCountSpan.textContent = String(visible);
+                if (totalCountSpan) totalCountSpan.textContent = String(total);
+                if (bannerText) {
+                    bannerText.innerHTML =
+                        `All <span id="bulkBannerVisibleCount">${visible}</span> on this page are selected.`;
+                }
+                if (link) {
+                    link.style.display = '';
+                    link.innerHTML = `Select all <span id="bulkBannerTotalCount">${total}</span> product IDs`;
+                }
+                if (clearBtn) clearBtn.style.display = 'none';
+            } else {
+                banner.style.display = 'none';
+                banner.classList.remove('bulk-select-all-active');
+            }
         }
     }
 
     async handleBulkDelete() {
-        if (this.selectedIds.size === 0) return;
+        // Cross-page mode: count reflects totalCount, ids set is empty.
+        const crossPage = this.selectAllAcrossPages;
+        const count = crossPage ? this.totalCount : this.selectedIds.size;
+        if (count === 0) return;
 
-        const count = this.selectedIds.size;
         const confirmed = await AdminCore.showConfirmation({
             title: 'Delete Confirmation',
             message: `Are you sure you want to delete ${count} product ID(s)? This action cannot be undone.`,
@@ -923,51 +1057,52 @@ class ProductIdManager {
         });
         if (!confirmed) return;
 
-        const idsToDelete = Array.from(this.selectedIds);
-
         // In-memory mode (Create page or temp negative IDs): drop from local state only.
         const isInMemory = !this.certificateId || this.certificateId === 0 || this.certificateId === '0';
         if (isInMemory) {
-            const set = new Set(idsToDelete);
+            const set = new Set(this.selectedIds);
             this.productIds = this.productIds.filter(p => !set.has(p.id));
             this.filteredProductIds = [...this.productIds];
-            this.selectedIds.clear();
+            this.clearAllSelection();
             this.renderTable();
             this.updateCount();
             this.showSuccess(`${count} product ID(s) removed`);
             return;
         }
 
-        // Server-paged mode: tempted negative IDs short-circuit; everything else
-        // hits the DELETE endpoint. We run requests in parallel but tolerate
-        // partial failures so the user gets an honest "deleted N of M" toast.
+        // DEF-194 cross-page: one server call for the whole job. Mirrors the
+        // current filter chips so what the user saw on the table is what we
+        // delete on the server. Negative IDs (in-memory new rows from import
+        // preview) are stripped from any explicit-ids payload — they never
+        // hit the DB in the first place.
         this.showLoading(true);
         try {
-            const results = await Promise.allSettled(idsToDelete.map(id => {
-                if (id < 0) return Promise.resolve({ ok: true, tempId: id });
-                return fetch(`/api/productids/${id}`, { method: 'DELETE' });
-            }));
+            const search = (document.getElementById('searchProductIds')?.value || '').trim();
+            const typeFilter = document.getElementById('filterByType')?.value || '';
+            const partnerFilter = document.getElementById('filterByPartner')?.value || '';
 
-            let succeeded = 0;
-            let failed = 0;
-            results.forEach(r => {
-                if (r.status === 'fulfilled' && (r.value.ok === true || r.value.tempId)) {
-                    succeeded++;
-                } else {
-                    failed++;
-                }
+            const body = crossPage
+                ? { deleteAll: true, search, type: typeFilter, partner: partnerFilter }
+                : { ids: Array.from(this.selectedIds).filter(id => id > 0) };
+
+            const url = `/api/productids/certificate/${this.certificateId}/bulk-delete`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
             });
 
             this.cache.clear();
-            this.selectedIds.clear();
-            await this.loadProductIds();
+            this.clearAllSelection();
 
-            if (failed === 0) {
-                this.showSuccess(`${succeeded} product ID(s) deleted successfully`);
-            } else if (succeeded === 0) {
-                this.showError(`Failed to delete ${failed} product ID(s)`);
+            if (response.ok) {
+                const json = await response.json().catch(() => ({}));
+                const deleted = json?.data?.deleted ?? count;
+                await this.loadProductIds();
+                this.showSuccess(`${deleted} product ID(s) deleted successfully`);
             } else {
-                this.showError(`Deleted ${succeeded} of ${count}; ${failed} failed`);
+                await this.loadProductIds();
+                this.showError('Failed to delete product IDs');
             }
         } catch (error) {
             console.error('Error during bulk delete:', error);

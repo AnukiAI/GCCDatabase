@@ -65,6 +65,9 @@ namespace GCCWebApp.Models
         public string Status { get; set; } = "active";
         public bool RequirePasswordReset { get; set; } = true;
         public List<string> CompanyNames { get; set; } = new();
+        // DEF-232: Partner-role users created via CSV import. Mirrors CompanyNames
+        // (semicolon-separated names → resolved to Partner entities in the service).
+        public List<string> PartnerNames { get; set; } = new();
     }
 
     public class CreateUserViewModel

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "SETUP",
+    "name": "Login + token",
+    "status": "PASS",
+    "notes": "token len=198"
+  },
+  {
+    "id": "DEF231-default-cat",
+    "name": "getDefaultCategoryId() target (GetCategories[0])",
+    "status": "PASS",
+    "notes": "default=\"Batch2QA-Cat-1777645766616\" (id=10)"
+  },
+  {
+    "id": "DEF231-intended-cat",
+    "name": "Analyst's intended category (anything but the default)",
+    "status": "PASS",
+    "notes": "intended=\"Chemicals and Raw Materials\" (id=1)"
+  },
+  {
+    "id": "DEF231-intended-hierarchy",
+    "name": "Form selections the quick-add will ignore",
+    "status": "PASS",
+    "notes": "category=\"Chemicals and Raw Materials\", type=\"Additives\", subcategory=\"(none)\""
+  },
+  {
+    "id": "DEF231-quickadd-save",
+    "name": "Inline quick-add payload accepted",
+    "status": "PASS",
+    "notes": "http=200 id=628 msg=\"Product created successfully\""
+  },
+  {
+    "id": "DEF231-BUG-wrong-category",
+    "name": "Product saved under DEFAULT category, not the analyst’s pick",
+    "status": "PASS",
+    "notes": "saved category=\"Batch2QA-Cat-1777645766616\"  (intended=\"Chemicals and Raw Materials\")"
+  },
+  {
+    "id": "DEF231-BUG-no-type-sub",
+    "name": "Product saved with NO type/subcategory (missing in Product Management)",
+    "status": "PASS",
+    "notes": "productTypeName=\"(empty)\", productSubcategoryName=\"(empty)\""
+  },
+  {
+    "id": "DEF231-cleanup",
+    "name": "Throwaway products removed",
+    "status": "PASS",
+    "notes": "removed=2, failed=0"
+  }
+]

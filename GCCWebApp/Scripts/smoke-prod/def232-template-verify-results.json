@@ -1,0 +1,90 @@
+{
+  "base": "http://localhost:5101",
+  "timestamp": "2026-06-01T22:33:01.759Z",
+  "results": [
+    {
+      "id": "SETUP-login",
+      "name": "Admin login",
+      "status": "PASS"
+    },
+    {
+      "id": "T2.1",
+      "name": "Cert template starts with UTF-8 BOM (EF BB BF)",
+      "status": "PASS",
+      "notes": "bytes[0..2] = EF BB BF"
+    },
+    {
+      "id": "T2.2",
+      "name": "Cert template contains em dash (U+2014) as real char, not mojibake",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "T2.3",
+      "name": "Cert template Status hint inline values intact (DEF-202 not regressed)",
+      "status": "PASS"
+    },
+    {
+      "id": "T1.0",
+      "name": "Tags template download triggered",
+      "status": "PASS"
+    },
+    {
+      "id": "T1.1",
+      "name": "Tags template uses slash, not comma",
+      "status": "PASS",
+      "notes": "header line: Name,TagType (Internal/External),Description"
+    },
+    {
+      "id": "T1.2",
+      "name": "Tags template parses as exactly 3 columns",
+      "status": "PASS",
+      "notes": "got 3 columns: [Name | TagType (Internal/External) | Description]"
+    },
+    {
+      "id": "T3.1",
+      "name": "User template Role hint includes Partner",
+      "status": "PASS",
+      "notes": "role hint excerpt: Role (Admin/Analyst/External/Partner)"
+    },
+    {
+      "id": "T3.2",
+      "name": "User template has dedicated Partner column",
+      "status": "PASS",
+      "notes": "header: Name,Email,Role (Admin/Analyst/External/Partner),Status (Active/Inactive),\"User Company (semicolon-separated names, or \"\"All\"\")\",Partner (semicolon-separated names; required for Partner role)"
+    },
+    {
+      "id": "T4.0",
+      "name": "At least one Partner exists for import smoke",
+      "status": "PASS",
+      "notes": "using: Amazon"
+    },
+    {
+      "id": "T4.1",
+      "name": "POST /Admin/CreateUser with role=Partner + partnerIds=[validId] succeeds",
+      "status": "PASS",
+      "notes": "status=200, msg=User created successfully"
+    },
+    {
+      "id": "T4.2",
+      "name": "Created Partner-role user shows partner association on read-back",
+      "status": "PASS",
+      "notes": "linked: Amazon"
+    },
+    {
+      "id": "T5.1",
+      "name": "JS guard \"Partner role requires the Partner column\" present in served bundle",
+      "status": "PASS"
+    },
+    {
+      "id": "T5.2",
+      "name": "resolvePartnerIds helper present in served bundle",
+      "status": "PASS"
+    },
+    {
+      "id": "T5.3",
+      "name": "Partner column header literal present in served bundle",
+      "status": "PASS"
+    }
+  ]
+}

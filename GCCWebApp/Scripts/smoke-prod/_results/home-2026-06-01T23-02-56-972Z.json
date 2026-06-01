@@ -1,0 +1,922 @@
+{
+  "viewId": "home",
+  "url": "/Home/Index",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-01T23:02:56.972Z",
+  "finishedAt": "2026-06-01T23:03:34.064Z",
+  "pass": 95,
+  "fail": 9,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.redirect",
+      "name": "Role redirect lands on / OR /Certificate/CertificateTileView",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.public-login-link",
+      "name": "Public users see a login affordance",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.redirect",
+      "name": "Role redirect lands on / OR /Certificate/CertificateTileView",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.public-login-link",
+      "name": "Public users see a login affordance",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.redirect",
+      "name": "Role redirect lands on / OR /Certificate/CertificateTileView",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.mobile-toggle",
+      "name": "Mobile nav toggle present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.public-login-link",
+      "name": "Public users see a login affordance",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-desktop-fail-2026-06-01T23-03-01-002Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-desktop-fail-2026-06-01T23-03-01-002Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-desktop-fail-2026-06-01T23-03-01-002Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-desktop-fail-2026-06-01T23-03-01-002Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-desktop-fail-2026-06-01T23-03-01-002Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Error loading filter options: TypeError: Failed to fetch\n    at loadFilterOptions (http://localhost:5101/js/certificate-tile-view-external.js?v=oXRm0Zi-uHuT5JiWR4_ybudPyY8qaWNcJ2XzqEKhAzI:55:36)\n    at initialize (http://localhost:5101/js/certificate-tile-view-external.js?v=oXRm0Zi-uHuT5JiWR4_ybudPyY8qaWNcJ2XzqEKhAzI:41:13)\n    at HTMLDocument.<anonymous> (http://localhost:5101/js/certificate-tile-view-external.js?v=oXRm0Zi-uHuT5JiWR4_ybudPyY8qaWNcJ2XzqEKhAzI:2056:17)",
+      "screenshot": "_results\\screenshots\\home-external-desktop-fail-2026-06-01T23-03-01-002Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-desktop-fail-2026-06-01T23-03-01-002Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-desktop-fail-2026-06-01T23-03-01-002Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-tablet-fail-2026-06-01T23-03-03-325Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-tablet-fail-2026-06-01T23-03-03-325Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-tablet-fail-2026-06-01T23-03-03-325Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-tablet-fail-2026-06-01T23-03-03-325Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-tablet-fail-2026-06-01T23-03-03-325Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Error loading filter options: TypeError: Failed to fetch\n    at loadFilterOptions (http://localhost:5101/js/certificate-tile-view-external.js?v=oXRm0Zi-uHuT5JiWR4_ybudPyY8qaWNcJ2XzqEKhAzI:55:36)\n    at initialize (http://localhost:5101/js/certificate-tile-view-external.js?v=oXRm0Zi-uHuT5JiWR4_ybudPyY8qaWNcJ2XzqEKhAzI:41:13)\n    at HTMLDocument.<anonymous> (http://localhost:5101/js/certificate-tile-view-external.js?v=oXRm0Zi-uHuT5JiWR4_ybudPyY8qaWNcJ2XzqEKhAzI:2056:17)",
+      "screenshot": "_results\\screenshots\\home-external-tablet-fail-2026-06-01T23-03-03-325Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-tablet-fail-2026-06-01T23-03-03-325Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-tablet-fail-2026-06-01T23-03-03-325Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-mobile-fail-2026-06-01T23-03-06-974Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375",
+      "screenshot": "_results\\screenshots\\home-external-mobile-fail-2026-06-01T23-03-06-974Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-mobile-fail-2026-06-01T23-03-06-974Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-mobile-fail-2026-06-01T23-03-06-974Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-mobile-fail-2026-06-01T23-03-06-974Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.mobile-toggle",
+      "name": "Mobile nav toggle present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-mobile-fail-2026-06-01T23-03-06-974Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-mobile-fail-2026-06-01T23-03-06-974Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Error loading filter options: TypeError: Failed to fetch\n    at loadFilterOptions (http://localhost:5101/js/certificate-tile-view-external.js?v=oXRm0Zi-uHuT5JiWR4_ybudPyY8qaWNcJ2XzqEKhAzI:55:36)\n    at initialize (http://localhost:5101/js/certificate-tile-view-external.js?v=oXRm0Zi-uHuT5JiWR4_ybudPyY8qaWNcJ2XzqEKhAzI:41:13)\n    at HTMLDocument.<anonymous> (http://localhost:5101/js/certificate-tile-view-external.js?v=oXRm0Zi-uHuT5JiWR4_ybudPyY8qaWNcJ2XzqEKhAzI:2056:17)",
+      "screenshot": "_results\\screenshots\\home-external-mobile-fail-2026-06-01T23-03-06-974Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-mobile-fail-2026-06-01T23-03-06-974Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-external-mobile-fail-2026-06-01T23-03-06-974Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-desktop-fail-2026-06-01T23-03-10-364Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-desktop-fail-2026-06-01T23-03-10-364Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-desktop-fail-2026-06-01T23-03-10-364Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-desktop-fail-2026-06-01T23-03-10-364Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-desktop-fail-2026-06-01T23-03-10-364Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Error loading filter options: TypeError: Failed to fetch\n    at loadFilterOptions (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:56:36)\n    at initialize (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:42:13)\n    at HTMLDocument.<anonymous> (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:2175:17)",
+      "screenshot": "_results\\screenshots\\home-analyst-desktop-fail-2026-06-01T23-03-10-364Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-desktop-fail-2026-06-01T23-03-10-364Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-desktop-fail-2026-06-01T23-03-10-364Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-tablet-fail-2026-06-01T23-03-13-856Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-tablet-fail-2026-06-01T23-03-13-856Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-tablet-fail-2026-06-01T23-03-13-856Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-tablet-fail-2026-06-01T23-03-13-856Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-tablet-fail-2026-06-01T23-03-13-856Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Error loading filter options: TypeError: Failed to fetch\n    at loadFilterOptions (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:56:36)\n    at initialize (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:42:13)\n    at HTMLDocument.<anonymous> (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:2175:17)",
+      "screenshot": "_results\\screenshots\\home-analyst-tablet-fail-2026-06-01T23-03-13-856Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-tablet-fail-2026-06-01T23-03-13-856Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-tablet-fail-2026-06-01T23-03-13-856Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-mobile-fail-2026-06-01T23-03-17-313Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375",
+      "screenshot": "_results\\screenshots\\home-analyst-mobile-fail-2026-06-01T23-03-17-313Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-mobile-fail-2026-06-01T23-03-17-313Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-mobile-fail-2026-06-01T23-03-17-313Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-mobile-fail-2026-06-01T23-03-17-313Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.mobile-toggle",
+      "name": "Mobile nav toggle present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-mobile-fail-2026-06-01T23-03-17-313Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-mobile-fail-2026-06-01T23-03-17-313Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Error loading filter options: TypeError: Failed to fetch\n    at loadFilterOptions (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:56:36)\n    at initialize (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:42:13)\n    at HTMLDocument.<anonymous> (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:2175:17)",
+      "screenshot": "_results\\screenshots\\home-analyst-mobile-fail-2026-06-01T23-03-17-313Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-mobile-fail-2026-06-01T23-03-17-313Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-analyst-mobile-fail-2026-06-01T23-03-17-313Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-desktop-fail-2026-06-01T23-03-20-558Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-desktop-fail-2026-06-01T23-03-20-558Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-desktop-fail-2026-06-01T23-03-20-558Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-desktop-fail-2026-06-01T23-03-20-558Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-desktop-fail-2026-06-01T23-03-20-558Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Error loading filter options: TypeError: Failed to fetch\n    at loadFilterOptions (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:56:36)\n    at initialize (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:42:13)\n    at HTMLDocument.<anonymous> (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:2175:17)",
+      "screenshot": "_results\\screenshots\\home-admin-desktop-fail-2026-06-01T23-03-20-558Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-desktop-fail-2026-06-01T23-03-20-558Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-desktop-fail-2026-06-01T23-03-20-558Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-tablet-fail-2026-06-01T23-03-24-796Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-tablet-fail-2026-06-01T23-03-24-796Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-tablet-fail-2026-06-01T23-03-24-796Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-tablet-fail-2026-06-01T23-03-24-796Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-tablet-fail-2026-06-01T23-03-24-796Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Error loading filter options: TypeError: Failed to fetch\n    at loadFilterOptions (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:56:36)\n    at initialize (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:42:13)\n    at HTMLDocument.<anonymous> (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:2175:17)",
+      "screenshot": "_results\\screenshots\\home-admin-tablet-fail-2026-06-01T23-03-24-796Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-tablet-fail-2026-06-01T23-03-24-796Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-tablet-fail-2026-06-01T23-03-24-796Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-mobile-fail-2026-06-01T23-03-28-402Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375",
+      "screenshot": "_results\\screenshots\\home-admin-mobile-fail-2026-06-01T23-03-28-402Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-mobile-fail-2026-06-01T23-03-28-402Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-mobile-fail-2026-06-01T23-03-28-402Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-mobile-fail-2026-06-01T23-03-28-402Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.mobile-toggle",
+      "name": "Mobile nav toggle present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-mobile-fail-2026-06-01T23-03-28-402Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-mobile-fail-2026-06-01T23-03-28-402Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Error loading filter options: TypeError: Failed to fetch\n    at loadFilterOptions (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:56:36)\n    at initialize (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:42:13)\n    at HTMLDocument.<anonymous> (http://localhost:5101/js/certificate-tile-view-internal.js?v=oRU9kkPhvKQEwQ9oNkwtchhhq-kCUvY2unR-LiJ7Hwg:2175:17)",
+      "screenshot": "_results\\screenshots\\home-admin-mobile-fail-2026-06-01T23-03-28-402Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-mobile-fail-2026-06-01T23-03-28-402Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\home-admin-mobile-fail-2026-06-01T23-03-28-402Z.png"
+    }
+  ]
+}

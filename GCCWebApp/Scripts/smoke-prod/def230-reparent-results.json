@@ -1,0 +1,68 @@
+[
+  {
+    "id": "SETUP",
+    "name": "Login + token + tree access",
+    "status": "PASS",
+    "notes": "token len=198"
+  },
+  {
+    "id": "DEF230-T1-create",
+    "name": "Probe type created under cat A",
+    "status": "PASS",
+    "notes": "id=54, under \"Batch2QA-Cat-1777645766616\"=true"
+  },
+  {
+    "id": "DEF230-T1-update-call",
+    "name": "Update returns success",
+    "status": "PASS",
+    "notes": "http=200 msg=\"Product type updated successfully\""
+  },
+  {
+    "id": "DEF230-T1-moved",
+    "name": "Type now under cat B, not cat A (re-parent PERSISTED)",
+    "status": "PASS",
+    "notes": "under \"Chemicals and Raw Materials\"=true, still under \"Batch2QA-Cat-1777645766616\"=false"
+  },
+  {
+    "id": "DEF230-T2-create-sub",
+    "name": "Subcategory created under type A",
+    "status": "PASS",
+    "notes": "id=57, under type A=true"
+  },
+  {
+    "id": "DEF230-T2-update-call",
+    "name": "Update returns success",
+    "status": "PASS",
+    "notes": "http=200 msg=\"Product type updated successfully\""
+  },
+  {
+    "id": "DEF230-T2-moved",
+    "name": "Subcategory now under type B, not type A (re-parent PERSISTED)",
+    "status": "PASS",
+    "notes": "under B=true, still under A=false"
+  },
+  {
+    "id": "DEF230-T2-category-inherit",
+    "name": "Moved sub inherits new parent’s category (under cat B subtree)",
+    "status": "PASS",
+    "notes": "sub.parent=56 (typeB=56), typeB.parent=1 (catB=1)"
+  },
+  {
+    "id": "DEF230-T2-self-parent",
+    "name": "Self-parent rejected",
+    "status": "PASS",
+    "notes": "ok=false msg=\"An item cannot be its own parent\""
+  },
+  {
+    "id": "DEF230-T3-dup-name",
+    "name": "Duplicate name under same category rejected",
+    "status": "PASS",
+    "notes": "ok=false msg=\"'ZZ_Probe_Dup_1780348147241' already exists under 'Batch2QA-Cat-1777645766616'\""
+  },
+  {
+    "id": "DEF230-cleanup",
+    "name": "Probe nodes removed",
+    "status": "PASS",
+    "notes": "removed=6, failed=0 (created this run=6)"
+  }
+]

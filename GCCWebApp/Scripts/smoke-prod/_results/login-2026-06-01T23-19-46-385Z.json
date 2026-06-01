@@ -1,0 +1,36 @@
+{
+  "viewId": "login",
+  "url": "/Account/Login",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-01T23:19:46.385Z",
+  "finishedAt": "2026-06-01T23:19:51.981Z",
+  "pass": 0,
+  "fail": 3,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.access",
+      "name": "Access check (expected 200, got 401)",
+      "status": "FAIL",
+      "notes": "redirected to /Account/Login"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.access",
+      "name": "Access check (expected 200, got 401)",
+      "status": "FAIL",
+      "notes": "redirected to /Account/Login"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.access",
+      "name": "Access check (expected 200, got 401)",
+      "status": "FAIL",
+      "notes": "redirected to /Account/Login"
+    }
+  ]
+}

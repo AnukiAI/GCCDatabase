@@ -203,6 +203,22 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 - **Detail doc:** `docs/tracking/CR-018-product-id-server-paging.md`
 - **Status:** **Built 2026-05-07.** Verified end-to-end on dev cert `26-0023` (1001 product IDs): page settle dropped from 3500 ms → 1046 ms (after JIT warm-up). Sort round-trip 449 ms. Page-2 fetch 309 ms. Initial payload 50 rows (was 1001). All Playwright acceptance checks pass. Pending UAT / deploy.
 
+### CR-019 (proposed 2026-06-01) — Data-correction pass: product mis-categorization cleanup (DEF-231 fallout)
+- **Source:** QC #186 (client 5/29) + QC #170 test-data removal. The cert form's inline "Add New product" filed products under the wrong (first-sorted) category with no type/subcategory, ignoring the analyst's form selections, and that wrong category then propagated onto the certificate. Code fix is DEF-231 (done, verified locally, queued for deploy); this CR covers the rows already corrupted before the fix.
+- **Type:** Data operation (one-time UPDATE/DELETE on live business records) — not a code or scope change.
+- **Why CR (not on-the-fly):** Per [[feedback_data_changes_require_cr]], any UPDATE/DELETE on live business records requires written GCC approval. Per [[feedback_data_issue_vs_defect]] this is data ops, so the SQL is date-prefixed (no DEF prefix) and there is no DEF row for the cleanup itself.
+- **Hard constraint:** the analyst's intended category was overwritten by the bug and is not stored anywhere — there is no value to auto-restore. Remediation is identify → human triage → guarded write, not a blind mass UPDATE. For most real records, re-saving in the now-fixed screen is the cleanest correction.
+- **Scope:** (1) read-only IDENTIFY query → review worklist; (2) GCC + Anuki triage into test-junk-to-delete vs real-records-to-correct; (3) guarded REMEDIATE — deletes confirmed "Carly Test" data (refuses if a real cert references it), applies human-confirmed corrections with FK-consistency guards, cascades to linked certs. Transaction rolls back by default; dry-run → verify counts → commit.
+- **Safeguards:** full DB backup before any write (no upload/file changes); ROLLBACK-by-default dry run; integrity THROW guards; scripts committed and reviewable.
+- **What GCC approves:** running the read-only identify; deleting the test data; applying a reviewed/agreed correction worklist (GCC signs off on the actual row list before commit).
+- **Acceptance:** suspect count → 0 (or documented residual); corrected certs/products show right category + type/subcategory; "Carly Test" gone from hierarchy/dropdowns; no real cert deleted/orphaned.
+- **Rollback:** pre-commit = automatic transaction rollback; post-commit = restore from the pre-run backup (or targeted per-row re-correction).
+- **Partner API impact:** no JSON shape change (`/api/v1/certificates*` untouched per [[feedback_amazon_api_immutable]]); for any partner-visible cert whose category is corrected, the partner sees the now-accurate category value (data-accuracy improvement, flagged for awareness).
+- **Scripts:** `Scripts/data-ops/2026-06-01-product-miscategorization-{IDENTIFY,REMEDIATE}.sql`
+- **Detail doc:** `docs/tracking/CR-019-product-miscategorization-data-cleanup.md`
+- **Effort estimate:** ~2–4 hrs total (identify + triage + remediate + verify), volume TBD from live IDENTIFY output.
+- **Status:** Proposed 2026-06-01 — awaiting GCC approval. Nothing run against live yet.
+
 ### CR-017 (proposed 2026-05-06) — Unsaved-form recovery banner UX rework (Phase 2)
 - **Source:** Internal — Shawn observed the *"Unsaved form data recovered from 08:25 PM. Would you like to restore it?"* banner appearing as a false positive on the cert Create page. Cascading dropdowns retrigger change events on initial load, which the tracker reads as user edits.
 - **Why CR (not a defect):** The current banner has known UX failure modes — false positives from cascading-dropdown change events, partial restore that doesn't bring back the cert PDF / thumbnail / product IDs / custom fields, no scope check between Create and Edit pages, ambiguous timestamp. Building a trustworthy version is a feature improvement, not a defect fix. Sized for Phase 2 so it can be prioritized against other Phase 2 work.

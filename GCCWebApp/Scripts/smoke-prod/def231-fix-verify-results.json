@@ -1,0 +1,38 @@
+[
+  {
+    "id": "SETUP-hierarchy",
+    "name": "Intended Category + Type chosen",
+    "status": "PASS",
+    "notes": "category=\"Chemicals and Raw Materials\"(1), type=\"Additives\"(1); default=\"Batch2QA-Cat-1777645766616\""
+  },
+  {
+    "id": "DEF231-form-state",
+    "name": "Form holds analyst pick before quick-add",
+    "status": "PASS",
+    "notes": "#ProductCategoryId=1 (want 1), #ProductTypeId=1 (want 1)"
+  },
+  {
+    "id": "DEF231-quickadd-fired",
+    "name": "Inline Add New posted to /Product/SaveProduct",
+    "status": "PASS",
+    "notes": "http=200"
+  },
+  {
+    "id": "DEF231-FIX-category",
+    "name": "Product saved under the analyst’s category (not the default)",
+    "status": "PASS",
+    "notes": "saved category=\"Chemicals and Raw Materials\" (want \"Chemicals and Raw Materials\")"
+  },
+  {
+    "id": "DEF231-FIX-type",
+    "name": "Product saved with the analyst’s product type",
+    "status": "PASS",
+    "notes": "saved type=\"Additives\" (want \"Additives\")"
+  },
+  {
+    "id": "DEF231-cleanup",
+    "name": "Throwaway products removed",
+    "status": "PASS",
+    "notes": "removed=1, failed=0"
+  }
+]

@@ -81,6 +81,297 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 ## Open / Recent
 
+### DEF-233 — `pageUnloading` navigation-abort guard was only on `loadInitialCertificates`, not on `loadFilterOptions` — all 3 tile-view scripts (caught by new E2E smoke template on first run)
+
+- **Date:** 2026-06-01
+- **Severity:** Low (cosmetic console noise + smoke-suite false positive). The earlier pageUnloading fix wrapped one of two parallel fetches in each tile-view script. The unwrapped `loadFilterOptions` fetch, when aborted by navigation or browser-context teardown, throws "Failed to fetch" and logs to console. Production users would only see this on rapid navigation away during initial page load — narrow window, no functional impact. The bigger reason to fix: the new E2E smoke template flags any `[console.error]` as a FAIL, and this was a guaranteed false positive on every authenticated tile-view smoke.
+- **Status:** **Fixed locally — pending deploy.** 2-line change × 3 files. Smoke `home.js` was 9/104 FAIL pre-fix → 104/104 PASS post-fix (verified twice in a row).
+- **QC Ref:** internal (not a client QC item — found by tooling). Linked to the E2E smoke plan in `docs/tracking/e2e-smoke-plan.md`.
+- **Bucket:** Bug (front-end — pre-existing fix had partial coverage of the symptom surface)
+- **Reporter:** E2E smoke template (Day 1 reference impl), 2026-06-01
+
+**Root cause.** Per memory `feedback_scoping_check_adjacent_endpoints` — the prior pageUnloading fix (May 2026) added a module-level `pageUnloading` flag set on `pagehide`, and a `if (pageUnloading) return;` guard in the catch block of `loadInitialCertificates` in all three tile-view scripts. But each file also has a `loadFilterOptions` function that runs in **parallel** with `loadInitialCertificates` via `Promise.all([loadFilterOptions(), loadInitialCertificates()])`. Its catch block was identical structure but missing the guard — so when context teardown / navigation aborted ITS fetch, the catch logged `"Error loading filter options: TypeError: Failed to fetch"` even though the failure was already-expected navigation noise.
+
+**Why the smoke caught it but UAT didn't.** The smoke calls `ctx.close()` immediately after assertions complete — sub-second after page load. Real users don't navigate that fast, so the fetch usually completes before any abort. Run-to-run variance in the smoke (timing race) is why it showed 0 errors on one run and 9 on another. The fix is deterministic; the symptom was nondeterministic.
+
+**Fix.** Two lines per file in 3 files:
+- `wwwroot/js/certificate-tile-view-external.js:60-62` — added `if (pageUnloading) return;` ahead of `console.error`.
+- `wwwroot/js/certificate-tile-view-internal.js:61-63` — same.
+- `wwwroot/js/certificate-tile-view.js:106-108` — same.
+
+**Verification.** `Scripts/smoke-prod/_views/home.js` ran 104/104 PASS twice in a row (4 roles × 3 viewports × ~9 assertions each). Pre-fix runs showed 95-101 PASS depending on timing race. The home smoke is now the Day 1 reference impl for the E2E plan; results JSON in `Scripts/smoke-prod/_results/`.
+
+**Linked memory.** [[feedback_scoping_check_adjacent_endpoints]] (parallel fetches share the same abort window — fix both at once); the original pageUnloading fix (May 2026) closed `loadInitialCertificates` but missed the parallel `loadFilterOptions`.
+
+---
+
+### DEF-232 — Template export polish: Tags template comma-splits "Internal/External" header, Cert template em dash becomes mojibake in Excel, User template + bulk import didn't accept Partner (QC #148 5/29 follow-up)
+
+- **Date:** 2026-06-01
+- **Severity:** Medium (cosmetic + misleading + hidden gap) — Tags template parses as 4 cols instead of 3 in Excel (Internal lands in B, External in C, Description shifts to D); Cert template Status hint shows `â€"` where the em dash should be; User template Role hint omitted Partner AND the bulk-import path had no way to associate partners (header-only fix would have created orphaned Partner-role accounts). Client called the Cert mojibake "not a deal breaker"; the Tags column split is the real blocker.
+- **Status:** **Fixed locally — pending deploy.** All three surfaces fixed including the full Partner wire-through (template + JS parser + payload + service-level dictionary). Build clean.
+- **QC Ref:** #148 — 5/29 client follow-up to DEF-202 (Sprint 3 cert template Status-hint inline values)
+- **Bucket:** Bug (template export — CSV encoding + header construction + missing import column)
+- **Reporter:** Shawn West, 2026-06-01 (relaying client 5/29 comment + screenshot)
+
+**Root causes (3 separate bugs sharing the "template export" surface).**
+
+1. **Tags template — unquoted comma in header splits the row.**
+   `wwwroot/js/tags.js::downloadImportTemplate` built the header row as
+   `['Name', 'TagType (Internal, External)', 'Description'].join(',')`
+   → `Name,TagType (Internal, External),Description`. The unquoted internal comma made Excel parse 4 columns. Client's screenshot confirms: B=`TagType (Internal`, C=`External)`, D=`Description`.
+
+2. **Cert template — UTF-8 written without BOM; Excel decodes as Windows-1252.**
+   `Controllers/CertificateImportController.cs::DownloadTemplate` used
+   `Encoding.UTF8.GetBytes(templateCsv)` (no preamble). The Status hint contains an em dash (U+2014 `—`) which encodes as `0xE2 0x80 0x94` in UTF-8; Excel on Windows interprets those three bytes as `â€"` because there's no BOM telling it the file is UTF-8. Mojibake visible in the screenshot's formula bar right before "defaults to Draft if blank."
+
+3. **User template — Role hint lists 3 of 4 valid roles.**
+   `wwwroot/js/userManagement.js::downloadImportTemplate` writes `'Role (Admin/Analyst/External)'`. The role dropdown (lines 103–110) and `BulkImportUsersAsync` (`Services/AdminService.cs:296`) both accept any role-table value, including Partner, but the template doesn't advertise it.
+
+**Fix (issues 1 + 2).**
+- `wwwroot/js/tags.js:546` — header renamed to `'TagType (Internal/External)'` (slash separator, matches User Mgmt template pattern). 1-line change.
+- `Controllers/CertificateImportController.cs:336` — emit UTF-8 BOM (`new UTF8Encoding(encoderShouldEmitUTF8Identifier: true)` → preamble prepended to body). Future non-ASCII headers also covered.
+
+**Fix (issue 3 — Partner wired through end-to-end).** Shawn chose path (A) on 2026-06-01: advertise Partner in the template AND wire `PartnerNames` through the full bulk-import stack so the template promise is honest. Mirrors the existing `CompanyNames` pattern at every layer.
+
+- **Template.** `wwwroot/js/userManagement.js::downloadImportTemplate` — Role hint now reads `Role (Admin/Analyst/External/Partner)` and a new `Partner (semicolon-separated names; required for Partner role)` column is appended.
+- **JS parser.** `normalizeUserHeaderName` accepts `partner`/`partners`/`partnername`/`partnernames` → maps to canonical `partner`. The parsed-row builder and `parsedUsers.push(...)` carry `partner` alongside `company`. Sanitization (HTML strip, javascript: defang) runs over the value just like the other text fields.
+- **JS payload.** `commitImport` calls new `resolvePartnerIds(row.data.partner)` (parallels `resolveCompanyIds`) to map CSV partner names → IDs via the in-memory `this.partners` cache loaded at page init. Partner role with empty `partnerIds` is **rejected with a clear row-level error** before POSTing — no orphaned-account regression possible. Payload now includes `partnerIds` alongside `companyIds`.
+- **Server payload model.** `CreateUserViewModel` already had `PartnerIds`. No model change needed for the current per-row POST path (`/Admin/CreateUser`).
+- **Server bulk path.** `BulkImportUserItem` gains a `PartnerNames` list and `BulkImportUsersAsync` (`Services/AdminService.cs`) pre-fetches a `partnerByName` dictionary (mirrors `companyByName`), then validates per row with the same fail-fast pattern as companies — unknown partner name → row rejected with `"{email} - Partner '{name}' not found"`. This branch is currently dormant (DEF-113 added the bulk endpoint but the JS still does per-row `/Admin/CreateUser` — see `userManagement.js:1466`) but kept consistent so a future JS migration to the bulk endpoint won't silently drop the partner column.
+
+**Partner validation summary.** Three independent guards now stop an orphaned Partner-role user from being created via import: (1) JS pre-POST check in `commitImport` rejects empty `partnerIds`; (2) per-user `CreateUserAsync` continues to use `model.PartnerIds` as before — no change needed; (3) `BulkImportUsersAsync` rejects unresolved partner names. Same defense pattern as `feedback_scoping_check_adjacent_endpoints` — the import surface has 4 layers and they all needed the fix together.
+
+**Linked memory.** [[feedback_scoping_check_adjacent_endpoints]] (template + model + JS parser + service all touch the import — only fixing the header would have been incomplete); [[feedback_track_every_fix_in_defect_register]] (every QC fix → DEF).
+
+---
+
+### DEF-231 — Cert form inline "Add New product" ignores the analyst's Category/Type/Subcategory and hard-defaults to the first category (QC #186, threads 2 + 3)
+
+- **Date:** 2026-06-01
+- **Severity:** High (data integrity — products created via the cert form's quick-add land under the wrong category with no type/subcategory; the analyst's explicit selections are silently discarded, and the bad hierarchy then propagates to the cert and to Product Management)
+- **Status:** **Fixed + verified on `localhost:5101` (2026-06-01) — `saveInlineProduct` now reads the form's Category/Type/Subcategory and passes them to `/Product/SaveProduct`.** Repro `def231-quickadd-repro.js` 8/8, fix-verify `def231-fix-verify.js` 6/6. Pending deploy.
+- **QC Ref:** #186 (client 5/29: *"I selected Chemicals and it shows Carly Test … Product Type/Subcategory are not appearing … not showing in Product Management (26-0166) … it changed/removed some of my selections"*). QC #186 is the open-items rollup Carly cross-referenced from #91 and #170.
+- **Bucket:** Bug (front-end — wrong source for a required FK + dropped optional FKs)
+- **Reporter:** Shawn West, 2026-06-01 (triage of QC #186)
+
+**Root cause (confirmed by repro).** `wwwroot/js/certificate-inline-create.js::saveInlineProduct()` — the "Add New …" footer on the **Product Name** dropdown — built its POST as:
+```js
+const categoryId = await getDefaultCategoryId();   // = /Product/GetCategories[0], lowest SortOrder
+body: { Id:0, Name, CompanyId, CategoryId: categoryId, IsActive:true }   // no ProductTypeId, no ProductSubcategoryId
+```
+It never read `#ProductCategoryId` / `#ProductTypeId` / `#ProductSubcategoryId` from the form. So every quick-added product was forced under the **first** category returned by `GetCategories` (ordered by `SortOrder`) with **no** type/subcategory — regardless of what the analyst picked. In the client's data the lowest-sorted category is "Carly Test," which is why she saw *"selected Chemicals → shows Carly Test."* The cert save path itself is clean (`CertificateController` writes the posted FKs verbatim); the corruption originates entirely in this quick-add helper.
+
+**This single bug produces all three of Carly's symptoms:**
+| QC #186 symptom | Mechanism |
+|---|---|
+| 3b "selected Chemicals, shows Carly Test" | product forced under `GetCategories[0]`, not her pick |
+| 3a "subcategory not in Product Management (26-0166)" | product saved with `ProductTypeId = ProductSubcategoryId = null` |
+| 2 "Product Type blank on Edit (Subcategory kept)" | Edit cascade loads types for the saved (wrong) category, so the intended type isn't in the list and can't pre-select; subcategory loads directly from `savedTypeId` so it survives |
+
+**Repro (deterministic, `Scripts/smoke-prod/def231-quickadd-repro.js`, 8/8).** Replayed the exact buggy payload on localhost: default category was `Batch2QA-Cat-…`(id=10, lowest SortOrder), intended was `Chemicals and Raw Materials`(id=1). The created product persisted under `Batch2QA-Cat-…` with empty type/subcategory — exactly the client's symptom (their first-sorted category being "Carly Test"). Self-cleaning (sweeps `ZZ_Probe_QuickAdd_*`).
+
+**Fix.** `wwwroot/js/certificate-inline-create.js::saveInlineProduct()` now reads `#ProductCategoryId/#ProductTypeId/#ProductSubcategoryId`, prefers the analyst's category (falls back to `getDefaultCategoryId()` only when none is selected — category is required by `/Product/SaveProduct`), and includes `ProductTypeId`/`ProductSubcategoryId` **only** when the form's category was used (so they can't belong to a mismatched category). `ProductSaveModel` already accepts both FKs (the full "Add New Product" modal path uses them), so no server change.
+
+**Fix verification (real UI, `Scripts/smoke-prod/def231-fix-verify.js`, 6/6).** Drove `/Certificate/Create`: selected a company, set Category=Chemicals + Type=Additives on the form, then used the inline "Add New" footer to create a product. Read back via `/Product/GetProducts`: product persisted under **Chemicals / Additives**, not the default. Confirms the form selection now flows through.
+
+**Scope / not in this fix.**
+- **Existing mis-categorized rows** (products/certs created before this fix, e.g. live cert 26-0166) are **not** corrected by a code change — they need a data pass (data op / CR per [[feedback_data_changes_require_cr]]). Thread 2 will keep showing on those specific old certs until their data is fixed; it is resolved for all newly-created products. Draft cleanup scripts (read-only identify + guarded remediate) live at `Scripts/data-ops/2026-06-01-product-miscategorization-{IDENTIFY,REMEDIATE}.sql` — data op, no DEF prefix per [[feedback_data_issue_vs_defect]]; needs backup + CR before running. **The analyst's intended category was overwritten by the bug and is not recoverable from data, so remediation is human-review-driven, not auto-derived.**
+- The full "Add New **Product**" modal (`saveQuickProduct`) was already correct — it posts the modal's own category/type/subcategory. Only the dropdown-footer quick-by-name path (`saveInlineProduct`) was broken.
+- Recommend a follow-up Edit-prefill check on a correctly-categorized cert to confirm Thread 2 is fully closed once data is clean.
+
+**Linked memory.** [[feedback_scoping_check_adjacent_endpoints]] (two product-create paths; only one carried the hierarchy), [[feedback_data_issue_vs_defect]] (code fix here; old rows are data ops).
+
+---
+
+### DEF-230 — Admin → Product Types: editing an existing type/subcategory could not change its parent — re-parent was silently dropped on save (QC #170 5/29 re-open)
+
+- **Date:** 2026-06-01
+- **Severity:** Medium (functional gap; users cannot move a type to a different category or a subcategory to a different type — the only workaround is delete + recreate, which is blocked when references exist)
+- **Status:** **Fixed + automated-probe-verified on `localhost:5101` (2026-06-01) — `UpdateProductTypeAsync` now persists the new parent (`CategoryId` for types, `ParentId`/`CategoryId`/`Level` for subcategories) and cascades `CategoryId` to descendants.** Build 0 errors; probe `def230-reparent.js` 11/11 PASS. Pending next deploy (batching with other open items).
+- **QC Ref:** #170 (client 5/1, re-flagged 5/29: *"I COULD NOT UPDATE THE EXISTING THAT [I] USE BECAUSE IT WOULD NOT GIVE ME THE OTHER ALTS, SOMETHING IS BROKEN"*)
+- **Bucket:** Bug (write path dropped a validated field)
+- **Reporter:** Shawn West, 2026-06-01 (triage of QC #170 5/29 re-open)
+
+**Root cause.** `Services/AdminService.cs::UpdateProductTypeAsync` validated `model.ParentId` (existence, self-parent, descendant-cycle) and then saved **only** `Name` + `SortOrder` — it never assigned `ParentId`, `CategoryId`, or `Level`. The entire parent-validation block was dead code: pick a different parent in the edit dropdown, hit Update, and the item stayed exactly where it was. The edit dropdown (`getParentOptions`, `wwwroot/js/product-types.js:849`) renders and pre-selects correctly, so to the user it looked like the move took until the tree reloaded unchanged.
+
+Compounding bug: the old code looked `model.ParentId` up in `ProductTypes` for **every** edit. But the dropdown value is a **`ProductCategory.Id`** when editing a top-level type (its parents are categories) and a **`ProductType.Id`** when editing a subcategory (its parents are types). Treating a category id as a product-type id would have validated against the wrong table (and could coincidentally match an unrelated type id) had the assignment ever fired.
+
+**Fix (single method, `Services/AdminService.cs::UpdateProductTypeAsync`).** Discriminate off the existing record — `productType.ParentId == null` ⇒ top-level type (parent is a category), else subcategory (parent is a type):
+- **Type branch:** resolve `model.ParentId` against `ProductCategories`; duplicate-name check scoped to `CategoryId` + `ParentId == null`; on a real category change, cascade `CategoryId` to all descendants (subcategories inherit it) then set the type's own `CategoryId`.
+- **Subcategory branch:** resolve against `ProductTypes`; keep the self-parent + descendant-cycle guards; duplicate-name check scoped to the target `ParentId`; assign `ParentId`, inherit `CategoryId` from the new parent, recompute `Level = newParent.Level + 1`.
+- Both branches keep a name-only path (no parent submitted) with an in-place duplicate guard so a failed dropdown pre-select can never null out the parent.
+
+**Files changed.**
+- `Services/AdminService.cs` (`UpdateProductTypeAsync`, lines ~1114–1220)
+
+**Why this is a separate DEF, not part of DEF-196/197/226.**
+- DEF-196 fixed the Usage **count column** + delete-blocker **error messages**; DEF-197 fixed the rollup **dedup**; DEF-226 is the "0 / N" pill **readability**. None of them touched the edit/re-parent write path — it was latent the whole time and is what Carly's 5/29 "could not update the existing" note actually describes.
+
+**Verification — automated probe, 11/11 PASS on `localhost:5101` (2026-06-01).** `Scripts/smoke-prod/def230-reparent.js` (results: `Scripts/smoke-prod/def230-reparent-results.json`). The probe is self-contained and reversible — it creates throwaway `ZZ_Probe_*` nodes, exercises the moves, asserts persistence, then deletes everything it created (cleanup swept all 6 nodes, 0 failures). It is gated localhost-only and refuses to run against gccwebapp/greencirclecertified.
+- **T1** — created a top-level type under cat A, moved it to cat B → tree reloads with it under B and **not** under A (`under B=true, still under A=false`). This is the assertion the old Name+SortOrder-only save would have failed.
+- **T2** — created a subcategory under type A, moved it to type B → now under B not A; **category inheritance** confirmed (moved sub renders in cat B's subtree because it adopted type B's `CategoryId`); **self-parent** rejected with "An item cannot be its own parent".
+- **T3** — renaming a type into a name already taken under the target category is rejected ("'…' already exists under '…'") — the rescoped duplicate guard works.
+- Deploy-day: re-run the same probe against the deployed build (still localhost-only — do not point it at prod). Manual spot-check that Usage counts follow the moved node.
+
+---
+
+### DEF-229 — Certificate Create page: Product Identifier "select all" only selects the visible 50, no cross-page banner appears (QC #159 5/29 follow-up)
+
+- **Date:** 2026-06-01
+- **Severity:** Medium (functional gap; users cannot bulk-clear large in-memory Product ID lists during cert creation — only delete 50 at a time)
+- **Status:** **Fixed locally on `localhost:5101` (2026-06-01) — totalCount now set in in-memory render path, cross-page banner appears, handleBulkDelete branched for in-memory cross-page case.** Pending next deploy (Shawn batching with other open items before redeploy).
+- **QC Ref:** #159 (client 5/29: *"I don't see a mass delete option. Or is the intention to use the 'Replace all existing IDs with this file' when importing a new list?"* — client found the import-replace path; this DEF closes the missing select-all-across-pages affordance on the Create page side)
+- **Bucket:** Bug (state-init gap surfaced by Create-page in-memory mode)
+- **Reporter:** Shawn West, 2026-06-01 (triage of QC #159 follow-up)
+
+**Root cause.** The DEF-194 v2 cross-page select-all banner ("Select all N product IDs across pages") is driven by `this.totalCount` in `updateBulkActionsUI` (`wwwroot/js/product-id-manager.js:1013`). On the Edit page in server-paged mode, `_loadProductIdsPaged` sets `this.totalCount = json.totalCount` (line 175). On the Create page, the manager runs in in-memory mode (`certificateId === 0`, `serverPaged = false`) and the load path at line 308 short-circuits without ever touching `totalCount` — it stayed at its constructor default of `0`. With `totalCount === 0`, `const total = this.totalCount || visible` falls back to `visible` (the 50 rendered rows), `moreOffPage = total > visible` is `false`, and the banner never appears. Header select-all therefore captures only the visible 50 with no path to extend the selection.
+
+Secondary issue: even if the banner had appeared, `handleBulkDelete` would have POSTed `{deleteAll:true}` to `/api/productids/certificate/0/bulk-delete` — there's no certificate yet on Create, so a server bulk-delete is the wrong operation. Create-page rows live entirely in `this.productIds` until form submit.
+
+**Fix (single file, two hunks).**
+1. `renderTable()` — after `applySort()`, set `this.totalCount = this.filteredProductIds.length` when `!this.serverPaged`. Every in-memory mutation path (initial load, applyFilters, add, edit, delete, import-apply) funnels through `renderTable()`, so one assignment covers them all.
+2. `handleBulkDelete()` — the existing in-memory branch (added with DEF-194) only handled the per-row case (`selectedIds`). Extended it to handle cross-page: when `crossPage` is true, drop every row in the current `filteredProductIds` from `productIds` (items outside the active filter stay). Also switched the success toast to show the actual `removed` count rather than the pre-delete intended `count`.
+
+**Files changed.**
+- `wwwroot/js/product-id-manager.js` (lines ~360 and ~1068)
+
+**Why this is a separate DEF, not a reopen of DEF-159/180/194.**
+- DEF-180 (QC #159 close) and DEF-154 (Replace-all toggle) covered the **import-driven** replace path — that still works as confirmed by the client on 5/29.
+- DEF-194 v2 shipped the cross-page select-all UI for the **Edit page** (server-paged). The Create page (in-memory) was not part of that test matrix because the original QC #172 ticket was framed against Edit; the in-memory totalCount gap was latent.
+- This DEF is the in-memory-mode analog of DEF-194 v2, surfaced by Shawn's follow-up review of QC #159.
+
+**Verification (deferred to deploy day per Shawn's batching directive).**
+- Local smoke: open `/Certificate/Create`, import a CSV with >50 rows via Product Identifier import preview, apply, click header select-all → banner appears with `Select all N product IDs`. Click banner → button reads `Delete Selected (N)`. Confirm delete → all in-memory rows removed, toast shows correct count, table renders empty state.
+- Edge: with filter applied (e.g., `Type=ASIN`), repeat → only filtered rows drop, unfiltered rows remain. (In-memory cross-page must respect the visible filter.)
+- Regression: Edit page (server-paged) unchanged — the `!this.serverPaged` guard on the new totalCount assignment means `_applyServerPage`'s authoritative totalCount is the only one used in paged mode.
+
+---
+
+### DEF-228 — Partner CSV export: client thought internal-tagged certs were leaking; verified working-as-designed (QC #182 5/29 follow-up)
+
+- **Date:** 2026-06-01
+- **Severity:** N/A (no defect — investigation confirms current behavior is correct)
+- **Status:** **Closed — Working As Designed. No code change required.** Initial row-level filter was implemented and then reverted same day after Shawn clarified the scope of "internal".
+- **QC Ref:** #182 (5/29 client retest of DEF-198)
+- **Bucket:** Investigation (client clarification — terminology misalignment)
+- **Reporter:** Shawn West, 2026-06-01 (relaying client retest)
+
+**What the client reported.** Cert "Chris Test" set to "Internal visibility" was appearing in the Amazon partner CSV export.
+
+**Reproduction (verified end-to-end on localhost dev DB).** Logged in as `partner_test` (Amazon-mapped Partner role). Hit `/Certificate/ExportCertificates?format=csv` against cert 26-0001 — which has `Status=Client Approved - Paid`, `Partner=Amazon`, AND an internal tag `Sustainable` attached (the closest dev-DB analog to client's "Chris Test"):
+- **Internal Tag column:** absent from CSV header (DEF-128 working correctly)
+- **Internal tag value "Sustainable":** absent from every row (DEF-128 working correctly)
+- **Cert 26-0001 row:** present in export (qualifies by partner + status; correct per Shawn's clarification)
+
+**Clarification (Shawn, 2026-06-01).** "The internal tag should be excluded, not the certificate." Read: hide the *tag* from the export (column + values), keep the *certificate row* visible when it qualifies by partner + status. This is the existing DEF-128 behavior and remains correct.
+
+**Why the misread happened.** The client saw a cert in the partner CSV that — in the admin view — had an internal tag attached. They interpreted "this cert has an internal tag" as "this cert is internal-only and shouldn't be in my view." But internal tags are admin-only *metadata categorization*, not row-level access control. Status is the access-control mechanism (Draft / Hold / Confidential hide a cert from non-internal users; Paid / Republished publish it).
+
+**What got committed and reverted (2026-06-01, same day).** A row-level filter `.Where(c => !c.Tags.Any(t => t.TagType == "internal"))` was added to `Services/CertificateService.cs::ApplyExportSecurityScope` for Partner / External / Public branches. Reverted on Shawn's correction. Net change: zero code.
+
+**Action items going forward.**
+- Update client memo (`docs/tracking/client-memo-partner-api-internal-tags-2026-06-01.md`) to explain the existing behavior is correct — no JSON API change needed, no scope expansion needed.
+- For future client reports of "internal cert showing in partner view": confirm whether the complaint is about the *tag value* leaking (would be a real DEF-128 regression) versus the *cert row* appearing (working as designed; explain status is the access-control lever).
+
+**Verification artifact.** `scripts/smoke-prod/def228-partner-export.js` — Playwright probe of Amazon partner export. Updated to assert the correct working-as-designed PASS criteria (column hidden + tag-value hidden + cert row present).
+
+---
+
+### DEF-227 — Nav-to-content gray spacer missing for Analyst / External / Public; only Admin had it (QC #77 — fix-didn't-propagate)
+
+- **Date:** 2026-06-01
+- **Severity:** Medium (visual inconsistency, not functional; content appears flush against navigation menu for non-admin roles, navigation submenu can feel like it overlaps with content)
+- **Status:** **Fixed locally on `localhost:5101` (2026-06-01) — all 4 roles now render 32px gray spacer (admin shows breadcrumb content inside; others render empty).** Pending deploy.
+- **QC Ref:** #77 (client noted nav overlap in Analyst, gray area present in Admin)
+- **Bucket:** Bug (CSS specificity — prior fix worked only for Admin)
+- **Reporter:** Shawn West, 2026-06-01
+- **Screenshot:** `C:\Users\swest\Downloads\Screenshot 2026-06-01 100149.png` — side-by-side Analyst (bug) vs Admin (correct). Analyst row showed content directly against nav menu; Admin had the gray breadcrumb spacer between.
+
+**Root cause.** `Views/Shared/_Layout.cshtml:299` rendered the breadcrumb container as `<nav class="breadcrumbs role-element role-admin-show">`. The prior fix in `wwwroot/css/main.css:744-746` intended to **always show the gray container** (`.breadcrumbs { display: block !important; min-height: 32px }`) and gate only the content via `.role-admin .breadcrumb-wrapper { visibility: visible }` at line 764. But `.role-element { display: none !important }` at line 2424 has equal specificity (0,1,0) AND appears LATER in the cascade — so for non-Admin roles, `.role-element` won and the gray container was hidden entirely. For Admin, `.role-admin .role-admin-show { display: block !important }` at line 2458 has higher specificity (0,2,0) and won — which is why **only Admin saw the spacer**.
+
+**Fix.** Removed `role-element role-admin-show` classes from the breadcrumb `<nav>` element. The gray container is now governed solely by `.breadcrumbs` rule (display:block always). Content visibility inside is still gated to Admin by the existing `.role-admin .breadcrumb-wrapper { visibility: visible }` logic. Verified across 4 roles on localhost:5101:
+
+| Role | Gray spacer height | Content visible |
+|---|---|---|
+| Admin | 32px ✓ | Yes ✓ |
+| Analyst | 32px ✓ | No (correct) |
+| External | 32px ✓ | No (correct) |
+| Public | 32px ✓ | No (correct) |
+
+**Pattern this case represents.** Same shape as [[feedback_scoping_check_adjacent_endpoints]] — fix landed on one surface (Admin), didn't propagate to adjacent surfaces (Analyst/External/Public). Client called out this is a recurring concern: "Anuki needs to make sure there are not inconsistencies in instances that shouldn't be." For future cross-role CSS fixes, audit body classes for all 4 roles before marking complete.
+
+**Linked code.**
+- `Views/Shared/_Layout.cshtml:299-307` — markup fix
+- `wwwroot/css/main.css:744-766` — pre-existing CSS (unchanged; intent now correctly realised)
+- `wwwroot/css/main.css:2424` — `.role-element` rule that was beating `.breadcrumbs` (unchanged)
+
+**Verification artifact.** `scripts/smoke-prod/def227-nav-spacing.js` — Playwright probe across 4 roles. Re-runnable.
+
+---
+
+### DEF-226 — Admin → Product Types: Usage "0 / N" pill is read as "0" by admins; delete blocks while pill's first half says zero (UX, NOT count accuracy — QC #170 follow-up)
+
+- **Date:** 2026-06-01
+- **Severity:** Medium (counts are technically correct; the surprise is the visual presentation — admin reads only the first number of the `0 / 1` pill and treats the row as deletable. Block message IS specific; surprise is on the table side, not the error side.)
+- **Status:** **Fixed locally on `localhost:5101` (2026-06-01) — count pill now bolds the non-zero half + prefixes a small lock icon when either count blocks deletion.** Pending deploy.
+- **QC Ref:** #170 follow-up (5/19 client retest closed; 6/1 client retest reopens the visual side of it)
+- **Bucket:** Bug (UX presentation — count format trains the eye to read just the first number)
+- **Reporter:** Shawn West, 2026-06-01
+- **Screenshots:**
+  - Original report: `C:\Users\swest\Downloads\Screenshot 2026-06-01 083559.png` (bottom panel "image 79")
+  - Repro run: `scripts/smoke-prod/screenshots/def225-def226-2026-06-01T12-58-37/def226-01-product-types-page.png`
+
+**Reproduction (verified end-to-end).** Setup: created `ProductCategory "DEF226-CatOnly"` (id=15), tagged cert 26-0001 (Id=2) to `ProductCategoryId=15, ProductTypeId=NULL` via `scripts/smoke-prod/def226-setup.sql`. Then walked Admin → Product Types as `admin`:
+- Tree node `DEF226-CatOnly` rendered with count text `"0 / 1"` (0 products, 1 cert) — **count is correct against DB**.
+- POSTed to `/Admin/DeleteProductType/15?isCategory=true` (mirrors what the trash-icon button does). Server returned `{ success: false, message: "Cannot delete: 1 certificate(s) use this category. Edit those certificates to use a different category first, then try again." }` — **block message is correct AND specific** (DEF-196 work).
+- Cleanup ran via `scripts/smoke-prod/def226-cleanup.sql`; cert restored and category dropped.
+
+**Conclusion vs. earlier hypothesis.** The 2026-06-01 first-draft entry guessed this might be a DEF-197 dedup edge case OR DEF-196 regression. The repro disproves both: counts are accurate, block message is accurate. The bug is **UX presentation** — the "0 / 1" pill is rendered as a single blue pill at the right edge of each row; the admin's eye lands on the leading `0` and skips the slash + second digit. The column header `Usage (Products / Certs)` is correct but the in-row pill doesn't reinforce it visually. Same pill geometry on chemicals subtree didn't surface this on 5/19 because that subtree's category rows showed non-zero on both halves (e.g. `4 / 19`).
+
+**Linked memory.**
+- [[feedback_qc_review_no_changes]] — triage + non-mutating repro only; no production-code edits today
+- [[feedback_data_issue_vs_defect]] — verified the count is factually correct against DB, so this stays a DEF (UX presentation bug), not data ops
+
+**Fix applied (2026-06-01).** `wwwroot/js/product-types.js:107-122` (`createTreeNode`). The `<span class="node-count">` now renders three child spans: products / separator / certs. Each count span gets `font-weight: 700` when its value is non-zero, `opacity: 0.55` when zero. When either count > 0, a `<i class="fas fa-lock">` icon is prefixed (font-size 9px, opacity 0.75) with title "In use — delete blocked". The blocker side now jumps off the pill instead of blending into a single "0 / 1" glyph. DB and rollup logic untouched (DEF-196/197 remain correct). Table view (line 364-381) already has separate Products and Certificates columns so doesn't share the pill confusion — no fix needed there.
+
+---
+
+### DEF-225 — Cert Edit: saved Product Name not displayed in custom-dropdown field even though "1 product(s) found" hint shows the product loaded
+
+- **Date:** 2026-06-01
+- **Severity:** High (analyst opens Edit on a cert and the Product Name field reads as cleared; only way to recover the saved value is to re-pick the product, which risks the analyst saving over a previously correct selection with a guess)
+- **Status:** **Fixed locally on `localhost:5101` (2026-06-01) — 5/5 viewports now render "Widget Pro" with dark text rgb(51,51,51) instead of placeholder gray.** Pending deploy.
+- **QC Ref:** #91 (TC-E sub-symptom still outstanding) + #170 (side-finding F, flagged in `qc170-localhost-validation-2026-05-19.md` for separate triage)
+- **Bucket:** Bug (UI display / custom-dropdown state sync on pre-select)
+- **Reporter:** Shawn West, 2026-06-01
+- **Screenshots:**
+  - Original report: `C:\Users\swest\Downloads\Screenshot 2026-06-01 083559.png`
+  - Repro run: `scripts/smoke-prod/screenshots/def225-def226-2026-06-01T12-58-37/def225-{viewport}-02-product-section.png` (5 viewports: 1920/1440/1024/768/390)
+
+**Reproduction (verified end-to-end).** Cert `26-0001` (Id=2, ProductId=77 "Widget Pro") opened via `/Certificate/Edit/26-0001`. Captured DOM state on all 5 viewports:
+- `<select id="ProductId">.value = "77"`, `selectedOption.text = "Widget Pro"`, `selectOptionCount = 2` — underlying select **is** pre-populated correctly by the page's setTimeout(50ms) → `productSelect.val(preselectProductId)`.
+- `.custom-dropdown-trigger > .custom-dropdown-selected` reads **"Select product..."** in placeholder gray `rgb(108, 117, 125)` — the visible widget did NOT sync to the underlying value.
+- `#productHelpText` reads `"1 product(s) found"` — consistent across all 5 viewports.
+- This is the exact contradiction the original screenshot showed.
+
+**Root cause (confirmed).** `Views/Certificate/Edit.cshtml:519-564` (`loadProductsForCompany`) builds `<option>`s into the native `#ProductId` `<select>` then calls `productSelect.val(preselectProductId); productSelect.trigger('change')` inside a 50ms `setTimeout`. **The visible widget is a `.custom-dropdown-wrapper`** (NOT a `searchable-select-wrapper` — the entry's earlier note about SearchableSelect was wrong; corrected by the repro). That custom-dropdown widget is initialized once at page load from the select's option list at that instant. When the page later calls `.val()` on the select, the wrapper does NOT observe the change — so its `.custom-dropdown-selected <span>` stays at the placeholder text. `trigger('change')` on the select does fire the page's own `.change` handler (Category/Type/Subcategory cascade runs correctly, per the screenshot showing `Product Category = DEF226-CatOnly`), but the custom-dropdown's display is not coupled to either event.
+
+**Why DEF-134, DEF-138, DEF-212 didn't close this.**
+- DEF-134 fixed the underlying data API (Product Type / Subcategory IDs returned from `GetProducts`) — relevant to TC-A/B, not the wrapper display.
+- DEF-138 fixed null-wipe of SKU/Model on update — relevant to the Product Management table render, not Cert Edit pre-fill.
+- DEF-212 fixed re-focus on a populated SearchableSelect — different widget AND assumes initial population was correct. This defect is the **initial-population** path on `.custom-dropdown-wrapper`.
+
+**Linked memory.**
+- [[feedback_qc_review_no_changes]] — triage + non-mutating repro only; no production-code edits today
+- [[feedback_scoping_check_adjacent_endpoints]] — Create.cshtml uses the same `loadProductsForCompany` shape (`Views/Certificate/Create.cshtml:483`) but Create has no `savedProductId` to pre-select, so the bug only surfaces on Edit; the fix needs to leave Create's path intact.
+
+**Fix applied (2026-06-01).** `Views/Certificate/Edit.cshtml:546-555` — after `productSelect.val(preselectProductId); productSelect.trigger('change');`, added a native `dispatchEvent(new Event('change', { bubbles: true }))`. The custom-dropdown widget at `wwwroot/js/certificate-inline-create.js:708` registers via `addEventListener('change', ...)` which jQuery's `.trigger('change')` does NOT fire in jQuery 3.x — only jQuery-bound handlers are invoked. The native dispatch ensures the widget's `updateTrigger()` runs and syncs `.custom-dropdown-selected` text to the saved product. Create.cshtml unaffected (no pre-select path).
+
+---
+
+---
+
 ### DEF-224 — Top-N dashboard table downloads were returning all 26 active certs instead of just the certs belonging to the top-N entities
 
 - **Date:** 2026-05-26

@@ -857,9 +857,13 @@ class UserManagement {
             const headers = [
                 'Name',
                 'Email',
-                'Role (Admin/Analyst/External)',
+                'Role (Admin/Analyst/External/Partner)',
                 'Status (Active/Inactive)',
-                'User Company (semicolon-separated names, or "All")'
+                'User Company (semicolon-separated names, or "All")',
+                // DEF-232: Partner column for Partner-role rows. Semicolon-separated names,
+                // resolved client-side to IDs and sent on the CreateUser payload. Ignored
+                // for non-Partner roles.
+                'Partner (semicolon-separated names; required for Partner role)'
             ];
             // Quote any header that contains a comma or quote so the row parses as the
             // correct column count (RFC 4180). Otherwise the User Company header's
@@ -947,7 +951,9 @@ class UserManagement {
                 email,
                 company: user.company || '',
                 role: user.role || 'External',
-                status: (user.status || 'active').toLowerCase()
+                status: (user.status || 'active').toLowerCase(),
+                // DEF-232: Partner column (semicolon-separated names) for Partner-role rows.
+                partner: user.partner || ''
             };
             const cleanedRow = {};
             const cleanedFields = [];
@@ -966,6 +972,7 @@ class UserManagement {
                 company: cleanedRow.company,
                 role: cleanedRow.role,
                 status: cleanedRow.status,
+                partner: cleanedRow.partner,
                 password: user.password || '',
                 requirePasswordReset: (user.requirepasswordreset || '').toLowerCase() === 'true',
                 cleanedFields
@@ -1046,7 +1053,13 @@ class UserManagement {
             // Password reset variations
             'requirepasswordreset': 'requirepasswordreset',
             'resetpassword': 'requirepasswordreset',
-            'forcereset': 'requirepasswordreset'
+            'forcereset': 'requirepasswordreset',
+
+            // DEF-232: Partner column variations (for Partner-role rows)
+            'partner': 'partner',
+            'partners': 'partner',
+            'partnername': 'partner',
+            'partnernames': 'partner'
         };
 
         return headerMappings[normalized] || normalized;
@@ -1448,6 +1461,17 @@ class UserManagement {
                 let response;
                 // Resolve company name/ID from CSV to actual company IDs
                 const companyIds = this.resolveCompanyIds(row.data.company);
+                // DEF-232: resolve Partner names from CSV → partner IDs for Partner-role users.
+                const partnerIds = this.resolvePartnerIds(row.data.partner);
+
+                // DEF-232: Partner role requires at least one partner. Fail fast — don't
+                // create an orphaned Partner-role user (mirrors the manual Add User guard
+                // at handleSubmit line 697).
+                if ((row.data.role || '').toLowerCase() === 'partner' && partnerIds.length === 0) {
+                    errorCount++;
+                    errors.push(`Row ${row.rowNumber} (${row.data.email}): Partner role requires the Partner column (semicolon-separated names)`);
+                    continue;
+                }
 
                 // DEF-186: never send a fallback password for bulk-imported users.
                 // Server (AdminService.CreateUserAsync) generates a random one and
@@ -1459,7 +1483,8 @@ class UserManagement {
                     status: row.data.status,
                     password: '',
                     requirePasswordReset: true,
-                    companyIds: companyIds
+                    companyIds: companyIds,
+                    partnerIds: partnerIds
                 };
 
                 if (row.action === 'create') {
@@ -1561,6 +1586,30 @@ class UserManagement {
             }
             // Match by name (case-insensitive)
             const match = this.companies.find(c => c.name?.toLowerCase() === part.toLowerCase());
+            if (match) {
+                ids.push(match.id);
+            }
+        }
+        return ids;
+    }
+
+    // DEF-232: mirror of resolveCompanyIds for the Partner column. Semicolon-separated
+    // partner names → numeric IDs from this.partners. Unknown names are skipped silently;
+    // the per-row "Partner role requires the Partner column" check catches the empty case.
+    resolvePartnerIds(partnerValue) {
+        if (!partnerValue || !partnerValue.trim()) return [];
+        if (!Array.isArray(this.partners)) return [];
+
+        const parts = partnerValue.trim().split(';').map(p => p.trim()).filter(p => p);
+        const ids = [];
+
+        for (const part of parts) {
+            const asNum = parseInt(part);
+            if (!isNaN(asNum) && this.partners.some(p => p.id === asNum)) {
+                ids.push(asNum);
+                continue;
+            }
+            const match = this.partners.find(p => p.name?.toLowerCase() === part.toLowerCase());
             if (match) {
                 ids.push(match.id);
             }

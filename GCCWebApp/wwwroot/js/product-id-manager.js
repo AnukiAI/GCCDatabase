@@ -359,6 +359,14 @@ class ProductIdManager {
         // No-op in server-paged mode (server already sorted the page).
         this.applySort();
 
+        // DEF-229: in in-memory mode (Create page, legacy non-paged Edit),
+        // totalCount is what drives the "Select all N" cross-page banner in
+        // updateBulkActionsUI. Without this, totalCount stays at 0 and the
+        // banner never appears → select-all caps at the visible 50.
+        if (!this.serverPaged) {
+            this.totalCount = this.filteredProductIds.length;
+        }
+
         if (this.filteredProductIds.length === 0) {
             tbody.innerHTML = this.getEmptyStateHtml();
             this.renderPagination();
@@ -1060,13 +1068,27 @@ class ProductIdManager {
         // In-memory mode (Create page or temp negative IDs): drop from local state only.
         const isInMemory = !this.certificateId || this.certificateId === 0 || this.certificateId === '0';
         if (isInMemory) {
-            const set = new Set(this.selectedIds);
-            this.productIds = this.productIds.filter(p => !set.has(p.id));
+            // DEF-229: cross-page mode keeps selectedIds empty by design (the
+            // "delete all N" path drives off totalCount + current filters). For
+            // in-memory, that means dropping every row that's in the current
+            // filtered view from productIds — items outside the filter stay.
+            let removed;
+            if (crossPage) {
+                const toRemove = new Set(this.filteredProductIds.map(p => p.id));
+                const before = this.productIds.length;
+                this.productIds = this.productIds.filter(p => !toRemove.has(p.id));
+                removed = before - this.productIds.length;
+            } else {
+                const set = new Set(this.selectedIds);
+                const before = this.productIds.length;
+                this.productIds = this.productIds.filter(p => !set.has(p.id));
+                removed = before - this.productIds.length;
+            }
             this.filteredProductIds = [...this.productIds];
             this.clearAllSelection();
             this.renderTable();
             this.updateCount();
-            this.showSuccess(`${count} product ID(s) removed`);
+            this.showSuccess(`${removed} product ID(s) removed`);
             return;
         }
 

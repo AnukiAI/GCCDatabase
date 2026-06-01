@@ -900,8 +900,24 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
         const companySelect = companyWrapper ? companyWrapper.querySelector('select') : document.getElementById('CompanyId');
         const companyId = companySelect ? companySelect.value : '';
 
-        // Get a valid category ID (required field)
-        const categoryId = await getDefaultCategoryId();
+        // DEF-231 (QC #186): use the analyst's selected Category / Type / Subcategory from
+        // the cert form instead of silently defaulting to the first category. Previously this
+        // always sent getDefaultCategoryId() (= /Product/GetCategories[0], the lowest-sorted
+        // category) and NO type/subcategory — so a quick-added product landed under the wrong
+        // category ("Carly Test" in the client's data) with no type/subcategory, and didn't
+        // match the hierarchy the analyst picked. See Scripts/smoke-prod/def231-quickadd-repro.js.
+        const formCategoryEl = document.getElementById('ProductCategoryId');
+        const formTypeEl = document.getElementById('ProductTypeId');
+        const formSubEl = document.getElementById('ProductSubcategoryId');
+        const formCategoryId = formCategoryEl && formCategoryEl.value ? parseInt(formCategoryEl.value) : null;
+        const formTypeId = formTypeEl && formTypeEl.value ? parseInt(formTypeEl.value) : null;
+        const formSubId = formSubEl && formSubEl.value ? parseInt(formSubEl.value) : null;
+
+        // Category is required by /Product/SaveProduct. Prefer the analyst's pick; only fall
+        // back to the default when the form has no category selected. Type/subcategory ride
+        // along ONLY when we used the form's category (otherwise they'd belong to a different one).
+        const usingFormCategory = !!formCategoryId;
+        const categoryId = formCategoryId || await getDefaultCategoryId();
         if (!categoryId) {
             showError('Unable to create product - no categories available');
             return;
@@ -919,6 +935,8 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
                     Name: name,
                     CompanyId: companyId ? parseInt(companyId) : null,
                     CategoryId: categoryId,
+                    ProductTypeId: usingFormCategory ? formTypeId : null,
+                    ProductSubcategoryId: usingFormCategory ? formSubId : null,
                     IsActive: true
                 })
             });

@@ -104,12 +104,20 @@ class ProductTypeManager {
         const prodCount = node.productCount || 0;
         const certCount = node.certificateCount || 0;
         const countTooltip = `${prodCount} product${prodCount === 1 ? '' : 's'} / ${certCount} certificate${certCount === 1 ? '' : 's'} reference this ${level === 1 ? 'category' : level === 2 ? 'type' : 'subcategory'}`;
+        // DEF-226: Bold the non-zero half + lock icon when either count blocks deletion.
+        // Without this, "0 / 1" reads as just "0" and admins are surprised when delete fails.
+        const hasReferences = prodCount > 0 || certCount > 0;
+        const lockIcon = hasReferences
+            ? `<i class="fas fa-lock" title="In use — delete blocked" style="font-size: 9px; margin-right: 5px; opacity: 0.75;" aria-hidden="true"></i>`
+            : '';
+        const prodStyle = prodCount > 0 ? 'font-weight: 700;' : 'opacity: 0.55;';
+        const certStyle = certCount > 0 ? 'font-weight: 700;' : 'opacity: 0.55;';
         nodeContent.innerHTML = `
             <div class="node-indent level-${level}"></div>
             ${hasChildren ? '<div class="node-icon"><i class="fas fa-chevron-right"></i></div>' : '<div class="node-icon"></div>'}
             <div class="node-label">${node.name}</div>
             <div class="node-meta">
-                <span class="node-count" title="${countTooltip}">${prodCount} / ${certCount}</span>
+                <span class="node-count" title="${countTooltip}">${lockIcon}<span style="${prodStyle}">${prodCount}</span><span style="opacity: 0.5; margin: 0 4px;">/</span><span style="${certStyle}">${certCount}</span></span>
                 <div class="node-actions">
                     <button class="action-btn edit" title="Edit ${nodeType}" data-id="${node.id}" data-type="${nodeType}" data-is-category="${isCat}">
                         <i class="fas fa-edit"></i>

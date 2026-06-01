@@ -295,8 +295,12 @@
         </div>
     </header>
 
-    <!-- Breadcrumbs - Only visible for Admin role -->
-    <nav class="breadcrumbs role-element role-admin-show" aria-label="Breadcrumb">
+    <!-- Breadcrumbs - Container always renders (32px gray spacer) for consistent
+         nav-to-content spacing across all roles. Content inside .breadcrumb-wrapper
+         is admin-only via .role-admin .breadcrumb-wrapper { visibility: visible }
+         in main.css. Removing role-element/role-admin-show on the outer <nav>
+         was the fix for analyst view rendering content flush against navigation. -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
         <div class="breadcrumb-wrapper">
             @RenderSection("Breadcrumbs", required: false)
         </div>

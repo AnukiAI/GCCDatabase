@@ -252,6 +252,16 @@ namespace GCCWebApp.Services
             var roleByName = await _context.Roles
                 .ToDictionaryAsync(r => r.Name, r => r, StringComparer.OrdinalIgnoreCase);
 
+            // DEF-232: Partner lookup for Partner-role rows. Mirrors the company dictionary above.
+            var allPartners = await _context.Partners
+                .Where(p => !p.IsDeleted)
+                .ToListAsync();
+            var partnerByName = new Dictionary<string, Partner>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in allPartners)
+            {
+                if (!partnerByName.ContainsKey(p.Name)) partnerByName[p.Name] = p;
+            }
+
             // Track within-batch emails so duplicates inside the same import file are caught.
             var batchEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -339,6 +349,29 @@ namespace GCCWebApp.Services
                             user.Companies.Add(companyEntity);
                         }
                         if (companyResolutionFailed) continue;
+                    }
+
+                    // DEF-232: resolve Partner names → entities for Partner-role users
+                    // (and any other role that wants partner scoping). Same fail-fast pattern
+                    // as CompanyNames above: if any partner name doesn't resolve, the row is
+                    // rejected — better than silently creating an orphaned Partner-role user.
+                    if (item.PartnerNames != null && item.PartnerNames.Count > 0)
+                    {
+                        var partnerResolutionFailed = false;
+                        foreach (var rawName in item.PartnerNames)
+                        {
+                            var partnerName = (rawName ?? string.Empty).Trim();
+                            if (string.IsNullOrEmpty(partnerName)) continue;
+                            if (!partnerByName.TryGetValue(partnerName, out var partnerEntity))
+                            {
+                                result.ErrorCount++;
+                                result.Errors.Add($"{email} - Partner '{partnerName}' not found");
+                                partnerResolutionFailed = true;
+                                break;
+                            }
+                            user.Partners.Add(partnerEntity);
+                        }
+                        if (partnerResolutionFailed) continue;
                     }
 
                     _context.Users.Add(user);
@@ -1114,34 +1147,102 @@ namespace GCCWebApp.Services
                 var productType = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.Id);
                 if (productType == null) return (false, "Product type not found");
 
-                // Validate new parent exists (if specified)
-                ProductType? newParent = null;
-                if (model.ParentId.HasValue)
+                // DEF-230 (QC #170, 5/29 re-open): re-parenting an existing type/subcategory never
+                // persisted. The old code validated model.ParentId then saved ONLY Name + SortOrder,
+                // silently dropping the move — Carly's "could not update the existing ... wouldn't give
+                // me the other alts". It also mis-read model.ParentId as a ProductType for every edit,
+                // but the edit dropdown sends a ProductCategory.Id when editing a top-level type
+                // (getParentOptions lists categories) and a ProductType.Id when editing a subcategory
+                // (lists types). Discriminate off the existing record's shape:
+                //   ParentId == null  => top-level type, its parent is a category
+                //   ParentId != null  => subcategory, its parent is a type
+                bool isTopLevelType = productType.ParentId == null;
+
+                if (isTopLevelType)
                 {
-                    newParent = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.ParentId.Value);
-                    if (newParent == null)
-                        return (false, "The selected parent does not exist");
+                    // Editing a top-level TYPE. model.ParentId (if present) is a ProductCategory.Id.
+                    if (model.ParentId.HasValue)
+                    {
+                        var newCategory = await _context.ProductCategories
+                            .FirstOrDefaultAsync(pc => pc.Id == model.ParentId.Value);
+                        if (newCategory == null)
+                            return (false, "The selected category does not exist");
 
-                    // Prevent circular reference
-                    if (model.ParentId.Value == model.Id)
-                        return (false, "An item cannot be its own parent");
+                        // Duplicate name among top-level types within the target category.
+                        var dupType = await _context.ProductTypes
+                            .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
+                                && pt.CategoryId == newCategory.Id
+                                && pt.ParentId == null
+                                && pt.Id != model.Id);
+                        if (dupType != null)
+                            return (false, $"'{model.Name}' already exists under '{newCategory.Name}'");
 
-                    var descendantIds = await GetDescendantIdsAsync(model.Id);
-                    if (descendantIds.Contains(model.ParentId.Value))
-                        return (false, "Cannot move an item under one of its own descendants");
+                        // Move to the new category. Descendants (subcategories) inherit CategoryId
+                        // — Create sets child.CategoryId = parent.CategoryId — so cascade it down.
+                        if (productType.CategoryId != newCategory.Id)
+                        {
+                            var descendantIds = await GetDescendantIdsAsync(model.Id);
+                            if (descendantIds.Count > 0)
+                            {
+                                var descendants = await _context.ProductTypes
+                                    .Where(pt => descendantIds.Contains(pt.Id))
+                                    .ToListAsync();
+                                foreach (var d in descendants)
+                                    d.CategoryId = newCategory.Id;
+                            }
+                            productType.CategoryId = newCategory.Id;
+                        }
+                    }
+                    else
+                    {
+                        // Name-only edit (no parent submitted): guard the in-place duplicate.
+                        var dupType = await _context.ProductTypes
+                            .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
+                                && pt.CategoryId == productType.CategoryId
+                                && pt.ParentId == null
+                                && pt.Id != model.Id);
+                        if (dupType != null)
+                            return (false, $"'{model.Name}' already exists at this level");
+                    }
                 }
-
-                // Check for duplicate name at the same level
-                var existingType = await _context.ProductTypes
-                    .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
-                        && pt.ParentId == model.ParentId
-                        && pt.Id != model.Id);
-
-                if (existingType != null)
+                else
                 {
-                    return (false, model.ParentId.HasValue
-                        ? $"'{model.Name}' already exists under '{newParent?.Name}'"
-                        : $"'{model.Name}' already exists at the root level");
+                    // Editing a SUBCATEGORY. model.ParentId (if present) is the new parent ProductType.Id.
+                    if (model.ParentId.HasValue)
+                    {
+                        var newParent = await _context.ProductTypes
+                            .FirstOrDefaultAsync(pt => pt.Id == model.ParentId.Value);
+                        if (newParent == null)
+                            return (false, "The selected parent does not exist");
+                        if (model.ParentId.Value == model.Id)
+                            return (false, "An item cannot be its own parent");
+
+                        var descendantIds = await GetDescendantIdsAsync(model.Id);
+                        if (descendantIds.Contains(model.ParentId.Value))
+                            return (false, "Cannot move an item under one of its own descendants");
+
+                        // Duplicate name among siblings under the target parent.
+                        var dupSub = await _context.ProductTypes
+                            .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
+                                && pt.ParentId == newParent.Id
+                                && pt.Id != model.Id);
+                        if (dupSub != null)
+                            return (false, $"'{model.Name}' already exists under '{newParent.Name}'");
+
+                        // Re-parent: adopt the new parent, inherit its category, recompute level.
+                        productType.ParentId = newParent.Id;
+                        productType.CategoryId = newParent.CategoryId;
+                        productType.Level = newParent.Level + 1;
+                    }
+                    else
+                    {
+                        var dupSub = await _context.ProductTypes
+                            .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
+                                && pt.ParentId == productType.ParentId
+                                && pt.Id != model.Id);
+                        if (dupSub != null)
+                            return (false, $"'{model.Name}' already exists under the same parent");
+                    }
                 }
 
                 productType.Name = model.Name;

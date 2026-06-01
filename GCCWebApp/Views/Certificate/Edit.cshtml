@@ -547,6 +547,10 @@
                                 setTimeout(() => {
                                     productSelect.val(preselectProductId);
                                     productSelect.trigger('change');
+                                    // DEF-225: jQuery .trigger('change') doesn't fire native event
+                                    // listeners; the custom-dropdown-wrapper uses addEventListener
+                                    // and would otherwise stay on the placeholder text.
+                                    productSelect[0].dispatchEvent(new Event('change', { bubbles: true }));
                                 }, 50);
                             }
                             helpText.text(`${result.data.length} product(s) found`);

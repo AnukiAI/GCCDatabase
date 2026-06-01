@@ -58,6 +58,7 @@
                 populateFilterOptions();
             }
         } catch (error) {
+            if (pageUnloading) return; // fetch was aborted by navigation, not a real failure
             console.error('Error loading filter options:', error);
         }
     }

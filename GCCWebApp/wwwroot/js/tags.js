@@ -543,7 +543,9 @@ async function loadTags() {
 function downloadImportTemplate() {
     try {
         // Create CSV content with headers only (no sample data)
-        const headers = ['Name', 'TagType (Internal, External)', 'Description'];
+        // Slash separator (not comma) so the unquoted header doesn't split into
+        // two columns when join(',') concatenates the row.
+        const headers = ['Name', 'TagType (Internal/External)', 'Description'];
         const csvContent = headers.join(',');
 
         // Download file

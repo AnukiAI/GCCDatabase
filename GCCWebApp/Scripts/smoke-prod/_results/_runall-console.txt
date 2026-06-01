@@ -1,0 +1,152 @@
+
+[smoke] home (/Home/Index) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop home.access Access check (expected 200, got 200)
+  [PASS] public/desktop home.redirect Role redirect lands on / OR /Certificate/CertificateTileView
+  [PASS] public/desktop home.logo Logo / brand renders
+  [PASS] public/desktop home.nav Main navigation present in DOM
+  [PASS] public/desktop home.public-login-link Public users see a login affordance
+  [PASS] public/desktop home.no-console-errors No console errors
+  [PASS] public/desktop home.no-page-errors No uncaught page errors
+  [PASS] public/desktop home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] public/tablet home.access Access check (expected 200, got 200)
+  [PASS] public/tablet home.redirect Role redirect lands on / OR /Certificate/CertificateTileView
+  [PASS] public/tablet home.logo Logo / brand renders
+  [PASS] public/tablet home.nav Main navigation present in DOM
+  [PASS] public/tablet home.public-login-link Public users see a login affordance
+  [PASS] public/tablet home.no-console-errors No console errors
+  [PASS] public/tablet home.no-page-errors No uncaught page errors
+  [PASS] public/tablet home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] public/mobile home.access Access check (expected 200, got 200)
+  [PASS] public/mobile home.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] public/mobile home.redirect Role redirect lands on / OR /Certificate/CertificateTileView
+  [PASS] public/mobile home.logo Logo / brand renders
+  [PASS] public/mobile home.nav Main navigation present in DOM
+  [PASS] public/mobile home.mobile-toggle Mobile nav toggle present
+  [PASS] public/mobile home.public-login-link Public users see a login affordance
+  [PASS] public/mobile home.no-console-errors No console errors
+  [PASS] public/mobile home.no-page-errors No uncaught page errors
+  [PASS] public/mobile home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/desktop home.access Access check (expected 200, got 200)
+  [PASS] external/desktop home.redirect Role redirect lands on /Certificate/CertificateTileViewExternal
+  [PASS] external/desktop home.logo Logo / brand renders
+  [PASS] external/desktop home.nav Main navigation present in DOM
+  [PASS] external/desktop home.auth-logout Authenticated user has logout form
+  [PASS] external/desktop home.no-console-errors No console errors
+  [PASS] external/desktop home.no-page-errors No uncaught page errors
+  [PASS] external/desktop home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/tablet home.access Access check (expected 200, got 200)
+  [PASS] external/tablet home.redirect Role redirect lands on /Certificate/CertificateTileViewExternal
+  [PASS] external/tablet home.logo Logo / brand renders
+  [PASS] external/tablet home.nav Main navigation present in DOM
+  [PASS] external/tablet home.auth-logout Authenticated user has logout form
+  [PASS] external/tablet home.no-console-errors No console errors
+  [PASS] external/tablet home.no-page-errors No uncaught page errors
+  [PASS] external/tablet home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/mobile home.access Access check (expected 200, got 200)
+  [PASS] external/mobile home.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] external/mobile home.redirect Role redirect lands on /Certificate/CertificateTileViewExternal
+  [PASS] external/mobile home.logo Logo / brand renders
+  [PASS] external/mobile home.nav Main navigation present in DOM
+  [PASS] external/mobile home.mobile-toggle Mobile nav toggle present
+  [PASS] external/mobile home.auth-logout Authenticated user has logout form
+  [PASS] external/mobile home.no-console-errors No console errors
+  [PASS] external/mobile home.no-page-errors No uncaught page errors
+  [PASS] external/mobile home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/desktop home.access Access check (expected 200, got 200)
+  [PASS] analyst/desktop home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] analyst/desktop home.logo Logo / brand renders
+  [PASS] analyst/desktop home.nav Main navigation present in DOM
+  [PASS] analyst/desktop home.auth-logout Authenticated user has logout form
+  [PASS] analyst/desktop home.no-console-errors No console errors
+  [PASS] analyst/desktop home.no-page-errors No uncaught page errors
+  [PASS] analyst/desktop home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/tablet home.access Access check (expected 200, got 200)
+  [PASS] analyst/tablet home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] analyst/tablet home.logo Logo / brand renders
+  [PASS] analyst/tablet home.nav Main navigation present in DOM
+  [PASS] analyst/tablet home.auth-logout Authenticated user has logout form
+  [PASS] analyst/tablet home.no-console-errors No console errors
+  [PASS] analyst/tablet home.no-page-errors No uncaught page errors
+  [PASS] analyst/tablet home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/mobile home.access Access check (expected 200, got 200)
+  [PASS] analyst/mobile home.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] analyst/mobile home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] analyst/mobile home.logo Logo / brand renders
+  [PASS] analyst/mobile home.nav Main navigation present in DOM
+  [PASS] analyst/mobile home.mobile-toggle Mobile nav toggle present
+  [PASS] analyst/mobile home.auth-logout Authenticated user has logout form
+  [PASS] analyst/mobile home.no-console-errors No console errors
+  [PASS] analyst/mobile home.no-page-errors No uncaught page errors
+  [PASS] analyst/mobile home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/desktop home.access Access check (expected 200, got 200)
+  [PASS] admin/desktop home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] admin/desktop home.logo Logo / brand renders
+  [PASS] admin/desktop home.nav Main navigation present in DOM
+  [PASS] admin/desktop home.auth-logout Authenticated user has logout form
+  [PASS] admin/desktop home.no-console-errors No console errors
+  [PASS] admin/desktop home.no-page-errors No uncaught page errors
+  [PASS] admin/desktop home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/tablet home.access Access check (expected 200, got 200)
+  [PASS] admin/tablet home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] admin/tablet home.logo Logo / brand renders
+  [PASS] admin/tablet home.nav Main navigation present in DOM
+  [PASS] admin/tablet home.auth-logout Authenticated user has logout form
+  [PASS] admin/tablet home.no-console-errors No console errors
+  [PASS] admin/tablet home.no-page-errors No uncaught page errors
+  [PASS] admin/tablet home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/mobile home.access Access check (expected 200, got 200)
+  [PASS] admin/mobile home.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] admin/mobile home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] admin/mobile home.logo Logo / brand renders
+  [PASS] admin/mobile home.nav Main navigation present in DOM
+  [PASS] admin/mobile home.mobile-toggle Mobile nav toggle present
+  [PASS] admin/mobile home.auth-logout Authenticated user has logout form
+  [PASS] admin/mobile home.no-console-errors No console errors
+  [PASS] admin/mobile home.no-page-errors No uncaught page errors
+  [PASS] admin/mobile home.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] home: 104 PASS / 0 FAIL / 0 WARN (104 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\home-2026-06-01T23-21-30-698Z.json
+
+[smoke] login (/Account/Login) — http://localhost:5101
+[smoke] roles=public viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop login.access Access check (expected 200, got 200)
+  [PASS] public/desktop login.email-field Email input present
+  [PASS] public/desktop login.password-field Password input present
+  [PASS] public/desktop login.submit-button Submit button present
+  [PASS] public/desktop login.single-h1 Exactly one <h1> on the page - h1 count=1
+  [PASS] public/desktop login.container Login container renders
+  [PASS] public/desktop login.no-console-errors No console errors
+  [PASS] public/desktop login.no-page-errors No uncaught page errors
+  [PASS] public/desktop login.no-network-errors No 5xx / unexpected 4xx
+  [PASS] public/tablet login.access Access check (expected 200, got 200)
+  [PASS] public/tablet login.email-field Email input present
+  [PASS] public/tablet login.password-field Password input present
+  [PASS] public/tablet login.submit-button Submit button present
+  [PASS] public/tablet login.single-h1 Exactly one <h1> on the page - h1 count=1
+  [PASS] public/tablet login.container Login container renders
+  [PASS] public/tablet login.no-console-errors No console errors
+  [PASS] public/tablet login.no-page-errors No uncaught page errors
+  [PASS] public/tablet login.no-network-errors No 5xx / unexpected 4xx
+  [PASS] public/mobile login.access Access check (expected 200, got 200)
+  [PASS] public/mobile login.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] public/mobile login.email-field Email input present
+  [PASS] public/mobile login.password-field Password input present
+  [PASS] public/mobile login.submit-button Submit button present
+  [PASS] public/mobile login.single-h1 Exactly one <h1> on the page - h1 count=1
+  [PASS] public/mobile login.container Login container renders
+  [PASS] public/mobile login.no-console-errors No console errors
+  [PASS] public/mobile login.no-page-errors No uncaught page errors
+  [PASS] public/mobile login.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] login: 28 PASS / 0 FAIL / 0 WARN (28 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\login-2026-06-01T23-21-49-866Z.json
+
+[smoke] cert-tile-public (/Certificate/CertificateTileView) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+

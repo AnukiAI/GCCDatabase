@@ -31,6 +31,16 @@ const BASE = process.env.BASE_URL || 'http://localhost:5101';
 const SCREENSHOTS = process.env.SMOKE_SCREENSHOTS || 'on-fail'; // 'on-fail' | 'always' | 'never'
 const HEADLESS = process.env.SMOKE_HEADLESS !== '0';
 const ALLOW_REMOTE = process.env.SMOKE_ALLOW_REMOTE === '1';
+
+// Basic Auth credentials for the test-env access gate on gccwebapp.com
+// (TestEnvironmentGateMiddleware). When set, Playwright passes them on every navigation
+// via httpCredentials so the smoke can reach the app behind the gate. On localhost the
+// gate is disabled, so these stay unset and are no-ops.
+const REMOTE_USER = process.env.SMOKE_REMOTE_USER || '';
+const REMOTE_PASS = process.env.SMOKE_REMOTE_PASS || '';
+const HTTP_CREDENTIALS = (REMOTE_USER && REMOTE_PASS)
+  ? { username: REMOTE_USER, password: REMOTE_PASS }
+  : null;
 // Navigation timeout. The local dev server can stall ~20-25s on a cold first hit
 // (heavy stats pages like /Dashboard/Index plus a per-minute background sweep), which
 // blew past Playwright's 30s default and produced spurious page.goto timeouts. 60s
@@ -133,7 +143,11 @@ async function runViewSmoke(opts) {
         console.error(`Unknown viewport: ${vpName}`);
         continue;
       }
-      const ctx = await browser.newContext({ viewport: vp });
+      const ctx = await browser.newContext({
+        viewport: vp,
+        // Pre-populate Basic Auth so the test-env gate doesn't 401 us. No-op on localhost.
+        ...(HTTP_CREDENTIALS ? { httpCredentials: HTTP_CREDENTIALS } : {}),
+      });
       const page = await ctx.newPage();
 
       // Console + page error capture.
@@ -307,4 +321,4 @@ async function runViewSmoke(opts) {
   return { viewId, pass, fail, warn, all, outFile };
 }
 
-module.exports = { runViewSmoke, VIEWPORTS, ROLE_CREDS, BASE };
+module.exports = { runViewSmoke, VIEWPORTS, ROLE_CREDS, BASE, login };

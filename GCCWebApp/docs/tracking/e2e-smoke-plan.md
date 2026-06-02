@@ -1,6 +1,6 @@
 # E2E Smoke Plan — Per-View Coverage Matrix
 
-**Status:** Scoped — not yet built
+**Status:** SHIPPED — Tier 1 (10 views) GREEN + stable; Tier 2 (state matrix) GREEN. See Progress log.
 **Owner:** Anuki (Shawn West, dev)
 **Date scoped:** 2026-06-01
 **Target start:** TBD (Shawn's call)
@@ -60,18 +60,29 @@ Derived from `Controllers/*.cs` `[Authorize(Roles=...)]` attributes and route po
 
 Per `Models/CertificateStatus.cs` (memory `feedback_workflow_state_count.md`): 8 states. Public-eligible = `ClientApprovedPaid` + `Republished`.
 
+> **CORRECTED 2026-06-01 (code-grounded during Tier 2 build).** The original prose below
+> claimed the External view shows own-company `ClientApprovedNotPaid` + `ClientApprovedConfidential`
+> ("pre-publish hold for visibility per spec"). **The code does not do this.**
+> `CertificateTileExternalApiController.cs` (~line 221) filters the External view to
+> `PublicStatuses` {Paid, Republished} **+ not-date-expired**, scoped to the user's company —
+> i.e. External = Public's status rule, narrowed to own company. NotPaid/Confidential are
+> hidden from External. The table is corrected accordingly; the `cert-state-matrix.js` smoke
+> asserts this exact (verified) behavior. Original cells struck through.
+
 | State | Public tile view | External tile view (own company) | External tile view (other company) | Internal tile view (Analyst/Admin) |
 |---|---|---|---|---|
 | Draft | hidden | hidden | hidden | shown |
-| ClientApprovedNotPaid | hidden | shown (pre-publish hold for visibility per spec) | hidden | shown |
-| ClientApprovedConfidential | hidden | shown | hidden | shown |
-| ClientApprovedPaid | **shown** | shown | hidden | shown |
+| ClientApprovedNotPaid | hidden | ~~shown~~ **hidden** (code: not in PublicStatuses) | hidden | shown |
+| ClientApprovedConfidential | hidden | ~~shown~~ **hidden** (code: not in PublicStatuses) | hidden | shown |
+| ClientApprovedPaid | **shown** | **shown** | hidden | shown |
 | Hold | hidden | hidden | hidden | shown |
 | Expired | hidden | hidden | hidden | shown |
-| Republished | **shown** | shown | hidden | shown |
+| Republished | **shown** | **shown** | hidden | shown |
 | ExpiredNoAnnualVerification | hidden | hidden | hidden | shown |
 
-**Seeding cost.** 8 states × 4 viewer contexts = 32 cells. Need 8 cert fixtures in seed data (one per state, all tagged to one company). One fixture per state is enough — the matrix asserts visibility, not field-level rendering.
+Also note: a `ClientApprovedPaid`/`Republished` cert with a **past** ExpirationDate is hidden from Public AND External (the `ExpirationDate >= BusinessToday` half of the filter) — though in practice the per-minute expiration sweep flips such a cert's status to `Expired` within a minute anyway.
+
+**Seeding cost (as built).** 9 cert fixtures: 8 states under the external user's own company (Henkel) + 1 `Paid` under an isolated `ZZ_SmokeFixture_OtherCo` (to prove other-company exclusion). 3 views × 9 = 27 visibility cells. Implemented in `_lib/seed-state-fixtures.sql` / `teardown-state-fixtures.sql` + `_views/cert-state-matrix.js` (self-contained: seeds → asserts → tears down).
 
 ## Reusable infrastructure (Day 1)
 
@@ -217,3 +228,8 @@ The smoke pass is "green" when:
   - **Fix shipped:** `run-all.js` gained an opt-in **batch-with-restart mode** (`SMOKE_BATCH_RESTART=1`, `SMOKE_BATCH_SIZE` default 5). It owns the server lifecycle: kill any dotnet → start a fresh `dotnet run` → wait for readiness → warm-up → run that batch; repeat per batch. No batch accumulates enough load to fell the server. Leaves the last server running. Default single-run mode is unchanged (you manage the server).
   - **Result: `SMOKE_BATCH_RESTART=1` → 694 PASS / 0 FAIL / 6 WARN → STATUS GREEN ✅** (2 batches of 5, no retries needed). Per-view: home 104 · login 28 · cert-tile-public 124 · cert-tile-external 96 · cert-tile-internal 62 · cert-create 80 · cert-edit 62/**6W** · dashboard 58 · admin-user-mgmt 40 · admin-tags 40. The 6 WARN are the cert-26-0025 data anomaly (CR-019), the only non-PASS in the whole suite. Artifact: `Scripts/smoke-prod/_results/summary-2026-06-02T02-07-23-952Z.json`.
   - **Recommended run command going forward:** `SMOKE_BATCH_RESTART=1 node Scripts/smoke-prod/_views/run-all.js` for a reliable single green artifact. Per-view runs remain the quick spot-check. DEF-234 (cold-start API perf) is still the one real code-side follow-up.
+- **2026-06-01 — Tier 2 state matrix SHIPPED → GREEN.** Built the cert workflow-state visibility matrix.
+  - **Artifacts:** `_lib/seed-state-fixtures.sql` + `_lib/teardown-state-fixtures.sql` (9 fixtures: 8 states under the external user's own company Henkel + 1 Paid under isolated `ZZ_SmokeFixture_OtherCo`; idempotent; `SET QUOTED_IDENTIFIER ON` required for the filtered-index tables) and `_views/cert-state-matrix.js` (self-contained: seeds → drives 3 tile views per role via `?search=99-900X` → asserts shown/hidden → tears down; parses the dev connection string from `appsettings.Development.json`, runs sqlcmd). `login` is now exported from `smoke-template.js` for reuse.
+  - **Result: 27 PASS / 0 FAIL (3 views × 9 fixtures) → GREEN ✅**, run twice (KEEP then full teardown cycle); DB confirmed clean afterward (0 fixture rows). Run command: `node Scripts/smoke-prod/_views/cert-state-matrix.js`.
+  - **Two findings the build surfaced (both fixed/handled, no code defect):** (1) the **plan's matrix was wrong** — External does NOT show own-company NotPaid/Confidential; it shows only `PublicStatuses` {Paid, Republished} + not-date-expired, scoped to own company (corrected the matrix table above + grounded the smoke in `CertificateTileExternalApiController.cs`). (2) the per-minute **expiration sweep** (`CertificateExpirationService`) flips any `ExpirationDate < today` non-expired cert to `Expired`; fixtures dodge it by design (future dates for the 6 non-expired states, past dates only for the 2 already-expired states).
+  - **Kept separate from `run-all.js` on purpose:** Tier 1 stays fixture-free and fast (the deploy-gate signal); Tier 2 needs seeded DB rows + teardown, so it's its own opt-in command, recommended before each major UAT cycle.

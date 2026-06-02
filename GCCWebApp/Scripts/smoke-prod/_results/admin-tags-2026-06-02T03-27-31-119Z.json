@@ -1,0 +1,117 @@
+{
+  "viewId": "admin-tags",
+  "url": "/Admin/Tags",
+  "base": "https://gccwebapp.com",
+  "startedAt": "2026-06-02T03:27:31.119Z",
+  "finishedAt": "2026-06-02T03:32:06.883Z",
+  "pass": 0,
+  "fail": 12,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "admin-tags.access",
+      "name": "Access check (expected 401, got 503)",
+      "status": "FAIL",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "admin-tags.access",
+      "name": "Access check (expected 401, got 503)",
+      "status": "FAIL",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "admin-tags.access",
+      "name": "Access check (expected 401, got 503)",
+      "status": "FAIL",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Email')\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-external-desktop-fail-2026-06-02T03-28-02-793Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Email')\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-external-tablet-fail-2026-06-02T03-28-33-224Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Email')\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-external-mobile-fail-2026-06-02T03-29-03-752Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Email')\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-analyst-desktop-fail-2026-06-02T03-29-34-207Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Email')\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-analyst-tablet-fail-2026-06-02T03-30-04-605Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Email')\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-analyst-mobile-fail-2026-06-02T03-30-35-119Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Email')\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-admin-desktop-fail-2026-06-02T03-31-05-943Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Email')\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-admin-tablet-fail-2026-06-02T03-31-36-392Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Email')\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-admin-mobile-fail-2026-06-02T03-32-06-796Z.png"
+    }
+  ]
+}

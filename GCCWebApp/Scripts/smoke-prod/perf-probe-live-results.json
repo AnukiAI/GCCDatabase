@@ -1,0 +1,73 @@
+[
+  {
+    "name": "Public tile view",
+    "url": "/Certificate/CertificateTileView",
+    "status": 200,
+    "ttfb_med": 79.09999999403954,
+    "load_med": 416.79999999701977,
+    "content_med": 520,
+    "transferKB": 5,
+    "errors": 0
+  },
+  {
+    "name": "Internal tile view",
+    "url": "/Certificate/CertificateTileViewInternal",
+    "status": 200,
+    "ttfb_med": 81.89999999850988,
+    "load_med": 402.90000000596046,
+    "content_med": 661,
+    "transferKB": 13,
+    "errors": 0
+  },
+  {
+    "name": "Admin Product Types",
+    "url": "/Admin/ProductTypes",
+    "status": 200,
+    "ttfb_med": 77.39999999850988,
+    "load_med": 478,
+    "content_med": 524,
+    "transferKB": 7,
+    "errors": 0
+  },
+  {
+    "name": "Product Management",
+    "url": "/Product/Management",
+    "status": 200,
+    "ttfb_med": 89.30000000447035,
+    "load_med": 0,
+    "content_med": 463,
+    "transferKB": 18,
+    "errors": 0
+  },
+  {
+    "name": "Dashboard",
+    "url": "/Dashboard",
+    "status": 200,
+    "ttfb_med": 316.09999999403954,
+    "load_med": 0,
+    "content_med": 614,
+    "transferKB": 5,
+    "errors": 0
+  },
+  {
+    "name": "Cert Edit (26-0166)",
+    "url": "/Certificate/Edit/26-0166",
+    "status": 200,
+    "ttfb_med": 589.8999999985099,
+    "load_med": 2007.5,
+    "content_med": null,
+    "transferKB": 21,
+    "errors": 0
+  },
+  {
+    "name": "concurrency x8",
+    "total_ms": 539,
+    "min": 528,
+    "median": 529,
+    "max": 537,
+    "failed": 0,
+    "statuses": [
+      200
+    ]
+  }
+]

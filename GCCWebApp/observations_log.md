@@ -1,5 +1,15 @@
 # Observations Log
 
+## 2026-06-01 — E2E Tier 2 state matrix SHIPPED: 27/27 GREEN
+
+Built the optional Tier 2 cert workflow-state visibility matrix. Artifacts: `Scripts/smoke-prod/_lib/seed-state-fixtures.sql` + `teardown-state-fixtures.sql` (9 fixtures — 8 states under the external test user's own company Henkel + 1 Paid under an isolated `ZZ_SmokeFixture_OtherCo`) and `_views/cert-state-matrix.js` (self-contained: seeds → drives Public/External/Internal tile views per role via `?search=99-900X` → asserts shown/hidden → tears down). **27 PASS / 0 FAIL** (3 views × 9 fixtures), DB confirmed clean after teardown. Run: `node Scripts/smoke-prod/_views/cert-state-matrix.js`. Kept separate from the Tier 1 `run-all` (Tier 1 is fixture-free/fast; Tier 2 needs seeded rows).
+
+Two ground-truth findings (both handled, no code defect): (1) the **plan's matrix was wrong** — the External view does NOT show own-company NotPaid/Confidential; per `CertificateTileExternalApiController.cs` it filters to `PublicStatuses` {Paid, Republished} + not-date-expired, scoped to own company. Corrected the matrix in [[e2e-smoke-plan]] and grounded the smoke in the code. (2) the per-minute expiration sweep flips any past-dated non-expired cert to `Expired`, so fixtures use future dates for the 6 non-expired states and past dates only for the 2 already-expired states. Seed SQL needed `SET QUOTED_IDENTIFIER ON` (filtered-index tables). With Tier 2 done, the E2E smoke suite (Tier 1 + Tier 2) is complete; remaining follow-ups unchanged: DEF-234 (cold-start tile-API perf) and CR-019 (cert data cleanup).
+
+## 2026-06-01 — Read-only performance probe on gccwebapp.com: healthy
+
+Ran `Scripts/smoke-prod/perf-probe-live.js` (GET-only, median of 3; gentle — sequential + one 8-way burst, given the box's 503 history). Results: TTFB <100ms on Public/Internal tile views, Admin Product Types (77ms), and Product Management; Dashboard TTFB 316ms (stats aggregation); Cert Edit 26-0166 the heaviest at ~590ms TTFB / ~2s load (lots of client JS — CR-018 territory). Time-to-content 0.46–0.66s on the list/admin pages. 8 parallel GETs of the public tile view: all 200, 528–537ms, 0 failed, no 503. **Takeaway: the deploy introduced no slowness; the DEF-196/197 rollup page renders in ~0.5s.** Not yet measured: cold-start (post-recycle), a high-ASIN Edit page (the real CR-018 stress case), Partner API latency (needs a test key), and heavier load (held off per env fragility). Artifact: `perf-probe-live-results.json`.
+
 ## 2026-06-01 — Live FUNCTIONAL verification on gccwebapp.com (DEF-230/231): 6/6 + 11/11 green
 
 Shawn's bar: test every scenario on the live test env so the client "can only find CRs" (scope), not defects. The read-only pass (below) confirmed the deployed code; this pass exercises the two mutating fixes functionally on gccwebapp itself, using throwaway ZZ_Probe_* data that self-cleans.

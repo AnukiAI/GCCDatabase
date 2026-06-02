@@ -37,7 +37,7 @@ dotnet restore && dotnet build && dotnet run --urls "http://localhost:5101"
 ### Partners
 - Core entities: Amazon, Novi, Other
 - Partners page: Export + Add only (NO Template/Import)
-- 14-state certificate workflow
+- 8-state certificate workflow (source of truth: `Models/CertificateStatus.cs` — original spec was 7, Republished added making 8)
 
 ### Views
 - Use `ViewData["Title"]` (no `<h1>` in views)
@@ -48,7 +48,7 @@ dotnet restore && dotnet build && dotnet run --urls "http://localhost:5101"
 | Purpose | File |
 |---------|------|
 | Certificate CRUD | `CertificateController.cs`, `CertificateService.cs` |
-| Workflow | `CertificateWorkflowService.cs` (14 states) |
+| Workflow | `CertificateWorkflowService.cs` (8 states — see `Models/CertificateStatus.cs`) |
 | Product IDs | `ProductIdService.cs`, `CertificateProductId.cs` |
 | Tile APIs | `CertificateTilesApiController.cs`, `CertificateTileExternalApiController.cs` |
 | Design Guide | `/0_Documentation/mockups/0_0_MasterDesignGuide.html` |
@@ -67,7 +67,7 @@ dotnet restore && dotnet build && dotnet run --urls "http://localhost:5101"
 
 **DO**: Read before edit, CSV exports, Modal→Delete→Toast, follow patterns, clean rebuild
 
-**DON'T**: New auth systems, modify 14-state workflow, push to master, native JS dialogs, unrelated changes
+**DON'T**: New auth systems, modify 8-state workflow, push to master, native JS dialogs, unrelated changes
 
 **ALWAYS**: Check requirements, ask clarifying questions, review mockups, test changes
 
@@ -79,7 +79,7 @@ dotnet restore && dotnet build && dotnet run --urls "http://localhost:5101"
 | external | TestPass123! | External |
 
 ## Feature Status
-All complete: Certificate Tiles, Infinite Scroll, Autocomplete, Shareable URLs, Product IDs, CSV Import/Export, 14-State Workflow, RBAC, Partner API, Database Filters
+All complete: Certificate Tiles, Infinite Scroll, Autocomplete, Shareable URLs, Product IDs, CSV Import/Export, 8-State Workflow, RBAC, Partner API, Database Filters
 
 ## Notes
 - Tech: ASP.NET Core MVC + SQL Server (not Django/PostgreSQL)

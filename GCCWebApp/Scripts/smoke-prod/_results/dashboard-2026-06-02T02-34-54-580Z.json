@@ -1,0 +1,476 @@
+{
+  "viewId": "dashboard",
+  "url": "/Dashboard/Index",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-02T02:34:54.580Z",
+  "finishedAt": "2026-06-02T02:35:37.233Z",
+  "pass": 58,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "dashboard.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FDashboard%2FIndex"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "dashboard.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FDashboard%2FIndex"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "dashboard.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FDashboard%2FIndex"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "dashboard.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FDashboard%2FIndex"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "dashboard.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FDashboard%2FIndex"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "dashboard.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FDashboard%2FIndex"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "dashboard.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "dashboard.stats-grid",
+      "name": "Stats grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "dashboard.stat-cards",
+      "name": "Stat tiles render (>=5)",
+      "status": "PASS",
+      "notes": "stat-cards=12"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "dashboard.tables",
+      "name": "Breakdown tables render (>=3)",
+      "status": "PASS",
+      "notes": "table-sections=5"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "dashboard.totals",
+      "name": "Breakdown tables have Total rows (DEF-221)",
+      "status": "PASS",
+      "notes": "total-rows=4"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "dashboard.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "dashboard.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "dashboard.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "dashboard.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "dashboard.stats-grid",
+      "name": "Stats grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "dashboard.stat-cards",
+      "name": "Stat tiles render (>=5)",
+      "status": "PASS",
+      "notes": "stat-cards=12"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "dashboard.tables",
+      "name": "Breakdown tables render (>=3)",
+      "status": "PASS",
+      "notes": "table-sections=5"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "dashboard.totals",
+      "name": "Breakdown tables have Total rows (DEF-221)",
+      "status": "PASS",
+      "notes": "total-rows=4"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "dashboard.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "dashboard.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "dashboard.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "dashboard.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "dashboard.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "dashboard.stats-grid",
+      "name": "Stats grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "dashboard.stat-cards",
+      "name": "Stat tiles render (>=5)",
+      "status": "PASS",
+      "notes": "stat-cards=12"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "dashboard.tables",
+      "name": "Breakdown tables render (>=3)",
+      "status": "PASS",
+      "notes": "table-sections=5"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "dashboard.totals",
+      "name": "Breakdown tables have Total rows (DEF-221)",
+      "status": "PASS",
+      "notes": "total-rows=4"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "dashboard.mobile-single-col",
+      "name": "Stats grid single column on mobile (DEF-114)",
+      "status": "PASS",
+      "notes": "grid-template-columns=\"289px\" tracks=1"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "dashboard.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "dashboard.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "dashboard.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "dashboard.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "dashboard.stats-grid",
+      "name": "Stats grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "dashboard.stat-cards",
+      "name": "Stat tiles render (>=5)",
+      "status": "PASS",
+      "notes": "stat-cards=12"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "dashboard.tables",
+      "name": "Breakdown tables render (>=3)",
+      "status": "PASS",
+      "notes": "table-sections=5"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "dashboard.totals",
+      "name": "Breakdown tables have Total rows (DEF-221)",
+      "status": "PASS",
+      "notes": "total-rows=4"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "dashboard.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "dashboard.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "dashboard.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "dashboard.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "dashboard.stats-grid",
+      "name": "Stats grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "dashboard.stat-cards",
+      "name": "Stat tiles render (>=5)",
+      "status": "PASS",
+      "notes": "stat-cards=12"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "dashboard.tables",
+      "name": "Breakdown tables render (>=3)",
+      "status": "PASS",
+      "notes": "table-sections=5"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "dashboard.totals",
+      "name": "Breakdown tables have Total rows (DEF-221)",
+      "status": "PASS",
+      "notes": "total-rows=4"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "dashboard.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "dashboard.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "dashboard.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "dashboard.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "dashboard.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "dashboard.stats-grid",
+      "name": "Stats grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "dashboard.stat-cards",
+      "name": "Stat tiles render (>=5)",
+      "status": "PASS",
+      "notes": "stat-cards=12"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "dashboard.tables",
+      "name": "Breakdown tables render (>=3)",
+      "status": "PASS",
+      "notes": "table-sections=5"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "dashboard.totals",
+      "name": "Breakdown tables have Total rows (DEF-221)",
+      "status": "PASS",
+      "notes": "total-rows=4"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "dashboard.mobile-single-col",
+      "name": "Stats grid single column on mobile (DEF-114)",
+      "status": "PASS",
+      "notes": "grid-template-columns=\"289px\" tracks=1"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "dashboard.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "dashboard.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "dashboard.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    }
+  ]
+}

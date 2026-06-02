@@ -17,10 +17,15 @@ const APP_USER = 'admin', APP_PASS = 'TestPass123!';
 const STAMP = Date.now();
 const NAME = `ZZ_Probe_FixVerify_${STAMP}`;
 
-if (BASE.includes('gccwebapp') || BASE.includes('greencirclecertified')) {
-  console.error('REFUSING TO RUN: creates a product row — localhost only.');
+const LIVE = BASE.includes('gccwebapp') || BASE.includes('greencirclecertified');
+// Creates a product row. Localhost by default; live test env only with explicit opt-in.
+// Operates on a throwaway ZZ_Probe_* product that it deletes at the end.
+if (LIVE && process.env.LIVE_OK !== '1') {
+  console.error('REFUSING TO RUN against the live test env without LIVE_OK=1. ' +
+    'Creates a throwaway ZZ_Probe_* product and deletes it; re-run with LIVE_OK=1 to allow.');
   process.exit(2);
 }
+const GATE = LIVE ? { username: 'gcc', password: 'Cert-Test-Access-2026!' } : undefined;
 
 const results = [];
 const record = (id, name, status, notes) => {
@@ -31,7 +36,7 @@ const record = (id, name, status, notes) => {
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const ctx = await browser.newContext({ httpCredentials: GATE, viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   let token = null, cookieHeader = '';
 

@@ -3,7 +3,7 @@
     "id": "SETUP-hierarchy",
     "name": "Intended Category + Type chosen",
     "status": "PASS",
-    "notes": "category=\"Chemicals and Raw Materials\"(1), type=\"Additives\"(1); default=\"Batch2QA-Cat-1777645766616\""
+    "notes": "category=\"Chemicals and Raw Materials\"(1), type=\"Additives\"(1); default=\"Carly Test\""
   },
   {
     "id": "DEF231-form-state",

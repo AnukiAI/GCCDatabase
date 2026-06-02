@@ -1,0 +1,236 @@
+{
+  "viewId": "login",
+  "url": "/Account/Login",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-02T01:04:49.241Z",
+  "finishedAt": "2026-06-02T01:04:56.499Z",
+  "pass": 28,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.email-field",
+      "name": "Email input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.password-field",
+      "name": "Password input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.submit-button",
+      "name": "Submit button present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.single-h1",
+      "name": "Exactly one <h1> on the page",
+      "status": "PASS",
+      "notes": "h1 count=1"
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.container",
+      "name": "Login container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.email-field",
+      "name": "Email input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.password-field",
+      "name": "Password input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.submit-button",
+      "name": "Submit button present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.single-h1",
+      "name": "Exactly one <h1> on the page",
+      "status": "PASS",
+      "notes": "h1 count=1"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.container",
+      "name": "Login container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.email-field",
+      "name": "Email input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.password-field",
+      "name": "Password input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.submit-button",
+      "name": "Submit button present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.single-h1",
+      "name": "Exactly one <h1> on the page",
+      "status": "PASS",
+      "notes": "h1 count=1"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.container",
+      "name": "Login container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    }
+  ]
+}

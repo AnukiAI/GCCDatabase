@@ -355,8 +355,10 @@ namespace GCCWebApp.Repositories
 
             var totalCount = await query.CountAsync();
 
-            // Apply sorting
-            query = filter.SortBy?.ToLower() switch
+            // Apply sorting. Every sort field below is non-unique, so the .ThenBy(c => c.Id)
+            // tiebreaker below is required for stable pagination across SQL Server batches
+            // (per memory `feedback_ef_includes_with_projection` / DEF-166 history).
+            IOrderedQueryable<Certificate> ordered = filter.SortBy?.ToLower() switch
             {
                 "number" => filter.SortDescending ? query.OrderByDescending(c => c.Number) : query.OrderBy(c => c.Number),
                 "company" => filter.SortDescending ? query.OrderByDescending(c => c.Company.Name) : query.OrderBy(c => c.Company.Name),
@@ -372,7 +374,20 @@ namespace GCCWebApp.Repositories
                 "status" => filter.SortDescending ? query.OrderByDescending(c => c.Status) : query.OrderBy(c => c.Status),
                 _ => filter.SortDescending ? query.OrderByDescending(c => c.Number) : query.OrderBy(c => c.Number)
             };
+            query = ordered.ThenBy(c => c.Id);
 
+            // DEF-234: AsSplitQuery() prevents cartesian explosion across the two collection
+            // Includes (Tags, Partners). Without it, EF emits a single query that joins every
+            // row of every collection — for a paged result, this stacks both query-compile and
+            // execution-time cost (measured: 23.1s first hit, <200ms subsequent). The internal
+            // and external tile API controllers already apply this pattern at their query sites
+            // (CertificateTileInternalApiController.cs:96, CertificateTileExternalApiController.cs:85).
+            // Per memory `feedback_ef_includes_with_projection` and DEF-166 history.
+            //
+            // The .ThenBy(c => c.Id) tiebreaker is also required: every sort field above is
+            // non-unique (Number, Company.Name, etc.), so without a stable secondary sort the
+            // page boundary is non-deterministic across SQL Server batches — same cert can
+            // appear on page 1 and page 2, or skip entirely. Also per `feedback_ef_includes_with_projection`.
             var certificates = await query
                 .Include(c => c.Company)
                 .Include(c => c.Product)
@@ -385,6 +400,7 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.CertificationType)
                 .Include(c => c.Tags)
                 .Include(c => c.Partners)
+                .AsSplitQuery()
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
                 .ToListAsync();

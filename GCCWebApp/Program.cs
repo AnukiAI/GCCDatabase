@@ -548,6 +548,11 @@ builder.Services.AddHostedService<GCCWebApp.Services.ETL.ETLSchedulerService>();
 builder.Services.AddScoped<GCCWebApp.Services.ICertificateExpirationService, GCCWebApp.Services.CertificateExpirationService>();
 builder.Services.AddHostedService<GCCWebApp.Services.CertificateExpirationBackgroundService>();
 
+// ===== EF QUERY WARM-UP (DEF-234) =====
+// Fires one Take(1) public-tile query at startup so the first real request doesn't pay
+// the ~23s EF compile + SQL plan cost. Background task; non-fatal on failure.
+builder.Services.AddHostedService<GCCWebApp.Services.EfQueryWarmupService>();
+
 // ===== BASIC SERVICES =====
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();

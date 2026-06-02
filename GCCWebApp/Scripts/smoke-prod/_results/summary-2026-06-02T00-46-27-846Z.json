@@ -1,0 +1,28 @@
+{
+  "startedAt": "2026-06-02T00:46:27.846Z",
+  "finishedAt": "2026-06-02T00:54:01.976Z",
+  "base": "http://localhost:5101",
+  "viewsRun": 10,
+  "totals": {
+    "pass": 689,
+    "fail": 3,
+    "warn": 8
+  },
+  "green": false,
+  "failingViews": [
+    "cert-tile-public (2)",
+    "dashboard (1)"
+  ],
+  "perView": [
+    "home: 104P/0F/0W",
+    "login: 28P/0F/0W",
+    "cert-tile-public: 120P/2F/2W",
+    "cert-tile-external: 96P/0F/0W",
+    "cert-tile-internal: 62P/0F/0W",
+    "cert-create: 80P/0F/0W",
+    "cert-edit: 62P/0F/6W",
+    "dashboard: 57P/1F/0W",
+    "admin-user-mgmt: 40P/0F/0W",
+    "admin-tags: 40P/0F/0W"
+  ]
+}

@@ -1,0 +1,68 @@
+[
+  {
+    "id": "DEF-231",
+    "name": "Cert quick-add reads form category/type/sub",
+    "status": "PASS",
+    "notes": "marker present in /js/certificate-inline-create.js"
+  },
+  {
+    "id": "DEF-232a",
+    "name": "Tags template header (no comma split)",
+    "status": "PASS",
+    "notes": "marker present in /js/tags.js"
+  },
+  {
+    "id": "DEF-232b",
+    "name": "User template Partner role + column",
+    "status": "PASS",
+    "notes": "marker present in /js/userManagement.js"
+  },
+  {
+    "id": "DEF-226",
+    "name": "Usage pill lock icon / bold",
+    "status": "PASS",
+    "notes": "marker present in /js/product-types.js"
+  },
+  {
+    "id": "DEF-229",
+    "name": "In-memory select-all-across-pages",
+    "status": "PASS",
+    "notes": "marker present in /js/product-id-manager.js"
+  },
+  {
+    "id": "LOGIN",
+    "name": "Admin login on test site",
+    "status": "PASS",
+    "notes": "https://gccwebapp.com/Certificate/CertificateTileViewInternal"
+  },
+  {
+    "id": "DEF-232c",
+    "name": "Cert template UTF-8 BOM present (no Excel mojibake)",
+    "status": "PASS",
+    "notes": "BOM=true; starts \"\"Certificate #\",\"Certification Type\",\"Cert…\""
+  },
+  {
+    "id": "DEF-226-render",
+    "name": "Product Types page renders the lock/bold pill",
+    "status": "PASS",
+    "notes": "lock icons in DOM: 10"
+  },
+  {
+    "id": "DEF-227",
+    "name": "Breadcrumb spacer not gated by role-admin-show (consistent across roles)",
+    "status": "PASS",
+    "notes": "role-element/role-admin-show removed from breadcrumb nav"
+  },
+  {
+    "id": "DEF-225",
+    "name": "Cert Edit carries the saved-product display fix",
+    "status": "PASS",
+    "notes": "marker present (/Certificate/Edit/26-0166)"
+  },
+  {
+    "id": "DEF-230",
+    "name": "Product Types re-parent persistence (server-side)",
+    "status": "INFO",
+    "notes": "not read-only verifiable on prod; rode the same build, localhost probe 11/11"
+  }
+]

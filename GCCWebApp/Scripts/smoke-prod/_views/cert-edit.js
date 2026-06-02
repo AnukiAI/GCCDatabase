@@ -2,9 +2,15 @@
 //
 // Access matrix: public -> 401, external -> 403, analyst/admin -> 200.
 //
-// The cert id is discovered at runtime from the public tiles API so the smoke does
-// not depend on a hardcoded seed row. Falls back to id 46 (a known seeded public cert
-// on localhost) if discovery fails.
+// The Edit route is keyed by certificate NUMBER, not numeric id, via a custom route in
+// Program.cs:
+//     pattern:     "Certificate/Edit/{number}"
+//     constraint:  number = ^[0-9]+-[0-9A-Za-z]+$   (e.g. "26-0025")
+// A numeric id (or a number like "EXT-NP-002" that fails the regex) falls through to the
+// default route and yields HTTP 400. So we discover a certificate NUMBER matching the
+// route constraint from the public tiles API, and build the URL the way the app does
+// (window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`).
+// Falls back to "26-0025" (a known seeded public cert on localhost) if discovery fails.
 //
 // Edit-specific assertions (form is pre-populated — DEF-225 history):
 //   - #certificateEditForm present.
@@ -17,23 +23,27 @@
 
 const { runViewSmoke, BASE } = require('../_lib/smoke-template');
 
-async function discoverCertId() {
+// The Edit route only accepts numbers matching this constraint (Program.cs).
+const EDIT_NUMBER_RX = /^[0-9]+-[0-9A-Za-z]+$/;
+
+async function discoverCertNumber() {
   try {
-    const resp = await fetch(`${BASE}/api/certificate-tiles?page=1&pageSize=1`);
+    const resp = await fetch(`${BASE}/api/certificate-tiles?page=1&pageSize=100`);
     const json = await resp.json();
-    const id = json && json.certificates && json.certificates[0] && json.certificates[0].id;
-    if (id) return id;
+    const certs = (json && json.certificates) || [];
+    const match = certs.map((c) => c.certificateNumber).find((n) => n && EDIT_NUMBER_RX.test(n));
+    if (match) return match;
   } catch { /* fall through to default */ }
-  return 46;
+  return '26-0025';
 }
 
 async function run() {
-  const certId = await discoverCertId();
-  console.log(`[smoke] cert-edit using certificate id=${certId}`);
+  const certNumber = await discoverCertNumber();
+  console.log(`[smoke] cert-edit using certificate number=${certNumber}`);
 
   return runViewSmoke({
     viewId: 'cert-edit',
-    url: `/Certificate/Edit/${certId}`,
+    url: `/Certificate/Edit/${encodeURIComponent(certNumber)}`,
     roles: ['public', 'external', 'analyst', 'admin'],
     viewports: ['desktop', 'tablet', 'mobile'],
     expectedAccess: { public: 401, external: 403, analyst: 200, admin: 200 },
@@ -51,12 +61,51 @@ async function run() {
       record('cert-edit.company-populated', 'Company pre-selected',
         companyVal && companyVal.trim() ? 'PASS' : 'FAIL', `companyId="${companyVal}"`);
 
-      // DEF-225: Product Name shows the saved value.
-      const productPresent = await page.locator('#ProductId').count();
-      const productVal = await page.locator('#ProductId').inputValue().catch(() => '');
-      record('cert-edit.product-populated', 'Product Name shows saved value (DEF-225)',
-        productPresent > 0 && productVal && productVal.trim() ? 'PASS' : 'FAIL',
-        `productId="${productVal}"`);
+      // DEF-225: Product Name shows the saved value. The Edit view renders #ProductId
+      // with only a placeholder; certificate-edit's loadProductsForCompany() fetches the
+      // company's products and re-selects savedProductId AFTER an async call. We must
+      // distinguish two failure modes:
+      //   - savedProductId IS among the loaded options but not selected  -> real DEF-225
+      //     re-selection regression (FAIL).
+      //   - savedProductId is NOT among the loaded options                -> the cert
+      //     points to a product that isn't under its company (data inconsistency, a
+      //     data-ops issue, not a code defect)                            -> WARN + flag.
+      // Wait (bounded) for the cascade to settle, then inspect the select state.
+      try {
+        await page.waitForFunction(
+          () => {
+            const el = document.querySelector('#ProductId');
+            return el && el.options && el.options.length > 1; // options loaded
+          },
+          { timeout: 6000 }
+        );
+      } catch { /* options never loaded — handled below */ }
+
+      const prod = await page.evaluate(() => {
+        const el = document.querySelector('#ProductId');
+        const saved = (document.documentElement.innerHTML.match(/savedProductId\s*=\s*'([^']*)'/) || [])[1] || '';
+        const optionValues = el ? Array.from(el.options).map((o) => String(o.value)) : [];
+        return { exists: !!el, value: el ? String(el.value) : '', saved, savedInOptions: optionValues.includes(saved), optionCount: optionValues.length };
+      });
+
+      let prodStatus;
+      let prodNote;
+      if (!prod.exists) {
+        prodStatus = 'FAIL';
+        prodNote = '#ProductId not found';
+      } else if (prod.value && prod.value === prod.saved) {
+        prodStatus = 'PASS';
+        prodNote = `productId="${prod.value}" matches saved`;
+      } else if (prod.saved && !prod.savedInOptions) {
+        // Saved product is not in the company's product list — bad-data row, not a code bug.
+        prodStatus = 'WARN';
+        prodNote = `saved product ${prod.saved} not in company product list (data inconsistency — flag for data ops)`;
+      } else {
+        // Saved product IS available but wasn't re-selected — genuine DEF-225 regression.
+        prodStatus = 'FAIL';
+        prodNote = `saved=${prod.saved} present in options but value="${prod.value}" (re-selection regression)`;
+      }
+      record('cert-edit.product-populated', 'Product Name shows saved value (DEF-225)', prodStatus, prodNote);
 
       record('cert-edit.cert-results', 'Certification Results field present (CR-001)',
         (await page.locator('#CertificationResults').count()) > 0 ? 'PASS' : 'FAIL');

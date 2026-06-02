@@ -333,7 +333,16 @@ namespace GCCWebApp.Controllers
                               $"\"{statusHint}\"," +
                               "\"Company\",\"Company Email\",\"Company URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"";
 
-            var bytes = System.Text.Encoding.UTF8.GetBytes(templateCsv);
+            // Prepend a UTF-8 BOM so Excel on Windows decodes the file as UTF-8 instead of
+            // its default Windows-1252. Without the BOM, the em dash in the Status hint
+            // and any future non-ASCII characters render as mojibake (the em dash byte
+            // sequence gets shown as garbled Latin-1 characters in Excel).
+            var utf8WithBom = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+            var preamble = utf8WithBom.GetPreamble();
+            var body = utf8WithBom.GetBytes(templateCsv);
+            var bytes = new byte[preamble.Length + body.Length];
+            Buffer.BlockCopy(preamble, 0, bytes, 0, preamble.Length);
+            Buffer.BlockCopy(body, 0, bytes, preamble.Length, body.Length);
             return File(bytes, "text/csv", $"GCC_Certificate_Import_Template.csv");
         }
 

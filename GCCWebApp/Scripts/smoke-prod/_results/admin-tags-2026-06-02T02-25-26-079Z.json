@@ -1,0 +1,113 @@
+{
+  "viewId": "admin-tags",
+  "url": "/Admin/Tags",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-02T02:25:26.079Z",
+  "finishedAt": "2026-06-02T02:25:55.060Z",
+  "pass": 7,
+  "fail": 5,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "admin-tags.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FAdmin%2FTags"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "admin-tags.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FAdmin%2FTags"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "admin-tags.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FAdmin%2FTags"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "admin-tags.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FTags"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "admin-tags.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FTags"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "admin-tags.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FTags"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "admin-tags.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FTags"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Admin/Tags\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Admin/Tags\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-analyst-tablet-fail-2026-06-02T02-25-36-962Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-analyst-mobile-fail-2026-06-02T02-25-39-691Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-admin-desktop-fail-2026-06-02T02-25-42-449Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-admin-tablet-fail-2026-06-02T02-25-45-490Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-admin-mobile-fail-2026-06-02T02-25-48-466Z.png"
+    }
+  ]
+}

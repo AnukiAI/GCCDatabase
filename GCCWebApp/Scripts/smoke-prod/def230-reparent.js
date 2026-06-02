@@ -27,11 +27,16 @@ const APP_PASS = 'TestPass123!';
 const STAMP = Date.now();
 const PREFIX = 'ZZ_Probe_'; // every node this script creates carries this prefix
 
-if (BASE.includes('gccwebapp') || BASE.includes('greencirclecertified')) {
-  console.error('REFUSING TO RUN: this probe mutates data and is localhost-only. ' +
-    'Re-parenting against a shared/prod DB needs a CR. Set BASE_URL to http://localhost:5101.');
+const LIVE = BASE.includes('gccwebapp') || BASE.includes('greencirclecertified');
+// Mutating probe. Localhost by default. Against the pre-launch test env it is allowed
+// ONLY with an explicit opt-in (LIVE_OK=1) — it operates exclusively on throwaway
+// ZZ_Probe_* rows that it creates and deletes, never real business records.
+if (LIVE && process.env.LIVE_OK !== '1') {
+  console.error('REFUSING TO RUN against the live test env without LIVE_OK=1. ' +
+    'This probe only touches throwaway ZZ_Probe_* rows and self-cleans; re-run with LIVE_OK=1 to allow.');
   process.exit(2);
 }
+const GATE = LIVE ? { username: 'gcc', password: 'Cert-Test-Access-2026!' } : undefined;
 
 const results = [];
 const record = (id, name, status, notes) => {
@@ -42,7 +47,7 @@ const record = (id, name, status, notes) => {
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const ctx = await browser.newContext({ httpCredentials: GATE, viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
 
   let token = null;

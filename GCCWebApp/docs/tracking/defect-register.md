@@ -4,11 +4,13 @@ Canonical log of defects, bug fixes, and small corrective changes. Every QC fix 
 
 Numbering continues from the pre-existing register (last known DEF-096 as of 2026-03-23). If an older version of this file is recovered from OneDrive or another location, merge entries by ID.
 
-## Status snapshot — as of 2026-05-21
+## Status snapshot — as of 2026-06-02
+
+> The 2026-05-21 sweep counts below remain the canonical *deployed-vs-pending* picture for DEF-001 → DEF-217. The June batch (DEF-225 → DEF-234) was added after that sweep and is **all "fixed locally — pending next deploy"** except DEF-228 (closed WAD). Highest entry is now **DEF-234**. See `shipped-2026-06.md` for the stakeholder-readable June list and the pending-deploy queue (9 code fixes + 1 WAD).
 
 | Bucket | Count | Notes |
 |---|---|---|
-| **Total DEF entries** | **129** | DEF-001 → DEF-217 (numbering sparse — some IDs reserved/retracted) |
+| **Total DEF entries** | **~138** | DEF-001 → DEF-234 (numbering sparse — some IDs reserved/retracted) |
 | Deployed and verified on gccwebapp.com | ~26 | Status line explicitly reads "Deployed and verified" |
 | Fixed locally — pending next deploy | ~94 | Built, smoke-tested on `localhost:5101` and/or dev DB; awaiting Plesk push |
 | Closed (no code change required) | 6 | Already implemented, or behavior was correct as-shipped |
@@ -80,6 +82,77 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 ---
 
 ## Open / Recent
+
+### DEF-235 — App stops accepting TCP connections (`ERR_CONNECTION_REFUSED`) after ~9 consecutive view smokes / ~600 contexts of sustained load — manifests on the last view in the suite (admin-tags 12/12 RED)
+
+- **Date:** 2026-06-02
+- **Severity:** Medium (smoke gate flake; potential prod stability under sustained load). After running 9 consecutive view smokes (~120 page loads × ~5 sub-requests each = ~600+ HTTP requests), the app starts refusing TCP connections — every navigation in the 10th view (`admin-tags`, last alphabetically in the orchestrator) returns `net::ERR_CONNECTION_REFUSED`. The retry-once branch in `run-all.js` ALSO fails because the unresponsive window outlasts a single view cycle (~30s). Kestrel-level refusal, not 500 — the process is either dead or has stopped listening. `curl /` returns 200 again post-suite, so it's transient.
+- **Status:** **Mitigation ALREADY EXISTS in `run-all.js` as `SMOKE_BATCH_RESTART=1` mode — just wasn't engaged for the run that surfaced this defect.** Stream B's earlier iteration on `run-all.js` baked in a batch-with-server-restart mode (lines 16-20 of `Scripts/smoke-prod/_views/run-all.js`) that kills + restarts `dotnet run` between batches of 5 views, specifically to prevent the sustained-load resource accumulation seen here. The 2026-06-02T01:19Z run that produced the RED admin-tags result used the DEFAULT single-run mode, which doesn't restart. **Action: promote `SMOKE_BATCH_RESTART=1` to the deploy-gate standard** (documented in `docs/tracking/e2e-smoke-plan.md`), keep single-run mode for fast dev-loop iteration where flakiness on view 10 is acceptable. Root-cause diagnosis (which specific service holds state past request scope) remains pending — the batch-restart workaround unblocks the deploy gate without obscuring the underlying leak when someone takes time to chase it.
+- **QC Ref:** internal (smoke-discovered, not a client QC item). Surfaced during the post-DEF-234 verification roll-up at 2026-06-02T01:19Z.
+- **Bucket:** Bug (infra / stability — sustained-load resource handling, mechanism not yet pinned)
+- **Reporter:** E2E smoke Tier 1 roll-up, 2026-06-02
+
+**Evidence.**
+- Post-DEF-234 roll-up summary (`Scripts/smoke-prod/_results/summary-2026-06-02T01-19-52-617Z.json`): 654 PASS / 12 FAIL / 6 WARN. 9 of 10 views are 100% green. The 12 FAILs are ALL on `admin-tags`, ALL the same shape: `page.goto: net::ERR_CONNECTION_REFUSED`. Stream B's prior run at 00:46Z had admin-tags at 40P/0F/0W, so admin-tags itself works.
+- Direct probe AFTER the smoke completed: `curl /` returns 200 in 11ms; `curl /Admin/Tags` returns 302 (redirect to login) in 6ms. The route is alive, the page is reachable, the SQL backend is fine.
+- App log contains repeated `Microsoft.Data.SqlClient.SqlException: Execution Timeout Expired ... 45291ms` from `CertificateTileInternalApiController.GetCertificateTiles` during the EARLIER failing run (bgyp9355r) — but those are NOT from the run that surfaced DEF-235. The DEF-235 run's `cert-tile-internal` smoke completed 62P/0F/0W clean. So 45s SQL timeouts are not the immediate cause this time.
+- Pattern: positional, not view-specific. admin-tags is the LAST view in `VIEWS` (line 17 of `Scripts/smoke-prod/_views/run-all.js`).
+
+**Three plausible root causes (in rough probability order).**
+1. **SQL Server connection pool exhaustion under back-to-back smoke load.** Default pool max = 100. The smoke sends ~600 requests over the prior 9 views with no inter-view pause — if any request leaks a `DbContext` scope (or a `DataReader` doesn't `Dispose`), pool slots accumulate. Symptom matches: HTTP requests stalling at `OpenAsync` until Kestrel's connection queue overflows.
+2. **Kestrel keep-alive / connection-queue saturation from rapid-fire context creation.** Each `await ctx.newPage()` in the smoke template opens a fresh browser context with no shared cookie jar. 12 contexts × 10 views = 120 fresh sessions. Kestrel's default per-connection limits should handle this, but memory pressure or kernel TCP backlog overflow could cause refusals.
+3. **Garbage-collection pause on a hot generation, blocking the request thread long enough that Kestrel falls behind on accept().** Less likely on .NET 8 server GC, but possible after sustained allocation churn (the public tile DEF-234 fix made the GET path faster but generates more cert-DTO allocations per second).
+
+**Mitigation already present, just unused by default.** `Scripts/smoke-prod/_views/run-all.js` already has TWO modes baked in (lines 10-20). DEFAULT (single-run): trusts you to manage the server, applies a per-view `SMOKE_COOLDOWN_MS` cooldown (default 4000ms) and one retry of any RED view. BATCH-WITH-RESTART (`SMOKE_BATCH_RESTART=1`, default batch size 5): owns the server lifecycle, kills + restarts `dotnet run` before each batch so no single batch accumulates enough sustained load to trip this defect. The fix is operational: **use `SMOKE_BATCH_RESTART=1` for the deploy-gate run**. Single-run mode stays as the fast dev-loop option where view-10 flakiness is tolerable.
+
+**Explicitly NOT fixed in this DEF (deliberate scope discipline).**
+- Did not bump SQL Server's `Max Pool Size` or `Connect Timeout` — those would mask a leak, not fix it.
+- Did not raise Kestrel `MaxConcurrentConnections` — default is `null` (unlimited) on .NET 8, so no benefit.
+- Did not change `DbContext` lifetime — would have wide blast radius; need the diagnostic first.
+- Did not add a deeper retry/backoff in `run-all.js` — would just produce slow flaky runs instead of fast flaky runs.
+
+**Investigation plan (next session, time-boxed).**
+1. Re-run the suite with the 2s pause. **If green**: confirms load-density. Capture a memory + connection-pool profile (`dotnet-counters monitor`) during the run; identify the specific service holding state. **If still red**: admin-tags has a route-level issue; bisect by moving `admin-tags` to position 1 in `VIEWS` and re-running.
+2. If load-density confirmed: instrument `RequestResponseLoggingMiddleware` to log `ActiveConnections` and `OpenContexts` per request; watch for monotonic growth across the suite.
+3. Candidate fixes (after diagnosis): (a) explicit `DbContext.Dispose()` audit in middleware; (b) reduce `EfQueryWarmupService` retention if it's holding a scope past startup; (c) examine `TestEnvironmentGateMiddleware` for static-state accumulation.
+
+**Linked memory.** [[feedback_no_chaos_rabbit_holes]] (this DEF is honestly framed as diagnosis-pending; a 2s mitigation lets us proceed without a flaky gate while the deep diagnosis lives in its own session); [[feedback_scoping_check_adjacent_endpoints]] (if connection-pool leak confirmed, the leak surface is likely middleware-wide, not view-specific).
+
+---
+
+### DEF-234 — Public tile cert-list API has 23s first-query latency on cold start; trips the 30s JS abort timeout intermittently (4/12 smoke cells)
+
+- **Date:** 2026-06-01
+- **Severity:** Medium (intermittent user-visible cold-start; smoke gate flake). First load of the public tile view after an idle app shows a 23s blank state before tiles render, or — if anything slows it further — silently fails with `TimeoutError: signal timed out`. Subsequent requests are <200ms (measured: 23.1s → 0.20s → 0.05s → 0.03s → 0.03s via 5-call curl probe on already-warm Kestrel).
+- **Status:** **Fixed locally (2026-06-01) — TWO coordinated fixes shipped.** (1) `AsSplitQuery()` + stable `ThenBy(c => c.Id)` pagination tiebreaker added to `Repositories/CertificateRepository.cs::GetAdvancedFilteredCertificatesAsync` (the method the public tile API calls; the internal/external tile controllers already had AsSplitQuery at their own query sites). Reduces per-query execution cost. (2) **`Services/EfQueryWarmupService.cs`** (new `IHostedService`, registered in `Program.cs` after the certificate-expiration service block) fires one Take(1) call through the same repo method during host startup so the first real request doesn't pay EF query-compile + SQL plan cost. Build clean. Pending next deploy + warm-server smoke re-run to confirm the cold-start window is closed. The 2026-06-02 00:32 UTC roll-up was RED on this assertion against the pre-fix tree — must be re-baselined green before deploy. *Reconciled during 2026-06-02 governance sweep — prior status read "pending owner, not fixed," but the fix was already in the working tree under a `DEF-234:` code comment.*
+- **QC Ref:** internal (smoke-discovered, not a client QC item). Linked to E2E Smoke Plan acceptance criteria — Tier 1 cannot go RED on a single flake.
+- **Bucket:** Bug (performance — cold-cache / EF compile latency)
+- **Reporter:** E2E smoke Tier 1 roll-up (`Scripts/smoke-prod/_views/run-all.js`), 2026-06-01
+
+**Evidence.**
+- `run-all` produced 686 PASS / **4 FAIL** / 10 WARN across the 10 Tier 1 views.
+- All 4 FAILs are the same assertion (`cert-tile-public.no-console-errors`) on 4 of 12 role/viewport cells: public/desktop, external/tablet, admin/tablet, admin/mobile. The error each time: `Error loading certificates: TimeoutError: signal timed out` from `wwwroot/js/certificate-tile-view.js:243` (`fetch(..., { signal: AbortSignal.timeout(30000) })`). Each FAIL is paired with a WARN: `tiles-load: cards=0` — the failed fetch produced an empty grid.
+- Curl-timed sequence directly against `/api/certificate-tiles?page=1&pageSize=20` on the already-warm app: **23.114s → 0.198s → 0.054s → 0.031s → 0.027s**. The first call is a >100× outlier — classic EF Core query-compile + cold-cache cost.
+- Why FAILs are scattered (not all on first cell): the smoke runs sequentially across 10 views, so cert-tile-public is the 3rd view. By then `home` and `login` have warmed *some* code paths but NOT the tile-cert projection path. The remaining 4/12 flakes are role-specific projection variants (admin sees more rows; the larger result set + projection still has cold-start cost even after the public/desktop variant warmed). Cold-cache fans out by query shape, not by app instance.
+
+**Why the smoke caught it but UAT didn't.**
+- A human user on first daily load would *see* a 23s spinner (not a great UX, but not "broken"). The smoke's hard 30s ceiling on a *single* fetch promotes the slow path from "ugly UX" to "TimeoutError" when cold-cache stacks with parallel page-load fetches (filter options + cert tiles + autocomplete preload + analytics beacon all racing for the same DB connection).
+- Production behavior is likely worse — Plesk app pool recycles produce the same cold-start window, and average remote latency adds further headroom pressure.
+
+**Fixes applied (BOTH, defense in depth).**
+1. **Reduce cold-start cost — `AsSplitQuery` + stable `ThenBy(c => c.Id)` tiebreaker.** `Repositories/CertificateRepository.cs::GetAdvancedFilteredCertificatesAsync` had 10 Includes with 2 collection includes (`Tags`, `Partners`) — the textbook cartesian-on-includes shape that `feedback_ef_includes_with_projection` and DEF-166 history warn about. `AsSplitQuery()` makes EF emit one query per collection instead of one giant cartesian join; the stable tiebreaker prevents page-boundary drift across SQL Server batches when the primary sort field has ties. The internal and external tile controllers already applied this pattern at their own query sites — this was the scoping gap, exactly the pattern `feedback_scoping_check_adjacent_endpoints` describes.
+2. **Pre-warm the query plan + EF model at startup — new `EfQueryWarmupService` (`IHostedService`).** Fires one Take(1) call through the same repo method during host startup so the first real request doesn't pay the EF compile + SQL plan cost. Runs as a background task (`Task.Run`) so it doesn't block the host startup pipeline. Fail-safe: any exception is logged at Warning and swallowed — warm-up is an optimization, not a correctness requirement. Registered in `Program.cs` immediately after the certificate-expiration service block.
+
+**Explicitly not applied.** Raising the browser-side `AbortSignal.timeout(30000)` was rejected — it would hide a real perf issue without helping users on the slow path.
+
+**Linked memory.** [[feedback_ef_includes_with_projection]] (cartesian-on-includes can cause the same shape of cold-start; AsSplitQuery is the canonical Anuki fix); [[feedback_scoping_check_adjacent_endpoints]] (the internal + external tile views likely share the same cold-start cost — investigate together if fixing).
+
+**Verification (2026-06-01, local — pre-deploy perf gate).** Confirmed on `localhost:5101` with the fix in the working tree:
+- Startup log: `EfQueryWarmupService: public tile query warmed in 6380ms (totalCount=22)` — the cold EF-compile cost is paid once at host startup, off the user request path.
+- First *real* user request to `/api/certificate-tiles?page=1&pageSize=20` measured warm at **~80–280ms** (8-call sample: 0.277, 0.086, 0.093, 0.077, 0.152, 0.075, 0.077, 0.183s) — three orders of magnitude under the 30s `AbortSignal` ceiling.
+- Caveat: while a concurrent E2E smoke run was loading the *same* instance, the endpoint spiked to 30.4s/28.2s (call 1 tripped the 30s abort). That is DB connection-pool contention under the smoke suite's parallel load — **not** an `AsSplitQuery` regression (proven: with the load removed, warm calls collapse to ~80ms). Separate follow-up: throttle the smoke suite or size the connection pool so a 10-view parallel sweep doesn't self-induce the timeout. Tracked as a note, not a DEF.
+
+---
 
 ### DEF-233 — `pageUnloading` navigation-abort guard was only on `loadInitialCertificates`, not on `loadFilterOptions` — all 3 tile-view scripts (caught by new E2E smoke template on first run)
 
@@ -2354,6 +2427,17 @@ WHERE c.ProductCategoryId = @cat
 - **Bucket:** Bug
 - **Reporter:** Client (Carly)
 
+> **QC #170 roll-up status (updated 2026-06-01) — QC-log status: `Fixed — pending deploy`.** This DEF is the anchor for QC #170, but the client item decomposed into several pieces across later retests. The data-cleanup piece (CR-019) is tracked separately and does not change the QC-log status. Current state of the whole #170:
+> | #170 sub-thread | Owner | State |
+> |---|---|---|
+> | Usage column shows cert refs + accurate counts | DEF-196 + DEF-197 | ✅ Deployed + verified 5/21 |
+> | "Numbers still not accurate" (5/29) — `0 / N` pill misread; counts are correct | DEF-226 | Fixed locally, pending deploy |
+> | "Could not update existing / only my test options in dropdown" — cert stuck on wrong category (scopes the Type dropdown); admin re-parent also broken | DEF-231 (cert side) + DEF-230 (admin re-parent) | Fixed locally, pending deploy |
+> | "REMOVE MY CARLY TEST / CARLY TEST TYPE" — existing corrupted rows + test data | **CR-019** (data op) | Drafted, **awaiting GCC approval** — the one genuinely-open piece |
+> | "See ID 186" | QC #186 → DEF-225/226/231 | Triaged |
+>
+> **#170 closes when** the pending deploy ships (DEF-226/230/231) **and** CR-019 runs (removes Carly Test data + re-points the affected certs). Engineering is done; the remainder is the data op + deploy.
+
 **Symptom.** On `/Admin/ProductTypes`, the "Products" count column read `0` for every row Carly was trying to delete. Clicking delete on those same rows returned **"An error occurred while deleting. Please try again."** — a generic message that gave her no path forward. Separately, she could filter the certificate listing by "Carly Test" and see certs returned, proving the type was in use, but the admin page disagreed.
 
 **Root cause — three layered bugs in the same code path.**
@@ -2445,7 +2529,7 @@ PART A — Display side
 - `qc170-local-types.json`, `qc170-live-types.json` — full tree responses
 - `qc170-local-results.json`, `qc170-live-results.json` — machine-readable assertion logs
 
-**Status:** Closed — DEF-196 + DEF-197 deployed and verified. Client's 5/1 "PLEASE REMOVE MY CARLY TEST" request is now actionable end-to-end: every blocker case gives a specific, action-oriented message and the Usage column accurately tells the user how many references they still need to clear.
+**Status:** Closed (this DEF) — DEF-196 + DEF-197 deployed and verified 5/21: every blocker case gives a specific, action-oriented message and the Usage column accurately tells the user how many references they still need to clear. **Note:** this made the delete *mechanism* work, but did NOT remove Carly's test rows or correct the mis-categorized data — that is a data operation tracked under **CR-019** (`Scripts/data-ops/2026-06-01-product-miscategorization-*.sql`), awaiting GCC approval. The broader QC #170 client item stays open until CR-019 runs and DEF-226/230/231 deploy — see the QC #170 roll-up at the top of this entry.
 
 ---
 
@@ -6221,6 +6305,24 @@ Fix: `Controllers/AdminController.cs` — `ImportUsers()` now special-cases `com
 4. **Automated:** `dotnet test --filter QC108` against TEST_BASE_URL=http://localhost:5101 → 8/8 passing.
 
 **Found by:** Anuki internal QA — Shawn-directed rigorous re-test of QC #108 (2026-05-11). Did NOT come from client.
+
+---
+
+### DEF-235 — `Permissions-Policy` response header is duplicated on prod (DEF-107 fix regressed / re-injected)
+
+**Date:** 2026-06-02 | **Status:** OPEN — reinvestigation needed | **Severity:** Low (security-header hygiene; no functional impact, but trips header-correctness scanners) | **QC Ref:** internal — follow-up to **DEF-107** | **Reporter:** Governance sweep 2026-06-02 (promoted from the 2026-05-21 status-sync "🔴 STILL FAILING" flag)
+
+**Why this is a new DEF, not just a DEF-107 note.** DEF-107 was recorded as fixed and shipped, but the 2026-05-21 targeted-probe sweep (`qc159-live-check/older-defs-grouped-sweep.js`) found the `Permissions-Policy` header **back to count=2** on gccwebapp.com. A fix that was marked shipped but is observably failing on prod needs its own open tracking item so it doesn't get lost inside a closed entry. DEF-107 stays closed-as-shipped for the original fix; DEF-235 owns the regression.
+
+**Likely root cause (to confirm).** Two independent injection points are both emitting the header — the strong candidate is the same dual-source pattern proven in DEF-135: the IIS-level `web.config` (`<customHeaders>`) **and** the app's security-headers middleware both add `Permissions-Policy`, and unlike CSP (which browsers intersect) duplicate `Permissions-Policy` headers are simply both sent. Browsers honor the first; scanners flag the dupe.
+
+**Reinvestigation plan (not yet run — logged only this session):**
+1. `curl -sI https://gccwebapp.com/ | findstr /I "permissions-policy"` — confirm count=2 still reproduces.
+2. Grep both sources: `web.config` `<httpProtocol><customHeaders>` and the middleware that sets security headers (the same place DEF-135's CSP lives). Identify which two are emitting it.
+3. Fix by removing the header from one source (prefer middleware-only, consistent with the DEF-135 "consolidate to middleware" architecture note) — or have the middleware `Remove` before `Add` so it's idempotent regardless of what web.config sent.
+4. Post-deploy: re-run the prod smoke header assertion to confirm count=1.
+
+**Cross-ref:** `feedback_*` n/a. Architecture lesson already on file (2026-05-04 DEF-135 memory): dual CSP/header sources (web.config + middleware) drift — a consolidation pass would close this whole class.
 
 ---
 

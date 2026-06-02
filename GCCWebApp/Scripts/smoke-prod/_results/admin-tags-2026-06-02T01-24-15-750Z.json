@@ -1,0 +1,120 @@
+{
+  "viewId": "admin-tags",
+  "url": "/Admin/Tags",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-02T01:24:15.750Z",
+  "finishedAt": "2026-06-02T01:25:37.271Z",
+  "pass": 0,
+  "fail": 12,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Admin/Tags\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Admin/Tags\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-public-desktop-fail-2026-06-02T01-24-19-926Z.png"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Admin/Tags\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Admin/Tags\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-public-tablet-fail-2026-06-02T01-24-22-956Z.png"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Admin/Tags\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Admin/Tags\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-public-mobile-fail-2026-06-02T01-24-25-910Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-external-desktop-fail-2026-06-02T01-24-36-468Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-external-tablet-fail-2026-06-02T01-24-39-327Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-external-mobile-fail-2026-06-02T01-24-42-261Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-analyst-desktop-fail-2026-06-02T01-24-45-528Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-analyst-tablet-fail-2026-06-02T01-24-48-521Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-analyst-mobile-fail-2026-06-02T01-24-52-988Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-admin-desktop-fail-2026-06-02T01-24-58-263Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-admin-tablet-fail-2026-06-02T01-25-03-294Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "admin-tags.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\admin-tags-admin-mobile-fail-2026-06-02T01-25-08-407Z.png"
+    }
+  ]
+}

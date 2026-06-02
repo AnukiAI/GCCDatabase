@@ -9,7 +9,7 @@
     "id": "DEF230-T1-create",
     "name": "Probe type created under cat A",
     "status": "PASS",
-    "notes": "id=54, under \"Batch2QA-Cat-1777645766616\"=true"
+    "notes": "id=78, under \"Carly Test\"=true"
   },
   {
     "id": "DEF230-T1-update-call",
@@ -21,13 +21,13 @@
     "id": "DEF230-T1-moved",
     "name": "Type now under cat B, not cat A (re-parent PERSISTED)",
     "status": "PASS",
-    "notes": "under \"Chemicals and Raw Materials\"=true, still under \"Batch2QA-Cat-1777645766616\"=false"
+    "notes": "under \"Chemicals and Raw Materials\"=true, still under \"Carly Test\"=false"
   },
   {
     "id": "DEF230-T2-create-sub",
     "name": "Subcategory created under type A",
     "status": "PASS",
-    "notes": "id=57, under type A=true"
+    "notes": "id=81, under type A=true"
   },
   {
     "id": "DEF230-T2-update-call",
@@ -45,7 +45,7 @@
     "id": "DEF230-T2-category-inherit",
     "name": "Moved sub inherits new parent’s category (under cat B subtree)",
     "status": "PASS",
-    "notes": "sub.parent=56 (typeB=56), typeB.parent=1 (catB=1)"
+    "notes": "sub.parent=80 (typeB=80), typeB.parent=1 (catB=1)"
   },
   {
     "id": "DEF230-T2-self-parent",
@@ -57,7 +57,7 @@
     "id": "DEF230-T3-dup-name",
     "name": "Duplicate name under same category rejected",
     "status": "PASS",
-    "notes": "ok=false msg=\"'ZZ_Probe_Dup_1780348147241' already exists under 'Batch2QA-Cat-1777645766616'\""
+    "notes": "ok=false msg=\"'ZZ_Probe_Dup_1780366568528' already exists under 'Carly Test'\""
   },
   {
     "id": "DEF230-cleanup",

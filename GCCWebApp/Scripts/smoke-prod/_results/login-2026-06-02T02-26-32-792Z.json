@@ -1,0 +1,39 @@
+{
+  "viewId": "login",
+  "url": "/Account/Login",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-02T02:26:32.792Z",
+  "finishedAt": "2026-06-02T02:26:51.029Z",
+  "pass": 0,
+  "fail": 3,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "login.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\login-public-desktop-fail-2026-06-02T02-26-36-053Z.png"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "login.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\login-public-tablet-fail-2026-06-02T02-26-38-802Z.png"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "login.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\login-public-mobile-fail-2026-06-02T02-26-41-674Z.png"
+    }
+  ]
+}

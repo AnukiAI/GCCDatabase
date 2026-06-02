@@ -1,0 +1,806 @@
+[run-all] BATCH-WITH-RESTART mode: 2 batches of up to 5 views (this script manages the server).
+[run-all] (batch 1) restarting dev server...
+[run-all] (batch 1) server ready.
+
+[smoke] home (/Home/Index) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop home.access Access check (expected 200, got 200)
+  [PASS] public/desktop home.redirect Role redirect lands on / OR /Certificate/CertificateTileView
+  [PASS] public/desktop home.logo Logo / brand renders
+  [PASS] public/desktop home.nav Main navigation present in DOM
+  [PASS] public/desktop home.public-login-link Public users see a login affordance
+  [PASS] public/desktop home.no-console-errors No console errors
+  [PASS] public/desktop home.no-page-errors No uncaught page errors
+  [PASS] public/desktop home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] public/tablet home.access Access check (expected 200, got 200)
+  [PASS] public/tablet home.redirect Role redirect lands on / OR /Certificate/CertificateTileView
+  [PASS] public/tablet home.logo Logo / brand renders
+  [PASS] public/tablet home.nav Main navigation present in DOM
+  [PASS] public/tablet home.public-login-link Public users see a login affordance
+  [PASS] public/tablet home.no-console-errors No console errors
+  [PASS] public/tablet home.no-page-errors No uncaught page errors
+  [PASS] public/tablet home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] public/mobile home.access Access check (expected 200, got 200)
+  [PASS] public/mobile home.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] public/mobile home.redirect Role redirect lands on / OR /Certificate/CertificateTileView
+  [PASS] public/mobile home.logo Logo / brand renders
+  [PASS] public/mobile home.nav Main navigation present in DOM
+  [PASS] public/mobile home.mobile-toggle Mobile nav toggle present
+  [PASS] public/mobile home.public-login-link Public users see a login affordance
+  [PASS] public/mobile home.no-console-errors No console errors
+  [PASS] public/mobile home.no-page-errors No uncaught page errors
+  [PASS] public/mobile home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/desktop home.access Access check (expected 200, got 200)
+  [PASS] external/desktop home.redirect Role redirect lands on /Certificate/CertificateTileViewExternal
+  [PASS] external/desktop home.logo Logo / brand renders
+  [PASS] external/desktop home.nav Main navigation present in DOM
+  [PASS] external/desktop home.auth-logout Authenticated user has logout form
+  [PASS] external/desktop home.no-console-errors No console errors
+  [PASS] external/desktop home.no-page-errors No uncaught page errors
+  [PASS] external/desktop home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/tablet home.access Access check (expected 200, got 200)
+  [PASS] external/tablet home.redirect Role redirect lands on /Certificate/CertificateTileViewExternal
+  [PASS] external/tablet home.logo Logo / brand renders
+  [PASS] external/tablet home.nav Main navigation present in DOM
+  [PASS] external/tablet home.auth-logout Authenticated user has logout form
+  [PASS] external/tablet home.no-console-errors No console errors
+  [PASS] external/tablet home.no-page-errors No uncaught page errors
+  [PASS] external/tablet home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/mobile home.access Access check (expected 200, got 200)
+  [PASS] external/mobile home.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] external/mobile home.redirect Role redirect lands on /Certificate/CertificateTileViewExternal
+  [PASS] external/mobile home.logo Logo / brand renders
+  [PASS] external/mobile home.nav Main navigation present in DOM
+  [PASS] external/mobile home.mobile-toggle Mobile nav toggle present
+  [PASS] external/mobile home.auth-logout Authenticated user has logout form
+  [PASS] external/mobile home.no-console-errors No console errors
+  [PASS] external/mobile home.no-page-errors No uncaught page errors
+  [PASS] external/mobile home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/desktop home.access Access check (expected 200, got 200)
+  [PASS] analyst/desktop home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] analyst/desktop home.logo Logo / brand renders
+  [PASS] analyst/desktop home.nav Main navigation present in DOM
+  [PASS] analyst/desktop home.auth-logout Authenticated user has logout form
+  [PASS] analyst/desktop home.no-console-errors No console errors
+  [PASS] analyst/desktop home.no-page-errors No uncaught page errors
+  [PASS] analyst/desktop home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/tablet home.access Access check (expected 200, got 200)
+  [PASS] analyst/tablet home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] analyst/tablet home.logo Logo / brand renders
+  [PASS] analyst/tablet home.nav Main navigation present in DOM
+  [PASS] analyst/tablet home.auth-logout Authenticated user has logout form
+  [PASS] analyst/tablet home.no-console-errors No console errors
+  [PASS] analyst/tablet home.no-page-errors No uncaught page errors
+  [PASS] analyst/tablet home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/mobile home.access Access check (expected 200, got 200)
+  [PASS] analyst/mobile home.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] analyst/mobile home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] analyst/mobile home.logo Logo / brand renders
+  [PASS] analyst/mobile home.nav Main navigation present in DOM
+  [PASS] analyst/mobile home.mobile-toggle Mobile nav toggle present
+  [PASS] analyst/mobile home.auth-logout Authenticated user has logout form
+  [PASS] analyst/mobile home.no-console-errors No console errors
+  [PASS] analyst/mobile home.no-page-errors No uncaught page errors
+  [PASS] analyst/mobile home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/desktop home.access Access check (expected 200, got 200)
+  [PASS] admin/desktop home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] admin/desktop home.logo Logo / brand renders
+  [PASS] admin/desktop home.nav Main navigation present in DOM
+  [PASS] admin/desktop home.auth-logout Authenticated user has logout form
+  [PASS] admin/desktop home.no-console-errors No console errors
+  [PASS] admin/desktop home.no-page-errors No uncaught page errors
+  [PASS] admin/desktop home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/tablet home.access Access check (expected 200, got 200)
+  [PASS] admin/tablet home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] admin/tablet home.logo Logo / brand renders
+  [PASS] admin/tablet home.nav Main navigation present in DOM
+  [PASS] admin/tablet home.auth-logout Authenticated user has logout form
+  [PASS] admin/tablet home.no-console-errors No console errors
+  [PASS] admin/tablet home.no-page-errors No uncaught page errors
+  [PASS] admin/tablet home.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/mobile home.access Access check (expected 200, got 200)
+  [PASS] admin/mobile home.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] admin/mobile home.redirect Role redirect lands on /Certificate/CertificateTileViewInternal
+  [PASS] admin/mobile home.logo Logo / brand renders
+  [PASS] admin/mobile home.nav Main navigation present in DOM
+  [PASS] admin/mobile home.mobile-toggle Mobile nav toggle present
+  [PASS] admin/mobile home.auth-logout Authenticated user has logout form
+  [PASS] admin/mobile home.no-console-errors No console errors
+  [PASS] admin/mobile home.no-page-errors No uncaught page errors
+  [PASS] admin/mobile home.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] home: 104 PASS / 0 FAIL / 0 WARN (104 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\home-2026-06-02T02-07-41-362Z.json
+
+[smoke] login (/Account/Login) — http://localhost:5101
+[smoke] roles=public viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop login.access Access check (expected 200, got 200)
+  [PASS] public/desktop login.email-field Email input present
+  [PASS] public/desktop login.password-field Password input present
+  [PASS] public/desktop login.submit-button Submit button present
+  [PASS] public/desktop login.single-h1 Exactly one <h1> on the page - h1 count=1
+  [PASS] public/desktop login.container Login container renders
+  [PASS] public/desktop login.no-console-errors No console errors
+  [PASS] public/desktop login.no-page-errors No uncaught page errors
+  [PASS] public/desktop login.no-network-errors No 5xx / unexpected 4xx
+  [PASS] public/tablet login.access Access check (expected 200, got 200)
+  [PASS] public/tablet login.email-field Email input present
+  [PASS] public/tablet login.password-field Password input present
+  [PASS] public/tablet login.submit-button Submit button present
+  [PASS] public/tablet login.single-h1 Exactly one <h1> on the page - h1 count=1
+  [PASS] public/tablet login.container Login container renders
+  [PASS] public/tablet login.no-console-errors No console errors
+  [PASS] public/tablet login.no-page-errors No uncaught page errors
+  [PASS] public/tablet login.no-network-errors No 5xx / unexpected 4xx
+  [PASS] public/mobile login.access Access check (expected 200, got 200)
+  [PASS] public/mobile login.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] public/mobile login.email-field Email input present
+  [PASS] public/mobile login.password-field Password input present
+  [PASS] public/mobile login.submit-button Submit button present
+  [PASS] public/mobile login.single-h1 Exactly one <h1> on the page - h1 count=1
+  [PASS] public/mobile login.container Login container renders
+  [PASS] public/mobile login.no-console-errors No console errors
+  [PASS] public/mobile login.no-page-errors No uncaught page errors
+  [PASS] public/mobile login.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] login: 28 PASS / 0 FAIL / 0 WARN (28 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\login-2026-06-02T02-08-01-141Z.json
+
+[smoke] cert-tile-public (/Certificate/CertificateTileView) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] public/desktop cert-tile-public.container Main container renders
+  [PASS] public/desktop cert-tile-public.sidebar Filter sidebar present
+  [PASS] public/desktop cert-tile-public.search Search input present
+  [PASS] public/desktop cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] public/desktop cert-tile-public.grid Certificates grid present
+  [PASS] public/desktop cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] public/desktop cert-tile-public.no-console-errors No console errors
+  [PASS] public/desktop cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] public/desktop cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] public/tablet cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] public/tablet cert-tile-public.container Main container renders
+  [PASS] public/tablet cert-tile-public.sidebar Filter sidebar present
+  [PASS] public/tablet cert-tile-public.search Search input present
+  [PASS] public/tablet cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] public/tablet cert-tile-public.grid Certificates grid present
+  [PASS] public/tablet cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] public/tablet cert-tile-public.no-console-errors No console errors
+  [PASS] public/tablet cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] public/tablet cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] public/mobile cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] public/mobile cert-tile-public.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] public/mobile cert-tile-public.container Main container renders
+  [PASS] public/mobile cert-tile-public.sidebar Filter sidebar present
+  [PASS] public/mobile cert-tile-public.search Search input present
+  [PASS] public/mobile cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] public/mobile cert-tile-public.grid Certificates grid present
+  [PASS] public/mobile cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] public/mobile cert-tile-public.no-console-errors No console errors
+  [PASS] public/mobile cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] public/mobile cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/desktop cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] external/desktop cert-tile-public.container Main container renders
+  [PASS] external/desktop cert-tile-public.sidebar Filter sidebar present
+  [PASS] external/desktop cert-tile-public.search Search input present
+  [PASS] external/desktop cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] external/desktop cert-tile-public.grid Certificates grid present
+  [PASS] external/desktop cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] external/desktop cert-tile-public.no-console-errors No console errors
+  [PASS] external/desktop cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] external/desktop cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/tablet cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] external/tablet cert-tile-public.container Main container renders
+  [PASS] external/tablet cert-tile-public.sidebar Filter sidebar present
+  [PASS] external/tablet cert-tile-public.search Search input present
+  [PASS] external/tablet cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] external/tablet cert-tile-public.grid Certificates grid present
+  [PASS] external/tablet cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] external/tablet cert-tile-public.no-console-errors No console errors
+  [PASS] external/tablet cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] external/tablet cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/mobile cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] external/mobile cert-tile-public.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] external/mobile cert-tile-public.container Main container renders
+  [PASS] external/mobile cert-tile-public.sidebar Filter sidebar present
+  [PASS] external/mobile cert-tile-public.search Search input present
+  [PASS] external/mobile cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] external/mobile cert-tile-public.grid Certificates grid present
+  [PASS] external/mobile cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] external/mobile cert-tile-public.no-console-errors No console errors
+  [PASS] external/mobile cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] external/mobile cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/desktop cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] analyst/desktop cert-tile-public.container Main container renders
+  [PASS] analyst/desktop cert-tile-public.sidebar Filter sidebar present
+  [PASS] analyst/desktop cert-tile-public.search Search input present
+  [PASS] analyst/desktop cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] analyst/desktop cert-tile-public.grid Certificates grid present
+  [PASS] analyst/desktop cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] analyst/desktop cert-tile-public.no-console-errors No console errors
+  [PASS] analyst/desktop cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] analyst/desktop cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/tablet cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] analyst/tablet cert-tile-public.container Main container renders
+  [PASS] analyst/tablet cert-tile-public.sidebar Filter sidebar present
+  [PASS] analyst/tablet cert-tile-public.search Search input present
+  [PASS] analyst/tablet cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] analyst/tablet cert-tile-public.grid Certificates grid present
+  [PASS] analyst/tablet cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] analyst/tablet cert-tile-public.no-console-errors No console errors
+  [PASS] analyst/tablet cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] analyst/tablet cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/mobile cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] analyst/mobile cert-tile-public.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] analyst/mobile cert-tile-public.container Main container renders
+  [PASS] analyst/mobile cert-tile-public.sidebar Filter sidebar present
+  [PASS] analyst/mobile cert-tile-public.search Search input present
+  [PASS] analyst/mobile cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] analyst/mobile cert-tile-public.grid Certificates grid present
+  [PASS] analyst/mobile cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] analyst/mobile cert-tile-public.no-console-errors No console errors
+  [PASS] analyst/mobile cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] analyst/mobile cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/desktop cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] admin/desktop cert-tile-public.container Main container renders
+  [PASS] admin/desktop cert-tile-public.sidebar Filter sidebar present
+  [PASS] admin/desktop cert-tile-public.search Search input present
+  [PASS] admin/desktop cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] admin/desktop cert-tile-public.grid Certificates grid present
+  [PASS] admin/desktop cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] admin/desktop cert-tile-public.no-console-errors No console errors
+  [PASS] admin/desktop cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] admin/desktop cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/tablet cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] admin/tablet cert-tile-public.container Main container renders
+  [PASS] admin/tablet cert-tile-public.sidebar Filter sidebar present
+  [PASS] admin/tablet cert-tile-public.search Search input present
+  [PASS] admin/tablet cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] admin/tablet cert-tile-public.grid Certificates grid present
+  [PASS] admin/tablet cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] admin/tablet cert-tile-public.no-console-errors No console errors
+  [PASS] admin/tablet cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] admin/tablet cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/mobile cert-tile-public.access Access check (expected 200, got 200)
+  [PASS] admin/mobile cert-tile-public.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] admin/mobile cert-tile-public.container Main container renders
+  [PASS] admin/mobile cert-tile-public.sidebar Filter sidebar present
+  [PASS] admin/mobile cert-tile-public.search Search input present
+  [PASS] admin/mobile cert-tile-public.filters Filter panels render (>=4) - panels=5
+  [PASS] admin/mobile cert-tile-public.grid Certificates grid present
+  [PASS] admin/mobile cert-tile-public.tiles-load Tiles load into grid - cards=22
+  [PASS] admin/mobile cert-tile-public.no-console-errors No console errors
+  [PASS] admin/mobile cert-tile-public.no-page-errors No uncaught page errors
+  [PASS] admin/mobile cert-tile-public.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] cert-tile-public: 124 PASS / 0 FAIL / 0 WARN (124 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\cert-tile-public-2026-06-02T02-08-06-669Z.json
+
+[smoke] cert-tile-external (/Certificate/CertificateTileViewExternal) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop cert-tile-external.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewExternal
+  [PASS] public/tablet cert-tile-external.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewExternal
+  [PASS] public/mobile cert-tile-external.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewExternal
+  [PASS] external/desktop cert-tile-external.access Access check (expected 200, got 200)
+  [PASS] external/desktop cert-tile-external.grid Certificates grid present
+  [PASS] external/desktop cert-tile-external.no-add No Add Certificate button - btn-add count=0
+  [PASS] external/desktop cert-tile-external.no-internal-tag Internal Tag column hidden - internal-tag elements=0
+  [PASS] external/desktop cert-tile-external.partner-filter Partner filter present
+  [PASS] external/desktop cert-tile-external.export Export to CSV control present
+  [PASS] external/desktop cert-tile-external.tiles-load Tiles load (company-scoped) - cards=2
+  [PASS] external/desktop cert-tile-external.no-console-errors No console errors
+  [PASS] external/desktop cert-tile-external.no-page-errors No uncaught page errors
+  [PASS] external/desktop cert-tile-external.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/tablet cert-tile-external.access Access check (expected 200, got 200)
+  [PASS] external/tablet cert-tile-external.grid Certificates grid present
+  [PASS] external/tablet cert-tile-external.no-add No Add Certificate button - btn-add count=0
+  [PASS] external/tablet cert-tile-external.no-internal-tag Internal Tag column hidden - internal-tag elements=0
+  [PASS] external/tablet cert-tile-external.partner-filter Partner filter present
+  [PASS] external/tablet cert-tile-external.export Export to CSV control present
+  [PASS] external/tablet cert-tile-external.tiles-load Tiles load (company-scoped) - cards=2
+  [PASS] external/tablet cert-tile-external.no-console-errors No console errors
+  [PASS] external/tablet cert-tile-external.no-page-errors No uncaught page errors
+  [PASS] external/tablet cert-tile-external.no-network-errors No 5xx / unexpected 4xx
+  [PASS] external/mobile cert-tile-external.access Access check (expected 200, got 200)
+  [PASS] external/mobile cert-tile-external.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] external/mobile cert-tile-external.grid Certificates grid present
+  [PASS] external/mobile cert-tile-external.no-add No Add Certificate button - btn-add count=0
+  [PASS] external/mobile cert-tile-external.no-internal-tag Internal Tag column hidden - internal-tag elements=0
+  [PASS] external/mobile cert-tile-external.partner-filter Partner filter present
+  [PASS] external/mobile cert-tile-external.export Export to CSV control present
+  [PASS] external/mobile cert-tile-external.tiles-load Tiles load (company-scoped) - cards=2
+  [PASS] external/mobile cert-tile-external.no-console-errors No console errors
+  [PASS] external/mobile cert-tile-external.no-page-errors No uncaught page errors
+  [PASS] external/mobile cert-tile-external.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/desktop cert-tile-external.access Access check (expected 200, got 200)
+  [PASS] analyst/desktop cert-tile-external.grid Certificates grid present
+  [PASS] analyst/desktop cert-tile-external.no-add No Add Certificate button - btn-add count=0
+  [PASS] analyst/desktop cert-tile-external.no-internal-tag Internal Tag column hidden - internal-tag elements=0
+  [PASS] analyst/desktop cert-tile-external.partner-filter Partner filter present
+  [PASS] analyst/desktop cert-tile-external.export Export to CSV control present
+  [PASS] analyst/desktop cert-tile-external.tiles-load Tiles load (company-scoped) - cards=20
+  [PASS] analyst/desktop cert-tile-external.no-console-errors No console errors
+  [PASS] analyst/desktop cert-tile-external.no-page-errors No uncaught page errors
+  [PASS] analyst/desktop cert-tile-external.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/tablet cert-tile-external.access Access check (expected 200, got 200)
+  [PASS] analyst/tablet cert-tile-external.grid Certificates grid present
+  [PASS] analyst/tablet cert-tile-external.no-add No Add Certificate button - btn-add count=0
+  [PASS] analyst/tablet cert-tile-external.no-internal-tag Internal Tag column hidden - internal-tag elements=0
+  [PASS] analyst/tablet cert-tile-external.partner-filter Partner filter present
+  [PASS] analyst/tablet cert-tile-external.export Export to CSV control present
+  [PASS] analyst/tablet cert-tile-external.tiles-load Tiles load (company-scoped) - cards=20
+  [PASS] analyst/tablet cert-tile-external.no-console-errors No console errors
+  [PASS] analyst/tablet cert-tile-external.no-page-errors No uncaught page errors
+  [PASS] analyst/tablet cert-tile-external.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/mobile cert-tile-external.access Access check (expected 200, got 200)
+  [PASS] analyst/mobile cert-tile-external.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] analyst/mobile cert-tile-external.grid Certificates grid present
+  [PASS] analyst/mobile cert-tile-external.no-add No Add Certificate button - btn-add count=0
+  [PASS] analyst/mobile cert-tile-external.no-internal-tag Internal Tag column hidden - internal-tag elements=0
+  [PASS] analyst/mobile cert-tile-external.partner-filter Partner filter present
+  [PASS] analyst/mobile cert-tile-external.export Export to CSV control present
+  [PASS] analyst/mobile cert-tile-external.tiles-load Tiles load (company-scoped) - cards=20
+  [PASS] analyst/mobile cert-tile-external.no-console-errors No console errors
+  [PASS] analyst/mobile cert-tile-external.no-page-errors No uncaught page errors
+  [PASS] analyst/mobile cert-tile-external.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/desktop cert-tile-external.access Access check (expected 200, got 200)
+  [PASS] admin/desktop cert-tile-external.grid Certificates grid present
+  [PASS] admin/desktop cert-tile-external.no-add No Add Certificate button - btn-add count=0
+  [PASS] admin/desktop cert-tile-external.no-internal-tag Internal Tag column hidden - internal-tag elements=0
+  [PASS] admin/desktop cert-tile-external.partner-filter Partner filter present
+  [PASS] admin/desktop cert-tile-external.export Export to CSV control present
+  [PASS] admin/desktop cert-tile-external.tiles-load Tiles load (company-scoped) - cards=20
+  [PASS] admin/desktop cert-tile-external.no-console-errors No console errors
+  [PASS] admin/desktop cert-tile-external.no-page-errors No uncaught page errors
+  [PASS] admin/desktop cert-tile-external.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/tablet cert-tile-external.access Access check (expected 200, got 200)
+  [PASS] admin/tablet cert-tile-external.grid Certificates grid present
+  [PASS] admin/tablet cert-tile-external.no-add No Add Certificate button - btn-add count=0
+  [PASS] admin/tablet cert-tile-external.no-internal-tag Internal Tag column hidden - internal-tag elements=0
+  [PASS] admin/tablet cert-tile-external.partner-filter Partner filter present
+  [PASS] admin/tablet cert-tile-external.export Export to CSV control present
+  [PASS] admin/tablet cert-tile-external.tiles-load Tiles load (company-scoped) - cards=20
+  [PASS] admin/tablet cert-tile-external.no-console-errors No console errors
+  [PASS] admin/tablet cert-tile-external.no-page-errors No uncaught page errors
+  [PASS] admin/tablet cert-tile-external.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/mobile cert-tile-external.access Access check (expected 200, got 200)
+  [PASS] admin/mobile cert-tile-external.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] admin/mobile cert-tile-external.grid Certificates grid present
+  [PASS] admin/mobile cert-tile-external.no-add No Add Certificate button - btn-add count=0
+  [PASS] admin/mobile cert-tile-external.no-internal-tag Internal Tag column hidden - internal-tag elements=0
+  [PASS] admin/mobile cert-tile-external.partner-filter Partner filter present
+  [PASS] admin/mobile cert-tile-external.export Export to CSV control present
+  [PASS] admin/mobile cert-tile-external.tiles-load Tiles load (company-scoped) - cards=20
+  [PASS] admin/mobile cert-tile-external.no-console-errors No console errors
+  [PASS] admin/mobile cert-tile-external.no-page-errors No uncaught page errors
+  [PASS] admin/mobile cert-tile-external.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] cert-tile-external: 96 PASS / 0 FAIL / 0 WARN (96 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\cert-tile-external-2026-06-02T02-11-17-259Z.json
+
+[smoke] cert-tile-internal (/Certificate/CertificateTileViewInternal) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop cert-tile-internal.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal
+  [PASS] public/tablet cert-tile-internal.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal
+  [PASS] public/mobile cert-tile-internal.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal
+  [PASS] external/desktop cert-tile-internal.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal
+  [PASS] external/tablet cert-tile-internal.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal
+  [PASS] external/mobile cert-tile-internal.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal
+  [PASS] analyst/desktop cert-tile-internal.access Access check (expected 200, got 200)
+  [PASS] analyst/desktop cert-tile-internal.grid Certificates grid present
+  [PASS] analyst/desktop cert-tile-internal.add-button Add Certificate button present
+  [PASS] analyst/desktop cert-tile-internal.internal-tag Internal Tag column shown - internal-tag elements=2
+  [PASS] analyst/desktop cert-tile-internal.import-hidden Non-admin does NOT see Import button - import button=0
+  [PASS] analyst/desktop cert-tile-internal.tiles-load Tiles load (all states visible) - cards=20
+  [PASS] analyst/desktop cert-tile-internal.no-console-errors No console errors
+  [PASS] analyst/desktop cert-tile-internal.no-page-errors No uncaught page errors
+  [PASS] analyst/desktop cert-tile-internal.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/tablet cert-tile-internal.access Access check (expected 200, got 200)
+  [PASS] analyst/tablet cert-tile-internal.grid Certificates grid present
+  [PASS] analyst/tablet cert-tile-internal.add-button Add Certificate button present
+  [PASS] analyst/tablet cert-tile-internal.internal-tag Internal Tag column shown - internal-tag elements=2
+  [PASS] analyst/tablet cert-tile-internal.import-hidden Non-admin does NOT see Import button - import button=0
+  [PASS] analyst/tablet cert-tile-internal.tiles-load Tiles load (all states visible) - cards=20
+  [PASS] analyst/tablet cert-tile-internal.no-console-errors No console errors
+  [PASS] analyst/tablet cert-tile-internal.no-page-errors No uncaught page errors
+  [PASS] analyst/tablet cert-tile-internal.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/mobile cert-tile-internal.access Access check (expected 200, got 200)
+  [PASS] analyst/mobile cert-tile-internal.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] analyst/mobile cert-tile-internal.grid Certificates grid present
+  [PASS] analyst/mobile cert-tile-internal.add-button Add Certificate button present
+  [PASS] analyst/mobile cert-tile-internal.internal-tag Internal Tag column shown - internal-tag elements=2
+  [PASS] analyst/mobile cert-tile-internal.import-hidden Non-admin does NOT see Import button - import button=0
+  [PASS] analyst/mobile cert-tile-internal.tiles-load Tiles load (all states visible) - cards=20
+  [PASS] analyst/mobile cert-tile-internal.no-console-errors No console errors
+  [PASS] analyst/mobile cert-tile-internal.no-page-errors No uncaught page errors
+  [PASS] analyst/mobile cert-tile-internal.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/desktop cert-tile-internal.access Access check (expected 200, got 200)
+  [PASS] admin/desktop cert-tile-internal.grid Certificates grid present
+  [PASS] admin/desktop cert-tile-internal.add-button Add Certificate button present
+  [PASS] admin/desktop cert-tile-internal.internal-tag Internal Tag column shown - internal-tag elements=2
+  [PASS] admin/desktop cert-tile-internal.import-admin Admin sees bulk Import button - import button=1
+  [PASS] admin/desktop cert-tile-internal.tiles-load Tiles load (all states visible) - cards=20
+  [PASS] admin/desktop cert-tile-internal.no-console-errors No console errors
+  [PASS] admin/desktop cert-tile-internal.no-page-errors No uncaught page errors
+  [PASS] admin/desktop cert-tile-internal.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/tablet cert-tile-internal.access Access check (expected 200, got 200)
+  [PASS] admin/tablet cert-tile-internal.grid Certificates grid present
+  [PASS] admin/tablet cert-tile-internal.add-button Add Certificate button present
+  [PASS] admin/tablet cert-tile-internal.internal-tag Internal Tag column shown - internal-tag elements=2
+  [PASS] admin/tablet cert-tile-internal.import-admin Admin sees bulk Import button - import button=1
+  [PASS] admin/tablet cert-tile-internal.tiles-load Tiles load (all states visible) - cards=20
+  [PASS] admin/tablet cert-tile-internal.no-console-errors No console errors
+  [PASS] admin/tablet cert-tile-internal.no-page-errors No uncaught page errors
+  [PASS] admin/tablet cert-tile-internal.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/mobile cert-tile-internal.access Access check (expected 200, got 200)
+  [PASS] admin/mobile cert-tile-internal.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] admin/mobile cert-tile-internal.grid Certificates grid present
+  [PASS] admin/mobile cert-tile-internal.add-button Add Certificate button present
+  [PASS] admin/mobile cert-tile-internal.internal-tag Internal Tag column shown - internal-tag elements=2
+  [PASS] admin/mobile cert-tile-internal.import-admin Admin sees bulk Import button - import button=1
+  [PASS] admin/mobile cert-tile-internal.tiles-load Tiles load (all states visible) - cards=20
+  [PASS] admin/mobile cert-tile-internal.no-console-errors No console errors
+  [PASS] admin/mobile cert-tile-internal.no-page-errors No uncaught page errors
+  [PASS] admin/mobile cert-tile-internal.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] cert-tile-internal: 62 PASS / 0 FAIL / 0 WARN (62 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\cert-tile-internal-2026-06-02T02-12-49-894Z.json
+[run-all] (batch 2) restarting dev server...
+[run-all] (batch 2) server ready.
+
+[smoke] cert-create (/Certificate/Create) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop cert-create.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCreate
+  [PASS] public/tablet cert-create.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCreate
+  [PASS] public/mobile cert-create.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCreate
+  [PASS] external/desktop cert-create.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate
+  [PASS] external/tablet cert-create.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate
+  [PASS] external/mobile cert-create.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate
+  [PASS] analyst/desktop cert-create.access Access check (expected 200, got 200)
+  [PASS] analyst/desktop cert-create.form Create form present
+  [PASS] analyst/desktop cert-create.sections Form section headers render (>=3) - sections=4
+  [PASS] analyst/desktop cert-create.dropdown#CompanyId Company dropdown present
+  [PASS] analyst/desktop cert-create.dropdown#CertificationTypeId Certification Type dropdown present
+  [PASS] analyst/desktop cert-create.dropdown#Partner Partner dropdown present
+  [PASS] analyst/desktop cert-create.dropdown#PathwayId Pathway dropdown present
+  [PASS] analyst/desktop cert-create.cert-results Certification Results field present (CR-001)
+  [PASS] analyst/desktop cert-create.product-id-manager Product ID Manager renders
+  [PASS] analyst/desktop cert-create.no-console-errors No console errors
+  [PASS] analyst/desktop cert-create.no-page-errors No uncaught page errors
+  [PASS] analyst/desktop cert-create.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/tablet cert-create.access Access check (expected 200, got 200)
+  [PASS] analyst/tablet cert-create.form Create form present
+  [PASS] analyst/tablet cert-create.sections Form section headers render (>=3) - sections=4
+  [PASS] analyst/tablet cert-create.dropdown#CompanyId Company dropdown present
+  [PASS] analyst/tablet cert-create.dropdown#CertificationTypeId Certification Type dropdown present
+  [PASS] analyst/tablet cert-create.dropdown#Partner Partner dropdown present
+  [PASS] analyst/tablet cert-create.dropdown#PathwayId Pathway dropdown present
+  [PASS] analyst/tablet cert-create.cert-results Certification Results field present (CR-001)
+  [PASS] analyst/tablet cert-create.product-id-manager Product ID Manager renders
+  [PASS] analyst/tablet cert-create.no-console-errors No console errors
+  [PASS] analyst/tablet cert-create.no-page-errors No uncaught page errors
+  [PASS] analyst/tablet cert-create.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/mobile cert-create.access Access check (expected 200, got 200)
+  [PASS] analyst/mobile cert-create.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] analyst/mobile cert-create.form Create form present
+  [PASS] analyst/mobile cert-create.sections Form section headers render (>=3) - sections=4
+  [PASS] analyst/mobile cert-create.dropdown#CompanyId Company dropdown present
+  [PASS] analyst/mobile cert-create.dropdown#CertificationTypeId Certification Type dropdown present
+  [PASS] analyst/mobile cert-create.dropdown#Partner Partner dropdown present
+  [PASS] analyst/mobile cert-create.dropdown#PathwayId Pathway dropdown present
+  [PASS] analyst/mobile cert-create.cert-results Certification Results field present (CR-001)
+  [PASS] analyst/mobile cert-create.product-id-manager Product ID Manager renders
+  [PASS] analyst/mobile cert-create.no-console-errors No console errors
+  [PASS] analyst/mobile cert-create.no-page-errors No uncaught page errors
+  [PASS] analyst/mobile cert-create.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/desktop cert-create.access Access check (expected 200, got 200)
+  [PASS] admin/desktop cert-create.form Create form present
+  [PASS] admin/desktop cert-create.sections Form section headers render (>=3) - sections=4
+  [PASS] admin/desktop cert-create.dropdown#CompanyId Company dropdown present
+  [PASS] admin/desktop cert-create.dropdown#CertificationTypeId Certification Type dropdown present
+  [PASS] admin/desktop cert-create.dropdown#Partner Partner dropdown present
+  [PASS] admin/desktop cert-create.dropdown#PathwayId Pathway dropdown present
+  [PASS] admin/desktop cert-create.cert-results Certification Results field present (CR-001)
+  [PASS] admin/desktop cert-create.product-id-manager Product ID Manager renders
+  [PASS] admin/desktop cert-create.no-console-errors No console errors
+  [PASS] admin/desktop cert-create.no-page-errors No uncaught page errors
+  [PASS] admin/desktop cert-create.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/tablet cert-create.access Access check (expected 200, got 200)
+  [PASS] admin/tablet cert-create.form Create form present
+  [PASS] admin/tablet cert-create.sections Form section headers render (>=3) - sections=4
+  [PASS] admin/tablet cert-create.dropdown#CompanyId Company dropdown present
+  [PASS] admin/tablet cert-create.dropdown#CertificationTypeId Certification Type dropdown present
+  [PASS] admin/tablet cert-create.dropdown#Partner Partner dropdown present
+  [PASS] admin/tablet cert-create.dropdown#PathwayId Pathway dropdown present
+  [PASS] admin/tablet cert-create.cert-results Certification Results field present (CR-001)
+  [PASS] admin/tablet cert-create.product-id-manager Product ID Manager renders
+  [PASS] admin/tablet cert-create.no-console-errors No console errors
+  [PASS] admin/tablet cert-create.no-page-errors No uncaught page errors
+  [PASS] admin/tablet cert-create.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/mobile cert-create.access Access check (expected 200, got 200)
+  [PASS] admin/mobile cert-create.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] admin/mobile cert-create.form Create form present
+  [PASS] admin/mobile cert-create.sections Form section headers render (>=3) - sections=4
+  [PASS] admin/mobile cert-create.dropdown#CompanyId Company dropdown present
+  [PASS] admin/mobile cert-create.dropdown#CertificationTypeId Certification Type dropdown present
+  [PASS] admin/mobile cert-create.dropdown#Partner Partner dropdown present
+  [PASS] admin/mobile cert-create.dropdown#PathwayId Pathway dropdown present
+  [PASS] admin/mobile cert-create.cert-results Certification Results field present (CR-001)
+  [PASS] admin/mobile cert-create.product-id-manager Product ID Manager renders
+  [PASS] admin/mobile cert-create.no-console-errors No console errors
+  [PASS] admin/mobile cert-create.no-page-errors No uncaught page errors
+  [PASS] admin/mobile cert-create.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] cert-create: 80 PASS / 0 FAIL / 0 WARN (80 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\cert-create-2026-06-02T02-13-41-160Z.json
+[smoke] cert-edit using certificate number=26-0025
+
+[smoke] cert-edit (/Certificate/Edit/26-0025) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop cert-edit.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F26-0025
+  [PASS] public/tablet cert-edit.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F26-0025
+  [PASS] public/mobile cert-edit.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F26-0025
+  [PASS] external/desktop cert-edit.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F26-0025
+  [PASS] external/tablet cert-edit.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F26-0025
+  [PASS] external/mobile cert-edit.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F26-0025
+  [PASS] analyst/desktop cert-edit.access Access check (expected 200, got 200)
+  [PASS] analyst/desktop cert-edit.form Edit form present
+  [PASS] analyst/desktop cert-edit.number-populated Certificate # pre-populated - number="26-0025"
+  [PASS] analyst/desktop cert-edit.company-populated Company pre-selected - companyId="19"
+  [WARN] analyst/desktop cert-edit.product-populated Product Name shows saved value (DEF-225) - saved product 6 not in company product list (data inconsistency — flag for data ops)
+  [PASS] analyst/desktop cert-edit.cert-results Certification Results field present (CR-001)
+  [PASS] analyst/desktop cert-edit.product-id-manager Product ID Manager renders
+  [PASS] analyst/desktop cert-edit.no-console-errors No console errors
+  [PASS] analyst/desktop cert-edit.no-page-errors No uncaught page errors
+  [PASS] analyst/desktop cert-edit.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/tablet cert-edit.access Access check (expected 200, got 200)
+  [PASS] analyst/tablet cert-edit.form Edit form present
+  [PASS] analyst/tablet cert-edit.number-populated Certificate # pre-populated - number="26-0025"
+  [PASS] analyst/tablet cert-edit.company-populated Company pre-selected - companyId="19"
+  [WARN] analyst/tablet cert-edit.product-populated Product Name shows saved value (DEF-225) - saved product 6 not in company product list (data inconsistency — flag for data ops)
+  [PASS] analyst/tablet cert-edit.cert-results Certification Results field present (CR-001)
+  [PASS] analyst/tablet cert-edit.product-id-manager Product ID Manager renders
+  [PASS] analyst/tablet cert-edit.no-console-errors No console errors
+  [PASS] analyst/tablet cert-edit.no-page-errors No uncaught page errors
+  [PASS] analyst/tablet cert-edit.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/mobile cert-edit.access Access check (expected 200, got 200)
+  [PASS] analyst/mobile cert-edit.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] analyst/mobile cert-edit.form Edit form present
+  [PASS] analyst/mobile cert-edit.number-populated Certificate # pre-populated - number="26-0025"
+  [PASS] analyst/mobile cert-edit.company-populated Company pre-selected - companyId="19"
+  [WARN] analyst/mobile cert-edit.product-populated Product Name shows saved value (DEF-225) - saved product 6 not in company product list (data inconsistency — flag for data ops)
+  [PASS] analyst/mobile cert-edit.cert-results Certification Results field present (CR-001)
+  [PASS] analyst/mobile cert-edit.product-id-manager Product ID Manager renders
+  [PASS] analyst/mobile cert-edit.no-console-errors No console errors
+  [PASS] analyst/mobile cert-edit.no-page-errors No uncaught page errors
+  [PASS] analyst/mobile cert-edit.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/desktop cert-edit.access Access check (expected 200, got 200)
+  [PASS] admin/desktop cert-edit.form Edit form present
+  [PASS] admin/desktop cert-edit.number-populated Certificate # pre-populated - number="26-0025"
+  [PASS] admin/desktop cert-edit.company-populated Company pre-selected - companyId="19"
+  [WARN] admin/desktop cert-edit.product-populated Product Name shows saved value (DEF-225) - saved product 6 not in company product list (data inconsistency — flag for data ops)
+  [PASS] admin/desktop cert-edit.cert-results Certification Results field present (CR-001)
+  [PASS] admin/desktop cert-edit.product-id-manager Product ID Manager renders
+  [PASS] admin/desktop cert-edit.no-console-errors No console errors
+  [PASS] admin/desktop cert-edit.no-page-errors No uncaught page errors
+  [PASS] admin/desktop cert-edit.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/tablet cert-edit.access Access check (expected 200, got 200)
+  [PASS] admin/tablet cert-edit.form Edit form present
+  [PASS] admin/tablet cert-edit.number-populated Certificate # pre-populated - number="26-0025"
+  [PASS] admin/tablet cert-edit.company-populated Company pre-selected - companyId="19"
+  [WARN] admin/tablet cert-edit.product-populated Product Name shows saved value (DEF-225) - saved product 6 not in company product list (data inconsistency — flag for data ops)
+  [PASS] admin/tablet cert-edit.cert-results Certification Results field present (CR-001)
+  [PASS] admin/tablet cert-edit.product-id-manager Product ID Manager renders
+  [PASS] admin/tablet cert-edit.no-console-errors No console errors
+  [PASS] admin/tablet cert-edit.no-page-errors No uncaught page errors
+  [PASS] admin/tablet cert-edit.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/mobile cert-edit.access Access check (expected 200, got 200)
+  [PASS] admin/mobile cert-edit.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] admin/mobile cert-edit.form Edit form present
+  [PASS] admin/mobile cert-edit.number-populated Certificate # pre-populated - number="26-0025"
+  [PASS] admin/mobile cert-edit.company-populated Company pre-selected - companyId="19"
+  [WARN] admin/mobile cert-edit.product-populated Product Name shows saved value (DEF-225) - saved product 6 not in company product list (data inconsistency — flag for data ops)
+  [PASS] admin/mobile cert-edit.cert-results Certification Results field present (CR-001)
+  [PASS] admin/mobile cert-edit.product-id-manager Product ID Manager renders
+  [PASS] admin/mobile cert-edit.no-console-errors No console errors
+  [PASS] admin/mobile cert-edit.no-page-errors No uncaught page errors
+  [PASS] admin/mobile cert-edit.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] cert-edit: 62 PASS / 0 FAIL / 6 WARN (68 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\cert-edit-2026-06-02T02-16-02-803Z.json
+
+[smoke] dashboard (/Dashboard/Index) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop dashboard.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FDashboard%2FIndex
+  [PASS] public/tablet dashboard.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FDashboard%2FIndex
+  [PASS] public/mobile dashboard.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FDashboard%2FIndex
+  [PASS] external/desktop dashboard.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FDashboard%2FIndex
+  [PASS] external/tablet dashboard.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FDashboard%2FIndex
+  [PASS] external/mobile dashboard.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FDashboard%2FIndex
+  [PASS] analyst/desktop dashboard.access Access check (expected 200, got 200)
+  [PASS] analyst/desktop dashboard.stats-grid Stats grid present
+  [PASS] analyst/desktop dashboard.stat-cards Stat tiles render (>=5) - stat-cards=12
+  [PASS] analyst/desktop dashboard.tables Breakdown tables render (>=3) - table-sections=5
+  [PASS] analyst/desktop dashboard.totals Breakdown tables have Total rows (DEF-221) - total-rows=4
+  [PASS] analyst/desktop dashboard.no-console-errors No console errors
+  [PASS] analyst/desktop dashboard.no-page-errors No uncaught page errors
+  [PASS] analyst/desktop dashboard.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/tablet dashboard.access Access check (expected 200, got 200)
+  [PASS] analyst/tablet dashboard.stats-grid Stats grid present
+  [PASS] analyst/tablet dashboard.stat-cards Stat tiles render (>=5) - stat-cards=12
+  [PASS] analyst/tablet dashboard.tables Breakdown tables render (>=3) - table-sections=5
+  [PASS] analyst/tablet dashboard.totals Breakdown tables have Total rows (DEF-221) - total-rows=4
+  [PASS] analyst/tablet dashboard.no-console-errors No console errors
+  [PASS] analyst/tablet dashboard.no-page-errors No uncaught page errors
+  [PASS] analyst/tablet dashboard.no-network-errors No 5xx / unexpected 4xx
+  [PASS] analyst/mobile dashboard.access Access check (expected 200, got 200)
+  [PASS] analyst/mobile dashboard.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] analyst/mobile dashboard.stats-grid Stats grid present
+  [PASS] analyst/mobile dashboard.stat-cards Stat tiles render (>=5) - stat-cards=12
+  [PASS] analyst/mobile dashboard.tables Breakdown tables render (>=3) - table-sections=5
+  [PASS] analyst/mobile dashboard.totals Breakdown tables have Total rows (DEF-221) - total-rows=4
+  [PASS] analyst/mobile dashboard.mobile-single-col Stats grid single column on mobile (DEF-114) - grid-template-columns="289px" tracks=1
+  [PASS] analyst/mobile dashboard.no-console-errors No console errors
+  [PASS] analyst/mobile dashboard.no-page-errors No uncaught page errors
+  [PASS] analyst/mobile dashboard.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/desktop dashboard.access Access check (expected 200, got 200)
+  [PASS] admin/desktop dashboard.stats-grid Stats grid present
+  [PASS] admin/desktop dashboard.stat-cards Stat tiles render (>=5) - stat-cards=12
+  [PASS] admin/desktop dashboard.tables Breakdown tables render (>=3) - table-sections=5
+  [PASS] admin/desktop dashboard.totals Breakdown tables have Total rows (DEF-221) - total-rows=4
+  [PASS] admin/desktop dashboard.no-console-errors No console errors
+  [PASS] admin/desktop dashboard.no-page-errors No uncaught page errors
+  [PASS] admin/desktop dashboard.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/tablet dashboard.access Access check (expected 200, got 200)
+  [PASS] admin/tablet dashboard.stats-grid Stats grid present
+  [PASS] admin/tablet dashboard.stat-cards Stat tiles render (>=5) - stat-cards=12
+  [PASS] admin/tablet dashboard.tables Breakdown tables render (>=3) - table-sections=5
+  [PASS] admin/tablet dashboard.totals Breakdown tables have Total rows (DEF-221) - total-rows=4
+  [PASS] admin/tablet dashboard.no-console-errors No console errors
+  [PASS] admin/tablet dashboard.no-page-errors No uncaught page errors
+  [PASS] admin/tablet dashboard.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/mobile dashboard.access Access check (expected 200, got 200)
+  [PASS] admin/mobile dashboard.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] admin/mobile dashboard.stats-grid Stats grid present
+  [PASS] admin/mobile dashboard.stat-cards Stat tiles render (>=5) - stat-cards=12
+  [PASS] admin/mobile dashboard.tables Breakdown tables render (>=3) - table-sections=5
+  [PASS] admin/mobile dashboard.totals Breakdown tables have Total rows (DEF-221) - total-rows=4
+  [PASS] admin/mobile dashboard.mobile-single-col Stats grid single column on mobile (DEF-114) - grid-template-columns="289px" tracks=1
+  [PASS] admin/mobile dashboard.no-console-errors No console errors
+  [PASS] admin/mobile dashboard.no-page-errors No uncaught page errors
+  [PASS] admin/mobile dashboard.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] dashboard: 58 PASS / 0 FAIL / 0 WARN (58 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\dashboard-2026-06-02T02-16-29-261Z.json
+
+[smoke] admin-user-mgmt (/Admin/UserManagement) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop admin-user-mgmt.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FAdmin%2FUserManagement
+  [PASS] public/tablet admin-user-mgmt.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FAdmin%2FUserManagement
+  [PASS] public/mobile admin-user-mgmt.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FAdmin%2FUserManagement
+  [PASS] external/desktop admin-user-mgmt.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement
+  [PASS] external/tablet admin-user-mgmt.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement
+  [PASS] external/mobile admin-user-mgmt.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement
+  [PASS] analyst/desktop admin-user-mgmt.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement
+  [PASS] analyst/tablet admin-user-mgmt.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement
+  [PASS] analyst/mobile admin-user-mgmt.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement
+  [PASS] admin/desktop admin-user-mgmt.access Access check (expected 200, got 200)
+  [PASS] admin/desktop admin-user-mgmt.table User table loads
+  [PASS] admin/desktop admin-user-mgmt.btn#template-btn Template button present
+  [PASS] admin/desktop admin-user-mgmt.btn#import-btn Import button present
+  [PASS] admin/desktop admin-user-mgmt.btn#export-btn Export button present
+  [PASS] admin/desktop admin-user-mgmt.btn#add-user-btn Add New User button present
+  [PASS] admin/desktop admin-user-mgmt.modal Add User modal present in DOM
+  [PASS] admin/desktop admin-user-mgmt.no-console-errors No console errors
+  [PASS] admin/desktop admin-user-mgmt.no-page-errors No uncaught page errors
+  [PASS] admin/desktop admin-user-mgmt.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/tablet admin-user-mgmt.access Access check (expected 200, got 200)
+  [PASS] admin/tablet admin-user-mgmt.table User table loads
+  [PASS] admin/tablet admin-user-mgmt.btn#template-btn Template button present
+  [PASS] admin/tablet admin-user-mgmt.btn#import-btn Import button present
+  [PASS] admin/tablet admin-user-mgmt.btn#export-btn Export button present
+  [PASS] admin/tablet admin-user-mgmt.btn#add-user-btn Add New User button present
+  [PASS] admin/tablet admin-user-mgmt.modal Add User modal present in DOM
+  [PASS] admin/tablet admin-user-mgmt.no-console-errors No console errors
+  [PASS] admin/tablet admin-user-mgmt.no-page-errors No uncaught page errors
+  [PASS] admin/tablet admin-user-mgmt.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/mobile admin-user-mgmt.access Access check (expected 200, got 200)
+  [PASS] admin/mobile admin-user-mgmt.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] admin/mobile admin-user-mgmt.table User table loads
+  [PASS] admin/mobile admin-user-mgmt.btn#template-btn Template button present
+  [PASS] admin/mobile admin-user-mgmt.btn#import-btn Import button present
+  [PASS] admin/mobile admin-user-mgmt.btn#export-btn Export button present
+  [PASS] admin/mobile admin-user-mgmt.btn#add-user-btn Add New User button present
+  [PASS] admin/mobile admin-user-mgmt.modal Add User modal present in DOM
+  [PASS] admin/mobile admin-user-mgmt.no-console-errors No console errors
+  [PASS] admin/mobile admin-user-mgmt.no-page-errors No uncaught page errors
+  [PASS] admin/mobile admin-user-mgmt.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] admin-user-mgmt: 40 PASS / 0 FAIL / 0 WARN (40 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\admin-user-mgmt-2026-06-02T02-16-49-231Z.json
+
+[smoke] admin-tags (/Admin/Tags) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+
+  [PASS] public/desktop admin-tags.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FAdmin%2FTags
+  [PASS] public/tablet admin-tags.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FAdmin%2FTags
+  [PASS] public/mobile admin-tags.access Access check (expected 401, got 401) - redirected to /Account/Login?ReturnUrl=%2FAdmin%2FTags
+  [PASS] external/desktop admin-tags.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FTags
+  [PASS] external/tablet admin-tags.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FTags
+  [PASS] external/mobile admin-tags.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FTags
+  [PASS] analyst/desktop admin-tags.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FTags
+  [PASS] analyst/tablet admin-tags.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FTags
+  [PASS] analyst/mobile admin-tags.access Access check (expected 403, got 401) - redirected to /Account/AccessDenied?ReturnUrl=%2FAdmin%2FTags
+  [PASS] admin/desktop admin-tags.access Access check (expected 200, got 200)
+  [PASS] admin/desktop admin-tags.table Tag table loads
+  [PASS] admin/desktop admin-tags.columns Three data columns present (Name/Type/Description) - sortable-columns=3
+  [PASS] admin/desktop admin-tags.btn#template-btn Template button present
+  [PASS] admin/desktop admin-tags.btn#import-btn Import button present
+  [PASS] admin/desktop admin-tags.btn#export-btn Export button present
+  [PASS] admin/desktop admin-tags.btn#add-tag-btn Add New Tag button present
+  [PASS] admin/desktop admin-tags.no-console-errors No console errors
+  [PASS] admin/desktop admin-tags.no-page-errors No uncaught page errors
+  [PASS] admin/desktop admin-tags.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/tablet admin-tags.access Access check (expected 200, got 200)
+  [PASS] admin/tablet admin-tags.table Tag table loads
+  [PASS] admin/tablet admin-tags.columns Three data columns present (Name/Type/Description) - sortable-columns=3
+  [PASS] admin/tablet admin-tags.btn#template-btn Template button present
+  [PASS] admin/tablet admin-tags.btn#import-btn Import button present
+  [PASS] admin/tablet admin-tags.btn#export-btn Export button present
+  [PASS] admin/tablet admin-tags.btn#add-tag-btn Add New Tag button present
+  [PASS] admin/tablet admin-tags.no-console-errors No console errors
+  [PASS] admin/tablet admin-tags.no-page-errors No uncaught page errors
+  [PASS] admin/tablet admin-tags.no-network-errors No 5xx / unexpected 4xx
+  [PASS] admin/mobile admin-tags.access Access check (expected 200, got 200)
+  [PASS] admin/mobile admin-tags.no-mobile-overflow No horizontal scroll on mobile - docW=375 winW=375
+  [PASS] admin/mobile admin-tags.table Tag table loads
+  [PASS] admin/mobile admin-tags.columns Three data columns present (Name/Type/Description) - sortable-columns=3
+  [PASS] admin/mobile admin-tags.btn#template-btn Template button present
+  [PASS] admin/mobile admin-tags.btn#import-btn Import button present
+  [PASS] admin/mobile admin-tags.btn#export-btn Export button present
+  [PASS] admin/mobile admin-tags.btn#add-tag-btn Add New Tag button present
+  [PASS] admin/mobile admin-tags.no-console-errors No console errors
+  [PASS] admin/mobile admin-tags.no-page-errors No uncaught page errors
+  [PASS] admin/mobile admin-tags.no-network-errors No 5xx / unexpected 4xx
+
+[smoke] admin-tags: 40 PASS / 0 FAIL / 0 WARN (40 total)
+
+[smoke] results -> Scripts\smoke-prod\_results\admin-tags-2026-06-02T02-17-08-478Z.json
+
+========== TIER 1 SMOKE ROLL-UP ==========
+  mode: batch-restart(5)
+  home: 104P/0F/0W
+  login: 28P/0F/0W
+  cert-tile-public: 124P/0F/0W
+  cert-tile-external: 96P/0F/0W
+  cert-tile-internal: 62P/0F/0W
+  cert-create: 80P/0F/0W
+  cert-edit: 62P/0F/6W
+  dashboard: 58P/0F/0W
+  admin-user-mgmt: 40P/0F/0W
+  admin-tags: 40P/0F/0W
+------------------------------------------
+  TOTAL: 694 PASS / 0 FAIL / 6 WARN
+  STATUS: GREEN ✅
+  summary -> Scripts\smoke-prod\_results\summary-2026-06-02T02-07-23-952Z.json
+  (batch mode left the last dev server running)
+==========================================
+

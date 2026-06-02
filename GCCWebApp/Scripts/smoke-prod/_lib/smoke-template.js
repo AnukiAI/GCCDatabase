@@ -31,6 +31,11 @@ const BASE = process.env.BASE_URL || 'http://localhost:5101';
 const SCREENSHOTS = process.env.SMOKE_SCREENSHOTS || 'on-fail'; // 'on-fail' | 'always' | 'never'
 const HEADLESS = process.env.SMOKE_HEADLESS !== '0';
 const ALLOW_REMOTE = process.env.SMOKE_ALLOW_REMOTE === '1';
+// Navigation timeout. The local dev server can stall ~20-25s on a cold first hit
+// (heavy stats pages like /Dashboard/Index plus a per-minute background sweep), which
+// blew past Playwright's 30s default and produced spurious page.goto timeouts. 60s
+// absorbs the cold start; override with SMOKE_NAV_TIMEOUT for slower/remote targets.
+const NAV_TIMEOUT = parseInt(process.env.SMOKE_NAV_TIMEOUT || '60000', 10);
 
 const RESULTS_DIR = path.join(__dirname, '..', '_results');
 const SCREENSHOTS_DIR = path.join(__dirname, '..', '_results', 'screenshots');
@@ -73,7 +78,7 @@ async function ensureDirs() {
 async function login(page, role) {
   const creds = ROLE_CREDS[role];
   if (!creds) return; // public — no login
-  await page.goto(BASE + '/Account/Login', { waitUntil: 'domcontentloaded' });
+  await page.goto(BASE + '/Account/Login', { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
   await page.locator('#Email').fill(creds.email);
   await page.locator('#Password').fill(creds.password);
   await Promise.all([
@@ -166,7 +171,7 @@ async function runViewSmoke(opts) {
         await login(page, role);
 
         // Navigate to the view under test.
-        const resp = await page.goto(BASE + url, { waitUntil: 'domcontentloaded' });
+        const resp = await page.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
         httpStatus = resp ? resp.status() : null;
 
         // expectedAccess gate.

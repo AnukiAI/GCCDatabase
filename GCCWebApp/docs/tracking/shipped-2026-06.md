@@ -8,9 +8,9 @@ Period: 2026-06-01 → ongoing
 
 | | Count |
 |---|---|
-| **Total fixes shipped this month** | **6** (DEF-225, DEF-226, DEF-227, DEF-230, DEF-231, DEF-232) |
-| Deployed and verified live on gccwebapp.com | 0 |
-| In working tree, queued for the next deploy | 6 |
+| **Total fixes shipped this month** | **9** (DEF-225, DEF-226, DEF-227, DEF-229, DEF-230, DEF-231, DEF-232, DEF-233, DEF-234) |
+| Deployed + verified live on gccwebapp.com (2026-06-01) | 7 — read-only 10/10 (DEF-225/226/227/229/231/232) + live FUNCTIONAL DEF-231 6/6 & DEF-230 11/11 (self-cleaning throwaway data) |
+| Shipped this batch but not in the 2026-06-01 verification pass | 2 (DEF-233, DEF-234) |
 | Investigated, closed as Working-As-Designed (no code change) | 1 (DEF-228) |
 | Data-cleanup pass drafted (needs backup + CR before running) | 1 (DEF-231 fallout) |
 
@@ -86,6 +86,46 @@ Reported 5/29 (the open-items list the client built from issues #91 and #170). W
 Fixed and verified end-to-end on localhost: a product added this way now saves under exactly the category, type, and subcategory chosen on the form, and the certificate keeps those selections.
 
 **Existing records.** This corrects the behavior going forward. Certificates and products created *before* this fix may still carry the wrong category — and because the analyst's original selection was never stored (the bug overwrote it), those can't be auto-corrected. They're being handled separately: a review list is produced from the database, and each genuine record is either re-saved through the now-corrected screen or corrected in a controlled, backed-up data pass. Any leftover test data (e.g. the "[test category]" entries) is removed in that same pass. This data cleanup is drafted and waiting on a backup + change-request approval before it runs against the live environment.
+
+---
+
+## DEF-233 — Tile views: filter-options fetch no longer logs a "Failed to fetch" on rapid navigation (internal — caught by new E2E smoke)
+
+Reported 6/1 by our own tooling, not the client. The earlier pageUnloading fix from May covered the main certificate fetch on the three tile views but missed the parallel filter-options fetch. On rapid navigation away during initial page load, the unguarded path logged a harmless but visible "Failed to fetch" to the console. Real users rarely navigate fast enough to hit it; our new E2E smoke harness does, and was flagging it as a false-positive failure.
+
+Fixed across all three tile-view scripts (public, external, internal) with the same two-line guard already in use elsewhere. Smoke suite is now deterministic green (104/104 PASS, twice consecutively).
+
+---
+
+## DEF-229 — Certificate Create page: "select all" Product Identifiers now spans every page, not just the visible 50 (QC #159, 5/29 follow-up)
+
+Reported 6/1. When building a new certificate, an analyst who pasted or imported a large list of Product IDs and then used the header "select all" checkbox only selected the 50 rows currently visible on screen — there was no way to select the whole list at once to clear or bulk-act on it. The count hint was right ("N product IDs"), but the cross-page "select all N across pages" banner that appears everywhere else never showed up on the Create page specifically.
+
+Fixed and verified on localhost. The cross-page banner now appears on the Create page too, and "select all" reaches every Product ID in the in-memory list regardless of which page is showing. Queued for the next deploy.
+
+---
+
+## DEF-234 — Public certificate tile view: first-load speed-up (internal — caught by new E2E smoke)
+
+Reported 6/1 by our own tooling, not the client. After the application sits idle (or the server recycles its worker process), the very first load of the public certificate tile view was slow — the certificate grid could sit blank for ~23 seconds while the database query "warmed up," and on a bad cold start it occasionally timed out and showed "Error loading certificates" instead of the tiles. Every load after the first was effectively instant (well under a second). Real users would have seen an occasional slow first load; our new E2E smoke harness, which hits a cold server, caught it as an intermittent failure.
+
+Fixed with two coordinated changes, defense in depth:
+
+- **Query shape.** Changed how the certificate list query is assembled so the database no longer multiplies rows across the certificate's tag and partner associations on a single large query — the standard, lower-cost pattern we already use on the other tile views. Also added a stable secondary sort so the same cert can never accidentally appear on two pages or be skipped when many certs share the same primary sort value.
+- **Startup warm-up.** The app now fires one tiny test query at boot so the database query plan is already cached before the first real visitor arrives. The first user request now pays the warm-path cost (sub-second), not the cold-compile cost. Safe-fails — if warm-up encounters any issue, it's logged and the app starts normally.
+
+The fix is in the working tree and queued for the next deploy; a warm re-run of the smoke suite will confirm the cold-start window is closed before it's marked verified.
+
+---
+
+## Internal — E2E Smoke suite (Days 1 + 2 — infra and Tier 1 fan-out)
+
+New automated test surface scoped per `docs/tracking/e2e-smoke-plan.md`. Catches view-level regressions across 4 roles × 3 viewports before they reach client UAT.
+
+- `Scripts/smoke-prod/_lib/smoke-template.js` (~305 lines) — shared runner. Login per role using the CLAUDE.md test creds, viewport sizing, console + page-error + network-error capture (with ignore-list for known noise), screenshot policy via `SMOKE_SCREENSHOTS=on-fail|always|never`, access-gate check (200/401/403 normalization including login-redirect → 401), mobile horizontal-scroll guard, per-view JSON results. Refuses to run against gccwebapp.com / greencirclecertified.com unless `SMOKE_ALLOW_REMOTE=1` is set.
+- `Scripts/smoke-prod/_views/` — 10 Tier 1 view smokes (`home`, `login`, `cert-tile-public/external/internal`, `cert-create`, `cert-edit`, `dashboard`, `admin-user-mgmt`, `admin-tags`) plus `run-all.js` orchestrator that writes a summary JSON.
+- Acceptance is "all 10 views return 0 FAIL across 4 roles × 3 viewports, and negative-path access (Public→Internal, External→Admin) returns the expected 401/403."
+- Day 1 + Day 2 effort: ~1 day each, infra + 10 view-specific assertion blocks. Approach is now the deploy-gate candidate for future Plesk pushes.
 
 ---
 

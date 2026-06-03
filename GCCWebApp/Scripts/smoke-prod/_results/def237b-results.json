@@ -1,0 +1,43 @@
+{
+  "pass": 6,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "id": "R0",
+      "desc": "No role -> all hidden",
+      "status": "PASS",
+      "detail": "company=hidden, partner=hidden, note=hidden"
+    },
+    {
+      "id": "R1",
+      "desc": "External -> Company Access shown, note hidden",
+      "status": "PASS",
+      "detail": "company=shown, partner=hidden, note=hidden"
+    },
+    {
+      "id": "R2",
+      "desc": "Partner -> Partner shown, Company hidden, note hidden",
+      "status": "PASS",
+      "detail": "company=hidden, partner=shown, note=hidden"
+    },
+    {
+      "id": "R3",
+      "desc": "Admin -> note shown, Company + Partner hidden",
+      "status": "PASS",
+      "detail": "company=hidden, partner=hidden, note=shown"
+    },
+    {
+      "id": "R4",
+      "desc": "Analyst -> note shown, Company + Partner hidden",
+      "status": "PASS",
+      "detail": "company=hidden, partner=hidden, note=shown"
+    },
+    {
+      "id": "T1",
+      "desc": "Admin/Analyst company column shows \"All\"",
+      "status": "PASS",
+      "detail": "role=Admin, display=\"All\""
+    }
+  ]
+}

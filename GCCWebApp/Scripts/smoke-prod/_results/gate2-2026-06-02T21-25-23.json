@@ -1,0 +1,664 @@
+{
+  "stamp": "2026-06-02T21-25-23",
+  "base": "http://localhost:5101",
+  "verdict": "PASS",
+  "passed": 80,
+  "failed": 0,
+  "warned": 0,
+  "results": [
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "public",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-hidden",
+      "role": "public",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "wrapper visibility=hidden (expected hidden for public)",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.renders",
+      "role": "public",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "display=flex h=80",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.public-anon",
+      "role": "public",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "nav-anon class present: true",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "public",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "home at desktop",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\public-home-desktop.png"
+    },
+    {
+      "check": "axe.wcag21aa-layout",
+      "role": "public",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "No WCAG 2.1 AA violations in layout chrome",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "public",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-hidden",
+      "role": "public",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "wrapper visibility=hidden (expected hidden for public)",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "public",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "home at tablet",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\public-home-tablet.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "public",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "docScrollW=768 winW=768 at /Certificate/CertificateTileView",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "public",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-hidden",
+      "role": "public",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "wrapper visibility=hidden (expected hidden for public)",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "public",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "home at mobile",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\public-home-mobile.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "public",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "docScrollW=375 winW=375 at /Certificate/CertificateTileView",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-hidden",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "wrapper visibility=hidden (expected hidden for external)",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.renders",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "display=flex h=139",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.external-no-dashboard",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "Dashboard should NOT appear for external",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.external-no-admin",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "Administration menu should NOT appear for external",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "home at desktop",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\external-home-desktop.png"
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "products at desktop",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\external-products-desktop.png"
+    },
+    {
+      "check": "axe.wcag21aa-layout",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "No WCAG 2.1 AA violations in layout chrome",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "external",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-hidden",
+      "role": "external",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "wrapper visibility=hidden (expected hidden for external)",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "external",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "home at tablet",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\external-home-tablet.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "external",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "docScrollW=768 winW=768 at /Certificate/CertificateTileViewExternal",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "external",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "products at tablet",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\external-products-tablet.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "external",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "docScrollW=768 winW=768 at /Product/Management",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "external",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-hidden",
+      "role": "external",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "wrapper visibility=hidden (expected hidden for external)",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "external",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "home at mobile",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\external-home-mobile.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "external",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "docScrollW=375 winW=375 at /Certificate/CertificateTileViewExternal",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "external",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "products at mobile",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\external-products-mobile.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "external",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "docScrollW=375 winW=375 at /Product/Management",
+      "screenshotPath": null
+    },
+    {
+      "check": "external.no-add-cert-btn",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "No visible Add Certificate buttons",
+      "screenshotPath": null
+    },
+    {
+      "check": "external.no-edit-cert-btn",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "No visible Edit Certificate buttons",
+      "screenshotPath": null
+    },
+    {
+      "check": "external.no-internal-tags",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "No internal tag elements visible",
+      "screenshotPath": null
+    },
+    {
+      "check": "external.no-actions-column",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "No Actions column. Headers: , Product Name ▼, Company ▼, Category ▼, Product Type ▼, Subcategory ▼, Status ▼, Certs ▼, IDs ▼",
+      "screenshotPath": null
+    },
+    {
+      "check": "external.no-action-icons-in-table",
+      "role": "external",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "No action icon buttons visible in product table rows",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "analyst",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-hidden",
+      "role": "analyst",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "wrapper visibility=hidden (expected hidden for analyst)",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.renders",
+      "role": "analyst",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "display=flex h=139",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.companies-visible",
+      "role": "analyst",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "Companies & Products dropdown should be in nav",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.dashboard-visible",
+      "role": "analyst",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "Dashboard nav item should be visible",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "analyst",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "home at desktop",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\analyst-home-desktop.png"
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "analyst",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "dashboard at desktop",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\analyst-dashboard-desktop.png"
+    },
+    {
+      "check": "axe.wcag21aa-layout",
+      "role": "analyst",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "No WCAG 2.1 AA violations in layout chrome",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "analyst",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-hidden",
+      "role": "analyst",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "wrapper visibility=hidden (expected hidden for analyst)",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "analyst",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "home at tablet",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\analyst-home-tablet.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "analyst",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "docScrollW=768 winW=768 at /Certificate/CertificateTileViewInternal",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "analyst",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "dashboard at tablet",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\analyst-dashboard-tablet.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "analyst",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "docScrollW=768 winW=768 at /Dashboard/Index",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "analyst",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-hidden",
+      "role": "analyst",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "wrapper visibility=hidden (expected hidden for analyst)",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "analyst",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "home at mobile",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\analyst-home-mobile.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "analyst",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "docScrollW=375 winW=375 at /Certificate/CertificateTileViewInternal",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "analyst",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "dashboard at mobile",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\analyst-dashboard-mobile.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "analyst",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "docScrollW=375 winW=375 at /Dashboard/Index",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "admin",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-admin",
+      "role": "admin",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "wrapper visibility=visible (expected visible for admin)",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.renders",
+      "role": "admin",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "display=flex h=139",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.companies-visible",
+      "role": "admin",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "Companies & Products dropdown should be in nav",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.dashboard-visible",
+      "role": "admin",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "Dashboard nav item should be visible",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.admin-menu-visible",
+      "role": "admin",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "Administration dropdown should be in nav for admin",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "admin",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "home at desktop",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\admin-home-desktop.png"
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "admin",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "admin-users at desktop",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\admin-admin-users-desktop.png"
+    },
+    {
+      "check": "axe.wcag21aa-layout",
+      "role": "admin",
+      "viewport": "desktop",
+      "status": "PASS",
+      "notes": "No WCAG 2.1 AA violations in layout chrome",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "admin",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-admin",
+      "role": "admin",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "wrapper visibility=visible (expected visible for admin)",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "admin",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "home at tablet",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\admin-home-tablet.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "admin",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "docScrollW=768 winW=768 at /Certificate/CertificateTileViewInternal",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "admin",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "admin-users at tablet",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\admin-admin-users-tablet.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "admin",
+      "viewport": "tablet",
+      "status": "PASS",
+      "notes": "docScrollW=768 winW=768 at /Admin/UserManagement",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-spacer",
+      "role": "admin",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "display=block h=32px",
+      "screenshotPath": null
+    },
+    {
+      "check": "nav.breadcrumb-content-admin",
+      "role": "admin",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "wrapper visibility=visible (expected visible for admin)",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "admin",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "home at mobile",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\admin-home-mobile.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "admin",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "docScrollW=375 winW=375 at /Certificate/CertificateTileViewInternal",
+      "screenshotPath": null
+    },
+    {
+      "check": "layout.screenshot",
+      "role": "admin",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "admin-users at mobile",
+      "screenshotPath": "Scripts\\smoke-prod\\_results\\screenshots\\gate2-2026-06-02T21-25-23\\admin-admin-users-mobile.png"
+    },
+    {
+      "check": "layout.no-horiz-scroll",
+      "role": "admin",
+      "viewport": "mobile",
+      "status": "PASS",
+      "notes": "docScrollW=375 winW=375 at /Admin/UserManagement",
+      "screenshotPath": null
+    }
+  ],
+  "axeViolationsByRole": {
+    "public": {
+      "desktop": []
+    },
+    "external": {
+      "desktop": []
+    },
+    "analyst": {
+      "desktop": []
+    },
+    "admin": {
+      "desktop": []
+    }
+  }
+}

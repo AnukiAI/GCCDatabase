@@ -83,11 +83,57 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 ## Open / Recent
 
+### DEF-238 — User Management: Company Access not role-gated — shown for Admin/Analyst (should be hidden with an "all access" note); table blank for those roles (QC #106 / #148 item 4, client 5/15 feedback reiterated 5/29 "none addressed")
+
+- **Date:** 2026-06-02
+- **Severity:** Medium (UX + client-blocking UAT item). Client's 5/15 direction: Company Access applies **only** to External (scoped to selected companies) and Partner (scoped to selected partner). **Admin/Analyst are never scoped** — the modal should **hide** Company Access for them and show a note that those roles get access to all companies. On 5/29 the client reported none of the 5/15 feedback was addressed, plus the user table showed **blank** Company Access for Admin/Analyst.
+- **Status:** **Fixed locally (2026-06-02) — pending next deploy + client UAT re-confirm.** Verified on localhost:5101 with `Scripts/smoke-prod/def237b-role-access-verify.js` → **6 PASS / 0 FAIL** (R0 no-role hides all; R1 External shows Company Access; R2 Partner shows Partner picker; R3 Admin shows note + hides both; R4 Analyst same; T1 table shows "All" for Admin/Analyst). Screenshot `_results/def237b-admin-note.png`.
+- **QC Ref:** QC #106 / QC #148 item 4 — client UAT comments 5/15 (origin) and 5/29 ("none of the 5/15 feedback was addressed"). Reporter: Client (Carly).
+- **Bucket:** Bug + UX (the prior `handleRoleChange` comment claimed "Admin/Analyst: hide both" but the code put them in the `else` branch that **showed** Company Access — code contradicted its own intent).
+- **Root cause:** `wwwroot/js/userManagement.js::handleRoleChange` only special-cased Partner; every other role (incl. Admin/Analyst) fell through to a single `else` that set `company-group` to `display:block`. No "all-access" note element existed. The table's `getCompanyAccessDisplay` returned `''` for users with no `companyIds` (Admin/Analyst have none), rendering blank.
+- **Files touched:**
+  - `Views/Admin/UserManagement.cshtml` — added `#role-access-note` info panel (hidden by default).
+  - `wwwroot/js/userManagement.js` — `handleRoleChange` rewritten (Partner→partner picker; External→Company Access; Admin/Analyst→note, both hidden; unselected/other→all hidden); `getCompanyAccessDisplay` returns "All" for Admin/Analyst; `showAddUserModal` reset now delegates to `handleRoleChange('')` (single source of truth) instead of force-showing Company Access.
+- **NOT changed (deliberate):** the "Company Access" (modal/table) vs "User Company" (import template) label split was left as-is per the client's 2026-05-21 confirmation that "User Company" is the desired template label (see DEF-173 closure + conflict-history table). The label question was NOT re-opened to avoid a 6th flip-flop — pending one authoritative client decision.
+- **Deferred (CR-required):** QC #106's other half — a free-text **Employer** field on the user record, separate from Company Access — is a data-model change requiring a formal CR. Held for client review/QC-log confirmation; not built in this pass.
+- **Linked memory.** [[feedback_client_requested_labels_immutable]] (didn't touch the contested label), [[feedback_check_requirements_every_time]] (the 5/15 requirement was the real spec; the earlier "Check All works" verification missed it), [[feedback_data_changes_require_cr]] (Employer field deferred to CR).
+
+---
+
+### DEF-237 — Tags import/export: rename the first column header from "Name" to "Tag Name" (QC #148 follow-up)
+
+- **Date:** 2026-06-02
+- **Severity:** Low (UX/label clarity). Client requested the Tags template/export name column be labeled **"Tag Name"** rather than the generic **"Name"**, for clarity alongside `TagType (Internal/External)` and `Description`.
+- **Status:** **Fixed locally (2026-06-02) — pending next deploy.** Two-line JS change in `wwwroot/js/tags.js`: import-template header (`downloadImportTemplate`, was `'Name'`) and export column header (was `{ key: 'name', header: 'Name' }`) both now read **`Tag Name`**. TagType and Description columns unchanged; slash separator and 3-column structure preserved (DEF-232 regression test `def232-template-verify.js` still holds).
+- **Round-trip safe:** the import header normalizer (`normalizeTagHeaderName`, `tags.js:1190`) already maps `tagname → name`, so re-importing a renamed template/export parses correctly. No parser change needed.
+- **QC Ref:** QC #148 (Enhancement, Ready for UAT) — client follow-up to the DEF-232 template-polish work, requested 2026-06-02.
+- **Bucket:** UX / Enhancement (label only — the column functioned correctly; this is a client-requested wording refinement, not a bug).
+- **Reporter:** Client (direct), 2026-06-02
+- **Files touched:** `wwwroot/js/tags.js` (template header at `downloadImportTemplate`; export columns at the export-btn handler).
+- **Linked memory.** [[feedback_only_requested_changes]] (renamed only the requested column; export aligned at the client's explicit confirmation), [[feedback_client_requested_labels_immutable]] (this label IS the client-requested copy — implemented verbatim).
+
+---
+
+### DEF-236 — Product ID Manager: "select all / delete-all" bar does not appear on a single page (≤50 IDs); only shows when the list is paginated (>50)
+
+- **Date:** 2026-06-02
+- **Severity:** Low (UX/discoverability). On `/Certificate/Create` (and any in-memory Product ID Manager), ticking the header **select-all** checkbox checked every row and showed the red **"Delete Selected (N)"** button, but the Gmail-style confirmation/select-all **banner** never appeared. The user expected a visible "all selected / delete-all" bar after select-all and reported it missing (screenshot: 4 in-memory test rows, all ticked, no bar).
+- **Status:** **Fixed locally (2026-06-02) — pending next deploy.** Single-file JS change in `wwwroot/js/product-id-manager.js::updateBulkActionsUI`. The banner had only two visible states: cross-page mode, and `wholePageSelected && moreOffPage` (i.e. >1 page). Added a third branch — `wholePageSelected` with no off-page rows (single page) — that shows the banner as a plain confirmation: **"All N product ID(s) selected."** with a **Clear selection** link, and hides the meaningless cross-page "Select all N" link. Verified with a Playwright repro on localhost: 4 IDs → bar now shows "All 4 product IDs selected. Clear selection"; 60 IDs (paginated) → unchanged "All 50 on this page are selected. Select all 60 product IDs". Partial selection still correctly hides the bar.
+- **QC Ref:** internal — direct user report (Shawn), 2026-06-02, with screenshot of `/Certificate/Create`.
+- **Bucket:** UX
+- **Reporter:** Client (direct), 2026-06-02
+- **Root cause:** The DEF-194 cross-page banner was scoped only to the multi-page case (`moreOffPage = totalCount > visibleRows`). For a single page of fully-selected rows there were no off-page rows, so the banner was intentionally suppressed — but that left no "all selected" affordance at all, which read as a missing feature.
+- **Files touched:** `wwwroot/js/product-id-manager.js` (one `else if` branch added in `updateBulkActionsUI`). Re-used the existing `#bulkSelectAllBanner` / `#bulkSelectAllClear` markup — no Razor/markup change.
+- **NOT a defect in the >50 path:** the paginated select-all banner was verified working before and after the change. The fix is additive to the single-page case only.
+- **Linked memory.** [[feedback_no_chaos_rabbit_holes]] (reproduced visually with a throwaway Playwright harness before editing, rather than guessing from the static read which looked correct).
+
+---
+
 ### DEF-235 — App stops accepting TCP connections (`ERR_CONNECTION_REFUSED`) after ~9 consecutive view smokes / ~600 contexts of sustained load — manifests on the last view in the suite (admin-tags 12/12 RED)
 
 - **Date:** 2026-06-02
 - **Severity:** Medium (smoke gate flake; potential prod stability under sustained load). After running 9 consecutive view smokes (~120 page loads × ~5 sub-requests each = ~600+ HTTP requests), the app starts refusing TCP connections — every navigation in the 10th view (`admin-tags`, last alphabetically in the orchestrator) returns `net::ERR_CONNECTION_REFUSED`. The retry-once branch in `run-all.js` ALSO fails because the unresponsive window outlasts a single view cycle (~30s). Kestrel-level refusal, not 500 — the process is either dead or has stopped listening. `curl /` returns 200 again post-suite, so it's transient.
-- **Status:** **Mitigation verified GREEN (2026-06-02T02:25Z).** `SMOKE_BATCH_RESTART=1` run-all completed at **692 PASS / 0 FAIL / 8 WARN** — admin-tags went from 0P/12F/0W (single-run) to 40P/0F/0W (batch-restart), and login auto-retried once but ultimately passed. The 8 WARNs are all known/expected (cert-edit 6× CR-019 data-ops orphan FK; cert-tile-internal 2× environmental). Plan doc updated to make `SMOKE_BATCH_RESTART=1` the deploy-gate standard; single-run remains the fast dev-loop mode. Root-cause diagnosis (which specific service leaks state across requests) is **not** chased in this DEF — the batch-restart workaround unblocks the deploy gate without obscuring the underlying leak when someone takes time to chase it in a future session.
+- **Status:** **ROOT CAUSE FIXED + verified GREEN in single-run mode (2026-06-02T14:40Z).** `RequestResponseLoggingMiddleware` was the leak — it buffered every response body into a `MemoryStream` for every request including static assets (CSS/JS/img/fonts). Logged bodies are only USED if ≤50KB and only LOGGED if ≤10KB, so buffering bundled JS/CSS was pure waste. At ~30 static requests/page × 12 contexts × 10 views = ~3600 buffer allocations per smoke run, the resulting allocation pressure produced long GC pauses, Kestrel fell behind on accept(), and TCP refusals followed. Fix at `Middleware/RequestResponseLoggingMiddleware.cs` adds `_staticPrefixes` (`/css/ /js/ /lib/ /img/ /images/ /fonts/ /_framework/ /_content/`) and short-circuits before body buffering for those paths. Single-run smoke (NO batch-restart): **694 PASS / 0 FAIL / 6 WARN — GREEN**. admin-tags went from 0P/12F/0W (pre-fix single-run) to 40P/0F/0W (post-fix single-run). The earlier `SMOKE_BATCH_RESTART=1` mitigation is now optional, not required — single-run is reliable again. (Mitigation history: 2026-06-02T02:25Z `SMOKE_BATCH_RESTART=1` run was the first GREEN result, but masked the underlying leak; this DEF closes both the symptom AND the cause.)
 - **QC Ref:** internal (smoke-discovered, not a client QC item). Surfaced during the post-DEF-234 verification roll-up at 2026-06-02T01:19Z.
 - **Bucket:** Bug (infra / stability — sustained-load resource handling, mechanism not yet pinned)
 - **Reporter:** E2E smoke Tier 1 roll-up, 2026-06-02
@@ -117,6 +163,25 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 3. Candidate fixes (after diagnosis): (a) explicit `DbContext.Dispose()` audit in middleware; (b) reduce `EfQueryWarmupService` retention if it's holding a scope past startup; (c) examine `TestEnvironmentGateMiddleware` for static-state accumulation.
 
 **Linked memory.** [[feedback_no_chaos_rabbit_holes]] (this DEF is honestly framed as diagnosis-pending; a 2s mitigation lets us proceed without a flaky gate while the deep diagnosis lives in its own session); [[feedback_scoping_check_adjacent_endpoints]] (if connection-pool leak confirmed, the leak surface is likely middleware-wide, not view-specific).
+
+---
+
+### DEF-236 — `DownloadSelectedZip` IDOR: authenticated External/Partner user can bulk-download arbitrary cross-company certificate PDFs by ID (broken object-level authorization)
+
+- **Date:** 2026-06-02
+- **Severity:** **HIGH** (live cross-company data exposure of certificate PDFs to any authenticated external user). Pre-existing — not introduced by the June batch; surfaced by the pre-deploy Gate 3 adjacent-endpoint audit.
+- **Status:** **Fixed locally (2026-06-02) — verified — pending next deploy.** One-line-per-iteration authorization guard added to `Controllers/CertificateController.cs::DownloadSelectedZip` (~line 2126): after fetching each cert, call the existing `FileAccessAllowed(certificate, out var denyReason)` gate (the same one every single-download path uses) and `continue` (skip + log) on deny. Build clean (0 errors). Ships with the June batch.
+- **QC Ref:** internal (security audit, not a client QC item). Surfaced by `security-specialist` during the 2026-06-02 pre-deploy Gate 3 run (`docs/tracking/predeploy-record-2026-06-june-batch.md`).
+- **Bucket:** Bug (security — broken object-level authorization / IDOR)
+- **Reporter:** Pre-deploy Gate 3 (data-scoping & endpoint coverage), 2026-06-02
+
+**Evidence (pre-fix, live probe).** `POST /Certificate/DownloadSelectedZip` is gated only by `[Authorize(Policy = "ExternalAccess")]` (External + Partner) and zipped every caller-supplied cert ID via `GetByIdAsync` with **no ownership / status / `FileAccessAllowed` check**. Logged in as the `external` test user (authorized scope = **2** certs, company "Henkel"), POSTing `[1..60]` returned **HTTP 200, a 12.6 MB ZIP of 32 certificate PDFs across unaffiliated companies** (incl. "Carly Test" / Electronics rows 26-0146..26-0158). 2 → 32 unauthorized escalation. The front-end only ever sends already-scoped IDs, so the UI never exposed it — but the server never re-validated, so a hand-crafted POST bypassed scoping entirely. This is the exact recurring trap of [[feedback_scoping_check_adjacent_endpoints]] (DEF-103/164/198/204/205): the list/tile path is scoped, the adjacent bulk-download path is not.
+
+**Fix.** Reuse `FileAccessAllowed` (Admin/Analyst → full; External → own-company + PublicStatuses + not-expired; Partner → own-partner; any other role → fail-closed) inside the zip loop; skip + log any denied cert and count it as a failure (so an all-denied request returns the existing 400 "none available").
+
+**Verification (2026-06-02, local).** `Scripts/smoke-prod/def236-idor-verify.js` — re-ran the exact probe against the fixed build: external user POST `[1..60]` → **HTTP 200, ZIP = 2 entries / 112 KB** (exactly the user's authorized set per the external tile API `totalCount=2`), down from 32 entries / 12.6 MB. Cross-company leak closed. **PASS.**
+
+**Linked memory.** [[feedback_scoping_check_adjacent_endpoints]] (list scoped, adjacent detail/single/download not — audit adjacent endpoints, not just the one you touched).
 
 ---
 
@@ -150,7 +215,12 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 **Verification (2026-06-01, local — pre-deploy perf gate).** Confirmed on `localhost:5101` with the fix in the working tree:
 - Startup log: `EfQueryWarmupService: public tile query warmed in 6380ms (totalCount=22)` — the cold EF-compile cost is paid once at host startup, off the user request path.
 - First *real* user request to `/api/certificate-tiles?page=1&pageSize=20` measured warm at **~80–280ms** (8-call sample: 0.277, 0.086, 0.093, 0.077, 0.152, 0.075, 0.077, 0.183s) — three orders of magnitude under the 30s `AbortSignal` ceiling.
-- Caveat: while a concurrent E2E smoke run was loading the *same* instance, the endpoint spiked to 30.4s/28.2s (call 1 tripped the 30s abort). That is DB connection-pool contention under the smoke suite's parallel load — **not** an `AsSplitQuery` regression (proven: with the load removed, warm calls collapse to ~80ms). Separate follow-up: throttle the smoke suite or size the connection pool so a 10-view parallel sweep doesn't self-induce the timeout. Tracked as a note, not a DEF.
+- Caveat: while a concurrent E2E smoke run was loading the *same* instance, the endpoint spiked to 30.4s/28.2s (call 1 tripped the 30s abort). That is DB connection-pool contention under the smoke suite's parallel load — **not** an `AsSplitQuery` regression (proven: with the load removed, warm calls collapse to ~80ms). Separate follow-up: throttle the smoke suite or size the connection pool so a 10-view parallel sweep doesn't self-induce the timeout. Tracked as a note, not a DEF (this is DEF-235 — addressed by the `run-all.js` batch-with-restart mode).
+
+**Re-verification (2026-06-02, fresh cold boot — closes the "must re-baseline green" gap).** Killed all dotnet, started a single clean `dotnet run`, and measured the FIRST request after a genuinely cold start (not already-warm Kestrel):
+- Startup log: `EfQueryWarmupService: public tile query warmed in 1027ms (totalCount=22)`.
+- **First real `/api/certificate-tiles?page=1&pageSize=20` request: 0.054s** (then 0.150s, 0.038s) — i.e. the 23s cold-start window is *gone* on a fresh boot; the warmup pre-pays it. This is the cold-boot proof the 2026-06-01 verification (on already-warm Kestrel) lacked.
+- Smoke re-baseline: `cert-tile-public` is **124P/0F/0W** across every clean Tier 1 run (single + batch-restart), and the Tier 1 roll-up is GREEN under `SMOKE_BATCH_RESTART=1`. The DEF-234 assertion is re-baselined green. **Ready for deploy** (no further local work; ship with the next Plesk push).
 
 ---
 
@@ -6310,7 +6380,11 @@ Fix: `Controllers/AdminController.cs` — `ImportUsers()` now special-cases `com
 
 ### DEF-235 — `Permissions-Policy` response header is duplicated on prod (DEF-107 fix regressed / re-injected)
 
-**Date:** 2026-06-02 | **Status:** OPEN — reinvestigation needed | **Severity:** Low (security-header hygiene; no functional impact, but trips header-correctness scanners) | **QC Ref:** internal — follow-up to **DEF-107** | **Reporter:** Governance sweep 2026-06-02 (promoted from the 2026-05-21 status-sync "🔴 STILL FAILING" flag)
+> ⚠️ **DEF-NUMBER COLLISION (flagged 2026-06-02).** This number is also used by the sustained-load `ERR_CONNECTION_REFUSED` entry earlier in this file (~line 115). Both were opened in the same 2026-06-02 governance sweep. **Proposed resolution:** renumber THIS (Permissions-Policy) entry to **DEF-237**, keep the connection-refused entry as DEF-235 (it's more cross-referenced — e2e-smoke-plan, batch-restart mitigation). Awaiting Shawn's ok before renumber (ripples to `predeploy-record-2026-06-june-batch.md` + the Gate-5 governance note). Tracked in the June predeploy record blocker #3.
+
+> ✅ **UPDATE 2026-06-02 — fix is in the working tree and folded into the June deploy batch.** The `web.config` `<httpProtocol><customHeaders>` block (the second injection source) has already been removed (web.config lines 22-31 are now an explanatory comment); `SecurityHeadersMiddleware` is the single source. Localhost re-verified: `HEAD /` emits exactly 1 of each security header (`Permissions-Policy count=1`). `web.config` ships with the FileSystem publish, so it deploys with this batch. **Status flips to "fixed locally — pending deploy + prod re-probe."** Post-deploy: `curl -sI https://gccwebapp.com/ | grep -ci permissions-policy` → expect 1 (was 2).
+
+**Date:** 2026-06-02 | **Status:** Fixed locally (web.config dedup in tree) — pending deploy + prod header re-probe | **Severity:** Low (security-header hygiene; no functional impact, but trips header-correctness scanners) | **QC Ref:** internal — follow-up to **DEF-107** | **Reporter:** Governance sweep 2026-06-02 (promoted from the 2026-05-21 status-sync "🔴 STILL FAILING" flag)
 
 **Why this is a new DEF, not just a DEF-107 note.** DEF-107 was recorded as fixed and shipped, but the 2026-05-21 targeted-probe sweep (`qc159-live-check/older-defs-grouped-sweep.js`) found the `Permissions-Policy` header **back to count=2** on gccwebapp.com. A fix that was marked shipped but is observably failing on prod needs its own open tracking item so it doesn't get lost inside a closed entry. DEF-107 stays closed-as-shipped for the original fix; DEF-235 owns the regression.
 

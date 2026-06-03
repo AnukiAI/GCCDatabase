@@ -35,7 +35,7 @@ On the certificate form, using the **"Add New"** option on the Product Name fiel
 
 A three-step pass, fully reversible until the final commit:
 
-1. **Identify (read-only).** Run a read-only query that lists: (a) products sitting under the default category with no type/subcategory, (b) the high-confidence subset where the linked certificate shows the same signature, and (c) the client-created test data (the "Carly Test" category/types/products you asked be removed). No data is changed. Safe to run anytime. Produces a review worklist.
+1. **Identify (read-only).** Run a read-only query that lists: (a) products sitting under the default category with no type/subcategory, (b) the high-confidence subset where the linked certificate shows the same signature, and (c) the client-created test data (the "Carly Test" category/types/products you asked be removed). No data is changed. Safe to run anytime. Produces a review worklist. *(As a pre-check, we confirm the "default category" the query keys on matches the one the live form actually served first — guarding against an edge case where two categories share the same sort position.)*
 
 2. **Triage (human).** Anuki + GCC review the worklist and split it into:
    - **Test junk to delete** — the "Carly Test" entries and any throwaway test products. (You explicitly requested removal in QC #170.)
@@ -106,3 +106,7 @@ No JSON **contract/shape** change — `/api/v1/certificates*` is untouched per t
 - Identify + triage: ~1–2 hrs (plus GCC worklist review).
 - Remediate + verify: ~1–2 hrs.
 - Volume depends on how many pre-fix rows the IDENTIFY query returns on the live data — to be reported with the worklist.
+
+## 12. Sequencing (important)
+
+This cleanup should run **after** the DEF-231 code fix is deployed to the live environment, not before. DEF-231 is what stops new mis-categorized rows from being created; if we cleaned up first while the old behavior was still live, the inline "Add New" flow could keep producing new bad rows and the worklist would regrow. Order: **deploy DEF-231 → run IDENTIFY → triage → backup → REMEDIATE.** (DEF-231 ships on the next deploy regardless of this CR.)

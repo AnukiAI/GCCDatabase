@@ -31,10 +31,34 @@ public class RequestResponseLoggingMiddleware
         };
     }
 
+    // DEF-235 root cause: this middleware was the leak. Static-asset requests (CSS/JS/img/lib)
+    // were going through the full response-body buffering codepath, allocating a MemoryStream
+    // per request and copying the entire response into it. Under sustained load (the E2E smoke
+    // fires ~30 static requests per page × 12 contexts × 10 views = ~3600 buffer allocations
+    // per run), the resulting allocation pressure produced long GC pauses, Kestrel fell behind
+    // on accept(), and TCP refusals (localhost ERR_CONNECTION_REFUSED / Plesk 503) followed.
+    // LogResponseAsync only ever USES the body if Length <= 50KB and only LOGS it if <= 10KB,
+    // so buffering bundled JS/CSS was pure waste. Static prefixes are now bypassed entirely.
+    private static readonly string[] _staticPrefixes = new[]
+    {
+        "/css/", "/js/", "/lib/", "/img/", "/images/", "/fonts/", "/_framework/", "/_content/"
+    };
+
+    private static bool IsStaticAssetPath(PathString path)
+    {
+        if (!path.HasValue) return false;
+        var v = path.Value!;
+        for (int i = 0; i < _staticPrefixes.Length; i++)
+        {
+            if (v.StartsWith(_staticPrefixes[i], StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
     public async Task InvokeAsync(HttpContext context)
     {
-        // Skip logging for excluded paths
-        if (_excludedPaths.Contains(context.Request.Path))
+        // Skip logging for excluded paths AND for static-asset prefixes (DEF-235 fix).
+        if (_excludedPaths.Contains(context.Request.Path) || IsStaticAssetPath(context.Request.Path))
         {
             await _next(context);
             return;
@@ -42,7 +66,7 @@ public class RequestResponseLoggingMiddleware
 
         // Get scoped service from request services
         var structuredLogger = context.RequestServices.GetRequiredService<IStructuredLoggingService>();
-        
+
         var stopwatch = Stopwatch.StartNew();
         var requestId = context.TraceIdentifier;
 
@@ -67,7 +91,7 @@ public class RequestResponseLoggingMiddleware
         finally
         {
             stopwatch.Stop();
-            
+
             // Log response
             await LogResponseAsync(context, responseBodyMemoryStream, stopwatch.Elapsed, requestId, structuredLogger);
 

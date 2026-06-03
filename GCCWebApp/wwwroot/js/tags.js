@@ -545,7 +545,7 @@ function downloadImportTemplate() {
         // Create CSV content with headers only (no sample data)
         // Slash separator (not comma) so the unquoted header doesn't split into
         // two columns when join(',') concatenates the row.
-        const headers = ['Name', 'TagType (Internal/External)', 'Description'];
+        const headers = ['Tag Name', 'TagType (Internal/External)', 'Description'];
         const csvContent = headers.join(',');
 
         // Download file
@@ -1273,7 +1273,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }));
 
             const columns = [
-                { key: 'name', header: 'Name' },
+                { key: 'name', header: 'Tag Name' },
                 { key: 'type', header: 'Tag Type' },
                 { key: 'description', header: 'Description' }
             ];

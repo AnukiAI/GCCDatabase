@@ -6,7 +6,7 @@
 
 **What it accompanies.** CR-019 — a one-time data-correction pass to fix product/certificate rows mis-categorized by the DEF-231 bug, plus removal of the client's "Carly Test" test data (QC #170 thread 1).
 
-**Why the email is casual, not a formal approval request.** In her QC #186 / #170 notes the client explicitly asked for these to be updated/removed (*"PLEASE REMOVE MY CARLY TEST AND CARLY TEST TYPE OPTIONS"*; *"it changed/removed some of my selections"*). She has already signaled the change is wanted, so a heavy "please approve this change request" framing would over-formalize something she requested. Per [[feedback_say_client_not_names]] the email stays in plain, friendly language. The formal record still lives in CR-019 + the change-request register — this email does not replace them.
+**Why the email is casual, not a formal approval request.** In the QC #186 / #170 notes the client explicitly asked for these to be updated/removed (*"PLEASE REMOVE MY CARLY TEST AND CARLY TEST TYPE OPTIONS"*; *"it changed/removed some of my selections"*). The client has already signaled the change is wanted, so a heavy "please approve this change request" framing would over-formalize something they requested. Per [[feedback_say_client_not_names]] the email stays in plain, friendly language. The formal record still lives in CR-019 + the change-request register — this email does not replace them.
 
 **Key facts the email is built on (full detail in CR-019):**
 - **Root cause / code fix:** DEF-231 — `wwwroot/js/certificate-inline-create.js::saveInlineProduct()` filed quick-added products under `GetCategories[0]` (lowest SortOrder) with null type/subcategory, ignoring the form; selecting the product then copied the wrong category onto the cert. Fixed + verified locally (`def231-quickadd-repro.js` 8/8, `def231-fix-verify.js` 6/6). Ships next deploy → stops new occurrences.
@@ -15,7 +15,7 @@
 - **Partner API:** no JSON shape change ([[feedback_amazon_api_immutable]]); corrected category becomes the accurate value for any partner-visible cert — mentioned for awareness only.
 - **Policy basis:** [[feedback_data_changes_require_cr]] (live UPDATE/DELETE needs GCC sign-off) and [[feedback_data_issue_vs_defect]] (data op, no DEF row, date-prefixed SQL).
 
-**Placeholders to fill before sending:** `[name]` (recipient), `[Your name]` (sender). Attach/link CR-019.
+**Placeholders to fill before sending:** `[name]` (GCC recipient — left blank deliberately; fill with the right contact at send time). Sender filled as Shawn. Attach/link CR-019. **Send only after DEF-231 is deployed** (or note in the email that the fix lands with the next deploy, which the current draft already does).
 
 ---
 
@@ -35,4 +35,4 @@ Since you mentioned in your notes that these can be updated, we'll also tidy up 
 I've logged it as CR-019 on our end for the paper trail — nothing you need to do. Just shout if you'd rather we hold off on any of it.
 
 Thanks!
-[Your name]
+Shawn

@@ -1,0 +1,5 @@
+[run-all] single-run mode (you manage the server). Warming up...
+
+[smoke] home (/Home/Index) — http://localhost:5101
+[smoke] roles=public,external,analyst,admin viewports=desktop,tablet,mobile
+

@@ -1043,6 +1043,20 @@ class ProductIdManager {
                     link.innerHTML = `Select all <span id="bulkBannerTotalCount">${total}</span> product IDs`;
                 }
                 if (clearBtn) clearBtn.style.display = 'none';
+            } else if (wholePageSelected) {
+                // DEF-236: Single page, every row selected (no off-page rows).
+                // The cross-page "Select all N" link is meaningless here, but the
+                // user still expects a visible "all selected / delete-all" bar
+                // (the red "Delete Selected (N)" button does the delete). Show a
+                // plain confirmation banner with a Clear-selection affordance.
+                banner.style.display = '';
+                banner.classList.remove('bulk-select-all-active');
+                if (bannerText) {
+                    bannerText.textContent =
+                        `All ${total} product ID${total === 1 ? '' : 's'} selected.`;
+                }
+                if (link) link.style.display = 'none';
+                if (clearBtn) clearBtn.style.display = '';
             } else {
                 banner.style.display = 'none';
                 banner.classList.remove('bulk-select-all-active');

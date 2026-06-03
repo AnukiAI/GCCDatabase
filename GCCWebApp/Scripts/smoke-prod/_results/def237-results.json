@@ -1,0 +1,61 @@
+{
+  "pass": 8,
+  "fail": 0,
+  "warn": 1,
+  "results": [
+    {
+      "id": "V1",
+      "desc": "Help text wording",
+      "status": "PASS",
+      "detail": "got: \"Select the companies associated with this user\""
+    },
+    {
+      "id": "V2.0",
+      "desc": "Check All control exists in Add modal",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "V2",
+      "desc": "Check All UNCHECKED on Add New User open",
+      "status": "PASS",
+      "detail": "checked=false"
+    },
+    {
+      "id": "V2.1",
+      "desc": "Company checkboxes rendered",
+      "status": "PASS",
+      "detail": "count=291"
+    },
+    {
+      "id": "V3",
+      "desc": "Check All ON checks every company",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "V4",
+      "desc": "Check All OFF unchecks every company",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "V6",
+      "desc": "Company group hides for Admin, shows for External",
+      "status": "WARN",
+      "detail": "adminHidden=false, externalShown=true"
+    },
+    {
+      "id": "V5a",
+      "desc": "Edit sync invariant (CheckAll === all-boxes-checked)",
+      "status": "PASS",
+      "detail": "userId=1, boxes=291, allChecked=false, checkAll=false"
+    },
+    {
+      "id": "V5b",
+      "desc": "Edit modal: Check All ON selects all companies",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}

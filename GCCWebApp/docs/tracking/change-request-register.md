@@ -203,6 +203,18 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 - **Detail doc:** `docs/tracking/CR-018-product-id-server-paging.md`
 - **Status:** **Built 2026-05-07.** Verified end-to-end on dev cert `26-0023` (1001 product IDs): page settle dropped from 3500 ms → 1046 ms (after JIT warm-up). Sort round-trip 449 ms. Page-2 fetch 309 ms. Initial payload 50 rows (was 1001). All Playwright acceptance checks pass. Pending UAT / deploy.
 
+### CR-184 (proposed 2026-06-02) — Global Product Identifiers CSV export
+- **Source:** QC #184 (client, Carly, 5/15/26) — *"How would we get a full export with product identifier information across all products? The export on this page includes Identifier Type and Id Value but not the product name at the product level or SKU or partner. We will need to run aggregate export on all active product identifiers across certs — where and how can we do that today."*
+- **Why CR (not defect):** Existing per-cert export (`/api/productids/certificate/{id}/export`) and Product Management page export both work as designed but neither aggregates across certs with cert number / partner / company / cert status context. New surface, not a broken behavior.
+- **Scope:** New `GET /Admin/Export/ProductIdentifiers` endpoint (Admin/Analyst only via `[Authorize(Policy = "AdminOnly")]`) returning a CSV joined across `CertificateProductId × Certificate × Company × Product`. 10 columns (Cert Number, Cert Status, Partner, Company, Product Name, SKU, Identifier Type, Identifier Value, Created UTC, Created By). 5 optional filters (partner, identifier type, cert status, createdFrom, createdTo). EF query uses `.AsSplitQuery()` + stable ordering per [[feedback_ef_includes_with_projection]]; calendar dates pre-formatted yyyy-MM-dd per [[feedback_calendar_date_serialization]].
+- **Files (estimated):** `Controllers/AdminController.cs`, `Services/AdminService.cs`, `Services/IAdminService.cs`, new filter DTO, UI host TBD (Admin dashboard tile vs Product Management button — open question), Playwright spec at 5 viewports per [[feedback_playwright_screenshots]].
+- **Files NOT touched:** `Controllers/Api/ProductIdApiController.cs`, `Services/ProductIdService.cs`, per-cert export endpoint, all models, no schema changes, no migration. Partner API untouched per [[feedback_amazon_api_immutable]].
+- **Out of scope:** Excel/JSON output (CSV-only mandate), editing `CertificateProductId.Status` (auto-derived from cert per CR-015 / [[feedback_product_id_status_follows_cert]]), background jobs for >100k rows, saved filter presets, cross-cert search browse view.
+- **Partner API impact:** None.
+- **Effort estimate:** ~4–6 hrs.
+- **Detail doc:** `docs/tracking/CR-184-product-identifiers-global-export.md`
+- **Status:** Proposed 2026-06-02 — 5 open questions (UI home, partner filter values, identifier type values, default cert-status filter, date field choice) pending Shawn/client answer before build.
+
 ### CR-019 (proposed 2026-06-01) — Data-correction pass: product mis-categorization cleanup (DEF-231 fallout)
 - **Source:** QC #186 (client 5/29) + QC #170 test-data removal. The cert form's inline "Add New product" filed products under the wrong (first-sorted) category with no type/subcategory, ignoring the analyst's form selections, and that wrong category then propagated onto the certificate. Code fix is DEF-231 (done, verified locally, queued for deploy); this CR covers the rows already corrupted before the fix.
 - **Type:** Data operation (one-time UPDATE/DELETE on live business records) — not a code or scope change.
@@ -215,7 +227,8 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 - **Rollback:** pre-commit = automatic transaction rollback; post-commit = restore from the pre-run backup (or targeted per-row re-correction).
 - **Partner API impact:** no JSON shape change (`/api/v1/certificates*` untouched per [[feedback_amazon_api_immutable]]); for any partner-visible cert whose category is corrected, the partner sees the now-accurate category value (data-accuracy improvement, flagged for awareness).
 - **Scripts:** `Scripts/data-ops/2026-06-01-product-miscategorization-{IDENTIFY,REMEDIATE}.sql`
-- **Detail doc:** `docs/tracking/CR-019-product-miscategorization-data-cleanup.md`
+- **Detail doc:** `docs/tracking/CR-019-product-miscategorization-data-cleanup.md` (§12 sequencing added; cover email sender filled — ready for GCC send).
+- **Sequencing:** run **after** DEF-231 deploys to live (else the still-live old behavior keeps minting new bad rows and the worklist regrows). Order: deploy DEF-231 → IDENTIFY → triage → backup → REMEDIATE. IDENTIFY validated read-only on the dev DB 2026-06-02 (runs clean; dev's bug-default category = a `Batch2QA-Cat-*` test row, 3 suspect products / 1 high-conf cert — dev pattern only, not the live worklist).
 - **Effort estimate:** ~2–4 hrs total (identify + triage + remediate + verify), volume TBD from live IDENTIFY output.
 - **Status:** Proposed 2026-06-01 — awaiting GCC approval. Nothing run against live yet.
 

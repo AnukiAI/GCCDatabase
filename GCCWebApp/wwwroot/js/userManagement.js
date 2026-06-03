@@ -172,27 +172,31 @@ class UserManagement {
         const companyGroup = document.getElementById('company-group');
         const partnerGroup = document.getElementById('partner-group');
         const partnerSelect = document.getElementById('user-partner');
+        const accessNote = document.getElementById('role-access-note');
 
         // Reset required attribute
         if (partnerSelect) {
             partnerSelect.required = false;
         }
 
-        // Role-based visibility:
-        // - Partner role: Show Partner dropdown, hide Companies
-        // - External role: Show Companies, hide Partner
-        // - Admin/Analyst: Hide both (full access, no filtering)
-        // - API Integration/Public: Hide both
+        // Role-based visibility (client 5/15): Company Access only applies to External
+        // (scoped to selected companies) and Partner (scoped to selected partner). Admin
+        // and Analyst are never scoped — they implicitly have access to all companies, so
+        // hide both selectors and show an explanatory note instead. Any other / unselected
+        // role hides everything until a scoped role is chosen.
+        const normalized = (role || '').toLowerCase();
 
-        if (role === 'Partner') {
-            // Partner users see all certificates tagged with their partner
-            if (companyGroup) companyGroup.style.display = 'none';
+        if (companyGroup) companyGroup.style.display = 'none';
+        if (partnerGroup) partnerGroup.style.display = 'none';
+        if (accessNote) accessNote.style.display = 'none';
+
+        if (normalized === 'partner') {
             if (partnerGroup) partnerGroup.style.display = 'block';
             if (partnerSelect) partnerSelect.required = true;
-        } else {
-            // All non-Partner roles: show Company, hide Partner
+        } else if (normalized === 'external') {
             if (companyGroup) companyGroup.style.display = 'block';
-            if (partnerGroup) partnerGroup.style.display = 'none';
+        } else if (normalized === 'admin' || normalized === 'analyst') {
+            if (accessNote) accessNote.style.display = 'block';
         }
     }
 
@@ -311,6 +315,12 @@ class UserManagement {
     }
     
     getCompanyAccessDisplay(user) {
+        // Admin/Analyst are never scoped to companies — they have access to all (client 5/15).
+        // Show "All" so the column isn't blank for these roles.
+        const role = (user.role || '').toLowerCase();
+        if (role === 'admin' || role === 'analyst') {
+            return 'All';
+        }
         const ids = user.companyIds || [];
         if (ids.length === 0) {
             return user.company || '';
@@ -515,11 +525,10 @@ class UserManagement {
             partnerSelect.value = '';
         }
 
-        // Reset role-based field visibility (show company by default, hide partner)
-        const companyGroup = document.getElementById('company-group');
-        const partnerGroup = document.getElementById('partner-group');
-        if (companyGroup) companyGroup.style.display = 'block';
-        if (partnerGroup) partnerGroup.style.display = 'none';
+        // Reset role-based field visibility via the single source of truth. No role is
+        // selected yet, so handleRoleChange('') hides Company Access, the Partner picker,
+        // and the full-access note until the admin chooses a role.
+        this.handleRoleChange('');
 
         // Reset Check All checkbox
         const checkAll = document.getElementById('company-check-all');

@@ -2124,6 +2124,22 @@ namespace GCCWebApp.Controllers
                                 continue;
                             }
 
+                            // DEF-236: per-row authorization. This endpoint is gated only by the
+                            // ExternalAccess policy and zips whatever IDs the caller posts — without
+                            // this guard an authenticated External/Partner user could request arbitrary
+                            // cert IDs and receive PDFs outside their company/partner scope (broken
+                            // object-level authorization / IDOR; Gate-3 probe pulled 32 cross-company
+                            // PDFs from a 2-cert scope). Reuse the same gate every single-download path
+                            // uses (FileAccessAllowed: Admin/Analyst full; External = own-company +
+                            // PublicStatuses + not-expired; Partner = own-partner; else fail-closed).
+                            if (!FileAccessAllowed(certificate, out var denyReason))
+                            {
+                                _logger.LogWarning("DownloadSelectedZip: skipping cert {CertId} ({Number}) — access denied: {Reason}",
+                                    certId, certificate.Number, denyReason);
+                                failureCount++;
+                                continue;
+                            }
+
                             // Get the PDF bytes (either from uploaded file or generated)
                             byte[] pdfBytes = null;
                             var fileName = $"Certificate_{certificate.Number}.pdf";

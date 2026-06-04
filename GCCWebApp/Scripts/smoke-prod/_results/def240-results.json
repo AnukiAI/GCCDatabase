@@ -1,0 +1,42 @@
+{
+  "pass": 6,
+  "fail": 0,
+  "results": [
+    {
+      "id": "S0",
+      "desc": "Product Management loads + table present",
+      "status": "PASS",
+      "detail": "http=200"
+    },
+    {
+      "id": "S1",
+      "desc": "Table has NO Status column",
+      "status": "PASS",
+      "detail": "headers=[ | Product Name ▼ | Company ▼ | Category ▼ | Product Type ▼ | Subcategory ▼ | Certs ▼ | IDs ▼ | Actions |  | Row | Import Status | Product Name | Description | Action]"
+    },
+    {
+      "id": "S2",
+      "desc": "Filter bar has NO Status filter",
+      "status": "PASS",
+      "detail": "#status-filter count=0"
+    },
+    {
+      "id": "S3",
+      "desc": "Add New Product modal has NO Status field",
+      "status": "PASS",
+      "detail": "#product-status count=0"
+    },
+    {
+      "id": "S4",
+      "desc": "Modal retains core fields (name/company/category/subcategory)",
+      "status": "PASS",
+      "detail": "{\"name\":true,\"company\":true,\"category\":true,\"type\":true,\"subcategory\":true,\"description\":true}"
+    },
+    {
+      "id": "S5",
+      "desc": "No console / page errors",
+      "status": "PASS",
+      "detail": "clean"
+    }
+  ]
+}

@@ -83,6 +83,135 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 ## Open / Recent
 
+### DEF-242 — Cert list sorting: blank/empty values now sort LAST in both directions, consistent across all three tile views (QC #157 client UX request)
+
+- **Date:** 2026-06-03
+- **Severity:** Low (UX behavior change — client-requested). No data change, no migration.
+- **Status:** **DEPLOYED + VERIFIED on gccwebapp.com (2026-06-03, zip `GCCWebApp-deploy-20260603-2110.zip`).** Built clean (0 errors), verified on localhost (`Scripts/smoke-prod/qc157-sort-verify-local.js` → 14 PASS / 0 FAIL), then prod-fingerprinted post-deploy → **12 PASS + 2 known-false-positive** (the 2 are the `é™®ä, PA` mojibake test cert 26-0158 vs the oracle's ASCII-codepoint compare, same as DEF-241; not a regression — blanks-last placement confirmed working on all columns). Before/after proof: pre-deploy `location-az` returned 11 blanks first; post-deploy returns populated values first with blanks trailing. **No DB migration** — pure query change, Gate 7 N/A.
+- **Reporter:** Client (Carly) QC #157 5/29 retest (Location/ASIN/Cert Subcategories/Company URL "still not sorting"); Shawn direction on 2026-06-03: *"null at the end … the fix would need to be consistent across the application."*
+
+**Why this exists.** DEF-241 verified the sort code was already correct — the columns DO sort. The client's perception of "not sorting" was caused by **NULL/empty placement**: SQL Server's default puts blanks **first** in ascending, and because many certs have empty Location / Company URL / Cert Subcategories, sorting those columns ascending filled the first screen with blanks. This change implements the client's requested rule: blanks always at the END.
+
+**Fix — one shared helper, used by all three certificate-list query paths so they behave identically:**
+- New `Extensions/CertificateSortExtensions.cs`:
+  - `OrderByTextEmptiesLast(query, key, descending)` — primary order on an `(key ?? "") == ""` bit (false=0 first, true=1 last; never reversed → blanks stay last in BOTH directions), then `ThenBy/ThenByDescending(key)`. Caller still appends `.ThenBy(c => c.Id)` for stable pagination (DEF-166).
+  - `OrderByNumericNullsLast(query, key, descending)` — same idea for the nullable `decimal?` Cert Results column.
+- Wired in:
+  - `Controllers/Api/CertificateTileInternalApiController.cs` `ApplySorting` — every text branch (cert-type, company, product, product-cat/type/sub, location, country, ext-tag/int-tag, partner, asin/upc/gtin/ean, contact, pathway, cert-sub, company-url) + cert-results. Date/Number/Status(enum) branches unchanged (no blank state).
+  - `Controllers/Api/CertificateTileExternalApiController.cs` `ApplySorting` — cert-type, company, product, location, country, product-type, partner.
+  - `Repositories/CertificateRepository.cs` (public tile path via `filter.SortBy`/`SortDescending`) — company, product, certtype, location, country, producttype.
+
+**Supersedes** the DEF-181 choice of "cert-results NULLs first in ASC." Per the client's "consistent across the application," Cert Results now also puts non-numeric/empty results last in both directions.
+
+**Verification (localhost, 2026-06-03):** `qc157-sort-verify-local.js` (API-level, full pagination, collation-aligned oracle) → **14 PASS / 0 FAIL** — Location/ASIN/Company URL/Partner all show populated values leading and blanks clustered at the end in *both* asc and desc; Status (enum) unchanged; DEF-181 cert-results canary still HTTP 200. Public endpoint spot-check: `sort=location-az` → `["Hartford, CT","Portland, OR",null,null,…]` (populated lead, blanks last). External endpoint returns 200 (same helper, scoped data too sparse to show ordering). Cert Subcategories had no populated rows in the sandbox (untestable locally; identical code path).
+
+**Files:**
+- `Extensions/CertificateSortExtensions.cs` *(new)* — shared empties-last / nulls-last sort helpers.
+- `Controllers/Api/CertificateTileInternalApiController.cs` — `ApplySorting` text + cert-results branches.
+- `Controllers/Api/CertificateTileExternalApiController.cs` — `ApplySorting` text branches + `using GCCWebApp.Extensions`.
+- `Repositories/CertificateRepository.cs` — public sort text branches + `using GCCWebApp.Extensions`.
+- `Scripts/smoke-prod/qc157-sort-verify-local.js` — oracle updated to assert blanks-last; gate-aware for local + prod.
+- `docs/tracking/qc-log-update-2026-06-03.md` — client-facing QC #157 entry.
+
+**Cross-ref:** Implements the optional UX follow-up flagged in **DEF-241** (the investigation that proved no defect). Builds on DEF-165 / DEF-181. Supersedes DEF-181's cert-results NULL placement.
+
+---
+
+### DEF-241 — Cert List View column sorting (QC #157, 5/29 re-raise): verified correct on localhost — NO code defect; perceived "not sorting" is sparse data + NULL-first placement
+
+- **Date:** 2026-06-03
+- **Severity:** None (triage outcome — no code change). Classified **Closed — no code change required**.
+- **Status:** Closed (code correct as-shipped). **Verified on http://localhost:5101** — `Scripts/smoke-prod/qc157-sort-verify-local.js` → **13 PASS / 0 FAIL** across Location, ASIN, Cert Subcategories, Company URL, Partner, Status (asc + desc). Result JSON: `_results/qc157-sort-local-results.json`. **Also fingerprinted on gccwebapp.com (2026-06-03) → DEF-165 + DEF-181 confirmed LIVE** (see Prod fingerprint below).
+- **Reporter:** Client (Carly) via QC #157, 5/29 retest — *"Status sorting is working. The following still are not: Location, ASIN (unsure of UPC/GTIN/EAN, they had no data), Cert Subcategories (multiple values, order not critical), Company URL (low priority)."*
+
+**Background.** QC #157 (4/7) flagged sort issues across many columns. DEF-165 (shipped 2026-05-08) fixed Product Category misroute + multi-value `.Min()` determinism + `.ThenBy(Id)` tiebreaker. DEF-181 (2026-05-11) fixed the four product-ID columns (legacy-column fallback) and Cert Results (numeric column). Carly's 5/29 retest still lists Location / ASIN / Cert Subcategories / Company URL. This entry is the investigation + localhost verification of that re-raise.
+
+**Full-chain audit — every layer is correctly wired for all four columns:**
+1. Server sort — `Controllers/Api/CertificateTileInternalApiController.cs:689-792` (`ApplySorting`): `location-az/za` → `OrderBy(c.Location)`, `asin/za` → legacy-fallback `Min(ProductIds)` ?? `c.Asin`, `cert-sub/za` → `Min(CertificationTypeSubcategories.Name)`, `company-url/za` → `OrderBy(c.Company.Website)`. All present, all with `.ThenBy(c.Id)` tiebreaker.
+2. Client column→key map — `wwwroot/js/certificate-tile-view-internal.js:648-673` and reverse/desc map `:688-713`: `location→location-az`, `asin→asin`, `certSubcategories→cert-sub`, `companyUrl→company-url`. Correct.
+3. Header attributes — `Views/Certificate/CertificateTileViewInternal.cshtml:374/379/385/387`: every column header carries the right `data-sort-column`. Correct.
+
+**Verification method.** Sorting is 100% server-side, so the harness drives the real internal API (`/api/certificate-tiles-internal?sortBy=…`) directly, paginates the **full** result set, and asserts the returned sort key is monotonic. This deliberately avoids a DOM test, whose confounds produced false failures in the first two passes: (a) the sortable table only renders in **List** view (page defaults to **Tile**/card view — see the `data-view` toggle); (b) the ASIN/UPC/GTIN/EAN cells render a **count badge**, not the value; (c) Location displays a **composite** ("Portland, OR, United States") and Status displays a **label** while sorting by enum int — so "alphabetical by what's on screen" is the wrong oracle; (d) the JS oracle's `localeCompare(numeric:true)` orders letters-before-digits, the **opposite** of SQL Server's default CI collation (digits-before-letters) — this alone produced two false ASIN failures until the oracle was switched to case-insensitive codepoint compare to match the DB.
+
+**Per-column result (localhost, admin scope, 20-cert sandbox):**
+| Column | ASC | DESC | Notes |
+|---|---|---|---|
+| Location | ✅ | ✅ | 17/20 certs have empty Location → ASC clusters blanks first (SQL NULLs-first), DESC shows the 3 populated values ordered correctly. |
+| ASIN | ✅ | ✅ | 15–20 populated, ordered per DB collation (digits before letters). |
+| Company URL | ✅ | ✅ | 6 populated, ordered correctly. |
+| Partner | ✅ | ✅ | Amazon < None < Novi. |
+| Status | ✅ | ✅ | Enum-backed: verified equal labels are contiguous in both directions and ASC≠DESC (proves re-sort). |
+| Cert Subcategories | n/a | n/a | **0 populated in the sandbox** — code path identical to the others; could not be exercised (same "had no data" caveat Carly noted for UPC/GTIN/EAN). |
+
+**Root cause of the perception — not code:**
+1. **Sparse data + NULL-first placement.** Most sandbox (and likely prod) certs have empty Location / Company URL / Cert Subcategories. SQL Server places NULL/empty **first in ASC**, so clicking a sparse column ascending fills the first screen with **blanks**, which reads as "not sorting / not alphabetical." Populated values are correctly ordered but live further down / on later pages.
+2. **Historical deploy lag.** DEF-181's `AddCertificationResultsNumeric` migration once shipped in code but **never reached the prod DB**, breaking `/api/certificate-tiles` entirely until the SQL was applied manually (see `shipped-2026-05.md:743`). A retest during any such window would show erratic sorting unrelated to the sort code. **Action:** confirm DEF-165 + DEF-181 are actually live on gccwebapp.com before treating any further 5/29 sort report as a code issue (use the smoke-prod fingerprint probes).
+
+**Prod fingerprint (gccwebapp.com, 2026-06-03) — DEF-165 + DEF-181 confirmed live.** Ran the same harness against prod through the test-env Basic gate (admin login). **13 PASS / 1 not-pass:** DEF-181 canary (`cert-results` sort → HTTP 200, `CertificationResultsNumeric` column present + queried — the exact surface that was broken in the DLL-first deploy, `shipped-2026-05.md:743`) ✅; ASIN, Cert Subcategories, Company URL, Partner, Status all sort correctly on real prod data ✅; Location ASC ✅ (9/20 populated). The single **Location:desc** not-pass is a **false positive in the test oracle, not a server bug**: the offending value is `"é™®ä, PA"` (mojibake), and SQL Server's `SQL_Latin1_General_CP1_CI_AS` collation correctly sorts `é` adjacent to `e` (so it precedes "Gent" in descending), whereas the harness's raw-codepoint compare treats `é` = U+00E9 = 233 and disagrees. The server ordering is correct. **Net: the QC #157 sort fixes are deployed and working on prod — no code or deploy action outstanding.** Separately surfaced data note (not a defect, [[feedback_data_issue_vs_defect]]): at least one prod cert has a **corrupted/mojibake Location** (`"é™®ä, PA"`) — likely a UTF-8/Latin1 double-encode at import; cosmetic, fixable as a data op if the client notices it.
+
+**Optional UX follow-up — NOW IMPLEMENTED as DEF-242 (Shawn approved 2026-06-03: "null at the end … consistent across the application").** Flip NULL/empty placement so blanks sort **last in ascending too** (surface populated values first regardless of direction). This already matches the documented rationale for the Cert Results column in DEF-181 ("NULLs … where a sorting user is most likely looking"). Applying it to the text columns (Location, Company URL, Cert Subcategories, the ID columns) would directly remove the "page of blanks" perception. Deferred because it changes sort behavior the client hasn't explicitly requested and is a one-line-per-branch change best batched under a small CR.
+
+**Files:**
+- `Scripts/smoke-prod/qc157-sort-verify-local.js` *(new)* — API-level sort verifier, 13 assertions, collation-aligned oracle. No application code changed.
+
+**Cross-ref:** Closes the QC #157 5/29 re-raise as *no defect*. Builds on DEF-165 (Product Category + multi-value determinism) and DEF-181 (ID columns + Cert Results). Related preference: data-distribution / NULL-placement is a UX-expectation gap, not a bug.
+
+---
+
+### DEF-240 — Product Management: remove Status from the table, the Add New Product popup, and the filter bar (QC #103 client re-raise 5/28 — "what is the purpose of the Status column? it should be removed")
+
+- **Date:** 2026-06-03
+- **Severity:** Medium (UX / consistency — client re-opened QC #103 a third time: 3/13 template-vs-table, 5/8 export round-trip → DEF-174, 5/12 leveling → DEF-182, and now 5/28 insisting Status be *removed* entirely, not just leveled).
+- **Status:** **DEPLOYED + VERIFIED on gccwebapp.com (2026-06-03, zip `GCCWebApp-deploy-20260603-2110.zip`).** Built clean (0 errors), verified on localhost (`def240-status-removed-verify.js` → 6 PASS / 0 FAIL), then verified live on prod (admin → `/Product/Management`): **6 PASS / 0 FAIL** — no Status column in the table, no `#status-filter`, no `#product-status` in the Add New Product modal, core fields intact, no console errors. Screenshots `_results/def240-prod-page.png`, `_results/def240-prod-modal.png`. (The "no inactive-toggle" UX consequence remains as accepted — retire via Delete.)
+- **Reporter:** Client (Carly) via QC #103, reiterated by Shawn — *"Status is still in the Add New Product popup and listed in the table. Issue from 5/15 not resolved … What is the purpose of the Status column? I thought we discussed it was not needed."*
+
+**Background — this directly reverses the DEF-182 design decision.** DEF-182 (2026-05-12) deliberately *added* a Status select to the popup and kept the table column, on the reasoning that `Product.IsActive` is a real soft-delete flag (cert Create/Edit forms filter their product picker to `IsActive && !IsDeleted` — ~18 call sites listed in DEF-182). At that time "make popup the editor for Status" was chosen so the flag stayed controllable. The client has since rejected that resolution outright and wants Status gone from the Product Management UI. This entry implements the removal the client asked for.
+
+**Changes — `Views/Product/Management.cshtml` (live view behind `/Product/Management`):**
+1. Table: removed the `Status` `<th>` (sortable header) and the `<td>` status badge; detail-row `colspan` 10 → 9.
+2. Add New Product / Edit popup: removed the `Status` (Active/Inactive) `<select>`; Subcategory is now a full-width row.
+3. Filter bar: removed the `Status` filter group (All Status / Active / Inactive) and all its JS wiring (`statusFilter` var, init, change-listener, filter predicate, clearAllFilters, active-filter chip, removeFilter case).
+4. JS plumbing: removed the now-dead `product-status` reads in `showAddProductModal()` and `editProduct()`. `saveProduct()` no longer reads the dropdown — **new products default to `isActive: true`; edits preserve the product's existing `isActive`** (looked up from the in-memory `products` array by id), so editing a product never silently re-activates a retired one.
+
+**Known functional consequence — resolved (Shawn 2026-06-03: "Delete is the way to retire a product").** There is now **no UI path to set a product Inactive**, and that is intended. Retirement is handled by the row **Delete** action (soft-delete → `IsDeleted = true`), not by an Active/Inactive toggle. `IsActive` still exists and is still honored everywhere (cert product pickers hide both inactive and deleted products; any existing inactive products stay inactive). The CSV import template has no Status column either, consistent with this. This was an explicit client trade-off (remove Status UX, retire via Delete) accepted over the DEF-182 rationale (keep Status editable in the popup).
+
+**Files:**
+- `Views/Product/Management.cshtml` — table header/cell + colspan, modal Status field, filter group + JS wiring, add/edit/save handlers.
+
+**Export already level.** The CSV export header set (`Product Name, SKU, Partners, Company, Description, Category, Product Type, Subcategory, Identifier Type, Identifier Value`) has no Status column, so export ↔ template ↔ table ↔ popup are now consistent on Status.
+
+**Verification (localhost, 2026-06-03):** `def240-status-removed-verify.js` (admin) → 6/6 PASS: page loads (200), table header set is `Product Name, Company, Category, Product Type, Subcategory, Certs, IDs, Actions` (no Status), `#status-filter` absent, `#product-status` absent from the Add New Product modal, modal retains name/company/category/type/subcategory/description, no console/page errors. Screenshots confirm visually. **Still owed (manual, data-dependent):** edit an existing **inactive** product and save without other changes → confirm it stays inactive (the in-memory preserve-isActive path); confirm CSV export has no Status column.
+
+**Cross-ref:** Supersedes the Status half of DEF-182. DEF-174 (export round-trip) and DEF-182 (field leveling) remain valid for the non-Status fields.
+
+---
+
+### DEF-239 — Login broken on gccwebapp after deploy: code shipped with the `UserCompanyId` migration but the prod DB schema was never updated — every login fails as "Invalid email or password"
+
+- **Date:** 2026-06-03
+- **Severity:** **HIGH** (total auth outage on gccwebapp — no user of any role could log in). Deploy/ops gap, not a code defect.
+- **Status:** **FIXED + VERIFIED ON PROD (2026-06-03).** Root cause: the CR-020 build added `User.UserCompanyId` (+ FK to `Companies`) and migration `20260603135743_AddUserCompanyToUser`. The DLL shipped to gccwebapp, but `Program.cs:922-926` deliberately **skips auto-migration in Production** ("manual migration management"), so the `Users` table never got the `UserCompanyId` column. The login query `_context.Users.Include(u => u.Roles).FirstOrDefault(...)` (`Controllers/AccountController.cs:1048`) emits SQL selecting `UserCompanyId` → SQL Server throws `Invalid column name 'UserCompanyId'` **before** any password check. The DEF-209 anti-enumeration outer `catch` (`AccountController.cs:1130-1134`) swallows the SQL exception and returns the generic `"Invalid email or password."`, so a hard schema failure was indistinguishable from a wrong password.
+- **Resolution applied (2026-06-03):** connected to the prod DB (`gccwebap_certificates` @ `tcp:68.71.129.120,1533`) and found it was behind by **TWO** migrations, not one (head was `20260512011258_AddCertificationResultsNumeric`; missing `20260515185538_FixUserUniqueIndexesForSoftDelete` **and** `20260603135743_AddUserCompanyToUser`). Generated a targeted idempotent script for just those two (`Scripts/database/DEF-239_prod_missing_two.sql`) and applied it via `sqlcmd ... -N -C -b -I` (the `-I` / QUOTED_IDENTIFIER ON is **required** — the filtered unique index `WHERE [IsDeleted]=0` fails without it; a first attempt without `-I` errored and rolled back atomically, leaving prod untouched). Post-apply DB checks: `Users.UserCompanyId` EXISTS, FK `FK_Users_Companies_UserCompanyId` EXISTS, migration count 27→29, login-shaped `SELECT [UserCompanyId] FROM [Users]` succeeds. **Live E2E login verified 4/4 roles** (admin/analyst/external/partner) via `Scripts/smoke-prod/def239-login-verify-live.js` → all land on authenticated tile views, none stuck on `/Account/Login`. Results `Scripts/smoke-prod/_results/def239-login-results.json` + per-role screenshots.
+- **Note — the full 28-migration replay was the WRONG tool:** `DEF-239_FULL_idempotent_all_migrations.sql` failed on legacy batches (a `CONCAT` parse error in an old migration SQL Server compiles even under the `IF NOT EXISTS` guard). Scoping the script to only the migrations prod was actually missing avoided replaying historical batches. Keep that file for reference but the **targeted** script is the one that shipped the fix.
+- **QC Ref:** internal — direct user report (Shawn), 2026-06-03 ("just deployed to gccwebapp, unable to login").
+- **Bucket:** Bug (deploy/ops — schema/migration not applied to prod; masked by generic auth error).
+- **Reporter:** Client (direct), 2026-06-03.
+- **Evidence:** Symptom is "Invalid email or password" on every credential. Real exception is in the Plesk app log at `AccountController.cs:1132` ("Error validating user …") and reads `Invalid column name 'UserCompanyId'`. Diagnosis confirmed by code trace: the failing query is the first DB call in `ValidateUserDetailed`, before lockout/password logic.
+- **Remediation (non-destructive — nullable column, no backfill):** run the ready-made idempotent, transaction-wrapped script **`Scripts/database/DEF-239_AddUserCompanyToUser.sql`** against the gccwebapp DB (SSMS / `sqlcmd -i` / Plesk DB query tool), then recycle the app pool. The script is guarded on `__EFMigrationsHistory` so it's safe to re-run and self-records the migration row. Equivalent inline SQL if you'd rather paste it:
+  ```sql
+  ALTER TABLE [Users] ADD [UserCompanyId] int NULL;
+  CREATE INDEX [IX_Users_UserCompanyId] ON [Users] ([UserCompanyId]);
+  ALTER TABLE [Users] ADD CONSTRAINT [FK_Users_Companies_UserCompanyId]
+      FOREIGN KEY ([UserCompanyId]) REFERENCES [Companies] ([Id]) ON DELETE SET NULL;
+  INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+  VALUES ('20260603135743_AddUserCompanyToUser', '8.0.11');
+  ```
+- **Prevention:** added **Gate 7 (Pending-migration → prod schema)** to `docs/tracking/pre-deploy-agent-checklist.md` — any deploy containing a new migration must run the matching SQL on gccwebapp in the same step, since Production never auto-migrates.
+- **Secondary observation (not fixed here):** the DEF-209 generic-login-error design correctly hides enumeration detail from the user, but it also hid a fatal infra failure for the operator. The real error IS logged server-side (working as intended), so the fix is operational discipline (check the app log on any prod login outage), not loosening the user-facing message. Noted, no change.
+- **Linked memory.** [[project_predeploy_agent_checklist]] (new Gate 7 closes this gap), [[feedback_data_issue_vs_defect]] (this is logged as a deploy/ops DEF because the code is correct — the break is the un-applied schema), [[project_plesk_deploy_env]].
+
+---
+
 ### DEF-238 — User Management: Company Access not role-gated — shown for Admin/Analyst (should be hidden with an "all access" note); table blank for those roles (QC #106 / #148 item 4, client 5/15 feedback reiterated 5/29 "none addressed")
 
 - **Date:** 2026-06-02
@@ -484,8 +613,8 @@ Secondary issue: even if the banner had appeared, `handleBulkDelete` would have 
 
 - **Date:** 2026-06-01
 - **Severity:** High (analyst opens Edit on a cert and the Product Name field reads as cleared; only way to recover the saved value is to re-pick the product, which risks the analyst saving over a previously correct selection with a guess)
-- **Status:** **Fixed locally on `localhost:5101` (2026-06-01) — 5/5 viewports now render "Widget Pro" with dark text rgb(51,51,51) instead of placeholder gray.** Pending deploy.
-- **QC Ref:** #91 (TC-E sub-symptom still outstanding) + #170 (side-finding F, flagged in `qc170-localhost-validation-2026-05-19.md` for separate triage)
+- **Status:** **VERIFIED ON `gccwebapp.com` (UAT, 2026-06-03) — behavioral read-only probe `Scripts/smoke-prod/qc186-uat-live.js` opened 4 live certs (26-0166/0167/0164/0163) that have saved products; the VISIBLE `.custom-dropdown-selected` text matched the underlying `#ProductId` option on every one, rendered in dark `rgb(51,51,51)` (not placeholder gray). 4/4 widget-sync PASS.** Previously fixed on `localhost:5101` (2026-06-01, 5/5 viewports) and shipped in the June batch. Note: the per-view smoke `_views/cert-edit.js` only inspects the underlying `<select>` (always correct) and would NOT have caught this — the new probe reads the *visible* widget, which is the actual reported surface.
+- **QC Ref:** #91 (TC-E sub-symptom still outstanding) + #170 (side-finding F, flagged in `qc170-localhost-validation-2026-05-19.md` for separate triage) + #186 (the "Ready for UAT" thread)
 - **Bucket:** Bug (UI display / custom-dropdown state sync on pre-select)
 - **Reporter:** Shawn West, 2026-06-01
 - **Screenshots:**

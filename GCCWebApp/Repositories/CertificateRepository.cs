@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
+using GCCWebApp.Extensions;
 using GCCWebApp.Models;
 using System.Text.RegularExpressions;
 
@@ -358,17 +359,18 @@ namespace GCCWebApp.Repositories
             // Apply sorting. Every sort field below is non-unique, so the .ThenBy(c => c.Id)
             // tiebreaker below is required for stable pagination across SQL Server batches
             // (per memory `feedback_ef_includes_with_projection` / DEF-166 history).
+            // QC #157: text columns sort empty/blank values LAST regardless of direction, via the
+            // shared OrderByTextEmptiesLast helper, so the public tile view matches the internal +
+            // external views. Number / dates / Status(enum) have no blank state — kept as-is.
             IOrderedQueryable<Certificate> ordered = filter.SortBy?.ToLower() switch
             {
                 "number" => filter.SortDescending ? query.OrderByDescending(c => c.Number) : query.OrderBy(c => c.Number),
-                "company" => filter.SortDescending ? query.OrderByDescending(c => c.Company.Name) : query.OrderBy(c => c.Company.Name),
-                "product" => filter.SortDescending ? query.OrderByDescending(c => c.Product.Name) : query.OrderBy(c => c.Product.Name),
-                "certtype" => filter.SortDescending ? query.OrderByDescending(c => c.CertificationType.Name) : query.OrderBy(c => c.CertificationType.Name),
-                "location" => filter.SortDescending ? query.OrderByDescending(c => c.Location) : query.OrderBy(c => c.Location),
-                "country" => filter.SortDescending ? query.OrderByDescending(c => c.Country) : query.OrderBy(c => c.Country),
-                "producttype" => filter.SortDescending
-                    ? query.OrderByDescending(c => c.Product.ProductType != null ? c.Product.ProductType.Name : "")
-                    : query.OrderBy(c => c.Product.ProductType != null ? c.Product.ProductType.Name : ""),
+                "company" => query.OrderByTextEmptiesLast(c => c.Company.Name, filter.SortDescending),
+                "product" => query.OrderByTextEmptiesLast(c => c.Product.Name, filter.SortDescending),
+                "certtype" => query.OrderByTextEmptiesLast(c => c.CertificationType.Name, filter.SortDescending),
+                "location" => query.OrderByTextEmptiesLast(c => c.Location, filter.SortDescending),
+                "country" => query.OrderByTextEmptiesLast(c => c.Country, filter.SortDescending),
+                "producttype" => query.OrderByTextEmptiesLast(c => c.Product.ProductType != null ? c.Product.ProductType.Name : "", filter.SortDescending),
                 "effectivedate" => filter.SortDescending ? query.OrderByDescending(c => c.EffectiveDate) : query.OrderBy(c => c.EffectiveDate),
                 "expirationdate" => filter.SortDescending ? query.OrderByDescending(c => c.ExpirationDate) : query.OrderBy(c => c.ExpirationDate),
                 "status" => filter.SortDescending ? query.OrderByDescending(c => c.Status) : query.OrderBy(c => c.Status),

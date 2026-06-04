@@ -69,6 +69,7 @@ namespace GCCWebApp.Services
                 .Include(u => u.Companies)
                 .Include(u => u.Partners)
                 .Include(u => u.Roles)
+                .Include(u => u.UserCompany)
                 .Where(u => !u.IsDeleted)
                 .Select(u => new UserViewModel
                 {
@@ -81,6 +82,8 @@ namespace GCCWebApp.Services
                     CompanyNames = u.Companies.Select(c => c.Name).ToList(),
                     PartnerIds = u.Partners.Select(p => p.Id).ToList(),
                     PartnerNames = u.Partners.Select(p => p.Name).ToList(),
+                    UserCompanyId = u.UserCompanyId,                    // CR-020
+                    UserCompanyName = u.UserCompany != null ? u.UserCompany.Name : null,
                     RequirePasswordReset = u.RequirePasswordReset,
                     LastLogin = u.LastLoginAt,
                     TwoFactorEnabled = u.TwoFactorEnabled,
@@ -94,6 +97,7 @@ namespace GCCWebApp.Services
             var user = await _context.Users
                 .Include(u => u.Companies)
                 .Include(u => u.Roles)
+                .Include(u => u.UserCompany)
                 .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
             if (user == null) return null;
@@ -107,6 +111,8 @@ namespace GCCWebApp.Services
                 Status = user.IsActive ? "active" : "inactive",
                 CompanyIds = user.Companies.Select(c => c.Id).ToList(),
                 CompanyNames = user.Companies.Select(c => c.Name).ToList(),
+                UserCompanyId = user.UserCompanyId,                       // CR-020
+                UserCompanyName = user.UserCompany?.Name,
                 LastLogin = user.LastLoginAt
             };
         }
@@ -151,7 +157,8 @@ namespace GCCWebApp.Services
                     TwoFactorMethod = "Email",
                     IsActive = true,
                     RequirePasswordReset = effectiveRequireReset,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    UserCompanyId = model.UserCompanyId   // CR-020: user's own company/employer (optional)
                 };
 
                 _context.Users.Add(user);
@@ -351,6 +358,21 @@ namespace GCCWebApp.Services
                         if (companyResolutionFailed) continue;
                     }
 
+                    // CR-020: resolve the user's own company/employer (single name) to a FK.
+                    // Optional — blank leaves it null. A provided-but-unknown name rejects the
+                    // row, same fail-fast contract as Company Access above.
+                    if (!string.IsNullOrWhiteSpace(item.UserCompanyName))
+                    {
+                        var ucName = item.UserCompanyName.Trim();
+                        if (!companyByName.TryGetValue(ucName, out var userCompanyEntity))
+                        {
+                            result.ErrorCount++;
+                            result.Errors.Add($"{email} - User Company '{ucName}' not found");
+                            continue;
+                        }
+                        user.UserCompanyId = userCompanyEntity.Id;
+                    }
+
                     // DEF-232: resolve Partner names → entities for Partner-role users
                     // (and any other role that wants partner scoping). Same fail-fast pattern
                     // as CompanyNames above: if any partner name doesn't resolve, the row is
@@ -454,6 +476,7 @@ namespace GCCWebApp.Services
                 user.Email = model.Email;
                 user.IsActive = model.Status == "active";
                 user.UpdatedAt = DateTime.UtcNow;
+                user.UserCompanyId = model.UserCompanyId;   // CR-020: user's own company/employer (optional; null clears it)
 
                 // DEF-187: honor admin-typed password on Edit. Blank/null = no change
                 // (admin opened modal but didn't set a new password). Non-blank = set

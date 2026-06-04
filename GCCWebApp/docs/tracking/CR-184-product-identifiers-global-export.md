@@ -1,7 +1,7 @@
 # CR-184 — Global Product Identifiers CSV export
 
-**Status:** Proposed — awaiting client sign-off on 5 open questions (see §8)
-**Date drafted:** 2026-06-02
+**Status:** Proposed — scope locked 2026-06-03 (Shawn answered the open questions); ready to build pending sign-off.
+**Date drafted:** 2026-06-02 (open questions resolved 2026-06-03)
 **Source:** QC #184 (client, 5/15/26) — Carly: *"How would we get a full export with product identifier information across all products? The export on this page includes Identifier Type and Id Value but not the product name at the product level or SKU or partner. We will need to run aggregate export on all active product identifiers across certs — where and how can we do that today. This is a common point of analysis and export we have to run."*
 **Estimated effort:** ~4–6 hours (service + controller + UI filter form + Playwright at 5 viewports)
 
@@ -53,11 +53,11 @@ Status column intentionally **not** included — `CertificateProductId.Status` i
 
 | Filter | Query param | Values | Source of truth |
 |---|---|---|---|
-| Partner | `partner` | `Amazon` \| `Novi` \| `None` | `Certificate.Partner` string field |
-| Identifier Type | `identifierType` | distinct values from `ProductIdType` | populated from data |
-| Cert Status | `certStatus` | one of 8 enum values | `CertificateStatusHelper.GetAllStatuses()` |
-| Date range from | `createdFrom` | `YYYY-MM-DD` | pre-format yyyy-MM-dd per `feedback_calendar_date_serialization` |
-| Date range to | `createdTo` | `YYYY-MM-DD` | same |
+| Partner | `partner` | Active rows from the admin **Partners** table | `Models/Partner.cs` (admin-managed via `Views/Admin/Partners.cshtml`); filter dropdown populated from `Partners` table, not from the `Certificate.Partner` string field |
+| Identifier Type | `identifierType` | Distinct `ProductIdType` values currently in `CertificateProductIds` | data-driven (`SELECT DISTINCT ProductIdType ...`) |
+| Cert Status | `certStatus` | Any of the 8 enum values | `CertificateStatusHelper.GetAllStatuses()` — no default exclusion, all 8 selectable |
+| Issue date from | `issuedFrom` | `YYYY-MM-DD` | filter on `Certificate.IssueDate`; pre-format yyyy-MM-dd per [[feedback_calendar_date_serialization]] |
+| Issue date to | `issuedTo` | `YYYY-MM-DD` | same — `Certificate.IssueDate` |
 
 ### 2.5 Service layer
 
@@ -84,10 +84,9 @@ Server-side CSV generation (not client) — needed for the cross-cert JOIN and t
 
 ### 2.6 UI entry point
 
-Two reasonable homes (decide in §8):
+**No new UI elements.** Per Shawn 2026-06-03 — Carly's QC referenced "the export on this page" meaning the Product Management page (`Views/Product/ManagementV2.cshtml`). The existing **Export** button on Product Management is the entry point; no new tile, no new page, no new button. The button opens its existing modal (or a small filter sub-modal hosting the 5 filters), submits to the new server-side `/Admin/Export/ProductIdentifiers` endpoint, and triggers the download.
 
-- **A.** New "Exports" tile on Admin dashboard → opens filter modal → submit triggers download.
-- **B.** Button on Product Management page header next to existing export → opens filter modal → triggers download.
+Implication: the existing client-side `exportData()` / `generateCSV()` path in `wwwroot/js/admin/productManagement.js:620-707` is **replaced** (for this button) with a server-side fetch + download flow. The current product-level CSV (Product Name, Company, Category, Status, Identifier Type, Identifier Value, SKU, Model) is superseded by the new identifier-level CSV (the 10 columns in §2.3), which is the superset Carly asked for.
 
 ---
 
@@ -95,7 +94,9 @@ Two reasonable homes (decide in §8):
 
 - Admin or Analyst user can pull a CSV that includes all 10 columns above, joined across every certificate.
 - External user (Company or Partner) gets `403`.
-- All 5 filters apply correctly, can be combined, and `createdFrom`/`createdTo` use inclusive boundaries on the server's local date interpretation (pre-formatted yyyy-MM-dd, not UTC-serialized — per [[feedback_calendar_date_serialization]]).
+- All 5 filters apply correctly, can be combined, and `issuedFrom`/`issuedTo` (against `Certificate.IssueDate`) use inclusive boundaries on the server's local date interpretation (pre-formatted yyyy-MM-dd, not UTC-serialized — per [[feedback_calendar_date_serialization]]).
+- Partner filter dropdown is populated from the admin `Partners` table (`Models/Partner.cs`), not from the free-text `Certificate.Partner` string field.
+- Identifier Type filter dropdown is populated by distinct `ProductIdType` values currently present in `CertificateProductIds`.
 - Sort order is stable: by `CertNumber` ascending then `CertificateProductId.Id` ascending.
 - Empty result set returns an empty CSV (header row only), not a 404.
 - Existing per-cert export endpoint (`/api/productids/certificate/{id}/export`) is untouched.
@@ -109,9 +110,8 @@ Two reasonable homes (decide in §8):
 - `Controllers/AdminController.cs` — new `ExportProductIdentifiers()` action.
 - `Services/AdminService.cs` + `Services/IAdminService.cs` — new `ExportProductIdentifiersAsync()` method + `ProductIdExportFilters` DTO.
 - `Models/Admin/ProductIdExportFilters.cs` (or inline in `AdminModels.cs`) — filter parameter object.
-- **UI host** (depending on §8 decision):
-  - Option A: `Views/Admin/Index.cshtml` (tile) + new `Views/Admin/ExportProductIdentifiers.cshtml` (filter form / modal).
-  - Option B: `Views/Product/ManagementV2.cshtml` (button) + `wwwroot/js/admin/productManagement.js` (modal launcher).
+- `Views/Product/ManagementV2.cshtml` — small filter sub-modal markup attached to the existing Export button.
+- `wwwroot/js/admin/productManagement.js` — replace the current client-side `exportData()` / `generateCSV()` path for this button with a fetch-and-download call to `/Admin/Export/ProductIdentifiers`. Keep the rest of the file untouched.
 - Playwright spec covering filter form, RBAC, download, edge cases.
 
 ---
@@ -142,13 +142,13 @@ None. This is an internal admin export endpoint. Per [[feedback_amazon_api_immut
 
 ---
 
-## 8. Open questions (need client/Shawn sign-off before build)
+## 8. Open questions — resolved 2026-06-03 (Shawn)
 
-1. **UI home** — Admin dashboard "Exports" section (A) or Product Management page header button (B)?
-2. **Partner filter values** — restrict to fixed list `{Amazon, Novi, None}` or free-text match? (Today `Certificate.Partner` is a string field, not a FK.)
-3. **Identifier Type filter values** — distinct-from-data dropdown, or fixed list (UPC, ASIN, EAN, Model #, etc.)?
-4. **Cert Status default** — exclude Draft / Hold by default (since Carly's framing was "active product identifiers"), or include all 8 states until filtered?
-5. **Date range field** — filter on `CertificateProductId.CreatedAt` (when the identifier row was added) or `Certificate.IssueDate` (when the cert was issued)?
+1. **UI home** — *No new UI elements.* Use the existing Export button on the Product Management page; the same button now triggers the new server-side export. Rationale: Carly's QC said *"the export on this page"* — that page is Product Management.
+2. **Partner filter values** — *Populated from the admin Partners table* (`Models/Partner.cs`, managed at `Views/Admin/Partners.cshtml`). Not free-text, not the `Certificate.Partner` string.
+3. **Identifier Type filter values** — *Data-driven.* `SELECT DISTINCT ProductIdType` from `CertificateProductIds`.
+4. **Cert Status default** — *No default exclusion.* All 8 enum states selectable; nothing pre-filtered.
+5. **Date range field** — *Filter on `Certificate.IssueDate`.* Not `CertificateProductId.CreatedAt`.
 
 ---
 

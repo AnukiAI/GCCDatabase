@@ -76,14 +76,6 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label class="filter-label">Status</label>
-                    <select id="status-filter" class="admin-filter-select filter-select">
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
-                <div class="filter-group">
                     <label class="filter-label">Certificates</label>
                     <select id="certificate-filter" class="admin-filter-select filter-select">
                         <option value="all">All</option>
@@ -109,7 +101,6 @@
                         <th data-sort="category" class="admin-table-th--sortable" style="min-width: 130px;">Category <span class="sort-icon admin-sort-icon">▼</span></th>
                         <th data-sort="productType" class="admin-table-th--sortable" style="min-width: 130px;">Product Type <span class="sort-icon admin-sort-icon">▼</span></th>
                         <th data-sort="subcategory" class="admin-table-th--sortable" style="min-width: 130px;">Subcategory <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="status" class="admin-table-th--sortable" style="width: 120px; min-width: 120px;">Status <span class="sort-icon admin-sort-icon">▼</span></th>
                         <th data-sort="certificates" class="admin-table-th--sortable" style="width: 100px; min-width: 100px;">Certs <span class="sort-icon admin-sort-icon">▼</span></th>
                         <th data-sort="identifiers" class="admin-table-th--sortable" style="width: 90px; min-width: 90px;">IDs <span class="sort-icon admin-sort-icon">▼</span></th>
                         <th class="actions-col role-element role-analyst-show role-admin-show" style="width: 100px; min-width: 100px;">Actions</th>
@@ -267,20 +258,11 @@
                     </div>
                 </div>
 
-                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                    <div class="form-group">
-                        <label for="product-subcategory" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Subcategory</label>
-                        <select id="product-subcategory" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-                            <option value="">Select Subcategory</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="product-status" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Status</label>
-                        <select id="product-status" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-                            <option value="true">Active</option>
-                            <option value="false">Inactive</option>
-                        </select>
-                    </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="product-subcategory" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Subcategory</label>
+                    <select id="product-subcategory" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                        <option value="">Select Subcategory</option>
+                    </select>
                 </div>
 
             </form>
@@ -309,7 +291,7 @@
         // DOM Elements - declared but assigned after DOMContentLoaded
         let productTable, productTableBody, productCountElement;
         let searchInput, searchSuggestions;
-        let categoryFilter, companyFilter, statusFilter, certificateFilter;
+        let categoryFilter, companyFilter, certificateFilter;
         let clearFiltersBtn;
         let importBtn, exportBtn, addProductBtn;
         let productModal, modalTitle, productForm, modalClose, cancelBtn;
@@ -345,7 +327,6 @@
                 searchSuggestions = document.getElementById('search-suggestions');
                 categoryFilter = document.getElementById('category-filter');
                 companyFilter = document.getElementById('company-filter');
-                statusFilter = document.getElementById('status-filter');
                 certificateFilter = document.getElementById('certificate-filter');
                 clearFiltersBtn = document.getElementById('clear-filters-btn');
                 importBtn = document.getElementById('import-btn');
@@ -547,7 +528,6 @@
             }
             if (categoryFilter) categoryFilter.addEventListener('change', handleFilterChange);
             if (companyFilter) companyFilter.addEventListener('change', handleFilterChange);
-            if (statusFilter) statusFilter.addEventListener('change', handleFilterChange);
             if (certificateFilter) certificateFilter.addEventListener('change', handleFilterChange);
             if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', clearAllFilters);
 
@@ -608,7 +588,6 @@
             const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
             const categoryFilterValue = categoryFilter ? categoryFilter.value : 'all';
             const companyFilterValue = companyFilter ? companyFilter.value : 'all';
-            const statusFilterValue = statusFilter ? statusFilter.value : 'all';
             const certificateFilterValue = certificateFilter ? certificateFilter.value : 'all';
 
             // Filter products
@@ -622,12 +601,11 @@
                                     (product.model && product.model.toLowerCase().includes(searchTerm));
                 const matchesCategory = categoryFilterValue === 'all' || product.categoryName === categoryFilterValue;
                 const matchesCompany = companyFilterValue === 'all' || product.companyName === companyFilterValue;
-                const matchesStatus = statusFilterValue === 'all' || product.status.toLowerCase() === statusFilterValue;
                 const matchesCertificates = certificateFilterValue === 'all' ||
                     (certificateFilterValue === 'has-certificates' && product.certificateCount > 0) ||
                     (certificateFilterValue === 'no-certificates' && product.certificateCount === 0);
 
-                return matchesSearch && matchesCategory && matchesCompany && matchesStatus && matchesCertificates;
+                return matchesSearch && matchesCategory && matchesCompany && matchesCertificates;
             });
             
             updateActiveFiltersDisplay();
@@ -698,9 +676,6 @@
                     <td data-label="Category">${product.categoryName || ''}</td>
                     <td data-label="Product Type">${product.productTypeName || ''}</td>
                     <td data-label="Subcategory">${product.productSubcategoryName || ''}</td>
-                    <td data-label="Status">
-                        <span class="status-badge status-${product.status.toLowerCase()}">${product.status}</span>
-                    </td>
                     <td data-label="Certs">
                         <span class="certificate-count">
                             <i class="fas fa-certificate"></i> ${product.certificateCount || 0}
@@ -729,7 +704,7 @@
                 detailRow.className = 'detail-row';
                 detailRow.setAttribute('data-product-id', product.id);
                 detailRow.innerHTML = `
-                    <td colspan="10" class="detail-cell">
+                    <td colspan="9" class="detail-cell">
                         <div class="detail-content">
                             ${createIdentifierSections(product.identifiers || {})}
                         </div>
@@ -841,7 +816,6 @@
             modalTitle.innerHTML = '<i class="fas fa-box" style="margin-right: 8px;"></i> Add New Product';
             document.getElementById('product-id').value = '';
             productForm.reset();
-            document.getElementById('product-status').value = 'true';
             productModal.style.display = 'flex';
             productModal.style.alignItems = 'center';
             productModal.style.justifyContent = 'center';
@@ -871,7 +845,6 @@
                 document.getElementById('product-subcategory').value = product.productSubcategoryId || '';
             }
 
-            document.getElementById('product-status').value = (product.status && product.status.toLowerCase() === 'inactive') ? 'false' : 'true';
 
             productModal.style.display = 'flex';
             productModal.style.alignItems = 'center';
@@ -960,15 +933,19 @@
                 return;
             }
 
+            // Status was removed from Product Management UI (QC #103). New products default
+            // to active; edits preserve the product's existing active state.
+            const editingId = parseInt(document.getElementById('product-id').value) || 0;
+            const existingProduct = editingId ? products.find(p => p.id === editingId) : null;
             const formData = {
-                id: parseInt(document.getElementById('product-id').value) || 0,
+                id: editingId,
                 name: document.getElementById('product-name').value,
                 description: document.getElementById('product-description').value,
                 categoryId: parseInt(document.getElementById('product-category').value) || 0,
                 productTypeId: parseInt(document.getElementById('product-type').value) || null,
                 productSubcategoryId: parseInt(document.getElementById('product-subcategory').value) || null,
                 companyId: parseInt(companyVal),
-                isActive: document.getElementById('product-status').value !== 'false'
+                isActive: existingProduct ? (!existingProduct.status || existingProduct.status.toLowerCase() !== 'inactive') : true
             };
 
             try {
@@ -1283,7 +1260,6 @@
         function clearAllFilters() {
             categoryFilter.value = 'all';
             companyFilter.value = 'all';
-            statusFilter.value = 'all';
             certificateFilter.value = 'all';
             searchInput.value = '';
             populateTable();
@@ -1299,9 +1275,6 @@
             }
             if (companyFilter.value !== 'all') {
                 activeFilters.push({ type: 'Company', value: companyFilter.options[companyFilter.selectedIndex].text });
-            }
-            if (statusFilter.value !== 'all') {
-                activeFilters.push({ type: 'Status', value: statusFilter.options[statusFilter.selectedIndex].text });
             }
             if (certificateFilter.value !== 'all') {
                 activeFilters.push({ type: 'Certificates', value: certificateFilter.options[certificateFilter.selectedIndex].text });
@@ -1349,9 +1322,6 @@
                     break;
                 case 'company':
                     companyFilter.value = 'all';
-                    break;
-                case 'status':
-                    statusFilter.value = 'all';
                     break;
                 case 'certificates':
                     certificateFilter.value = 'all';

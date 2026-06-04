@@ -1,0 +1,74 @@
+[
+  {
+    "id": "SETUP-login",
+    "name": "Admin login on test site",
+    "status": "PASS",
+    "notes": "https://gccwebapp.com/Certificate/CertificateTileViewInternal"
+  },
+  {
+    "id": "DEF225-discover",
+    "name": "Certs with a saved product found via internal tiles API",
+    "status": "PASS",
+    "notes": "20 of 20 certs have a product; sampling up to 4"
+  },
+  {
+    "id": "DEF225-26-0166",
+    "name": "Visible Product Name = saved product",
+    "status": "PASS",
+    "notes": "visible=\"Energy Star Certified Appliances\" (rgb(51, 51, 51)) vs underlying=\"Energy Star Certified Appliances\"; help=\"1 product(s) found\""
+  },
+  {
+    "id": "DEF225-26-0167",
+    "name": "Visible Product Name = saved product",
+    "status": "PASS",
+    "notes": "visible=\"Eero test\" (rgb(51, 51, 51)) vs underlying=\"Eero test\"; help=\"2 product(s) found\""
+  },
+  {
+    "id": "DEF225-26-0164",
+    "name": "Visible Product Name = saved product",
+    "status": "PASS",
+    "notes": "visible=\"test\" (rgb(51, 51, 51)) vs underlying=\"test\"; help=\"5 product(s) found\""
+  },
+  {
+    "id": "DEF225-26-0163",
+    "name": "Visible Product Name = saved product",
+    "status": "PASS",
+    "notes": "visible=\"3M Test Product\" (rgb(51, 51, 51)) vs underlying=\"3M Test Product\"; help=\"2 product(s) found\""
+  },
+  {
+    "id": "DEF225-ROLLUP",
+    "name": "Visible widget synced across 4 sampled certs",
+    "status": "PASS",
+    "notes": "4 pass / 0 fail"
+  },
+  {
+    "id": "DEF231-marker",
+    "name": "Deployed quick-add reads the form Category/Type/Sub",
+    "status": "PASS",
+    "notes": "usingFormCategory/ProductCategoryId path present in deployed JS"
+  },
+  {
+    "id": "DEF231-behavioral",
+    "name": "Full create-under-chosen-category repro",
+    "status": "INFO",
+    "notes": "mutating (creates a product) — covered by localhost def231-fix-verify.js 6/6; not run read-only here"
+  },
+  {
+    "id": "DEF196-render",
+    "name": "Product Types tree renders nodes with product/cert counts",
+    "status": "PASS",
+    "notes": "62 nodes parsed; 10 marked in-use/locked"
+  },
+  {
+    "id": "DEF196-lock-consistency",
+    "name": "Delete-lock matches references (no \"empty yet locked\" / \"in-use yet deletable\")",
+    "status": "PASS",
+    "notes": "10 locked nodes all have refs; 52 zero-ref nodes all unlocked"
+  },
+  {
+    "id": "DEF196-carly",
+    "name": "\"Carly Test\" surfaces the cert count that blocks its deletion",
+    "status": "PASS",
+    "notes": "displays \"0/4\", locked=true (prod=0, cert=4)"
+  }
+]

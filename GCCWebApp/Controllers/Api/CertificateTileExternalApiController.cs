@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
+using GCCWebApp.Extensions;
 using GCCWebApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Text.RegularExpressions;
@@ -857,18 +858,20 @@ namespace GCCWebApp.Controllers.Api
                     .OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id),
                 "cert-number-newest" => query.OrderByDescending(c => c.Number).ThenBy(c => c.Id),
                 "cert-number-oldest" => query.OrderBy(c => c.Number).ThenBy(c => c.Id),
-                "cert-type" => query.OrderBy(c => c.CertificationType.Name).ThenBy(c => c.Id),
-                "cert-type-za" => query.OrderByDescending(c => c.CertificationType.Name).ThenBy(c => c.Id),
-                "company-az" => query.OrderBy(c => c.Company.Name).ThenBy(c => c.Id),
-                "company-za" => query.OrderByDescending(c => c.Company.Name).ThenBy(c => c.Id),
-                "product-az" => query.OrderBy(c => c.Product.Name).ThenBy(c => c.Id),
-                "product-za" => query.OrderByDescending(c => c.Product.Name).ThenBy(c => c.Id),
-                "location-az" => query.OrderBy(c => c.Location).ThenBy(c => c.Id),
-                "location-za" => query.OrderByDescending(c => c.Location).ThenBy(c => c.Id),
-                "country" => query.OrderBy(c => c.Country).ThenBy(c => c.Id),
-                "country-za" => query.OrderByDescending(c => c.Country).ThenBy(c => c.Id),
-                "product-type" => query.OrderBy(c => c.Product.ProductType != null ? c.Product.ProductType.Name : "").ThenBy(c => c.Id),
-                "partner" => query.OrderBy(c => c.Partner ?? "None").ThenBy(c => c.Id),
+                "cert-type" => query.OrderByTextEmptiesLast(c => c.CertificationType.Name, false).ThenBy(c => c.Id),
+                "cert-type-za" => query.OrderByTextEmptiesLast(c => c.CertificationType.Name, true).ThenBy(c => c.Id),
+                "company-az" => query.OrderByTextEmptiesLast(c => c.Company.Name, false).ThenBy(c => c.Id),
+                "company-za" => query.OrderByTextEmptiesLast(c => c.Company.Name, true).ThenBy(c => c.Id),
+                "product-az" => query.OrderByTextEmptiesLast(c => c.Product.Name, false).ThenBy(c => c.Id),
+                "product-za" => query.OrderByTextEmptiesLast(c => c.Product.Name, true).ThenBy(c => c.Id),
+                // QC #157: empties always last (consistent across all three tile views). See
+                // Extensions/CertificateSortExtensions.cs and the Internal controller's ApplySorting.
+                "location-az" => query.OrderByTextEmptiesLast(c => c.Location, false).ThenBy(c => c.Id),
+                "location-za" => query.OrderByTextEmptiesLast(c => c.Location, true).ThenBy(c => c.Id),
+                "country" => query.OrderByTextEmptiesLast(c => c.Country, false).ThenBy(c => c.Id),
+                "country-za" => query.OrderByTextEmptiesLast(c => c.Country, true).ThenBy(c => c.Id),
+                "product-type" => query.OrderByTextEmptiesLast(c => c.Product.ProductType != null ? c.Product.ProductType.Name : "", false).ThenBy(c => c.Id),
+                "partner" => query.OrderByTextEmptiesLast(c => c.Partner, false).ThenBy(c => c.Id),
                 _ => query.OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id)
             };
         }

@@ -8,11 +8,23 @@ Period: 2026-06-01 → ongoing
 
 | | Count |
 |---|---|
-| **Total fixes shipped this month** | **9** (DEF-225, DEF-226, DEF-227, DEF-229, DEF-230, DEF-231, DEF-232, DEF-233, DEF-234) |
+| **Total fixes shipped this month** | **14** — June batch DEF-225/226/227/229/230/231/232/233/234, then DEF-235, DEF-237, QC #106 (DEF-238 + CR-020), DEF-240, and DEF-242 |
 | Deployed + verified live on gccwebapp.com (2026-06-01) | 7 — read-only 10/10 (DEF-225/226/227/229/231/232) + live FUNCTIONAL DEF-231 6/6 & DEF-230 11/11 (self-cleaning throwaway data) |
-| Shipped this batch but not in the 2026-06-01 verification pass | 2 (DEF-233, DEF-234) |
+| Deployed 2026-06-03 (`…-1221.zip`) | DEF-235, DEF-237, QC #106 (DEF-238 + CR-020 `UserCompanyId`) — CR-020 prod migration applied + login restored (DEF-239) |
+| UAT-verified live on gccwebapp.com (2026-06-03) | DEF-225 (Cert Edit Product Name shows saved product — 4/4 live certs) |
+| Deployed 2026-06-03 (`…-2110.zip`) | **DEF-240** — Status removed from Product Management (carries an open "no inactive-toggle" UX decision, see entry); **DEF-242** — cert list sorting puts blank values last across all 3 views (prod fingerprint verified, blanks now trail; no migration) |
 | Investigated, closed as Working-As-Designed (no code change) | 1 (DEF-228) |
 | Data-cleanup pass drafted (needs backup + CR before running) | 1 (DEF-231 fallout) |
+
+---
+
+## DEF-242 — Certificate list sorting: blank values now sort to the bottom (all list views)
+
+Reported as part of QC #157 (client retest 5/29). When sorting a certificate-list column that's often blank — Location, ASIN, Company URL, Cert Subcategories — the empty rows were landing at the **top** in ascending order, so the first screen looked empty and the column appeared not to sort. (The sort itself was correct; DEF-241 confirmed that — it was purely where the blanks sat.)
+
+Changed the rule across the **whole application**: blank values now always sort to the **bottom**, in both ascending and descending order, so the populated values you want to see always lead the list. Applied identically to the logged-in Cert List view, the partner/external view, and the public directory.
+
+Display/ordering change only — no certificate data was touched, and no database change is needed. Verified on the test environment (localhost 14/14: populated values lead, blanks at the end, both directions). **Deployed to gccwebapp.com 2026-06-03 and verified live** — the same sort that previously returned a page of blanks at the top now leads with the populated values across the certificate list, partner, and public views.
 
 ---
 
@@ -21,6 +33,8 @@ Period: 2026-06-01 → ongoing
 Reported 6/1. When an analyst opened Edit on a cert, the Product Name field appeared blank ("Select product...") even though the cert had a product saved. The hint underneath correctly said "1 product(s) found" but the field itself didn't show which one — leaving the analyst no way to know what was already on the cert without re-picking from the list.
 
 Fixed and verified across desktop, tablet, and mobile (5 screen sizes). The saved product name now appears in dark text the moment the form loads.
+
+**UAT passed on the test site (2026-06-03).** Confirmed live on gccwebapp.com against four real certificates that each have a product saved (Energy Star Certified Appliances, Eero test, test, 3M Test Product): on every one, the Product Name field shows the correct saved product in dark text the instant the Edit form opens. Marked verified — ready to close.
 
 ---
 
@@ -138,6 +152,40 @@ New automated test surface scoped per `docs/tracking/e2e-smoke-plan.md`. Catches
 - `Scripts/smoke-prod/_views/` — 10 Tier 1 view smokes (`home`, `login`, `cert-tile-public/external/internal`, `cert-create`, `cert-edit`, `dashboard`, `admin-user-mgmt`, `admin-tags`) plus `run-all.js` orchestrator that writes a summary JSON.
 - Acceptance is "all 10 views return 0 FAIL across 4 roles × 3 viewports, and negative-path access (Public→Internal, External→Admin) returns the expected 401/403."
 - Day 1 + Day 2 effort: ~1 day each, infra + 10 view-specific assertion blocks. Approach is now the deploy-gate candidate for future Plesk pushes.
+
+---
+
+## QC #106 — User Management: Company Access & new "User Company" field (DEF-238 + CR-020)
+
+Reported across 5/8 → 5/15 → 5/29. This closes the long-running "User Company vs Company Access" item and adds the requested second field. Three parts:
+
+**1. Company Access now follows the role (DEF-238).** When you pick **Admin** or **Analyst** in the Add/Edit User form, the Company Access selector is now **hidden** and replaced with a note: *"Admin and Analyst roles automatically have access to all companies. No company selection is needed."* **External** shows the company selector; **Partner** shows the partner selector. This is the 5/15 feedback that the 5/29 retest reported as not done.
+
+**2. New "User Company" field, separate from Company Access (CR-020).** The user record now has a **User Company** field — the user's own company/employer — chosen from a dropdown of existing companies, separate from Company Access (which controls what data they can see). It appears in the Add/Edit form, the CSV import template, and the CSV export. The two are now distinct fields, ending the back-and-forth over the "Company Access" / "User Company" naming.
+
+**3. The user table shows User Company.** The table's "User Company" column now displays the user's own company (employer); Company Access is managed in the form and import/export, not shown in the table.
+
+Verified on the test environment across the Add flow, Edit flow, import template, and export (role-visibility 6/6, User Company field 6/6).
+
+**Heads-up for this deploy:** the CSV import now has two separate columns — **Company Access** (which companies the user can view; names or "All") and **User Company** (the employer; one company name). Spreadsheets that previously used a "User Company" column to mean access should switch to the **Company Access** column.
+
+**Deploy package (2026-06-03):** `deployment-drops/GCCWebApp-deploy-20260603-1221.zip` (Plesk profile, net8.0/win-x64, framework-dependent). **Requires a one-time database update** — the app does not auto-migrate on startup. Run `deployment-drops/CR-020-AddUserCompanyToUser-idempotent.sql` against the live DB (adds the nullable `Users.UserCompanyId` column + FK; idempotent/safe to re-run) **before or with** this deploy, or CR-020 will error. Pre-deploy: back up the server `wwwroot/uploads/` first (publish overwrites). This zip also carries the other working-tree fixes staged since the last deploy (DEF-235 logging-middleware static-asset fix, DEF-236 product-ID select-all bar, DEF-237 Tag Name).
+
+---
+
+## DEF-240 — Product Management: Status column, popup field, and filter removed (QC #103, 3rd re-raise)
+
+Reported across 3/13 → 5/28. The client asked repeatedly why the **Status** column was still on the Product Management page and in the Add/Edit Product popup: *"What is the purpose of the Status column? I thought we discussed it was not needed."* Earlier rounds had aligned Status across the table, export, template, and popup, but kept the field present. This change does what was actually asked and removes it.
+
+Removed: the Status column from the products table, the Status dropdown from the Add/Edit Product popup, and the Status filter from the filter bar. New products are created active by default; editing a product preserves its current active/inactive state (an edit never silently re-activates a product that was previously retired). The CSV export already had no Status column, so the table, popup, import template, and export are now fully consistent.
+
+**One thing to confirm before this is final:** with the Status control gone, there is currently **no screen control to mark an existing product Inactive** (the import template has no Status column either). Products already marked inactive stay inactive and are still honored everywhere; we just no longer surface a toggle. If you want a way to retire a product going forward, the options are the row Delete action or adding a small dedicated control — flagging so it's a deliberate choice, not a surprise.
+
+---
+
+## Tags import/export: column renamed to "Tag Name" (DEF-237)
+
+Small QC #148 follow-up — the first column of the Tags import template and export now reads **"Tag Name"** instead of the generic "Name". Re-importing existing files still works (the importer accepts both).
 
 ---
 

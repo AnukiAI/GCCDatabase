@@ -1,0 +1,36 @@
+{
+  "pass": 5,
+  "fail": 0,
+  "results": [
+    {
+      "id": "E0",
+      "desc": "Preview builds both rows as new/create",
+      "status": "PASS",
+      "detail": "ok={\"email\":\"qc109-ok-282@anuki.example\",\"status\":\"new\",\"action\":\"create\",\"company\":\"Sofidel America Corp.;IB Roof Systems\",\"userCompany\":\"DUDE Wipes\",\"errors\":[]} err={\"email\":\"qc109-err-282@anuki.example\",\"status\":\"new\",\"action\":\"create\",\"company\":\"\",\"userCompany\":\"\",\"errors\":[]}"
+    },
+    {
+      "id": "E3",
+      "desc": "Import error detail surfaced in notification (QC #109)",
+      "status": "PASS",
+      "detail": "notes=[{\"msg\":\"Import partial: 1 succeeded, 1 failed. Row 2 (qc109-err-282@anuki.example): Partner role requires the Partner column (semicolon-separated names)\",\"type\":\"warning\"}]"
+    },
+    {
+      "id": "E1",
+      "desc": "Valid row: Company Access resolved to the two companies",
+      "status": "PASS",
+      "detail": "got companyIds=[1,2] want=[1,2]"
+    },
+    {
+      "id": "E2",
+      "desc": "Valid row: User Company (employer) distinct from Company Access",
+      "status": "PASS",
+      "detail": "userCompanyId=3 (want 3), name=\"DUDE Wipes\", accessIds=[1,2]"
+    },
+    {
+      "id": "E4",
+      "desc": "Partner-error row created NO user",
+      "status": "PASS",
+      "detail": "absent as expected"
+    }
+  ]
+}

@@ -109,6 +109,11 @@ namespace GCCWebApp.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+        // CR-020: the user's own company / employer (single). Distinct from Companies below,
+        // which is the data-access scope ("Company Access"). Optional.
+        public int? UserCompanyId { get; set; }
+        public Company? UserCompany { get; set; }
+
         // Navigation properties
         public ICollection<Certificate> CreatedCertificates { get; set; } = new List<Certificate>();
         public ICollection<Certificate> UpdatedCertificates { get; set; } = new List<Certificate>();

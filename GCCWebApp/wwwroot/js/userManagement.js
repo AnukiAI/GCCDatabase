@@ -335,7 +335,9 @@ class UserManagement {
     createUserRow(user) {
         const statusClass = user.status?.toLowerCase() === 'active' ? 'admin-badge--success' : 'admin-badge--inactive';
         const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never';
-        const companyDisplay = this.getCompanyAccessDisplay(user);
+        // CR-020 / client 2026-06-03: the table's "User Company" column shows the user's own
+        // company (employer) — NOT Company Access. Company Access lives in the modal + import/export.
+        const companyDisplay = user.userCompanyName || '';
 
         return `
             <tr class="admin-table-row" data-id="${user.id}">
@@ -427,7 +429,8 @@ class UserManagement {
             // Search filter
             if (search) {
                 const companyText = user.companyNames ? user.companyNames.join(' ') : (user.company || '');
-                const searchableText = [user.name, user.email, companyText, user.role].join(' ').toLowerCase();
+                // CR-020: include User Company (employer) so search matches the table's column.
+                const searchableText = [user.name, user.email, companyText, user.userCompanyName || '', user.role].join(' ').toLowerCase();
                 if (!searchableText.includes(search)) return false;
             }
             
@@ -578,6 +581,12 @@ class UserManagement {
             partnerSelect.value = '';
         }
 
+        // CR-020: set the user's own company/employer dropdown
+        const userCompanySelect = document.getElementById('user-company');
+        if (userCompanySelect) {
+            userCompanySelect.value = user.userCompanyId ? String(user.userCompanyId) : '';
+        }
+
         // Set password as optional for existing users
         const passwordField = document.getElementById('user-password');
         const passwordHelp = document.getElementById('password-help');
@@ -663,11 +672,18 @@ class UserManagement {
         const selectedPartner = partnerSelect ? partnerSelect.value : '';
         const partnerIds = selectedPartner ? [parseInt(selectedPartner)] : [];
 
+        // CR-020: the user's own company/employer (single dropdown, optional, any role).
+        const userCompanySelect = document.getElementById('user-company');
+        const userCompanyId = userCompanySelect && userCompanySelect.value
+            ? parseInt(userCompanySelect.value)
+            : null;
+
         const formData = {
             name: document.getElementById('user-name').value.trim(),
             email: document.getElementById('user-email').value.trim(),
             companyIds: role !== 'Partner' ? selectedCompanies : [],  // All roles except Partner
             partnerIds: role === 'Partner' ? partnerIds : [],  // Only for Partner role
+            userCompanyId: userCompanyId,  // CR-020
             role: role,
             status: document.getElementById('user-status').value,
             requirePasswordReset: document.getElementById('require-password-reset').checked
@@ -806,17 +822,21 @@ class UserManagement {
         }
 
         try {
-            // CSV columns must match UI table headers exactly: Name, User Company, Email, Role, Status, Last Login, 2FA
+            // CR-020: export carries BOTH company fields as distinct columns — "Company Access"
+            // (the data-scoping list, formerly mislabeled "User Company") and "User Company"
+            // (the user's own employer). Column order matches the import template so
+            // export → edit → re-import round-trips.
             const exportData = this.filteredUsers.map(user => {
                 const access = this.getCompanyAccessDisplay(user);
                 return {
                     Name: user.name || '',
-                    'User Company': access === 'All'
-                        ? 'All'
-                        : (user.companyNames ? user.companyNames.join('; ') : (user.company || '')),
                     Email: user.email || '',
                     Role: user.role || '',
                     Status: user.status || '',
+                    'Company Access': access === 'All'
+                        ? 'All'
+                        : (user.companyNames ? user.companyNames.join('; ') : (user.company || '')),
+                    'User Company': user.userCompanyName || '',
                     'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never',
                     '2FA': user.twoFactorEnabled ? 'Enabled' : 'Disabled'
                 };
@@ -868,7 +888,14 @@ class UserManagement {
                 'Email',
                 'Role (Admin/Analyst/External/Partner)',
                 'Status (Active/Inactive)',
-                'User Company (semicolon-separated names, or "All")',
+                // CR-020: this column is the data-ACCESS scope (which companies the user can
+                // view). Renamed from "User Company" → "Company Access" now that "User Company"
+                // names the separate employer field below. NOTE (intentional breaking change):
+                // the "User Company" header now maps to the employer field, NOT access — legacy
+                // CSVs that used "User Company" to mean access must switch to "Company Access".
+                'Company Access (semicolon-separated names, or "All")',
+                // CR-020: the user's OWN company / employer (single company name).
+                'User Company (single company name)',
                 // DEF-232: Partner column for Partner-role rows. Semicolon-separated names,
                 // resolved client-side to IDs and sent on the CreateUser payload. Ignored
                 // for non-Partner roles.
@@ -959,6 +986,8 @@ class UserManagement {
                 name,
                 email,
                 company: user.company || '',
+                // CR-020: the user's own company/employer (single name), distinct from Company Access.
+                userCompany: user.usercompany || '',
                 role: user.role || 'External',
                 status: (user.status || 'active').toLowerCase(),
                 // DEF-232: Partner column (semicolon-separated names) for Partner-role rows.
@@ -979,6 +1008,7 @@ class UserManagement {
                 name: cleanedRow.name,
                 email: cleanedRow.email,
                 company: cleanedRow.company,
+                userCompany: cleanedRow.userCompany,   // CR-020
                 role: cleanedRow.role,
                 status: cleanedRow.status,
                 partner: cleanedRow.partner,
@@ -1036,12 +1066,16 @@ class UserManagement {
             'emailaddress': 'email',
             'useremail': 'email',
 
-            // Company variations
+            // Company Access (data-scoping) variations → 'company' field
             'company': 'company',
             'companyname': 'company',
             'companyaccess': 'company',
-            'usercompany': 'company',
             'organization': 'company',
+
+            // CR-020: User Company (the user's OWN company/employer) — a distinct field
+            // from Company Access. Maps to its own 'usercompany' key.
+            'usercompany': 'usercompany',
+            'employer': 'usercompany',
 
             // Role variations
             'role': 'role',
@@ -1122,14 +1156,21 @@ class UserManagement {
                 if ((existingUser.status || '').trim().toLowerCase() !== (importUser.status || '').trim().toLowerCase()) {
                     changes.push({ field: 'Status', oldValue: existingUser.status || '', newValue: importUser.status || '' });
                 }
-                // Compare company if provided
+                // Compare Company Access (data-scoping) if provided
                 if (importUser.company && importUser.company.trim()) {
                     const existingAccess = this.getCompanyAccessDisplay(existingUser);
                     const existingCompany = existingAccess === 'All'
                         ? 'All'
                         : (existingUser.company || existingUser.companyNames?.join(', ') || '');
                     if (existingCompany.toLowerCase() !== importUser.company.trim().toLowerCase()) {
-                        changes.push({ field: 'User Company', oldValue: existingCompany, newValue: importUser.company });
+                        changes.push({ field: 'Company Access', oldValue: existingCompany, newValue: importUser.company });
+                    }
+                }
+                // CR-020: compare User Company (the user's own employer) if provided
+                if (importUser.userCompany && importUser.userCompany.trim()) {
+                    const existingUserCompany = existingUser.userCompanyName || '';
+                    if (existingUserCompany.toLowerCase() !== importUser.userCompany.trim().toLowerCase()) {
+                        changes.push({ field: 'User Company', oldValue: existingUserCompany, newValue: importUser.userCompany });
                     }
                 }
 
@@ -1472,6 +1513,8 @@ class UserManagement {
                 const companyIds = this.resolveCompanyIds(row.data.company);
                 // DEF-232: resolve Partner names from CSV → partner IDs for Partner-role users.
                 const partnerIds = this.resolvePartnerIds(row.data.partner);
+                // CR-020: resolve the user's own company/employer (single name) → one company ID.
+                const userCompanyId = this.resolveSingleCompanyId(row.data.userCompany);
 
                 // DEF-232: Partner role requires at least one partner. Fail fast — don't
                 // create an orphaned Partner-role user (mirrors the manual Add User guard
@@ -1493,7 +1536,8 @@ class UserManagement {
                     password: '',
                     requirePasswordReset: true,
                     companyIds: companyIds,
-                    partnerIds: partnerIds
+                    partnerIds: partnerIds,
+                    userCompanyId: userCompanyId   // CR-020 (null if blank/unknown)
                 };
 
                 if (row.action === 'create') {
@@ -1602,6 +1646,17 @@ class UserManagement {
         return ids;
     }
 
+    // CR-020: resolve a single company name (or numeric ID) → one company ID for the
+    // user's own company/employer. Returns null when blank or unknown (the field is optional).
+    resolveSingleCompanyId(companyValue) {
+        if (!companyValue || !companyValue.trim()) return null;
+        const part = companyValue.trim();
+        const asNum = parseInt(part);
+        if (!isNaN(asNum) && this.companies.some(c => c.id === asNum)) return asNum;
+        const match = this.companies.find(c => c.name?.toLowerCase() === part.toLowerCase());
+        return match ? match.id : null;
+    }
+
     // DEF-232: mirror of resolveCompanyIds for the Partner column. Semicolon-separated
     // partner names → numeric IDs from this.partners. Unknown names are skipped silently;
     // the per-row "Partner role requires the Partner column" check catches the empty case.
@@ -1707,6 +1762,20 @@ class UserManagement {
                 option.textContent = company.name;
                 companyFilter.appendChild(option);
             });
+        }
+
+        // CR-020: populate the modal "User Company" single-select (the user's own employer).
+        const userCompanySelect = document.getElementById('user-company');
+        if (userCompanySelect) {
+            const current = userCompanySelect.value;
+            userCompanySelect.innerHTML = '<option value="">— None —</option>';
+            sorted.forEach(company => {
+                const option = document.createElement('option');
+                option.value = company.id;
+                option.textContent = company.name;
+                userCompanySelect.appendChild(option);
+            });
+            userCompanySelect.value = current;
         }
 
         // Update modal company checkboxes

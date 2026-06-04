@@ -507,6 +507,15 @@ namespace GCCWebApp.Data
                 .HasMany(u => u.Partners)
                 .WithMany(p => p.Users);
 
+            // CR-020: User.UserCompany — single optional FK to the user's own company/employer.
+            // Separate from the Companies many-to-many (Company Access). SetNull so deleting a
+            // company doesn't delete its employees; their UserCompanyId just clears.
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.UserCompany)
+                .WithMany()
+                .HasForeignKey(u => u.UserCompanyId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // Certificate-Partner many-to-many (multi-partner support)
             modelBuilder.Entity<Certificate>()
                 .HasMany(c => c.Partners)

@@ -1,0 +1,43 @@
+{
+  "pass": 6,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "id": "C0",
+      "desc": "#user-company dropdown populated",
+      "status": "PASS",
+      "detail": "options=292, hasNone=true"
+    },
+    {
+      "id": "C1",
+      "desc": "User Company persists on create",
+      "status": "PASS",
+      "detail": "userCompanyId=1 (expected 1), name=\"Sofidel America Corp.\""
+    },
+    {
+      "id": "C2",
+      "desc": "Edit modal reflects saved User Company",
+      "status": "PASS",
+      "detail": "dropdown value=1, expected 1"
+    },
+    {
+      "id": "C3",
+      "desc": "User Company independent of Company Access",
+      "status": "PASS",
+      "detail": "Admin user carries User Company without company-access scoping"
+    },
+    {
+      "id": "T1",
+      "desc": "Import template has Company Access + User Company columns",
+      "status": "PASS",
+      "detail": "header=\"Name,Email,Role (Admin/Analyst/External/Partner),Status (Active/Inactive),\"Company Access (semicolon-separated names, or \"\"All\"\")\",User Company (single company name),Partner (semicolon-separated names; required for Partner role)\""
+    },
+    {
+      "id": "T2",
+      "desc": "Export has Company Access + User Company columns",
+      "status": "PASS",
+      "detail": "header=\"Name,Email,Role,Status,Company Access,User Company,Last Login,2FA\""
+    }
+  ]
+}

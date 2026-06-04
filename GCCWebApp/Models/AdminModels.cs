@@ -30,6 +30,11 @@ namespace GCCWebApp.Models
 
         public List<int> PartnerIds { get; set; } = new List<int>();
 
+        // CR-020: the user's own company/employer (single, optional FK). Distinct from
+        // CompanyIds, which is the data-access scope. UserCompanyName is for display.
+        public int? UserCompanyId { get; set; }
+        public string? UserCompanyName { get; set; }
+
         public DateTime? LastLogin { get; set; }
 
         public bool RequirePasswordReset { get; set; }
@@ -68,6 +73,8 @@ namespace GCCWebApp.Models
         // DEF-232: Partner-role users created via CSV import. Mirrors CompanyNames
         // (semicolon-separated names → resolved to Partner entities in the service).
         public List<string> PartnerNames { get; set; } = new();
+        // CR-020: the user's own company/employer (single name → resolved to UserCompanyId).
+        public string? UserCompanyName { get; set; }
     }
 
     public class CreateUserViewModel
@@ -97,9 +104,12 @@ namespace GCCWebApp.Models
         public string Password { get; set; } = string.Empty;
         
         public List<int> CompanyIds { get; set; } = new List<int>();
-        
+
         public List<int> PartnerIds { get; set; } = new List<int>();
-        
+
+        // CR-020: the user's own company/employer (single, optional FK).
+        public int? UserCompanyId { get; set; }
+
         public bool RequirePasswordReset { get; set; } = true;
     }
 

@@ -1,0 +1,122 @@
+{
+  "ts": "2026-06-03T20:59:53.762Z",
+  "base": "https://gccwebapp.com",
+  "qc": "185/77",
+  "def": "227",
+  "pass": 4,
+  "total": 4,
+  "results": [
+    {
+      "role": "admin",
+      "pass": true,
+      "spacerPresent": true,
+      "noOverlap": true,
+      "wrapperOk": true,
+      "hasBreadcrumb": true,
+      "breadcrumbDisplay": "block",
+      "breadcrumbHeight": 32,
+      "breadcrumbBg": "rgb(249, 249, 249)",
+      "wrapperVisibility": "visible",
+      "wrapperText": "",
+      "bodyClass": "theme-option4 role-admin",
+      "navbarRect": {
+        "top": 349,
+        "bottom": 488,
+        "height": 139
+      },
+      "breadcrumbRect": {
+        "top": 489,
+        "bottom": 521,
+        "height": 32
+      },
+      "searchRect": {
+        "top": 617,
+        "bottom": 661
+      }
+    },
+    {
+      "role": "analyst",
+      "pass": true,
+      "spacerPresent": true,
+      "noOverlap": true,
+      "wrapperOk": true,
+      "hasBreadcrumb": true,
+      "breadcrumbDisplay": "block",
+      "breadcrumbHeight": 32,
+      "breadcrumbBg": "rgb(249, 249, 249)",
+      "wrapperVisibility": "hidden",
+      "wrapperText": "",
+      "bodyClass": "theme-option4 role-analyst",
+      "navbarRect": {
+        "top": 349,
+        "bottom": 488,
+        "height": 139
+      },
+      "breadcrumbRect": {
+        "top": 489,
+        "bottom": 521,
+        "height": 32
+      },
+      "searchRect": {
+        "top": 617,
+        "bottom": 661
+      }
+    },
+    {
+      "role": "external",
+      "pass": true,
+      "spacerPresent": true,
+      "noOverlap": true,
+      "wrapperOk": true,
+      "hasBreadcrumb": true,
+      "breadcrumbDisplay": "block",
+      "breadcrumbHeight": 32,
+      "breadcrumbBg": "rgb(249, 249, 249)",
+      "wrapperVisibility": "hidden",
+      "wrapperText": "",
+      "bodyClass": "theme-option4 role-external",
+      "navbarRect": {
+        "top": 349,
+        "bottom": 488,
+        "height": 139
+      },
+      "breadcrumbRect": {
+        "top": 489,
+        "bottom": 521,
+        "height": 32
+      },
+      "searchRect": {
+        "top": 617,
+        "bottom": 661
+      }
+    },
+    {
+      "role": "public",
+      "pass": true,
+      "spacerPresent": true,
+      "noOverlap": true,
+      "wrapperOk": true,
+      "hasBreadcrumb": true,
+      "breadcrumbDisplay": "block",
+      "breadcrumbHeight": 32,
+      "breadcrumbBg": "rgb(249, 249, 249)",
+      "wrapperVisibility": "hidden",
+      "wrapperText": "",
+      "bodyClass": "theme-option4 role-public",
+      "navbarRect": {
+        "top": 349,
+        "bottom": 429,
+        "height": 80
+      },
+      "breadcrumbRect": {
+        "top": 430,
+        "bottom": 462,
+        "height": 32
+      },
+      "searchRect": {
+        "top": 559,
+        "bottom": 602
+      }
+    }
+  ]
+}

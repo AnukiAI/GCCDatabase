@@ -1,0 +1,24 @@
+{
+  "ts": "2026-06-03T18:53:28.376Z",
+  "base": "https://gccwebapp.com",
+  "totalDbCerts": 39,
+  "landedAfterLogin": "/Certificate/CertificateTileViewExternal",
+  "authorizedScope": {
+    "status": 200,
+    "totalCount": 7
+  },
+  "export": {
+    "status": 200,
+    "contentType": "text/csv",
+    "bytes": 2320,
+    "dataRows": 7,
+    "headerSample": "\"Certificate #\",\"Certification Type\",\"Cert Subcategories\",\"Status\",\"Company\",\"Company Contact Email/URL\",\"Contact URL\",\""
+  },
+  "distinctCompaniesInExport": 3,
+  "companiesSample": [
+    "KAO",
+    "Amazon Devices",
+    "Sonos"
+  ],
+  "verdict": "SCOPED OK — export 7 rows matches authorized scope 7"
+}

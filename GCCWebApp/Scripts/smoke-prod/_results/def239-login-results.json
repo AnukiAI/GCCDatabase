@@ -1,0 +1,28 @@
+{
+  "ts": "2026-06-03T18:26:52.161Z",
+  "base": "https://gccwebapp.com",
+  "pass": 4,
+  "total": 4,
+  "results": [
+    {
+      "id": "login:admin",
+      "status": "PASS",
+      "detail": "landed=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "id": "login:analyst",
+      "status": "PASS",
+      "detail": "landed=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "id": "login:external",
+      "status": "PASS",
+      "detail": "landed=/Certificate/CertificateTileViewExternal"
+    },
+    {
+      "id": "login:partner",
+      "status": "PASS",
+      "detail": "landed=/Certificate/CertificateTileViewExternal"
+    }
+  ]
+}

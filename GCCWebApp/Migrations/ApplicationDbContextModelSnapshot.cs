@@ -1894,6 +1894,9 @@ namespace GCCWebApp.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("UserCompanyId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -1912,6 +1915,8 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("LastLoginAt");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("UserCompanyId");
 
                     b.HasIndex("Username")
                         .IsUnique()
@@ -2341,6 +2346,16 @@ namespace GCCWebApp.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("GCCWebApp.Models.User", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.Company", "UserCompany")
+                        .WithMany()
+                        .HasForeignKey("UserCompanyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("UserCompany");
                 });
 
             modelBuilder.Entity("PartnerUser", b =>

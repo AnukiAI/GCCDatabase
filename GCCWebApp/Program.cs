@@ -921,19 +921,44 @@ using (var scope = app.Services.CreateScope())
         }
         else if (app.Environment.IsProduction())
         {
-            // Production: MANUAL MIGRATION MANAGEMENT - Do not auto-migrate
-            // Database schema must be managed via SQL scripts (00_CREATE_SCHEMA.sql, FULL_TEST_DATA_SEED.sql)
-            logger.LogInformation("🔧 Production environment - skipping automatic migrations (manual migration management enabled)");
-
-            // Validate database connectivity
+            // Validate database connectivity first
             var canConnect = await context.Database.CanConnectAsync();
             if (!canConnect)
             {
                 logger.LogCritical("🚨 CRITICAL: Production database connection failed!");
                 throw new InvalidOperationException("Production database is not accessible");
             }
-
             logger.LogInformation("✅ Production database connectivity verified");
+
+            // Auto-migrate on startup (DEF-252 / recurrence of DEF-239).
+            // gccwebapp.com is a single-tenant pre-launch TEST env that runs under the
+            // Production environment name. Two login outages (DEF-239, DEF-252) were caused
+            // by deploying code whose EF migration was never run on the DB by hand — the
+            // schema fell behind the model and every Users query threw. Applying pending
+            // migrations at startup closes that gap permanently, and EF runs them with
+            // QUOTED_IDENTIFIER ON (avoiding the Msg 1934 half-apply the hand-run SQL hit).
+            // Gated by Database:AutoMigrateOnStartup (default true) so a future real
+            // production cutover can revert to manual management by setting it false.
+            var autoMigrate = app.Configuration.GetValue<bool>("Database:AutoMigrateOnStartup", true);
+            if (autoMigrate)
+            {
+                var pending = (await context.Database.GetPendingMigrationsAsync()).ToList();
+                if (pending.Count > 0)
+                {
+                    logger.LogInformation("🔧 Production auto-migrate: applying {Count} pending migration(s): {Migrations}",
+                        pending.Count, string.Join(", ", pending));
+                    await context.Database.MigrateAsync();
+                    logger.LogInformation("✅ Production database migrations applied successfully ({Count} applied)", pending.Count);
+                }
+                else
+                {
+                    logger.LogInformation("✅ Production database schema up to date (no pending migrations)");
+                }
+            }
+            else
+            {
+                logger.LogInformation("🔧 Production environment - auto-migrate disabled (Database:AutoMigrateOnStartup=false); manual migration management");
+            }
         }
         else
         {

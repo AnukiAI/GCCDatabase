@@ -1,0 +1,230 @@
+[
+  {
+    "id": "SETUP-hierarchy",
+    "name": "Intended Category + Type (+ Sub) chosen",
+    "status": "PASS",
+    "notes": "cat=\"Chemicals and Raw Materials\"(1) default=\"Batch2QA-Cat-1777645766616\"(10) type=1 sub=(none)"
+  },
+  {
+    "id": "H1-no-post",
+    "name": "No product saved when category is unset",
+    "status": "PASS",
+    "notes": "no SaveProduct POST (blocked as intended)"
+  },
+  {
+    "id": "H1-guard-msg",
+    "name": "Inline guard message shown",
+    "status": "PASS",
+    "notes": "visible=true text=\"Select a Product Category above before adding a new product.\""
+  },
+  {
+    "id": "H2-add-fired",
+    "name": "Add posts to /Product/SaveProduct when category set",
+    "status": "PASS",
+    "notes": "http=200"
+  },
+  {
+    "id": "H2-category",
+    "name": "Product under analyst category (not default)",
+    "status": "PASS",
+    "notes": "saved cat=1 want 1"
+  },
+  {
+    "id": "H2-type",
+    "name": "Product carries analyst type",
+    "status": "PASS",
+    "notes": "saved type=1 want 1"
+  },
+  {
+    "id": "D-create",
+    "name": "Divergent cert created (cert=Chemicals, product=default cat)",
+    "status": "PASS",
+    "notes": "prod=643 certType=47 defCat=10 http=200"
+  },
+  {
+    "id": "D-no-clobber",
+    "name": "DIVERGENT: Edit keeps cert category (Chemicals), NOT product default",
+    "status": "PASS",
+    "notes": "current=1(\"Chemicals and Raw Materials\") want 1; product is under 10"
+  },
+  {
+    "id": "D-ss-sync",
+    "name": "DIVERGENT: SearchableSelect shows the cert category",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E0-candidates",
+    "name": "Cert Edit candidates found",
+    "status": "PASS",
+    "notes": "count=20 nums=26-0023,26-0159,26-0160,26-0146,26-0147,26-0150,26-0151,26-0106,26-0157,26-0026,26-0027,26-0025…"
+  },
+  {
+    "id": "E1-cert26-0023-no-clobber",
+    "name": "Edit keeps cert's saved category",
+    "status": "PASS",
+    "notes": "saved=1(\"Chemicals and Raw Materials\") current=1(\"Chemicals and Raw Materials\") productCat=1"
+  },
+  {
+    "id": "E2-cert26-0023-ss-sync",
+    "name": "SearchableSelect matches saved category",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" want=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E1-cert26-0159-no-clobber",
+    "name": "Edit keeps cert's saved category",
+    "status": "PASS",
+    "notes": "saved=1(\"Chemicals and Raw Materials\") current=1(\"Chemicals and Raw Materials\") productCat=1"
+  },
+  {
+    "id": "E2-cert26-0159-ss-sync",
+    "name": "SearchableSelect matches saved category",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" want=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E3-cert26-0160-derived",
+    "name": "Edit derives category from product when cert has none",
+    "status": "PASS",
+    "notes": "current=1(\"Chemicals and Raw Materials\") productCat=1"
+  },
+  {
+    "id": "E4-cert26-0160-ss-sync",
+    "name": "SearchableSelect shows derived category (not blank)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" derived=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E3-cert26-0146-derived",
+    "name": "Edit derives category from product when cert has none",
+    "status": "PASS",
+    "notes": "current=1(\"Chemicals and Raw Materials\") productCat=1"
+  },
+  {
+    "id": "E4-cert26-0146-ss-sync",
+    "name": "SearchableSelect shows derived category (not blank)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" derived=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E3-cert26-0147-derived",
+    "name": "Edit derives category from product when cert has none",
+    "status": "PASS",
+    "notes": "current=1(\"Chemicals and Raw Materials\") productCat=1"
+  },
+  {
+    "id": "E4-cert26-0147-ss-sync",
+    "name": "SearchableSelect shows derived category (not blank)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" derived=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E3-cert26-0150-derived",
+    "name": "Edit derives category from product when cert has none",
+    "status": "PASS",
+    "notes": "current=1(\"Chemicals and Raw Materials\") productCat=1"
+  },
+  {
+    "id": "E4-cert26-0150-ss-sync",
+    "name": "SearchableSelect shows derived category (not blank)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" derived=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E3-cert26-0151-derived",
+    "name": "Edit derives category from product when cert has none",
+    "status": "PASS",
+    "notes": "current=1(\"Chemicals and Raw Materials\") productCat=1"
+  },
+  {
+    "id": "E4-cert26-0151-ss-sync",
+    "name": "SearchableSelect shows derived category (not blank)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" derived=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E3-cert26-0106-derived",
+    "name": "Edit derives category from product when cert has none",
+    "status": "PASS",
+    "notes": "current=1(\"Chemicals and Raw Materials\") productCat=1"
+  },
+  {
+    "id": "E4-cert26-0106-ss-sync",
+    "name": "SearchableSelect shows derived category (not blank)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" derived=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E3-cert26-0157-derived",
+    "name": "Edit derives category from product when cert has none",
+    "status": "PASS",
+    "notes": "current=1(\"Chemicals and Raw Materials\") productCat=1"
+  },
+  {
+    "id": "E4-cert26-0157-ss-sync",
+    "name": "SearchableSelect shows derived category (not blank)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" derived=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E1-cert26-0026-no-clobber",
+    "name": "Edit keeps cert's saved category",
+    "status": "PASS",
+    "notes": "saved=10(\"Batch2QA-Cat-1777645766616\") current=10(\"Batch2QA-Cat-1777645766616\") productCat=10"
+  },
+  {
+    "id": "E2-cert26-0026-ss-sync",
+    "name": "SearchableSelect matches saved category",
+    "status": "PASS",
+    "notes": "box=\"Batch2QA-Cat-1777645766616\" want=\"Batch2QA-Cat-1777645766616\""
+  },
+  {
+    "id": "E1-cert26-0027-no-clobber",
+    "name": "Edit keeps cert's saved category",
+    "status": "PASS",
+    "notes": "saved=1(\"Chemicals and Raw Materials\") current=1(\"Chemicals and Raw Materials\") productCat=null"
+  },
+  {
+    "id": "E2-cert26-0027-ss-sync",
+    "name": "SearchableSelect matches saved category",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" want=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E1-cert26-0025-no-clobber",
+    "name": "Edit keeps cert's saved category",
+    "status": "PASS",
+    "notes": "saved=1(\"Chemicals and Raw Materials\") current=1(\"Chemicals and Raw Materials\") productCat=null"
+  },
+  {
+    "id": "E2-cert26-0025-ss-sync",
+    "name": "SearchableSelect matches saved category",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\" want=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "E-coverage",
+    "name": "Edit prefill case coverage",
+    "status": "PASS",
+    "notes": "caseA(override)=5 caseB(derived)=7 divergent=false"
+  },
+  {
+    "id": "E-note",
+    "name": "Divergence case",
+    "status": "WARN",
+    "notes": "no cert found where product category != cert saved category; no-clobber asserted on overrides present (still proves no blanking + SS sync)"
+  },
+  {
+    "id": "cleanup-certs",
+    "name": "Throwaway certs removed",
+    "status": "PASS",
+    "notes": "removed=1"
+  },
+  {
+    "id": "cleanup",
+    "name": "Throwaway products removed",
+    "status": "PASS",
+    "notes": "removed=2, failed=0"
+  }
+]

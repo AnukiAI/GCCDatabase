@@ -109,10 +109,13 @@ namespace GCCWebApp.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // CR-020: the user's own company / employer (single). Distinct from Companies below,
-        // which is the data-access scope ("Company Access"). Optional.
-        public int? UserCompanyId { get; set; }
-        public Company? UserCompany { get; set; }
+        // CR-020 (revised 2026-06-05, QC #106): the user's own company / employer, stored as
+        // FREE TEXT — not an FK to Companies. Values like "GCC", "Amazon Corporate", "Novi"
+        // are valid employers that are not cert companies, so the dropdown was dropped.
+        // Distinct from Companies below, which is the data-access scope ("Company Access").
+        // Label/display only — never read by any access-scoping path. Optional.
+        [MaxLength(255)]
+        public string? UserCompany { get; set; }
 
         // Navigation properties
         public ICollection<Certificate> CreatedCertificates { get; set; } = new List<Certificate>();

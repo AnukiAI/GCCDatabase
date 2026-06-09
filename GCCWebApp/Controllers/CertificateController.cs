@@ -401,6 +401,13 @@ namespace GCCWebApp.Controllers
         {
             try
             {
+                // QC #186 follow-up: preserve the posted JS-driven selections (cert subcategories
+                // and tags) so the Create view can restore them if the form re-renders on a
+                // server-side validation error (Company/CertType survive via asp-for; these do not).
+                ViewBag.PostedSubcategoryIds = SubcategoryIds;
+                ViewBag.PostedExternalTags = ExternalTags;
+                ViewBag.PostedInternalTags = InternalTags;
+
                 // Debug logging for Product IDs
                 _logger.LogInformation("Create POST received. ProductIds count: {Count}", model.ProductIds?.Count ?? 0);
                 if (model.ProductIds != null && model.ProductIds.Any())
@@ -991,7 +998,7 @@ namespace GCCWebApp.Controllers
                         ModelState.AddModelError(nameof(model.Status),
                             $"Invalid status transition from '{fromDisplay}' to '{toDisplay}'. " +
                             $"Check workflow rules for the allowed next states from '{fromDisplay}'.");
-                        await ReloadEditFormDataAsync(id);
+                        await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
                         return View(model);
                     }
 
@@ -1032,7 +1039,7 @@ namespace GCCWebApp.Controllers
                         {
                             _logger.LogWarning("Certificate image upload failed: {Errors}", string.Join(", ", uploadResult.Errors));
                             ModelState.AddModelError("certificateImage", string.Join(", ", uploadResult.Errors));
-                            await ReloadEditFormDataAsync(id);
+                            await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
                             return View(model);
                         }
                     }
@@ -1064,7 +1071,7 @@ namespace GCCWebApp.Controllers
                         {
                             _logger.LogWarning("Certificate PDF upload failed: {Errors}", string.Join(", ", uploadResult.Errors));
                             ModelState.AddModelError("certificatePdf", string.Join(", ", uploadResult.Errors));
-                            await ReloadEditFormDataAsync(id);
+                            await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
                             return View(model);
                         }
                     }
@@ -1227,7 +1234,7 @@ namespace GCCWebApp.Controllers
                             {
                                 ModelState.AddModelError("CustomFieldValues", error);
                             }
-                            await ReloadEditFormDataAsync(id);
+                            await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
                             return View(model);
                         }
 
@@ -1237,7 +1244,7 @@ namespace GCCWebApp.Controllers
                         {
                             _logger.LogWarning("Failed to save custom field values for certificate {Number}", certificate.Number);
                             ModelState.AddModelError("CustomFieldValues", "Failed to save custom field values");
-                            await ReloadEditFormDataAsync(id);
+                            await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
                             return View(model);
                         }
 
@@ -1314,7 +1321,7 @@ namespace GCCWebApp.Controllers
                 }
 
                 // If we got here, something failed, reload the form
-                await ReloadEditFormDataAsync(id);
+                await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
                 return View(model);
             }
             catch (Exception ex)
@@ -1322,7 +1329,7 @@ namespace GCCWebApp.Controllers
                 _logger.LogError(ex, "Error updating certificate ID: {Id}", id);
                 ModelState.AddModelError("", "An error occurred while updating the certificate");
 
-                await ReloadEditFormDataAsync(id);
+                await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
                 return View(model);
             }
         }
@@ -1330,7 +1337,7 @@ namespace GCCWebApp.Controllers
         /// <summary>
         /// Helper method to reload form data for Edit view
         /// </summary>
-        private async Task ReloadEditFormDataAsync(int certificateId)
+        private async Task ReloadEditFormDataAsync(int certificateId, string? postedExternalTags = null, string? postedInternalTags = null, string? postedSubcategoryIds = null)
         {
             ViewBag.Companies = (await _unitOfWork.Companies.GetAllAsync()).Where(c => c.IsActive && !c.IsDeleted).OrderBy(c => c.Name).ToList();
             var allProducts = await _unitOfWork.Products.GetAllAsync();
@@ -1355,13 +1362,38 @@ namespace GCCWebApp.Controllers
 
             ViewBag.Pathways = await _context.Pathways.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
 
-            // Load existing tags for the certificate
-            var certificate = await _certificateRepository.GetByIdAsync(certificateId);
-            if (certificate != null)
+            // QC #186 follow-up (DEF-246 parity): on a validation re-render, restore the POSTED
+            // Tag / cert-Subcategory selections so the analyst's in-progress edits aren't reverted
+            // to the saved cert. (Product + Category/Type/Subcategory already round-trip via the
+            // posted Model; only these JS-driven, ViewBag-restored fields needed the posted source.)
+            // Falls back to the DB cert's values when no posted values are supplied.
+            bool isRepost = postedExternalTags != null || postedInternalTags != null || postedSubcategoryIds != null;
+            if (isRepost)
             {
-                var existingTags = certificate.Tags?.ToList() ?? new List<Tag>();
-                ViewBag.ExistingExternalTags = existingTags.Where(t => t.TagType == "external").Select(t => new { t.Id, t.Name }).ToList();
-                ViewBag.ExistingInternalTags = existingTags.Where(t => t.TagType == "internal").Select(t => new { t.Id, t.Name }).ToList();
+                static List<int> ParseIds(string? json)
+                {
+                    if (string.IsNullOrWhiteSpace(json)) return new List<int>();
+                    try { return System.Text.Json.JsonSerializer.Deserialize<List<int>>(json) ?? new List<int>(); }
+                    catch { return new List<int>(); }
+                }
+                var extIds = ParseIds(postedExternalTags);
+                var intIds = ParseIds(postedInternalTags);
+                var subIds = ParseIds(postedSubcategoryIds);
+                var tagList = allTags.ToList();
+                ViewBag.ExistingExternalTags = tagList.Where(t => extIds.Contains(t.Id)).Select(t => new { t.Id, t.Name }).ToList();
+                ViewBag.ExistingInternalTags = tagList.Where(t => intIds.Contains(t.Id)).Select(t => new { t.Id, t.Name }).ToList();
+                ViewBag.ExistingSubcategories = allCertTypes.Where(ct => subIds.Contains(ct.Id)).Select(ct => new { ct.Id, ct.Name }).ToList();
+            }
+            else
+            {
+                // Load existing tags for the certificate (DB state — non-repost callers)
+                var certificate = await _certificateRepository.GetByIdAsync(certificateId);
+                if (certificate != null)
+                {
+                    var existingTags = certificate.Tags?.ToList() ?? new List<Tag>();
+                    ViewBag.ExistingExternalTags = existingTags.Where(t => t.TagType == "external").Select(t => new { t.Id, t.Name }).ToList();
+                    ViewBag.ExistingInternalTags = existingTags.Where(t => t.TagType == "internal").Select(t => new { t.Id, t.Name }).ToList();
+                }
             }
         }
 

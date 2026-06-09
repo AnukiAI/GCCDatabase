@@ -1,0 +1,4515 @@
+{
+  "verdict": "GATE 2 FAIL",
+  "startedAt": "2026-06-05T15:44:25.665Z",
+  "finishedAt": "2026-06-05T15:53:11.797Z",
+  "pass": 280,
+  "fail": 89,
+  "warn": 21,
+  "total": 390,
+  "failures": [
+    {
+      "view": "user-mgmt",
+      "role": "public",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "FAIL",
+      "detail": "effective=200 url=/Account/Login?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "public",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "FAIL",
+      "detail": "effective=200 url=/Account/Login?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "public",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "FAIL",
+      "detail": "effective=200 url=/Account/Login?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "public",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "FAIL",
+      "detail": "effective=200 url=/Account/Login?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "public",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "FAIL",
+      "detail": "effective=200 url=/Account/Login?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.company-access-cells",
+      "desc": "Every user row has a Company Access cell",
+      "status": "FAIL",
+      "detail": "rows=0 accessCells=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.axe-wcag21aa",
+      "desc": "AxeCore WCAG 2.1 AA (1 violations, 1 critical/serious)",
+      "status": "FAIL",
+      "detail": "[serious] color-contrast: Elements must meet minimum color contrast ratio thresholds (27 nodes)"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.company-access-cells",
+      "desc": "Every user row has a Company Access cell",
+      "status": "FAIL",
+      "detail": "rows=0 accessCells=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "FAIL",
+      "detail": "Failed to load users: Error retrieving users: Execution Timeout Expired.  The timeout period elapsed prior to completion of the operation or the server is not responding."
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.company-access-cells",
+      "desc": "Every user row has a Company Access cell",
+      "status": "FAIL",
+      "detail": "rows=0 accessCells=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.company-access-cells",
+      "desc": "Every user row has a Company Access cell",
+      "status": "FAIL",
+      "detail": "rows=0 accessCells=0"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.axe-wcag21aa",
+      "desc": "AxeCore WCAG 2.1 AA (3 violations, 3 critical/serious)",
+      "status": "FAIL",
+      "detail": "[serious] aria-prohibited-attr: Elements must only use permitted ARIA attributes (3 nodes) | [serious] color-contrast: Elements must meet minimum color contrast ratio thresholds (7 nodes) | [critical] select-name: Select element must have an accessible name (2 nodes)"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-edit",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.external-no-actions-col",
+      "desc": "External user: No Actions column on Product Management",
+      "status": "FAIL",
+      "detail": "actionsColumnFound=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.external-no-actions-col",
+      "desc": "External user: No Actions column on Product Management",
+      "status": "FAIL",
+      "detail": "actionsColumnFound=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.external-no-actions-col",
+      "desc": "External user: No Actions column on Product Management",
+      "status": "FAIL",
+      "detail": "actionsColumnFound=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.external-no-actions-col",
+      "desc": "External user: No Actions column on Product Management",
+      "status": "FAIL",
+      "detail": "actionsColumnFound=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.external-no-actions-col",
+      "desc": "External user: No Actions column on Product Management",
+      "status": "FAIL",
+      "detail": "actionsColumnFound=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.axe-wcag21aa",
+      "desc": "AxeCore WCAG 2.1 AA (2 violations, 2 critical/serious)",
+      "status": "FAIL",
+      "detail": "[serious] color-contrast: Elements must meet minimum color contrast ratio thresholds (6 nodes) | [critical] select-name: Select element must have an accessible name (3 nodes)"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.axe-wcag21aa",
+      "desc": "AxeCore WCAG 2.1 AA (2 violations, 2 critical/serious)",
+      "status": "FAIL",
+      "detail": "[serious] color-contrast: Elements must meet minimum color contrast ratio thresholds (11 nodes) | [serious] listitem: <li> elements must be contained in a <ul> or <ol> (372 nodes)"
+    }
+  ],
+  "warnings": [
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "WARN",
+      "detail": "tiles found=0"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: (unknown), (unknown), (unknown), (unknown), (unknown), (unknown), (unknown), (unknown), (unknown), (unknown)"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    }
+  ],
+  "results": [
+    {
+      "view": "user-mgmt",
+      "role": "public",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "FAIL",
+      "detail": "effective=200 url=/Account/Login?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "public",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "FAIL",
+      "detail": "effective=200 url=/Account/Login?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "public",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "FAIL",
+      "detail": "effective=200 url=/Account/Login?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "public",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "FAIL",
+      "detail": "effective=200 url=/Account/Login?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "public",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "FAIL",
+      "detail": "effective=200 url=/Account/Login?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Admin/UserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.company-access-col-header",
+      "desc": "\"Company Access\" sortable header present and separate from \"User Company\"",
+      "status": "PASS",
+      "detail": "companyAccess=true userCompany=true"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.aria-sort-on-headers",
+      "desc": "Sortable column headers have aria-sort attribute",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.table-caption",
+      "desc": "Table has descriptive caption for screen readers",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.company-access-cells",
+      "desc": "Every user row has a Company Access cell",
+      "status": "FAIL",
+      "detail": "rows=0 accessCells=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.user-company-freetext",
+      "desc": "User Company in modal is a free-text input (CR-020rev)",
+      "status": "PASS",
+      "detail": "inputs=293 selects=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1920 winW=1920"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "user-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Admin/UserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.company-access-col-header",
+      "desc": "\"Company Access\" sortable header present and separate from \"User Company\"",
+      "status": "PASS",
+      "detail": "companyAccess=true userCompany=true"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.aria-sort-on-headers",
+      "desc": "Sortable column headers have aria-sort attribute",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.table-caption",
+      "desc": "Table has descriptive caption for screen readers",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.company-access-cells",
+      "desc": "Every user row has a Company Access cell",
+      "status": "PASS",
+      "detail": "rows=25 accessCells=25"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.admin-analyst-shows-all",
+      "desc": "Admin/Analyst user Company Access shows \"All\"",
+      "status": "PASS",
+      "detail": "admin → \"All\""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.user-company-freetext",
+      "desc": "User Company in modal is a free-text input (CR-020rev)",
+      "status": "PASS",
+      "detail": "inputs=293 selects=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1440 winW=1440"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "user-mgmt.axe-wcag21aa",
+      "desc": "AxeCore WCAG 2.1 AA (1 violations, 1 critical/serious)",
+      "status": "FAIL",
+      "detail": "[serious] color-contrast: Elements must meet minimum color contrast ratio thresholds (27 nodes)"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Admin/UserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.company-access-col-header",
+      "desc": "\"Company Access\" sortable header present and separate from \"User Company\"",
+      "status": "PASS",
+      "detail": "companyAccess=true userCompany=true"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.aria-sort-on-headers",
+      "desc": "Sortable column headers have aria-sort attribute",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.table-caption",
+      "desc": "Table has descriptive caption for screen readers",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.company-access-cells",
+      "desc": "Every user row has a Company Access cell",
+      "status": "FAIL",
+      "detail": "rows=0 accessCells=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.user-company-freetext",
+      "desc": "User Company in modal is a free-text input (CR-020rev)",
+      "status": "PASS",
+      "detail": "inputs=293 selects=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=768 winW=768"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "user-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "FAIL",
+      "detail": "Failed to load users: Error retrieving users: Execution Timeout Expired.  The timeout period elapsed prior to completion of the operation or the server is not responding."
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Admin/UserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.company-access-col-header",
+      "desc": "\"Company Access\" sortable header present and separate from \"User Company\"",
+      "status": "PASS",
+      "detail": "companyAccess=true userCompany=true"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.aria-sort-on-headers",
+      "desc": "Sortable column headers have aria-sort attribute",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.table-caption",
+      "desc": "Table has descriptive caption for screen readers",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.company-access-cells",
+      "desc": "Every user row has a Company Access cell",
+      "status": "FAIL",
+      "detail": "rows=0 accessCells=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.user-company-freetext",
+      "desc": "User Company in modal is a free-text input (CR-020rev)",
+      "status": "PASS",
+      "detail": "inputs=293 selects=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=390 winW=390"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "user-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Admin/UserManagement"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.company-access-col-header",
+      "desc": "\"Company Access\" sortable header present and separate from \"User Company\"",
+      "status": "PASS",
+      "detail": "companyAccess=true userCompany=true"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.aria-sort-on-headers",
+      "desc": "Sortable column headers have aria-sort attribute",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.table-caption",
+      "desc": "Table has descriptive caption for screen readers",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.company-access-cells",
+      "desc": "Every user row has a Company Access cell",
+      "status": "FAIL",
+      "detail": "rows=0 accessCells=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.user-company-freetext",
+      "desc": "User Company in modal is a free-text input (CR-020rev)",
+      "status": "PASS",
+      "detail": "inputs=293 selects=0"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=360 winW=360"
+    },
+    {
+      "view": "user-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "user-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "public",
+      "viewport": "desktop-1920",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-create",
+      "role": "public",
+      "viewport": "desktop-1440",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-create",
+      "role": "public",
+      "viewport": "tablet-768",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-create",
+      "role": "public",
+      "viewport": "mobile-390",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-create",
+      "role": "public",
+      "viewport": "mobile-360",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-create",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-create",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-create",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-create",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-create",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-create.def246-form-renders",
+      "desc": "DEF-246: Create form renders correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-create.required-fields-labeled",
+      "desc": "Required fields have accessible labels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-create.h1-text",
+      "desc": "h1 has descriptive text",
+      "status": "PASS",
+      "detail": "h1=\"Create Certificate\""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-create.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1920 winW=1920"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-create.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.def246-form-renders",
+      "desc": "DEF-246: Create form renders correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.required-fields-labeled",
+      "desc": "Required fields have accessible labels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.h1-text",
+      "desc": "h1 has descriptive text",
+      "status": "PASS",
+      "detail": "h1=\"Create Certificate\""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1440 winW=1440"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-create.axe-wcag21aa",
+      "desc": "AxeCore WCAG 2.1 AA (3 violations, 3 critical/serious)",
+      "status": "FAIL",
+      "detail": "[serious] aria-prohibited-attr: Elements must only use permitted ARIA attributes (3 nodes) | [serious] color-contrast: Elements must meet minimum color contrast ratio thresholds (7 nodes) | [critical] select-name: Select element must have an accessible name (2 nodes)"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-create.def246-form-renders",
+      "desc": "DEF-246: Create form renders correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-create.required-fields-labeled",
+      "desc": "Required fields have accessible labels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-create.h1-text",
+      "desc": "h1 has descriptive text",
+      "status": "PASS",
+      "detail": "h1=\"Create Certificate\""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-create.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=768 winW=768"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-create.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-create.def246-form-renders",
+      "desc": "DEF-246: Create form renders correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-create.required-fields-labeled",
+      "desc": "Required fields have accessible labels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-create.h1-text",
+      "desc": "h1 has descriptive text",
+      "status": "PASS",
+      "detail": "h1=\"Create Certificate\""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-create.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=390 winW=390"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-create.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-create.def246-form-renders",
+      "desc": "DEF-246: Create form renders correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-create.required-fields-labeled",
+      "desc": "Required fields have accessible labels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-create.h1-text",
+      "desc": "h1 has descriptive text",
+      "status": "PASS",
+      "detail": "h1=\"Create Certificate\""
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-create.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=360 winW=360"
+    },
+    {
+      "view": "cert-create",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-create.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-create.def246-form-renders",
+      "desc": "DEF-246: Create form renders correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-create.required-fields-labeled",
+      "desc": "Required fields have accessible labels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-create.h1-text",
+      "desc": "h1 has descriptive text",
+      "status": "PASS",
+      "detail": "h1=\"Create Certificate\""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-create.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1920 winW=1920"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-create.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-create.def246-form-renders",
+      "desc": "DEF-246: Create form renders correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-create.required-fields-labeled",
+      "desc": "Required fields have accessible labels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-create.h1-text",
+      "desc": "h1 has descriptive text",
+      "status": "PASS",
+      "detail": "h1=\"Create Certificate\""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-create.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1440 winW=1440"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-create.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-create.def246-form-renders",
+      "desc": "DEF-246: Create form renders correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-create.required-fields-labeled",
+      "desc": "Required fields have accessible labels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-create.h1-text",
+      "desc": "h1 has descriptive text",
+      "status": "PASS",
+      "detail": "h1=\"Create Certificate\""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-create.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=768 winW=768"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-create.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-create.def246-form-renders",
+      "desc": "DEF-246: Create form renders correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-create.required-fields-labeled",
+      "desc": "Required fields have accessible labels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-create.h1-text",
+      "desc": "h1 has descriptive text",
+      "status": "PASS",
+      "detail": "h1=\"Create Certificate\""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-create.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=390 winW=390"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-create.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-create.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-create.def246-form-renders",
+      "desc": "DEF-246: Create form renders correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-create.required-fields-labeled",
+      "desc": "Required fields have accessible labels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-create.aria-required",
+      "desc": "Required fields have aria-required=\"true\"",
+      "status": "WARN",
+      "detail": "missing aria-required: productIdType, productIdValue"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-create.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-create.h1-text",
+      "desc": "h1 has descriptive text",
+      "status": "PASS",
+      "detail": "h1=\"Create Certificate\""
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-create.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=360 winW=360"
+    },
+    {
+      "view": "cert-create",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-create.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-edit",
+      "role": "public",
+      "viewport": "desktop-1920",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-edit",
+      "role": "public",
+      "viewport": "desktop-1440",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-edit",
+      "role": "public",
+      "viewport": "tablet-768",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-edit",
+      "role": "public",
+      "viewport": "mobile-390",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-edit",
+      "role": "public",
+      "viewport": "mobile-360",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-edit",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-edit",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-edit",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-edit",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-edit",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "cert-edit",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "cert-edit",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-edit.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=400"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "public",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "public",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "public",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "public",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "public",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.external-no-actions-col",
+      "desc": "External user: No Actions column on Product Management",
+      "status": "FAIL",
+      "detail": "actionsColumnFound=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.external-no-add-import-btns",
+      "desc": "External user: Add New Product / Import / Template buttons hidden",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.external-export-visible",
+      "desc": "External user: Export button is visible (allowed)",
+      "status": "PASS",
+      "detail": "exportBtnVisible=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1920 winW=1920"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.external-no-actions-col",
+      "desc": "External user: No Actions column on Product Management",
+      "status": "FAIL",
+      "detail": "actionsColumnFound=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.external-no-add-import-btns",
+      "desc": "External user: Add New Product / Import / Template buttons hidden",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.external-export-visible",
+      "desc": "External user: Export button is visible (allowed)",
+      "status": "PASS",
+      "detail": "exportBtnVisible=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1440 winW=1440"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.external-no-actions-col",
+      "desc": "External user: No Actions column on Product Management",
+      "status": "FAIL",
+      "detail": "actionsColumnFound=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.external-no-add-import-btns",
+      "desc": "External user: Add New Product / Import / Template buttons hidden",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.external-export-visible",
+      "desc": "External user: Export button is visible (allowed)",
+      "status": "PASS",
+      "detail": "exportBtnVisible=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=768 winW=768"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.external-no-actions-col",
+      "desc": "External user: No Actions column on Product Management",
+      "status": "FAIL",
+      "detail": "actionsColumnFound=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.external-no-add-import-btns",
+      "desc": "External user: Add New Product / Import / Template buttons hidden",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.external-export-visible",
+      "desc": "External user: Export button is visible (allowed)",
+      "status": "PASS",
+      "detail": "exportBtnVisible=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=390 winW=390"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.external-no-actions-col",
+      "desc": "External user: No Actions column on Product Management",
+      "status": "FAIL",
+      "detail": "actionsColumnFound=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.external-no-add-import-btns",
+      "desc": "External user: Add New Product / Import / Template buttons hidden",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.external-export-visible",
+      "desc": "External user: Export button is visible (allowed)",
+      "status": "PASS",
+      "detail": "exportBtnVisible=true"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=360 winW=360"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.admin-analyst-add-btn-visible",
+      "desc": "analyst: Add New Product button visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1920 winW=1920"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.admin-analyst-add-btn-visible",
+      "desc": "analyst: Add New Product button visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1440 winW=1440"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.admin-analyst-add-btn-visible",
+      "desc": "analyst: Add New Product button visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=768 winW=768"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.admin-analyst-add-btn-visible",
+      "desc": "analyst: Add New Product button visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=390 winW=390"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.admin-analyst-add-btn-visible",
+      "desc": "analyst: Add New Product button visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=360 winW=360"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.admin-analyst-add-btn-visible",
+      "desc": "admin: Add New Product button visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1920 winW=1920"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.admin-analyst-add-btn-visible",
+      "desc": "admin: Add New Product button visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1440 winW=1440"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "product-mgmt.axe-wcag21aa",
+      "desc": "AxeCore WCAG 2.1 AA (2 violations, 2 critical/serious)",
+      "status": "FAIL",
+      "detail": "[serious] color-contrast: Elements must meet minimum color contrast ratio thresholds (6 nodes) | [critical] select-name: Select element must have an accessible name (3 nodes)"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.admin-analyst-add-btn-visible",
+      "desc": "admin: Add New Product button visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=768 winW=768"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.admin-analyst-add-btn-visible",
+      "desc": "admin: Add New Product button visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=390 winW=390"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.admin-analyst-add-btn-visible",
+      "desc": "admin: Add New Product button visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.single-h1",
+      "desc": "Single h1 on page",
+      "status": "FAIL",
+      "detail": "h1 count=2"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.search-labeled",
+      "desc": "Search input has accessible label",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.filter-selects-labeled",
+      "desc": "Filter select inputs have accessible labels",
+      "status": "FAIL",
+      "detail": "#category-filter, #company-filter"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=360 winW=360"
+    },
+    {
+      "view": "product-mgmt",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "product-mgmt.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "public",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "public",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "public",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "public",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "public",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 401)",
+      "status": "PASS",
+      "detail": "effective=401 url=/Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "external",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "external",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "external",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "external",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "external",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "FAIL",
+      "detail": "effective=401 url=/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "WARN",
+      "detail": "tiles found=0"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.def249-250-no-api-errors",
+      "desc": "DEF-249/250: No 5xx errors from tile data API",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.single-h1",
+      "desc": "Single h1 on page",
+      "status": "PASS",
+      "detail": "h1 count=1"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: (unknown), (unknown), (unknown), (unknown), (unknown), (unknown), (unknown), (unknown), (unknown), (unknown)"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1920 winW=1920"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "PASS",
+      "detail": "tiles found=20"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.def249-250-no-api-errors",
+      "desc": "DEF-249/250: No 5xx errors from tile data API",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.single-h1",
+      "desc": "Single h1 on page",
+      "status": "PASS",
+      "detail": "h1 count=1"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1440 winW=1440"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.axe-wcag21aa",
+      "desc": "AxeCore WCAG 2.1 AA (2 violations, 2 critical/serious)",
+      "status": "FAIL",
+      "detail": "[serious] color-contrast: Elements must meet minimum color contrast ratio thresholds (11 nodes) | [serious] listitem: <li> elements must be contained in a <ul> or <ol> (372 nodes)"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "PASS",
+      "detail": "tiles found=20"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.def249-250-no-api-errors",
+      "desc": "DEF-249/250: No 5xx errors from tile data API",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.single-h1",
+      "desc": "Single h1 on page",
+      "status": "PASS",
+      "detail": "h1 count=1"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=768 winW=768"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "PASS",
+      "detail": "tiles found=20"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.def249-250-no-api-errors",
+      "desc": "DEF-249/250: No 5xx errors from tile data API",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.single-h1",
+      "desc": "Single h1 on page",
+      "status": "PASS",
+      "detail": "h1 count=1"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=390 winW=390"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "PASS",
+      "detail": "tiles found=20"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.def249-250-no-api-errors",
+      "desc": "DEF-249/250: No 5xx errors from tile data API",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.single-h1",
+      "desc": "Single h1 on page",
+      "status": "PASS",
+      "detail": "h1 count=1"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=360 winW=360"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "analyst",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "PASS",
+      "detail": "tiles found=20"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.def249-250-no-api-errors",
+      "desc": "DEF-249/250: No 5xx errors from tile data API",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.single-h1",
+      "desc": "Single h1 on page",
+      "status": "PASS",
+      "detail": "h1 count=1"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1920 winW=1920"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-internal.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "PASS",
+      "detail": "tiles found=20"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.def249-250-no-api-errors",
+      "desc": "DEF-249/250: No 5xx errors from tile data API",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.single-h1",
+      "desc": "Single h1 on page",
+      "status": "PASS",
+      "detail": "h1 count=1"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1440 winW=1440"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-internal.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "PASS",
+      "detail": "tiles found=20"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.def249-250-no-api-errors",
+      "desc": "DEF-249/250: No 5xx errors from tile data API",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.single-h1",
+      "desc": "Single h1 on page",
+      "status": "PASS",
+      "detail": "h1 count=1"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=768 winW=768"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "tablet-768",
+      "id": "cert-tile-internal.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "PASS",
+      "detail": "tiles found=20"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.def249-250-no-api-errors",
+      "desc": "DEF-249/250: No 5xx errors from tile data API",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.single-h1",
+      "desc": "Single h1 on page",
+      "status": "PASS",
+      "detail": "h1 count=1"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=390 winW=390"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-390",
+      "id": "cert-tile-internal.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.access",
+      "desc": "Access control (expected 200)",
+      "status": "PASS",
+      "detail": "effective=200 url=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.def248-tiles-render",
+      "desc": "DEF-248: Certificate tiles render data",
+      "status": "PASS",
+      "detail": "tiles found=20"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.def249-250-no-api-errors",
+      "desc": "DEF-249/250: No 5xx errors from tile data API",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.single-h1",
+      "desc": "Single h1 on page",
+      "status": "PASS",
+      "detail": "h1 count=1"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.filter-checkboxes-labeled",
+      "desc": "Filter checkboxes have accessible labels",
+      "status": "WARN",
+      "detail": "10 unlabeled: cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, cert-type, product-cat, product-cat, product-cat"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=360 winW=360"
+    },
+    {
+      "view": "cert-tile-internal",
+      "role": "admin",
+      "viewport": "mobile-360",
+      "id": "cert-tile-internal.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-public.access",
+      "desc": "Public tile view accessible (200)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-public.no-add-cert-btn",
+      "desc": "Public view: no Add Certificate button",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-public.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1920 winW=1920"
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "desktop-1920",
+      "id": "cert-tile-public.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-public.access",
+      "desc": "Public tile view accessible (200)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-public.no-add-cert-btn",
+      "desc": "Public view: no Add Certificate button",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-public.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=1440 winW=1440"
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "desktop-1440",
+      "id": "cert-tile-public.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "tablet-768",
+      "id": "cert-tile-public.access",
+      "desc": "Public tile view accessible (200)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "tablet-768",
+      "id": "cert-tile-public.no-add-cert-btn",
+      "desc": "Public view: no Add Certificate button",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "tablet-768",
+      "id": "cert-tile-public.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=768 winW=768"
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "tablet-768",
+      "id": "cert-tile-public.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "mobile-390",
+      "id": "cert-tile-public.access",
+      "desc": "Public tile view accessible (200)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "mobile-390",
+      "id": "cert-tile-public.no-add-cert-btn",
+      "desc": "Public view: no Add Certificate button",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "mobile-390",
+      "id": "cert-tile-public.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=390 winW=390"
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "mobile-390",
+      "id": "cert-tile-public.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "mobile-360",
+      "id": "cert-tile-public.access",
+      "desc": "Public tile view accessible (200)",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "mobile-360",
+      "id": "cert-tile-public.no-add-cert-btn",
+      "desc": "Public view: no Add Certificate button",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "mobile-360",
+      "id": "cert-tile-public.no-horiz-scroll",
+      "desc": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "detail": "docW=360 winW=360"
+    },
+    {
+      "view": "cert-tile-public",
+      "role": "public",
+      "viewport": "mobile-360",
+      "id": "cert-tile-public.no-console-errors",
+      "desc": "No JS console errors",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "pass": 5,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "id": "A0",
+      "desc": "\"Company Access\" sortable column header present",
+      "status": "PASS",
+      "detail": "headers=Name | User Company | Company Access | Email | Role | Status | Last Login | 2FA | Actions"
+    },
+    {
+      "id": "A1",
+      "desc": "User Company and Company Access are separate columns",
+      "status": "PASS",
+      "detail": "userCompany=true, companyAccess=true"
+    },
+    {
+      "id": "A2",
+      "desc": "Every row renders a Company Access cell",
+      "status": "PASS",
+      "detail": "rows=25, accessCells=25, companyCells=25"
+    },
+    {
+      "id": "A3",
+      "desc": "Admin/Analyst Company Access shows \"All\"",
+      "status": "PASS",
+      "detail": "Admin → \"All\""
+    },
+    {
+      "id": "A4",
+      "desc": "Sorting by Company Access renders rows without error",
+      "status": "PASS",
+      "detail": "rowsAfterSort=25"
+    }
+  ]
+}

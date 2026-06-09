@@ -846,6 +846,12 @@ namespace GCCWebApp.Controllers.Api
             // .ThenBy(c => c.Id) tiebreaker on every branch — see Internal controller for full rationale.
             // Without it, ties on the primary sort key produce non-deterministic SQL row order, page 1
             // and page 2 overlap, and the JS dedupe-by-id silently drops rows ("15 of 35" symptom).
+            // QC #157 / DEF-(sort-parity): this switch is kept identical to the Internal controller's
+            // ApplySorting so the external table sorts every column the header offers. Previously only a
+            // subset of branches existed here, so clicking ASIN/UPC/GTIN/EAN/Status/Tag/Subcategory/
+            // Contact/Cert-Results/Pathway/Cert-Subcats/Company-URL silently fell through to the default
+            // (Effective-Date desc) and the header appeared to do nothing. ID columns use the natural
+            // (length-then-value) sort so numeric identifiers order 9 < 10 < 100. Empties always last.
             return sortBy?.ToLower() switch
             {
                 "newest" => query.OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id),
@@ -860,18 +866,66 @@ namespace GCCWebApp.Controllers.Api
                 "cert-number-oldest" => query.OrderBy(c => c.Number).ThenBy(c => c.Id),
                 "cert-type" => query.OrderByTextEmptiesLast(c => c.CertificationType.Name, false).ThenBy(c => c.Id),
                 "cert-type-za" => query.OrderByTextEmptiesLast(c => c.CertificationType.Name, true).ThenBy(c => c.Id),
+                "status" => query.OrderBy(c => c.Status).ThenBy(c => c.Id),
+                "status-za" => query.OrderByDescending(c => c.Status).ThenBy(c => c.Id),
                 "company-az" => query.OrderByTextEmptiesLast(c => c.Company.Name, false).ThenBy(c => c.Id),
                 "company-za" => query.OrderByTextEmptiesLast(c => c.Company.Name, true).ThenBy(c => c.Id),
                 "product-az" => query.OrderByTextEmptiesLast(c => c.Product.Name, false).ThenBy(c => c.Id),
                 "product-za" => query.OrderByTextEmptiesLast(c => c.Product.Name, true).ThenBy(c => c.Id),
                 // QC #157: empties always last (consistent across all three tile views). See
                 // Extensions/CertificateSortExtensions.cs and the Internal controller's ApplySorting.
+                "product-cat" => query.OrderByTextEmptiesLast(c => c.ProductCategory != null ? c.ProductCategory.Name : (c.Product != null && c.Product.Category != null ? c.Product.Category.Name : ""), false).ThenBy(c => c.Id),
+                "product-cat-za" => query.OrderByTextEmptiesLast(c => c.ProductCategory != null ? c.ProductCategory.Name : (c.Product != null && c.Product.Category != null ? c.Product.Category.Name : ""), true).ThenBy(c => c.Id),
+                "product-type" => query.OrderByTextEmptiesLast(c => c.ProductType != null ? c.ProductType.Name : (c.Product.ProductType != null ? c.Product.ProductType.Name : ""), false).ThenBy(c => c.Id),
+                "product-type-za" => query.OrderByTextEmptiesLast(c => c.ProductType != null ? c.ProductType.Name : (c.Product.ProductType != null ? c.Product.ProductType.Name : ""), true).ThenBy(c => c.Id),
+                "product-sub" => query.OrderByTextEmptiesLast(c => c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : ""), false).ThenBy(c => c.Id),
+                "product-sub-za" => query.OrderByTextEmptiesLast(c => c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : ""), true).ThenBy(c => c.Id),
                 "location-az" => query.OrderByTextEmptiesLast(c => c.Location, false).ThenBy(c => c.Id),
                 "location-za" => query.OrderByTextEmptiesLast(c => c.Location, true).ThenBy(c => c.Id),
                 "country" => query.OrderByTextEmptiesLast(c => c.Country, false).ThenBy(c => c.Id),
                 "country-za" => query.OrderByTextEmptiesLast(c => c.Country, true).ThenBy(c => c.Id),
-                "product-type" => query.OrderByTextEmptiesLast(c => c.Product.ProductType != null ? c.Product.ProductType.Name : "", false).ThenBy(c => c.Id),
+                "ext-tag" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault(), false).ThenBy(c => c.Id),
+                "ext-tag-za" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault(), true).ThenBy(c => c.Id),
                 "partner" => query.OrderByTextEmptiesLast(c => c.Partner, false).ThenBy(c => c.Id),
+                "partner-za" => query.OrderByTextEmptiesLast(c => c.Partner, true).ThenBy(c => c.Id),
+                // DEF-260: ID columns sort by the COUNT of IDs on the cert (the count-badge value the
+                // grid shows), matching the internal Cert List. Count 0 sorts last in both directions.
+                // (External does not currently project these cells, so the column renders empty here and
+                // this falls back to Id order — kept in parity with the internal controller regardless.)
+                "asin" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "ASIN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "ASIN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Asin) ? 0 : 1), false).ThenBy(c => c.Id),
+                "asin-za" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "ASIN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "ASIN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Asin) ? 0 : 1), true).ThenBy(c => c.Id),
+                "upc" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "UPC" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "UPC" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Upc) ? 0 : 1), false).ThenBy(c => c.Id),
+                "upc-za" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "UPC" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "UPC" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Upc) ? 0 : 1), true).ThenBy(c => c.Id),
+                "gtin" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "GTIN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "GTIN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Gtin) ? 0 : 1), false).ThenBy(c => c.Id),
+                "gtin-za" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "GTIN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "GTIN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Gtin) ? 0 : 1), true).ThenBy(c => c.Id),
+                "ean" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "EAN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "EAN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Ean) ? 0 : 1), false).ThenBy(c => c.Id),
+                "ean-za" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "EAN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "EAN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Ean) ? 0 : 1), true).ThenBy(c => c.Id),
+                "contact" => query.OrderByTextEmptiesLast(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website, false).ThenBy(c => c.Id),
+                "contact-za" => query.OrderByTextEmptiesLast(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website, true).ThenBy(c => c.Id),
+                "cert-results" => query.OrderByNumericNullsLast(c => c.CertificationResultsNumeric, false).ThenBy(c => c.Id),
+                "cert-results-za" => query.OrderByNumericNullsLast(c => c.CertificationResultsNumeric, true).ThenBy(c => c.Id),
+                "pathway" => query.OrderByTextEmptiesLast(c => c.Pathway != null ? c.Pathway.Name : "", false).ThenBy(c => c.Id),
+                "pathway-za" => query.OrderByTextEmptiesLast(c => c.Pathway != null ? c.Pathway.Name : "", true).ThenBy(c => c.Id),
+                "cert-sub" => query.OrderByTextEmptiesLast(c => c.CertificationTypeSubcategories.Select(s => s.Name).Min(), false).ThenBy(c => c.Id),
+                "cert-sub-za" => query.OrderByTextEmptiesLast(c => c.CertificationTypeSubcategories.Select(s => s.Name).Min(), true).ThenBy(c => c.Id),
+                "company-url" => query.OrderByTextEmptiesLast(c => c.Company.Website, false).ThenBy(c => c.Id),
+                "company-url-za" => query.OrderByTextEmptiesLast(c => c.Company.Website, true).ThenBy(c => c.Id),
                 _ => query.OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id)
             };
         }

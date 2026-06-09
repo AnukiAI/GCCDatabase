@@ -1,0 +1,50 @@
+[
+  {
+    "id": "SETUP-cert",
+    "name": "Edit candidate",
+    "status": "PASS",
+    "notes": "num=26-0023"
+  },
+  {
+    "id": "SETUP-edited",
+    "name": "Edited state before submit",
+    "status": "PASS",
+    "notes": "{\"cat\":\"1\",\"product\":\"77\",\"certType\":\"7\",\"extTags\":[1],\"certSubs\":[51],\"extTagAdded\":1}"
+  },
+  {
+    "id": "REPOST",
+    "name": "Real server re-render (nav marker cleared)",
+    "status": "PASS",
+    "notes": "navGone=true expErr=\"The Expiration Date field is required.\""
+  },
+  {
+    "id": "R-category",
+    "name": "Product Category retained (posted)",
+    "status": "PASS",
+    "notes": "before=1 after=1"
+  },
+  {
+    "id": "R-product",
+    "name": "Product retained (posted)",
+    "status": "PASS",
+    "notes": "before=77 after=77"
+  },
+  {
+    "id": "R-certType",
+    "name": "Certification Type retained (posted)",
+    "status": "PASS",
+    "notes": "before=7 after=7"
+  },
+  {
+    "id": "R-extTags",
+    "name": "Edited External Tags retained (not reverted to DB)",
+    "status": "PASS",
+    "notes": "before=[1] after=[1]"
+  },
+  {
+    "id": "R-certSubs",
+    "name": "Edited Cert Subcategories retained",
+    "status": "PASS",
+    "notes": "before=[51] after=[51]"
+  }
+]

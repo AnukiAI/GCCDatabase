@@ -1,0 +1,175 @@
+[
+  {
+    "id": "DEF243-asset-js",
+    "name": "Deployed certificate-inline-create.js carries the inline-add guard",
+    "status": "PASS",
+    "notes": "http=200 guardString=true"
+  },
+  {
+    "id": "CR184-not-public",
+    "name": "Export not served to unauthenticated caller",
+    "status": "PASS",
+    "notes": "http=401 (expect redirect/401/403, not a 200 CSV)"
+  },
+  {
+    "id": "SETUP-admin-login",
+    "name": "Admin login on prod",
+    "status": "PASS"
+  },
+  {
+    "id": "CR184-admin-export",
+    "name": "Admin export returns active-identifier CSV",
+    "status": "PASS",
+    "notes": "http=200 ctype=\"text/csv\" \"Total Active Product Identifiers: 1022\""
+  },
+  {
+    "id": "CR184-mgmt-button",
+    "name": "Export button on Product Management (internal)",
+    "status": "PASS",
+    "notes": "found=true upArrow=true"
+  },
+  {
+    "id": "DEF243-candidates",
+    "name": "Prod cert Edit candidates found",
+    "status": "PASS",
+    "notes": "count=20"
+  },
+  {
+    "id": "DEF243-asset-view",
+    "name": "Deployed Edit.cshtml carries suppressProductAutoFill guard",
+    "status": "PASS",
+    "notes": "suppress=true hasSavedFlag=true"
+  },
+  {
+    "id": "DEF243-26-0168-no-clobber",
+    "name": "Edit keeps saved category (prod)",
+    "status": "PASS",
+    "notes": "saved=1(\"Chemicals and Raw Materials\") cur=1 prodCat=9"
+  },
+  {
+    "id": "DEF243-26-0168-ss",
+    "name": "SearchableSelect synced (prod)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "DEF243-26-0166-no-clobber",
+    "name": "Edit keeps saved category (prod)",
+    "status": "PASS",
+    "notes": "saved=1(\"Chemicals and Raw Materials\") cur=1 prodCat=1"
+  },
+  {
+    "id": "DEF243-26-0166-ss",
+    "name": "SearchableSelect synced (prod)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "DEF243-26-0167-no-clobber",
+    "name": "Edit keeps saved category (prod)",
+    "status": "PASS",
+    "notes": "saved=9(\"Carly Test\") cur=9 prodCat=9"
+  },
+  {
+    "id": "DEF243-26-0167-ss",
+    "name": "SearchableSelect synced (prod)",
+    "status": "PASS",
+    "notes": "box=\"Carly Test\""
+  },
+  {
+    "id": "DEF243-26-0164-no-clobber",
+    "name": "Edit keeps saved category (prod)",
+    "status": "PASS",
+    "notes": "saved=1(\"Chemicals and Raw Materials\") cur=1 prodCat=1"
+  },
+  {
+    "id": "DEF243-26-0164-ss",
+    "name": "SearchableSelect synced (prod)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "DEF243-26-0163-no-clobber",
+    "name": "Edit keeps saved category (prod)",
+    "status": "PASS",
+    "notes": "saved=9(\"Carly Test\") cur=9 prodCat=4"
+  },
+  {
+    "id": "DEF243-26-0163-ss",
+    "name": "SearchableSelect synced (prod)",
+    "status": "PASS",
+    "notes": "box=\"Carly Test\""
+  },
+  {
+    "id": "DEF243-26-0160-no-clobber",
+    "name": "Edit keeps saved category (prod)",
+    "status": "PASS",
+    "notes": "saved=1(\"Chemicals and Raw Materials\") cur=1 prodCat=1"
+  },
+  {
+    "id": "DEF243-26-0160-ss",
+    "name": "SearchableSelect synced (prod)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "DEF243-26-0159-no-clobber",
+    "name": "Edit keeps saved category (prod)",
+    "status": "PASS",
+    "notes": "saved=9(\"Carly Test\") cur=9 prodCat=4"
+  },
+  {
+    "id": "DEF243-26-0159-ss",
+    "name": "SearchableSelect synced (prod)",
+    "status": "PASS",
+    "notes": "box=\"Carly Test\""
+  },
+  {
+    "id": "DEF243-26-0161-no-clobber",
+    "name": "Edit keeps saved category (prod)",
+    "status": "PASS",
+    "notes": "saved=9(\"Carly Test\") cur=9 prodCat=4"
+  },
+  {
+    "id": "DEF243-26-0161-ss",
+    "name": "SearchableSelect synced (prod)",
+    "status": "PASS",
+    "notes": "box=\"Carly Test\""
+  },
+  {
+    "id": "DEF243-26-0162-no-clobber",
+    "name": "Edit keeps saved category (prod)",
+    "status": "PASS",
+    "notes": "saved=1(\"Chemicals and Raw Materials\") cur=1 prodCat=1"
+  },
+  {
+    "id": "DEF243-26-0162-ss",
+    "name": "SearchableSelect synced (prod)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "DEF243-26-0146-no-clobber",
+    "name": "Edit keeps saved category (prod)",
+    "status": "PASS",
+    "notes": "saved=1(\"Chemicals and Raw Materials\") cur=1 prodCat=1"
+  },
+  {
+    "id": "DEF243-26-0146-ss",
+    "name": "SearchableSelect synced (prod)",
+    "status": "PASS",
+    "notes": "box=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "DEF243-coverage",
+    "name": "Edit prefill coverage on prod",
+    "status": "PASS",
+    "notes": "caseA=10 caseB=0"
+  },
+  {
+    "id": "CR184-external",
+    "name": "External blocked from export (403, no CSV)",
+    "status": "PASS",
+    "notes": "http=403"
+  }
+]

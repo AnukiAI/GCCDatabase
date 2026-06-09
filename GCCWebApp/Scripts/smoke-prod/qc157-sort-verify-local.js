@@ -37,7 +37,9 @@ const STR = (v) => String(v ?? '').trim();
 // each column: the asc/desc sortBy keys + how to pull the per-row sort key from an API item.
 const COLUMNS = [
   { label: 'Location',           asc: 'location-az', desc: 'location-za', key: c => STR(c.location),  kind: 'string' },
-  { label: 'ASIN',               asc: 'asin',        desc: 'asin-za',     key: c => MIN(c.asin),      kind: 'string' },
+  // ASIN/UPC/GTIN/EAN now sort by the COUNT badge, not the ID value (DEF-260, client clarification).
+  // Count-based monotonicity is verified by Scripts/smoke-prod/def260-count-sort-probe.js — removed
+  // here so this value-monotonic oracle doesn't false-fail the (intentionally) count-sorted column.
   { label: 'Cert Subcategories', asc: 'cert-sub',    desc: 'cert-sub-za', key: c => MIN(c.certSubcategories), kind: 'string' },
   { label: 'Company URL',        asc: 'company-url', desc: 'company-url-za', key: c => STR(c.companyUrl), kind: 'string' },
   // context columns Carly said WORK — confirm no regression. Status is enum-backed: its

@@ -40,6 +40,7 @@ const VIEWS = [
   'dashboard',
   'admin-user-mgmt',
   'admin-tags',
+  'product-mgmt',
 ];
 
 const RESULTS_DIR = path.join(__dirname, '..', '_results');

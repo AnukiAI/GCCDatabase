@@ -1,0 +1,1875 @@
+{
+  "stamp": "2026-06-04T22-09-06",
+  "base": "http://localhost:5101",
+  "verdict": "FAIL-BLOCKING",
+  "passed": 149,
+  "failed": 13,
+  "warned": 0,
+  "results": [
+    {
+      "check": "CR184.export-btn-visible",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "exists=true visible=true title=\"Export all active product identifiers across every certificate to CSV\"",
+      "shot": null
+    },
+    {
+      "check": "CR184.actions-col-visible",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "actionsColVisible=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-desktop-product-management.png"
+    },
+    {
+      "check": "DEF243.create-cat-dropdown",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "catExists=true options=10",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-type-dropdown",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "typeExists=true options=1",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-sub-dropdown",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "subExists=true",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-inline-add-guard",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "wrapper=true guardMsg=true addBtn=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-create",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-desktop-cert-create.png"
+    },
+    {
+      "check": "DEF243.edit-no-clobber",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "server=1 current=1 clobbered=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-ss-sync",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "ss=\"Chemicals and Raw Materials\" curText=\"Chemicals and Raw Materials\" outOfSync=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-type-dropdown",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "typeExists=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-edit",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-desktop-cert-edit.png"
+    },
+    {
+      "check": "axe.product-management",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "FAIL",
+      "notes": "critical/serious=2 moderate=0 minor=0",
+      "shot": null
+    },
+    {
+      "check": "axe.cert-create",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "FAIL",
+      "notes": "critical/serious=3 moderate=0 minor=0",
+      "shot": null
+    },
+    {
+      "check": "axe.cert-edit",
+      "role": "admin",
+      "vp": "desktop",
+      "status": "FAIL",
+      "notes": "critical/serious=4 moderate=0 minor=0",
+      "shot": null
+    },
+    {
+      "check": "CR184.export-btn-visible",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "exists=true visible=true title=\"Export all active product identifiers across every certificate to CSV\"",
+      "shot": null
+    },
+    {
+      "check": "CR184.actions-col-visible",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "actionsColVisible=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-laptop-product-management.png"
+    },
+    {
+      "check": "DEF243.create-cat-dropdown",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "catExists=true options=10",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-type-dropdown",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "typeExists=true options=1",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-sub-dropdown",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "subExists=true",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-inline-add-guard",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "wrapper=true guardMsg=true addBtn=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-create",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-laptop-cert-create.png"
+    },
+    {
+      "check": "DEF243.edit-no-clobber",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "server=1 current=1 clobbered=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-ss-sync",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "ss=\"Chemicals and Raw Materials\" curText=\"Chemicals and Raw Materials\" outOfSync=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-type-dropdown",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "typeExists=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-edit",
+      "role": "admin",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-laptop-cert-edit.png"
+    },
+    {
+      "check": "CR184.export-btn-visible",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "exists=true visible=true title=\"Export all active product identifiers across every certificate to CSV\"",
+      "shot": null
+    },
+    {
+      "check": "CR184.actions-col-visible",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "FAIL",
+      "notes": "actionsColVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-tablet-product-management.png"
+    },
+    {
+      "check": "DEF243.create-cat-dropdown",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "catExists=true options=10",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-type-dropdown",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "typeExists=true options=1",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-sub-dropdown",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "subExists=true",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-inline-add-guard",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "wrapper=true guardMsg=true addBtn=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-create",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-tablet-cert-create.png"
+    },
+    {
+      "check": "DEF243.edit-no-clobber",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "server=1 current=1 clobbered=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-ss-sync",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "ss=\"Chemicals and Raw Materials\" curText=\"Chemicals and Raw Materials\" outOfSync=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-type-dropdown",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "typeExists=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-edit",
+      "role": "admin",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-tablet-cert-edit.png"
+    },
+    {
+      "check": "CR184.export-btn-visible",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "exists=true visible=true title=\"Export all active product identifiers across every certificate to CSV\"",
+      "shot": null
+    },
+    {
+      "check": "CR184.actions-col-visible",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "FAIL",
+      "notes": "actionsColVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-mobile-product-management.png"
+    },
+    {
+      "check": "DEF243.create-cat-dropdown",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "catExists=true options=10",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-type-dropdown",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "typeExists=true options=1",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-sub-dropdown",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "subExists=true",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-inline-add-guard",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "wrapper=true guardMsg=true addBtn=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-create",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-mobile-cert-create.png"
+    },
+    {
+      "check": "DEF243.edit-no-clobber",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "server=1 current=1 clobbered=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-ss-sync",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "ss=\"Chemicals and Raw Materials\" curText=\"Chemicals and Raw Materials\" outOfSync=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-type-dropdown",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "typeExists=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-edit",
+      "role": "admin",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-mobile-cert-edit.png"
+    },
+    {
+      "check": "CR184.export-btn-visible",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "exists=true visible=true title=\"Export all active product identifiers across every certificate to CSV\"",
+      "shot": null
+    },
+    {
+      "check": "CR184.actions-col-visible",
+      "role": "admin",
+      "vp": "small",
+      "status": "FAIL",
+      "notes": "actionsColVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-small-product-management.png"
+    },
+    {
+      "check": "DEF243.create-cat-dropdown",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "catExists=true options=10",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-type-dropdown",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "typeExists=true options=1",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-sub-dropdown",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "subExists=true",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-inline-add-guard",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "wrapper=true guardMsg=true addBtn=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-create",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-small-cert-create.png"
+    },
+    {
+      "check": "DEF243.edit-no-clobber",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "server=1 current=1 clobbered=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-ss-sync",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "ss=\"Chemicals and Raw Materials\" curText=\"Chemicals and Raw Materials\" outOfSync=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-type-dropdown",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "typeExists=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-edit",
+      "role": "admin",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\admin-small-cert-edit.png"
+    },
+    {
+      "check": "CR184.export-btn-visible",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "exists=true visible=true title=\"Export all active product identifiers across every certificate to CSV\"",
+      "shot": null
+    },
+    {
+      "check": "CR184.actions-col-visible",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "actionsColVisible=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-desktop-product-management.png"
+    },
+    {
+      "check": "DEF243.create-cat-dropdown",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "catExists=true options=10",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-type-dropdown",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "typeExists=true options=1",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-sub-dropdown",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "subExists=true",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-inline-add-guard",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "wrapper=true guardMsg=true addBtn=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-create",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-desktop-cert-create.png"
+    },
+    {
+      "check": "DEF243.edit-no-clobber",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "server=1 current=1 clobbered=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-ss-sync",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "ss=\"Chemicals and Raw Materials\" curText=\"Chemicals and Raw Materials\" outOfSync=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-type-dropdown",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "typeExists=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-edit",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-desktop-cert-edit.png"
+    },
+    {
+      "check": "axe.product-management",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "FAIL",
+      "notes": "critical/serious=3 moderate=0 minor=0",
+      "shot": null
+    },
+    {
+      "check": "axe.cert-create",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "FAIL",
+      "notes": "critical/serious=3 moderate=0 minor=0",
+      "shot": null
+    },
+    {
+      "check": "axe.cert-edit",
+      "role": "analyst",
+      "vp": "desktop",
+      "status": "FAIL",
+      "notes": "critical/serious=4 moderate=0 minor=0",
+      "shot": null
+    },
+    {
+      "check": "CR184.export-btn-visible",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "exists=true visible=true title=\"Export all active product identifiers across every certificate to CSV\"",
+      "shot": null
+    },
+    {
+      "check": "CR184.actions-col-visible",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "actionsColVisible=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-laptop-product-management.png"
+    },
+    {
+      "check": "DEF243.create-cat-dropdown",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "catExists=true options=10",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-type-dropdown",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "typeExists=true options=1",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-sub-dropdown",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "subExists=true",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-inline-add-guard",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "wrapper=true guardMsg=true addBtn=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-create",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-laptop-cert-create.png"
+    },
+    {
+      "check": "DEF243.edit-no-clobber",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "server=1 current=1 clobbered=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-ss-sync",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "ss=\"Chemicals and Raw Materials\" curText=\"Chemicals and Raw Materials\" outOfSync=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-type-dropdown",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "typeExists=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-edit",
+      "role": "analyst",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-laptop-cert-edit.png"
+    },
+    {
+      "check": "CR184.export-btn-visible",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "exists=true visible=true title=\"Export all active product identifiers across every certificate to CSV\"",
+      "shot": null
+    },
+    {
+      "check": "CR184.actions-col-visible",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "FAIL",
+      "notes": "actionsColVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-tablet-product-management.png"
+    },
+    {
+      "check": "DEF243.create-cat-dropdown",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "catExists=true options=10",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-type-dropdown",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "typeExists=true options=1",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-sub-dropdown",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "subExists=true",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-inline-add-guard",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "wrapper=true guardMsg=true addBtn=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-create",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-tablet-cert-create.png"
+    },
+    {
+      "check": "DEF243.edit-no-clobber",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "server=1 current=1 clobbered=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-ss-sync",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "ss=\"Chemicals and Raw Materials\" curText=\"Chemicals and Raw Materials\" outOfSync=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-type-dropdown",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "typeExists=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-edit",
+      "role": "analyst",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-tablet-cert-edit.png"
+    },
+    {
+      "check": "CR184.export-btn-visible",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "exists=true visible=true title=\"Export all active product identifiers across every certificate to CSV\"",
+      "shot": null
+    },
+    {
+      "check": "CR184.actions-col-visible",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "FAIL",
+      "notes": "actionsColVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-mobile-product-management.png"
+    },
+    {
+      "check": "DEF243.create-cat-dropdown",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "catExists=true options=10",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-type-dropdown",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "typeExists=true options=1",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-sub-dropdown",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "subExists=true",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-inline-add-guard",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "wrapper=true guardMsg=true addBtn=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-create",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-mobile-cert-create.png"
+    },
+    {
+      "check": "DEF243.edit-no-clobber",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "server=1 current=1 clobbered=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-ss-sync",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "ss=\"Chemicals and Raw Materials\" curText=\"Chemicals and Raw Materials\" outOfSync=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-type-dropdown",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "typeExists=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-edit",
+      "role": "analyst",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-mobile-cert-edit.png"
+    },
+    {
+      "check": "CR184.export-btn-visible",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "exists=true visible=true title=\"Export all active product identifiers across every certificate to CSV\"",
+      "shot": null
+    },
+    {
+      "check": "CR184.actions-col-visible",
+      "role": "analyst",
+      "vp": "small",
+      "status": "FAIL",
+      "notes": "actionsColVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-small-product-management.png"
+    },
+    {
+      "check": "DEF243.create-cat-dropdown",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "catExists=true options=10",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-type-dropdown",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "typeExists=true options=1",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-sub-dropdown",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "subExists=true",
+      "shot": null
+    },
+    {
+      "check": "DEF243.create-inline-add-guard",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "wrapper=true guardMsg=true addBtn=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-create",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-small-cert-create.png"
+    },
+    {
+      "check": "DEF243.edit-no-clobber",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "server=1 current=1 clobbered=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-ss-sync",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "ss=\"Chemicals and Raw Materials\" curText=\"Chemicals and Raw Materials\" outOfSync=false",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-type-dropdown",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "typeExists=true",
+      "shot": null
+    },
+    {
+      "check": "screenshot.cert-edit",
+      "role": "analyst",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\analyst-small-cert-edit.png"
+    },
+    {
+      "check": "CR184.export-btn-hidden-external",
+      "role": "external",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "btnExists=true visible=false display=none vis=visible",
+      "shot": null
+    },
+    {
+      "check": "CR184.no-actions-col-external",
+      "role": "external",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "actionsHeaderVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "external",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\external-desktop-product-management.png"
+    },
+    {
+      "check": "DEF243.create-blocked-external",
+      "role": "external",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate (status=200)",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-blocked-external",
+      "role": "external",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F26-0023 (status=200)",
+      "shot": null
+    },
+    {
+      "check": "axe.product-management",
+      "role": "external",
+      "vp": "desktop",
+      "status": "FAIL",
+      "notes": "critical/serious=2 moderate=0 minor=0",
+      "shot": null
+    },
+    {
+      "check": "CR184.export-btn-hidden-external",
+      "role": "external",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "btnExists=true visible=false display=none vis=visible",
+      "shot": null
+    },
+    {
+      "check": "CR184.no-actions-col-external",
+      "role": "external",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "actionsHeaderVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "external",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\external-laptop-product-management.png"
+    },
+    {
+      "check": "DEF243.create-blocked-external",
+      "role": "external",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate (status=200)",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-blocked-external",
+      "role": "external",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F26-0023 (status=200)",
+      "shot": null
+    },
+    {
+      "check": "CR184.export-btn-hidden-external",
+      "role": "external",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "btnExists=true visible=false display=none vis=visible",
+      "shot": null
+    },
+    {
+      "check": "CR184.no-actions-col-external",
+      "role": "external",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "actionsHeaderVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "external",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\external-tablet-product-management.png"
+    },
+    {
+      "check": "DEF243.create-blocked-external",
+      "role": "external",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate (status=200)",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-blocked-external",
+      "role": "external",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F26-0023 (status=200)",
+      "shot": null
+    },
+    {
+      "check": "CR184.export-btn-hidden-external",
+      "role": "external",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "btnExists=true visible=false display=none vis=visible",
+      "shot": null
+    },
+    {
+      "check": "CR184.no-actions-col-external",
+      "role": "external",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "actionsHeaderVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "external",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\external-mobile-product-management.png"
+    },
+    {
+      "check": "DEF243.create-blocked-external",
+      "role": "external",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate (status=200)",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-blocked-external",
+      "role": "external",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F26-0023 (status=200)",
+      "shot": null
+    },
+    {
+      "check": "CR184.export-btn-hidden-external",
+      "role": "external",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "btnExists=true visible=false display=none vis=visible",
+      "shot": null
+    },
+    {
+      "check": "CR184.no-actions-col-external",
+      "role": "external",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "actionsHeaderVisible=false",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "external",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\external-small-product-management.png"
+    },
+    {
+      "check": "DEF243.create-blocked-external",
+      "role": "external",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate (status=200)",
+      "shot": null
+    },
+    {
+      "check": "DEF243.edit-blocked-external",
+      "role": "external",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F26-0023 (status=200)",
+      "shot": null
+    },
+    {
+      "check": "A.public-redirect",
+      "role": "public",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/Login?ReturnUrl=%2FProduct%2FManagement",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "public",
+      "vp": "desktop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\public-desktop-product-management.png"
+    },
+    {
+      "check": "A.public-redirect",
+      "role": "public",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/Login?ReturnUrl=%2FProduct%2FManagement",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "public",
+      "vp": "laptop",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\public-laptop-product-management.png"
+    },
+    {
+      "check": "A.public-redirect",
+      "role": "public",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/Login?ReturnUrl=%2FProduct%2FManagement",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "public",
+      "vp": "tablet",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\public-tablet-product-management.png"
+    },
+    {
+      "check": "A.public-redirect",
+      "role": "public",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/Login?ReturnUrl=%2FProduct%2FManagement",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "public",
+      "vp": "mobile",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\public-mobile-product-management.png"
+    },
+    {
+      "check": "A.public-redirect",
+      "role": "public",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "landed at: http://localhost:5101/Account/Login?ReturnUrl=%2FProduct%2FManagement",
+      "shot": null
+    },
+    {
+      "check": "screenshot.product-management",
+      "role": "public",
+      "vp": "small",
+      "status": "PASS",
+      "notes": "",
+      "shot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-cr184-def243-2026-06-04T22-09-06\\public-small-product-management.png"
+    }
+  ],
+  "axeViolations": {
+    "admin": {
+      "product-management": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "nodes": [
+            {
+              "html": "<span>Companies &amp; Products</span>",
+              "target": [
+                ".role-element.role-analyst-show.role-admin-show > span:nth-child(1)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.36 (foreground color: #888888, background color: #f9f9f9, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<button id=\"add-product-btn\" class=\"admin-btn admin-btn--primary role-element role-analyst-show role-admin-show\">\n                        <i class=\"fas fa-plus\"></i> Add New Product\n                    </button>",
+              "target": [
+                "#add-product-btn"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<span id=\"product-count\" class=\"admin-count-display\">Showing 0 of 0 products</span>",
+              "target": [
+                "#product-count"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.47 (foreground color: #777777, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "description": "Ensures select element has an accessible name",
+          "nodes": [
+            {
+              "html": "<select id=\"category-filter\" class=\"admin-filter-select filter-select\">\n                        <option value=\"all\">All Categories</option>\n                    </select>",
+              "target": [
+                "#category-filter"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            },
+            {
+              "html": "<select id=\"company-filter\" class=\"admin-filter-select filter-select\">\n                        <option value=\"all\">All Companies</option>\n                    </select>",
+              "target": [
+                "#company-filter"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            },
+            {
+              "html": "<select id=\"certificate-filter\" class=\"admin-filter-select filter-select\">",
+              "target": [
+                "#certificate-filter"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            }
+          ]
+        }
+      ],
+      "cert-create": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "description": "Ensures ARIA attributes are not prohibited for an element's role",
+          "nodes": [
+            {
+              "html": "<div class=\"subcategories-container\" id=\"subcategoriesContainer\" aria-live=\"polite\" aria-label=\"Selected subcategories\"></div>",
+              "target": [
+                "#subcategoriesContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            },
+            {
+              "html": "<div class=\"tags-container\" id=\"externalTagsContainer\" aria-live=\"polite\" aria-label=\"Selected external tags\">\n                                <!-- External tags will be added dynamically -->\n                            </div>",
+              "target": [
+                "#externalTagsContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            },
+            {
+              "html": "<div class=\"tags-container\" id=\"internalTagsContainer\" aria-live=\"polite\" aria-label=\"Selected internal tags\">\n                                <!-- Internal tags will be added dynamically -->\n                            </div>",
+              "target": [
+                "#internalTagsContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "nodes": [
+            {
+              "html": "<small>Upload a PDF to generate preview</small>",
+              "target": [
+                ".no-preview > small"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.07 (foreground color: #adb5bd, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<button type=\"button\" class=\"btn btn-primary btn-sm\" id=\"addProductId\">\n                    <i class=\"fas fa-plus me-1\"></i>Add Product ID\n                </button>",
+              "target": [
+                "#addProductId"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<button type=\"submit\" name=\"action\" value=\"save\" class=\"btn btn-primary\" aria-label=\"Save certificate\">\n                    Save\n                </button>",
+              "target": [
+                "button[value=\"save\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "description": "Ensures select element has an accessible name",
+          "nodes": [
+            {
+              "html": "<select class=\"form-select form-select-sm pid-filter-type\" id=\"filterByType\">",
+              "target": [
+                "#filterByType"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            },
+            {
+              "html": "<select class=\"form-select form-select-sm pid-filter-partner\" id=\"filterByPartner\">",
+              "target": [
+                "#filterByPartner"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            }
+          ]
+        }
+      ],
+      "cert-edit": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "description": "Ensures ARIA attributes are not prohibited for an element's role",
+          "nodes": [
+            {
+              "html": "<div class=\"subcategories-container\" id=\"subcategoriesContainer\" aria-live=\"polite\" aria-label=\"Selected subcategories\"></div>",
+              "target": [
+                "#subcategoriesContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            },
+            {
+              "html": "<div class=\"tags-container\" id=\"externalTagsContainer\" aria-live=\"polite\" aria-label=\"Selected external tags\">\n                                <!-- External tags will be added dynamically -->\n                            </div>",
+              "target": [
+                "#externalTagsContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            },
+            {
+              "html": "<div class=\"tags-container\" id=\"internalTagsContainer\" aria-live=\"polite\" aria-label=\"Selected internal tags\">\n                                <!-- Internal tags will be added dynamically -->\n                            </div>",
+              "target": [
+                "#internalTagsContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "nodes": [
+            {
+              "html": "<button type=\"button\" onclick=\"openImageZoom('/Certificate/ViewCertificateImage/24')\" class=\"btn btn-sm\" style=\"background-color: #4caf50; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;\" title=\"View Certificate Pr",
+              "target": [
+                "button[title=\"View Certificate Preview\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.77 (foreground color: #ffffff, background color: #4caf50, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<button type=\"button\" onclick=\"window.CertificateEdit.confirmRemovePdf(24)\" class=\"btn btn-sm\" style=\"background-color: #FF5252; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;\" title=\"Remove uploaded PDF\">",
+              "target": [
+                "button[title=\"Remove uploaded PDF\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #ffffff, background color: #ff5252, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<button type=\"button\" class=\"btn btn-primary btn-sm\" id=\"addProductId\">\n                    <i class=\"fas fa-plus me-1\"></i>Add Product ID\n                </button>",
+              "target": [
+                "#addProductId"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            }
+          ]
+        },
+        {
+          "id": "link-in-text-block",
+          "impact": "serious",
+          "help": "Links must be distinguishable without relying on color",
+          "description": "Ensure links are distinguished from surrounding text in a way that does not rely on color",
+          "nodes": [
+            {
+              "html": "<a href=\"/Certificate/CertificateTileViewInternal\">Certificate Management</a>",
+              "target": [
+                ".role-element > a"
+              ],
+              "failureSummary": "Fix any of the following:\n  The link has insufficient color contrast of 1.61:1 with the surrounding text. (Minimum contrast is 3:1, link text: #666666, surrounding text: #888888)\n  The link has no sty"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "description": "Ensures select element has an accessible name",
+          "nodes": [
+            {
+              "html": "<select class=\"form-select form-select-sm pid-filter-type\" id=\"filterByType\">",
+              "target": [
+                "#filterByType"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            },
+            {
+              "html": "<select class=\"form-select form-select-sm pid-filter-partner\" id=\"filterByPartner\">",
+              "target": [
+                "#filterByPartner"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            }
+          ]
+        }
+      ]
+    },
+    "analyst": {
+      "product-management": [
+        {
+          "id": "button-name",
+          "impact": "critical",
+          "help": "Buttons must have discernible text",
+          "description": "Ensures buttons have discernible text",
+          "nodes": [
+            {
+              "html": "<button class=\"pagination-btn disabled\" onclick=\"goToPage(0)\" disabled=\"\">\n                        <i class=\"fas fa-chevron-left\"></i>\n                    </button>",
+              "target": [
+                ".disabled"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references "
+            },
+            {
+              "html": "<button class=\"pagination-btn\" onclick=\"goToPage(2)\">\n                        <i class=\"fas fa-chevron-right\"></i>\n                    </button>",
+              "target": [
+                ".pagination-btn[onclick=\"goToPage(2)\"]:nth-child(9)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references "
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "nodes": [
+            {
+              "html": "<button id=\"add-product-btn\" class=\"admin-btn admin-btn--primary role-element role-analyst-show role-admin-show\">\n                        <i class=\"fas fa-plus\"></i> Add New Product\n                    </button>",
+              "target": [
+                "#add-product-btn"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<span id=\"product-count\" class=\"admin-count-display\">Showing 1-50 of 313 products</span>",
+              "target": [
+                "#product-count"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.47 (foreground color: #777777, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<div class=\"disclaimer\">",
+              "target": [
+                ".disclaimer:nth-child(1)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "description": "Ensures select element has an accessible name",
+          "nodes": [
+            {
+              "html": "<select id=\"category-filter\" class=\"admin-filter-select filter-select\">",
+              "target": [
+                "#category-filter"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            },
+            {
+              "html": "<select id=\"company-filter\" class=\"admin-filter-select filter-select\">",
+              "target": [
+                "#company-filter"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            },
+            {
+              "html": "<select id=\"certificate-filter\" class=\"admin-filter-select filter-select\">",
+              "target": [
+                "#certificate-filter"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            }
+          ]
+        }
+      ],
+      "cert-create": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "description": "Ensures ARIA attributes are not prohibited for an element's role",
+          "nodes": [
+            {
+              "html": "<div class=\"subcategories-container\" id=\"subcategoriesContainer\" aria-live=\"polite\" aria-label=\"Selected subcategories\"></div>",
+              "target": [
+                "#subcategoriesContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            },
+            {
+              "html": "<div class=\"tags-container\" id=\"externalTagsContainer\" aria-live=\"polite\" aria-label=\"Selected external tags\">\n                                <!-- External tags will be added dynamically -->\n                            </div>",
+              "target": [
+                "#externalTagsContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            },
+            {
+              "html": "<div class=\"tags-container\" id=\"internalTagsContainer\" aria-live=\"polite\" aria-label=\"Selected internal tags\">\n                                <!-- Internal tags will be added dynamically -->\n                            </div>",
+              "target": [
+                "#internalTagsContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "nodes": [
+            {
+              "html": "<small>Upload a PDF to generate preview</small>",
+              "target": [
+                ".no-preview > small"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.07 (foreground color: #adb5bd, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<button type=\"button\" class=\"btn btn-primary btn-sm\" id=\"addProductId\">\n                    <i class=\"fas fa-plus me-1\"></i>Add Product ID\n                </button>",
+              "target": [
+                "#addProductId"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<button type=\"submit\" name=\"action\" value=\"save\" class=\"btn btn-primary\" aria-label=\"Save certificate\">\n                    Save\n                </button>",
+              "target": [
+                "button[value=\"save\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "description": "Ensures select element has an accessible name",
+          "nodes": [
+            {
+              "html": "<select class=\"form-select form-select-sm pid-filter-type\" id=\"filterByType\">",
+              "target": [
+                "#filterByType"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            },
+            {
+              "html": "<select class=\"form-select form-select-sm pid-filter-partner\" id=\"filterByPartner\">",
+              "target": [
+                "#filterByPartner"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            }
+          ]
+        }
+      ],
+      "cert-edit": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "description": "Ensures ARIA attributes are not prohibited for an element's role",
+          "nodes": [
+            {
+              "html": "<div class=\"subcategories-container\" id=\"subcategoriesContainer\" aria-live=\"polite\" aria-label=\"Selected subcategories\"></div>",
+              "target": [
+                "#subcategoriesContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            },
+            {
+              "html": "<div class=\"tags-container\" id=\"externalTagsContainer\" aria-live=\"polite\" aria-label=\"Selected external tags\">\n                                <!-- External tags will be added dynamically -->\n                            </div>",
+              "target": [
+                "#externalTagsContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            },
+            {
+              "html": "<div class=\"tags-container\" id=\"internalTagsContainer\" aria-live=\"polite\" aria-label=\"Selected internal tags\">\n                                <!-- Internal tags will be added dynamically -->\n                            </div>",
+              "target": [
+                "#internalTagsContainer"
+              ],
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "nodes": [
+            {
+              "html": "<button type=\"button\" onclick=\"openImageZoom('/Certificate/ViewCertificateImage/24')\" class=\"btn btn-sm\" style=\"background-color: #4caf50; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;\" title=\"View Certificate Pr",
+              "target": [
+                "button[title=\"View Certificate Preview\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.77 (foreground color: #ffffff, background color: #4caf50, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<button type=\"button\" onclick=\"window.CertificateEdit.confirmRemovePdf(24)\" class=\"btn btn-sm\" style=\"background-color: #FF5252; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;\" title=\"Remove uploaded PDF\">",
+              "target": [
+                "button[title=\"Remove uploaded PDF\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #ffffff, background color: #ff5252, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<button type=\"button\" class=\"btn btn-primary btn-sm\" id=\"addProductId\">\n                    <i class=\"fas fa-plus me-1\"></i>Add Product ID\n                </button>",
+              "target": [
+                "#addProductId"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            }
+          ]
+        },
+        {
+          "id": "link-in-text-block",
+          "impact": "serious",
+          "help": "Links must be distinguishable without relying on color",
+          "description": "Ensure links are distinguished from surrounding text in a way that does not rely on color",
+          "nodes": [
+            {
+              "html": "<a href=\"/Certificate/CertificateTileViewInternal\">Certificate Management</a>",
+              "target": [
+                ".role-element > a"
+              ],
+              "failureSummary": "Fix any of the following:\n  The link has insufficient color contrast of 1.61:1 with the surrounding text. (Minimum contrast is 3:1, link text: #666666, surrounding text: #888888)\n  The link has no sty"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "description": "Ensures select element has an accessible name",
+          "nodes": [
+            {
+              "html": "<select class=\"form-select form-select-sm pid-filter-type\" id=\"filterByType\">",
+              "target": [
+                "#filterByType"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            },
+            {
+              "html": "<select class=\"form-select form-select-sm pid-filter-partner\" id=\"filterByPartner\">",
+              "target": [
+                "#filterByPartner"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            }
+          ]
+        }
+      ]
+    },
+    "external": {
+      "product-management": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "nodes": [
+            {
+              "html": "<a class=\"nav-link active\" href=\"/Product/Management\">\n                                    Products\n                                </a>",
+              "target": [
+                ".active"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #00aeef, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<span id=\"product-count\" class=\"admin-count-display\">Showing 1-17 of 17 products</span>",
+              "target": [
+                "#product-count"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.47 (foreground color: #777777, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast rat"
+            },
+            {
+              "html": "<div class=\"disclaimer\">",
+              "target": [
+                ".disclaimer:nth-child(1)"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast rat"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "description": "Ensures select element has an accessible name",
+          "nodes": [
+            {
+              "html": "<select id=\"category-filter\" class=\"admin-filter-select filter-select\">",
+              "target": [
+                "#category-filter"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            },
+            {
+              "html": "<select id=\"company-filter\" class=\"admin-filter-select filter-select\"><option value=\"all\">All Companies</option><option value=\"Henkel\">Henkel</option><option value=\"KAO\">KAO</option></select>",
+              "target": [
+                "#company-filter"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            },
+            {
+              "html": "<select id=\"certificate-filter\" class=\"admin-filter-select filter-select\">",
+              "target": [
+                "#certificate-filter"
+              ],
+              "failureSummary": "Fix any of the following:\n  Form element does not have an implicit (wrapped) <label>\n  Form element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledb"
+            }
+          ]
+        }
+      ]
+    },
+    "public": {}
+  }
+}

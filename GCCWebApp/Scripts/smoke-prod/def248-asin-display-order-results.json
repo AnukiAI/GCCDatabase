@@ -1,0 +1,51 @@
+{
+  "ts": "2026-06-09T14:16:47.913Z",
+  "base": "http://localhost:5101",
+  "results": [
+    {
+      "id": "login",
+      "status": "PASS",
+      "detail": "/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "id": "dataset",
+      "status": "PASS",
+      "detail": "34 certs in internal scope"
+    },
+    {
+      "id": "internal-cells",
+      "status": "PASS",
+      "detail": "7/7 multi-value cells ascending + lead==min(sortKey)"
+    },
+    {
+      "id": "internal-differentiates-fix",
+      "status": "PASS",
+      "detail": "3 cell(s) had a NON-alphabetical insertion order yet display alphabetically → proves the fix re-orders. e.g. ASIN@cert47: insertion=[B0BRNN8BKS, B005PMYJBO] → shown=[B005PMYJBO, B0BRNN8BKS]"
+    },
+    {
+      "id": "public-cells",
+      "status": "INFO",
+      "detail": "no multi-value ID cells in this view (single-value data only)"
+    },
+    {
+      "id": "sort-asc-rows-by-lead",
+      "status": "PASS",
+      "detail": "29 populated rows monotonic by leading(min) token"
+    },
+    {
+      "id": "sort-asc-cells-ascending",
+      "status": "PASS",
+      "detail": "every ASIN cell ordered ascending (direction-independent)"
+    },
+    {
+      "id": "sort-desc-rows-by-lead",
+      "status": "PASS",
+      "detail": "29 populated rows monotonic by leading(min) token"
+    },
+    {
+      "id": "sort-desc-cells-ascending",
+      "status": "PASS",
+      "detail": "every ASIN cell ordered ascending (direction-independent)"
+    }
+  ]
+}

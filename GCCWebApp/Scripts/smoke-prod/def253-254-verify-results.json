@@ -1,0 +1,38 @@
+{
+  "base": "http://localhost:5101",
+  "pass": 4,
+  "fail": 0,
+  "warn": 1,
+  "results": [
+    {
+      "id": "def253.page",
+      "name": "Product Management returns 200 (admin)",
+      "status": "PASS",
+      "notes": "status=200"
+    },
+    {
+      "id": "def253.list",
+      "name": "Product list populated (DEF-253 #2 split-query path works)",
+      "status": "PASS",
+      "notes": "products=314"
+    },
+    {
+      "id": "def253.timing",
+      "name": "Product Management loads in reasonable time",
+      "status": "WARN",
+      "notes": "11799ms (nav + list render)"
+    },
+    {
+      "id": "def254.synth",
+      "name": "DEF-254 synthesized cross-category Type carries over on edit",
+      "status": "PASS",
+      "notes": "injected=true got=999900777 expected=999900777"
+    },
+    {
+      "id": "def254.real",
+      "name": "DEF-254 real cross-category product Type carries over",
+      "status": "PASS",
+      "notes": "id=2 got=1 expected=1 (6 candidate(s))"
+    }
+  ]
+}

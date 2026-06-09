@@ -1,0 +1,68 @@
+[
+  {
+    "id": "SETUP",
+    "name": "Form filled before submit",
+    "status": "PASS",
+    "notes": "{\"company\":\"59\",\"product\":\"77\",\"cat\":\"1\",\"type\":\"1\",\"sub\":\"\",\"certType\":\"7\",\"certSubs\":[51],\"extTags\":[1],\"intTags\":[3]}"
+  },
+  {
+    "id": "REPOST",
+    "name": "Real server re-render occurred (nav marker cleared)",
+    "status": "PASS",
+    "notes": "navGone=true expErr=\"The Expiration Date field is required.\" valSummary=\"\" #ProductId options=2"
+  },
+  {
+    "id": "R-company",
+    "name": "Company retained",
+    "status": "PASS",
+    "notes": "before=59 after=59"
+  },
+  {
+    "id": "R-certType",
+    "name": "Certification Type retained",
+    "status": "PASS",
+    "notes": "before=7 after=7"
+  },
+  {
+    "id": "R-product",
+    "name": "Product retained",
+    "status": "PASS",
+    "notes": "before=77 after=77"
+  },
+  {
+    "id": "R-category",
+    "name": "Product Category retained",
+    "status": "PASS",
+    "notes": "before=1 after=1"
+  },
+  {
+    "id": "R-type",
+    "name": "Product Type retained",
+    "status": "PASS",
+    "notes": "before=1 after=1"
+  },
+  {
+    "id": "R-ss-sync",
+    "name": "Category SearchableSelect display in sync",
+    "status": "PASS",
+    "notes": "cat=1 box=\"Chemicals and Raw Materials\""
+  },
+  {
+    "id": "R-certSubs",
+    "name": "Cert Subcategories retained",
+    "status": "PASS",
+    "notes": "before=[51] after=[51]"
+  },
+  {
+    "id": "R-extTags",
+    "name": "External Tags retained",
+    "status": "PASS",
+    "notes": "before=[1] after=[1]"
+  },
+  {
+    "id": "R-intTags",
+    "name": "Internal Tags retained",
+    "status": "PASS",
+    "notes": "before=[3] after=[3]"
+  }
+]

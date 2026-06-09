@@ -1,0 +1,1004 @@
+{
+  "viewId": "cert-tile-public",
+  "url": "/Certificate/CertificateTileView",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-05T19:43:30.729Z",
+  "finishedAt": "2026-06-05T19:43:53.665Z",
+  "pass": 124,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.container",
+      "name": "Main container renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.sidebar",
+      "name": "Filter sidebar present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.search",
+      "name": "Search input present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.filters",
+      "name": "Filter panels render (>=4)",
+      "status": "PASS",
+      "notes": "panels=5"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.tiles-load",
+      "name": "Tiles load into grid",
+      "status": "PASS",
+      "notes": "cards=15"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-public.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    }
+  ]
+}

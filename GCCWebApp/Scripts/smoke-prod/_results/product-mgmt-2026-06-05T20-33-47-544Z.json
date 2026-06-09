@@ -1,0 +1,180 @@
+{
+  "viewId": "product-mgmt",
+  "url": "/Product/Management",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-05T20:33:47.544Z",
+  "finishedAt": "2026-06-05T20:34:32.639Z",
+  "pass": 12,
+  "fail": 8,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FProduct%2FManagement"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FProduct%2FManagement"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FProduct%2FManagement"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.table",
+      "name": "Product table renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.rows",
+      "name": "Product rows query returned without error",
+      "status": "PASS",
+      "notes": "rows=34 (external is company-scoped)"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.modal",
+      "name": "Product Add/Edit modal present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.add-hidden",
+      "name": "Add Product button hidden (external)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.actions-hidden",
+      "name": "Actions column hidden (external)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_RESET at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-external-tablet-fail-2026-06-05T20-33-55-379Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-external-mobile-fail-2026-06-05T20-33-58-644Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-analyst-desktop-fail-2026-06-05T20-34-01-780Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-analyst-tablet-fail-2026-06-05T20-34-05-918Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-analyst-mobile-fail-2026-06-05T20-34-10-217Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-admin-desktop-fail-2026-06-05T20-34-13-617Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-admin-tablet-fail-2026-06-05T20-34-16-686Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-admin-mobile-fail-2026-06-05T20-34-20-840Z.png"
+    }
+  ]
+}

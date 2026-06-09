@@ -65,12 +65,19 @@ namespace GCCWebApp.Services
 
         public async Task<List<UserViewModel>> GetUsersAsync()
         {
+            // DEF-251: the projection below pulls three collection navs (Companies, Partners, Roles).
+            // Without AsSplitQuery EF emits them as cartesian LEFT JOINs (users × companies × partners
+            // × roles), which measured ~12s cold over 284 users and could trip the 30s command timeout.
+            // AsSplitQuery runs one query per collection (the documented lever — DEF-166/234/250); the
+            // OrderBy gives the split queries a deterministic key to stitch on. Includes kept per the
+            // EF-includes rule (removing them once made the projection emit 240+ correlated subqueries).
             return await _context.Users
                 .Include(u => u.Companies)
                 .Include(u => u.Partners)
                 .Include(u => u.Roles)
-                .Include(u => u.UserCompany)
+                .AsSplitQuery()
                 .Where(u => !u.IsDeleted)
+                .OrderBy(u => u.Id)
                 .Select(u => new UserViewModel
                 {
                     Id = u.Id,
@@ -82,8 +89,7 @@ namespace GCCWebApp.Services
                     CompanyNames = u.Companies.Select(c => c.Name).ToList(),
                     PartnerIds = u.Partners.Select(p => p.Id).ToList(),
                     PartnerNames = u.Partners.Select(p => p.Name).ToList(),
-                    UserCompanyId = u.UserCompanyId,                    // CR-020
-                    UserCompanyName = u.UserCompany != null ? u.UserCompany.Name : null,
+                    UserCompanyName = u.UserCompany,                    // CR-020 (free text)
                     RequirePasswordReset = u.RequirePasswordReset,
                     LastLogin = u.LastLoginAt,
                     TwoFactorEnabled = u.TwoFactorEnabled,
@@ -97,7 +103,6 @@ namespace GCCWebApp.Services
             var user = await _context.Users
                 .Include(u => u.Companies)
                 .Include(u => u.Roles)
-                .Include(u => u.UserCompany)
                 .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
             if (user == null) return null;
@@ -111,8 +116,7 @@ namespace GCCWebApp.Services
                 Status = user.IsActive ? "active" : "inactive",
                 CompanyIds = user.Companies.Select(c => c.Id).ToList(),
                 CompanyNames = user.Companies.Select(c => c.Name).ToList(),
-                UserCompanyId = user.UserCompanyId,                       // CR-020
-                UserCompanyName = user.UserCompany?.Name,
+                UserCompanyName = user.UserCompany,                       // CR-020 (free text)
                 LastLogin = user.LastLoginAt
             };
         }
@@ -158,7 +162,8 @@ namespace GCCWebApp.Services
                     IsActive = true,
                     RequirePasswordReset = effectiveRequireReset,
                     CreatedAt = DateTime.UtcNow,
-                    UserCompanyId = model.UserCompanyId   // CR-020: user's own company/employer (optional)
+                    // CR-020 (free text): user's own company/employer (optional)
+                    UserCompany = string.IsNullOrWhiteSpace(model.UserCompanyName) ? null : model.UserCompanyName.Trim()
                 };
 
                 _context.Users.Add(user);
@@ -358,20 +363,12 @@ namespace GCCWebApp.Services
                         if (companyResolutionFailed) continue;
                     }
 
-                    // CR-020: resolve the user's own company/employer (single name) to a FK.
-                    // Optional — blank leaves it null. A provided-but-unknown name rejects the
-                    // row, same fail-fast contract as Company Access above.
-                    if (!string.IsNullOrWhiteSpace(item.UserCompanyName))
-                    {
-                        var ucName = item.UserCompanyName.Trim();
-                        if (!companyByName.TryGetValue(ucName, out var userCompanyEntity))
-                        {
-                            result.ErrorCount++;
-                            result.Errors.Add($"{email} - User Company '{ucName}' not found");
-                            continue;
-                        }
-                        user.UserCompanyId = userCompanyEntity.Id;
-                    }
+                    // CR-020 (revised QC #106): the user's own company/employer is now free text.
+                    // No Company-table lookup — any value is accepted (e.g. "GCC", "Amazon
+                    // Corporate", "Novi"). Optional; blank leaves it null.
+                    user.UserCompany = string.IsNullOrWhiteSpace(item.UserCompanyName)
+                        ? null
+                        : item.UserCompanyName.Trim();
 
                     // DEF-232: resolve Partner names → entities for Partner-role users
                     // (and any other role that wants partner scoping). Same fail-fast pattern
@@ -476,7 +473,8 @@ namespace GCCWebApp.Services
                 user.Email = model.Email;
                 user.IsActive = model.Status == "active";
                 user.UpdatedAt = DateTime.UtcNow;
-                user.UserCompanyId = model.UserCompanyId;   // CR-020: user's own company/employer (optional; null clears it)
+                // CR-020 (free text): user's own company/employer (optional; blank clears it)
+                user.UserCompany = string.IsNullOrWhiteSpace(model.UserCompanyName) ? null : model.UserCompanyName.Trim();
 
                 // DEF-187: honor admin-typed password on Edit. Blank/null = no change
                 // (admin opened modal but didn't set a new password). Non-blank = set

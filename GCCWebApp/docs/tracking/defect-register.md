@@ -6,7 +6,7 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Status snapshot — as of 2026-06-02
 
-> The 2026-05-21 sweep counts below remain the canonical *deployed-vs-pending* picture for DEF-001 → DEF-217. The June batch (DEF-225 → DEF-234) was added after that sweep and is **all "fixed locally — pending next deploy"** except DEF-228 (closed WAD). Highest entry is now **DEF-234**. See `shipped-2026-06.md` for the stakeholder-readable June list and the pending-deploy queue (9 code fixes + 1 WAD).
+> The 2026-05-21 sweep counts below remain the canonical *deployed-vs-pending* picture for DEF-001 → DEF-217. The June batch (DEF-225 → DEF-234) was added after that sweep and is **all "fixed locally — pending next deploy"** except DEF-228 (closed WAD). Highest entry is now **DEF-246** (DEF-235/237/238/240/242/243 added after the June batch; DEF-244/245 are pre-existing backlog items surfaced by the 2026-06-04 pre-deploy gate sweep; DEF-246 is the Create-validation-re-render state-loss fix from the same-day QC #186 retest — fixed locally, pending a new deploy; **DEF-247** is the QC #182 6/4 re-raise — Internal-visibility *custom fields* leaking into the Partner/External CSV export, a path DEF-228 missed when it closed the tag case WAD — fixed locally, pending deploy). See `shipped-2026-06.md` for the stakeholder-readable June list and the pending-deploy queue (9 code fixes + 1 WAD).
 
 | Bucket | Count | Notes |
 |---|---|---|
@@ -82,6 +82,402 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 ---
 
 ## Open / Recent
+
+### DEF-260 — Cert List ID columns (ASIN/UPC/GTIN/EAN) must sort by the COUNT badge, not the ID value — the grid renders a count badge ("how many IDs"), so the client expects the column to order by that visible number (QC #157, client 6/9: "1000 should be at the top or bottom")
+
+- **Date:** 2026-06-09
+- **Severity:** Medium (the four ID columns appeared "not sorting" because the displayed value — a count badge — was never the sort key; supersedes the value-based sort shipped/attempted in DEF-256/259).
+- **Status:** **Fixed + localhost-verified (build clean 0/0). Pending deploy.** No DB/migration change (sort-key expression only).
+- **QC Ref:** **QC #157** — client (Shawn) 6/9 on `/Certificate/CertificateTileViewInternal`, with screenshot: *"the numeric fields are still not sorting correctly … it should have 1000 as the greatest number at the top or bottom depending on sorting."* Clarified via AskUserQuestion → **"Sort by the count (the badge number)."**
+- **Bucket:** Bug (sort key vs displayed value mismatch) / requirements clarification.
+- **Reporter:** client (Shawn), 2026-06-09.
+- **Linked memory.** [[feedback_cert_number_vs_id_resolved]] (yet another "looks broken" that was a display-vs-key mismatch, not a broken ORDER BY), [[feedback_scoping_check_adjacent_endpoints]] (internal + external controllers both updated for parity).
+- **Root cause — the column shows a COUNT, the sort used the VALUE.** `certificate-tile-view-internal.js:1739/1777` (and the external JS) render the ASIN/UPC/GTIN/EAN cell as an **id-count-badge** = `countIds(asin)` (number of IDs on the cert), NOT the ID values. But every prior fix (DEF-165 `.Min()`, DEF-181, DEF-248 display order, DEF-256 natural sort, DEF-259 natural-min representative) ordered rows by the ID **value**. So a column of badges `1, 2, 3, … 1000` never appeared ordered by the badge number — the `1000` badge is the cert with ~1000 ASINs, which under value-sort lands wherever its min ASIN string falls. Confirmed by a live prod read: the only purely-numeric ASIN *value* on the site is one cert's `1232133543`; the small green numbers in the client screenshot are counts. **This is why the earlier "numeric sort" fixes never resolved the client's perception — they fixed the wrong axis.**
+- **Fix.** New `Extensions/CertificateSortExtensions.cs::OrderByCountEmptiesLast(countKey, descending)` — orders by the count; cells with 0 IDs (no badge) sort LAST in both directions (QC #157 blanks-last convention). The 8 ID branches in **both** `CertificateTileInternalApiController` and `CertificateTileExternalApiController` `ApplySorting` now use it, with `count = ACTIVE ProductIds of the type, or 1 if none but a legacy single value exists, else 0` (matches the badge, which falls back to the legacy column). Cheap `COUNT` subquery on the DEF-250 thin ID-only projection — no DEF-250 timeout risk. The in-cell value display order from DEF-248/259 is retained (cosmetic now — affects only the clipboard-copy order and the public view, which *does* show values).
+- **Supersedes:** the ID-column **sort** portions of **DEF-256** and **DEF-259** (value/natural sort → count sort). DEF-256's External-parity work and DEF-259's in-cell display ordering remain.
+- **Scope.** Internal + external controllers (parity). External does not currently project these cells, so its column renders empty and the count-sort harmlessly falls back to Id order. Public tile view has no ID sort branches — unchanged.
+- **Files:** `Extensions/CertificateSortExtensions.cs` (new helper), `Controllers/Api/CertificateTileInternalApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`.
+- **Verification (localhost:5101, admin).** Build clean 0/0. `Scripts/smoke-prod/def260-count-sort-probe.js` → **8 PASS / 0** — `asin` asc counts `1, 2, 3, 6, 101, 1004` (increasing, 5 empties last); `asin-za` desc `1004, 101, 6, 3, 2, 1` (empties last) → the **1004-ID cert sorts to the extreme** as required; upc/gtin/ean single-count locally, empties last. `Scripts/smoke-prod/qc157-sort-verify-local.js` → **12 PASS / 0** (Location/Cert-Sub/Company-URL/Partner/Status no regression; ASIN value-oracle removed there, now owned by the count probe).
+- **Deploy note.** The DEF-259 bundle (`…-20260609-1026.zip`) caused a prod **503** on upload (deploy-mechanics — locked DLL / app pool not recycled, NOT a code crash; the code booted clean locally). Client rolled back to restore the site. Next deploy: **stop the app → extract → start the app** (don't extract over a running worker), then recycle. See shipped log.
+
+
+### DEF-259 — Cert List (Internal) "numbers still not sorting" (QC #157 re-raise, 6/9): multi-value numeric ID cells were still ordered **lexically** for both display and the row-sort representative, so DEF-256's natural row sort and DEF-248's "lead == sort key" guarantee broke whenever a cell held variable-length numeric IDs
+
+- **Date:** 2026-06-09
+- **Severity:** Low (presentation/ordering; only manifests on **variable-length numeric** product IDs — i.e. test-shaped data. Real ASINs are 10-char alphanumeric and real UPC/GTIN/EAN are fixed-length → lexical == natural → **prod data is a no-op**. Client tagged the broader item "not a deal breaker.")
+- **Status:** **Fixed + localhost-verified (build clean 0/0). Pending next deploy.** No DB/migration change (in-memory display ordering + sort-key expression only).
+- **QC Ref:** **QC #157** — client re-raise relayed by Shawn 6/9: *"the sort on the numbers are still not working correctly … cell showed them in entry order while the row was actually sorted on the lowest one."* Confirmed **live on gccwebapp.com** (1543.zip deployed) yet still wrong → genuine residual, not a deploy gap.
+- **Bucket:** Bug (sort/display consistency — lexical vs natural mismatch).
+- **Reporter:** client (QC #157), confirmed + fixed by Anuki on 6/9 at Shawn's direction.
+- **Linked memory.** [[feedback_cert_number_vs_id_resolved]] (again the perceived "not sorting" is test-seed-data-shaped numeric IDs — real fixed-length/alphanumeric IDs are unaffected). Direct continuation of **DEF-256** (natural row sort for ID columns) and **DEF-248** (multi-value cell display == sort key); same QC #157 thread as **DEF-258** (cert-sub display order).
+- **Root cause (why DEF-256 + DEF-248 together still read wrong).** DEF-256 switched the ID-column **row sort** to `OrderByNaturalEmptiesLast` (orders rows by `(isEmpty, LEN(key), key)` → numeric `9 < 10 < 100`), but the **representative `key`** it was handed was still the **lexical** `.Min()` of the cell's values (UPC used an arbitrary `.FirstOrDefault()`), and DEF-248's **cell display** still joined the values with lexical `.OrderBy(v => v)`. For a multi-value cell like `{2, 10}`: lexical min = `"10"`, so the row was positioned as if its smallest ID were `10` (parked among the `10`s) while its true smallest is `2`; and the cell rendered `"10, 2"`. So the column read as unsorted for numeric IDs. (The two pieces *were* mutually consistent — both lexical — so DEF-248's "lead == sort key" technically held, but both pointed at the wrong value vs. a human reading numerically.)
+- **Fix (display + representative move together — both natural).** `Controllers/Api/CertificateTileInternalApiController.cs`:
+  - **Cell display** (second-pass projection, in-memory): `c.{Asin,Upc,Gtin,Ean}List.OrderBy(v => v.Length).ThenBy(v => v)` (was `.OrderBy(v => v)`), so a numeric cell renders `2, 10, 100`.
+  - **Row-sort representative** (`ApplySorting`, on the DEF-250 thin ID-only projection): the per-cell key is now the **natural minimum** `…Select(p => p.ProductIdValue).OrderBy(v => v.Length).ThenBy(v => v).FirstOrDefault()` (was lexical `.Min()` for ASIN/GTIN/EAN, arbitrary `.FirstOrDefault()` for UPC). The outer `OrderByNaturalEmptiesLast` keeps the `(isEmpty, LEN, value)` row ordering. Net: row positioned by its true smallest ID, and the displayed lead == that key.
+  - UPC moved off the DEF-165 arbitrary `.FirstOrDefault()` to the same natural-min — closes the "known residual" DEF-248 flagged for UPC.
+- **Why no DEF-250 timeout regression.** The ordered subquery runs on DEF-250's thin `.Select(c => c.Id)` pagination projection (no Includes → no split-query re-join of the ~1000-ProductId seed cert), so it stays a cheap `TOP 1 … ORDER BY LEN(value), value`. Verified: `asin/asin-za/upc/gtin/ean` all HTTP 200, run log clean of any `Timeout expired`/`SqlException`.
+- **Scope — Internal only.** External tile view does not project ASIN/UPC/GTIN/EAN cells (DEF-248/256); public view has no ID sort branches. No change to either. CSV export untouched.
+- **Files:** `Controllers/Api/CertificateTileInternalApiController.cs` (display projection lines ~354-357; `ApplySorting` ASIN/UPC/GTIN/EAN branches).
+- **Verification (localhost:5101, admin session).** Build clean 0/0. `Scripts/smoke-prod/qc157-sort-verify-local.js` **14 PASS / 0** (ASIN asc/desc no regression on the alphanumeric local data `B005…`↔`B0GJ…`; cert-results canary 200). `Scripts/smoke-prod/def248-asin-display-order.js` **8 PASS / 0** (7/7 multi-value cells ascending + lead==key, incl. the 1000-ASIN `cert24` and 100-ASIN `cert51`). Run log clean (no timeout/exception). **Numeric proof (2026-06-09, localhost):** seeded a controlled numeric ASIN set on the dev DB (single values `1,2,9,10,1000` + a multi-value cell `{5,40}`, tagged `QC157TEST`, removed after) and ran `Scripts/smoke-prod/def259-numeric-asin-probe.js`. Result — **asc:** `1, 2, 5(,40), 9, 10, 1000` (1000 LAST); **desc:** `1000, 10, 9, 5(,40), 2, 1` (1000 FIRST); the `{5,40}` cell displays `"5, 40"` (natural, not lexical `"40, 5"`) and its row sorts by its true min `5` (between 2 and 9). Old lexical behaviour would have been `1, 10, 1000, 2, 5, 9` — `1000` mid-list, matching the client screenshot. So the numeric improvement is now confirmed by a **populated render**, not just code parity. Seed cleaned up (0 `QC157TEST` rows remain).
+
+### DEF-258 — Certificate tile table (Internal): the **Cert SubCategories** cell displayed its multi-value list in insertion order while the column sorts by `.Min()` (alpha-first) — same display-vs-sort mismatch DEF-248 fixed for ASIN/UPC/GTIN/EAN, but never extended to this column
+
+- **Date:** 2026-06-08
+- **Severity:** Low (only affects certs with **multiple** cert subcategories; single-value cells already match; client had explicitly deprioritized this column — "leaving Cert SubCats as is").
+- **Status:** **Fixed + build-clean on localhost. Pending next deploy.** No DB/migration change (in-memory display ordering only). *Not yet re-verified with data* — the local dev DB has **0** certs with cert subcategories, so the fix is verified by code-parity with DEF-248, not by a populated render.
+- **QC Ref:** **QC #157** (client, 6/4 round) — *"Leaving Cert SubCats as is … neither working right but not priority."* Surfaced during the 6/8 read-only verification of whether DEF-248's multi-value cell-reorder covered the cert-sub column (it did not).
+- **Bucket:** Bug (sort/display consistency).
+- **Reporter:** client (QC #157, deprioritized); confirmed + fixed by Anuki on 6/8 at Shawn's direction.
+- **Linked memory.** [[feedback_cert_number_vs_id_resolved]] (the "not sorting" perception again came from a multi-value cell whose leading shown value ≠ the sort key, not a broken ORDER BY). Sibling of **DEF-248** (same fix, ID columns) and **DEF-256** (same QC #157 sort-audit thread).
+- **Root cause.** `CertificateTileInternalApiController` first-stage projection built the display string as `string.Join(", ", c.CertificationTypeSubcategories.Select(s => s.Name))` — **no ordering** — so a cert with subcats `[Zebra, Apple]` rendered `"Zebra, Apple"`. But the `cert-sub` sort branch orders rows by `CertificationTypeSubcategories.Select(s => s.Name).Min()` = `"Apple"`. The eye lands on *Zebra* (the displayed lead) on a row sorted by *Apple* → reads as "Cert SubCats not sorting." DEF-248 fixed exactly this for ASIN/UPC/GTIN/EAN (`.OrderBy(v => v)` on the display list) but the cert-sub projection was missed.
+- **Fix.** Order the displayed subcat names ascending so the leading shown value equals the `.Min()` sort key: `…Select(s => s.Name).OrderBy(n => n)`. One line, mirrors the DEF-248 pattern.
+- **Scope — one surface, not three.** Audited all cert-subcat projections: **only the Internal tile view** displays this column as a sortable grid cell. The **External** controller has the `cert-sub` sort branch but **no display projection** (column not rendered) → no mismatch. The **public tiles** controller doesn't project cert subcategories at all. The **CSV/Excel/PDF export** path (`CertificateService.ProjectToExportRows`) does join subcats unordered, but that's a private admin-export row ordered by Id, not a sortable display column, and was deliberately left untouched (no client request; avoids touching export-row output).
+- **Files:** `Controllers/Api/CertificateTileInternalApiController.cs` (single projection line).
+
+### DEF-257 — Product Management warm page load is slow (~12s at 314 dev products) — init eagerly fetches the ENTIRE product set + runs 4 sequential lookup fetches before the table is usable; scales with total product count
+
+- **Date:** 2026-06-05
+- **Severity:** Low (Analyst/Admin-only page; the dev seed has **314** products vs a far smaller prod set, so real-world load is much lighter; it completes successfully with no error, and the table already paginates client-side once loaded. This is sluggishness, not breakage.)
+- **Status:** **Open — backlog. NOT a blocker.** Not fixed. Surfaced while adding the `product-mgmt` Tier 1 smoke + DEF-253/254 verification on 2026-06-05.
+- **QC Ref:** None (internal observation during regression testing).
+- **Reporter:** Anuki (regression sweep, 2026-06-05).
+- **Bucket:** Bug (front-end load performance).
+- **Linked memory.** [[feedback_ef_includes_with_projection]] (sibling perf class). Related: **DEF-255** (the *cold-start* of the same `/Product/GetProducts` endpoint and its post-save "looks unsaved" symptom) and **DEF-253 #2** (the server-side query for this list was already given `.AsSplitQuery()` and is fast — 32–50ms).
+- **Root cause.** `Views/Product/Management.cshtml` init (`loadProducts()` + the surrounding bootstrap) makes **four sequential awaited fetches** — `/Product/GetCompanies` → `/Product/GetCategories` → `/Product/GetProductTypes` → `/Product/GetProducts` — and `GetProducts` returns the **full product set in one call** (no server-side paging of the *fetch*; the client paginates only after everything is in memory, and also builds search-suggestion sets from the whole array). Measured end-to-end **~11.8s warm** (and ~25.7s cold) from nav to `products` populated via `Scripts/smoke-prod/def253-254-verify.js` (`def253.timing` WARN). The DB query itself is fast (DEF-253), so the cost is **full-dataset transfer + serial init round-trips + client processing**, and it grows with the number of products.
+- **Distinct from DEF-255.** DEF-255 is the **cold** EF compile (~25s) making a *post-save refresh* look like a failed save. This (DEF-257) is the **warm** steady-state load architecture — slow even when the query is hot. Fixing one doesn't fix the other; they share the endpoint, not the cause.
+- **Recommended fix (backlog, none urgent).** Any of: (a) **parallelize** the 3 independent lookup fetches (`Promise.all` for Companies/Categories/ProductTypes) instead of awaiting them serially; (b) **server-side paginate** `GetProducts` (return one page, fetch subsequent pages on demand) so load time is bounded by page size, not total count; (c) defer the search-suggestion-set build off the critical path. Quick before/after timing on the 314-product dev seed. Low priority — Admin/Analyst-only and the prod dataset is smaller.
+- **Files (for the fix, when scheduled):** `Views/Product/Management.cshtml` (init/`loadProducts`), `Controllers/ProductController.cs` (`GetProducts` if server-side paging is chosen).
+
+### DEF-256 — Certificate tile table: ID columns (ASIN/UPC/GTIN/EAN) sort lexically, so numeric identifiers order wrong ("100" lands among the "1"s; in DESC it trails the single digits) — *and* the External tile view never sorted ~13 of its columns at all
+
+- **Date:** 2026-06-05
+- **Severity:** Medium (Internal: a real-but-narrow ordering glitch only visible on numeric ID data; External: ~13 column headers silently did nothing — bigger functional gap).
+- **Status:** **Fixed + localhost-verified (build clean). Pending next deploy.** No DB/migration change (sort-logic + JS only).
+- **QC Ref:** Client 6/5: *"the table sort ASIN is not sorting right. 100 is showing after single digits"* on `/Certificate/CertificateTileViewInternal`; asked to audit the sort on all columns for the internal **and external** pages.
+- **Bucket:** Bug (sort ordering + External parity gap)
+- **Reporter:** client (Shawn 6/5), audited + fixed by Anuki.
+- **Linked memory.** [[feedback_cert_number_vs_id_resolved]] (the numeric-ID symptom is again test-seed-data-shaped — real ASINs are alphanumeric `B0…`, real UPC/EAN/GTIN are fixed-length — so the lexical sort only *looks* wrong on the live numeric test data; fix makes both read correctly), [[feedback_scoping_check_adjacent_endpoints]] (same "the sibling surface was missed" pattern — here External vs Internal `ApplySorting`).
+
+**Root cause #1 (Internal — ordering).** `ApplySorting` routed the four product-ID columns through `OrderByTextEmptiesLast` (a plain lexicographic SQL sort). For numeric identifier strings of varying length, lexical order is `1, 10, 100, 2, …, 9` (and DESC = `9, 8, … 2, 100, 10, 1` → "100 after the single digits", exactly the report). Real production IDs are unaffected (ASIN is 10-char alphanumeric; UPC=12/EAN=13/GTIN=14 are fixed-length → equal length means lexical == numeric), so this is a test-data-visible glitch — but a real ordering bug for any variable-length numeric ID.
+
+**Root cause #2 (External — dead headers).** `CertificateTileExternalApiController.ApplySorting` only implemented ~9 of the ~22 `sortBy` values its table header emits. Every unhandled value (`asin/upc/gtin/ean`, `status`, `ext-tag`, `product-sub`, `contact`, `cert-results`, `pathway`, `cert-sub`, `company-url`, all `-za` reverses) fell through to the `_ =>` default and silently sorted by **Effective Date** — so those headers appeared to do nothing. The external JS also mis-mapped the **Product Category** header to the `product-type` sort key.
+
+**Fix.**
+- **New helper** `OrderByNaturalEmptiesLast` (`Extensions/CertificateSortExtensions.cs`): orders by `(isEmpty, value.Length, value)` → numeric IDs sort `9 < 10 < 100`; within a single length lexical == numeric; fixed-length / alphanumeric IDs degrade to the prior lexical behavior (no regression); empties still forced last both directions (QC #157). EF translates the length term to `LEN(COALESCE(col,''))`; runs on the thin ID-only pagination projection (DEF-250) so it doesn't reintroduce the `.Min()`-subquery timeout.
+- **Internal:** the 8 ASIN/UPC/GTIN/EAN branches now use `OrderByNaturalEmptiesLast` (was `OrderByTextEmptiesLast`).
+- **External:** `ApplySorting` brought to **full parity** with Internal — all missing branches added (ID columns use the natural sort; cert-results uses `OrderByNumericNullsLast`; the rest `OrderByTextEmptiesLast`), so every external header now sorts.
+- **External JS** (`wwwroot/js/certificate-tile-view-external.js`): `productCategory` remapped `product-type` → `product-cat`, and `product-cat → product-cat-za` added to the reverse map.
+- **Files:** `Extensions/CertificateSortExtensions.cs`, `Controllers/Api/CertificateTileInternalApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`, `wwwroot/js/certificate-tile-view-external.js`.
+
+**Verification (localhost:5101, admin + external sessions).** Internal `asin`/`asin-za`/`upc`/`gtin`/`ean` and `cert-results` all return HTTP 200 (no 500 — natural-sort SQL translates); local alphanumeric ASINs still sort correctly ASC `B005…` → DESC `B0GJ…` (no regression); `cert-results` numeric order `1% → 100%` intact. External `asin`/`asin-za`/`status`/`upc`/`ext-tag`/`product-cat`/`newest` all now HTTP 200 (previously dead branches execute real ORDER BY). The numeric `1/10/100` case can't be reproduced locally (local DB holds proper `B0…` ASINs) — the length-then-value ordering is provably correct for numeric strings and the live numeric test data will benefit. **Public tile view left unchanged** (no ID columns there — DEF-248).
+
+---
+
+### DEF-255 — Product Management list (`/Product/GetProducts`) has a ~25s EF cold-start; the post-save `loadProducts()` refresh can hit it and make a create/edit *look* like it didn't save (even though the row persisted) — likely the client's "details not saving in certain instances"
+
+- **Date:** 2026-06-05
+- **Severity:** Medium-High (intermittent — only on a cold cache, e.g. right after a deploy/pool-recycle — but high-confusion: the data IS saved server-side, yet the UI table fails to refresh, reading as "my create/edit didn't save"; can also 500 if the cold query crosses the 30s SQL command timeout).
+- **Status:** **Symptom fixed (UX decouple); root-cause perf deferred.** The "looks like it didn't save" symptom is addressed view-only; the underlying GetProducts slowness needs a separate optimization + prod validation (local LocalDB got too thrashed by this session's repeated heavy runs to give reliable timings).
+- **What was tried + the outcome:**
+  - **Startup warm-up (reverted).** Added a GetProducts warm-up to `EfQueryWarmupService` mirroring the exact query. It paid ~25s at startup but **GetProducts stayed ~25s on the subsequent real calls** (not the one-time-then-fast I expected) — so warming didn't help (possibly EF/SQL plan instability, or the ~25s is execution not compile). **Reverted** — no point paying 25s at startup for no user benefit.
+  - **UX decouple (KEPT, view-only).** `Views/Product/Management.cshtml` `saveProduct`: now closes the modal + shows the success toast **immediately** after the POST returns success, then refreshes the list in a background `try/catch`. So a slow/failing `/Product/GetProducts` reload can no longer make a save that **already persisted** look like it failed. This directly fixes the client symptom regardless of GetProducts speed. Needs verification on a clean env / prod (this session's local DB is thrashed).
+- **Still open (separate, larger):** optimize `/Product/GetProducts` itself — it's a full-table load of all products with nested `Certificates.{ProductIds,Partners}` sub-projections and is genuinely heavy (the 1000-ProductId seed cert inflates it). Options: server-side pagination, or trim the per-row certificate sub-projection (load identifiers on demand). Validate cold/warm timings on prod, not this thrashed local box.
+- **QC Ref:** Client 6/5: *"the details on the edit and create are not saving in certain instances."* (Surfaced while investigating that report.)
+- **Bucket:** Bug (performance / EF cold-start + UX)
+- **Reporter:** Found by Anuki investigating the client's 6/5 "not saving" report.
+- **Linked memory.** [[feedback_ef_includes_with_projection]] (warm-up pattern — DEF-234).
+
+**Evidence.** `/Product/GetProducts` loads ALL products (no pagination) with nested `Certificates.SelectMany(ProductIds)` + `Certificates.Partners` sub-projections. Measured cold-start on the REAL endpoint: first call **~25–26s** (occasionally >30s → 500 SQL timeout), then sub-100ms warm. `Services/EfQueryWarmupService.cs` (DEF-234) only warms the **public tile** query (`GetAdvancedFilteredCertificatesAsync`) — it does **not** warm GetProducts, so the first Product Management load after any restart pays the full cost. **Save flow link:** `saveProduct` (Management.cshtml) does `await loadProducts()` after a successful POST; on a cold cache that refresh is the ~25s/timeout call, so the just-saved row doesn't appear and the user concludes it "didn't save" — but a direct GetProducts readback confirms the POST **did** persist (verified: normal create + edit both persist Category/Type/Subcategory correctly).
+
+**AsSplitQuery is NOT the cause.** Tested both ways on the real endpoint: with AsSplitQuery (DEF-253 #2) = ~26s cold then warm; without = ~25s cold + a 2nd ~17s call. Split is neutral-to-slightly-better, so DEF-253 #2 stays. The cold-start is inherent to the full-table query shape, not the split.
+
+**Recommended fix (proposed, not done).** Add the GetProducts query shape to `EfQueryWarmupService` (warm it on startup exactly as the public tile is warmed — DEF-234) so the first real user load is fast. Optionally also: give `loadProducts()` a graceful slow/timeout state, and/or paginate GetProducts server-side. Needs a cold-start timing check after, and client confirmation that this matches their scenario (does it happen right after a deploy?).
+
+**Also found while investigating (separate, minor):** products with a **null Company** (#1 "Not Specified", #347 "test23" — both test/system data; 0 real products) can't be saved on edit because `saveProduct`'s client-side "Company is required" guard aborts the POST before it fires — arguably correct validation + a data issue, not a code bug. Flagged for awareness.
+
+---
+
+### DEF-254 — Product Management → Edit Product silently drops a saved Product Type / Subcategory that isn't under the product's Category ("not seeing all options carried over") — QC #186 part 3
+
+- **Date:** 2026-06-05
+- **Severity:** Medium (data-entry correctness — opening a product to edit showed a **blank** Product Type when the saved type didn't belong to the product's category, and Saving would then null the type; the analyst "doesn't see all options carried over").
+- **Status:** **Fixed + VERIFIED on localhost (build clean). BUNDLED in `GCCWebApp-deploy-20260605-1444.zip` (pending upload, supersedes 1234/1328).** Repro `editProduct()` on product #347 (cat 4 / type 45 "Other"): Type went **blank → now carries over ("45")**; valid products (#2, #346) unchanged.
+- **QC Ref:** #186 part 3 — client 6/5 sheet: *"2 fixed, 3 is not. Still not seeing all options carried over under Product Management."* (Parts 1–2 = DEF-243 cert-edit category + DEF-246 validation-state; this part 3 is the **product** edit form, a distinct surface.)
+- **Bucket:** Bug (front-end cascade pre-fill)
+- **Reporter:** client (Shawn's 6/5 QC sheet).
+- **Linked memory.** [[feedback_data_issue_vs_defect]] (the trigger is a data mismatch, but the dropped-on-edit behavior is a real code defect), DEF-243/DEF-246 (same "preserve the saved selection" philosophy, on the cert forms).
+
+**Root cause.** `Views/Product/Management.cshtml` `editProduct(id)` pre-fills the cascade by calling `populateTypeDropdown(categoryId)`, which filters the Type list to `t.categoryId === categoryId`. Each Product Type belongs to exactly one Category (confirmed: 44 types, none global), so a product whose saved `productTypeId` isn't under its `categoryId` — a **cross-category / "Other"-type** product (e.g. #347: category 4, but type 45 "Other" lives under category 8 "Packaging") — has **no matching `<option>`**, so `select.value = savedTypeId` silently no-ops and the field renders blank. Same gap for Subcategory.
+
+**Fix (view-only JS, no DB/API change).** Added `ensureSavedOption(selectId, value, label)` — after the cascade populates, if the saved value isn't among the options it injects one (labelled with the saved name) so the saved Type/Subcategory **always carries over** on edit. Mirrors the DEF-243/246 "never drop the analyst's saved selection" rule. Valid products are unaffected (their option already exists). **File:** `Views/Product/Management.cshtml` (`editProduct` + new `ensureSavedOption` helper).
+
+**Data observation (separate, not this DEF).** Product #347 "test23" has a genuine Category↔Type mismatch (category 4 but a category-8 type). That's test-seed inconsistency; if real products show it, a data-cleanup pass (backup + CR per [[feedback_data_changes_require_cr]]) would re-file them — but the code fix above makes the edit form correct regardless.
+
+**Note / confirm-with-client.** In testing, products whose Type *does* match its Category already carried over correctly (parts 1–2 working); the only failure was the cross-category case. If the client's "all options" complaint is about something else on Product Management (e.g. the *available* choices, not the saved one), flag it — but this fix directly resolves "saved options not carried over on edit."
+
+---
+
+### DEF-253 — EF cartesian-explosion audit: 9 queries materialize 2+ collection navigations without `.AsSplitQuery()` (same class as DEF-166/234/250/251) — proactive sweep
+
+- **Date:** 2026-06-05
+- **Severity:** Mixed (2 HIGH user-facing list paths, 2 HIGH batch/ETL, 5 MEDIUM). None is a current outage; all are latent slow/timeout risks that grow with collection sizes (the DEF-250/251 failure mode).
+- **Status:** **#2 + #7 FIXED + localhost-verified, BUNDLED in `GCCWebApp-deploy-20260605-1328.zip` (pending upload, supersedes live 1234.zip). #1 TRIED then REVERTED — AsSplitQuery *regressed* it (see KEY FINDING). #3–#6, #8, #9 remain backlog.**
+- **QC Ref:** None (internal proactive audit, follow-up to DEF-251).
+- **Bucket:** Bug (performance / EF query) — backlog batch
+
+**KEY FINDING — AsSplitQuery is NOT universally beneficial (it regressed #1).** Adding `.AsSplitQuery()` to `BuildExportQuery` (#1) **timed out the CSV export at 30s** (`Failed executing DbCommand (30,231ms)`), where the original single query returns in ~0.5–1.2s. The export is an **unfiltered full-table** pull with **no pagination**, so splitting forced N separate queries each re-scanning ProductIds/Tags/Subcats for ALL certs (incl. the 1000-ProductId seed cert) — far worse than the single de-duped cartesian. AsSplitQuery helps **paginated** queries (DEF-250, where the cartesian breaks Skip/Take) and **small-projection lists** (DEF-251/GetUsers, projecting only ids/names); it *hurts* a full-table eager-load of large collections. **#1 reverted** (left an explanatory comment in `BuildExportQuery`). Verified outcomes: #1 export back to 547–1175ms/200; **#2** `/Product/Management` 32–50ms/200 (no regression, kept); **#7** LIVE-verified: a self-cleaning probe seeded a throwaway cert with **300 ProductIds**, then fired the Edit POST (the only `GetByIdAsync(int)` caller) — it returned **302 → CertificateInternalView** (proves it passed ModelState and actually executed `GetByIdAsync` with the new `.AsSplitQuery()`) in **202ms**, no timeout. (Single-entity load is bounded by one cert's collections, so it can't hit the full-table-scan timeout that killed #1 — confirmed empirically.) **Files touched:** `Controllers/ProductController.cs` (#2), `Repositories/CertificateRepository.cs` (#7); `Services/CertificateService.cs` carries the #1 explanatory comment only (no functional change).
+- **Reporter:** Found by Anuki (grep-audit requested by Shawn after DEF-251), 2026-06-05.
+- **Linked memory.** [[feedback_ef_includes_with_projection]].
+
+**Audit method.** Searched all `.cs` for queries materializing ≥2 **collection** navigations (via multiple `.Include` or multiple collection sub-projections in a `.Select` — the DEF-251 projection shape) WITHOUT `.AsSplitQuery()`. Single-entity reference navs ignored. Verified each candidate's collection count, AsSplitQuery presence, and list-vs-single materialization.
+
+**Findings (ranked):**
+
+| # | File · method · line | #collections | List/Single | Risk |
+|---|---|---|---|---|
+| 1 | `Services/CertificateService.cs` · `BuildExportQuery` (~L537→materialized L557) | 3 (Subcats, Tags, ProductIds) | List | **HIGH** — feeds both CSV export paths |
+| 2 | `Controllers/ProductController.cs` · Product Management list (~L171, projection L217-249) | 2 collection sub-projections over `p.Certificates` (ProductIds + CertPartners) | List | **HIGH** — same projection class as DEF-251 |
+| 3 | `Services/ETL/DataExtractor.cs` · `ExtractCompaniesAsync` (~L137) | 3 (Certificates, Products, Users) | List | **HIGH** (batch/whole-table) |
+| 4 | `Services/ETL/DataExtractor.cs` · `ExtractCertificatesAsync` (~L33) | 2 (Tags, CustomFieldValues) | List | **HIGH** (batch) |
+| 5 | `Services/ETL/DataExtractor.cs` · `ExtractProductsAsync` (~L200) | 2 (Certificates, Tags) | List | **HIGH** (batch) |
+| 6 | `Repositories/CertificateRepository.cs` · `GetCertificateByNumberAsync` (~L132) | 5 (Subcats, Tags, Partners, CustomFieldValues, ProductIds) | Single | MEDIUM |
+| 7 | `Repositories/CertificateRepository.cs` · `GetByIdAsync` (~L216) | 5 (same) | Single | MEDIUM — hot cert-detail path |
+| 8 | `Services/AdminService.cs` · `UpdateUserAsync` current user (~L453) | 3 (Companies, Partners, Roles) | Single | MEDIUM (cold) |
+| 9 | `Services/AdminService.cs` · `UpdateUserAsync` audit snapshot (~L462) | 3 (same) | Single | MEDIUM (cold) |
+
+Notably, `CertificateRepository.cs` confirms the suspected pattern: only `GetAdvancedFilteredCertificatesAsync` (~L405) is protected; its two single-cert sibling methods (#6, #7) each Include 5 collections with no AsSplitQuery.
+
+**Confirmed already-safe (have AsSplitQuery):** ExportController ~L270; CertificateTileExternal ~L86; CertificateTileInternal ~L101; CertificateRepository ~L405 (`GetAdvancedFiltered…`); AdminService ~L78 (`GetUsersAsync`, the DEF-251 fix).
+
+**Fix for each (documented lever).** Add `.AsSplitQuery()`, keep the Includes, add a stable `.OrderBy(x => x.Id)` on list paths (single-entity `FirstOrDefault` paths don't need the tiebreaker). Each fix wants a quick before/after timing on a representative dataset. **Recommended scope:** fix the user-facing HIGH list paths (#1, #2) + the hot single-cert detail #7 first; #6 and #8/#9 are low-traffic; #3-5 are batch ETL (rare, but cheap to fix in the same pass).
+
+---
+
+### DEF-252 — Login broken on gccwebapp after the 2026-06-05 deploy — CR-020rev code shipped but the prod migration SQL was never run, AND the migration script silently half-applied (column created, never backfilled) — **recurrence of [[DEF-239]]**
+
+- **Date:** 2026-06-05
+- **Severity:** Critical (full login outage on the test site — every authentication attempt failed)
+- **Status:** **RESOLVED + verified on prod 2026-06-05.** Schema applied, data backfilled, migration recorded, **client confirmed login works**. Backup table `Users_bak_CR020_20260605` dropped after confirmation. Closed.
+- **QC ref:** QC #106 / CR-020rev (User Company → free text). Reporter: Shawn West ("I'm unable to login" on gccwebapp.com, 2026-06-05).
+- **Root cause (two compounding failures):**
+  1. **Gate-7 miss (same as DEF-239).** The 2026-06-05 bundle deployed the CR-020rev code (model now maps the `UserCompany` column) but the matching migration `20260605131035_ChangeUserCompanyToFreeText` was **never run on the prod DB**. Prod still had `Users.UserCompanyId` and no `UserCompany` column, so every login-path query threw `Invalid column name 'UserCompany'`. Confirmed live: `Users` had `UserCompanyId`, not `UserCompany`, and the migration was absent from `__EFMigrationsHistory`.
+  2. **Script self-sabotage.** `Scripts/database/CR-020rev_ChangeUserCompanyToFreeText.sql` (and the bundled `deployment-drops/staging/migrations/apply-migrations.sql`) ran without `SET QUOTED_IDENTIFIER ON`. The backfill `UPDATE [Users]` touches a table with a filtered unique index (`WHERE [IsDeleted]=0`), which **requires** QUOTED_IDENTIFIER ON — it failed with **Msg 1934**. Because the error was non-fatal (no `XACT_ABORT ON`), the surrounding transaction still committed: the column was created and `UserCompanyId` dropped, but `UserCompany` was left **all-NULL** (backfill skipped). DEF-239's entry had already documented that `-I`/QUOTED_IDENTIFIER ON is required — the lesson wasn't baked into the script.
+- **Resolution applied (2026-06-05, prod DB `gccwebap_certificates` @ `tcp:68.71.129.120,1533`):**
+  1. Verified the old schema + missing migration on the live DB.
+  2. **Backed up** `Users` → `dbo.Users_bak_CR020_20260605` (70 rows, retains original `UserCompanyId` → fully reversible).
+  3. Ran `CR-020rev_*.sql`. Schema steps committed; backfill `UPDATE` failed Msg 1934 (QUOTED_IDENTIFIER OFF) — `UserCompany` left NULL on all 70 users.
+  4. **Re-ran the backfill with `-I`** (QUOTED_IDENTIFIER ON), sourcing from the backup table joined to `Companies`. Restored the **2** real values (the other 68 users had no company): `carly@greencirclecertified.com → Alcon`, `carly@partner.com → Amazon`.
+  5. Confirmed prod `__EFMigrationsHistory` now matches the project's migration set exactly (no other missing migrations).
+- **Permanent fix (code):** added `SET QUOTED_IDENTIFIER ON;` + `SET XACT_ABORT ON;` to the top of both `Scripts/database/CR-020rev_ChangeUserCompanyToFreeText.sql` and `deployment-drops/staging/migrations/apply-migrations.sql`, with a comment so future EF `--idempotent` regenerations re-add them. XACT_ABORT ON makes any future failure roll back atomically instead of half-applying.
+- **Process follow-up — IMPLEMENTED (2026-06-05):** Because this was the 2nd login outage from the identical cause (DEF-239 was the 1st), the human Gate-7 step was eliminated rather than just re-flagged. **`Program.cs` now auto-migrates on startup in the Production environment** (gccwebapp.com runs as Production) — after a connectivity check it calls `MigrateAsync()` on any pending migrations, gated by the new config flag `Database:AutoMigrateOnStartup` (default `true`; set `false` for a real production cutover with DBA-controlled migrations). EF applies migrations with `QUOTED_IDENTIFIER ON`, so the Msg 1934 half-apply (failure #2 above) also cannot recur. Added `Database:AutoMigrateOnStartup=true` and `"Program": "Information"` (so the migrate log lines are visible) to `appsettings.Production.json`. **Verified against the live prod DB:** launched under `ASPNETCORE_ENVIRONMENT=Production` → logged `✅ Production database connectivity verified` + `✅ Production database schema up to date (no pending migrations)`, no changes made (prod already current). Files: `Program.cs`, `appsettings.Production.json`. *Caveat:* auto-migrate runs per worker process; this env is single-worker so it's safe — if ever scaled to multiple workers, concurrent-startup migrations would need a lock. Gate 7 of the pre-deploy checklist is now a safety net rather than the primary mechanism.
+- **Cleanup:** `dbo.Users_bak_CR020_20260605` dropped 2026-06-05 after login confirmed.
+- **Files:** `Scripts/database/CR-020rev_ChangeUserCompanyToFreeText.sql`, `deployment-drops/staging/migrations/apply-migrations.sql` (SET-option hardening); `Program.cs`, `appsettings.Production.json` (auto-migrate-on-startup permanent fix).
+
+### DEF-251 — `/Admin/GetUsers` is slow (≈12s cold, 2–7s warm) — `GetUsersAsync` does 3 collection `.Include`s with no `.AsSplitQuery()` (cartesian) — pre-existing, surfaced by the 1128.zip pre-deploy Gate 2/6 sweep
+
+- **Date:** 2026-06-05
+- **Severity:** Low–Medium (the User Management table is Admin-only and hit rarely; the slowness is amplified by **dev test data — 284 seed users**; prod has a small staff/partner-login set, so real-world load is far lighter. It completes successfully (HTTP 200), but at a cold tablet-width load the accessibility-validator saw it trip a SQL command timeout, leaving the table empty with no UI error state.)
+- **Status:** **Fixed + VERIFIED on localhost (build clean 0/0). In the rebuilt bundle `GCCWebApp-deploy-20260605-1234.zip`.** `/Admin/GetUsers` over the same 284 dev users went from **12.0s / 2.4s / 7.3s / 1.9s** (cold/variable) to **0.51s cold then ~0.1–0.2s** after adding `.AsSplitQuery()`.
+- **QC Ref:** None (internal finding from the 2026-06-05 pre-deploy Gate 2 sweep).
+- **Bucket:** Bug (performance / EF query)
+- **Reporter:** Found by Anuki (accessibility-validator Gate 2 + timing confirm), 2026-06-05.
+- **Linked memory.** [[feedback_ef_includes_with_projection]] (AsSplitQuery is the documented lever — DEF-166/DEF-234/DEF-250 are the same class).
+
+**Root cause.** `Services/AdminService.cs::GetUsersAsync` (≈L66) loads every non-deleted user with `.Include(u => u.Companies).Include(u => u.Partners).Include(u => u.Roles)` and **no `.AsSplitQuery()`** — three collection navigations multiply into a cartesian result that EF must de-dup, so the row volume (and time) grows with users × companies × partners × roles. Measured locally over 284 users: 12.0s / 2.4s / 7.3s / 1.9s (high variance, all < the 30s command timeout warm, but a cold connection can exceed it). These Includes are **pre-existing** — the user-scoping/Company-Access logic already needed them; CR-020rev only surfaced Company Access as a visible column ("no SQL" per the shipped log), so this bundle did not introduce the query.
+
+**Fix (implemented).** Added `.AsSplitQuery()` after the three `.Include`s in `GetUsersAsync` plus `.OrderBy(u => u.Id)` for deterministic split stitching — the same lever that fixed DEF-166/DEF-234/DEF-250. EF now runs one query per collection instead of a cartesian JOIN. Includes kept (removing them once made the projection emit 240+ correlated subqueries — EF-includes rule). **Files touched.** `Services/AdminService.cs` (`GetUsersAsync`). No migration, no view change. Open follow-up (not done, low value): surface a UI error/retry state when the user-load fails (today the table renders empty silently). Verified by cold-start timing (12s → 0.51s). Pulled into the rebuilt `…-1234.zip` (superseding `…-1128.zip`, which was deleted).
+
+**Other Gate 2 sweep findings (already tracked / not blockers).** The accessibility-validator re-reported several items as "new" that are in fact **pre-existing a11y debt already logged under [[DEF-244]]**: unlabeled `<select>` filters on Product Management, white-on-`#92C83E` green-button contrast, and `aria-label` on plain `aria-live` divs in cert Create/Edit — DEF-244's title already enumerates exactly these. No new a11y DEF needed; the 1128 Gate 2 re-confirmed DEF-244's open scope. One minor item worth a line under DEF-244 when it's worked: the **Actions `<th>` header still renders for External** on Product Management (row action cells are hidden, but the orphan header shows) — pre-existing on the already-deployed Product Management view, cosmetic, not a regression here. Also (Gate 4, dead code): `GenerateExcelExport` calls `GetCustomFieldDataForExport` with the default `includeInternalFields=true` — harmless today (the Excel/PDF path is DEF-128 dead code, CSV-only), but thread the gate through if that path is ever revived. Noted under [[DEF-247]].
+
+---
+
+### DEF-250 — Sorting the internal Cert List by ASIN / GTIN / EAN / Cert Subcategories runs ~27–30s and intermittently returns HTTP 500 (SQL command timeout) — pre-existing, surfaced while verifying DEF-249
+
+- **Date:** 2026-06-05
+- **Severity:** High (a core sort column on the logged-in Cert List can 500 or hang ~30s). Currently reproduces only when the page includes a cert with **very many** product IDs (seed cert with ~1000 ASINs), but `Scripts/MockDataGenerator.cs:326` notes that models a **real-world** scenario ("certificates can have 100s-1000s of ASINs"), so it is prod-relevant for large Amazon sellers. Directly in the QC #157 area (sorting by ASIN).
+- **Status:** **Fixed + VERIFIED on localhost:5101 (build clean 0/0). Pending deploy.** ASIN sort went from ~27–30s/intermittent-500 to **~1.0–1.4s/HTTP 200**; asin/gtin/ean/cert-sub all 0.65–1.4s. DEF-248 probe (8 PASS) and the full `qc157-sort-verify-local.js` (14 PASS / 0 fail) both green afterward.
+- **QC Ref:** Surfaced from QC #157 / DEF-249 verification; not separately client-reported.
+- **Bucket:** Bug (performance / query translation)
+- **Reporter:** Found by Anuki while verifying DEF-249, 2026-06-05.
+- **Linked memory.** [[feedback_ef_includes_with_projection]] (AsSplitQuery history — DEF-166), [[feedback_product_id_status_follows_cert]], DEF-165 (the original `.Min()`-times-out note), DEF-248 (display lead == `.Min()` sort key).
+
+**Root cause (from the server log).** `SqlException: Execution Timeout Expired ... CommandTimeout='30'`, thrown inside EF's `PopulateSplitCollectionAsync`. The ASIN/GTIN/EAN/cert-sub sort keys are **correlated `.Min()` subqueries** over a collection nav (e.g. `c.ProductIds.Where(type==ASIN && active).Select(v).Min()`), further wrapped by `OrderByTextEmptiesLast` into `ORDER BY (CASE WHEN COALESCE(<minSubquery>,'')='' THEN 1 ELSE 0 END), <minSubquery>` — so the subquery appears multiple times. Because the query also uses `AsSplitQuery()` (DEF-166, to avoid cartesian blow-up from 4 collection Includes), EF **replicates that whole ORDER BY onto every split query**, including the `ProductIds` split that, for the ~1000-ASIN cert, joins ~1000 rows while re-evaluating the Min subquery. Net: ~27–30s, right at the 30s command timeout → intermittent 500 (pageSize=20→500, 25→200, 30→500 observed; successful runs logged at 26.7s).
+
+**Confirmed pre-existing, NOT caused by DEF-249.** The UI's ASIN-sorted page 1 is `sortBy=asin&page=1&pageSize=20` → `actualOffset=0, actualLimit=20` both before and after the DEF-249 `limit`-default change. DEF-249 only made me exercise the ASIN sort enough to hit the flaky timeout.
+
+**Why the obvious fix conflicts.** DEF-165 already worked around this for **UPC** by switching to `.FirstOrDefault()` (cheaper, no aggregate). But DEF-248 just established that the displayed cell leads with its **alphabetical min**, so the sort key must also be the **min** to keep "first shown value == row-ordering value." Switching ASIN/GTIN/EAN to `FirstOrDefault()` would re-introduce the DEF-248 mismatch. So the real fix can't just drop `.Min()`.
+
+**Fix (implemented — paginate IDs, then hydrate).** `GetTiles` no longer applies `ApplySorting` to the full Include query and Skip/Takes it. Instead: (1) `ApplySorting(query, sortBy).Skip(off).Take(lim).Select(c => c.Id)` — selecting only `Id` makes EF drop the Includes, so **no split queries run** and the `.Min()` ORDER BY executes once on a thin query (~ms); (2) hydrate `query.Where(c => pagedIds.Contains(c.Id)).Select(projection)` with the full Includes + `AsSplitQuery` but **no ORDER BY** (splits stitch by PK only — no Min subquery re-evaluated against the 1000-row ProductIds join); (3) restore the page's sorted order in memory via a `pagedIds`→index map. Keeps `.Min()` so the DEF-248 display==sort guarantee holds, and scales **every** sort, not just ASIN. Chosen over the band-aids (raise `CommandTimeout`; precompute a per-cert min-id column) which leave the 27s query in place.
+
+**Scope.** Internal controller only — it is the **sole** tile query with `.Min()`-subquery sort keys (ASIN/GTIN/EAN/Cert-Subcats). The external (`CertificateTileExternalApiController`) and public (`CertificateTilesApiController`→`CertificateRepository`) sort switches contain **only scalar-column** sorts (no collection aggregates), so neither has the timeout and neither needs the refactor — verified by reading both sort switches.
+
+**Files touched.** `Controllers/Api/CertificateTileInternalApiController.cs` (`GetTiles` pagination). No migration, no view change, no change to `ApplySorting` (sort keys unchanged → DEF-248 intact).
+
+**Verification (DONE, localhost).** Timing probe over asin/asin-za/gtin/ean/cert-sub at pageSize 20/30/34/100 + page 2: all **HTTP 200 in 0.65–1.4s** (was ~27–30s/500). DEF-248 read-only probe **8 PASS** (now sees all 34 certs + 29 populated sort rows, vs 20 before — confirms it composes with DEF-249). Full `qc157-sort-verify-local.js` **14 PASS / 0 fail** (all columns blanks-last, DEF-181 cert-results canary 200, ASIN both directions). Pending deploy + prod fingerprint.
+
+---
+
+### DEF-249 — Internal & public tile APIs ignore `pageSize` on the page-based path (every page capped at 20 — "20 of 35" symptom) because `limit` defaulted to 20 instead of 0
+
+- **Date:** 2026-06-05
+- **Severity:** Medium (API contract bug; large-`pageSize` callers silently get 20 rows. The UI itself sends `pageSize=20` so end users were unaffected, but any API consumer or tooling requesting a bigger page got short, misleading pages — and `hasMore`/`totalPages` were computed off the wrong size).
+- **Status:** **Fixed + VERIFIED on localhost:5101 (build clean 0/0). Pending deploy.** Matrix probe: `pageSize` now honored exactly (5→5, 21→21, 35→all-34) while the UI's `pageSize=20` still returns 20 with `hasMore=true` (unchanged); offset/limit path still correct (34/14/4).
+- **QC Ref:** Surfaced from QC #157 / DEF-248 verification (the read-only probe saw "20 of 35").
+- **Bucket:** Bug (pagination / model binding sentinel)
+- **Reporter:** Found by Anuki while verifying DEF-248, 2026-06-05.
+- **Linked memory.** [[feedback_ef_includes_with_projection]], [[feedback_scoping_check_adjacent_endpoints]] (checked sibling tile controllers — public had the same bug, external did not).
+
+**Root cause.** Both tile endpoints accept two pagination styles and reconcile them as `actualOffset = offset > 0 ? offset : (page-1)*pageSize` and `actualLimit = limit > 0 ? limit : pageSize`. This treats `0` as the "not supplied" sentinel — but `limit` was declared `[FromQuery] int limit = 20`, so `limit > 0` was **always true** and `pageSize` was **never used**. Every page-based call (the UI's style, and any caller passing only `page`+`pageSize`) was hard-capped at 20 regardless of the requested `pageSize`. (This is distinct from the DEF-166 cartesian "15 of 35" — that was a row-drop fixed by AsSplitQuery; this is the page size being ignored.)
+
+**Fix.** `limit` now defaults to **0** in both `CertificateTileInternalApiController.GetTiles` and `CertificateTilesApiController` (the public path). Added a clamp `actualLimit = Math.Clamp(limit > 0 ? limit : pageSize, 1, MAX)`: the **lower bound** prevents a new divide-by-zero in the `page`/`totalPages` math when `pageSize=0` (now reachable); the **upper bound** caps a single page (internal MAX=500 — admin-only; public MAX=200 — deliberately tighter because that endpoint is **unauthenticated**, and respecting `pageSize` uncapped would let an anonymous caller request an unbounded page that the accidental 20-cap had been hiding). External tile controller has no `limit` param → not affected. UI unchanged (sends `page`+`pageSize=20` → `actualLimit` falls back to 20).
+
+**Files touched.** `Controllers/Api/CertificateTileInternalApiController.cs`, `Controllers/Api/CertificateTilesApiController.cs`. No migration, no view change.
+
+**Verification (DONE, localhost).** Page-size matrix on both endpoints: internal `pageSize` ∈ {5,10,15,19,20,21,25,30,35,50,100,300} → returned matches request up to the 34-cert total (5→5 … 30→30 … 35→34, `hasMore` flips correctly at the boundary); `pageSize=20` still 20 (UI-safe); offset/limit path 34/14/4. Public endpoint: 5→5, 20→15(all public), 300→15. **Note:** ASIN-sorted large pages hit the **separate** DEF-250 timeout (not a DEF-249 regression — same `actualLimit=20` for the UI before/after). Pending deploy + prod fingerprint.
+
+---
+
+### DEF-248 — Cert List ASIN column "not sorting": multi-value ID cells displayed in insertion order while the row sorts by the cell's alphabetical minimum, so the first value the eye lands on isn't the value the row was sorted by (QC #157, client 6/4 — last open thread on this item)
+
+- **Date:** 2026-06-05
+- **Severity:** Low (presentation — sort *order of rows* was always correct; only the *order of values within a multi-ID cell* was unaligned to it, so it read as "off." Client tagged it explicitly **"not a deal breaker."** Single-ID certs were never affected.)
+- **Status:** **Fixed + VERIFIED on localhost:5101 (build clean 0/0). Pending deploy.** Probe `Scripts/smoke-prod/def248-asin-display-order.js` → **8 PASS / 0 FAIL** (read-only, no records created/changed).
+- **QC Ref:** #157 — client 6/4/2026: *"Location is working now. ASIN (unsure of UPC, GTIN, EAN they had no data) is not. See image. This one is not deal breaker."* (Final open thread of the long-running #157 sort item; Location/Status closed in the June batch — see DEF-242.)
+- **Bucket:** UX (display presentation vs sort key alignment)
+- **Reporter:** client, relayed by Shawn West 2026-06-04
+- **Linked memory.** [[feedback_no_chaos_rabbit_holes]] (diagnosed to ground truth before touching code), [[feedback_product_id_status_follows_cert]], [[feedback_cert_number_vs_id_resolved]] (same pattern — the "looks wrong" was a display artifact, not a sort bug).
+
+**Root cause (not a broken sort).** ASIN/UPC/GTIN/EAN are one-to-many `ProductIds` collections, so one cell can hold several values. The internal Cert List view displayed them in **insertion / PK order** (`CertificateTileInternalApiController.cs` `AsinList` etc. `.Select(...).ToList()`, joined at the second-pass projection), but the **sort key** positions the row by the cell's alphabetical minimum — `.Min()` for ASIN/GTIN/EAN (`ApplySorting`, `"asin"` branch ~L744). So a cert whose cell shows `B07ZZZ, B07AAA` is actually sorted as `B07AAA`; reading the column top-to-bottom, the leading displayed value didn't match the ordering key → "ASIN not sorting." Location works because it's a single scalar column. This is the same multi-value class the client already accepted for Cert Subcategories ("there can be multiple and not sure order is based on order it's picked").
+
+**Fix (display-only, no SQL / no migration / no API change).** Order the displayed values ascending **in-memory after materialization**, so the leading shown value equals the `.Min()` sort key:
+- `CertificateTileInternalApiController.cs` — the second-pass projection now joins `c.AsinList.OrderBy(v => v)` (and Upc/Gtin/Ean likewise). In-memory on already-materialized `List<string>` → deliberately avoids an inner-`OrderBy` in the EF query, which per DEF-165 timed out on the dev DB.
+- `Services/CertificateService.cs::GetProductIdValues` (public tile path) — same `.OrderBy(v => v)` on the loaded collection, so the public directory's multi-ID cells read consistently with the internal list.
+
+**Scope across the three tile views (per the "fix all 3 views" decision).** Only views that *both display and sort* product IDs can exhibit the mismatch:
+- **Internal** (client's "Login – Cert List View") — displays + sorts IDs → fixed (the real defect).
+- **Public** — displays IDs but the repository sort switch has **no** ASIN/UPC/GTIN/EAN branch (`CertificateRepository` ~L367-376), so it can't sort by them; display ordering aligned anyway for cross-view consistency.
+- **External** (partner/company) — **does not project** ASIN/UPC/GTIN/EAN at all (`CertificateTileExternalApiController` projection ~L234-257) and has **no** ID sort branches → nothing to display or align; no change.
+
+**Known residual (documented, not changed).** The internal **UPC** sort key still uses `.FirstOrDefault()` (not `.Min()`) — a deliberate DEF-165 choice after `.Min()` timed out on the dev DB for that column. With the display now ascending, a multi-UPC cell would show its lowest value first while the row is positioned by an arbitrary UPC — i.e. UPC could still read "off" *if* multi-value UPC data ever exists (it currently does not; client confirmed UPC/GTIN/EAN had no data to test). Left as-is to avoid reopening the DEF-165 perf decision; flag for a follow-up to switch UPC to `.Min()` (matching ASIN/GTIN/EAN) if/when UPC data lands and the timeout no longer reproduces.
+
+**Files touched.** `Controllers/Api/CertificateTileInternalApiController.cs`, `Services/CertificateService.cs`. No migration, no API-contract change, no view change.
+
+**Verification (DONE, localhost).** `Scripts/smoke-prod/def248-asin-display-order.js` — **read-only, conclusive**: for every cert with a multi-value ID cell it cross-checks the displayed cell against the cert's raw **insertion order** (via `/api/productids/certificate/{id}`, which returns `DisplayOrder` = insertion order = the pre-fix display order). Asserts each cell is ascending with first token == `.Min()` sort key, and flags "differentiating" certs whose insertion order was NOT alphabetical yet now display alphabetically (proves the fix actually re-orders, vs. data that happened to be inserted sorted). Result: **7/7 multi-value cells ascending+lead==min; 3 differentiating** — clearest: `ASIN@cert47 insertion=[B0BRNN8BKS, B005PMYJBO] → shown=[B005PMYJBO, B0BRNN8BKS]`; plus sort asc/desc rows monotonic by leading(min) token and cells ascending in both directions. **8 PASS / 0 FAIL.** Public view had no multi-value ID cells in the sandbox (single-value data only) — the public `GetProductIdValues` change is identical logic, covered by code; no public multi-ID data to exercise. Pending deploy + prod fingerprint.
+
+**Incidental observation (NOT this DEF, flagged for triage).** While verifying, noticed `/api/certificate-tiles-internal` returns only **20 of 35** certs when `pageSize` is large on page 1 (paging with small `pageSize` returns all 35) — a likely EF `AsSplitQuery` + large `Skip/Take` + one-to-many-Includes row-drop. The UI uses 20-row infinite scroll so it doesn't surface in normal use; logged here as an observation to triage separately, not changed under DEF-248.
+
+---
+
+### DEF-247 — Partner/External CSV export leaks Internal-visibility **custom fields** (e.g. "Chris Test Field", `RoleVisibility=Internal`) — the column + values appear in the partner export (QC #182, 6/4 re-raise; reopens what DEF-228 closed WAD)
+
+- **Date:** 2026-06-05
+- **Severity:** High (confidentiality — a custom field explicitly marked Internal/GCC-only is disclosed to a Partner/External account in the CSV; same class of leak as an internal-tag leak, just on a path that was never gated).
+- **Status:** **Fixed + VERIFIED on localhost (build clean 0/0). Pending deploy.** Probe `Scripts/smoke-prod/def247-partner-export-customfield-scope.js` → **4/4 PASS** (partner export succeeds with rows intact; Internal field "Chris Test Field" absent from header AND every row). Caveat: dev DB has no Internal-visibility custom field carrying a value on a partner-visible cert, so the conclusive positive/negative differential wants prod data — the gate is proven not to expose the Internal field, but a prod fingerprint is recommended post-deploy.
+- **QC Ref:** #182 — client 6/4 re-raise: *"The Chris Test Field is set to Internal for visibility. Partner would be able to see External/Public, not Internal. Internal is GCC users only (Admin/Analyst). It's still showing in partner export. Login to partner account > export all certs > look for Chris Test Field. See image 85."*
+- **Bucket:** Bug (data scoping — field/column-level visibility)
+- **Reporter:** client, relayed by Shawn West 2026-06-04
+- **Linked memory.** [[feedback_partner_data_isolation]], [[feedback_scoping_check_adjacent_endpoints]] (the row-level scope was fixed (DEF-198) and the tag column was gated (DEF-128), but the *custom-field* column on the same export was never audited), [[feedback_custom_fields_single_section]].
+
+**Why DEF-228 missed this (and why this is NOT a re-litigation of WAD).** DEF-228 closed QC #182 as Working-As-Designed after testing an internal **tag** (`Sustainable` on cert 26-0001) — which *is* correctly hidden by the DEF-128 `includeInternalTags` gate. But the client's actual artifact is a **custom field** named "Chris Test Field" with `CustomField.RoleVisibility = "Internal"` — an entirely separate code path. DEF-228's repro used the wrong analog (tag, not custom field), so the real leak went unconfirmed. The 6/4 note disambiguates it precisely: it's a *field*, set to *Internal visibility*. Genuine defect.
+
+**Root cause.** `Services/CertificateService.cs::GetCustomFieldDataForExport(certIds)` selected **every** `CustomFieldValue` for the exported certs and emitted each field as a CSV column, with **no `RoleVisibility` filter**. `GenerateCsvExport`'s `includeInternalTags` flag gated only the dedicated *Internal Tag* column (DEF-128) and the *Internal* tag values — it never touched custom-field columns. So a field marked `RoleVisibility=Internal` was disclosed to Partner / External / anonymous callers in full (header + values).
+
+**Fix.** Thread the existing internal-caller gate into custom-field selection:
+- `GetCustomFieldDataForExport(List<int> certIds, bool includeInternalFields = true)` — when `false`, the query adds `WHERE RoleVisibility IS NULL OR RoleVisibility <> 'Internal'` (null guard keeps legacy/unset rows as Public, never drops them).
+- `GenerateCsvExport` now passes `includeInternalTags` (true only for Admin/Analyst) as `includeInternalFields`. Internal custom fields are now omitted entirely — header column *and* per-row values — for non-internal callers, exactly as the Internal Tag column already is.
+- The dead-code Excel path (`GenerateExcelExport`, retained per DEF-128) keeps the `= true` default, so its behavior is unchanged and it still compiles.
+
+**Boundary note (in scope vs not).** This fix enforces the **Internal vs not-Internal** boundary the client described ("Internal is GCC users only; External = Partners + Clients"), which maps 1:1 onto the `includeInternalTags` gate. The finer **External vs Public** distinction (whether `RoleVisibility=External` fields should be hidden from *anonymous* exports) is a separate question the client has not raised and is deliberately left unchanged — anonymous still receives Public + External custom fields as before. Flag for a future ticket if that tier ever matters.
+
+**Files touched.** `Services/CertificateService.cs` — `GetCustomFieldDataForExport` (new `includeInternalFields` param + RoleVisibility filter) and `GenerateCsvExport` (passes the flag). No migration, no API-contract change, no view change.
+
+**Adjacent column-source audit (per [[feedback_scoping_check_adjacent_endpoints]]).** Enumerated every export/serialization surface that reads custom fields: (a) the CSV export — fixed here; (b) the **Amazon Partner API v1** (`Api/v1/CertificatesController` — `GetById`/`ByNumber`/list all `.Include(CustomFieldValues)`): partner callers are projected through `BuildPartnerCertificateDto`, an explicit allowlist that **does not serialize custom fields at all** → no leak, contract unchanged ([[feedback_amazon_api_immutable]] held). (c) The Internal tile API (`CertificateTileInternalApiController`) is Admin/Analyst-only and intentionally shows all `IsVisible` fields. Conclusion: the CSV export was the sole Internal-custom-field leak on a Partner/External surface.
+
+**Verification (pending).** Add a Playwright probe modeled on `def228-partner-export.js`: log in as the Amazon-mapped Partner, hit `/Certificate/ExportCertificates?format=csv`, assert an `Internal`-visibility custom field's **header and values are both absent**, while a `Public`/`External` custom field's column is **present** and qualifying cert rows still appear. Build is clean; runtime probe deferred to the next deploy/verify pass.
+
+---
+
+### DEF-246 — Create certificate: selected fields don't survive a server-side validation re-render (Product, Product Category/Type/Subcategory, cert Subcategories, Tags all reset) — QC #186 client retest
+
+- **Date:** 2026-06-04
+- **Severity:** Medium-High (data-entry frustration / lost work — on a validation error the analyst loses every JS-driven selection and must re-pick Product, the full Category/Type/Subcategory hierarchy, cert Subcategories, and Tags before re-submitting).
+- **Status:** **Fixed + VERIFIED on localhost:5101 (Create 2026-06-04, Edit parity 2026-06-05) — build clean (0 err/0 warn). Pending deploy (new bundle).** Create: `Scripts/smoke-prod/def-create-validation-state.js` → **11 PASS / 0 FAIL**; Edit: `Scripts/smoke-prod/def-edit-validation-state.js` → **8 PASS / 0 FAIL**. Both against a REAL server re-render (forced via native `form.submit()` to bypass jQuery client validation; confirmed by a navigation marker clearing). Before: 4–6 fields reset; after: Product, Product Category/Type/Subcategory, SearchableSelect display, cert Subcategories, and external+internal Tags all retained.
+
+**Edit had its own version of this (found when asked "fixed on edit as well?", 2026-06-05).** On an *Edit* validation re-render the Product + Category/Type/Subcategory survive (they round-trip via the posted Model — Edit's `initProductCascade`/product-preselect read `Model.*`), but **Tags reverted to the originally-saved set and cert Subcategories were lost**: `ReloadEditFormDataAsync(id)` (the Edit-POST re-render helper, never used by the GET) rebuilt `ViewBag.ExistingExternalTags/InternalTags` from the **DB cert** and never set `ViewBag.ExistingSubcategories`. Verified red first: edited external tag `[1]` came back `[]` after the re-render. **Fix (controller-only — the Edit view already consumes those ViewBags):** `ReloadEditFormDataAsync` now takes the posted `ExternalTags/InternalTags/SubcategoryIds` and, on a re-post, populates `ExistingExternalTags/InternalTags/ExistingSubcategories` from the **posted** ids (falling back to DB when not supplied); the 7 Edit-POST call sites pass the posted values. No Edit.cshtml change needed.
+- **QC Ref:** #186 — client retest 2026-06-04: *"I just tested on create and the fields that are selected are not maintaining state when there is a validation error."* (Same QC thread as DEF-243, distinct mechanism — see below.)
+- **Bucket:** Bug (front-end + a small controller assist — JS-driven selections not rehydrated on the MVC validation re-render)
+- **Reporter:** Shawn West (relaying client QC #186 retest), 2026-06-04
+
+**Distinct from DEF-243.** DEF-243 was the *Edit* page overwriting a cert's saved hierarchy with the product's on load. DEF-246 is the *Create* page losing the analyst's in-progress selections when the server re-renders the form on a ModelState failure (e.g., a missing required field, or a server-only rule like the DEF-161 Product-ID format check). On re-render, `CompanyId` and `CertificationTypeId` survive because they're `asp-for` selects with server-rendered options; everything populated by JavaScript does not — `ProductId` has no server `<option>` for the posted value, and `ProductCategoryId/TypeId/SubcategoryId`, the cert-Subcategory multiselect, and the Tag multiselects are all client-built with empty hidden inputs on re-render. The Edit page already restores all of this from its saved model (`initProductCascade`, `loadExistingSubcategories`, the tag-restore block); Create had **no** equivalent.
+
+**Why it wasn't seen earlier / repro nuance.** The form is `novalidate`, but jQuery-unobtrusive validation still blocks a normal submit on the standard required fields — so the server re-render only happens when something passes client validation but fails server validation. The first repro attempt gave a false PASS because `requestSubmit()` was blocked client-side (no round-trip). Forcing native `form.submit()` (bypasses jQuery validate + the submit handler) exposed the true server re-render and the state loss.
+
+**Fix.**
+- `Controllers/CertificateController.cs` (Create POST): expose the posted JS-driven selections to the re-render via `ViewBag.PostedSubcategoryIds`, `ViewBag.PostedExternalTags`, `ViewBag.PostedInternalTags` (the Product/Category/Type/Subcategory values are already on the model).
+- `Views/Certificate/Create.cshtml`: added `restorePostedCreateState()` (guarded on `Model.CompanyId > 0`, i.e. a re-post — no-op on a fresh Create) that reloads the company's products and re-selects the posted product (with a `suppressProductAutoFillCreate` guard so the product→category auto-fill can't overwrite the posted category — same lesson as DEF-243), restores Product Category/Type/Subcategory with the SearchableSelect display synced, restores the cert Subcategory multiselect, and a `restorePostedTags()` helper that rebuilds the external/internal tag pills + hidden inputs. Mirrors the Edit page's existing restoration.
+
+**Files touched:** `Controllers/CertificateController.cs` (Create POST ViewBag.Posted* + `ReloadEditFormDataAsync` posted-restore for Edit), `Views/Certificate/Create.cshtml` (restore script). Tests: `Scripts/smoke-prod/def-create-validation-state.js` (Create, 11/0), `Scripts/smoke-prod/def-edit-validation-state.js` (Edit, 8/0).
+
+**Linked memory.** [[feedback_scoping_check_adjacent_endpoints]] (fixed the product cascade, then audited adjacent JS-driven fields — cert subcats + tags — and found the same loss), cross-ref **DEF-243** (same QC #186 thread, sibling Edit-page fix; shared the product-auto-fill-suppression technique).
+
+---
+
+### DEF-245 — `GET /Product/GetCategories` returns the product-category reference list (200) to External users — pre-existing, surfaced by the DEF-243/CR-184 pre-deploy Gate 3 audit
+
+- **Date:** 2026-06-04
+- **Severity:** Low (information exposure of non-sensitive reference data — product *category names* only, no company/cert/business records; read-only GET; no mutation path). Not a cross-company business-data leak.
+- **Status:** **Open — backlog. NOT in the 2026-06-04 deploy bundle.** Pre-existing; not introduced by DEF-243 or CR-184. No code change made.
+- **QC Ref:** internal — pre-deploy **Gate 3** (data-scoping) audit, 2026-06-04 (security-specialist). Flagged as an out-of-scope NIT during the DEF-243/CR-184 gate sweep.
+- **Bucket:** Bug (authorization — reference endpoint not gated to internal roles)
+- **Reporter:** security-specialist agent (Gate 3), 2026-06-04
+- **Detail.** `ProductController.GetCategories` is the one endpoint the cert-form JS touches that is **not** `AnalystOrAdmin`-gated — it returns 200 for External. Every *other* endpoint in the DEF-243 path (`GetProductTypes`, `GetProductSubcategories`, `/Product/SaveProduct`) is correctly `AnalystOrAdmin` + CSRF-protected. The exposed data is the product-category name list used to populate a dropdown; low sensitivity. **Fix when scheduled:** add `[Authorize(Policy = "AnalystOrAdmin")]` to `GetCategories` (confirm no Public/External view legitimately calls it first — the public cert tile filters may rely on a *different* category source; verify before gating). **Linked memory.** [[feedback_scoping_check_adjacent_endpoints]].
+
+---
+
+### DEF-244 — Accessibility debt on Product Management + cert Create/Edit (missing `<select>` labels, icon-only pagination buttons, low-contrast green buttons, `aria-label` on plain divs) — pre-existing, surfaced by the DEF-243/CR-184 pre-deploy Gate 2 audit
+
+- **Date:** 2026-06-04
+- **Severity:** Low–Medium (WCAG 2.1 AA gaps affecting screen-reader + low-vision users; no functional/security impact). Several are Critical *per axe* but all are **pre-existing** and none block current workflows.
+- **Status:** **Open — backlog. NOT in the 2026-06-04 deploy bundle.** Pre-existing; **zero new violations introduced** by DEF-243/CR-184 (the changed surfaces — new export button, dropdown cascade, inline-add guard — are not the source of any finding). No code change made.
+- **QC Ref:** internal — pre-deploy **Gate 2** (cross-role + responsive / AxeCore) audit, 2026-06-04 (accessibility-validator). Full results: `Scripts/smoke-prod/_results/gate2-cr184-def243-2026-06-04T22-09-06.json`.
+- **Bucket:** UX (accessibility / WCAG 2.1 AA)
+- **Reporter:** accessibility-validator agent (Gate 2), 2026-06-04
+- **Itemized backlog (fix when an a11y sprint is scheduled):**
+  1. **`select-name` (Critical)** — filter `<select>`s lack accessible names: `#category-filter` / `#company-filter` / `#certificate-filter` (Product Management) and `#filterByType` / `#filterByPartner` (cert Product-ID Manager). Fix: real `<label for="…">` instead of the `.filter-label` `<div>` (or `aria-labelledby`).
+  2. **`button-name` (Critical)** — icon-only pagination chevrons (`<i class="fas fa-chevron-left/right">`) have no name. Fix: `aria-label="Previous/Next page"` in the pagination render.
+  3. **`color-contrast` (Serious)** — system-wide green button `#92C83E` + white text ≈ 1.98:1 (needs 4.5:1); also inline PDF action buttons (`#4caf50` 2.77:1, `#ff5252` 3.19:1) and some grey caption text. Darkening the brand green is a **design decision needing client sign-off**.
+  4. **`aria-prohibited-attr` (Serious)** — `aria-label` on plain `<div>` containers `#subcategoriesContainer` / `#externalTagsContainer`. Fix: add `role="region"` or use a visually-hidden heading.
+  5. **`link-in-text-block` (Serious)** — breadcrumb link not distinguishable from surrounding text (1.61:1). Fix: underline breadcrumb links.
+- **Note.** Per [[feedback_client_requested_labels_immutable]], item 3's brand-green change must not alter client-requested copy/branding without sign-off — treat as a design CR, not a silent fix.
+
+---
+
+### DEF-243 — Cert Edit page silently overwrites the cert's saved Product Category/Type/Subcategory with the linked product's hierarchy on load; inline "Add product" still files under "Carly Test" when added before a category is picked (QC #186 6/4 re-raise, threads 2 + 3)
+
+- **Date:** 2026-06-04
+- **Severity:** High (data integrity / UX — the analyst's saved Category/Type/Subcategory disappears on Edit and reverts to "Carly Test" with a blank Type; compounds with new products still landing under the wrong category).
+- **Status:** **DEPLOYED + VERIFIED LIVE on gccwebapp.com (2026-06-04, zip `GCCWebApp-deploy-20260604-1752.zip`).** Full pre-deploy gate sweep passed (G1/G2/G3/G5 agents + G6 perf; G4/G7 N/A). Prod fingerprint `Scripts/smoke-prod/def243-cr184-prod-fingerprint.js` (READ-ONLY) → **29 PASS / 0 FAIL / 0 WARN** covering DEF-243 + CR-184: deployed JS carries the inline-add guard string, deployed Edit.cshtml carries the `suppressProductAutoFill` + `hasSavedCertCategory` markers, and **10 real prod certs keep their saved category on Edit load** — including the client-named **26-0166** (keeps Chemicals) and genuine **divergent** prod certs **26-0168** (cert=Chemicals(1) / product=Carly Test(9) → keeps Chemicals) and **26-0163/0159/0161** (cert=Carly Test(9) / product=cat4 → keeps Carly Test). SearchableSelect synced in every case. The client's exact QC #186 scenario is confirmed fixed on real prod data.
+- **Prior local verification (2026-06-04):** Playwright UAT `Scripts/smoke-prod/def243-edit-prefill-verify.js` → **37 PASS / 0 FAIL / 1 WARN** (self-cleaning). Proved H1 footer add blocked without a category (guard message), H2 add-with-category still persists under the analyst's Category+Type, Case A override-preserved (5 certs) + Case B product-derived (7 certs) with SS sync, and a constructed divergent cert keeps its own category.
+- **QC Ref:** #186 — client 6/4 retest: *"(2) created a new cert with new product, went back to edit and it's still not saving the Product Type … click into Product Category it wants to jump it to Carly Test and changes. (3) created a new cert and it's not showing the options I selected for Product Cat, Type, or Subcat. NOTE: creating the new product on the cert creation page, not Product Management."*
+- **Reporter:** Shawn West (relaying client QC #186 update), 2026-06-04
+- **Bucket:** Bug (front-end — destructive load-time auto-fill + SearchableSelect display desync + quick-add silent default)
+
+**Important — this is NOT a DEF-231 deploy gap.** DEF-231 (inline add reads the form's category) shipped + was verified live on gccwebapp.com 2026-06-01 (`shipped-2026-06.md`, "DEF-231 6/6 functional"). The 6/4 symptoms are a *separate* residual that DEF-231 explicitly flagged ("recommend a follow-up Edit-prefill check").
+
+**Root cause (two compounding mechanisms).**
+1. **Edit load-time overwrite.** `Views/Certificate/Edit.cshtml`: on load, `loadProductsForCompany` pre-selects the saved product and fires `change` (jQuery + native, per DEF-225). That triggers the `$('#ProductId').change()` auto-fill handler, which overwrites the cert's own saved `ProductCategoryId/TypeId/SubcategoryId` with the *product's* stored hierarchy. For a product filed under "Carly Test" with a null type, the cert display reverts to Carly Test / blank Type. `#ProductCategoryId` is wrapped by `SearchableSelect` but the cascade sets the value via raw `.val()` without `.refresh()`, so the box shows stale text and "jumps" on click.
+2. **Quick-add ordering gap.** `wwwroot/js/certificate-inline-create.js::saveInlineProduct()` still fell back to `getDefaultCategoryId()` (lowest-sorted = "Carly Test") when the analyst typed the new product name into the footer *before* choosing a Product Category — so newly-added products kept landing under Carly Test with a null type, which then fed mechanism #1 on Edit.
+
+**Fix.**
+- `Edit.cshtml`: added a `suppressProductAutoFill` guard set around the load-time pre-select so the auto-fill no longer clobbers the cert's authoritative saved hierarchy (it still runs on a genuine, user-initiated product change). Added `_searchableSelect.refresh()` sync after the category value is set (and on company-change clear).
+- `Create.cshtml`: mirrored the `_searchableSelect.refresh()` sync on auto-fill + company-change clear (Create has no load-time pre-select, so no guard needed).
+- `certificate-inline-create.js`: removed the silent default-category fallback — the footer quick-add now requires a Product Category to be selected first ("Select a Product Category above before adding a new product."), so a quick-added product is always filed under the same hierarchy the cert carries. Type/Subcategory always ride along.
+
+**Files touched:** `Views/Certificate/Edit.cshtml`, `Views/Certificate/Create.cshtml`, `wwwroot/js/certificate-inline-create.js`.
+
+**Linked memory.** [[feedback_product_id_status_follows_cert]] (cert/product hierarchy coupling), [[feedback_scoping_check_adjacent_endpoints]] (Create + Edit both carried the desync), [[feedback_data_issue_vs_defect]] (code fixed here; existing mis-categorized rows remain the DEF-231 data-cleanup CR).
+
+---
 
 ### DEF-242 — Cert list sorting: blank/empty values now sort LAST in both directions, consistent across all three tile views (QC #157 client UX request)
 
@@ -216,7 +612,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-02
 - **Severity:** Medium (UX + client-blocking UAT item). Client's 5/15 direction: Company Access applies **only** to External (scoped to selected companies) and Partner (scoped to selected partner). **Admin/Analyst are never scoped** — the modal should **hide** Company Access for them and show a note that those roles get access to all companies. On 5/29 the client reported none of the 5/15 feedback was addressed, plus the user table showed **blank** Company Access for Admin/Analyst.
-- **Status:** **Fixed locally (2026-06-02) — pending next deploy + client UAT re-confirm.** Verified on localhost:5101 with `Scripts/smoke-prod/def237b-role-access-verify.js` → **6 PASS / 0 FAIL** (R0 no-role hides all; R1 External shows Company Access; R2 Partner shows Partner picker; R3 Admin shows note + hides both; R4 Analyst same; T1 table shows "All" for Admin/Analyst). Screenshot `_results/def237b-admin-note.png`.
+- **Status:** **DEPLOYED 2026-06-03 — awaiting client UAT re-confirm on the test site.** Shipped alongside CR-020 in `deployment-drops/GCCWebApp-deploy-20260603-1221.zip` (see `docs/tracking/shipped-2026-06.md`). The CR-020 migration that rode with this deploy caused the prod login outage [[DEF-239]], **resolved + verified on prod the same day** (4/4 roles). Originally verified on localhost:5101 with `Scripts/smoke-prod/def237b-role-access-verify.js` → **6 PASS / 0 FAIL** (R0 no-role hides all; R1 External shows Company Access; R2 Partner shows Partner picker; R3 Admin shows note + hides both; R4 Analyst same; T1 table shows "All" for Admin/Analyst). Screenshot `_results/def237b-admin-note.png`. *(Status reconciled 2026-06-04 — the prior "Fixed locally — pending next deploy" line was stale relative to the shipped log.)*
 - **QC Ref:** QC #106 / QC #148 item 4 — client UAT comments 5/15 (origin) and 5/29 ("none of the 5/15 feedback was addressed"). Reporter: Client (Carly).
 - **Bucket:** Bug + UX (the prior `handleRoleChange` comment claimed "Admin/Analyst: hide both" but the code put them in the `else` branch that **showed** Company Access — code contradicted its own intent).
 - **Root cause:** `wwwroot/js/userManagement.js::handleRoleChange` only special-cased Partner; every other role (incl. Admin/Analyst) fell through to a single `else` that set `company-group` to `display:block`. No "all-access" note element existed. The table's `getCompanyAccessDisplay` returned `''` for users with no `companyIds` (Admin/Analyst have none), rendering blank.
@@ -381,7 +777,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-01
 - **Severity:** Medium (cosmetic + misleading + hidden gap) — Tags template parses as 4 cols instead of 3 in Excel (Internal lands in B, External in C, Description shifts to D); Cert template Status hint shows `â€"` where the em dash should be; User template Role hint omitted Partner AND the bulk-import path had no way to associate partners (header-only fix would have created orphaned Partner-role accounts). Client called the Cert mojibake "not a deal breaker"; the Tags column split is the real blocker.
-- **Status:** **Fixed locally — pending deploy.** All three surfaces fixed including the full Partner wire-through (template + JS parser + payload + service-level dictionary). Build clean.
+- **Status:** **DEPLOYED + VERIFIED LIVE on gccwebapp.com (2026-06-01).** All three surfaces fixed including the full Partner wire-through (template + JS parser + payload + service-level dictionary). Shipped in the 2026-06-01 push (read-only verification 10/10, DEF-232 included — see `docs/tracking/shipped-2026-06.md`). Build clean. *(Status reconciled 2026-06-04 — the prior "Fixed locally — pending deploy" line was stale; the shipped log is the authoritative deploy record.)*
 - **QC Ref:** #148 — 5/29 client follow-up to DEF-202 (Sprint 3 cert template Status-hint inline values)
 - **Bucket:** Bug (template export — CSV encoding + header construction + missing import column)
 - **Reporter:** Shawn West, 2026-06-01 (relaying client 5/29 comment + screenshot)

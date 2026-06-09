@@ -452,6 +452,10 @@
         var companyProducts = [];
 
         $(document).ready(function() {
+            // QC #186 follow-up: guard used while restoring posted state after a validation
+            // re-render, so the product->category auto-fill can't overwrite the posted category.
+            let suppressProductAutoFillCreate = false;
+
             // ===== Company → Product Cascading Dropdown (REQ-CERT-10) =====
 
             // When company changes, load that company's products
@@ -463,6 +467,8 @@
                 // Reset product and dependent dropdowns
                 productSelect.html('<option value="">Select a product...</option>');
                 $('#ProductCategoryId').val('');
+                // Keep the SearchableSelect display in sync with the cleared native value.
+                document.querySelector('#ProductCategoryId')?._searchableSelect?.refresh();
                 $('#ProductTypeId').html('<option value="">Select category first...</option>');
                 $('#ProductSubcategoryId').html('<option value="">Select type first...</option>');
                 companyProducts = [];
@@ -500,6 +506,10 @@
 
             // When product changes, auto-fill category/type/subcategory
             $('#ProductId').change(async function() {
+                // QC #186 follow-up: during a validation-re-render restore we set the product
+                // programmatically and restore the POSTED category ourselves — don't let the
+                // product's hierarchy auto-fill overwrite it.
+                if (suppressProductAutoFillCreate) return;
                 const productId = parseInt($(this).val());
                 if (!productId) return;
 
@@ -510,6 +520,8 @@
                 // Auto-fill Product Category
                 if (product.categoryId) {
                     $('#ProductCategoryId').val(product.categoryId);
+                    // Sync the SearchableSelect display to the auto-filled category (QC #186).
+                    document.querySelector('#ProductCategoryId')?._searchableSelect?.refresh(product.categoryId);
                     // Trigger category change to load types
                     try {
                         const response = await fetch(`/Certificate/GetProductTypes?categoryId=${product.categoryId}`);
@@ -653,6 +665,105 @@
             if (initialTypeId) {
                 $('#CertificationTypeId').trigger('change');
             }
+
+            // ===== Restore posted selections after a server-side validation re-render (QC #186 follow-up) =====
+            // CompanyId + CertificationTypeId survive via asp-for, but Product, the Product
+            // Category/Type/Subcategory cascade, and the cert Subcategories are JS-driven and would
+            // otherwise be lost when the server re-renders the Create form on a validation error.
+            const savedCompanyId  = '@(Model.CompanyId > 0 ? Model.CompanyId.ToString() : "")';
+            const savedProductId  = '@(Model.ProductId > 0 ? Model.ProductId.ToString() : "")';
+            const savedCategoryId = '@(Model.ProductCategoryId?.ToString() ?? "")';
+            const savedTypeId     = '@(Model.ProductTypeId?.ToString() ?? "")';
+            const savedSubId      = '@(Model.ProductSubcategoryId?.ToString() ?? "")';
+            const postedCertSubsRaw = '@Html.Raw(ViewBag.PostedSubcategoryIds ?? "")';
+
+            async function restorePostedCreateState() {
+                if (!savedCompanyId) return; // fresh Create — nothing to restore
+
+                // 1) Reload the company's products and re-select the posted product (suppress the
+                //    product->category auto-fill so it can't overwrite the posted category).
+                suppressProductAutoFillCreate = true;
+                $('#CompanyId').trigger('change');
+                for (let i = 0; i < 50 && $('#ProductId option').length <= 1; i++) { await new Promise(r => setTimeout(r, 100)); }
+                if (savedProductId) {
+                    $('#ProductId').val(savedProductId);
+                    $('#ProductId')[0].dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                suppressProductAutoFillCreate = false;
+
+                // 2) Restore the posted Product Category/Type/Subcategory (authoritative).
+                if (savedCategoryId) {
+                    $('#ProductCategoryId').val(savedCategoryId);
+                    document.querySelector('#ProductCategoryId')?._searchableSelect?.refresh(savedCategoryId);
+                    try {
+                        const tr = await (await fetch(`/Certificate/GetProductTypes?categoryId=${savedCategoryId}`)).json();
+                        if (tr.success && tr.data) {
+                            const typeSel = $('#ProductTypeId');
+                            typeSel.html('<option value="">Select a type...</option>');
+                            tr.data.forEach(pt => typeSel.append(`<option value="${pt.id}">${pt.name}</option>`));
+                            if (savedTypeId) {
+                                typeSel.val(savedTypeId);
+                                const sr = await (await fetch(`/Certificate/GetProductSubcategories?productTypeId=${savedTypeId}`)).json();
+                                if (sr.success && sr.data && sr.data.length) {
+                                    const subSel = $('#ProductSubcategoryId');
+                                    subSel.html('<option value="">Select subcategory...</option>');
+                                    sr.data.forEach(s => subSel.append(`<option value="${s.id}">${s.name}</option>`));
+                                    if (savedSubId) subSel.val(savedSubId);
+                                }
+                            }
+                        }
+                    } catch (e) { console.error('Error restoring product cascade:', e); }
+                }
+
+                // 3) Restore the posted cert Subcategories into the multi-select (after the
+                //    CertificationType change above has loaded/cleared its options).
+                let postedCertSubs = [];
+                try { postedCertSubs = JSON.parse(postedCertSubsRaw || '[]'); } catch (e) { postedCertSubs = []; }
+                if (Array.isArray(postedCertSubs) && postedCertSubs.length && $('#CertificationTypeId').val()) {
+                    setTimeout(() => {
+                        const items = postedCertSubs.map(id => {
+                            const m = (window.allCertificationTypes || []).find(c => c.id === parseInt(id));
+                            return { id: parseInt(id), name: m ? m.name : String(id) };
+                        });
+                        if (window.CertificateInlineCreate && window.CertificateInlineCreate.loadExistingSubcategories) {
+                            window.CertificateInlineCreate.loadExistingSubcategories(items);
+                        }
+                    }, 350);
+                }
+
+                // 4) Restore posted Tags (external + internal) — same class of JS-driven field.
+                restorePostedTags('@Html.Raw(ViewBag.PostedExternalTags ?? "")', 'external', 'externalTagSelect', 'externalTagsContainer', 'externalTagsHidden');
+                restorePostedTags('@Html.Raw(ViewBag.PostedInternalTags ?? "")', 'internal', 'internalTagSelect', 'internalTagsContainer', 'internalTagsHidden');
+            }
+
+            function restorePostedTags(rawJson, type, selectId, containerId, hiddenId) {
+                let ids = [];
+                try { ids = JSON.parse(rawJson || '[]'); } catch (e) { ids = []; }
+                if (!Array.isArray(ids) || !ids.length) return;
+                const sel = document.getElementById(selectId);
+                const container = document.getElementById(containerId);
+                window.CertificateCreate = window.CertificateCreate || {};
+                window.CertificateCreate.TagManager = window.CertificateCreate.TagManager || { externalTags: [], internalTags: [] };
+                const bucket = type === 'external' ? window.CertificateCreate.TagManager.externalTags : window.CertificateCreate.TagManager.internalTags;
+                ids.forEach(id => {
+                    const idNum = parseInt(id);
+                    const opt = sel ? Array.from(sel.options).find(o => parseInt(o.value) === idNum) : null;
+                    const name = opt ? opt.textContent : String(id);
+                    if (!bucket.includes(idNum)) {
+                        bucket.push(idNum);
+                        if (container) {
+                            const el = document.createElement('span');
+                            el.className = `tag ${type}`;
+                            el.dataset.tagId = idNum;
+                            el.innerHTML = `${name} <button type="button" class="tag-remove" onclick="window.CertificateCreate.removeTag('${idNum}', '${type}')">&times;</button>`;
+                            container.appendChild(el);
+                        }
+                    }
+                });
+                const hidden = document.getElementById(hiddenId);
+                if (hidden) hidden.value = JSON.stringify(bucket);
+            }
+            restorePostedCreateState();
 
             // Intercept form submission to handle custom fields
             const form = document.getElementById('certificateCreateForm');

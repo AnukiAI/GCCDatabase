@@ -80,7 +80,11 @@ namespace GCCWebApp.Controllers.Api
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
             [FromQuery] int offset = 0,
-            [FromQuery] int limit = 20,
+            // DEF-249: default 0 (not 20) so `limit` is a real "not supplied" sentinel — otherwise
+            // `actualLimit = limit > 0 ? limit : pageSize` always chose limit and `pageSize` was
+            // ignored on the page/pageSize path (every page-based call capped at 20). Same fix as the
+            // internal tiles controller. UI sends page+pageSize=20 so its behavior is unchanged.
+            [FromQuery] int limit = 0,
             [FromQuery] string? certTypes = null,
             [FromQuery] string? productCat = null,
             [FromQuery] string? countries = null,
@@ -94,7 +98,12 @@ namespace GCCWebApp.Controllers.Api
 
                 // Support both page-based and offset-based pagination for backwards compatibility
                 var actualOffset = offset > 0 ? offset : (page - 1) * pageSize;
-                var actualLimit = limit > 0 ? limit : pageSize;
+                // DEF-249: clamp to [1, 200]. Lower bound prevents divide-by-zero in the Page math
+                // (line below) when pageSize=0 (now reachable since `limit` defaults to 0). Upper
+                // bound is deliberately tighter than the internal admin endpoint because THIS path is
+                // PUBLIC/unauthenticated — without it, fixing the pageSize-ignored bug would let an
+                // anonymous caller request an unbounded page (the accidental old 20-cap hid this).
+                var actualLimit = Math.Clamp(limit > 0 ? limit : pageSize, 1, 200);
 
                 var filter = new CertificateSearchFilter
                 {

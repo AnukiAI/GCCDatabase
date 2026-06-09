@@ -304,26 +304,11 @@ namespace GCCWebApp.Controllers
                                 }
                             }
 
-                            // CR-020: optional "User Company" (the user's own employer) at column
-                            // index 5 — Name, Email, Role, Status, Company Access, User Company, Partner.
-                            // Resolve the single company name to a FK; unknown name fails the row.
-                            int? userCompanyId = null;
+                            // CR-020 (revised QC #106): optional "User Company" (the user's own
+                            // employer) at column index 5 — Name, Email, Role, Status, Company
+                            // Access, User Company, Partner. Free text now — no Company lookup, any
+                            // value accepted (e.g. "GCC", "Amazon Corporate", "Novi").
                             var userCompanyRaw = values.Length > 5 ? values[5].Trim() : string.Empty;
-                            if (!string.IsNullOrWhiteSpace(userCompanyRaw))
-                            {
-                                var userCompany = await _context.Companies
-                                    .FirstOrDefaultAsync(c => c.Name.ToLower() == userCompanyRaw.ToLower());
-                                if (userCompany != null)
-                                {
-                                    userCompanyId = userCompany.Id;
-                                }
-                                else
-                                {
-                                    errors.Add($"Line {lineNumber}: User Company '{userCompanyRaw}' not found");
-                                    errorCount++;
-                                    continue;
-                                }
-                            }
 
                             // DEF-186: Password intentionally left empty — AdminService.CreateUserAsync
                             // generates a cryptographically random one and forces RequirePasswordReset
@@ -336,7 +321,7 @@ namespace GCCWebApp.Controllers
                                 Role = values[2].Trim(),
                                 Password = string.Empty,
                                 CompanyIds = companyIds,
-                                UserCompanyId = userCompanyId,   // CR-020
+                                UserCompanyName = string.IsNullOrWhiteSpace(userCompanyRaw) ? null : userCompanyRaw,   // CR-020 (free text)
                                 RequirePasswordReset = true
                             };
 

@@ -88,19 +88,22 @@
                 <caption class="admin-sr-only">User management table showing all users with their details and available actions</caption>
                 <thead class="admin-table-header">
                     <tr>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="18%" aria-sort="none" role="columnheader">
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="15%" aria-sort="none" role="columnheader">
                             Name <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="userCompanyName" width="20%" aria-sort="none" role="columnheader">
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="userCompanyName" width="15%" aria-sort="none" role="columnheader">
                             User Company <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="email" width="22%" aria-sort="none" role="columnheader">
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="companyAccess" width="15%" aria-sort="none" role="columnheader">
+                            Company Access <span class="sort-icon" aria-hidden="true">▼</span>
+                        </th>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="email" width="19%" aria-sort="none" role="columnheader">
                             Email <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="role" width="12%" aria-sort="none" role="columnheader">
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="role" width="10%" aria-sort="none" role="columnheader">
                             Role <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="status" width="10%" aria-sort="none" role="columnheader">
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="status" width="9%" aria-sort="none" role="columnheader">
                             Status <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="lastLogin" width="10%" aria-sort="none" role="columnheader">
@@ -284,11 +287,8 @@
                      Company Access below (which is the data-scoping list). Optional; all roles. -->
                 <div class="admin-form-group" id="user-company-group" style="margin-bottom: 16px;">
                     <label for="user-company" style="display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px;"><i class="fas fa-id-card-clip" style="margin-right: 6px; color: #002B76;"></i>User Company</label>
-                    <select id="user-company" class="admin-select" aria-describedby="user-company-help" style="width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; background-color: white; color: #333;">
-                        <option value="">— None —</option>
-                        <!-- Companies populated dynamically by JavaScript -->
-                    </select>
-                    <span class="admin-form-help" id="user-company-help" style="display: block; margin-top: 8px; font-size: 13px; color: #888;">The company this user works for (their own organization). Separate from Company Access.</span>
+                    <input type="text" id="user-company" class="admin-input" maxlength="255" aria-describedby="user-company-help" placeholder="e.g. GCC, Amazon Corporate, Novi" style="width: 100%; padding: 10px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; background-color: white; color: #333;" />
+                    <span class="admin-form-help" id="user-company-help" style="display: block; margin-top: 8px; font-size: 13px; color: #888;">The company this user works for (their own organization). Free text — not limited to cert companies. Separate from Company Access.</span>
                 </div>
 
                 <!-- Company Association Section - shown for External role -->

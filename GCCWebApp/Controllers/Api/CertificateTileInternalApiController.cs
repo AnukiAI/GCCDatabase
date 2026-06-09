@@ -76,7 +76,12 @@ namespace GCCWebApp.Controllers.Api
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
             [FromQuery] int offset = 0,
-            [FromQuery] int limit = 20)
+            // DEF-249: default 0 (not 20) so `limit` is a real "not supplied" sentinel. With the old
+            // default of 20, `actualLimit = limit > 0 ? limit : pageSize` (below) ALWAYS chose limit,
+            // so `pageSize` was silently ignored on the page/pageSize path — every page-based call was
+            // capped at 20 regardless of the requested pageSize ("20 of 35" symptom). The UI sends
+            // page+pageSize=20 so it was unaffected; large-pageSize API callers got short pages.
+            [FromQuery] int limit = 0)
         {
             try
             {
@@ -205,20 +210,34 @@ namespace GCCWebApp.Controllers.Api
                     query = query.Where(c => partners.Contains(c.Partner ?? "None"));
                 }
 
-                // Apply sorting
-                query = ApplySorting(query, sortBy);
-
-                // Get total count
+                // Get total count (on the filtered, unordered query — Includes are no-ops for Count).
                 var totalCount = await query.CountAsync();
 
                 // Support both offset/limit and page/pageSize for compatibility
                 var actualOffset = offset > 0 ? offset : (page - 1) * pageSize;
-                var actualLimit = limit > 0 ? limit : pageSize;
+                // DEF-249: clamp to [1, 500]. Lower bound prevents a divide-by-zero in the page/
+                // totalPages math below when a caller passes pageSize=0 (now possible since `limit`
+                // defaults to 0). Upper bound caps any single page at 500 rows.
+                var actualLimit = Math.Clamp(limit > 0 ? limit : pageSize, 1, 500);
 
-                // Apply pagination - first fetch raw data
-                var rawCertificates = await query
+                // DEF-250: paginate to IDs FIRST on an ID-only projection, THEN hydrate that page.
+                // ApplySorting's key for ASIN/GTIN/EAN/Cert-Subcats is a correlated .Min() subquery;
+                // combined with the AsSplitQuery + 4 collection Includes above, EF replicated that
+                // ORDER BY onto every split query and re-joined ~1000 ProductIds for a big-seller
+                // cert, hitting the 30s command timeout (intermittent 500s on the ASIN sort).
+                // Selecting only c.Id makes EF drop the Includes (no split queries) so the .Min()
+                // ORDER BY runs ONCE on a thin query; we then load full data for just this page.
+                var pagedIds = await ApplySorting(query, sortBy)
                     .Skip(actualOffset)
                     .Take(actualLimit)
+                    .Select(c => c.Id)
+                    .ToListAsync();
+
+                // Hydrate the page with full Includes but NO expensive ORDER BY (filter by the page's
+                // IDs; AsSplitQuery stitches the collections by PK only now). The user-requested order
+                // is restored in memory from pagedIds immediately after the fetch.
+                var rawCertificates = await query
+                    .Where(c => pagedIds.Contains(c.Id))
                     .Select(c => new
                     {
                         c.Id,
@@ -265,7 +284,12 @@ namespace GCCWebApp.Controllers.Api
                         c.UpdatedAt,
                         CertificationResults = c.CertificationResults ?? "",
                         PathwayName = c.Pathway != null ? c.Pathway.Name : "",
-                        CertSubcategories = string.Join(", ", c.CertificationTypeSubcategories.Select(s => s.Name)),
+                        // QC #157 / DEF-248 pattern: this multi-value cell displayed subcats in
+                        // insertion order while the cert-sub column sorts by .Min() (alpha-first),
+                        // so the leading shown value didn't match the sort key — read as "Cert
+                        // Subcats not sorting." Order ascending so the lead value == the sort key,
+                        // same fix already applied to ASIN/UPC/GTIN/EAN above.
+                        CertSubcategories = string.Join(", ", c.CertificationTypeSubcategories.Select(s => s.Name).OrderBy(n => n)),
                         CompanyUrl = c.Company.Website ?? "",
                         // CR-007: per-cert custom field values keyed by field id.
                         // Values are stored in TextValue regardless of FieldType (per CertificateFieldService).
@@ -275,6 +299,12 @@ namespace GCCWebApp.Controllers.Api
                             .ToList()
                     })
                     .ToListAsync();
+
+                // DEF-250: the hydrate query above filters by ID set and is NOT ordered, so restore
+                // the sorted order computed in pagedIds (the page the user actually asked for).
+                var idOrder = new Dictionary<int, int>(pagedIds.Count);
+                for (int i = 0; i < pagedIds.Count; i++) idOrder[pagedIds[i]] = i;
+                rawCertificates = rawCertificates.OrderBy(c => idOrder[c.Id]).ToList();
 
                 // CR-007: fetch all visible custom field definitions for the column toggle
                 // Internal table = analyst/admin → show every field marked IsVisible (RoleVisibility is enforced
@@ -314,11 +344,19 @@ namespace GCCWebApp.Controllers.Api
                     c.Country,
                     c.ExternalTags,
                     c.InternalTags,
-                    // Combine ProductIds list with legacy field fallback
-                    Asin = c.AsinList.Count > 0 ? string.Join(", ", c.AsinList) : c.LegacyAsin,
-                    Upc = c.UpcList.Count > 0 ? string.Join(", ", c.UpcList) : c.LegacyUpc,
-                    Gtin = c.GtinList.Count > 0 ? string.Join(", ", c.GtinList) : c.LegacyGtin,
-                    Ean = c.EanList.Count > 0 ? string.Join(", ", c.EanList) : c.LegacyEan,
+                    // Combine ProductIds list with legacy field fallback.
+                    // QC #157 (client, 6/4/2026): multi-value ID cells displayed in insertion order
+                    // while the column sorts on the cell's minimum — so the first value the eye
+                    // lands on wasn't the value the row was sorted by, reading as "ASIN not sorting."
+                    // DEF-259: order the displayed values with the SAME natural order the row sorts by
+                    // (length-then-value, matching OrderByNaturalEmptiesLast in ApplySorting) so a
+                    // numeric cell reads 2, 10, 100 (not lexical 10, 100, 2) and the leading shown
+                    // value == the row's sort key. In-memory, post-materialization — no SQL change.
+                    // Single-value cells and the legacy fallback are unaffected.
+                    Asin = c.AsinList.Count > 0 ? string.Join(", ", c.AsinList.OrderBy(v => v.Length).ThenBy(v => v)) : c.LegacyAsin,
+                    Upc = c.UpcList.Count > 0 ? string.Join(", ", c.UpcList.OrderBy(v => v.Length).ThenBy(v => v)) : c.LegacyUpc,
+                    Gtin = c.GtinList.Count > 0 ? string.Join(", ", c.GtinList.OrderBy(v => v.Length).ThenBy(v => v)) : c.LegacyGtin,
+                    Ean = c.EanList.Count > 0 ? string.Join(", ", c.EanList.OrderBy(v => v.Length).ThenBy(v => v)) : c.LegacyEan,
                     c.Isbn,
                     c.Sku,
                     c.Mpn,
@@ -741,30 +779,37 @@ namespace GCCWebApp.Controllers.Api
                 "int-tag-za" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault(), true).ThenBy(c => c.Id),
                 "partner" => query.OrderByTextEmptiesLast(c => c.Partner, false).ThenBy(c => c.Id),
                 "partner-za" => query.OrderByTextEmptiesLast(c => c.Partner, true).ThenBy(c => c.Id),
-                "asin" => query.OrderByTextEmptiesLast(c => c.ProductIds.Any(p => p.ProductIdType == "ASIN" && p.IsActive)
-                            ? c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).Min()
-                            : c.Asin, false).ThenBy(c => c.Id),
-                "asin-za" => query.OrderByTextEmptiesLast(c => c.ProductIds.Any(p => p.ProductIdType == "ASIN" && p.IsActive)
-                            ? c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).Min()
-                            : c.Asin, true).ThenBy(c => c.Id),
-                "upc" => query.OrderByTextEmptiesLast(c => c.ProductIds.Any(p => p.ProductIdType == "UPC" && p.IsActive)
-                            ? c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault()
-                            : c.Upc, false).ThenBy(c => c.Id),
-                "upc-za" => query.OrderByTextEmptiesLast(c => c.ProductIds.Any(p => p.ProductIdType == "UPC" && p.IsActive)
-                            ? c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault()
-                            : c.Upc, true).ThenBy(c => c.Id),
-                "gtin" => query.OrderByTextEmptiesLast(c => c.ProductIds.Any(p => p.ProductIdType == "GTIN" && p.IsActive)
-                            ? c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).Min()
-                            : c.Gtin, false).ThenBy(c => c.Id),
-                "gtin-za" => query.OrderByTextEmptiesLast(c => c.ProductIds.Any(p => p.ProductIdType == "GTIN" && p.IsActive)
-                            ? c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).Min()
-                            : c.Gtin, true).ThenBy(c => c.Id),
-                "ean" => query.OrderByTextEmptiesLast(c => c.ProductIds.Any(p => p.ProductIdType == "EAN" && p.IsActive)
-                            ? c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).Min()
-                            : c.Ean, false).ThenBy(c => c.Id),
-                "ean-za" => query.OrderByTextEmptiesLast(c => c.ProductIds.Any(p => p.ProductIdType == "EAN" && p.IsActive)
-                            ? c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).Min()
-                            : c.Ean, true).ThenBy(c => c.Id),
+                // DEF-260 (QC #157, supersedes the DEF-256/259 value-sort): the Cert List renders these
+                // four columns as a COUNT badge (number of IDs on the cert), not the ID values, so the
+                // client expects the column to sort by that visible count ("1000 should be at the top or
+                // bottom"). Sort key = count of ACTIVE ProductIds of the type; when a cert has none but
+                // carries a legacy single value, count it as 1 so it matches the badge (the display falls
+                // back to the legacy column). Count 0 (empty cell, no badge) sorts LAST in both directions
+                // via OrderByCountEmptiesLast. Cheap COUNT subquery; runs on the DEF-250 thin projection.
+                "asin" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "ASIN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "ASIN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Asin) ? 0 : 1), false).ThenBy(c => c.Id),
+                "asin-za" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "ASIN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "ASIN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Asin) ? 0 : 1), true).ThenBy(c => c.Id),
+                "upc" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "UPC" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "UPC" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Upc) ? 0 : 1), false).ThenBy(c => c.Id),
+                "upc-za" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "UPC" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "UPC" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Upc) ? 0 : 1), true).ThenBy(c => c.Id),
+                "gtin" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "GTIN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "GTIN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Gtin) ? 0 : 1), false).ThenBy(c => c.Id),
+                "gtin-za" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "GTIN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "GTIN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Gtin) ? 0 : 1), true).ThenBy(c => c.Id),
+                "ean" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "EAN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "EAN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Ean) ? 0 : 1), false).ThenBy(c => c.Id),
+                "ean-za" => query.OrderByCountEmptiesLast(c => c.ProductIds.Count(p => p.ProductIdType == "EAN" && p.IsActive) > 0
+                            ? c.ProductIds.Count(p => p.ProductIdType == "EAN" && p.IsActive)
+                            : (string.IsNullOrEmpty(c.Ean) ? 0 : 1), true).ThenBy(c => c.Id),
                 "contact" => query.OrderByTextEmptiesLast(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website, false).ThenBy(c => c.Id),
                 "contact-za" => query.OrderByTextEmptiesLast(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website, true).ThenBy(c => c.Id),
                 // DEF-181: sort by the persisted computed numeric column (raw text is mixed-format

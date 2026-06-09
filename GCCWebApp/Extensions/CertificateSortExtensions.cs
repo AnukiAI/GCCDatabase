@@ -36,6 +36,56 @@ namespace GCCWebApp.Extensions
             return descending ? ordered.ThenByDescending(key) : ordered.ThenBy(key);
         }
 
+        // Natural-ish sort for identifier columns (ASIN/UPC/GTIN/EAN). A plain lexicographic text
+        // sort orders numeric identifiers wrong: "100" sorts next to "10"/"1", so a column of
+        // 1,2,…,100 reads as 1,10,100,2,… (and in DESC, "100" trails the single digits — the client's
+        // "100 after single digits" report). Ordering by VALUE LENGTH first, then the value, fixes the
+        // common case: "9"(len 1) < "10"(len 2) < "100"(len 3), and within a single length the lexical
+        // order already equals the numeric order. Real IDs are fixed-length per type (ASIN=10, UPC=12,
+        // EAN=13, GTIN=14), so for production data the length term is constant and ordering degrades to
+        // the prior lexical behavior — alphanumeric ASINs (e.g. B0BRNN8BKS) still sort correctly.
+        // Empty/blank keys are still forced LAST in both directions (QC #157), same as the text helper.
+        public static IOrderedQueryable<Certificate> OrderByNaturalEmptiesLast(
+            this IQueryable<Certificate> query,
+            Expression<Func<Certificate, string?>> key,
+            bool descending)
+        {
+            var param = key.Parameters[0];
+            var coalesced = Expression.Coalesce(key.Body, Expression.Constant(string.Empty));
+
+            var isEmpty = Expression.Equal(coalesced, Expression.Constant(string.Empty));
+            var emptyFlag = Expression.Lambda<Func<Certificate, bool>>(isEmpty, param);
+
+            // (key ?? "").Length → EF emits ORDER BY ... , LEN(COALESCE(col,'')) , col
+            var lengthExpr = Expression.Property(coalesced, nameof(string.Length));
+            var lengthKey = Expression.Lambda<Func<Certificate, int>>(lengthExpr, param);
+
+            var ordered = query.OrderBy(emptyFlag);
+            return descending
+                ? ordered.ThenByDescending(lengthKey).ThenByDescending(key)
+                : ordered.ThenBy(lengthKey).ThenBy(key);
+        }
+
+        // Count counterpart (ASIN/UPC/GTIN/EAN columns): the Cert List renders these cells as a
+        // COUNT badge (how many IDs the cert has), not the ID values — so the client expects the
+        // column to sort by that visible count (DEF-260, QC #157: "1000 should be at the top or
+        // bottom"). Orders by the count; cells with no IDs (count 0) are forced LAST in both
+        // directions, consistent with the blanks-last rule the text/numeric helpers apply.
+        public static IOrderedQueryable<Certificate> OrderByCountEmptiesLast(
+            this IQueryable<Certificate> query,
+            Expression<Func<Certificate, int>> countKey,
+            bool descending)
+        {
+            var param = countKey.Parameters[0];
+            // (count == 0) → empties last. That term is never reversed, so 0-count rows stay last
+            // whether the count sort is asc or desc.
+            var isEmpty = Expression.Equal(countKey.Body, Expression.Constant(0));
+            var emptyFlag = Expression.Lambda<Func<Certificate, bool>>(isEmpty, param);
+
+            var ordered = query.OrderBy(emptyFlag);
+            return descending ? ordered.ThenByDescending(countKey) : ordered.ThenBy(countKey);
+        }
+
         // Numeric counterpart (Cert Results): NULLs always last in both directions. This
         // supersedes the DEF-181 choice of "NULLs first in ASC" for cert-results, per the
         // client's "consistent across the application" direction — populated values lead.

@@ -277,7 +277,7 @@ class UserManagement {
         if (this.filteredUsers.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="no-data">
+                    <td colspan="9" class="no-data">
                         <div class="no-data-message">
                             <i class="fas fa-users"></i>
                             <p>No users found</p>
@@ -336,13 +336,18 @@ class UserManagement {
         const statusClass = user.status?.toLowerCase() === 'active' ? 'admin-badge--success' : 'admin-badge--inactive';
         const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never';
         // CR-020 / client 2026-06-03: the table's "User Company" column shows the user's own
-        // company (employer) — NOT Company Access. Company Access lives in the modal + import/export.
+        // company (employer) — NOT Company Access.
         const companyDisplay = user.userCompanyName || '';
+        // QC #106 (6/4): the "Company Access" listing (data-scoping companies) was missing from
+        // the table — surface it as its own column. Reuses the same "All"/joined-names logic the
+        // export + import preview use (getCompanyAccessDisplay).
+        const companyAccessDisplay = this.getCompanyAccessDisplay(user);
 
         return `
             <tr class="admin-table-row" data-id="${user.id}">
                 <td class="admin-table-td user-name">${this.escapeHtml(user.name || '')}</td>
                 <td class="admin-table-td user-company">${this.escapeHtml(companyDisplay)}</td>
+                <td class="admin-table-td user-company-access">${this.escapeHtml(companyAccessDisplay)}</td>
                 <td class="admin-table-td user-email">${this.escapeHtml(user.email || '')}</td>
                 <td class="admin-table-td user-role">
                     <span class="admin-badge admin-badge--info">${this.escapeHtml(user.role || '')}</span>
@@ -464,11 +469,18 @@ class UserManagement {
         this.filteredUsers.sort((a, b) => {
             let aVal = a[field] || '';
             let bVal = b[field] || '';
-            
+
             // Handle date sorting for lastLogin
             if (field === 'lastLogin') {
                 aVal = a[field] ? new Date(a[field]) : new Date(0);
                 bVal = b[field] ? new Date(b[field]) : new Date(0);
+            }
+
+            // QC #106: Company Access is a computed display ("All"/joined names), not a raw
+            // property — sort by the same value the column shows.
+            if (field === 'companyAccess') {
+                aVal = this.getCompanyAccessDisplay(a) || '';
+                bVal = this.getCompanyAccessDisplay(b) || '';
             }
             
             // String comparison
@@ -581,10 +593,10 @@ class UserManagement {
             partnerSelect.value = '';
         }
 
-        // CR-020: set the user's own company/employer dropdown
-        const userCompanySelect = document.getElementById('user-company');
-        if (userCompanySelect) {
-            userCompanySelect.value = user.userCompanyId ? String(user.userCompanyId) : '';
+        // CR-020 (free text): set the user's own company/employer text input
+        const userCompanyInput = document.getElementById('user-company');
+        if (userCompanyInput) {
+            userCompanyInput.value = user.userCompanyName || '';
         }
 
         // Set password as optional for existing users
@@ -672,18 +684,16 @@ class UserManagement {
         const selectedPartner = partnerSelect ? partnerSelect.value : '';
         const partnerIds = selectedPartner ? [parseInt(selectedPartner)] : [];
 
-        // CR-020: the user's own company/employer (single dropdown, optional, any role).
-        const userCompanySelect = document.getElementById('user-company');
-        const userCompanyId = userCompanySelect && userCompanySelect.value
-            ? parseInt(userCompanySelect.value)
-            : null;
+        // CR-020 (free text): the user's own company/employer (text input, optional, any role).
+        const userCompanyInput = document.getElementById('user-company');
+        const userCompanyName = userCompanyInput ? userCompanyInput.value.trim() : '';
 
         const formData = {
             name: document.getElementById('user-name').value.trim(),
             email: document.getElementById('user-email').value.trim(),
             companyIds: role !== 'Partner' ? selectedCompanies : [],  // All roles except Partner
             partnerIds: role === 'Partner' ? partnerIds : [],  // Only for Partner role
-            userCompanyId: userCompanyId,  // CR-020
+            userCompanyName: userCompanyName,  // CR-020 (free text)
             role: role,
             status: document.getElementById('user-status').value,
             requirePasswordReset: document.getElementById('require-password-reset').checked
@@ -894,8 +904,9 @@ class UserManagement {
                 // the "User Company" header now maps to the employer field, NOT access — legacy
                 // CSVs that used "User Company" to mean access must switch to "Company Access".
                 'Company Access (semicolon-separated names, or "All")',
-                // CR-020: the user's OWN company / employer (single company name).
-                'User Company (single company name)',
+                // CR-020 (revised QC #106): the user's OWN company / employer — free text now,
+                // NOT restricted to a cert company (e.g. "GCC", "Amazon Corporate", "Novi").
+                'User Company (free-text employer)',
                 // DEF-232: Partner column for Partner-role rows. Semicolon-separated names,
                 // resolved client-side to IDs and sent on the CreateUser payload. Ignored
                 // for non-Partner roles.
@@ -1513,8 +1524,8 @@ class UserManagement {
                 const companyIds = this.resolveCompanyIds(row.data.company);
                 // DEF-232: resolve Partner names from CSV → partner IDs for Partner-role users.
                 const partnerIds = this.resolvePartnerIds(row.data.partner);
-                // CR-020: resolve the user's own company/employer (single name) → one company ID.
-                const userCompanyId = this.resolveSingleCompanyId(row.data.userCompany);
+                // CR-020 (free text): the user's own company/employer — passed through as-is.
+                const userCompanyName = (row.data.userCompany || '').trim();
 
                 // DEF-232: Partner role requires at least one partner. Fail fast — don't
                 // create an orphaned Partner-role user (mirrors the manual Add User guard
@@ -1537,7 +1548,7 @@ class UserManagement {
                     requirePasswordReset: true,
                     companyIds: companyIds,
                     partnerIds: partnerIds,
-                    userCompanyId: userCompanyId   // CR-020 (null if blank/unknown)
+                    userCompanyName: userCompanyName   // CR-020 (free text; null/blank ok)
                 };
 
                 if (row.action === 'create') {
@@ -1764,19 +1775,9 @@ class UserManagement {
             });
         }
 
-        // CR-020: populate the modal "User Company" single-select (the user's own employer).
-        const userCompanySelect = document.getElementById('user-company');
-        if (userCompanySelect) {
-            const current = userCompanySelect.value;
-            userCompanySelect.innerHTML = '<option value="">— None —</option>';
-            sorted.forEach(company => {
-                const option = document.createElement('option');
-                option.value = company.id;
-                option.textContent = company.name;
-                userCompanySelect.appendChild(option);
-            });
-            userCompanySelect.value = current;
-        }
+        // CR-020 (revised QC #106): "User Company" is now a free-text input, not a dropdown —
+        // no Company list to populate here. The modal's #user-company input is cleared by
+        // form.reset() on Add and set from userCompanyName on Edit.
 
         // Update modal company checkboxes
         const companiesContainer = document.getElementById('user-companies-container');

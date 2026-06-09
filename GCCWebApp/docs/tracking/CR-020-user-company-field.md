@@ -46,3 +46,45 @@ The access column was previously labeled **`User Company`** (per the 2026-05-21 
 ## Verification
 
 Localhost `:5101` Playwright + manual: create/edit a user with a User Company set; confirm it persists and round-trips through template → import → export. (Script: `Scripts/smoke-prod/def237c-user-company-verify.js`.)
+
+---
+
+## Revision 2026-06-05 — User Company reverted to FREE TEXT (QC #106 client feedback)
+
+- **Origin:** QC #106 follow-up (6/4): *"User Company can just be an open text field. Not limited to the companies added for certs. This dropdown would not work in cases like GCC users, Amazon Corporate, Novi, etc."* This reverses the 2026-06-03 dropdown decision (line 17) and restores the **original** QC #106 ask ("free-text Employer field").
+- **Approved by Shawn 2026-06-05** ("Free-text string column").
+
+### Security / logic review (done before building)
+- **Security impact: none.** Data access is driven solely by the **Company Access** collection (`User.Companies`) via `GetCurrentUserCompanyIdsAsync()` (`CertificateController.cs:1636` + identical copies in Product/Tile/v1 API controllers). That path does `u.Companies.Select(c => c.Id)` — it **never reads `UserCompany`/`UserCompanyId`**. User Company is label/display metadata only; converting it cannot widen or break any user's access.
+- **Logic fix (not just a field-type change):** the old FK *rejected* import rows whose employer wasn't an existing cert company (`AdminService.cs` + `AdminController.ImportUsers`), so "GCC"/"Amazon Corporate"/"Novi" users were un-importable. Free text removes that block and stops the importer from auto-creating junk Company rows.
+
+### Implementation delta (vs the original FK build)
+| Layer | Change |
+|------|--------|
+| Model | `User.UserCompany` is now `string?` `[MaxLength(255)]` — FK `UserCompanyId` + `Company` nav removed (`Models/User.cs`) |
+| DbContext | `HasOne/WithMany/HasForeignKey(UserCompanyId)` config removed (`Data/ApplicationDbContext.cs`) |
+| Migration | `20260605131035_ChangeUserCompanyToFreeText` — adds `UserCompany nvarchar(255)`, **backfills from `Companies.Name`**, then drops the FK/index/`UserCompanyId` column |
+| ViewModels | `UserViewModel`/`CreateUserViewModel`: `UserCompanyId` removed; `UserCompanyName` (string) is the single carrier (`Models/AdminModels.cs`) |
+| Service | `AdminService`: project/persist `UserCompany` as string; bulk-import sets it verbatim (no name→id resolve, no fail-fast) |
+| Controller | `AdminController.ImportUsers`: column 5 passed through as free text |
+| Modal | `UserManagement.cshtml` — `<select>` → `<input type="text" maxlength="255">` |
+| Client JS | `userManagement.js` — load/save `userCompanyName` string, removed dropdown-populate block, import passes free text, template hint → "free-text employer" |
+
+### Prod deploy (Gate 7 — prod never auto-migrates; DEF-239 lesson)
+Run **`Scripts/database/CR-020rev_ChangeUserCompanyToFreeText.sql`** (idempotent, transaction-wrapped, history-guarded) against the gccwebapp DB in the SAME deploy step as the DLL, then recycle the app pool. The script preserves any existing employer value by backfilling from `Companies.Name` before dropping `UserCompanyId`.
+
+### Verification (2026-06-05)
+`Scripts/smoke-prod/cr020rev-user-company-freetext.js` → **6 PASS / 0 FAIL** on `:5101`: input is text (not select), free-text "GCC Corporate …" (a non-cert company) persists on create, reflects on edit, independent of Company Access, template + export both retain the two columns.
+
+---
+
+## Revision 2026-06-05 (b) — QC #106 item #2: add "Company Access" COLUMN to the User Management table
+
+- **Origin:** QC #106 (6/4) open item #2 — *"Company Access listing is missing in table on User Management page per prior feedback."* The original CR-020 deferred the table (line 20: "Out of scope… the user table columns"); the 6/3 follow-up remapped the single table column to the **employer** field. That left the data-scoping **Company Access** value with no column. This revision adds it as its own column, so the table now shows BOTH fields the client asked to separate.
+- **Approved by Shawn 2026-06-05** ("yes do item #2 as well").
+- **Change (display-only — no backend, no schema, no API):**
+  - `Views/Admin/UserManagement.cshtml` — new sortable `<th data-sort="companyAccess">Company Access</th>` between "User Company" and "Email"; column widths rebalanced.
+  - `wwwroot/js/userManagement.js` — `createUserRow` renders a `.user-company-access` cell via the existing **`getCompanyAccessDisplay(user)`** (the same "All"/joined-names logic the CSV export + import preview already use); `handleSort` special-cases the computed `companyAccess` key; empty-state `colspan` bumped 8 → 9.
+- **Display rule (unchanged from export):** Admin/Analyst → "All" (per DEF-238 they implicitly have all access); External/Partner → their associated company names joined by ", " (or "All" if every company is selected); none set → blank.
+- **Verification (`:5101`):** `Scripts/smoke-prod/qc106-company-access-column.js` → **5 PASS / 0 FAIL** — Company Access header present and separate from User Company, all 25 rows render the cell, Admin shows "All", header-click sort renders without error. (Dev DB has only Admin/Analyst users, so the live non-"All" value wasn't exercised — but it's the identical function + `companyNames` data as the already-verified export column.)
+- **Deploy:** front-end only — ships in the same bundle as Revision (a); **no extra prod SQL** beyond the `CR-020rev` migration script.

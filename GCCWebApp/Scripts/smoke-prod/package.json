@@ -8,6 +8,7 @@
     "smoke:verbose": "VERBOSE=1 node smoke.js"
   },
   "dependencies": {
+    "axe-core": "^4.12.0",
     "playwright": "^1.49.0"
   }
 }

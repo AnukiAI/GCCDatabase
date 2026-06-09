@@ -232,6 +232,96 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// Aggregate export of all ACTIVE product identifiers across every certificate — the
+        /// "all active product identifiers across certs" report from QC #184 / CR-184.
+        /// "Active" = parent cert is publicly live (PublicStatuses: Client Approved - Paid or
+        /// Republished), which is exactly CR-015's definition of an active product identifier.
+        /// The per-certificate export (ProductIdService.ExportToCsvAsync) only covers one cert at a
+        /// time; this is the single cross-cert file an analyst needs, with the certificate context
+        /// (number, company) plus the product-level fields (name, SKU, partner) that the
+        /// parent-Product export omits. CSV only, Analyst+/Admin only.
+        /// </summary>
+        [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> DownloadActiveProductIds()
+        {
+            try
+            {
+                var userRole = HttpContext.Session.GetString("UserRole");
+                if (string.IsNullOrEmpty(userRole) || (userRole != "Admin" && userRole != "Analyst"))
+                {
+                    _logger.LogWarning("Unauthorized access attempt to DownloadActiveProductIds by role: {UserRole}", userRole ?? "None");
+                    return Forbid();
+                }
+
+                // Active product identifiers only: non-deleted rows whose parent cert is publicly
+                // live (PublicStatuses = Paid or Republished) — the client's "all active product
+                // identifiers across certs". AsSplitQuery + tie-breaker ordering per the
+                // many-Includes guidance (DEF-166/234).
+                var rows = await _context.CertificateProductIds
+                    .Where(p => p.IsActive && CertificateStatusHelper.PublicStatuses.Contains(p.Certificate.Status))
+                    .Include(p => p.Certificate)
+                        .ThenInclude(c => c.Company)
+                    .Include(p => p.CreatedByUser)
+                    .OrderBy(p => p.Certificate.Number)
+                    .ThenBy(p => p.ProductIdType)
+                    .ThenBy(p => p.Id)
+                    .AsSplitQuery()
+                    .ToListAsync();
+
+                _logger.LogInformation("DownloadActiveProductIds exporting {Count} active product identifiers across all certificates", rows.Count);
+
+                var csv = new StringBuilder();
+                csv.AppendLine("Report: Active Product Identifiers (All Certificates)");
+                csv.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+                csv.AppendLine($"Total Active Product Identifiers: {rows.Count}");
+                csv.AppendLine();
+                // No status columns: the export is filtered to active identifiers (parent cert
+                // Paid/Republished), so every row is active by construction. Both the derived
+                // Identifier Status (CR-015) and the Certificate Status would be non-informative.
+                csv.AppendLine("Certificate Number,Company,Identifier Type,Id Value,Partner,Product Name,SKU,Description,Effective Date,Expiration Date,Created Date,Created By");
+
+                foreach (var p in rows)
+                {
+                    var c = p.Certificate;
+                    csv.AppendLine(string.Join(",", new[]
+                    {
+                        CsvField(c?.Number),
+                        CsvField(c?.Company?.Name),
+                        CsvField(p.ProductIdType),
+                        CsvField(p.ProductIdValue),
+                        CsvField(p.Partner),
+                        CsvField(p.ProductName),
+                        CsvField(p.ProductSku),
+                        CsvField(p.Description),
+                        CsvField(c?.EffectiveDate.ToString("yyyy-MM-dd")),
+                        CsvField(c?.ExpirationDate.ToString("yyyy-MM-dd")),
+                        CsvField(p.CreatedAt.ToString("yyyy-MM-dd")),
+                        CsvField(p.CreatedByUser?.Username)
+                    }));
+                }
+
+                var fileName = $"active-product-identifiers-{DateTime.UtcNow:yyyy-MM-dd}.csv";
+                return File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating active-product-identifiers export");
+                return BadRequest("Error generating report");
+            }
+        }
+
+        /// <summary>
+        /// Wraps a CSV field in quotes and escapes embedded quotes (RFC 4180 doubling),
+        /// so values containing commas, quotes, or newlines (e.g. Product Name / Description)
+        /// don't break the column layout.
+        /// </summary>
+        private static string CsvField(string? value)
+        {
+            return "\"" + (value ?? string.Empty).Replace("\"", "\"\"") + "\"";
+        }
+
         private async Task<object?> GetStatData(string type, Dictionary<string, int> stats)
         {
             _logger.LogInformation("GetStatData called for type: {StatType}", type);

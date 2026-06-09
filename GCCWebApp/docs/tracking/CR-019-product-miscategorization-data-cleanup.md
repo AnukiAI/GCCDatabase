@@ -1,6 +1,12 @@
 # CR-019 — Data-correction pass: product mis-categorization cleanup (DEF-231 fallout)
 
-**Status:** Proposed — awaiting GCC approval
+> ## ✅ APPLIED (partial) — 2026-06-08
+> A scoped UPDATE pass ran + **committed to prod** on 2026-06-08 (Shawn-approved, this session), via `Scripts/data-ops/2026-06-08-carlytest-recategorize-UPDATE.sql`. Decision: **UPDATE, not delete; leave the "Carly Test" category in place** (Shawn 2026-06-08).
+> **IDENTIFY found a tiny footprint** (read-only against prod): 2 mis-filed products (131 "Eero test", 133 "Test 2 Product") + 4 certs on the default "Carly Test" category (Id 9): 26-0159/0161/0163/0167.
+> **Re-filed:** Product 133 → Chemicals/Plastics/PS (recovered from its DEF-243-corrected cert 26-0168); Product 131 → Electronics (chosen, no source — Eero=Amazon Wi-Fi); Certs 26-0159/0161/0163 → Consumer Products (match their products 116/117/127); Cert 26-0167 → Electronics. **Post-commit re-read: 0 products + 0 certs remain on Carly Test.** Backups: `Products_bak_CR019_20260608` (2), `Certificates_bak_CR019_20260608` (4) — restore source if needed.
+> No code/deploy involved (the bug fix DEF-231/DEF-243 was already live). The §3 DELETE / Carly-Test-removal portions below were **superseded** by the update-in-place decision and were NOT run.
+
+**Status:** **Applied (update-in-place) 2026-06-08** — see banner above. (Original: Proposed — awaiting GCC approval.)
 **Date drafted:** 2026-06-01
 **Type:** Data operation (one-time UPDATE/DELETE on live records) — *not* a code change or scope change
 **Requested approval from:** GCC

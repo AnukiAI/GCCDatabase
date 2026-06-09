@@ -913,15 +913,16 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
         const formTypeId = formTypeEl && formTypeEl.value ? parseInt(formTypeEl.value) : null;
         const formSubId = formSubEl && formSubEl.value ? parseInt(formSubEl.value) : null;
 
-        // Category is required by /Product/SaveProduct. Prefer the analyst's pick; only fall
-        // back to the default when the form has no category selected. Type/subcategory ride
-        // along ONLY when we used the form's category (otherwise they'd belong to a different one).
-        const usingFormCategory = !!formCategoryId;
-        const categoryId = formCategoryId || await getDefaultCategoryId();
-        if (!categoryId) {
-            showError('Unable to create product - no categories available');
+        // QC #186 (6/4) hardening: never silently file a quick-added product under the default
+        // (lowest-sorted) category — that is exactly what produced the "Carly Test"
+        // mis-categorization. Require the analyst to choose a Product Category on the cert form
+        // first, so the new product is filed under the same hierarchy the cert will carry.
+        // (Previously this fell back to getDefaultCategoryId() when no category was picked.)
+        if (!formCategoryId) {
+            showError('Select a Product Category above before adding a new product.');
             return;
         }
+        const categoryId = formCategoryId;
 
         try {
             const response = await fetch('/Product/SaveProduct', {
@@ -935,8 +936,8 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
                     Name: name,
                     CompanyId: companyId ? parseInt(companyId) : null,
                     CategoryId: categoryId,
-                    ProductTypeId: usingFormCategory ? formTypeId : null,
-                    ProductSubcategoryId: usingFormCategory ? formSubId : null,
+                    ProductTypeId: formTypeId,
+                    ProductSubcategoryId: formSubId,
                     IsActive: true
                 })
             });

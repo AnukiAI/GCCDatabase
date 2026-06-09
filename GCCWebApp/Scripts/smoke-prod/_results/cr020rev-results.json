@@ -1,0 +1,43 @@
+{
+  "pass": 6,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "id": "F0",
+      "desc": "#user-company is a free-text input",
+      "status": "PASS",
+      "detail": "tag=INPUT, type=text, maxLength=255"
+    },
+    {
+      "id": "F1",
+      "desc": "Free-text User Company persists on create",
+      "status": "PASS",
+      "detail": "userCompanyName=\"GCC Corporate 283\" (expected \"GCC Corporate 283\")"
+    },
+    {
+      "id": "F2",
+      "desc": "Edit modal reflects saved free text",
+      "status": "PASS",
+      "detail": "input value=\"GCC Corporate 283\", expected \"GCC Corporate 283\""
+    },
+    {
+      "id": "F3",
+      "desc": "User Company independent of Company Access",
+      "status": "PASS",
+      "detail": "Admin user carries User Company without company-access scoping"
+    },
+    {
+      "id": "T1",
+      "desc": "Import template has Company Access + User Company columns",
+      "status": "PASS",
+      "detail": "header=\"Name,Email,Role (Admin/Analyst/External/Partner),Status (Active/Inactive),\"Company Access (semicolon-separated names, or \"\"All\"\")\",User Company (single company name),Partner (semicolon-separated names; required for Partner role)\""
+    },
+    {
+      "id": "T2",
+      "desc": "Export has Company Access + User Company columns",
+      "status": "PASS",
+      "detail": "header=\"Name,Email,Role,Status,Company Access,User Company,Last Login,2FA\""
+    }
+  ]
+}

@@ -215,6 +215,14 @@ namespace GCCWebApp.Controllers
                 // First, get the products with related data
                 // Now pulling identifiers from CERTIFICATE level (CertificateProductId) instead of Product level
                 var productsData = await query
+                    // DEF-253 #2: AsSplitQuery on the two nested Certificates.{ProductIds,Partners}
+                    // sub-queries. Measured both ways on the REAL endpoint (not the page shell): split =
+                    // ~26s cold then 1 fast; single = ~25s cold + a 2nd ~17s call. So split is neutral-
+                    // to-slightly-better and is KEPT. The ~25s FIRST call is an inherent EF cold-start on
+                    // this full-table load — NOT caused by split — tracked separately as DEF-255 (it can
+                    // make the post-save loadProducts() refresh time out and look like a failed save).
+                    .AsSplitQuery()
+                    .OrderBy(p => p.Id)
                     .Select(p => new
                     {
                         p.Id,

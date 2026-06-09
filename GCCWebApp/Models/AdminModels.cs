@@ -30,9 +30,8 @@ namespace GCCWebApp.Models
 
         public List<int> PartnerIds { get; set; } = new List<int>();
 
-        // CR-020: the user's own company/employer (single, optional FK). Distinct from
-        // CompanyIds, which is the data-access scope. UserCompanyName is for display.
-        public int? UserCompanyId { get; set; }
+        // CR-020 (revised QC #106): the user's own company/employer as free text. Distinct from
+        // CompanyIds, which is the data-access scope. Label/display only.
         public string? UserCompanyName { get; set; }
 
         public DateTime? LastLogin { get; set; }
@@ -107,8 +106,8 @@ namespace GCCWebApp.Models
 
         public List<int> PartnerIds { get; set; } = new List<int>();
 
-        // CR-020: the user's own company/employer (single, optional FK).
-        public int? UserCompanyId { get; set; }
+        // CR-020 (revised QC #106): the user's own company/employer as free text.
+        public string? UserCompanyName { get; set; }
 
         public bool RequirePasswordReset { get; set; } = true;
     }

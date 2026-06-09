@@ -513,6 +513,16 @@
             const savedProductId = '@(Model.ProductId > 0 ? Model.ProductId.ToString() : "")';
             const savedCompanyId = '@(Model.CompanyId > 0 ? Model.CompanyId.ToString() : "")';
 
+            // QC #186 (6/4): protect an EXPLICIT cert-level category from the load-time product
+            // auto-fill. On initial load the saved product is pre-selected programmatically, which
+            // fires #ProductId 'change'; if the cert has its own saved Category/Type/Subcategory
+            // (loaded by initProductCascade) the auto-fill must NOT overwrite them. But if the cert
+            // has NO cert-level category, we DO let the product populate the effective value on load
+            // (matches the display projection: cert override else product-derived). The guard is
+            // released right after load so a genuine user product re-pick still auto-fills.
+            const hasSavedCertCategory = @(Model.ProductCategoryId != null ? "true" : "false");
+            let suppressProductAutoFill = false;
+
             // ===== Company → Product Cascading Dropdown (REQ-CERT-10) =====
 
             // Load products for a company and optionally pre-select a product
@@ -545,12 +555,19 @@
                             // Explicitly set value after all options are in the DOM
                             if (preselectProductId) {
                                 setTimeout(() => {
+                                    // QC #186: guard the auto-fill on this load-time pre-select so it
+                                    // doesn't clobber an explicit cert-level Category/Type/Subcategory.
+                                    // (No-op when the cert has no saved category — product fills it.)
+                                    suppressProductAutoFill = hasSavedCertCategory;
                                     productSelect.val(preselectProductId);
                                     productSelect.trigger('change');
                                     // DEF-225: jQuery .trigger('change') doesn't fire native event
                                     // listeners; the custom-dropdown-wrapper uses addEventListener
                                     // and would otherwise stay on the placeholder text.
                                     productSelect[0].dispatchEvent(new Event('change', { bubbles: true }));
+                                    // Release the guard after both synchronous dispatches so a later
+                                    // user-initiated product change still auto-fills as designed.
+                                    setTimeout(() => { suppressProductAutoFill = false; }, 0);
                                 }, 50);
                             }
                             helpText.text(`${result.data.length} product(s) found`);
@@ -576,6 +593,8 @@
             $('#CompanyId').change(async function() {
                 const companyId = $(this).val();
                 $('#ProductCategoryId').val('');
+                // Keep the SearchableSelect display in sync with the cleared native value.
+                document.querySelector('#ProductCategoryId')?._searchableSelect?.refresh();
                 $('#ProductTypeId').html('<option value="">Select category first...</option>');
                 $('#ProductSubcategoryId').html('<option value="">Select type first...</option>');
                 await loadProductsForCompany(companyId);
@@ -583,6 +602,9 @@
 
             // When product changes, auto-fill category/type/subcategory
             $('#ProductId').change(async function() {
+                // QC #186: skip the destructive auto-fill on the initial programmatic pre-select —
+                // respect the cert's own saved Category/Type/Subcategory (loaded by initProductCascade).
+                if (suppressProductAutoFill) return;
                 const productId = parseInt($(this).val());
                 if (!productId) return;
 
@@ -591,6 +613,8 @@
 
                 if (product.categoryId) {
                     $('#ProductCategoryId').val(product.categoryId);
+                    // Sync the SearchableSelect display to the auto-filled category.
+                    document.querySelector('#ProductCategoryId')?._searchableSelect?.refresh(product.categoryId);
                     try {
                         const response = await fetch(`/Certificate/GetProductTypes?categoryId=${product.categoryId}`);
                         const result = await response.json();

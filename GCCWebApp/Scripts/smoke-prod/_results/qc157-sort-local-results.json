@@ -1,8 +1,8 @@
 {
-  "ts": "2026-06-04T03:10:11.466Z",
-  "base": "https://gccwebapp.com",
+  "ts": "2026-06-09T15:43:45.912Z",
+  "base": "http://localhost:5101",
   "pass": 12,
-  "fail": 2,
+  "fail": 0,
   "results": [
     {
       "id": "login",
@@ -12,62 +12,52 @@
     {
       "id": "dataset",
       "status": "PASS",
-      "detail": "20 certs total (analyst/admin scope)"
+      "detail": "34 certs total (analyst/admin scope)"
     },
     {
       "id": "DEF-181 canary (cert-results sort)",
       "status": "PASS",
-      "detail": "HTTP 200, 20 rows — CertificationResultsNumeric column present + queried"
+      "detail": "HTTP 200, 34 rows — CertificationResultsNumeric column present + queried"
     },
     {
       "id": "Location:asc",
-      "status": "FAIL",
-      "detail": "20/20 populated; asc break: \"é™®ä, PA\" > \"Gent, Belgium\"; firstPopulated=[Amherst, VA & Rogers, AR | Athens, GA; Chowchilla, CA | Bainbridge Island, WA]"
+      "status": "PASS",
+      "detail": "3/34 populated; 3 populated lead, blanks last; firstPopulated=[DEF-193 RedirectTest | Hartford, CT | Portland, OR]"
     },
     {
       "id": "Location:desc",
-      "status": "FAIL",
-      "detail": "desc break: \"Gent, Belgium\" < \"é™®ä, PA\"; firstPopulated=[United Kingdom | Tijuana, MX | Springdale, AR]"
-    },
-    {
-      "id": "ASIN:asc",
       "status": "PASS",
-      "detail": "13/20 populated; 13 populated lead, blanks last; firstPopulated=[1232133543 | B0046CD3IO | B005PMYJBO]"
-    },
-    {
-      "id": "ASIN:desc",
-      "status": "PASS",
-      "detail": "13 populated lead, blanks last; firstPopulated=[B99N5WRWNW | B0GJRV3MZC | B0D9HW3Z3Y]"
+      "detail": "3 populated lead, blanks last; firstPopulated=[Portland, OR | Hartford, CT | DEF-193 RedirectTest]"
     },
     {
       "id": "Cert Subcategories:asc",
       "status": "PASS",
-      "detail": "4/20 populated; 4 populated lead, blanks last; firstPopulated=[Certified Energy Savings | Certified Energy Savings | Closed Loop Product]"
+      "detail": "0/34 populated; all empty (nothing to order); firstPopulated=[]"
     },
     {
       "id": "Cert Subcategories:desc",
       "status": "PASS",
-      "detail": "4 populated lead, blanks last; firstPopulated=[Recycled Content | Closed Loop Product | Certified Energy Savings]"
+      "detail": "all empty (nothing to order); firstPopulated=[]"
     },
     {
       "id": "Company URL:asc",
       "status": "PASS",
-      "detail": "9/20 populated; 9 populated lead, blanks last; firstPopulated=[https://test1.com | https://test1.com | https://test1.com]"
+      "detail": "6/34 populated; 6 populated lead, blanks last; firstPopulated=[https://acme.com | https://acme.com | https://acme.com]"
     },
     {
       "id": "Company URL:desc",
       "status": "PASS",
-      "detail": "9 populated lead, blanks last; firstPopulated=[https://www.usa.philips.com/ | https://www.pg.com | https://www.google.com/]"
+      "detail": "6 populated lead, blanks last; firstPopulated=[https://beta.com | https://beta.com | https://acme.com]"
     },
     {
       "id": "Partner:asc",
       "status": "PASS",
-      "detail": "20/20 populated; 20 populated lead, blanks last; firstPopulated=[Amazon | Amazon | Amazon]"
+      "detail": "34/34 populated; 34 populated lead, blanks last; firstPopulated=[Amazon | Amazon | Amazon]"
     },
     {
       "id": "Partner:desc",
       "status": "PASS",
-      "detail": "20 populated lead, blanks last; firstPopulated=[None | None | None]"
+      "detail": "34 populated lead, blanks last; firstPopulated=[Novi | None | None]"
     },
     {
       "id": "Status",

@@ -549,6 +549,11 @@ namespace GCCWebApp.Services
                 .Include(c => c.Pathway)
                 .Include(c => c.Tags)
                 .Include(c => c.ProductIds)
+                // DEF-253 NOTE: tried .AsSplitQuery() here and it REGRESSED — the export is an
+                // unfiltered full-table pull with no pagination, so N split queries each re-scanning
+                // ProductIds/Tags/Subcats for ALL certs (incl. the 1000-ProductId seed cert) timed out
+                // at 30s, whereas the single de-duped cartesian completes fine. AsSplitQuery helps
+                // PAGINATED queries (DEF-250) and small-projection lists (DEF-251), not this. Left single-query.
                 .AsQueryable();
         }
 
@@ -590,9 +595,13 @@ namespace GCCWebApp.Services
 
         private static string GetProductIdValues(Certificate c, string type)
         {
+            // QC #157: order multi-value ID cells ascending so the displayed values read
+            // consistently with the internal list view (where the leading value matches the
+            // .Min() sort key). In-memory ordering on an already-loaded collection — no SQL change.
             var fromCollection = c.ProductIds?
                 .Where(pid => pid.ProductIdType == type && pid.IsActive)
                 .Select(pid => pid.ProductIdValue)
+                .OrderBy(v => v)
                 .ToList();
 
             if (fromCollection != null && fromCollection.Any())
@@ -1093,9 +1102,14 @@ namespace GCCWebApp.Services
             {
                 var csv = new StringBuilder();
 
-                // Get custom fields and values for all exported certificates
+                // Get custom fields and values for all exported certificates.
+                // DEF-198 (QC #182): pass the same internal-caller gate used for the Internal Tag
+                // column so custom fields marked RoleVisibility="Internal" (GCC Admin/Analyst only)
+                // are excluded for Partner/External/anonymous callers. Previously every custom field
+                // value was emitted regardless of visibility, leaking Internal fields (e.g. the
+                // "Chris Test Field") into the partner CSV export.
                 var certIds = certificates.Select(c => c.Id).ToList();
-                var (customFieldNames, customFieldValueMap) = GetCustomFieldDataForExport(certIds);
+                var (customFieldNames, customFieldValueMap) = GetCustomFieldDataForExport(certIds, includeInternalTags);
 
                 // CSV Header — all certificate fields + admin custom fields
                 // CSV header text matches the certificate tile UI column labels.
@@ -1153,13 +1167,23 @@ namespace GCCWebApp.Services
         /// Gets all custom field names and their values for the given certificate IDs.
         /// Returns ordered field names and a map of certificateId -> (fieldName -> value).
         /// </summary>
-        private (List<string> FieldNames, Dictionary<int, Dictionary<string, string>> ValueMap) GetCustomFieldDataForExport(List<int> certificateIds)
+        private (List<string> FieldNames, Dictionary<int, Dictionary<string, string>> ValueMap) GetCustomFieldDataForExport(List<int> certificateIds, bool includeInternalFields = true)
         {
             try
             {
-                // Get all custom field values for these certificates, joined with field names
-                var fieldValues = _context.CustomFieldValues
-                    .Where(cfv => certificateIds.Contains(cfv.CertificateId))
+                // Get all custom field values for these certificates, joined with field names.
+                // DEF-198 (QC #182): non-internal callers (Partner/External/anonymous) must not
+                // receive custom fields whose RoleVisibility is "Internal" (GCC Admin/Analyst only).
+                // The null guard keeps legacy rows with an unset visibility (treated as Public).
+                var query = _context.CustomFieldValues
+                    .Where(cfv => certificateIds.Contains(cfv.CertificateId));
+
+                if (!includeInternalFields)
+                {
+                    query = query.Where(cfv => cfv.Field.RoleVisibility == null || cfv.Field.RoleVisibility != "Internal");
+                }
+
+                var fieldValues = query
                     .Include(cfv => cfv.Field)
                     .Select(cfv => new
                     {

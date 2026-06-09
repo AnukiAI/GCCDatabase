@@ -42,6 +42,9 @@
                     <button id="export-btn" class="admin-btn admin-btn--secondary">
                         <i class="fas fa-file-arrow-up"></i> Export
                     </button>
+                    <button id="export-all-product-ids-btn" class="admin-btn admin-btn--secondary role-element role-analyst-show role-admin-show" title="Export all active product identifiers across every certificate to CSV">
+                        <i class="fas fa-file-arrow-up"></i> Export Active Product Identifiers
+                    </button>
                     <button id="add-product-btn" class="admin-btn admin-btn--primary role-element role-analyst-show role-admin-show">
                         <i class="fas fa-plus"></i> Add New Product
                     </button>
@@ -546,6 +549,54 @@
             }
             if (exportBtn) exportBtn.addEventListener('click', exportProducts);
 
+            // Aggregate export: all ACTIVE product identifiers across every certificate (parent cert
+            // Paid/Republished). Server-generated CSV (ExportController.DownloadActiveProductIds,
+            // Analyst+/Admin only) — includes certificate context + product name/SKU/partner. Button
+            // is role-gated to analyst/admin; the endpoint also enforces AnalystOrAdmin server-side.
+            const exportAllProductIdsBtn = document.getElementById('export-all-product-ids-btn');
+            if (exportAllProductIdsBtn) {
+                exportAllProductIdsBtn.addEventListener('click', async function() {
+                    AdminCore.showLoading(exportAllProductIdsBtn);
+                    try {
+                        const response = await fetch('/Export/DownloadActiveProductIds', {
+                            method: 'GET',
+                            credentials: 'same-origin',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        if (!response.ok) {
+                            AdminCore.hideLoading(exportAllProductIdsBtn);
+                            const msg = (response.status === 401 || response.status === 302)
+                                ? 'Please login and try again.'
+                                : 'Export failed. Please try again.';
+                            AdminCore.showNotification(msg, 'error');
+                            return;
+                        }
+
+                        const contentType = response.headers.get('Content-Type') || '';
+                        if (!contentType.includes('text/csv') && !contentType.includes('application/octet-stream')) {
+                            AdminCore.hideLoading(exportAllProductIdsBtn);
+                            AdminCore.showNotification('Session expired. Please login and try again.', 'error');
+                            return;
+                        }
+
+                        const blob = await response.blob();
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `active-product-identifiers-${new Date().toISOString().split('T')[0]}.csv`;
+                        link.click();
+                        URL.revokeObjectURL(link.href);
+
+                        AdminCore.hideLoading(exportAllProductIdsBtn);
+                        AdminCore.showNotification('Exported all product identifiers successfully!', 'success');
+                    } catch (error) {
+                        console.error('Error exporting product identifiers:', error);
+                        AdminCore.hideLoading(exportAllProductIdsBtn);
+                        AdminCore.showNotification('Error exporting product identifiers. Please try again.', 'error');
+                    }
+                });
+            }
+
             // Modal cascade dropdowns: Category → Type → Subcategory
             const categorySelect = document.getElementById('product-category');
             const typeSelect = document.getElementById('product-type');
@@ -821,6 +872,17 @@
             productModal.style.justifyContent = 'center';
         }
 
+        // QC #186 (#3): guarantee a saved value is present as an option so it carries over on edit,
+        // even when the cascade filter (by category/type) wouldn't include it (cross-category data).
+        function ensureSavedOption(selectId, value, label) {
+            if (!value) return;
+            const sel = document.getElementById(selectId);
+            if (!sel) return;
+            if (!Array.from(sel.options).some(o => String(o.value) === String(value))) {
+                sel.add(new Option(label || ('#' + value), value));
+            }
+        }
+
         async function editProduct(id) {
             const product = products.find(p => p.id === id);
             if (!product) return;
@@ -836,12 +898,19 @@
             document.getElementById('product-category').value = product.categoryId || '';
 
             populateTypeDropdown(product.categoryId || 0);
+            // QC #186 (#3): the Type list is filtered to the product's category, but a product can
+            // carry a saved Type that isn't under that category (cross-category data, or an "Other"
+            // type that lives under a different category). Without this, the saved Type silently
+            // vanished on edit and Save would null it ("not seeing all options carried over").
+            // Inject the saved option if the cascade didn't include it, so it always carries over.
+            ensureSavedOption('product-type', product.productTypeId, product.productTypeName);
             document.getElementById('product-type').value = product.productTypeId || '';
 
             const subSelect = document.getElementById('product-subcategory');
             if (subSelect) subSelect.innerHTML = '<option value="">Select Subcategory</option>';
             if (product.productTypeId) {
                 await populateSubcategoryDropdown(product.productTypeId);
+                ensureSavedOption('product-subcategory', product.productSubcategoryId, product.productSubcategoryName);
                 document.getElementById('product-subcategory').value = product.productSubcategoryId || '';
             }
 
@@ -962,15 +1031,25 @@
                 if (response.ok) {
                     const result = await response.json();
                     if (result.success) {
-                        await loadProducts();
+                        // DEF-255: the POST has ALREADY persisted at this point. Give the user immediate
+                        // success feedback and close the modal BEFORE refreshing the list, so a slow
+                        // /Product/GetProducts reload (a heavy full-table query that can take many seconds)
+                        // can never make a save that succeeded look like it "didn't save". The table is
+                        // then refreshed in the background; if that refresh is slow or fails, the saved
+                        // data is unaffected and the user has already been told it saved.
                         closeModal();
-                        populateTable();
                         const message = result.message || (formData.id ? 'Product updated successfully' : 'Product added successfully');
                         // Note: dropped the legacy showNotification() call here. It referenced an
                         // undeclared `notificationQueue` global and threw a ReferenceError that the
                         // outer catch surfaced as a misleading "Error saving product" toast — even
                         // though the row had already been persisted. showToast → AdminCore handles it.
                         showToast(message);
+                        try {
+                            await loadProducts();
+                            populateTable();
+                        } catch (refreshErr) {
+                            console.error('Product list refresh failed after a successful save (data was persisted):', refreshErr);
+                        }
                     } else {
                         showToast(result.message || 'Error saving product', 'error');
                     }

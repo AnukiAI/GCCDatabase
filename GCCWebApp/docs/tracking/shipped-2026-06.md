@@ -28,7 +28,33 @@ Period: 2026-06-01 → ongoing
 | **Pending deploy 2026-06-08** (`GCCWebApp-deploy-20260608-1543.zip`) | **Latest bundle, supersedes 1641.zip.** Adds **DEF-258** — the **Cert SubCategories** column on the internal Cert List now displays its (multi-value) subcategories in the same order it sorts by, so the first subcategory shown is the one the row is ordered on. Closes the last open thread of QC #157 (the client had deprioritized this column). Same fix already applied to ASIN/UPC/GTIN/EAN in DEF-248. Code-only, **no migration**; build-clean (Release publish, 334 app files). Carries forward everything in 1641.zip (DEF-246/247/248/249/250/251/253/254/255/256 + CR-020rev + DEF-252 auto-migrate). **Gate 7: no-op** — only migration in the tree is `ChangeUserCompanyToFreeText`, already on prod since the DEF-252 remediation; bundled idempotent `apply-migrations.sql` + DEF-252 auto-migrate-on-startup both find nothing to apply. *Caveat:* the dev DB has **0** certs with cert subcategories, so DEF-258 is verified by code-parity with DEF-248, not a populated render — recommend a quick prod re-check once it's live. |
 | **SUPERSEDED by DEF-260 / caused a prod 503 on deploy — do not re-use** (`GCCWebApp-deploy-20260609-1026.zip`) | **DEF-259** — Cert List (Internal) numeric ID *value* sort. Built + localhost-verified, but on upload to gccwebapp.com it returned a site-wide **503** (deploy-mechanics: locked DLL / app pool not recycled — the code booted clean locally and is not the cause). Client rolled back to the prior build to restore the site. Then clarified that the ID columns show a **count badge**, not values — so value-sorting was the wrong axis. Replaced by **DEF-260** (count sort). Keep this row for history; deploy the DEF-260 bundle instead, with **stop-app → extract → start-app**. |
 | **Pending deploy 2026-06-09** (`GCCWebApp-deploy-20260609-1146.zip`, supersedes 1543.zip; the 1026.zip is dead) | **DEF-260** — Cert List ID columns (ASIN/UPC/GTIN/EAN) now **sort by the count badge** (number of IDs on the cert), so the cert with ~1000 IDs goes to the top/bottom as the client expects. The columns render a count badge, not the ID values, so the prior value-based sorts (DEF-256/259) never matched what the client saw. New `OrderByCountEmptiesLast` helper; empty cells last both directions; cheap COUNT on the DEF-250 thin projection (no timeout); internal + external controllers in parity. Code-only, **no migration**. localhost-verified: `def260-count-sort-probe.js` 8/0 (asc `1,2,3,6,101,1004`; desc `1004,…,1`), `qc157-sort-verify-local.js` 12/0 (no regression). **Deploy: stop the app FIRST, extract, then start** (the 1026.zip 503 was caused by extracting over a running worker). |
+| **Pending deploy 2026-06-16** (`GCCWebApp-deploy-20260616-1124.zip`) | **DEF-266** — Certificate **Create** page no longer throws an "Error loading custom fields" toast when a Certification Type is selected: the custom-fields loader now checks the HTTP response before parsing, separates the network step from rendering, and tolerates a malformed field row (null type → defaults to text) instead of crashing the whole section. JS-only, **no migration**. **This bundle also carries the full in-flight working tree** — the CR-186 product-split going-forward code, **DEF-265** (cert edit updates its product in place instead of spawning a duplicate line item), and **DEF-264** (PDF download). Build-clean (334 app files); bundled idempotent `apply-migrations.sql` (Gate 7: no new migrations beyond what's already on prod). |
+| **Pending deploy 2026-06-15** | **DEF-264** — certificate **PDF download** restored: after the DEF-208 file move (PDFs relocated to `App_Data`), Download and bulk-ZIP still looked in the old `wwwroot` location and returned a "No certificate PDF has been uploaded" error / a placeholder. Both now resolve the real file. Code-only, **no migration**; build-clean. |
 | ~~**Pending deploy 2026-06-09** (`GCCWebApp-deploy-20260609-1026.zip`, supersedes 1543.zip)~~ — superseded, see above | ~~**DEF-259** — Cert List (Internal) numeric ID sort residual.~~ The client confirmed (with 1543.zip already live) that "the sort on the numbers is still not working." Multi-value numeric ID cells (ASIN/UPC/GTIN/EAN) were still ordered **lexically** for both the displayed values and the row's sort key, so a cell `{2, 10}` rendered `"10, 2"` and the row sorted as if its smallest value were `10`. Now both use the same **natural** order (length-then-value): the cell reads `2, 10, 100` and the row is positioned by its true smallest ID. UPC also moved off its old arbitrary representative. Code-only, **no migration**; runs on the DEF-250 thin projection so no sort-timeout regression. localhost-verified (qc157 14/0, def248 8/0, run log clean). **Note:** real production IDs are fixed-length/alphanumeric, where this is a no-op — the effect is only visible on variable-length **numeric** (test-shaped) IDs, so a prod re-check on the client's numeric test data is recommended once deployed. Bundle carries forward everything in 1543.zip (DEF-246–258 + CR-020rev + DEF-252 auto-migrate). **Gate 7: no-op** — no model change in this fix, so no new migration beyond `ChangeUserCompanyToFreeText` (already on prod since DEF-252); bundled idempotent `apply-migrations.sql` + DEF-252 auto-migrate-on-startup both find nothing to apply. |
+
+---
+
+## DEF-266 — Certificate Create: "Error loading custom fields" message when selecting a Certification Type
+
+Reported by the client (6/16): on the certificate **Create** page (gccwebapp.com/Certificate/Create), choosing a **Certification Type** popped an "Error loading custom fields" message.
+
+The custom-fields section loads its fields the moment you pick a Certification Type. The screen was showing one generic error for two completely different underlying situations, with no way to tell them apart: (1) the request for the field list came back as something other than the expected data (for example, a session that had quietly timed out, or a server hiccup), or (2) one custom-field definition was incomplete (missing its field *type*), which crashed the part of the page that draws the fields — even though loading them had actually succeeded.
+
+**What changed:** the loader now (a) checks the server response is valid before trying to read it — so a timed-out session or a server error is reported clearly instead of as a confusing parse failure, (b) separates "fetching the fields" from "drawing the fields," so a single bad field definition no longer takes down the whole section, and (c) treats a custom field with a missing type as a plain text box instead of failing. On a healthy page nothing changes — the fields load as before. The browser console now also records the *real* cause, so if anything does go wrong we can immediately tell a session/server issue from a bad field definition.
+
+Display/behavior change only — no database change, no migration. The fix is in the browser script, so it takes effect once this build is deployed and the page is reloaded. Pending deploy in `GCCWebApp-deploy-20260616-1124.zip`; recommend a quick live check (open Create, pick a Certification Type, confirm no error) once it's up.
+
+---
+
+## DEF-264 — Certificate PDF download restored ("No certificate PDF has been uploaded" error)
+
+Reported by the client (6/15): downloading a certificate showed an error message instead of the PDF.
+
+The cause was a leftover from an earlier internal change (DEF-208) that moved where uploaded certificate files are stored. The certificate **view/preview** screens were updated to read from the new location, but the **download** buttons were missed — they kept looking in the old folder, found nothing, and returned "No certificate PDF has been uploaded." The same gap affected the **bulk "download selected as ZIP"** action, which quietly substituted a generated placeholder instead of the real uploaded PDF.
+
+**What changed:** both the single-certificate download and the bulk-ZIP download now look in the current storage location first (with a fall-back to the old location so any not-yet-migrated files still work) — the same approach already used by the preview screens. The real uploaded PDF is served again.
+
+Code-only, no database change, no migration. Build-clean locally. Pending deploy to gccwebapp.com — recommend a quick live download check once it's up, and confirming the uploaded PDFs are present in the server's `App_Data/uploads/` (or still reachable via the wwwroot fall-back).
 
 ---
 
@@ -104,6 +130,8 @@ No Status column — because the file is already filtered to active identifiers,
 Verified on the test environment (localhost): analyst download returns the CSV (1,014 active identifiers on the dev data; the 112 tied to non‑live certs are correctly excluded), external user blocked 403, columns and active‑only filter confirmed.
 
 Scope note: this shipped **simpler than the originally‑proposed CR‑184 design** (which had 5 filters and was admin‑only). Per Shawn's direction on 6/4 we delivered the clean one‑click active‑set export analysts asked for; optional filters (by partner / identifier type / date) remain a clean future add if needed. No database change. **Deployed to gccwebapp.com 2026-06-04 and verified live** — admin/analyst download returns the CSV (1,022 active identifiers on prod), the button shows on Product Management with the Export (up-arrow) styling, unauthenticated callers get 401, and External is blocked 403. Pending client UAT.
+
+**Update 2026-06-11 — re-verified live + sent for client UAT.** Re-ran the read-only prod fingerprint (`Scripts/smoke-prod/def243-cr184-prod-fingerprint.js`) → **29 PASS / 0 FAIL / 0 WARN**; export still live and correctly gated (admin export returns `text/csv` with the 12-col header and **1,018 active rows** — the count drifts with prod cert status over time; button present; unauthenticated 401; External 403). Client UAT email drafted at `docs/tracking/CR-184-171-client-email.md` with how-to-test steps and one **open question to the client**: confirm the 12 columns are sufficient, or request additions — candidates offered are Certificate Status / Identifier Status (both deliberately omitted since every row is active), Certification Type, Certification Results, and Updated Date/By. Optional filters remain the v2 follow-up if requested.
 
 ---
 
@@ -293,7 +321,52 @@ Small QC #148 follow-up — the first column of the Tags import template and exp
 
 ---
 
+## Certificate PDF upload — fixed end to end (2026-06-12)
+
+A user reported they couldn't upload a PDF to a certificate. We reproduced it and shipped two fixes, confirmed working on the test site:
+
+1. **Save is no longer blocked.** When you attached a PDF, a pop-up message ("PDF uploaded…") appeared in the **middle of the screen and covered the Save button**, so clicking Save did nothing and the certificate didn't update. That message is now a small, non-blocking notice in the top-right corner — Save always works, and the alarming "Warning" wording on a successful upload was corrected.
+
+2. **The certificate preview image now generates and saves.** After the first fix let saves go through, the certificate still showed "Certificate Unavailable — Preview not generated." The preview thumbnail was being looked for in the wrong folder (a leftover from an earlier security change that moved uploaded files), so it never generated — on the live site *and* locally. That path is corrected across the upload, preview, replace, and import paths. New uploads now show their preview, and certificates uploaded during the affected period will regenerate their preview automatically when viewed.
+
+Also included in the same release: the certificate list's ID columns (ASIN/UPC/GTIN/EAN) now sort by the count shown in the badge, matching what's on screen.
+
+---
+
+## Product Management — Product Type & Subcategory now show as separate line items (2026-06-15)
+
+On the Product Management page, the **Product Type** and **Subcategory** columns were showing blank for most products. The page was working correctly — those details are entered on each **certificate**, not stored on the **product** record the page reads.
+
+Per the agreed rule, a product is now identified by **Company + Name + Category + Product Type + Subcategory**. The same product name with a *different* Type/Subcategory is treated as a **separate line item**, with its own certificate count. Going forward, when a certificate is created or edited, the system automatically files it under the product record matching that exact combination (creating the record if it's new). A blank Type/Subcategory is a valid combination on its own.
+
+This release contains that going-forward behavior and the matching change to the product CSV import. A one-time pass that reorganizes the products already in the system into these separate line items is prepared as a separate, reviewed database step — it runs only with sign-off and a full backup first.
+
+---
+
 ## Internal — Verification artifacts
+
+### 2026-06-15 — Product identity split by (Type, Subcategory) (CR-186)
+
+- Code: `Controllers/CertificateController.cs` — `ResolveProductForCertAsync` (Create + Edit): find-or-create the product record matching (Company, Name, Category, Type, Subcategory); point the cert at it. `Controllers/ProductController.cs` — product CSV import dedups on the identity tuple, not Name-only. No schema change, no migration.
+- `Scripts/smoke-prod/cr186-split-verify-local.js` — local Playwright on :5101: editing a cert's Type produced a separate product line item with the cert count attached. PASS.
+- Migration (separate, gated): `Scripts/data-ops/2026-06-15-product-split-by-type-subcat-{IDENTIFY,REMEDIATE}.sql` — splits existing products by their certs' (Type, Subcategory) combos, re-points certs; ROLLBACK-by-default. Dev dry-run validated (315→316, 1 split, 1 cert re-pointed). Needs GCC review of IDENTIFY + full DB backup before COMMIT. Tracked in CR-186 §10.
+- Cert CSV import also tuple-resolves at commit (`Services/Import/CertificateImportService.cs` → `ResolveProductForImportAsync`); verified `Scripts/smoke-prod/cr186-import-split-verify-local.js` (2 same-name rows → 2 records by type). Cert-form UX unchanged. Import has no Subcategory/Category column (separate enhancement); preview "products to create" count is by-name (cosmetic).
+- Shipped in `deployment-drops/GCCWebApp-deploy-20260615-1737.zip` (alongside DEF-264).
+
+## Certificate PDF download — fixed (DEF-264, 2026-06-15)
+
+A user reported a PDF "error on download." After the earlier change that moved uploaded files to a more secure location, two download actions — the single-certificate **Download** and the bulk **Download Selected (ZIP)** — were still looking in the old folder, so downloads failed with a "no certificate PDF has been uploaded" message (and the bulk download silently returned a generated placeholder instead of the real file). Both now resolve the file from the new location. Shipped in `deployment-drops/GCCWebApp-deploy-20260615-1737.zip`. Tracked as DEF-264.
+
+**Deployed + verified on prod 2026-06-15** (`Scripts/smoke-prod/post-deploy-1737-verify.js`): admin login OK (schema canary), `/Product/GetProducts` 200, and certificate PDFs download as `application/pdf` (e.g. 26-0163, 26-0157, 26-0151 — 0.7–2.4 MB each), 0 errors. Same deploy carried the CR-186 going-forward code (cert form find-or-create + product/cert import tuple dedup), which is additive — existing data untouched; the CR-186 split migration remains on hold pending GCC confirmation (see CR-186 §10).
+
+### 2026-06-12 — Certificate PDF upload (DEF-261 blocking modal, DEF-262 thumbnail path, DEF-260 count-sort)
+
+- `Scripts/smoke-prod/upload-pdf-edit-repro-live.js` — live repro of the blocking modal on gccwebapp.com (DEF-261).
+- `Scripts/smoke-prod/upload-fix-verify-local.js` — DEF-261 fix verify on localhost (10/10): non-blocking toast, Save reachable, cert saved.
+- `Scripts/smoke-prod/upload-image-diagnose-live.js` — confirmed "Preview not generated" on the live site (DEF-262).
+- `Scripts/smoke-prod/upload-image-diagnose-local.js` — confirmed thumbnail failed locally too (isolated to code, not server) and verified the fix (real 464px preview, PNGs written to `App_Data/uploads/images/`, 0 "not found" errors).
+- Root cause + the five corrected path resolvers tracked in `docs/tracking/defect-register.md` (DEF-261, DEF-262).
+- Shipped in `deployment-drops/GCCWebApp-deploy-20260612-1509.zip`.
 
 - `scripts/smoke-prod/def225-def226-test.js` — Playwright test for DEF-225 + DEF-226.
 - `scripts/smoke-prod/def226-setup.sql` + `def226-cleanup.sql` — idempotent test-data seed and teardown.

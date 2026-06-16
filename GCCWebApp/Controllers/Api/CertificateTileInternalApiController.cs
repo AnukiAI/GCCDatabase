@@ -255,8 +255,14 @@ namespace GCCWebApp.Controllers.Api
                         ProductSubcategory = c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : ""),
                         c.Location,
                         c.Country,
-                        ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name)),
-                        InternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name)),
+                        // DEF-261 (QC #157, client 6/10): the tag columns showed multiple tags in
+                        // insertion order while the column sorted by an arbitrary FirstOrDefault tag, so
+                        // the leading shown value wasn't the sort key — read as "External Tag not sorting."
+                        // Order the displayed tags ascending so the lead value == the .Min() sort key,
+                        // the same display-vs-sort alignment DEF-248 (ASIN/UPC/GTIN/EAN) and DEF-258
+                        // (Cert Subcategories) applied. In-memory string only; no SQL/schema change.
+                        ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).OrderBy(n => n)),
+                        InternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).OrderBy(n => n)),
                         // Product IDs - get ALL active IDs of each type, comma-separated for display
                         // Fallback to legacy certificate fields if ProductIds collection is empty
                         AsinList = c.ProductIds.Where(pid => pid.ProductIdType == "ASIN" && pid.IsActive).Select(pid => pid.ProductIdValue).ToList(),
@@ -771,12 +777,16 @@ namespace GCCWebApp.Controllers.Api
                 // DEF-181: ID-column sort keys mirror the display logic — fall back from `ProductIds`
                 // (collection) to the legacy `Certificate.{Asin|Upc|Gtin|Ean}` column when no active
                 // ProductIds exist. OrderByTextEmptiesLast coalesces a null/blank key to the end.
-                // Note (DEF-165): upc/int-tag/ext-tag keep FirstOrDefault() (not .Min()) — .Min()/inner
-                // OrderBy timed out on the dev DB; tags are collection-only with no legacy fallback.
-                "ext-tag" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault(), false).ThenBy(c => c.Id),
-                "ext-tag-za" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault(), true).ThenBy(c => c.Id),
-                "int-tag" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault(), false).ThenBy(c => c.Id),
-                "int-tag-za" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault(), true).ThenBy(c => c.Id),
+                // DEF-261 (QC #157, 6/10): ext-tag/int-tag moved off the DEF-165 arbitrary .FirstOrDefault()
+                // to .Min() (alphabetical-first tag) so the row sort key matches the now-alphabetically-
+                // ordered display cell — same "lead shown value == sort key" rule as DEF-248/DEF-258. The
+                // DEF-165 .Min() timeout no longer applies: post-DEF-250 the sort runs on a thin ID-only
+                // projection (cert-sub already uses .Min() here at the same cost). Min() over an empty tag
+                // set returns NULL → coalesced to "" → still sorts blanks-last in both directions.
+                "ext-tag" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).Min(), false).ThenBy(c => c.Id),
+                "ext-tag-za" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).Min(), true).ThenBy(c => c.Id),
+                "int-tag" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).Min(), false).ThenBy(c => c.Id),
+                "int-tag-za" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).Min(), true).ThenBy(c => c.Id),
                 "partner" => query.OrderByTextEmptiesLast(c => c.Partner, false).ThenBy(c => c.Id),
                 "partner-za" => query.OrderByTextEmptiesLast(c => c.Partner, true).ThenBy(c => c.Id),
                 // DEF-260 (QC #157, supersedes the DEF-256/259 value-sort): the Cert List renders these

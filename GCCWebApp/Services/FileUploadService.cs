@@ -73,6 +73,26 @@ namespace GCCWebApp.Services
             _config = new FileUploadConfiguration();
         }
 
+        /// <summary>
+        /// DEF-262: resolve a logical "uploads/{subdir}/{file}" path to a physical file path.
+        /// Uploads moved out of wwwroot to ContentRootPath/App_Data/uploads as of DEF-208, but
+        /// several resolvers here still pointed at WebRootPath — so PDFs/thumbnails were never
+        /// found (cert saved with no preview; old files never deleted). Check the App_Data home
+        /// first, then fall back to the pre-DEF-208 wwwroot location so legacy files (uploaded
+        /// before the server-side Move-Item migration) stay reachable. When neither exists, return
+        /// the App_Data candidate (the canonical new home) so the caller's own File.Exists handles absence.
+        /// </summary>
+        private string ResolvePhysicalUploadPath(string logicalPath)
+        {
+            var rel = logicalPath.Replace("/", Path.DirectorySeparatorChar.ToString())
+                                 .Replace("\\", Path.DirectorySeparatorChar.ToString());
+            var appData = Path.Combine(_environment.ContentRootPath, "App_Data", rel);
+            if (File.Exists(appData)) return appData;
+            var legacy = Path.Combine(_environment.WebRootPath ?? string.Empty, rel);
+            if (File.Exists(legacy)) return legacy;
+            return appData;
+        }
+
         public async Task<FileUploadResult> UploadCertificateAsync(IFormFile file, string certificateNumber)
         {
             var result = new FileUploadResult();
@@ -217,8 +237,8 @@ namespace GCCWebApp.Services
                 if (string.IsNullOrEmpty(filePath))
                     return false;
 
-                var fullPath = Path.Combine(_environment.WebRootPath, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
-                
+                var fullPath = ResolvePhysicalUploadPath(filePath); // DEF-262: App_Data, not wwwroot
+
                 if (File.Exists(fullPath))
                 {
                     File.Delete(fullPath);
@@ -244,8 +264,8 @@ namespace GCCWebApp.Services
                 if (string.IsNullOrEmpty(filePath))
                     return null;
 
-                var fullPath = Path.Combine(_environment.WebRootPath, filePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
-                
+                var fullPath = ResolvePhysicalUploadPath(filePath); // DEF-262: App_Data, not wwwroot
+
                 if (File.Exists(fullPath))
                 {
                     return await File.ReadAllBytesAsync(fullPath);
@@ -462,15 +482,15 @@ namespace GCCWebApp.Services
         /// <summary>
         /// Generates a thumbnail image from the first page of a PDF file
         /// </summary>
-        /// <param name="pdfFilePath">Relative path to the PDF file (from wwwroot)</param>
+        /// <param name="pdfFilePath">Logical path to the PDF file ("uploads/certificates/{file}"), resolved under App_Data (DEF-208).</param>
         /// <param name="certificateNumber">Certificate number for naming the thumbnail</param>
         /// <returns>Relative path to the generated thumbnail, or null if failed</returns>
         public async Task<string?> GeneratePdfThumbnailAsync(string pdfFilePath, string certificateNumber)
         {
             try
             {
-                // Get full path to PDF
-                var fullPdfPath = Path.Combine(_environment.WebRootPath, pdfFilePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                // Get full path to PDF. DEF-262: resolve under App_Data (DEF-208 home), not wwwroot.
+                var fullPdfPath = ResolvePhysicalUploadPath(pdfFilePath);
 
                 if (!File.Exists(fullPdfPath))
                 {

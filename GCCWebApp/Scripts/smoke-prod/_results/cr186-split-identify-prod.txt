@@ -1,0 +1,57 @@
+TotalProducts|ProductsWithCerts|ProductsThatSplit|NewRecordsToCreate|ProductsWithNoCerts_Untouched
+-------------|-----------------|-----------------|------------------|-----------------------------
+118|46|3|4|72
+ProductId|ProductName|ProductTypeId|ProductTypeName|ProductSubcategoryId|ProductSubcategoryName|CertCount|ComboRank_1IsKept
+---------|-----------|-------------|---------------|--------------------|----------------------|---------|-----------------
+119|test|4|Plastics|46|HDPE|1|1
+119|test|4|Plastics|47|LDPE|1|2
+127|3M Test Product|4|Plastics|51|PVC|1|1
+127|3M Test Product|27|Furniture|NULL|NULL|1|2
+127|3M Test Product|NULL|NULL|NULL|NULL|1|3
+141|Best Product Ever v3T|86|Test Type|NULL|NULL|1|1
+141|Best Product Ever v3T|NULL|NULL|NULL|NULL|1|2
+ProductId|ProductName|ProductTypeId|ProductTypeName|ProductSubcategoryId|ProductSubcategoryName|CertCount
+---------|-----------|-------------|---------------|--------------------|----------------------|---------
+4|Commercial Door Closer - DC300|4|Plastics|46|HDPE|1
+43|Energy Star Certified Appliances|NULL|NULL|NULL|NULL|1
+61|Plastic Film Packaging|NULL|NULL|NULL|NULL|1
+62|+Vantage VinylT Verified|NULL|NULL|NULL|NULL|1
+65|Electric Toothbrush Handles|NULL|NULL|NULL|NULL|1
+66|Bottles|NULL|NULL|NULL|NULL|1
+68|Textiles|NULL|NULL|NULL|NULL|1
+69|Various Lucky Charms Cereals|NULL|NULL|NULL|NULL|1
+70|Drawstring Bags|NULL|NULL|NULL|NULL|1
+72|Select Greenfield Natural Meat Co. Pork Products Sold in the United States|NULL|NULL|NULL|NULL|1
+74|PET Clear PCR Thermoform FDA Resin|NULL|NULL|NULL|NULL|1
+75|GlasStileS|NULL|NULL|NULL|NULL|1
+76|HID SignoT readers|NULL|NULL|NULL|NULL|1
+77|SOF001-132245KirkPCR|NULL|NULL|NULL|NULL|1
+78|Remanufactured Ink Cartridges|NULL|NULL|NULL|NULL|1
+79|Remanufactured Laser Cartridges|NULL|NULL|NULL|NULL|1
+81|Mason City, IA|NULL|NULL|NULL|NULL|1
+82|XPS Crystal|NULL|NULL|NULL|NULL|1
+83|Sustainable Insulation Batt and Roll|4|Plastics|46|HDPE|1
+84|ThermaCoustic|4|Plastics|49|PET|1
+87|Dude Wipes Flushable Wipes|NULL|NULL|NULL|NULL|1
+94|test product 2.26 MA|NULL|NULL|NULL|NULL|1
+95|3.5.26|NULL|NULL|NULL|NULL|1
+96|3.9.26|NULL|NULL|NULL|NULL|1
+98|Film|NULL|NULL|NULL|NULL|1
+99|Film|NULL|NULL|NULL|NULL|1
+109|John Frieda PROfiller+ Thickening Conditioner|NULL|NULL|NULL|NULL|1
+110|John Frieda ProFiller plus Shampoo 250ml|NULL|NULL|NULL|NULL|1
+111|Color Protecting Conditioner 200ml|NULL|NULL|NULL|NULL|1
+112|Color Protecting Shampoo 250ml|NULL|NULL|NULL|NULL|1
+113|eero 7, Individual Unit, ISP, Bulk Pack|NULL|NULL|NULL|NULL|1
+114|Sonos Play (Black)|NULL|NULL|NULL|NULL|1
+115|Product Symbols ‚Tr„|35|Electronic Accessories|NULL|NULL|1
+116|Test Product|NULL|NULL|NULL|NULL|1
+117|Testing Very Very Long Product Name That's Over 100 Characters Very Very Very Very Very Veryyyy Long|NULL|NULL|NULL|NULL|1
+131|Eero test|NULL|NULL|NULL|NULL|1
+133|Test 2 Product|4|Plastics|85|PS|1
+135|Test Brava Product|4|Plastics|51|PVC|1
+136|Test Braun Product|28|Health and Beauty|NULL|NULL|1
+137|Chris 3m Test Prod|4|Plastics|49|PET|1
+138|WD test cert|40|Food|NULL|NULL|1
+139|Best Product Ever|86|Test Type|NULL|NULL|1
+140|Best Product Ever v2|86|Test Type|NULL|NULL|1

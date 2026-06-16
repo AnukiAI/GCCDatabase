@@ -247,7 +247,10 @@ namespace GCCWebApp.Controllers.Api
                         ProductSubcategory = c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : ""),
                         c.Location,
                         c.Country,
-                        ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name)),
+                        // DEF-261: order external tags ascending so the lead shown value == the .Min()
+                        // sort key (display-vs-sort parity with the internal view; QC #157 "consistent
+                        // across the application").
+                        ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).OrderBy(n => n)),
                         PdfPath = c.CertificateFile,
                         c.Partner,
                         // Status: only PublicStatuses reach this projection (filter at line ~204),
@@ -884,8 +887,10 @@ namespace GCCWebApp.Controllers.Api
                 "location-za" => query.OrderByTextEmptiesLast(c => c.Location, true).ThenBy(c => c.Id),
                 "country" => query.OrderByTextEmptiesLast(c => c.Country, false).ThenBy(c => c.Id),
                 "country-za" => query.OrderByTextEmptiesLast(c => c.Country, true).ThenBy(c => c.Id),
-                "ext-tag" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault(), false).ThenBy(c => c.Id),
-                "ext-tag-za" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault(), true).ThenBy(c => c.Id),
+                // DEF-261: .Min() (alphabetical-first tag) matches the now-alphabetically-ordered display
+                // cell — parity with the internal view (was arbitrary .FirstOrDefault()).
+                "ext-tag" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).Min(), false).ThenBy(c => c.Id),
+                "ext-tag-za" => query.OrderByTextEmptiesLast(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).Min(), true).ThenBy(c => c.Id),
                 "partner" => query.OrderByTextEmptiesLast(c => c.Partner, false).ThenBy(c => c.Id),
                 "partner-za" => query.OrderByTextEmptiesLast(c => c.Partner, true).ThenBy(c => c.Id),
                 // DEF-260: ID columns sort by the COUNT of IDs on the cert (the count-badge value the

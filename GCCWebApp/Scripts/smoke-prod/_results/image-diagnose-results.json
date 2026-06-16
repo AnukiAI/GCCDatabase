@@ -1,0 +1,32 @@
+[
+  {
+    "id": "SAVED",
+    "status": "PASS",
+    "detail": "landed on https://gccwebapp.com/Certificate/CertificateInternalView/26-0160"
+  },
+  {
+    "id": "PDF-STORED",
+    "status": "WARN",
+    "detail": "pdf link = (none found on page)"
+  },
+  {
+    "id": "IMG-ELEMENT",
+    "status": "INFO",
+    "detail": "src=(no img — placeholder path) naturalW=null"
+  },
+  {
+    "id": "PLACEHOLDER",
+    "status": "INFO",
+    "detail": "\"Certificate Unavailable\" placeholder IS showing → no thumbnail saved. text=\"Certificate Unavailable Preview not generated\""
+  },
+  {
+    "id": "VERDICT",
+    "status": "FAIL",
+    "detail": "NO IMAGE: CertificateImagePath is empty after save → PDF thumbnail was NOT generated/saved (server-side render failed — likely Docnet/pdfium native)."
+  },
+  {
+    "id": "IMG-404s",
+    "status": "INFO",
+    "detail": "(no image/upload 4xx-5xx responses captured)"
+  }
+]

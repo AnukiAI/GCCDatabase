@@ -1,0 +1,52 @@
+[
+  {
+    "id": "DISCOVER",
+    "status": "PASS",
+    "detail": "cert#=26-0023 → /Certificate/Edit/26-0023"
+  },
+  {
+    "id": "C1-ATTACH",
+    "status": "PASS",
+    "detail": "files=1"
+  },
+  {
+    "id": "C1-NO-BLOCK",
+    "status": "PASS",
+    "detail": "no page-blocking overlay after attach"
+  },
+  {
+    "id": "C1-TOAST",
+    "status": "PASS",
+    "detail": "toast=\"Success PDF uploaded. Preview will be generated on save. ×\""
+  },
+  {
+    "id": "C1-SAVE-CLICK",
+    "status": "PASS",
+    "detail": "Save clicked directly (not intercepted)"
+  },
+  {
+    "id": "C1-SAVED",
+    "status": "PASS",
+    "detail": "landed on http://localhost:5101/Certificate/CertificateInternalView/26-0023"
+  },
+  {
+    "id": "C2-REJECT",
+    "status": "PASS",
+    "detail": "oversized file cleared (files=0)"
+  },
+  {
+    "id": "C2-NO-BLOCK",
+    "status": "PASS",
+    "detail": "error shown without blocking the page"
+  },
+  {
+    "id": "C2-TOAST",
+    "status": "PASS",
+    "detail": "toast=\"Error PDF file size must be less than 10MB. ×\""
+  },
+  {
+    "id": "C2-SAVE-CLICK",
+    "status": "PASS",
+    "detail": "Save reachable even after error toast"
+  }
+]

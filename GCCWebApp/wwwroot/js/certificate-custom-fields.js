@@ -18,22 +18,44 @@ class CertificateCustomFields {
      * @param {number} certificateTypeId - The certificate type ID
      */
     async loadFieldsForType(certificateTypeId) {
+        this.certificateTypeId = certificateTypeId;
+
+        // Stage 1: fetch. Keep this try scoped to the network call only so a later
+        // render error is not misreported as a load failure.
+        let result;
         try {
-            this.certificateTypeId = certificateTypeId;
-
             const response = await fetch(`/Certificate/GetCustomFields?certificateTypeId=${certificateTypeId}`);
-            const result = await response.json();
 
-            if (result.success) {
-                this.fields = result.data || [];
-                this.renderFields();
-            } else {
-                console.error('Failed to load fields:', result.message);
-                this.showMessage('Failed to load custom fields', 'error');
+            // A non-200 (expired auth -> login redirect, or a 500 error page) returns HTML,
+            // not JSON. Detect it before response.json() blows up with an opaque parse error.
+            if (!response.ok) {
+                console.error(`GetCustomFields returned HTTP ${response.status} ${response.statusText}`);
+                this.showMessage('Error loading custom fields', 'error');
+                return;
             }
+
+            result = await response.json();
         } catch (error) {
-            console.error('Error loading fields:', error);
+            console.error('Error fetching custom fields:', error);
             this.showMessage('Error loading custom fields', 'error');
+            return;
+        }
+
+        if (!result.success) {
+            console.error('Failed to load fields:', result.message);
+            this.showMessage('Failed to load custom fields', 'error');
+            return;
+        }
+
+        this.fields = result.data || [];
+
+        // Stage 2: render. A single malformed field row (e.g. a null fieldType) must not
+        // take down the whole section with a misleading "load failed" toast.
+        try {
+            this.renderFields();
+        } catch (error) {
+            console.error('Error rendering custom fields:', error);
+            this.showMessage('Error displaying custom fields', 'error');
         }
     }
 
@@ -100,7 +122,7 @@ class CertificateCustomFields {
 
         let control = '';
 
-        switch (field.fieldType.toLowerCase()) {
+        switch ((field.fieldType || 'text').toLowerCase()) {
             case 'text':
                 control = `<input type="text" class="form-control custom-field-input"
                     id="field_${field.id}" name="field_${field.id}"
@@ -262,7 +284,7 @@ class CertificateCustomFields {
 
             // 2. Type-specific validation (only if value is present)
             if (value && value !== '') {
-                switch (field.fieldType.toLowerCase()) {
+                switch ((field.fieldType || 'text').toLowerCase()) {
                     case 'number':
                         if (isNaN(value)) {
                             fieldErrors.push(`${field.name} must be a valid number`);

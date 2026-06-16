@@ -74,36 +74,53 @@
          * @param {string} type - Notification type (success, error, warning, info)
          */
         showNotification: function(message, type = 'info') {
-            // Use AdminCore.showNotification if available
-            if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
-                AdminCore.showNotification(message, type);
-                return;
-            }
-
-            // Fallback: Center-screen modal notification (matches AdminCore modal style)
+            // Non-blocking corner TOAST for upload feedback — must never overlay the Save button.
+            //
+            // DEF-261: this previously called AdminCore.showNotification (which routes ALL
+            // notifications to a centered, full-screen blocking modal) with a center-screen modal
+            // fallback. On the cert Create/Edit pages that modal sits on top of the Save button, so a
+            // user who attached a PDF, saw the "Warning: PDF uploaded…" message, and clicked Save had
+            // the click swallowed by the overlay — the certificate never updated. A toast can't block Save.
+            // Scoped to the certificate pages only; AdminCore's global modal behavior is left untouched.
             const colors = { success: '#92C83E', error: '#FF5252', warning: '#FFC107', info: '#002B76' };
             const titles = { success: 'Success', error: 'Error', warning: 'Warning', info: 'Information' };
-            const bgColor = colors[type] || colors.info;
-            const btnTextColor = type === 'warning' ? '#333333' : '#ffffff';
+            const accent = colors[type] || colors.info;
+            const titleColor = type === 'error' ? '#FF5252' : '#002B76';
 
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(0,0,0,0.85); backdrop-filter: blur(3px);
-                z-index: 10000; display: flex; align-items: center;
-                justify-content: center; animation: fadeIn 0.3s ease;
-            `;
-            overlay.innerHTML = `
-                <div style="background: #fff; border-radius: 8px; padding: 30px; max-width: 450px; width: 90%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
-                    <h2 style="color: ${type === 'error' ? '#FF5252' : '#002B76'}; font-size: 22px; font-weight: 600; margin: 0 0 15px 0;">${titles[type] || 'Information'}</h2>
-                    <p style="color: #333; font-size: 16px; line-height: 1.5; margin: 0 0 25px 0;">${message}</p>
-                    <button style="width: 100%; padding: 12px 30px; border: none; border-radius: 4px; font-size: 16px; font-weight: 500; cursor: pointer; background: ${bgColor}; color: ${btnTextColor};">OK</button>
+            // Shared top-right, click-through container (created once).
+            let container = document.getElementById('certUploadToastStack');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'certUploadToastStack';
+                container.style.cssText = 'position:fixed; top:20px; right:20px; z-index:10000;'
+                    + 'display:flex; flex-direction:column; gap:10px; pointer-events:none; max-width:90vw;';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+            toast.style.cssText = 'pointer-events:auto; min-width:280px; max-width:380px; background:#ffffff;'
+                + 'border-left:5px solid ' + accent + '; border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,0.2);'
+                + 'padding:14px 16px; display:flex; align-items:flex-start; gap:10px;'
+                + 'opacity:0; transform:translateX(20px); transition:opacity .25s ease, transform .25s ease;';
+            toast.innerHTML = `
+                <div style="flex-grow:1;">
+                    <div style="color:${titleColor}; font-size:16px; font-weight:600; margin-bottom:2px;">${titles[type] || 'Information'}</div>
+                    <div style="color:#333333; font-size:16px; line-height:1.4;">${message}</div>
                 </div>
+                <button type="button" aria-label="Dismiss notification" style="background:none; border:none; color:#888888; font-size:18px; line-height:1; cursor:pointer; padding:0 2px;">&times;</button>
             `;
+            container.appendChild(toast);
+            requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(0)'; });
 
-            overlay.querySelector('button').addEventListener('click', () => overlay.remove());
-            overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-            document.body.appendChild(overlay);
+            const dismiss = () => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 250);
+            };
+            toast.querySelector('button').addEventListener('click', dismiss);
+            // Errors linger a little longer; nothing ever blocks the page.
+            setTimeout(dismiss, type === 'error' ? 6000 : 4000);
         }
     };
 
@@ -321,7 +338,7 @@
                     `;
                 }
 
-                ModalSystem.showNotification('PDF uploaded. Preview will be generated on save.', 'warning');
+                ModalSystem.showNotification('PDF uploaded. Preview will be generated on save.', 'success');
             }
         },
 

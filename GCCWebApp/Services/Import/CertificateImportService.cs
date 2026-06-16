@@ -602,6 +602,15 @@ namespace GCCWebApp.Services.Import
                         if (!row.ProductId.HasValue && createdProducts.TryGetValue(row.ProductName, out var pId))
                             row.ProductId = pId;
 
+                        // CR-186 SPLIT: re-resolve to the product RECORD matching the full identity tuple
+                        // (Company, Name, Category, Type, Subcategory) so same-name/different-type rows land
+                        // on SEPARATE records — consistent with the cert form's find-or-create. The name-keyed
+                        // step above can only ever return one record per name; this overrides it. The cert
+                        // import has no Subcategory/Category column yet, so Subcategory resolves as null (its
+                        // own combo) and Category falls back to the base product's. (§10.3 follow-up.)
+                        if (row.ProductId.HasValue)
+                            row.ProductId = await ResolveProductForImportAsync(row.ProductId.Value, row.ProductTypeId, null);
+
                         // Resolve tag IDs
                         var allTagIds = new List<int>(row.TagIds);
                         foreach (var tagName in row.TagsToCreate)
@@ -763,6 +772,53 @@ namespace GCCWebApp.Services.Import
             }
 
             return rows;
+        }
+
+        /// <summary>
+        /// CR-186 SPLIT: resolve an imported certificate to the product RECORD matching its full
+        /// identity (Company, Name, Category, ProductType, Subcategory), creating it if absent — the
+        /// import equivalent of CertificateController.ResolveProductForCertAsync. Keeps same-name/
+        /// different-type imported certs on separate product line items. Category falls back to the base
+        /// product's; null Type/Subcategory matched in-memory (null == null is true) to dodge EF's
+        /// column-to-nullable-parameter equality pitfalls.
+        /// </summary>
+        private async Task<int> ResolveProductForImportAsync(int basePickedProductId, int? typeId, int? subcatId, int? categoryId = null)
+        {
+            var baseProduct = await _context.Products.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == basePickedProductId && !p.IsDeleted);
+            if (baseProduct == null) return basePickedProductId;
+
+            int categoryIdForProduct = categoryId ?? baseProduct.CategoryId;
+
+            var candidates = await _context.Products
+                .Where(p => !p.IsDeleted && p.Name == baseProduct.Name && p.CategoryId == categoryIdForProduct)
+                .ToListAsync();
+            var existing = candidates.FirstOrDefault(p =>
+                p.CompanyId == baseProduct.CompanyId &&
+                p.ProductTypeId == typeId &&
+                p.ProductSubcategoryId == subcatId);
+            if (existing != null) return existing.Id;
+
+            var created = new Product
+            {
+                Name = baseProduct.Name,
+                Description = baseProduct.Description,
+                Model = baseProduct.Model,
+                Sku = baseProduct.Sku,
+                CompanyId = baseProduct.CompanyId,
+                CategoryId = categoryIdForProduct,
+                ProductTypeId = typeId,
+                ProductSubcategoryId = subcatId,
+                IsActive = baseProduct.IsActive,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.Products.Add(created);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation(
+                "CR-186 import: resolved certificate to product record #{Id} (Name={Name}, CategoryId={Cat}, ProductTypeId={Type}, ProductSubcategoryId={Sub})",
+                created.Id, created.Name, categoryIdForProduct, typeId, subcatId);
+            return created.Id;
         }
 
         private async Task<CertificateImportRow> ProcessRowAsync(
@@ -1338,8 +1394,11 @@ namespace GCCWebApp.Services.Import
 
             try
             {
-                // Copy the file to the uploads directory
-                var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads", "certificates");
+                // Copy the file to the uploads directory.
+                // DEF-262: write to App_Data/uploads/certificates (DEF-208 home) — same place direct
+                // uploads land — not wwwroot. Imported PDFs landed in wwwroot while the rest of the app
+                // read from App_Data, so their thumbnails never generated and the files were orphaned.
+                var uploadsDir = Path.Combine(_environment.ContentRootPath, "App_Data", "uploads", "certificates");
                 Directory.CreateDirectory(uploadsDir);
 
                 var fileName = $"{certificate.Number}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";

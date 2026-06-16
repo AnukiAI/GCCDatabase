@@ -1,0 +1,37 @@
+[
+  {
+    "id": "FIXTURE",
+    "status": "INFO",
+    "detail": "0.00MB → C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\upload-edit-repro\\edit-small.pdf"
+  },
+  {
+    "id": "EDIT-OPEN",
+    "status": "PASS",
+    "detail": "cert=26-0160 label=\"Upload PDF Certificate\""
+  },
+  {
+    "id": "ATTACH",
+    "status": "INFO",
+    "detail": "files=1 (retained)"
+  },
+  {
+    "id": "MODAL",
+    "status": "INFO",
+    "detail": "WARNING modal blocking page → title=\"Warning\" msg=\"PDF uploaded. Preview will be generated on save.\""
+  },
+  {
+    "id": "SAVE-CLICK",
+    "status": "PASS",
+    "detail": "Save clicked after dismissing modal"
+  },
+  {
+    "id": "SAVE",
+    "status": "INFO",
+    "detail": "→ https://gccwebapp.com/Certificate/CertificateInternalView/26-0160 title=\"Certificate Details - Internal - GreenCircle Certified Database\""
+  },
+  {
+    "id": "VERDICT",
+    "status": "PASS",
+    "detail": "Edit saved and redirected off the Edit page — small PDF replace works. The failure only triggers above 10MB."
+  }
+]

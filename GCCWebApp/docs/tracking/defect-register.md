@@ -83,11 +83,97 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 ## Open / Recent
 
+### DEF-266 — "Error loading custom fields" toast on Certificate Create when selecting a Certification Type
+
+- **Date:** 2026-06-16
+- **Severity:** Medium (error toast on `/Certificate/Create` whenever a Certification Type is chosen; the rest of the form still works, but the message is alarming and blocks confidence in custom-field entry).
+- **Status:** **FIXED — pending deploy.** JS-only change; needs prod deploy to take effect (static asset). Console now logs the true cause.
+- **QC Ref:** user report (Shawn), 2026-06-16: *"https://gccwebapp.com/Certificate/Create — error message loading custom fields is showing when selecting Certification Type."*
+- **Bucket:** Bug (fragile client-side load/render path).
+- **Root cause.** `wwwroot/js/certificate-custom-fields.js` `loadFieldsForType()` wrapped both the fetch **and** `renderFields()` in one try/catch and never checked `response.ok`, so the generic "Error loading custom fields" toast fired for **two distinct, indistinguishable** failures: (1) a non-200 response (expired auth → login-redirect HTML, or a 500 error page) making `response.json()` throw on non-JSON; (2) a malformed custom-field row — e.g. a `null` `FieldType` — making `renderField()`'s `field.fieldType.toLowerCase()` throw during render. The server `CertificateFieldService` swallows DB errors and returns an empty list (→ `success:true`), so schema drift would show "No custom fields defined", *not* this toast — confirming the failure is on the fetch/parse/render path, not a missing table.
+- **Fix.** Split the network call and the render into separate try blocks; check `response.ok` before parsing (log the HTTP status instead of throwing on HTML); a render failure now shows a distinct "Error displaying custom fields" and is logged separately. Null-guarded `field.fieldType` (`(field.fieldType || 'text')`) in `renderField()` and `validateFields()` so a null type defaults to a text input instead of crashing the section. No behavior change on the happy path.
+- **Diagnostics.** Post-deploy, the browser console now distinguishes the cause: an `HTTP 4xx/5xx` log ⇒ server/auth issue; a render-error log ⇒ a bad custom-field row to clean up.
+- **Files:** `wwwroot/js/certificate-custom-fields.js`.
+
+### DEF-265 — Editing a certificate's Product Type/Subcategory creates a duplicate product line item instead of updating ("keeps adding new instead of updating")
+
+- **Date:** 2026-06-16
+- **Severity:** Medium (Product Management accumulates 0-cert orphan rows; confusing on `/Product/Management`; data clutter, not data loss).
+- **Status:** **FIXED — pending deploy.** Built clean locally (0 errors); verified on localhost.
+- **QC Ref:** user report (Shawn), 2026-06-16: *"instead of updating the record it just keeps adding new"* — screenshot of `/Product/Management` showing one cert ("WD test cert") split into 3 product rows differing only by Product Type, two with 0 certs. Reporter confirmed: *"I edited existing certificate. when it saved it created a new product record. there is only one certificate."*
+- **Bucket:** Bug (CR-186 split side effect on the single-cert case). The per-type/subcat split is the approved [[CR-186]] design; leaving the prior line item orphaned on every cert-type edit is the unintended part.
+- **Root cause.** `CertificateController.ResolveProductForCertAsync` (find-or-create by Company+Name+Category+Type+Subcategory) ran on cert **edit** and, when the new tuple had no matching product, always **created a new** product line item — even when the cert was the sole owner of its current line item, leaving the old row behind with 0 certs.
+- **Fix.** Before creating, the resolver now checks whether the cert's **current** product line item (passed in as `previousProductId`) is owned only by this cert (`previousProductId` + `currentCertId` → `otherCertCount == 0`) and shares the same Name+Company. If so it **updates that record in place** (Category/Type/Subcategory) instead of creating a duplicate. The CR-186 split still fires when the line item is shared by other certs or the user picked a different base product. Non-destructive (no deletes).
+- **Verification.** `Scripts/smoke-prod/def265-cert-edit-no-dup-product.js` — edited a sole-owner cert's type (Additives→Metal Alloys); product total stayed 318→318 and the same line item updated in place. cert-edit + cert-create view smokes still green.
+- **Files:** `Controllers/CertificateController.cs` (`ResolveProductForCertAsync` + the Edit call site ~line 1027).
+
+### DEF-264 — PDF download fails ("No certificate PDF has been uploaded"): DEF-208 straggler — `Download` / `DownloadSelectedZip` still resolved the file against wwwroot
+
+- **Date:** 2026-06-15
+- **Severity:** High (every certificate PDF download 404s with a "no PDF uploaded" error after the DEF-208 App_Data move; affects the public single-download and the External bulk-ZIP path).
+- **Status:** **FIXED — pending deploy.** Built clean locally (0 errors).
+- **QC Ref:** user report (Shawn), 2026-06-15: *"pdf error on download… error message displays."*
+- **Bucket:** Bug (incomplete refactor — same DEF-208 path-migration family as [[DEF-262]]).
+- **Root cause.** DEF-208 relocated uploads from `wwwroot/uploads/` to `App_Data/uploads/`. DEF-262 fixed five resolvers but **missed the two download actions**, which still built the physical path against `WebRootPath`:
+  - `CertificateController.Download` (line ~1809) — `File.Exists(fullPath)` failed → returned `NotFound("No certificate PDF has been uploaded for {id}.")` (the error the user saw). `DownloadByNumber` delegates to `Download`, so it was affected too.
+  - `CertificateController.DownloadSelectedZip` (line ~2216) — same wwwroot-only check failed, then silently fell through to `_pdfService.GenerateCertificatePdfAsync` (a generated placeholder) instead of zipping the real uploaded PDF.
+- **Fix.** Routed both through the existing DEF-262 helper `ResolveUploadPhysicalPath` (App_Data-first, wwwroot legacy fallback) — same pattern as the view/preview endpoints.
+- **Files:** `Controllers/CertificateController.cs`.
+
+### DEF-263 — Plaintext Gmail credential (address + app password) committed in `appsettings.json`; outbound email also defaults to a no-op in production
+
+- **Date:** 2026-06-12
+- **Severity:** High (live credential in source control — present in git history, not just the working tree). Mitigating factors: it is a *dev* Gmail App Password (revocable, scoped to send-mail, not the account password), and it lives in `appsettings.json` (the Development default), not `appsettings.Production.json`. Still must be rotated + purged.
+- **Status:** **OPEN — flagged, not fixed (no code changed).** Surfaced during the CR-009 outbound-email verification, 2026-06-12.
+- **QC Ref:** none (internal finding while verifying CR-009 / QC #150 forgot-password delivery).
+- **Bucket:** Bug (security — secret in source control) + Config (prod email unwired).
+- **Linked memory.** [[security-plaintext-gmail-credential]], [[reference_amazon_key_in_devguide_pdf]] (same class — plaintext secret committed; rotation + git-history cleanup pending). Relates to CR-009 in the change-request register.
+- **Finding 1 — credential exposure.** `appsettings.json:66-73` `SmtpSettings` contains `Username: shawnmwest@gmail.com` and `Password: "wbwr bmyb hhoa iulj"` (a Google App Password) in plaintext, committed to the repo. Anyone with repo or git-history access can send mail as that account.
+- **Finding 2 — prod email is a no-op (relates to CR-009 / QC #150).** `Program.cs:486-503` registers the real `EmailService` only when `SmtpSettings:Host/Username/Password` are all non-empty; `appsettings.Production.json:90` has all three `""`, so production resolves to **`MockEmailService`** — forgot-password reset links and email 2FA codes are generated and stored but **never sent**. (Caveat: a Plesk runtime env-var override `SmtpSettings__Host/__Username/__Password` would change this — must be confirmed on the live box; per committed config alone it is Mock.)
+- **Recommended remediation (not yet done).** (1) Rotate/revoke the exposed Gmail App Password in the Google account immediately. (2) Move the dev secret to user-secrets / environment variables; replace the JSON value with an empty string or placeholder. (3) Purge from git history (filter-repo/BFG) or accept-and-rotate if history rewrite is out of scope. (4) For prod, configure a real domain SMTP/relay sender (the `noreply@yourdomain.com` placeholder in `appsettings.Production.json:96` is unfilled) so CR-009 / QC #150 can actually pass, then re-test forgot-password end-to-end.
+- **Files (for remediation, none touched yet):** `appsettings.json` (dev secret), `appsettings.Production.json` (unfilled prod `SmtpSettings`). No code change required for the secret itself; the prod-email wiring is config-only.
+
+### DEF-262 — PDF thumbnail/preview never generates ("Certificate Unavailable — Preview not generated"): DEF-208 moved uploads to App_Data but left several path resolvers pointing at wwwroot, so the cert saves with no preview image — on every environment
+
+- **Date:** 2026-06-12
+- **Severity:** High (every PDF upload saves the cert + PDF but produces no preview image; not environment-specific — broken locally and on prod since the DEF-208 move).
+- **Status:** **SHIPPED 2026-06-12** to gccwebapp.com (`GCCWebApp-deploy-20260612-1509.zip`) — **client-confirmed working** ("the image saves now"). No DB/migration change.
+- **QC Ref:** user report (Shawn), 2026-06-12, after deploying the DEF-261 fix: *"It said it saved. however, the image is still not saving."* Surfaced only once DEF-261 unblocked Save — before that the modal stopped the save from completing, so the missing-thumbnail state was never reached.
+- **Bucket:** Bug (incomplete refactor — DEF-208 path migration left stragglers).
+- **Linked memory.** [[feedback_no_chaos_rabbit_holes]] (live ground truth first), [[feedback_scoping_check_adjacent_endpoints]] (the same path bug existed in 5 spots across 3 files — fixed all, not just the first).
+- **Diagnosis (live + local).** Live repro on gccwebapp.com showed the saved cert renders the "Certificate Unavailable — Preview not generated" placeholder; `CertificateImagePath` empty. Local disk check: PDF saved to `App_Data/uploads/certificates/` but **0** thumbnails in `App_Data/uploads/images/`. Local log: `PDF file not found for thumbnail generation: …\wwwroot\uploads\certificates\{file}.pdf` — the generator looked in **wwwroot** while the PDF lives in **App_Data** (DEF-208).
+- **Root cause.** DEF-208 relocated uploads from `wwwroot/uploads/` to `ContentRootPath/App_Data/uploads/` and updated the *write* paths + the *serve* routes (`StreamUploadedFile`, `PreviewThumbnail`, `ViewCertificateImage`), but **missed several resolvers that still combined paths against `WebRootPath`**, so they never found the file:
+  - `FileUploadService.GeneratePdfThumbnailAsync` (was `WebRootPath` → never found the PDF → returned null; the primary cause of the user's symptom).
+  - `FileUploadService.DeleteFileAsync` / `GetFileAsync` (old PDF/image never deleted on replace → orphans; reads failed).
+  - `CertificateController` lazy "ensure thumbnail exists" guard (existing-thumbnail + PDF-exists checks both on `WebRootPath` → bailed before backfilling missing thumbnails).
+  - `CertificateController` API "upload PDF" action (built a `WebRootPath` physical path and passed it into `GeneratePdfThumbnailAsync`, which expects a *logical* path — doubly wrong).
+  - `CertificateImportService` wrote imported PDFs to `wwwroot/uploads/certificates` while storing the App_Data logical path → imported PDFs orphaned, thumbnails never generated.
+- **Fix.** Added a shared **App_Data-first / wwwroot-fallback** resolver in each class (`FileUploadService.ResolvePhysicalUploadPath`, `CertificateController.ResolveUploadPhysicalPath`) — mirrors the existing `StreamUploadedFile` pattern so pre-DEF-208 legacy files stay reachable until the server Move-Item migration propagates. Rewired all five call sites; the API upload action now passes the logical path directly; import writes to `App_Data/uploads/certificates`.
+- **Files:** `Services/FileUploadService.cs`, `Controllers/CertificateController.cs`, `Services/Import/CertificateImportService.cs`.
+- **Verification (localhost:5101, admin, fixed code).** `Scripts/smoke-prod/upload-image-diagnose-local.js` → cert detail now renders a real preview (`ViewCertificateImage`, 464px, no placeholder); fresh PNGs written to `App_Data/uploads/images/`; log `PDF thumbnail generated successfully`; **0** "not found for thumbnail" after restart (was 1 from the controller path pre-fix). Build clean 0 errors.
+- **Note.** `PreviewThumbnail` and `ViewCertificateImage` were already DEF-208-correct (App_Data) and unchanged. A transient `PreviewThumbnail` 404 in local logs was OneDrive filesystem latency on the dev box, not a code bug.
+
+### DEF-261 — Certificate PDF upload (Create + Edit): attaching a PDF popped a centered, full-screen blocking modal that overlaid the Save button — user clicked Save, the click hit the modal overlay, and the certificate "didn't update"
+
+- **Date:** 2026-06-12
+- **Severity:** High (user-blocking — the documented happy path "upload a PDF and save" silently failed; the cert kept its old/empty file and looked like nothing happened).
+- **Status:** **SHIPPED 2026-06-12** to gccwebapp.com (`GCCWebApp-deploy-20260612-1509.zip`) — client-confirmed (Save no longer blocked; cert saved). JS-only change (`wwwroot/js/certificate-create.js`); no build/DB/migration impact.
+- **QC Ref:** user report (Shawn relaying), 2026-06-12: *"a user is reporting issues uploading a pdf on a certificate"* → *"tested with an existing cert, attempted to upload pdf, got a warning message and then click save and it didn't update"* (cert `26-0160` on gccwebapp.com).
+- **Bucket:** Bug (UX — blocking modal intercepts the primary action).
+- **Reporter:** client (Shawn), 2026-06-12, relaying an end-user.
+- **Linked memory.** [[feedback_no_chaos_rabbit_holes]] (visual ground truth first — reproduced live before touching code), [[feedback_only_requested_changes]] (scoped the fix to the cert pages; did NOT flip AdminCore's global modal behavior).
+- **Reproduced live (gccwebapp.com, behind the test gate, admin):** `Scripts/smoke-prod/upload-pdf-edit-repro-live.js` on cert `26-0160`. A **valid** (<10 MB) PDF → `AdminCore.showNotification(…, 'warning')` renders a centered `alertdialog` modal *"Warning — PDF uploaded. Preview will be generated on save."* that covers the page; Playwright confirmed the Save button was *"visible, enabled"* but *"`gcc-modal-overlay show` intercepts pointer events."* A **>10 MB** PDF → *"Error — PDF file size must be less than 10MB."* modal **and** the client clears the file (`certificate-create.js:213`), so even after dismissing, Save posts no PDF → cert unchanged. Both read to a user as *"I got a warning, clicked Save, it didn't update."*
+- **Root cause — notifications routed to a blocking modal, not a toast.** `wwwroot/js/admin/admin-core.js:120` `showNotification()` comment *"Route ALL notifications to centered modals for consistency"* sends every type to `showWarningModal`/`showErrorModal` (full-screen `alertdialog`). The cert page's local `ModalSystem.showNotification` (`certificate-create.js`) called that (with a center-screen modal fallback). On Create/Edit those modals sit on top of `#saveButton`. Separately, the success message at line 324 was mislabeled type `'warning'`.
+- **Fix.** `wwwroot/js/certificate-create.js`: `ModalSystem.showNotification` now renders a **self-contained, non-blocking corner toast** (top-right, `pointer-events:none` container, auto-dismiss 4 s / 6 s for errors, manual ×) instead of calling the blocking modal / building a full-screen overlay. Line 324 message changed `'warning'` → `'success'`. **Scoped to the certificate pages only — `AdminCore.showNotification`'s global modal behavior is intentionally left untouched** (changing it would alter notifications across every admin page). The 10 MB cap itself is by-design (UI states it) and unchanged.
+- **Files:** `wwwroot/js/certificate-create.js` (only).
+- **Verification (localhost:5101, admin, fixed code).** `Scripts/smoke-prod/upload-fix-verify-local.js` → **10 PASS / 0** on cert `26-0023` Edit: valid PDF shows a non-blocking *Success* toast, **no page-blocking overlay**, Save clicked **without** dismissing anything, cert saved (redirect to detail); >10 MB shows a non-blocking *Error* toast, file cleared, Save still reachable. Screenshot `_results/upload-fix-verify/1-small-attach.png` shows the corner toast with the form fully interactive.
+- **Deploy note.** JS-only; ships with the next bundle. Because it's a static asset, confirm the deployed `/js/certificate-create.js` content/`Last-Modified` updates on the server (the smoke test's asp-append-version check — Plesk extract skips existing files; see DEF-195).
+
 ### DEF-260 — Cert List ID columns (ASIN/UPC/GTIN/EAN) must sort by the COUNT badge, not the ID value — the grid renders a count badge ("how many IDs"), so the client expects the column to order by that visible number (QC #157, client 6/9: "1000 should be at the top or bottom")
 
 - **Date:** 2026-06-09
 - **Severity:** Medium (the four ID columns appeared "not sorting" because the displayed value — a count badge — was never the sort key; supersedes the value-based sort shipped/attempted in DEF-256/259).
-- **Status:** **Fixed + localhost-verified (build clean 0/0). Pending deploy.** No DB/migration change (sort-key expression only).
+- **Status:** **SHIPPED 2026-06-12** to gccwebapp.com (`GCCWebApp-deploy-20260612-1509.zip`, alongside DEF-261/262). No DB/migration change (sort-key expression only).
 - **QC Ref:** **QC #157** — client (Shawn) 6/9 on `/Certificate/CertificateTileViewInternal`, with screenshot: *"the numeric fields are still not sorting correctly … it should have 1000 as the greatest number at the top or bottom depending on sorting."* Clarified via AskUserQuestion → **"Sort by the count (the badge number)."**
 - **Bucket:** Bug (sort key vs displayed value mismatch) / requirements clarification.
 - **Reporter:** client (Shawn), 2026-06-09.

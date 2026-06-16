@@ -1,0 +1,37 @@
+[
+  {
+    "id": "FIXTURE",
+    "status": "INFO",
+    "detail": "12.00MB → C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\upload-edit-repro\\edit-12mb.pdf"
+  },
+  {
+    "id": "EDIT-OPEN",
+    "status": "PASS",
+    "detail": "cert=26-0160 label=\"Upload PDF Certificate\""
+  },
+  {
+    "id": "ATTACH",
+    "status": "INFO",
+    "detail": "files=0 (CLEARED by client JS)"
+  },
+  {
+    "id": "MODAL",
+    "status": "INFO",
+    "detail": "ERROR modal blocking page → title=\"Error\" msg=\"PDF file size must be less than 10MB.\""
+  },
+  {
+    "id": "SAVE-CLICK",
+    "status": "PASS",
+    "detail": "Save clicked after dismissing modal"
+  },
+  {
+    "id": "SAVE",
+    "status": "INFO",
+    "detail": "→ https://gccwebapp.com/Certificate/CertificateInternalView/26-0160 title=\"Certificate Details - Internal - GreenCircle Certified Database\""
+  },
+  {
+    "id": "VERDICT",
+    "status": "FAIL",
+    "detail": "REPRODUCED: the 12MB PDF was rejected client-side (warning shown) and the selection was CLEARED. Save then posted with NO new PDF, so the cert kept its existing file → \"didn't update.\" This is the certificate-create.js 10MB cap (line 213)."
+  }
+]

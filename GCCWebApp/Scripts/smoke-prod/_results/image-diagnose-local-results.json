@@ -1,0 +1,17 @@
+[
+  {
+    "id": "DISCOVER",
+    "status": "PASS",
+    "detail": "cert#=26-0023"
+  },
+  {
+    "id": "IMG",
+    "status": "INFO",
+    "detail": "src=/Certificate/ViewCertificateImage/24 naturalW=464 placeholder=false \"\""
+  },
+  {
+    "id": "VERDICT",
+    "status": "PASS",
+    "detail": "THUMBNAIL GENERATED locally (464px) → code path works; gccwebapp.com failure is SERVER environment (pdfium/VC++ runtime)."
+  }
+]

@@ -469,6 +469,11 @@ namespace GCCWebApp.Controllers
 
                 if (ModelState.IsValid)
                 {
+                    // CR-186 SPLIT: resolve the picked product + this cert's Type/Subcategory to the
+                    // matching product RECORD (find-or-create) so each combo is its own line item.
+                    var resolvedProductId = await ResolveProductForCertAsync(
+                        model.ProductId, model.ProductCategoryId, model.ProductTypeId, model.ProductSubcategoryId);
+
                     var certificate = new Certificate
                     {
                         // DEF-193: Number assigned atomically by AddWithGeneratedNumberAsync below;
@@ -487,7 +492,7 @@ namespace GCCWebApp.Controllers
                         Gtin = model.Gtin,
                         Ean = model.Ean,
                         CompanyId = model.CompanyId,
-                        ProductId = model.ProductId,
+                        ProductId = resolvedProductId,
                         ProductCategoryId = model.ProductCategoryId,
                         ProductTypeId = model.ProductTypeId,
                         ProductSubcategoryId = model.ProductSubcategoryId,
@@ -1017,7 +1022,16 @@ namespace GCCWebApp.Controllers
                     certificate.Gtin = model.Gtin;
                     certificate.Ean = model.Ean;
                     certificate.CompanyId = model.CompanyId;
-                    certificate.ProductId = model.ProductId;
+                    // CR-186 SPLIT: re-point to the product record matching this cert's Type/Subcategory.
+                    // DEF-265: when this cert is the SOLE owner of its current product line item, update
+                    // that record in place instead of creating a new one. Editing a single cert must
+                    // UPDATE its product, not spawn a 0-cert orphan duplicate (the "keeps adding new
+                    // instead of updating" report). The split still fires when the line item is shared by
+                    // other certs — capture the prior link + cert id so the resolver can tell them apart.
+                    var previousProductId = certificate.ProductId;
+                    certificate.ProductId = await ResolveProductForCertAsync(
+                        model.ProductId, model.ProductCategoryId, model.ProductTypeId, model.ProductSubcategoryId,
+                        previousProductId, certificate.Id);
                     certificate.ProductCategoryId = model.ProductCategoryId;
                     certificate.ProductTypeId = model.ProductTypeId;
                     certificate.ProductSubcategoryId = model.ProductSubcategoryId;
@@ -1301,6 +1315,7 @@ namespace GCCWebApp.Controllers
                     // Cheap when no-op (only writes rows where stored status drifts from derived value).
                     await _productIdService.SyncProductIdStatusesForCertificateAsync(certificate.Id);
 
+
                     // Update company email/website if provided
                     if (model.CompanyEmail != null || model.CompanyWebsite != null)
                     {
@@ -1332,6 +1347,92 @@ namespace GCCWebApp.Controllers
                 await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
                 return View(model);
             }
+        }
+
+        /// <summary>
+        /// CR-186 SPLIT model (2026-06-15): a product is uniquely identified by
+        /// (Company, Name, Category, ProductType, Subcategory). The analyst still picks a product by
+        /// name and sets Type/Subcategory on the certificate; on save we resolve the certificate to the
+        /// product RECORD that matches that exact identity, creating it if it doesn't exist (cloning the
+        /// picked product's identity-neutral fields). Returns the product id to store on the certificate.
+        /// This makes each (Product, Type, Subcategory) a separate line item on Product Management, with
+        /// the certificate count attached to the matching record.
+        ///
+        /// Category for the record = the cert's chosen category, falling back to the picked product's.
+        /// Null Type/Subcategory are matched in-memory (over the small same-Name+Category candidate set)
+        /// to avoid EF's column-to-nullable-parameter equality pitfalls. A (blank, blank) combo is valid.
+        /// </summary>
+        private async Task<int> ResolveProductForCertAsync(int basePickedProductId, int? categoryId, int? typeId, int? subcatId,
+            int? previousProductId = null, int? currentCertId = null)
+        {
+            var baseProduct = await _context.Products.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == basePickedProductId && !p.IsDeleted);
+            if (baseProduct == null) return basePickedProductId; // can't resolve a missing product; leave as-is
+
+            int categoryIdForProduct = categoryId ?? baseProduct.CategoryId;
+
+            // Narrow in SQL by the always-present keys, then match Company + Type + Subcategory in memory
+            // (C# equality is null-safe: null == null is true).
+            var candidates = await _context.Products
+                .Where(p => !p.IsDeleted && p.Name == baseProduct.Name && p.CategoryId == categoryIdForProduct)
+                .ToListAsync();
+            var existing = candidates.FirstOrDefault(p =>
+                p.CompanyId == baseProduct.CompanyId &&
+                p.ProductTypeId == typeId &&
+                p.ProductSubcategoryId == subcatId);
+            if (existing != null) return existing.Id;
+
+            // DEF-265: no existing line item matches the new Type/Subcategory. Before creating a new one,
+            // check whether this edit is just moving the cert's OWN line item. If the cert currently links
+            // to a product of the same Name+Company that NO other cert uses, update that record in place
+            // (Type/Subcategory/Category) rather than spawning a duplicate that leaves the old row orphaned
+            // with 0 certs. The CR-186 split is preserved: when the line item is shared by other certs, or
+            // the user picked a different base product (Name/Company differs), we fall through to create.
+            if (previousProductId.HasValue && previousProductId.Value > 0)
+            {
+                var prev = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == previousProductId.Value && !p.IsDeleted);
+                if (prev != null && prev.Name == baseProduct.Name && prev.CompanyId == baseProduct.CompanyId)
+                {
+                    var otherCertCount = await _context.Certificates.CountAsync(c =>
+                        c.ProductId == prev.Id &&
+                        (!currentCertId.HasValue || c.Id != currentCertId.Value));
+                    if (otherCertCount == 0)
+                    {
+                        prev.CategoryId = categoryIdForProduct;
+                        prev.ProductTypeId = typeId;
+                        prev.ProductSubcategoryId = subcatId;
+                        prev.UpdatedAt = DateTime.UtcNow;
+                        _context.Products.Update(prev);
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation(
+                            "DEF-265/CR-186: updated sole-owner product #{Id} in place (CategoryId={Cat}, ProductTypeId={Type}, ProductSubcategoryId={Sub}) instead of creating a duplicate",
+                            prev.Id, categoryIdForProduct, typeId, subcatId);
+                        return prev.Id;
+                    }
+                }
+            }
+
+            var created = new Product
+            {
+                Name = baseProduct.Name,
+                Description = baseProduct.Description,
+                Model = baseProduct.Model,
+                Sku = baseProduct.Sku,
+                CompanyId = baseProduct.CompanyId,
+                CategoryId = categoryIdForProduct,
+                ProductTypeId = typeId,
+                ProductSubcategoryId = subcatId,
+                IsActive = baseProduct.IsActive,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.Products.Add(created);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation(
+                "CR-186: resolved certificate to product record #{Id} (CompanyId={Co}, Name={Name}, CategoryId={Cat}, ProductTypeId={Type}, ProductSubcategoryId={Sub})",
+                created.Id, created.CompanyId, created.Name, categoryIdForProduct, typeId, subcatId);
+            return created.Id;
         }
 
         /// <summary>
@@ -1655,17 +1756,18 @@ namespace GCCWebApp.Controllers
                 // Check if thumbnail already exists and file is valid
                 if (!string.IsNullOrEmpty(certificate.CertificateImagePath))
                 {
-                    var existingThumbnailPath = Path.Combine(_hostingEnvironment.WebRootPath,
-                        certificate.CertificateImagePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                    // DEF-262: thumbnails live under App_Data (DEF-208), not wwwroot.
+                    var existingThumbnailPath = ResolveUploadPhysicalPath(certificate.CertificateImagePath);
                     if (System.IO.File.Exists(existingThumbnailPath))
                     {
                         return; // Thumbnail already exists
                     }
                 }
 
-                // Check if PDF file exists
-                var pdfPath = Path.Combine(_hostingEnvironment.WebRootPath,
-                    certificate.CertificateFile.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                // Check if PDF file exists. DEF-262: resolve under App_Data, not wwwroot — the old
+                // wwwroot path never matched, so this guard always bailed and missing thumbnails
+                // were never backfilled for certs uploaded after the DEF-208 move.
+                var pdfPath = ResolveUploadPhysicalPath(certificate.CertificateFile);
                 if (!System.IO.File.Exists(pdfPath))
                 {
                     _logger.LogWarning("PDF file not found for thumbnail generation: {PdfPath}", pdfPath);
@@ -1804,9 +1906,12 @@ namespace GCCWebApp.Controllers
                             filePath = filePath.Substring(1);
                         }
 
-                        // Construct full path to wwwroot
-                        var webRootPath = _hostingEnvironment.WebRootPath;
-                        var fullPath = Path.Combine(webRootPath, filePath.Replace('/', Path.DirectorySeparatorChar));
+                        // DEF-208 moved uploads from wwwroot/uploads to App_Data/uploads.
+                        // Resolve App_Data-first with a wwwroot legacy fallback so downloads
+                        // keep working both before and after the file migration. (Previously
+                        // this looked in wwwroot only, so every post-migration download 404'd
+                        // with "No certificate PDF has been uploaded".)
+                        var fullPath = ResolveUploadPhysicalPath(filePath);
 
                         if (System.IO.File.Exists(fullPath))
                         {
@@ -2064,6 +2169,23 @@ namespace GCCWebApp.Controllers
             return PhysicalFile(physical, contentType);
         }
 
+        /// <summary>
+        /// DEF-262: resolve a logical "uploads/{subdir}/{file}" path to a physical path for
+        /// File.Exists checks — App_Data home first (DEF-208), wwwroot legacy fallback. Returns
+        /// the App_Data candidate when neither exists so callers branch on the new home.
+        /// </summary>
+        private string ResolveUploadPhysicalPath(string logicalPath)
+        {
+            var rel = (logicalPath ?? string.Empty)
+                .Replace("/", Path.DirectorySeparatorChar.ToString())
+                .Replace("\\", Path.DirectorySeparatorChar.ToString());
+            var appData = Path.Combine(_hostingEnvironment.ContentRootPath, "App_Data", rel);
+            if (System.IO.File.Exists(appData)) return appData;
+            var legacy = Path.Combine(_hostingEnvironment.WebRootPath ?? string.Empty, rel);
+            if (System.IO.File.Exists(legacy)) return legacy;
+            return appData;
+        }
+
         private string GetContentType(string path)
         {
             var extension = Path.GetExtension(path).ToLowerInvariant();
@@ -2194,9 +2316,10 @@ namespace GCCWebApp.Controllers
                                         filePath = filePath.Substring(1);
                                     }
 
-                                    // Construct full path to wwwroot
-                                    var webRootPath = _hostingEnvironment.WebRootPath;
-                                    var fullPath = Path.Combine(webRootPath, filePath.Replace('/', Path.DirectorySeparatorChar));
+                                    // DEF-208: resolve App_Data-first (wwwroot legacy fallback)
+                                    // so the real uploaded PDF is zipped instead of silently
+                                    // falling through to a generated placeholder.
+                                    var fullPath = ResolveUploadPhysicalPath(filePath);
 
                                     if (System.IO.File.Exists(fullPath))
                                     {
@@ -3003,12 +3126,12 @@ namespace GCCWebApp.Controllers
 
                 certificate.CertificateFile = uploadResult.FilePath;
 
-                // Generate thumbnail
+                // Generate thumbnail. DEF-262: pass the LOGICAL "uploads/..." path (the service
+                // resolves it under App_Data). The old code passed a wwwroot-rooted physical path,
+                // which the service then failed to find, so this endpoint never produced a thumbnail.
                 try
                 {
-                    var pdfPath = Path.Combine(_hostingEnvironment.WebRootPath,
-                        uploadResult.FilePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
-                    var thumbnailPath = await _fileUploadService.GeneratePdfThumbnailAsync(pdfPath, number);
+                    var thumbnailPath = await _fileUploadService.GeneratePdfThumbnailAsync(uploadResult.FilePath, number);
                     if (!string.IsNullOrEmpty(thumbnailPath))
                         certificate.CertificateImagePath = thumbnailPath;
                 }

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "FIXTURE",
+    "status": "PASS",
+    "detail": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\upload-repro\\test-12mb.pdf (12,582,891 bytes)"
+  },
+  {
+    "id": "LOGIN",
+    "status": "PASS",
+    "detail": "as admin → https://gccwebapp.com/Certificate/CertificateTileViewInternal"
+  },
+  {
+    "id": "CREATE-PAGE",
+    "status": "PASS",
+    "detail": "#certificateCreateForm present=true"
+  },
+  {
+    "id": "FORM-FILL",
+    "status": "PASS",
+    "detail": "company=131 product=127 number=26-0177"
+  },
+  {
+    "id": "ATTACH",
+    "status": "FAIL",
+    "detail": "NONE"
+  },
+  {
+    "id": "SUBMIT-RESULT",
+    "status": "PASS",
+    "detail": "url=/Certificate/CertificateInternalView/26-0177 stillOnCreate=false pdfErr=\"\" summary=\"\" title=\"Certificate Details - Internal - GreenCircle Certified Database\""
+  },
+  {
+    "id": "NET",
+    "status": "INFO",
+    "detail": "GET 200 https://gccwebapp.com/Certificate/Create | POST 302 https://gccwebapp.com/Certificate/Create"
+  },
+  {
+    "id": "VERDICT",
+    "status": "PASS",
+    "detail": "Upload SUCCEEDED for 26-0177 — could not reproduce the failure with a 12.00MB PDF."
+  }
+]

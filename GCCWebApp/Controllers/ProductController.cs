@@ -778,17 +778,6 @@ namespace GCCWebApp.Controllers
                                 continue;
                             }
 
-                            // Check for duplicate by name
-                            var existingProduct = await _context.Products
-                                .FirstOrDefaultAsync(p => p.Name == productName);
-
-                            if (existingProduct != null)
-                            {
-                                errors.Add($"Line {lineNumber}: Product '{productName}' already exists");
-                                errorCount++;
-                                continue;
-                            }
-
                             // Find product type (Level-1, ParentId == null)
                             int? productTypeId = null;
                             if (!string.IsNullOrWhiteSpace(productTypeName))
@@ -805,6 +794,27 @@ namespace GCCWebApp.Controllers
                                 var subcategory = await _context.ProductTypes
                                     .FirstOrDefaultAsync(pt => pt.Name == subcategoryName && pt.ParentId == productTypeId.Value);
                                 if (subcategory != null) productSubcategoryId = subcategory.Id;
+                            }
+
+                            // CR-186 SPLIT: a product is unique by (Company, Name, Category, Type, Subcategory).
+                            // Dedup on the full identity tuple — same Name with a DIFFERENT Type/Subcategory is a
+                            // distinct product (its own line item), not a duplicate. (Was: Name-only, which
+                            // wrongly rejected genuinely-distinct combos.) Null Type/Subcategory matched in-memory.
+                            int categoryIdForProduct = category?.Id ?? 0;
+                            int? companyIdForProduct = company?.Id;
+                            var dupCandidates = await _context.Products
+                                .Where(p => !p.IsDeleted && p.Name == productName && p.CategoryId == categoryIdForProduct)
+                                .ToListAsync();
+                            var existingProduct = dupCandidates.FirstOrDefault(p =>
+                                p.CompanyId == companyIdForProduct &&
+                                p.ProductTypeId == productTypeId &&
+                                p.ProductSubcategoryId == productSubcategoryId);
+
+                            if (existingProduct != null)
+                            {
+                                errors.Add($"Line {lineNumber}: Product '{productName}' with the same Category/Type/Subcategory already exists");
+                                errorCount++;
+                                continue;
                             }
 
                             // Create product

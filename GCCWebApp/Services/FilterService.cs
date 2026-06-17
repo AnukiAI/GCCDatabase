@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using GCCWebApp.Models;
 using GCCWebApp.Data;
+using GCCWebApp.Search;
 
 namespace GCCWebApp.Services
 {
@@ -41,7 +42,11 @@ namespace GCCWebApp.Services
                     case "certificationtype":
                         var query = _context.CertificationTypes.AsQueryable();
                         if (!string.IsNullOrWhiteSpace(searchTerm))
-                            query = query.Where(ct => ct.Name.Contains(searchTerm));
+                        {
+                            // CR-187: normalized match (case/punctuation/whitespace insensitive).
+                            var nq = SearchNormalizer.Normalize(searchTerm);
+                            query = query.Where(ct => ct.NormalizedName!.Contains(nq));
+                        }
 
                         options = await query
                             .Select(ct => new FilterOption
@@ -56,7 +61,11 @@ namespace GCCWebApp.Services
                     case "companies":
                         var companyQuery = _context.Companies.AsQueryable();
                         if (!string.IsNullOrWhiteSpace(searchTerm))
-                            companyQuery = companyQuery.Where(c => c.Name.Contains(searchTerm));
+                        {
+                            // CR-187: normalized match (case/punctuation/whitespace insensitive).
+                            var nq = SearchNormalizer.Normalize(searchTerm);
+                            companyQuery = companyQuery.Where(c => c.NormalizedName!.Contains(nq));
+                        }
 
                         options = await companyQuery
                             .Select(c => new FilterOption
@@ -69,13 +78,18 @@ namespace GCCWebApp.Services
                         break;
 
                     case "countries":
-                        var countryQuery = _context.Certificates
-                            .Where(c => !string.IsNullOrEmpty(c.Country))
-                            .GroupBy(c => c.Country)
-                            .AsQueryable();
+                        var countryCerts = _context.Certificates
+                            .Where(c => !string.IsNullOrEmpty(c.Country));
 
+                        // CR-187: normalize BEFORE grouping (the group key is the raw country string,
+                        // which has no computed column). Filter certs on NormalizedCountry first.
                         if (!string.IsNullOrWhiteSpace(searchTerm))
-                            countryQuery = countryQuery.Where(g => g.Key != null && g.Key.Contains(searchTerm));
+                        {
+                            var nq = SearchNormalizer.Normalize(searchTerm);
+                            countryCerts = countryCerts.Where(c => c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq));
+                        }
+
+                        var countryQuery = countryCerts.GroupBy(c => c.Country);
 
                         options = await countryQuery
                             .Select(g => new FilterOption
@@ -142,7 +156,11 @@ namespace GCCWebApp.Services
                 var query = _context.Companies.AsQueryable();
 
                 if (!string.IsNullOrWhiteSpace(searchTerm))
-                    query = query.Where(c => c.Name.Contains(searchTerm));
+                {
+                    // CR-187: normalized match (case/punctuation/whitespace insensitive).
+                    var nq = SearchNormalizer.Normalize(searchTerm);
+                    query = query.Where(c => c.NormalizedName!.Contains(nq));
+                }
 
                 return await query
                     .Select(c => new FilterOption
@@ -217,13 +235,14 @@ namespace GCCWebApp.Services
                     .AsQueryable();
 
                 // Apply current filters to get accurate counts
+                // CR-187: normalized search against persisted computed columns.
                 if (!string.IsNullOrWhiteSpace(filters.SearchTerm))
                 {
-                    var searchTerm = filters.SearchTerm.ToLower();
+                    var nq = SearchNormalizer.Normalize(filters.SearchTerm);
                     query = query.Where(c =>
-                        c.Company.Name.ToLower().Contains(searchTerm) ||
-                        c.Product.Name.ToLower().Contains(searchTerm) ||
-                        c.Number.ToLower().Contains(searchTerm));
+                        c.Company.NormalizedName!.Contains(nq) ||
+                        c.Product.NormalizedName!.Contains(nq) ||
+                        c.NormalizedNumber!.Contains(nq));
                 }
 
                 var counts = new Dictionary<string, int>

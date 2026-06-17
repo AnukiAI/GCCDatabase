@@ -372,6 +372,21 @@ namespace GCCWebApp.Migrations
                         .HasMaxLength(175)
                         .HasColumnType("nvarchar(175)");
 
+                    b.Property<string>("NormalizedCountry")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE([Country], N' ', N''), NCHAR(9), N''), NCHAR(10), N''), NCHAR(13), N''), N'™', N''), N'®', N''), N'©', N''), N'℠', N''), N'°', N''), N'-', N''), N'–', N''), N'—', N''), N'_', N''), N'.', N''), N',', N''), N':', N''), N';', N''), N'!', N''), N'?', N''), N'''', N''), N'‘', N''), N'’', N''), N'`', N''), N'\"', N''), N'“', N''), N'”', N''), N'(', N''), N')', N''), N'[', N''), N']', N''), N'{', N''), N'}', N''), N'/', N''), N'\\', N''), N'|', N''), N'&', N''), N'+', N''), N'*', N''), N'@', N''), N'#', N''), N'~', N''), N'^', N''), N'=', N''), N'<', N''), N'>', N''), N'%', N''))", true);
+
+                    b.Property<string>("NormalizedLocation")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE([Location], N' ', N''), NCHAR(9), N''), NCHAR(10), N''), NCHAR(13), N''), N'™', N''), N'®', N''), N'©', N''), N'℠', N''), N'°', N''), N'-', N''), N'–', N''), N'—', N''), N'_', N''), N'.', N''), N',', N''), N':', N''), N';', N''), N'!', N''), N'?', N''), N'''', N''), N'‘', N''), N'’', N''), N'`', N''), N'\"', N''), N'“', N''), N'”', N''), N'(', N''), N')', N''), N'[', N''), N']', N''), N'{', N''), N'}', N''), N'/', N''), N'\\', N''), N'|', N''), N'&', N''), N'+', N''), N'*', N''), N'@', N''), N'#', N''), N'~', N''), N'^', N''), N'=', N''), N'<', N''), N'>', N''), N'%', N''))", true);
+
+                    b.Property<string>("NormalizedNumber")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE([Number], N' ', N''), NCHAR(9), N''), NCHAR(10), N''), NCHAR(13), N''), N'™', N''), N'®', N''), N'©', N''), N'℠', N''), N'°', N''), N'-', N''), N'–', N''), N'—', N''), N'_', N''), N'.', N''), N',', N''), N':', N''), N';', N''), N'!', N''), N'?', N''), N'''', N''), N'‘', N''), N'’', N''), N'`', N''), N'\"', N''), N'“', N''), N'”', N''), N'(', N''), N')', N''), N'[', N''), N']', N''), N'{', N''), N'}', N''), N'/', N''), N'\\', N''), N'|', N''), N'&', N''), N'+', N''), N'*', N''), N'@', N''), N'#', N''), N'~', N''), N'^', N''), N'=', N''), N'<', N''), N'>', N''), N'%', N''))", true);
+
                     b.Property<string>("Number")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -429,6 +444,12 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("EffectiveDate");
 
                     b.HasIndex("ExpirationDate");
+
+                    b.HasIndex("NormalizedCountry");
+
+                    b.HasIndex("NormalizedLocation");
+
+                    b.HasIndex("NormalizedNumber");
 
                     b.HasIndex("Number")
                         .IsUnique();
@@ -800,6 +821,11 @@ namespace GCCWebApp.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("NormalizedName")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE([Name], N' ', N''), NCHAR(9), N''), NCHAR(10), N''), NCHAR(13), N''), N'™', N''), N'®', N''), N'©', N''), N'℠', N''), N'°', N''), N'-', N''), N'–', N''), N'—', N''), N'_', N''), N'.', N''), N',', N''), N':', N''), N';', N''), N'!', N''), N'?', N''), N'''', N''), N'‘', N''), N'’', N''), N'`', N''), N'\"', N''), N'“', N''), N'”', N''), N'(', N''), N')', N''), N'[', N''), N']', N''), N'{', N''), N'}', N''), N'/', N''), N'\\', N''), N'|', N''), N'&', N''), N'+', N''), N'*', N''), N'@', N''), N'#', N''), N'~', N''), N'^', N''), N'=', N''), N'<', N''), N'>', N''), N'%', N''))", true);
+
                     b.Property<int?>("ParentId")
                         .HasColumnType("int");
 
@@ -812,6 +838,8 @@ namespace GCCWebApp.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_CertificationTypes_Name_TopLevel")
                         .HasFilter("[ParentId] IS NULL");
+
+                    b.HasIndex("NormalizedName");
 
                     b.HasIndex("ParentId");
 
@@ -860,6 +888,11 @@ namespace GCCWebApp.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("NormalizedName")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE([Name], N' ', N''), NCHAR(9), N''), NCHAR(10), N''), NCHAR(13), N''), N'™', N''), N'®', N''), N'©', N''), N'℠', N''), N'°', N''), N'-', N''), N'–', N''), N'—', N''), N'_', N''), N'.', N''), N',', N''), N':', N''), N';', N''), N'!', N''), N'?', N''), N'''', N''), N'‘', N''), N'’', N''), N'`', N''), N'\"', N''), N'“', N''), N'”', N''), N'(', N''), N')', N''), N'[', N''), N']', N''), N'{', N''), N'}', N''), N'/', N''), N'\\', N''), N'|', N''), N'&', N''), N'+', N''), N'*', N''), N'@', N''), N'#', N''), N'~', N''), N'^', N''), N'=', N''), N'<', N''), N'>', N''), N'%', N''))", true);
+
                     b.Property<int?>("PartnerId")
                         .HasColumnType("int");
 
@@ -880,6 +913,8 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("NormalizedName");
 
                     b.HasIndex("PartnerId");
 
@@ -1516,6 +1551,11 @@ namespace GCCWebApp.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("NormalizedName")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE([Name], N' ', N''), NCHAR(9), N''), NCHAR(10), N''), NCHAR(13), N''), N'™', N''), N'®', N''), N'©', N''), N'℠', N''), N'°', N''), N'-', N''), N'–', N''), N'—', N''), N'_', N''), N'.', N''), N',', N''), N':', N''), N';', N''), N'!', N''), N'?', N''), N'''', N''), N'‘', N''), N'’', N''), N'`', N''), N'\"', N''), N'“', N''), N'”', N''), N'(', N''), N')', N''), N'[', N''), N']', N''), N'{', N''), N'}', N''), N'/', N''), N'\\', N''), N'|', N''), N'&', N''), N'+', N''), N'*', N''), N'@', N''), N'#', N''), N'~', N''), N'^', N''), N'=', N''), N'<', N''), N'>', N''), N'%', N''))", true);
+
                     b.Property<int?>("ProductSubcategoryId")
                         .HasColumnType("int");
 
@@ -1544,6 +1584,8 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("IsActive");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("NormalizedName");
 
                     b.HasIndex("ProductSubcategoryId");
 
@@ -1577,6 +1619,11 @@ namespace GCCWebApp.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("NormalizedName")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE([Name], N' ', N''), NCHAR(9), N''), NCHAR(10), N''), NCHAR(13), N''), N'™', N''), N'®', N''), N'©', N''), N'℠', N''), N'°', N''), N'-', N''), N'–', N''), N'—', N''), N'_', N''), N'.', N''), N',', N''), N':', N''), N';', N''), N'!', N''), N'?', N''), N'''', N''), N'‘', N''), N'’', N''), N'`', N''), N'\"', N''), N'“', N''), N'”', N''), N'(', N''), N')', N''), N'[', N''), N']', N''), N'{', N''), N'}', N''), N'/', N''), N'\\', N''), N'|', N''), N'&', N''), N'+', N''), N'*', N''), N'@', N''), N'#', N''), N'~', N''), N'^', N''), N'=', N''), N'<', N''), N'>', N''), N'%', N''))", true);
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
@@ -1584,6 +1631,8 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("NormalizedName");
 
                     b.ToTable("ProductCategories");
                 });
@@ -1756,6 +1805,11 @@ namespace GCCWebApp.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("NormalizedName")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE([Name], N' ', N''), NCHAR(9), N''), NCHAR(10), N''), NCHAR(13), N''), N'™', N''), N'®', N''), N'©', N''), N'℠', N''), N'°', N''), N'-', N''), N'–', N''), N'—', N''), N'_', N''), N'.', N''), N',', N''), N':', N''), N';', N''), N'!', N''), N'?', N''), N'''', N''), N'‘', N''), N'’', N''), N'`', N''), N'\"', N''), N'“', N''), N'”', N''), N'(', N''), N')', N''), N'[', N''), N']', N''), N'{', N''), N'}', N''), N'/', N''), N'\\', N''), N'|', N''), N'&', N''), N'+', N''), N'*', N''), N'@', N''), N'#', N''), N'~', N''), N'^', N''), N'=', N''), N'<', N''), N'>', N''), N'%', N''))", true);
+
                     b.Property<string>("TagType")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1765,6 +1819,8 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("NormalizedName");
 
                     b.ToTable("Tags");
                 });

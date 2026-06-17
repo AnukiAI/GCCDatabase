@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using GCCWebApp.Models;
 using GCCWebApp.Models.Import;
+using GCCWebApp.Search;
 
 namespace GCCWebApp.Data
 {
@@ -98,6 +99,19 @@ namespace GCCWebApp.Data
                         END", stored: true);
                 entity.HasIndex(e => e.CertificationResultsNumeric);
 
+                // CR-187: persisted computed search-normalized columns. SQL is generated from the
+                // same SearchNormalizer.RemovableChars used to normalize the search input, so the
+                // stored value and the query term can never drift. Indexed for prefix/autocomplete.
+                entity.Property(e => e.NormalizedNumber)
+                    .HasComputedColumnSql(SearchNormalizer.ToSqlExpression("[Number]"), stored: true);
+                entity.HasIndex(e => e.NormalizedNumber);
+                entity.Property(e => e.NormalizedLocation)
+                    .HasComputedColumnSql(SearchNormalizer.ToSqlExpression("[Location]"), stored: true);
+                entity.HasIndex(e => e.NormalizedLocation);
+                entity.Property(e => e.NormalizedCountry)
+                    .HasComputedColumnSql(SearchNormalizer.ToSqlExpression("[Country]"), stored: true);
+                entity.HasIndex(e => e.NormalizedCountry);
+
                 // Relationships
                 entity.HasOne(e => e.Company)
                     .WithMany(c => c.Certificates)
@@ -176,7 +190,12 @@ namespace GCCWebApp.Data
                     .IsRequired();
 
                 entity.HasIndex(e => e.Name).IsUnique();
-                
+
+                // CR-187: persisted computed search-normalized Name (see SearchNormalizer).
+                entity.Property(e => e.NormalizedName)
+                    .HasComputedColumnSql(SearchNormalizer.ToSqlExpression("[Name]"), stored: true);
+                entity.HasIndex(e => e.NormalizedName);
+
                 // Performance indexes for company searches
                 entity.HasIndex(e => e.Country);
                 entity.HasIndex(e => e.Website);
@@ -195,6 +214,12 @@ namespace GCCWebApp.Data
                 
                 // Performance indexes for product searches
                 entity.HasIndex(e => e.Name);
+
+                // CR-187: persisted computed search-normalized Name (see SearchNormalizer).
+                entity.Property(e => e.NormalizedName)
+                    .HasComputedColumnSql(SearchNormalizer.ToSqlExpression("[Name]"), stored: true);
+                entity.HasIndex(e => e.NormalizedName);
+
                 entity.HasIndex(e => e.CategoryId);
                 entity.HasIndex(e => e.ProductTypeId);
                 entity.HasIndex(e => e.CompanyId);
@@ -246,6 +271,11 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
                 entity.HasIndex(e => e.Name).IsUnique();
+
+                // CR-187: persisted computed search-normalized Name (see SearchNormalizer).
+                entity.Property(e => e.NormalizedName)
+                    .HasComputedColumnSql(SearchNormalizer.ToSqlExpression("[Name]"), stored: true);
+                entity.HasIndex(e => e.NormalizedName);
             });
 
             // Product type configuration
@@ -288,6 +318,11 @@ namespace GCCWebApp.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
+
+                // CR-187: persisted computed search-normalized Name (see SearchNormalizer).
+                entity.Property(e => e.NormalizedName)
+                    .HasComputedColumnSql(SearchNormalizer.ToSqlExpression("[Name]"), stored: true);
+                entity.HasIndex(e => e.NormalizedName);
 
                 // Unique constraint for subcategories: same name allowed under different parents
                 entity.HasIndex(e => new { e.Name, e.ParentId })
@@ -424,6 +459,11 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 entity.HasIndex(e => e.Name).IsUnique();
+
+                // CR-187: persisted computed search-normalized Name (see SearchNormalizer).
+                entity.Property(e => e.NormalizedName)
+                    .HasComputedColumnSql(SearchNormalizer.ToSqlExpression("[Name]"), stored: true);
+                entity.HasIndex(e => e.NormalizedName);
             });
 
             // Partner configuration

@@ -24,6 +24,13 @@ namespace GCCWebApp.Models
         [MaxLength(100)]
         public string? Country { get; set; }
 
+        // CR-187: persisted computed search-normalized forms (lowercase, trademark/punctuation/
+        // whitespace stripped — see Search.SearchNormalizer). Read-only on the DB; SQL maintains
+        // them on every write. Used for user-friendly search on certificate number/location/country.
+        public string? NormalizedNumber { get; private set; }
+        public string? NormalizedLocation { get; private set; }
+        public string? NormalizedCountry { get; private set; }
+
         public string? Asin { get; set; } // Amazon Standard ID
 
         public string? Upc { get; set; } // Universal Product Code

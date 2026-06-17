@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Repositories;
+using GCCWebApp.Search;
 using GCCWebApp.Services;
 using System.IO;
 using System.IO.Compression;
@@ -2969,11 +2970,13 @@ namespace GCCWebApp.Controllers
                     return Json(new { success = true, data = defaultProducts });
                 }
 
-                var searchTerm = query.Trim().ToLowerInvariant();
+                // CR-187: normalized match so autocomplete finds "Product A" when the stored name is
+                // "Product™ A", "product-a", "Product:  A", etc. Runs in memory (products already
+                // materialized), using the same SearchNormalizer rule as the DB-side search.
+                var nq = SearchNormalizer.Normalize(query);
 
-                // Search by name (contains, case-insensitive)
                 var matchingProducts = activeProducts
-                    .Where(p => p.Name.ToLowerInvariant().Contains(searchTerm))
+                    .Where(p => SearchNormalizer.Normalize(p.Name).Contains(nq))
                     .OrderBy(p =>
                         // Prioritize exact matches, then starts-with, then contains
                         p.Name.Equals(query, StringComparison.OrdinalIgnoreCase) ? 0 :
@@ -3047,8 +3050,10 @@ namespace GCCWebApp.Controllers
                     // Levenshtein-like: check if removing whitespace and comparing
                     else
                     {
-                        var cleanSearch = searchName.Replace(" ", "").Replace("-", "").Replace("_", "");
-                        var cleanProduct = productName.Replace(" ", "").Replace("-", "").Replace("_", "");
+                        // CR-187: use the shared normalizer so duplicate detection also collapses
+                        // trademark/registered/punctuation differences, not just spaces/hyphens.
+                        var cleanSearch = SearchNormalizer.Normalize(searchName);
+                        var cleanProduct = SearchNormalizer.Normalize(productName);
 
                         if (cleanSearch == cleanProduct)
                         {

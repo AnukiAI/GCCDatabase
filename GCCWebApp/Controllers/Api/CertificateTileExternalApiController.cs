@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Extensions;
 using GCCWebApp.Models;
+using GCCWebApp.Search;
 using Microsoft.AspNetCore.Authorization;
 using System.Text.RegularExpressions;
 
@@ -24,15 +25,8 @@ namespace GCCWebApp.Controllers.Api
             _logger = logger;
         }
 
-        /// <summary>
-        /// Normalizes a string by removing hyphens, spaces, and special characters for flexible matching.
-        /// E.g., "Len-Tex" -> "lentex", "3-Form" -> "3form"
-        /// </summary>
-        private static string NormalizeForSearch(string input)
-        {
-            if (string.IsNullOrEmpty(input)) return string.Empty;
-            return Regex.Replace(input.ToLower(), @"[-\s_]", "");
-        }
+        // CR-187: search normalization moved to the shared Search.SearchNormalizer, matched against
+        // persisted computed NormalizedX columns. The local NormalizeForSearch helper was removed.
 
         /// <summary>
         /// Format certificate number to YY-NNNN format
@@ -138,27 +132,24 @@ namespace GCCWebApp.Controllers.Api
                     query = query.Where(c => partners.Contains(c.Partner ?? "None"));
                 }
 
-                // Apply search filter with flexible matching (handles hyphens, spaces, capitalization)
-                // E.g., "LenTex" matches "Len-Tex", "lentex" matches "Len-Tex", etc.
+                // CR-187: normalized, user-friendly search (mirrors the internal tile controller).
+                // Both sides reduced to a canonical form via the shared SearchNormalizer / persisted
+                // computed NormalizedX columns so "Product A" matches "Product™ A", "product-a", etc.
                 if (!string.IsNullOrWhiteSpace(search))
                 {
-                    var searchLower = search.ToLower();
-                    var normalizedSearch = NormalizeForSearch(search);
-
-                    query = query.Where(c =>
-                        // Standard search
-                        c.Number.ToLower().Contains(searchLower) ||
-                        c.CertificationType.Name.ToLower().Contains(searchLower) ||
-                        c.Company.Name.ToLower().Contains(searchLower) ||
-                        c.Product.Name.ToLower().Contains(searchLower) ||
-                        c.Product.Category.Name.ToLower().Contains(searchLower) ||
-                        (c.Location != null && c.Location.ToLower().Contains(searchLower)) ||
-                        (c.Country != null && c.Country.ToLower().Contains(searchLower)) ||
-                        c.Tags.Any(t => t.Name.ToLower().Contains(searchLower)) ||
-                        // Flexible matching: compare normalized values (without hyphens/spaces)
-                        c.Company.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
-                        c.Product.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
-                        (c.Location != null && c.Location.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch)));
+                    var nq = SearchNormalizer.Normalize(search);
+                    if (!string.IsNullOrEmpty(nq))
+                    {
+                        query = query.Where(c =>
+                            c.NormalizedNumber!.Contains(nq) ||
+                            c.CertificationType.NormalizedName!.Contains(nq) ||
+                            c.Company.NormalizedName!.Contains(nq) ||
+                            c.Product.NormalizedName!.Contains(nq) ||
+                            c.Product.Category.NormalizedName!.Contains(nq) ||
+                            (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
+                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
+                            c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
+                    }
                 }
 
                 // Apply certification type filter
@@ -316,7 +307,8 @@ namespace GCCWebApp.Controllers.Api
 
             try
             {
-                term = term.ToLower();
+                // CR-187: normalized autocomplete — matches against persisted computed columns.
+                var nq = SearchNormalizer.Normalize(term);
                 var suggestions = new List<object>();
 
                 // Apply role-based filtering for autocomplete
@@ -353,7 +345,7 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search certificate numbers
                 var certNumbers = await baseQuery
-                    .Where(c => c.Number.ToLower().Contains(term))
+                    .Where(c => c.NormalizedNumber!.Contains(nq))
                     .Select(c => new {
                         value = c.Number,
                         label = c.Number,
@@ -368,7 +360,7 @@ namespace GCCWebApp.Controllers.Api
                 var userCompanyIds2 = userRole == "External" ? await GetCurrentUserCompanyIdsAsync() : new List<int>();
 
                 var companies = await _context.Companies
-                    .Where(c => c.Name.ToLower().Contains(term) &&
+                    .Where(c => c.NormalizedName!.Contains(nq) &&
                                c.Certificates.Any(cert =>
                                    (userRole != "Partner" && userRole != "External") ||
                                    (userRole == "Partner" && userPartnerNames2.Contains(cert.Partner ?? "None")) ||
@@ -385,7 +377,7 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search products (only those with certificates visible to this user based on role)
                 var products = await _context.Products
-                    .Where(p => p.Name.ToLower().Contains(term) &&
+                    .Where(p => p.NormalizedName!.Contains(nq) &&
                                p.Certificates.Any(cert =>
                                    (userRole != "Partner" && userRole != "External") ||
                                    (userRole == "Partner" && userPartnerNames2.Contains(cert.Partner ?? "None")) ||
@@ -402,7 +394,7 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search certification types
                 var certTypes = await _context.CertificationTypes
-                    .Where(ct => ct.Name.ToLower().Contains(term))
+                    .Where(ct => ct.NormalizedName!.Contains(nq))
                     .Select(ct => new { 
                         value = ct.Name, 
                         label = ct.Name, 
@@ -414,7 +406,7 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search locations
                 var locations = await baseQuery
-                    .Where(c => c.Location != null && c.Location.ToLower().Contains(term))
+                    .Where(c => c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq))
                     .Select(c => c.Location)
                     .Distinct()
                     .Select(l => new { 

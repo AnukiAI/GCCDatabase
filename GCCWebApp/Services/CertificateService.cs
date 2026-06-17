@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using GCCWebApp.Models;
 using GCCWebApp.Data;
 using GCCWebApp.Repositories;
+using GCCWebApp.Search;
 using GreenCircleCertified.ViewModels;
 using System.Text;
 using QuestPDF.Fluent;
@@ -39,14 +40,15 @@ namespace GCCWebApp.Services
                     .AsQueryable();
 
                 // Apply search filters (includes tag matching)
+                // CR-187: normalized search against persisted computed columns.
                 if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
                 {
-                    var searchTerm = request.Filters.SearchTerm.ToLower();
+                    var nq = SearchNormalizer.Normalize(request.Filters.SearchTerm);
                     query = query.Where(c =>
-                        c.Company.Name.ToLower().Contains(searchTerm) ||
-                        c.Product.Name.ToLower().Contains(searchTerm) ||
-                        c.Number.ToLower().Contains(searchTerm) ||
-                        c.Tags.Any(t => t.Name.ToLower().Contains(searchTerm)));
+                        c.Company.NormalizedName!.Contains(nq) ||
+                        c.Product.NormalizedName!.Contains(nq) ||
+                        c.NormalizedNumber!.Contains(nq) ||
+                        c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
                 }
 
                 if (request.Filters.CertificationTypes.Any())
@@ -167,14 +169,15 @@ namespace GCCWebApp.Services
                     .AsQueryable();
 
                 // Apply search filters (includes tag matching)
+                // CR-187: normalized search against persisted computed columns.
                 if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
                 {
-                    var searchTerm = request.Filters.SearchTerm.ToLower();
+                    var nq = SearchNormalizer.Normalize(request.Filters.SearchTerm);
                     query = query.Where(c =>
-                        c.Company.Name.ToLower().Contains(searchTerm) ||
-                        c.Product.Name.ToLower().Contains(searchTerm) ||
-                        c.Number.ToLower().Contains(searchTerm) ||
-                        c.Tags.Any(t => t.Name.ToLower().Contains(searchTerm)));
+                        c.Company.NormalizedName!.Contains(nq) ||
+                        c.Product.NormalizedName!.Contains(nq) ||
+                        c.NormalizedNumber!.Contains(nq) ||
+                        c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
                 }
 
                 if (request.Filters.CertificationTypes.Any())
@@ -448,14 +451,15 @@ namespace GCCWebApp.Services
             query = ApplyExportSecurityScope(query, request);
 
             // Apply filters
+            // CR-187: normalized search against persisted computed columns.
             if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
             {
-                var searchTerm = request.Filters.SearchTerm.ToLower();
+                var nq = SearchNormalizer.Normalize(request.Filters.SearchTerm);
                 query = query.Where(c =>
-                    c.Company.Name.ToLower().Contains(searchTerm) ||
-                    c.Product.Name.ToLower().Contains(searchTerm) ||
-                    c.Number.ToLower().Contains(searchTerm) ||
-                    c.Tags.Any(t => t.Name.ToLower().Contains(searchTerm)));
+                    c.Company.NormalizedName!.Contains(nq) ||
+                    c.Product.NormalizedName!.Contains(nq) ||
+                    c.NormalizedNumber!.Contains(nq) ||
+                    c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
             }
             if (request.Filters.CertificationTypes.Any())
                 query = query.Where(c => request.Filters.CertificationTypes.Contains(c.CertificationType.Name));

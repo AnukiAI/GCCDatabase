@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Extensions;
 using GCCWebApp.Models;
+using GCCWebApp.Search;
 using Microsoft.AspNetCore.Authorization;
 using System.Text.RegularExpressions;
 
@@ -24,15 +25,8 @@ namespace GCCWebApp.Controllers.Api
             _logger = logger;
         }
 
-        /// <summary>
-        /// Normalizes a string by removing hyphens, spaces, and special characters for flexible matching.
-        /// E.g., "Len-Tex" -> "lentex", "3-Form" -> "3form"
-        /// </summary>
-        private static string NormalizeForSearch(string input)
-        {
-            if (string.IsNullOrEmpty(input)) return string.Empty;
-            return Regex.Replace(input.ToLower(), @"[-\s_]", "");
-        }
+        // CR-187: search normalization moved to the shared Search.SearchNormalizer, matched against
+        // persisted computed NormalizedX columns. The local NormalizeForSearch helper was removed.
 
         /// <summary>
         /// Format certificate number to YY-NNNN format
@@ -116,27 +110,25 @@ namespace GCCWebApp.Controllers.Api
                         .ThenInclude(cfv => cfv.Field)
                     .AsQueryable();
 
-                // Apply search filter with flexible matching (handles hyphens, spaces, capitalization)
-                // E.g., "LenTex" matches "Len-Tex", "lentex" matches "Len-Tex", etc.
+                // CR-187: normalized, user-friendly search. Both sides reduced to a canonical form
+                // (lowercase; trademark/punctuation/whitespace stripped) so "Product A" matches
+                // "Product™ A", "product-a", "Product:  A", etc. Stored side = persisted computed
+                // NormalizedX columns; input side = SearchNormalizer (same rule, cannot drift).
                 if (!string.IsNullOrWhiteSpace(search))
                 {
-                    var searchLower = search.ToLower();
-                    var normalizedSearch = NormalizeForSearch(search);
-
-                    query = query.Where(c =>
-                        // Standard search
-                        c.Number.ToLower().Contains(searchLower) ||
-                        c.CertificationType.Name.ToLower().Contains(searchLower) ||
-                        c.Company.Name.ToLower().Contains(searchLower) ||
-                        c.Product.Name.ToLower().Contains(searchLower) ||
-                        c.Product.Category.Name.ToLower().Contains(searchLower) ||
-                        (c.Location != null && c.Location.ToLower().Contains(searchLower)) ||
-                        (c.Country != null && c.Country.ToLower().Contains(searchLower)) ||
-                        c.Tags.Any(t => t.Name.ToLower().Contains(searchLower)) ||
-                        // Flexible matching: compare normalized values (without hyphens/spaces)
-                        c.Company.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
-                        c.Product.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
-                        (c.Location != null && c.Location.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch)));
+                    var nq = SearchNormalizer.Normalize(search);
+                    if (!string.IsNullOrEmpty(nq))
+                    {
+                        query = query.Where(c =>
+                            c.NormalizedNumber!.Contains(nq) ||
+                            c.CertificationType.NormalizedName!.Contains(nq) ||
+                            c.Company.NormalizedName!.Contains(nq) ||
+                            c.Product.NormalizedName!.Contains(nq) ||
+                            c.Product.Category.NormalizedName!.Contains(nq) ||
+                            (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
+                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
+                            c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
+                    }
                 }
 
                 // Apply certification type filter
@@ -413,16 +405,17 @@ namespace GCCWebApp.Controllers.Api
 
             try
             {
-                term = term.ToLower();
+                // CR-187: normalized autocomplete — matches against persisted computed columns.
+                var nq = SearchNormalizer.Normalize(term);
                 var suggestions = new List<object>();
 
                 // Search certificate numbers
                 var certNumbers = await _context.Certificates
-                    .Where(c => c.Number.ToLower().Contains(term))
-                    .Select(c => new { 
-                        value = c.Number, 
-                        label = c.Number, 
-                        type = "Certificate Number" 
+                    .Where(c => c.NormalizedNumber!.Contains(nq))
+                    .Select(c => new {
+                        value = c.Number,
+                        label = c.Number,
+                        type = "Certificate Number"
                     })
                     .Take(5)
                     .ToListAsync();
@@ -430,11 +423,11 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search companies
                 var companies = await _context.Companies
-                    .Where(c => c.Name.ToLower().Contains(term))
-                    .Select(c => new { 
-                        value = c.Name, 
-                        label = c.Name, 
-                        type = "Company" 
+                    .Where(c => c.NormalizedName!.Contains(nq))
+                    .Select(c => new {
+                        value = c.Name,
+                        label = c.Name,
+                        type = "Company"
                     })
                     .Take(5)
                     .ToListAsync();
@@ -442,11 +435,11 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search products
                 var products = await _context.Products
-                    .Where(p => p.Name.ToLower().Contains(term))
-                    .Select(p => new { 
-                        value = p.Name, 
-                        label = p.Name, 
-                        type = "Product" 
+                    .Where(p => p.NormalizedName!.Contains(nq))
+                    .Select(p => new {
+                        value = p.Name,
+                        label = p.Name,
+                        type = "Product"
                     })
                     .Take(5)
                     .ToListAsync();
@@ -454,11 +447,11 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search certification types
                 var certTypes = await _context.CertificationTypes
-                    .Where(ct => ct.Name.ToLower().Contains(term))
-                    .Select(ct => new { 
-                        value = ct.Name, 
-                        label = ct.Name, 
-                        type = "Certification Type" 
+                    .Where(ct => ct.NormalizedName!.Contains(nq))
+                    .Select(ct => new {
+                        value = ct.Name,
+                        label = ct.Name,
+                        type = "Certification Type"
                     })
                     .Take(5)
                     .ToListAsync();
@@ -466,7 +459,7 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search locations
                 var locations = await _context.Certificates
-                    .Where(c => c.Location != null && c.Location.ToLower().Contains(term))
+                    .Where(c => c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq))
                     .Select(c => c.Location)
                     .Distinct()
                     .Select(l => new { 

@@ -10,6 +10,9 @@ namespace GCCWebApp.Models
         [MaxLength(50)]
         public string Name { get; set; } = string.Empty;
 
+        // CR-187: persisted computed search-normalized form of Name (see Search.SearchNormalizer).
+        public string? NormalizedName { get; private set; }
+
         [Required]
         [MaxLength(20)]
         public string TagType { get; set; } = string.Empty; // internal/external

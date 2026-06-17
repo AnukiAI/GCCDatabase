@@ -10,6 +10,11 @@ namespace GCCWebApp.Models
         [MaxLength(255)]
         public required string Name { get; set; } = string.Empty;
 
+        // CR-187: persisted computed column holding the search-normalized form of Name
+        // (lowercase, trademark/punctuation/whitespace stripped — see Search.SearchNormalizer).
+        // Read-only on the DB; SQL maintains it on every write. Used for user-friendly search.
+        public string? NormalizedName { get; private set; }
+
         public string? Description { get; set; }
 
         // Product identification fields

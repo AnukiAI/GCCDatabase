@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Extensions;
 using GCCWebApp.Models;
-using System.Text.RegularExpressions;
+using GCCWebApp.Search;
 
 namespace GCCWebApp.Repositories
 {
@@ -12,46 +12,9 @@ namespace GCCWebApp.Repositories
         {
         }
 
-        /// <summary>
-        /// Normalizes a string by removing hyphens, spaces, and special characters for flexible matching.
-        /// E.g., "Len-Tex" -> "lentex", "3-Form" -> "3form"
-        /// </summary>
-        private static string NormalizeForSearch(string input)
-        {
-            if (string.IsNullOrEmpty(input)) return string.Empty;
-            // Remove hyphens, spaces, underscores and convert to lowercase
-            return Regex.Replace(input.ToLower(), @"[-\s_]", "");
-        }
-
-        /// <summary>
-        /// Generates search term variations for flexible matching.
-        /// Returns the original term plus a normalized version (no hyphens/spaces).
-        /// </summary>
-        private static List<string> GetSearchTermVariations(string searchTerm)
-        {
-            var variations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var lower = searchTerm.ToLower().Trim();
-
-            // Add original term
-            variations.Add(lower);
-
-            // Add version without hyphens/spaces
-            var normalized = NormalizeForSearch(lower);
-            if (!string.IsNullOrEmpty(normalized) && normalized != lower)
-                variations.Add(normalized);
-
-            // If original has no hyphens, try adding hyphen after each capital letter position
-            // This helps "LenTex" match "Len-Tex"
-            if (!lower.Contains('-'))
-            {
-                // Try inserting hyphens at common positions (before capital letters in original)
-                var withHyphens = Regex.Replace(searchTerm, @"(?<=[a-z])(?=[A-Z])", "-").ToLower();
-                if (withHyphens != lower)
-                    variations.Add(withHyphens);
-            }
-
-            return variations.ToList();
-        }
+        // CR-187: search normalization (hyphens, spaces, trademark/punctuation, case) now lives in
+        // the shared SearchNormalizer, matched against persisted computed NormalizedX columns. The
+        // old per-repository NormalizeForSearch / GetSearchTermVariations helpers were removed.
 
         public async Task<IEnumerable<Certificate>> GetActiveCertificatesAsync()
         {
@@ -153,19 +116,20 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<Certificate>> SearchCertificatesAsync(string searchTerm)
         {
-            var lowerSearchTerm = searchTerm.ToLower();
-            
+            // CR-187: normalized search — "Product A" matches "Product™ A", "product-a", etc.
+            var nq = SearchNormalizer.Normalize(searchTerm);
+
             // Include navigation properties first to prevent N+1 queries
             return await _dbSet
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
-                .Where(c => c.Number.ToLower().Contains(lowerSearchTerm) ||
-                           c.Company.Name.ToLower().Contains(lowerSearchTerm) ||
-                           c.Product.Name.ToLower().Contains(lowerSearchTerm) ||
-                           (c.Location != null && c.Location.ToLower().Contains(lowerSearchTerm)) ||
-                           (c.Country != null && c.Country.ToLower().Contains(lowerSearchTerm)) ||
-                           c.Tags.Any(t => t.Name.ToLower().Contains(lowerSearchTerm)))
+                .Where(c => c.NormalizedNumber!.Contains(nq) ||
+                           c.Company.NormalizedName!.Contains(nq) ||
+                           c.Product.NormalizedName!.Contains(nq) ||
+                           (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
+                           (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
+                           c.Tags.Any(t => t.NormalizedName!.Contains(nq)))
                 .ToListAsync();
         }
 
@@ -177,11 +141,12 @@ namespace GCCWebApp.Repositories
             // Apply filters
             if (!string.IsNullOrEmpty(searchTerm))
             {
-                var lowerSearchTerm = searchTerm.ToLower();
-                query = query.Where(c => c.Number.ToLower().Contains(lowerSearchTerm) ||
-                                        c.Company.Name.ToLower().Contains(lowerSearchTerm) ||
-                                        c.Product.Name.ToLower().Contains(lowerSearchTerm) ||
-                                        c.Tags.Any(t => t.Name.ToLower().Contains(lowerSearchTerm)));
+                // CR-187: normalized search against persisted computed columns.
+                var nq = SearchNormalizer.Normalize(searchTerm);
+                query = query.Where(c => c.NormalizedNumber!.Contains(nq) ||
+                                        c.Company.NormalizedName!.Contains(nq) ||
+                                        c.Product.NormalizedName!.Contains(nq) ||
+                                        c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
             }
 
             if (companyId.HasValue)
@@ -243,28 +208,27 @@ namespace GCCWebApp.Repositories
         {
             var query = _dbSet.AsQueryable();
 
-            // Apply search term filter with flexible matching (handles hyphens, spaces, capitalization)
-            // E.g., "LenTex" matches "Len-Tex", "lentex" matches "Len-Tex", etc.
+            // CR-187: normalized, user-friendly search. Both the search input and the searchable
+            // fields are reduced to a canonical form (lowercase; trademark/punctuation/whitespace
+            // stripped) so "Product A" matches "Product™ A", "product-a", "Product:  A", etc. The
+            // stored side is a persisted computed column (NormalizedX); the input side uses the same
+            // SearchNormalizer rule, so they cannot drift.
             if (!string.IsNullOrEmpty(filter.SearchTerm))
             {
-                var searchVariations = GetSearchTermVariations(filter.SearchTerm);
-                var normalizedSearch = NormalizeForSearch(filter.SearchTerm);
-
-                // Build flexible search: check if any variation matches OR if normalized values match
-                query = query.Where(c =>
-                    // Standard search with variations
-                    searchVariations.Any(term =>
-                        c.Number.ToLower().Contains(term) ||
-                        c.Company.Name.ToLower().Contains(term) ||
-                        c.Product.Name.ToLower().Contains(term) ||
-                        c.CertificationType.Name.ToLower().Contains(term) ||
-                        (c.Location != null && c.Location.ToLower().Contains(term)) ||
-                        (c.Country != null && c.Country.ToLower().Contains(term)) ||
-                        c.Tags.Any(t => t.Name.ToLower().Contains(term))) ||
-                    // Flexible matching: compare normalized values (without hyphens/spaces)
-                    c.Company.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
-                    c.Product.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
-                    (c.Location != null && c.Location.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch)));
+                var nq = SearchNormalizer.Normalize(filter.SearchTerm);
+                // Empty after normalization (e.g. the user typed only symbols) → no search filter,
+                // same as an empty search box, rather than a Contains("") that matches everything.
+                if (!string.IsNullOrEmpty(nq))
+                {
+                    query = query.Where(c =>
+                        c.NormalizedNumber!.Contains(nq) ||
+                        c.Company.NormalizedName!.Contains(nq) ||
+                        c.Product.NormalizedName!.Contains(nq) ||
+                        c.CertificationType.NormalizedName!.Contains(nq) ||
+                        (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
+                        (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
+                        c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
+                }
             }
 
             // Apply filters
@@ -448,8 +412,10 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<Certificate>> GetCertificatesByLocationAsync(string location)
         {
+            // CR-187: normalized match so "St. Louis" matches "St Louis", "st-louis", etc.
+            var nq = SearchNormalizer.Normalize(location);
             return await _dbSet
-                .Where(c => c.Location != null && c.Location.ToLower().Contains(location.ToLower()))
+                .Where(c => c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq))
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -458,8 +424,10 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<Certificate>> GetCertificatesByCountryAsync(string country)
         {
+            // CR-187: normalized match (case/punctuation/whitespace insensitive).
+            var nq = SearchNormalizer.Normalize(country);
             return await _dbSet
-                .Where(c => c.Country != null && c.Country.ToLower().Contains(country.ToLower()))
+                .Where(c => c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq))
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)

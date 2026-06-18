@@ -83,6 +83,19 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 ## Open / Recent
 
+### DEF-267 — Saving any certificate fails validation: "Certificate Number must be a string or array type with a maximum length of '7'"
+
+- **Date:** 2026-06-17
+- **Severity:** High (blocks **every** certificate save on Edit and Create — no cert with a normal `YY-NNNNN` number can be saved through the form).
+- **Status:** **FIXED — pending deploy.** Built clean locally (0 warnings / 0 errors).
+- **QC Ref:** user report (Shawn), 2026-06-17: validation error banner on `https://gccwebapp.com/Certificate/Edit/26-10063` when clicking Save Changes (screenshot `Screenshot_17-6-2026_16347_gccwebapp.com.jpeg`).
+- **Bucket:** Bug (stale validation attribute on the view model).
+- **Root cause.** `Models/CertificateEditViewModel.cs` had a stale `[MaxLength(7)]` on the `Number` property. Certificate numbers use the format `YY-NNNNN` (e.g. `26-10063` = 8 chars), so the 7-char cap rejected essentially every real certificate number on POST. The backing entity `Certificate.Number` already allows `[MaxLength(50)]`, so only the view model was out of sync. (The `HasMaxLength(7)` matches in the EF snapshots belong to a *different* table — `CertificateStatusHistory.CertificateNumber` — not this field.)
+- **Fix.** Changed the view model attribute from `[MaxLength(7)]` → `[MaxLength(50)]` to match the entity. Affects both Edit and Create (shared `CertificateEditViewModel`). No DB/migration change — the column was never the constraint; this was server-side model validation only.
+- **Verification.** `Scripts/smoke-prod/def267-cert-number-maxlength.js` — load a cert Edit form, force an 8-char number (the prod-shaped `26-10063` case) through Save, assert no `MaxLength(7)` banner + clean redirect, then restore the original number (no test data left changed).
+- **Files:** `Models/CertificateEditViewModel.cs`.
+- **Deploy:** Next batch — a **rebuild** of the 6-16 bundle (`…-20260616-1124.zip`) is required since this 6-17 fix postdates that zip. Carries forward the full 1124.zip working tree (DEF-264/265/266 + CR-186 + CR-171 + CR-187). DEF-267 itself has no migration, but the **bundle does** (CR-187 `AddNormalizedSearchColumns` + CR-171 `AddProductIdPartnersM2M`), so **Gate 7 fires for the deploy** — run the canonical combined artifact **`docs/tracking/CR-171-CR187-deploy-combined.sql`** (2 migrations + both CR-171 backfills, idempotent; validated on a throwaway restore of the live `.bak` 2026-06-18) in the same step as the DLL push. Leads the batch (High — blocks all cert edits/creates on prod). See `shipped-2026-06.md` + Gate 7 of `pre-deploy-agent-checklist.md`.
+
 ### DEF-266 — "Error loading custom fields" toast on Certificate Create when selecting a Certification Type
 
 - **Date:** 2026-06-16

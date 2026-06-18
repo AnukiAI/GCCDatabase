@@ -2,7 +2,7 @@
 
 > ## ⚠️ AS-BUILT (reconciled 2026-06-04) — read this first
 >
-> **Status:** **Built + verified on localhost:5101 (2026-06-04) — pending deploy + client UAT.**
+> **Status:** **Built + verified on localhost:5101 (2026-06-04); column set extended per client review 2026-06-17 (build clean) — pending deploy + client UAT of the expanded export.**
 > The shipped implementation is **simpler than the proposed spec below** and was steered live by Shawn across the 2026-06-04 session. The original §1–§9 spec is **retained unchanged for audit** (planned-vs-built trail), but where it conflicts, **this AS-BUILT section governs.**
 >
 > **What shipped:**
@@ -10,10 +10,17 @@
 > - **RBAC:** `[Authorize(Policy = "AnalystOrAdmin")]` — **Admin + Analyst** (verified: analyst 200, external **403**). *This intentionally overrides the spec's `AdminOnly`, which would have locked analysts out — Shawn confirmed 2026-06-04 "analysts need it too."*
 > - **Scope:** **Active only** — parent cert in `PublicStatuses` (Client Approved - Paid or Republished), i.e. CR-015's definition of an active product identifier. Matches Carly's literal "all **active** product identifiers across certs." (Verified: 1014 active rows vs 1126 all-status on the dev DB.)
 > - **No filters.** The spec's 5 filters (Partner / Identifier Type / Cert Status / Issue date from-to) and filter sub-modal were **not built** — deferred as a possible v2. One-click full export of the active set.
-> - **Columns (12, no status column):** Certificate Number, Company, Identifier Type, Id Value, Partner, Product Name, SKU, Description, Effective Date, Expiration Date, Created Date, Created By. *Status columns omitted entirely — every row is active by filter, so both the derived Identifier Status (CR-015) and Certificate Status are non-informative (Shawn 2026-06-04).*
+> - **Columns — extended to 19 per client review (2026-06-17).** Carly reviewed the shipped 12-col export and requested the cert-level context + product-ID audit fields below. Order matches her requested sequence:
+>   `Company, Certificate Number, Certification Type, Effective Date, Expiration Date, Cert Status, ID Partner, Cert Partner, Certification Results, Pathway, Identifier Type, Id Value, Product Name, SKU, Created Date, Created By, Last Updated, Updated By, Description`.
+>   - **Added (7):** Certification Type, Cert Status, Cert Partner, Certification Results, Pathway *(cert-level)*; Last Updated (`UpdatedAt`), Updated By (`UpdatedByUser`) *(product-ID level)*.
+>   - **Renamed:** `Partner` → **`ID Partner`** (product-ID-level partner) to disambiguate from the new **`Cert Partner`** (cert-level), per Carly's clarification request.
+>   - **Cert Status now included** despite every row being active by filter — Carly wants it "just for additional validation." This reverses the original 2026-06-04 "no status column" decision.
+>   - Backend-only fields Amazon receives (certificationCountries, issuer, PDF link, amazonCode, etc.) intentionally **excluded** — Carly confirmed these are not wanted in the analyst export.
+>   - Query gained `.ThenInclude(CertificationType)`, `.ThenInclude(Pathway)`, and `.Include(UpdatedByUser)`.
+> - **Columns (original shipped 12, superseded 2026-06-17):** Certificate Number, Company, Identifier Type, Id Value, Partner, Product Name, SKU, Description, Effective Date, Expiration Date, Created Date, Created By. *Status columns were omitted on 2026-06-04 reasoning that every row is active by filter — reinstated per client request above.*
 > - **UI:** a **new dedicated button** "Export Active Product Identifiers" on **`Views/Product/Management.cshtml`** (the actually-rendered product page — the spec's `ManagementV2.cshtml` reference was stale), role-gated `role-element role-analyst-show role-admin-show`. The existing client-side product Export button was **left untouched** (not replaced).
 >
-> **Files actually touched:** `Controllers/ExportController.cs` (new action + `CsvField` helper), `Views/Product/Management.cshtml` (button + inline fetch handler). No service-layer, no DTO, no migration, no Partner API change. Per-cert export untouched.
+> **Files actually touched:** `Controllers/ExportController.cs` (new action + `CsvField` helper; 2026-06-17 column expansion + 3 added Includes), `Views/Product/Management.cshtml` (button + inline fetch handler), `Scripts/smoke-prod/def243-cr184-prod-fingerprint.js` (header assertion updated to 19 cols). No service-layer, no DTO, no migration, no Partner API change. Per-cert export untouched.
 >
 > **Why simpler than spec:** Shawn's live direction this session prioritized a one-click analyst-accessible active-set export over the filtered admin-only design. Filters remain a clean future add (see §2.4) if analysts later need to slice by partner/type/date.
 

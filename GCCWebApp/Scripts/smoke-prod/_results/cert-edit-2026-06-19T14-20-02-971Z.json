@@ -1,0 +1,120 @@
+{
+  "viewId": "cert-edit",
+  "url": "/Certificate/Edit/26-0025",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-19T14:20:02.971Z",
+  "finishedAt": "2026-06-19T14:20:36.869Z",
+  "pass": 0,
+  "fail": 12,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Certificate/Edit/26-0025\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Certificate/Edit/26-0025\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-public-desktop-fail-2026-06-19T14-20-06-046Z.png"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Certificate/Edit/26-0025\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Certificate/Edit/26-0025\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-public-tablet-fail-2026-06-19T14-20-08-805Z.png"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Certificate/Edit/26-0025\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Certificate/Edit/26-0025\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-public-mobile-fail-2026-06-19T14-20-11-603Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-external-desktop-fail-2026-06-19T14-20-14-226Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-external-tablet-fail-2026-06-19T14-20-16-936Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-external-mobile-fail-2026-06-19T14-20-19-662Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-06-19T14-20-22-402Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-tablet-fail-2026-06-19T14-20-25-452Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-mobile-fail-2026-06-19T14-20-28-240Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-admin-desktop-fail-2026-06-19T14-20-30-934Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-admin-tablet-fail-2026-06-19T14-20-33-679Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-admin-mobile-fail-2026-06-19T14-20-36-475Z.png"
+    }
+  ]
+}

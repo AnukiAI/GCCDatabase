@@ -31,8 +31,21 @@ DELETE FROM Certificates WHERE Number LIKE '99-90%';
 DELETE FROM Products     WHERE Name LIKE 'ZZ_SmokeFixture%';
 DELETE FROM Companies    WHERE Name LIKE 'ZZ_SmokeFixture%';
 
-DECLARE @ownCompanyId int = 53;  -- Henkel: external test user's associated company
-DECLARE @certTypeId   int = 1;   -- "Recycled Content" (active, top-level)
+-- The external test user's OWN company, derived from the actual CompanyUser association
+-- (the smoke logs in as username 'external'). Was hardcoded 53 ("Henkel"), but ids drift:
+-- 53 is now "Domtar" and the 'external' user maps to KAO. Hardcoding broke the own-company
+-- visibility expectations (fixtures landed under a company the user doesn't belong to, so
+-- External correctly hid them). Derive it so the matrix stays valid as data shifts.
+DECLARE @ownCompanyId int = (
+    SELECT TOP 1 cu.CompaniesId
+    FROM CompanyUser cu
+    JOIN Users u ON u.Id = cu.UsersId
+    WHERE u.Username = 'external'
+    ORDER BY cu.CompaniesId);
+-- Pick any active CertificationType that actually exists in THIS db. (Was hardcoded id 1;
+-- ids 1-2 have since been removed from the dev db, so a literal breaks the FK. The matrix
+-- tests visibility by status/company/date, not by cert type, so any valid active id works.)
+DECLARE @certTypeId   int = (SELECT TOP 1 Id FROM CertificationTypes WHERE IsActive = 1 ORDER BY Id);
 DECLARE @catId        int = (SELECT TOP 1 Id FROM ProductCategories WHERE IsActive = 1 ORDER BY Id);
 
 DECLARE @now       datetime2 = SYSUTCDATETIME();

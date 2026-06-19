@@ -70,16 +70,25 @@ async function run() {
       //   - savedProductId is NOT among the loaded options                -> the cert
       //     points to a product that isn't under its company (data inconsistency, a
       //     data-ops issue, not a code defect)                            -> WARN + flag.
-      // Wait (bounded) for the cascade to settle, then inspect the select state.
+      // Wait (bounded) for the cascade to settle, then inspect the select state. Re-selection
+      // of savedProductId happens a tick AFTER the options populate (loadProductsForCompany
+      // sets el.value once the async fetch resolves), so waiting only for options.length>1
+      // races the assignment and reads value="" too early (intermittent false FAIL). Wait for
+      // the value to actually equal saved; only if it never settles is it a real regression.
       try {
         await page.waitForFunction(
           () => {
             const el = document.querySelector('#ProductId');
-            return el && el.options && el.options.length > 1; // options loaded
+            if (!el || !el.options || el.options.length <= 1) return false; // options not loaded yet
+            const saved = (document.documentElement.innerHTML.match(/savedProductId\s*=\s*'([^']*)'/) || [])[1] || '';
+            if (!saved) return true;                       // nothing to re-select
+            const inOptions = Array.from(el.options).some((o) => String(o.value) === saved);
+            if (!inOptions) return true;                   // saved not in list — data-ops case, decide below
+            return String(el.value) === saved;             // re-selection applied
           },
-          { timeout: 6000 }
+          { timeout: 8000 }
         );
-      } catch { /* options never loaded — handled below */ }
+      } catch { /* never settled — handled below as a real FAIL */ }
 
       const prod = await page.evaluate(() => {
         const el = document.querySelector('#ProductId');

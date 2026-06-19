@@ -1,0 +1,314 @@
+{
+  "viewId": "cert-create",
+  "url": "/Certificate/Create",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-19T13:40:25.063Z",
+  "finishedAt": "2026-06-19T13:44:23.856Z",
+  "pass": 26,
+  "fail": 8,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-create.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-create.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-create.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-create.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[type=\"submit\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"submit\" class=\"btn-lime\" aria-label=\"Login to your account\">Login</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n\u001b[2m    - click action done\u001b[22m\n\u001b[2m    - waiting for scheduled navigations to finish\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-create-external-desktop-fail-2026-06-19T13-40-58-100Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-create.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[type=\"submit\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"submit\" class=\"btn-lime\" aria-label=\"Login to your account\">Login</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n\u001b[2m    - click action done\u001b[22m\n\u001b[2m    - waiting for scheduled navigations to finish\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-create-external-tablet-fail-2026-06-19T13-41-29-401Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-create.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.form",
+      "name": "Create form present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.sections",
+      "name": "Form section headers render (>=3)",
+      "status": "PASS",
+      "notes": "sections=4",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#CompanyId",
+      "name": "Company dropdown present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#CertificationTypeId",
+      "name": "Certification Type dropdown present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#Partner",
+      "name": "Partner dropdown present",
+      "status": "FAIL",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#PathwayId",
+      "name": "Pathway dropdown present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-desktop-fail-2026-06-19T13-42-08-365Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[type=\"submit\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"submit\" class=\"btn-lime\" aria-label=\"Login to your account\">Login</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n\u001b[2m    - click action done\u001b[22m\n\u001b[2m    - waiting for scheduled navigations to finish\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-tablet-fail-2026-06-19T13-42-39-747Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[type=\"submit\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"submit\" class=\"btn-lime\" aria-label=\"Login to your account\">Login</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n\u001b[2m    - click action done\u001b[22m\n\u001b[2m    - waiting for scheduled navigations to finish\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-create-analyst-mobile-fail-2026-06-19T13-43-13-534Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.form",
+      "name": "Create form present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.sections",
+      "name": "Form section headers render (>=3)",
+      "status": "PASS",
+      "notes": "sections=4",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#CompanyId",
+      "name": "Company dropdown present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#CertificationTypeId",
+      "name": "Certification Type dropdown present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#Partner",
+      "name": "Partner dropdown present",
+      "status": "FAIL",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#PathwayId",
+      "name": "Pathway dropdown present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-create-admin-desktop-fail-2026-06-19T13-43-19-454Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[type=\"submit\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"submit\" class=\"btn-lime\" aria-label=\"Login to your account\">Login</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n\u001b[2m    - click action done\u001b[22m\n\u001b[2m    - waiting for scheduled navigations to finish\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-create-admin-tablet-fail-2026-06-19T13-43-52-282Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[type=\"submit\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"submit\" class=\"btn-lime\" aria-label=\"Login to your account\">Login</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n\u001b[2m    - click action done\u001b[22m\n\u001b[2m    - waiting for scheduled navigations to finish\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-create-admin-mobile-fail-2026-06-19T13-44-23-369Z.png"
+    }
+  ]
+}

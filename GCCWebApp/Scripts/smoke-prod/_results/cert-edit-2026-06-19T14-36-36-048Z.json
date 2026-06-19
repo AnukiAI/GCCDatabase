@@ -1,0 +1,556 @@
+{
+  "viewId": "cert-edit",
+  "url": "/Certificate/Edit/28-0002",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-06-19T14:36:36.048Z",
+  "finishedAt": "2026-06-19T14:36:55.498Z",
+  "pass": 68,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    }
+  ]
+}

@@ -5,7 +5,9 @@
 // Form structure (certificateCreateForm). Note: SearchableSelect hides some native
 // <select>s and renders a custom widget, but the original element stays in the DOM for
 // form submit — so we assert DOM presence (count > 0), not visibility.
-//   - Core dropdowns: #CompanyId, #CertificationTypeId, #Partner, #PathwayId.
+//   - Core dropdowns: #CompanyId, #CertificationTypeId, #PathwayId, and the multi-partner
+//     selector #partnerSelect (CR-171: Partner became a <select multiple> backed by hidden
+//     #partnersHidden/PartnerIds CSV — there is no longer a single #Partner element).
 //   - #CertificationResults textarea — CR-001 ("Certification Results" optional field).
 //   - .product-manager — the Product ID Manager partial.
 //   - >=3 form section headers (Certificate Information / PDF / Product Identifiers / ...).
@@ -32,7 +34,7 @@ async function run() {
       for (const [sel, label] of [
         ['#CompanyId', 'Company'],
         ['#CertificationTypeId', 'Certification Type'],
-        ['#Partner', 'Partner'],
+        ['#partnerSelect', 'Partner(s) [CR-171 multi-select]'],
         ['#PathwayId', 'Pathway'],
       ]) {
         record(`cert-create.dropdown${sel}`, `${label} dropdown present`,

@@ -45,7 +45,17 @@
 param(
     [string]$PublishProfile = "PleskTestEnvironment",
     [string]$Configuration = "Release",
-    [switch]$SkipUploadsBackupPrompt
+    [switch]$SkipUploadsBackupPrompt,
+    # Generate the idempotent migration script STARTING AFTER this migration id, instead of
+    # from scratch. Use the last migration already applied on the target (prod high-water).
+    # WHY THIS EXISTS: a full from-scratch idempotent script replays every historical migration's
+    # guard block, and SQL Server PARSES each block before the IF NOT EXISTS can skip it. The
+    # 20260512011258_AddCertificationResultsNumeric migration scripts to EXEC(CONCAT(...)) (multi-
+    # line computed column) which is invalid T-SQL (EXEC takes a string/var, not a function call),
+    # so the whole script aborts with "Incorrect syntax near 'CONCAT'" — even though that migration
+    # is already on prod. Scripting from the prod high-water excludes it. (It originally reached
+    # prod via EF runtime migrate, never via the idempotent script, which is why it slipped through.)
+    [string]$FromMigration = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -219,11 +229,13 @@ Write-Host "Generating idempotent EF migrations script..." -ForegroundColor Gray
 # project assembly out of bin/Release/net8.0/ (no RID subfolder). Without
 # letting EF build, it cannot find GCCWebApp.deps.json and aborts. The
 # incremental build EF triggers is fast (sub-second on a warm tree).
-& dotnet ef migrations script `
-    --idempotent `
-    --project $csproj `
-    --configuration $Configuration `
-    --output $migrationSqlPath
+$efScriptArgs = @('ef', 'migrations', 'script')
+if ($FromMigration) {
+    Write-Host "  Scripting FROM migration: $FromMigration (excludes already-applied history)" -ForegroundColor Gray
+    $efScriptArgs += $FromMigration   # positional <from> arg; EF scripts everything AFTER it
+}
+$efScriptArgs += @('--idempotent', '--project', $csproj, '--configuration', $Configuration, '--output', $migrationSqlPath)
+& dotnet @efScriptArgs
 if ($LASTEXITCODE -ne 0) {
     Write-Error "ABORT: dotnet ef migrations script failed (exit $LASTEXITCODE). See above for the EF tool's error output."
     exit $LASTEXITCODE

@@ -253,13 +253,23 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="productIdPartner" class="form-label">Partner</label>
-                                    <select class="form-select" id="productIdPartner" name="Partner">
-                                        <option value="">None</option>
-                                        <option value="Amazon">Amazon</option>
-                                        <option value="Novi">Novi</option>
-                                        <option value="Other">Other</option>
+                                    <label for="productIdPartner" class="form-label">Partner(s) <span class="text-muted" style="font-size: 12px;">(Optional - Multiple)</span></label>
+                                    <select class="form-select" id="productIdPartner" name="Partner" multiple size="4" aria-label="Select one or more partners for this product ID">
+                                        @if (ViewBag.Partners != null)
+                                        {
+                                            foreach (var partner in ViewBag.Partners)
+                                            {
+                                                <option value="@partner.Name">@partner.Name</option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <option value="Amazon">Amazon</option>
+                                            <option value="Novi">Novi</option>
+                                            <option value="Other">Other</option>
+                                        }
                                     </select>
+                                    <small class="form-text text-muted">CR-171: leave empty to share this product ID with all of the certificate's partners; select one or more to restrict it. Hold Ctrl (Cmd on Mac) for multiple.</small>
                                 </div>
                             </div>
                         </div>

@@ -62,10 +62,12 @@ async function login(ctx, user) {
     rec('SETUP-admin-login', 'Admin login on prod', 'PASS');
     const getJson = async (url) => (await adminCtx.request.get(url)).json().catch(() => null);
 
-    // CR-184: admin export returns the active-identifier CSV with the 12-col header
+    // CR-184: admin export returns the active-identifier CSV with the 19-col header
+    // (extended per client review of CR-184, QC #184, 2026-06-17 — added cert-level
+    // context + product-ID Last Updated/Updated By; product-ID partner titled "ID Partner").
     const exp = await adminCtx.request.get(`${BASE}/Export/DownloadActiveProductIds`);
     const csv = await exp.text();
-    const header = 'Certificate Number,Company,Identifier Type,Id Value,Partner,Product Name,SKU,Description,Effective Date,Expiration Date,Created Date,Created By';
+    const header = 'Company,Certificate Number,Certification Type,Effective Date,Expiration Date,Cert Status,ID Partner,Cert Partner,Certification Results,Pathway,Identifier Type,Id Value,Product Name,SKU,Created Date,Created By,Last Updated,Updated By,Description';
     const totalLine = (csv.split('\n').find(l => l.startsWith('Total Active')) || '').trim();
     const ctype = exp.headers()['content-type'] || '';
     rec('CR184-admin-export', 'Admin export returns active-identifier CSV',

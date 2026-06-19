@@ -94,14 +94,15 @@ namespace GCCWebApp.Controllers.Api
                 // External role: sees certificates from their assigned companies only
                 // Admin/Analyst: sees all (handled by policy, but include for completeness)
                 var userRole = GetCurrentUserRole();
+                // CR-171: hoisted so the output projection can scope partner names per role.
+                var userPartnerNames = userRole == "Partner" ? await GetCurrentUserPartnerNamesAsync() : new List<string>();
 
                 if (userRole == "Partner")
                 {
                     // Partner users see certificates tagged with their partner
-                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
                     if (userPartnerNames.Any())
                     {
-                        query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        query = query.Where(c => c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                     }
                     else
                     {
@@ -129,7 +130,7 @@ namespace GCCWebApp.Controllers.Api
                 if (!string.IsNullOrWhiteSpace(partner) && userRole == "Partner")
                 {
                     var partners = partner.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => partners.Contains(c.Partner ?? "None"));
+                    query = query.Where(c => c.Partners.Any(p => partners.Contains(p.Name)));
                 }
 
                 // CR-187: normalized, user-friendly search (mirrors the internal tile controller).
@@ -243,7 +244,8 @@ namespace GCCWebApp.Controllers.Api
                         // across the application").
                         ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).OrderBy(n => n)),
                         PdfPath = c.CertificateFile,
-                        c.Partner,
+                        // CR-171: project the full partner-name list; post-process scopes it per role.
+                        PartnerNames = c.Partners.Select(p => p.Name).ToList(),
                         // Status: only PublicStatuses reach this projection (filter at line ~204),
                         // so this is always one of "Client Approved - Paid" / "Republished".
                         // Surfaced in the UI table so the Status column actually has a value.
@@ -273,7 +275,10 @@ namespace GCCWebApp.Controllers.Api
                     c.Country,
                     c.ExternalTags,
                     c.PdfPath,
-                    c.Partner,
+                    // CR-171: partner callers see only their own association; company/internal see all.
+                    Partner = userRole == "Partner"
+                        ? string.Join(", ", c.PartnerNames.Where(n => userPartnerNames.Contains(n)))
+                        : string.Join(", ", c.PartnerNames),
                     c.Status
                 }).ToList();
 
@@ -320,7 +325,7 @@ namespace GCCWebApp.Controllers.Api
                     var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
                     if (userPartnerNames.Any())
                     {
-                        baseQuery = baseQuery.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        baseQuery = baseQuery.Where(c => c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                     }
                     else
                     {
@@ -363,7 +368,7 @@ namespace GCCWebApp.Controllers.Api
                     .Where(c => c.NormalizedName!.Contains(nq) &&
                                c.Certificates.Any(cert =>
                                    (userRole != "Partner" && userRole != "External") ||
-                                   (userRole == "Partner" && userPartnerNames2.Contains(cert.Partner ?? "None")) ||
+                                   (userRole == "Partner" && cert.Partners.Any(p => userPartnerNames2.Contains(p.Name))) ||
                                    (userRole == "External" && userCompanyIds2.Contains(cert.CompanyId)) &&
                                    CertificateStatusHelper.PublicStatuses.Contains(cert.Status) && (cert.ExpirationDate == null || cert.ExpirationDate >= CertificateStatusHelper.BusinessToday)))
                     .Select(c => new {
@@ -380,7 +385,7 @@ namespace GCCWebApp.Controllers.Api
                     .Where(p => p.NormalizedName!.Contains(nq) &&
                                p.Certificates.Any(cert =>
                                    (userRole != "Partner" && userRole != "External") ||
-                                   (userRole == "Partner" && userPartnerNames2.Contains(cert.Partner ?? "None")) ||
+                                   (userRole == "Partner" && cert.Partners.Any(p => userPartnerNames2.Contains(p.Name))) ||
                                    (userRole == "External" && userCompanyIds2.Contains(cert.CompanyId)) &&
                                    CertificateStatusHelper.PublicStatuses.Contains(cert.Status) && (cert.ExpirationDate == null || cert.ExpirationDate >= CertificateStatusHelper.BusinessToday)))
                     .Select(p => new {
@@ -437,14 +442,15 @@ namespace GCCWebApp.Controllers.Api
             {
                 // Apply role-based filtering for filter options
                 var userRole = GetCurrentUserRole();
+                // CR-171: hoisted so the partner filter list can be scoped to the caller.
+                var userPartnerNames = userRole == "Partner" ? await GetCurrentUserPartnerNamesAsync() : new List<string>();
                 var baseQuery = _context.Certificates.AsQueryable();
 
                 if (userRole == "Partner")
                 {
-                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
                     if (userPartnerNames.Any())
                     {
-                        baseQuery = baseQuery.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        baseQuery = baseQuery.Where(c => c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                     }
                     else
                     {
@@ -618,12 +624,17 @@ namespace GCCWebApp.Controllers.Api
                         .OrderBy(name => name)
                         .ToListAsync(),
 
-                    // Show available partners (for partner switching if user has access to multiple)
-                    partners = await baseQuery
-                        .Select(c => c.Partner ?? "None")
+                    // Show available partners. CR-171: read the M2M collection (not the denormalized
+                    // primary, which could be a co-partner's name on a shared cert) and scope partner
+                    // callers to their own associations so the filter list never leaks co-partners.
+                    partners = (await baseQuery
+                        .SelectMany(c => c.Partners)
+                        .Select(p => p.Name)
                         .Distinct()
+                        .ToListAsync())
+                        .Where(n => userRole != "Partner" || userPartnerNames.Contains(n))
                         .OrderBy(p => p)
-                        .ToListAsync()
+                        .ToList()
                 };
 
                 return Ok(filters);
@@ -643,7 +654,11 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                var certificate = await _context.Certificates.FindAsync(id);
+                // CR-171: Include Partners so the partner-role access check below (collection
+                // membership) sees the cert's partners. FindAsync would not load the M2M.
+                var certificate = await _context.Certificates
+                    .Include(c => c.Partners)
+                    .FirstOrDefaultAsync(c => c.Id == id);
 
                 if (certificate == null)
                 {
@@ -663,7 +678,7 @@ namespace GCCWebApp.Controllers.Api
                 {
                     // Partner users can access certificates tagged with their partner
                     var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
-                    hasAccess = userPartnerNames.Contains(certificate.Partner ?? "None");
+                    hasAccess = certificate.Partners.Any(p => userPartnerNames.Contains(p.Name));
                 }
                 else if (userRole == "External")
                 {

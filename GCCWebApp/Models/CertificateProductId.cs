@@ -29,7 +29,15 @@ namespace GCCWebApp.Models
         public string Status { get; set; } = "Inactive"; // Auto-set on save; default Inactive until cascade runs.
 
         [MaxLength(50)]
-        public string? Partner { get; set; } // Amazon, Novi, None, Other
+        public string? Partner { get; set; } // Denormalized PRIMARY partner (first of Partners) — kept for
+                                              // display/sort/CSV/back-compat. CR-171: real association is the
+                                              // Partners collection below (Model A: API sharing by partner).
+
+        // CR-171 Phase 2: a product ID may be shared with multiple partners. Model A — a partner
+        // receives a cert's product IDs that are EITHER untagged (empty collection = visible to all
+        // the cert's partners) OR tagged to that partner. Join table: CertificateProductIdPartners.
+        [ValidateNever]
+        public ICollection<Partner> Partners { get; set; } = new List<Partner>();
 
         [MaxLength(200)]
         public string? ProductName { get; set; } // Optional product name for this specific ID
@@ -95,6 +103,8 @@ namespace GCCWebApp.Models
         public string ProductIdValue { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string? Partner { get; set; }
+        // CR-171: all associated partner names (multi). The single Partner above is the primary.
+        public List<string> Partners { get; set; } = new();
         public string? ProductName { get; set; }
         public string? ProductSku { get; set; }
         public string? Description { get; set; }
@@ -116,6 +126,7 @@ namespace GCCWebApp.Models
             ProductIdValue = p.ProductIdValue,
             Status = p.Status,
             Partner = p.Partner,
+            Partners = (p.Partners ?? new List<Partner>()).Select(pp => pp.Name).OrderBy(n => n).ToList(),
             ProductName = p.ProductName,
             ProductSku = p.ProductSku,
             Description = p.Description,

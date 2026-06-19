@@ -1177,6 +1177,10 @@ namespace GCCWebApp.Services.Import
             _context.Certificates.Add(certificate);
             await _context.SaveChangesAsync();
 
+            // CR-171: populate the cert-level Partners (M2M) from the (possibly pipe/comma-delimited)
+            // Partner cell, and normalize the denormalized primary to the first matched partner.
+            await SyncCertificatePartnersAsync(certificate, row.Partner);
+
             // Add tags
             if (tagIds.Any())
             {
@@ -1185,8 +1189,8 @@ namespace GCCWebApp.Services.Import
                 {
                     certificate.Tags.Add(tag);
                 }
-                await _context.SaveChangesAsync();
             }
+            await _context.SaveChangesAsync();
 
             // Create CertificateProductId entries (multi-ASIN support)
             await CreateProductIdEntriesAsync(certificate.Id, row.ProductIdEntries, userId);
@@ -1208,6 +1212,33 @@ namespace GCCWebApp.Services.Import
             );
         }
 
+        // CR-171: resolve a (possibly pipe/comma-delimited) Partner cell into the cert-level Partners
+        // (M2M) collection and normalize the denormalized primary to the first matched name.
+        // "None"/blank → no partner tags. Requires cert.Partners loaded for the update path.
+        private async Task SyncCertificatePartnersAsync(Certificate cert, string? partnerCsv)
+        {
+            var names = (partnerCsv ?? string.Empty)
+                .Split(new[] { ',', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(n => n.Trim())
+                .Where(n => n.Length > 0 && !n.Equals("None", StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            cert.Partners.Clear();
+            if (names.Any())
+            {
+                var matched = await _context.Partners
+                    .Where(p => !p.IsDeleted && names.Contains(p.Name))
+                    .ToListAsync();
+                foreach (var p in matched) cert.Partners.Add(p);
+                cert.Partner = matched.FirstOrDefault()?.Name ?? "None";
+            }
+            else
+            {
+                cert.Partner = "None";
+            }
+        }
+
         private async Task UpdateCertificateAsync(
             CertificateImportRow row,
             List<int> tagIds,
@@ -1220,6 +1251,7 @@ namespace GCCWebApp.Services.Import
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
                 .Include(c => c.Tags)
+                .Include(c => c.Partners) // CR-171: re-sync cert-level partners from the import
                 .FirstOrDefaultAsync(c => c.Id == row.ExistingCertificateId!.Value);
 
             if (certificate == null)
@@ -1261,7 +1293,7 @@ namespace GCCWebApp.Services.Import
             certificate.Upc = row.Upc;
             certificate.Gtin = row.Gtin;
             certificate.Ean = row.Ean;
-            certificate.Partner = row.Partner;
+            await SyncCertificatePartnersAsync(certificate, row.Partner); // CR-171 (sets denorm + M2M)
             certificate.CertificationResults = row.CertificationResults;
             certificate.UpdatedBy = userId;
             certificate.UpdatedAt = DateTime.UtcNow;

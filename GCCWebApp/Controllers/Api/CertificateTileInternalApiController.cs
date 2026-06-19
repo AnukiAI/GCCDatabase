@@ -199,7 +199,7 @@ namespace GCCWebApp.Controllers.Api
                 if (!string.IsNullOrWhiteSpace(partner))
                 {
                     var partners = partner.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => partners.Contains(c.Partner ?? "None"));
+                    query = query.Where(c => c.Partners.Any(p => partners.Contains(p.Name)));
                 }
 
                 // Get total count (on the filtered, unordered query — Includes are no-ops for Count).
@@ -277,7 +277,8 @@ namespace GCCWebApp.Controllers.Api
                             ProductName = pid.ProductName
                         }).ToList(),
                         PdfPath = c.CertificateFile,
-                        c.Partner,
+                        // CR-171: internal (analyst/admin) see ALL associated partner names.
+                        PartnerNames = c.Partners.Select(p => p.Name).ToList(),
                         c.CreatedAt,
                         c.UpdatedAt,
                         CertificationResults = c.CertificationResults ?? "",
@@ -360,7 +361,8 @@ namespace GCCWebApp.Controllers.Api
                     c.Mpn,
                     c.AllProductIds,
                     c.PdfPath,
-                    c.Partner,
+                    // CR-171: all associated partner names (internal view).
+                    Partner = string.Join(", ", c.PartnerNames),
                     c.CreatedAt,
                     c.UpdatedAt,
                     CertificationResults = DisplayFormatters.FormatCertificationResults(c.CertificationResults),
@@ -610,11 +612,15 @@ namespace GCCWebApp.Controllers.Api
                     // Internal-specific filters
                     statuses = Enum.GetNames(typeof(CertificateStatus)).ToList(),
 
-                    partners = await _context.Certificates
-                        .Select(c => c.Partner ?? "None")
+                    // CR-171: list all partner names from the M2M collection (the denormalized primary
+                    // would miss co-partners on shared certs). Internal view shows every partner.
+                    partners = (await _context.Certificates
+                        .SelectMany(c => c.Partners)
+                        .Select(p => p.Name)
                         .Distinct()
+                        .ToListAsync())
                         .OrderBy(p => p)
-                        .ToListAsync(),
+                        .ToList(),
 
                     additionalTags = await _context.Tags
                         .Where(t => t.IsActive && (t.TagType == "external" || t.TagType == "internal"))

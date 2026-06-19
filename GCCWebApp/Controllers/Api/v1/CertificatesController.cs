@@ -154,7 +154,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     // Partner API keys can ONLY see certificates with their partner indicator
                     if (userPartnerNames.Any())
                     {
-                        query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        query = query.Where(c => c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                         _logger.LogInformation("Partner API filtering applied for partner(s): {Partners}", string.Join(", ", userPartnerNames));
                     }
                     else
@@ -176,7 +176,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     {
                         query = query.Where(c =>
                             userCompanyIds.Contains(c.CompanyId) ||
-                            userPartnerNames.Contains(c.Partner ?? "None")
+                            c.Partners.Any(p => userPartnerNames.Contains(p.Name))
                         );
                     }
                     else if (hasCompanies)
@@ -185,7 +185,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     }
                     else if (hasPartners)
                     {
-                        query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        query = query.Where(c => c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                     }
                     else
                     {
@@ -248,6 +248,10 @@ namespace GCCWebApp.Controllers.Api.v1
                             expirationDate = c.ExpirationDate,
                             certificationCountries = isPartnerCaller ? "All" : c.Country,
                             partner = c.Partner,
+                            // CR-171: caller's own associated partner name(s) on this cert (empty for non-members).
+                            ownPartner = c.Partners.Where(p => userPartnerNames.Contains(p.Name)).Select(p => p.Name).FirstOrDefault(),
+                            // CR-171: ALL associated names for non-partner callers (matrix: company/internal see all).
+                            allPartners = c.Partners.Select(p => p.Name).ToList(),
                             certificationResults = c.CertificationResults,
                             pathway = c.Pathway != null ? c.Pathway.Name : null,
                             company = c.Company != null ? c.Company.Name : null,
@@ -256,13 +260,17 @@ namespace GCCWebApp.Controllers.Api.v1
                             amazonCode = c.CertificationType != null ? c.CertificationType.AmazonCode : null,
                             issuer = "GreenCircle Certified",
                             productIds = c.ProductIds
-                                .Where(pi => pi.Status == "Active")
+                                // CR-171 Model A: partner callers get untagged (shared) product IDs + those tagged to them.
+                                .Where(pi => pi.Status == "Active" &&
+                                    (!isPartnerCaller || !pi.Partners.Any() || pi.Partners.Any(p => userPartnerNames.Contains(p.Name))))
                                 .Select(pi => new
                                 {
                                     type = pi.ProductIdType,
                                     value = pi.ProductIdValue,
                                     status = pi.Status,
                                     partner = pi.Partner,
+                                    // caller's own matching tag(s) on this product ID (for the partner-scoped label)
+                                    ownPartner = pi.Partners.Where(p => userPartnerNames.Contains(p.Name)).Select(p => p.Name).ToList(),
                                     productName = pi.ProductName,
                                     productSku = pi.ProductSku
                                 })
@@ -272,13 +280,23 @@ namespace GCCWebApp.Controllers.Api.v1
                         .ToListAsync();
 
                     // Post-process: format CertificationResults as percentage (raw DB value may be decimal, e.g. "0.17")
+                    // CR-171: scope partner output — partner callers see only their own association;
+                    // product-ID labels caller-scoped (Model A). Non-partner callers see the primary value.
                     var certificatesWithProductIds = certificatesWithProductIdsRaw.Select(x => new
                     {
                         x.certificateNumber, x.status, x.issueDate, x.expirationDate,
-                        x.certificationCountries, x.partner,
+                        x.certificationCountries,
+                        partner = isPartnerCaller ? (x.ownPartner ?? "") : string.Join(", ", x.allPartners),
                         certificationResults = DisplayFormatters.FormatCertificationResults(x.certificationResults),
                         x.pathway, x.company, x.productName, x.certificationType, x.amazonCode,
-                        x.issuer, x.productIds, x.pdfDownloadUrl
+                        x.issuer,
+                        productIds = x.productIds.Select(pi => new
+                        {
+                            pi.type, pi.value, pi.status,
+                            partner = isPartnerCaller ? string.Join(", ", pi.ownPartner) : pi.partner,
+                            pi.productName, pi.productSku
+                        }).ToList(),
+                        x.pdfDownloadUrl
                     }).ToList();
 
                     return PaginatedResponse(certificatesWithProductIds, totalCount, parameters.PageNumber, parameters.PageSize);
@@ -294,6 +312,10 @@ namespace GCCWebApp.Controllers.Api.v1
                             expirationDate = c.ExpirationDate,
                             certificationCountries = isPartnerCaller ? "All" : c.Country,
                             partner = c.Partner,
+                            // CR-171: caller's own associated partner name(s) on this cert (empty for non-members).
+                            ownPartner = c.Partners.Where(p => userPartnerNames.Contains(p.Name)).Select(p => p.Name).FirstOrDefault(),
+                            // CR-171: ALL associated names for non-partner callers (matrix: company/internal see all).
+                            allPartners = c.Partners.Select(p => p.Name).ToList(),
                             certificationResults = c.CertificationResults,
                             pathway = c.Pathway != null ? c.Pathway.Name : null,
                             company = c.Company != null ? c.Company.Name : null,
@@ -305,10 +327,12 @@ namespace GCCWebApp.Controllers.Api.v1
                         })
                         .ToListAsync();
 
+                    // CR-171: partner callers see only their own association; others see all associated names.
                     var certificates = certificatesRaw.Select(x => new
                     {
                         x.certificateNumber, x.status, x.issueDate, x.expirationDate,
-                        x.certificationCountries, x.partner,
+                        x.certificationCountries,
+                        partner = isPartnerCaller ? (x.ownPartner ?? "") : string.Join(", ", x.allPartners),
                         certificationResults = DisplayFormatters.FormatCertificationResults(x.certificationResults),
                         x.pathway, x.company, x.productName, x.certificationType, x.amazonCode,
                         x.issuer, x.pdfDownloadUrl
@@ -341,7 +365,9 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Include(c => c.CertificationType)
                     .Include(c => c.CertificationTypeSubcategory)
                     .Include(c => c.Pathway)
+                    .Include(c => c.Partners)
                     .Include(c => c.ProductIds)
+                        .ThenInclude(pi => pi.Partners)
                     .Include(c => c.CustomFieldValues)
                         .ThenInclude(cfv => cfv.Field)
                     .FirstOrDefaultAsync(c => c.Id == id);
@@ -360,10 +386,10 @@ namespace GCCWebApp.Controllers.Api.v1
                     // DEF-106: scope by partner. A Partner caller (API key OR Partner-role user)
                     // can only see certs whose Partner matches one of their assigned partners.
                     var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
-                    if (!userPartnerNames.Any() || !userPartnerNames.Contains(certificate.Partner ?? "None"))
+                    if (!userPartnerNames.Any() || !certificate.Partners.Any(p => userPartnerNames.Contains(p.Name)))
                         return NotFoundResponse($"Certificate with ID {id} not found");
 
-                    return SuccessResponse(BuildPartnerCertificateDto(certificate));
+                    return SuccessResponse(BuildPartnerCertificateDto(certificate, userPartnerNames));
                 }
 
                 return SuccessResponse(certificate);
@@ -393,7 +419,9 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Include(c => c.CertificationType)
                     .Include(c => c.CertificationTypeSubcategory)
                     .Include(c => c.Pathway)
+                    .Include(c => c.Partners)
                     .Include(c => c.ProductIds)
+                        .ThenInclude(pi => pi.Partners)
                     .Include(c => c.CustomFieldValues)
                         .ThenInclude(cfv => cfv.Field)
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);
@@ -411,10 +439,10 @@ namespace GCCWebApp.Controllers.Api.v1
 
                     // DEF-106: scope by partner.
                     var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
-                    if (!userPartnerNames.Any() || !userPartnerNames.Contains(certificate.Partner ?? "None"))
+                    if (!userPartnerNames.Any() || !certificate.Partners.Any(p => userPartnerNames.Contains(p.Name)))
                         return NotFoundResponse($"Certificate with number {certificateNumber} not found");
 
-                    return SuccessResponse(BuildPartnerCertificateDto(certificate));
+                    return SuccessResponse(BuildPartnerCertificateDto(certificate, userPartnerNames));
                 }
 
                 return SuccessResponse(certificate);
@@ -577,16 +605,22 @@ namespace GCCWebApp.Controllers.Api.v1
             {
                 var userRole = GetCurrentUserRole();
                 var isPartnerCaller = userRole == "Partner";
+                // CR-171: hoisted to method scope so the partner-scoped DTO mapping below can use it.
+                var userPartnerNames = isPartnerCaller ? await GetCurrentUserPartnerNamesAsync() : new List<string>();
 
                 // DEF-129: include nav props the partner DTO needs (Pathway, ProductIds).
                 // Company is already included; the DTO projection prevents the circular
                 // Company.Certificates serialization that previously caused issues.
+                // CR-171: Partners included so BuildPartnerCertificateDto can emit caller-scoped partner.
                 var query = _context.Certificates
                     .Include(c => c.Product)
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
                     .Include(c => c.Pathway)
+                    .Include(c => c.Partners)
                     .Include(c => c.ProductIds)
+                        .ThenInclude(pi => pi.Partners)
+                    .AsSplitQuery() // CR-171: two collection includes (ProductIds + their Partners) under paging
                     .AsQueryable();
 
                 if (!string.IsNullOrEmpty(term))
@@ -627,7 +661,6 @@ namespace GCCWebApp.Controllers.Api.v1
                 {
                     // Partner API contract (Amazon Developer Guide §4 / §8): partners only see
                     // public-status certs scoped to their partner association.
-                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
                     if (!userPartnerNames.Any())
                     {
                         _logger.LogWarning("Partner API key used but no partner name found in claims");
@@ -647,7 +680,7 @@ namespace GCCWebApp.Controllers.Api.v1
 
                     query = query.Where(c =>
                         CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
-                        userPartnerNames.Contains(c.Partner ?? "None"));
+                        c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                 }
 
                 var totalCount = await query.CountAsync();
@@ -661,7 +694,7 @@ namespace GCCWebApp.Controllers.Api.v1
                 var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
 
                 IEnumerable<object> data = isPartnerCaller
-                    ? certificates.Select(c => BuildPartnerCertificateDto(c)).ToList()
+                    ? certificates.Select(c => BuildPartnerCertificateDto(c, userPartnerNames)).ToList()
                     : certificates.Cast<object>().ToList();
 
                 return Ok(new PaginatedResponse<IEnumerable<object>>
@@ -704,23 +737,28 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 var userRole = GetCurrentUserRole();
                 var isPartnerCaller = userRole == "Partner";
+                // CR-171: hoisted to method scope so the partner-scoped DTO mapping below can use it.
+                var userPartnerNames = isPartnerCaller ? await GetCurrentUserPartnerNamesAsync() : new List<string>();
 
                 // DEF-124: include all nav props the partner DTO reads (Company name is in the
                 // contract — Amazon expects it). The DTO projection prevents the circular
                 // Company.Certificates serialization that previously blew the response to 1GB+.
+                // CR-171: Partners included so BuildPartnerCertificateDto can emit caller-scoped partner.
                 var query = _context.Certificates
                     .Include(c => c.Product)
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
                     .Include(c => c.Pathway)
+                    .Include(c => c.Partners)
                     .Include(c => c.ProductIds)
+                        .ThenInclude(pi => pi.Partners)
+                    .AsSplitQuery() // CR-171: two collection includes under paging
                     .Where(c => c.ExpirationDate <= cutoffDate && c.ExpirationDate >= CertificateStatusHelper.BusinessToday);
 
                 if (isPartnerCaller)
                 {
                     // Partner API contract (Amazon Developer Guide §4 / §8): partners only see
                     // public-status certs scoped to their partner association.
-                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
                     if (!userPartnerNames.Any())
                     {
                         _logger.LogWarning("Partner API key used but no partner name found in claims");
@@ -740,7 +778,7 @@ namespace GCCWebApp.Controllers.Api.v1
 
                     query = query.Where(c =>
                         CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
-                        userPartnerNames.Contains(c.Partner ?? "None"));
+                        c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                 }
 
                 query = query.OrderBy(c => c.ExpirationDate);
@@ -755,7 +793,7 @@ namespace GCCWebApp.Controllers.Api.v1
                 var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
 
                 IEnumerable<object> data = isPartnerCaller
-                    ? certificates.Select(c => BuildPartnerCertificateDto(c)).ToList()
+                    ? certificates.Select(c => BuildPartnerCertificateDto(c, userPartnerNames)).ToList()
                     : certificates.Cast<object>().ToList();
 
                 var response = new PaginatedResponse<IEnumerable<object>>
@@ -926,7 +964,10 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
                     .Include(c => c.Pathway)
+                    .Include(c => c.Partners) // CR-171: caller-scoped partner output
                     .Include(c => c.ProductIds)
+                        .ThenInclude(pi => pi.Partners) // CR-171 Model A: per-product partner filtering
+                    .AsSplitQuery()
                     .Where(c => certificateIds.Contains(c.Id));
 
                 // Apply role-based filtering for Partner API keys
@@ -935,7 +976,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     // Partner API keys can ONLY see certificates with their partner indicator
                     if (userPartnerNames.Any())
                     {
-                        certificatesQuery = certificatesQuery.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        certificatesQuery = certificatesQuery.Where(c => c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                         _logger.LogInformation("Partner API filtering applied for partner(s): {Partners}", string.Join(", ", userPartnerNames));
                     }
                     else
@@ -959,7 +1000,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         // Show certificates from their companies OR matching their partners
                         certificatesQuery = certificatesQuery.Where(c =>
                             userCompanyIds.Contains(c.CompanyId) ||
-                            userPartnerNames.Contains(c.Partner ?? "None")
+                            c.Partners.Any(p => userPartnerNames.Contains(p.Name))
                         );
                     }
                     else if (hasCompanies)
@@ -970,7 +1011,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     else if (hasPartners)
                     {
                         // Only partner filtering
-                        certificatesQuery = certificatesQuery.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        certificatesQuery = certificatesQuery.Where(c => c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                     }
                     else
                     {
@@ -1002,7 +1043,10 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     issueDate = cert.EffectiveDate,
                     expirationDate = cert.ExpirationDate,
                     certificationCountries = isPartnerCaller ? "All" : cert.Country,
-                    partner = cert.Partner,
+                    // CR-171: partner callers see only their own association; others see the primary.
+                    partner = isPartnerCaller
+                        ? string.Join(", ", cert.Partners.Where(p => userPartnerNames.Contains(p.Name)).Select(p => p.Name))
+                        : cert.Partner,
                     certificationResults = DisplayFormatters.FormatCertificationResults(cert.CertificationResults),
                     pathway = cert.Pathway?.Name,
                     company = cert.Company?.Name,
@@ -1011,13 +1055,14 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     amazonCode = cert.CertificationType?.AmazonCode,
                     issuer = "GreenCircle Certified",
                     productIds = cert.ProductIds
-                        .Where(cpi => cpi.Status == "Active") // Only active product IDs
+                        // CR-171 Model A: drop co-partner-only product IDs for partner callers.
+                        .Where(cpi => cpi.Status == "Active" && ProductIdVisibleToCaller(cpi, isPartnerCaller, userPartnerNames))
                         .Select(cpi => new
                         {
                             type = cpi.ProductIdType,
                             value = cpi.ProductIdValue,
                             status = cpi.Status,
-                            partner = cpi.Partner,
+                            partner = ScopedProductIdPartner(cpi, isPartnerCaller, userPartnerNames),
                             productName = cpi.ProductName,
                             productSku = cpi.ProductSku,
                             // isMatchedId flag is documented in §5.3 — marks which ID matched the search
@@ -1176,6 +1221,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         .Include(c => c.Product)
                         .Include(c => c.Company)
                         .Include(c => c.CertificationType)
+                        .Include(c => c.Partners)
                         .FirstOrDefaultAsync(c => c.Id == certId);
                 }
 
@@ -1186,6 +1232,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         .Include(c => c.Product)
                         .Include(c => c.Company)
                         .Include(c => c.CertificationType)
+                        .Include(c => c.Partners)
                         .FirstOrDefaultAsync(c => c.Number == id);
                 }
 
@@ -1200,7 +1247,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
 
                     // DEF-106: scope by partner.
                     var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
-                    if (!userPartnerNames.Any() || !userPartnerNames.Contains(certificate.Partner ?? "None"))
+                    if (!userPartnerNames.Any() || !certificate.Partners.Any(p => userPartnerNames.Contains(p.Name)))
                         return NotFoundResponse($"Certificate '{id}' not found");
                 }
 
@@ -1321,6 +1368,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     .Include(c => c.CertificationTypeSubcategory)
                     .Include(c => c.Pathway)
                     .Include(c => c.ProductIds)
+                        .ThenInclude(pi => pi.Partners) // CR-171 Model A: per-product partner filtering
+                    .AsSplitQuery()
                     .AsQueryable();
 
                 // Apply role-based filtering for Partner API keys (especially important for GS1/Amazon endpoint)
@@ -1332,7 +1381,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 {
                     if (userPartnerNames.Any())
                     {
-                        query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        query = query.Where(c => c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                         _logger.LogInformation("GS1 endpoint: Partner API filtering applied for partner(s): {Partners}", string.Join(", ", userPartnerNames));
                     }
                     else
@@ -1359,7 +1408,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     {
                         query = query.Where(c =>
                             userCompanyIds.Contains(c.CompanyId) ||
-                            userPartnerNames.Contains(c.Partner ?? "None")
+                            c.Partners.Any(p => userPartnerNames.Contains(p.Name))
                         );
                     }
                     else if (hasCompanies)
@@ -1368,7 +1417,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     }
                     else if (hasPartners)
                     {
-                        query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        query = query.Where(c => c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
                     }
                     else
                     {
@@ -1405,8 +1454,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     .Take(parameters.PageSize)
                     .ToListAsync();
 
-                // Transform to GS1 format
-                var gs1Reports = certificates.Select(cert => MapToGS1Format(cert, Request)).ToList();
+                // Transform to GS1 format (CR-171: product IDs scoped per partner caller)
+                var gs1Reports = certificates.Select(cert => MapToGS1Format(cert, Request, userRole == "Partner", userPartnerNames)).ToList();
 
                 var response = new GS1CertificationReportListResponse
                 {
@@ -1458,25 +1507,29 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     .Include(c => c.CertificationType)
                     .Include(c => c.CertificationTypeSubcategory)
                     .Include(c => c.Pathway)
+                    .Include(c => c.Partners)
                     .Include(c => c.ProductIds)
+                        .ThenInclude(pi => pi.Partners) // CR-171 Model A: per-product partner filtering
+                    .AsSplitQuery()
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);
 
                 if (certificate == null)
                     return NotFoundResponse($"Certificate '{certificateNumber}' not found");
 
-                if (GetCurrentUserRole() == "Partner")
+                var isPartnerCaller = GetCurrentUserRole() == "Partner";
+                var userPartnerNames = isPartnerCaller ? await GetCurrentUserPartnerNamesAsync() : new List<string>();
+                if (isPartnerCaller)
                 {
                     // Partner API contract: non-active certs are not visible to partners
                     if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
                         return NotFoundResponse($"Certificate '{certificateNumber}' not found");
 
                     // DEF-106: scope by partner.
-                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
-                    if (!userPartnerNames.Any() || !userPartnerNames.Contains(certificate.Partner ?? "None"))
+                    if (!userPartnerNames.Any() || !certificate.Partners.Any(p => userPartnerNames.Contains(p.Name)))
                         return NotFoundResponse($"Certificate '{certificateNumber}' not found");
                 }
 
-                var gs1Report = MapToGS1Format(certificate, Request);
+                var gs1Report = MapToGS1Format(certificate, Request, isPartnerCaller, userPartnerNames);
                 return Ok(gs1Report);
             }
             catch (Exception ex)
@@ -1489,10 +1542,15 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
         /// <summary>
         /// Maps a certificate entity to GS1 JSON-LD format
         /// </summary>
-        private GS1CertificationReport MapToGS1Format(Certificate cert, HttpRequest request)
+        private GS1CertificationReport MapToGS1Format(Certificate cert, HttpRequest request, bool isPartnerCaller, List<string> callerPartnerNames)
         {
             var baseUrl = $"{request.Scheme}://{request.Host}";
-            var productIds = cert.ProductIds?.Where(pi => pi.Status == "Active").ToList() ?? new List<CertificateProductId>();
+            // CR-171 Model A: a partner must not receive a co-partner's product-ID VALUES (GTIN/ASIN/SKU)
+            // on a shared cert — drop co-partner-only IDs here too (the GS1 surface had no partner field,
+            // but the identifier values themselves are partner data). Requires pi.Partners eager-loaded.
+            var productIds = (cert.ProductIds ?? new List<CertificateProductId>())
+                .Where(pi => pi.Status == "Active" && ProductIdVisibleToCaller(pi, isPartnerCaller, callerPartnerNames))
+                .ToList();
 
             // Find GTIN from product identifiers (UPC, GTIN, EAN)
             var gtinTypes = new[] { "UPC", "GTIN", "EAN" };
@@ -1571,8 +1629,14 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
         // return the same contract shape as the list endpoint. Status hardcoded to "Active",
         // certificationCountries hardcoded to "All" per Amazon Developer Guide §4 / §8.
         // No internal IDs leaked; productIds[] uses the array shape, not the legacy flat asin/upc/gtin/ean.
-        private object BuildPartnerCertificateDto(Certificate c)
+        private object BuildPartnerCertificateDto(Certificate c, List<string> callerPartnerNames)
         {
+            // CR-171 isolation: this DTO is partner-facing. Emit ONLY the caller's own partner
+            // association(s) — never co-partners. c.Partners must be eager-loaded by the caller.
+            var ownPartners = (c.Partners ?? new List<Partner>())
+                .Where(p => callerPartnerNames.Contains(p.Name))
+                .Select(p => p.Name)
+                .ToList();
             return new
             {
                 certificateNumber = c.Number,
@@ -1580,7 +1644,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 issueDate = c.EffectiveDate,
                 expirationDate = c.ExpirationDate,
                 certificationCountries = "All",
-                partner = c.Partner,
+                partner = string.Join(", ", ownPartners),
                 certificationResults = DisplayFormatters.FormatCertificationResults(c.CertificationResults),
                 pathway = c.Pathway?.Name,
                 company = c.Company?.Name,
@@ -1589,13 +1653,14 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 amazonCode = c.CertificationType?.AmazonCode,
                 issuer = "GreenCircle Certified",
                 productIds = (c.ProductIds ?? new List<CertificateProductId>())
-                    .Where(pi => pi.Status == "Active")
+                    .Where(pi => pi.Status == "Active" && ProductIdVisibleToCaller(pi, true, callerPartnerNames))
                     .Select(pi => new
                     {
                         type = pi.ProductIdType,
                         value = pi.ProductIdValue,
                         status = pi.Status,
-                        partner = pi.Partner,
+                        // CR-171 Model A: caller-scoped label (own tag(s); blank for untagged shared IDs).
+                        partner = ScopedProductIdPartner(pi, true, callerPartnerNames),
                         productName = pi.ProductName,
                         productSku = pi.ProductSku
                     })
@@ -1603,5 +1668,20 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 pdfDownloadUrl = $"/api/v1/certificates/{c.Number}/download"
             };
         }
+
+        // CR-171 Model A — a product ID is visible to a partner caller when it is UNTAGGED
+        // (no partner tags → shared with all the cert's partners) OR tagged to that caller.
+        // Non-partner callers see every product ID. Requires pi.Partners eager-loaded.
+        private static bool ProductIdVisibleToCaller(CertificateProductId pi, bool isPartnerCaller, List<string> callerPartnerNames)
+            => !isPartnerCaller
+               || pi.Partners == null || pi.Partners.Count == 0
+               || pi.Partners.Any(p => callerPartnerNames.Contains(p.Name));
+
+        // Partner-facing label for a product ID: the caller's own matching tag(s), or blank for an
+        // untagged shared ID. Non-partner callers see the denormalized primary.
+        private static string? ScopedProductIdPartner(CertificateProductId pi, bool isPartnerCaller, List<string> callerPartnerNames)
+            => isPartnerCaller
+               ? string.Join(", ", (pi.Partners ?? new List<Partner>()).Where(p => callerPartnerNames.Contains(p.Name)).Select(p => p.Name))
+               : pi.Partner;
     }
 }

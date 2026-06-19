@@ -1,0 +1,46 @@
+{
+  "overallStatus": "FAIL",
+  "passes": 1,
+  "fails": 7,
+  "nits": 0,
+  "certNumberForEdit": null,
+  "results": [
+    {
+      "status": "FAIL",
+      "label": "Admin/Create: unexpected error",
+      "detail": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Username, input[name=\"Username\"], input[name=\"username\"]')\u001b[22m\n"
+    },
+    {
+      "status": "FAIL",
+      "label": "Analyst/Create: unexpected error",
+      "detail": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Username, input[name=\"Username\"], input[name=\"username\"]')\u001b[22m\n"
+    },
+    {
+      "status": "FAIL",
+      "label": "Admin/Edit: no cert number discovered — skip"
+    },
+    {
+      "status": "FAIL",
+      "label": "External restrictions: unexpected error",
+      "detail": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Username, input[name=\"Username\"], input[name=\"username\"]')\u001b[22m\n"
+    },
+    {
+      "status": "PASS",
+      "label": "Public: /Certificate/Create redirects to login",
+      "detail": "http://localhost:5101/Account/Login?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "status": "FAIL",
+      "label": "Responsive/Edit: no cert number — skip"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Create: error running axe",
+      "detail": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#Username, input[name=\"Username\"], input[name=\"username\"]')\u001b[22m\n"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Edit: no cert number — skip"
+    }
+  ]
+}

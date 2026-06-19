@@ -75,7 +75,7 @@ namespace GCCWebApp.Controllers
                     if (userPartnerNames.Any())
                     {
                         productsQuery = productsQuery.Where(p =>
-                            p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None")));
+                            p.Certificates.Any(c => c.Partners.Any(cp => userPartnerNames.Contains(cp.Name))));
                     }
                     else
                     {
@@ -115,13 +115,13 @@ namespace GCCWebApp.Controllers
                         // Admin/Analyst see all
                         (userRole != "External" && userRole != "Partner") ||
                         // Partner role: products with partner-tagged certificates
-                        (userRole == "Partner" && p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None"))) ||
+                        (userRole == "Partner" && p.Certificates.Any(c => c.Partners.Any(cp => userPartnerNames.Contains(cp.Name)))) ||
                         // External role: products from their companies
                         (userRole == "External" && p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value))
                     ))
                     .OrderByDescending(pc => pc.Products.Count(p =>
                         (userRole != "External" && userRole != "Partner") ||
-                        (userRole == "Partner" && p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None"))) ||
+                        (userRole == "Partner" && p.Certificates.Any(c => c.Partners.Any(cp => userPartnerNames.Contains(cp.Name)))) ||
                         (userRole == "External" && p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value))
                     ))
                     .Select(pc => pc.Name)
@@ -187,7 +187,7 @@ namespace GCCWebApp.Controllers
                     if (userPartnerNames.Any())
                     {
                         query = query.Where(p =>
-                            p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None")));
+                            p.Certificates.Any(c => c.Partners.Any(cp => userPartnerNames.Contains(cp.Name))));
                     }
                     else
                     {

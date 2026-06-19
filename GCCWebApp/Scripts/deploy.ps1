@@ -237,6 +237,23 @@ $migrationLines = (Get-Content $migrationSqlPath | Measure-Object -Line).Lines
 Write-Host "  Generated: $migrationSqlPath" -ForegroundColor Green
 Write-Host "  $migrationLines lines, $([math]::Round($migrationBytes / 1KB, 1)) KB" -ForegroundColor Gray
 
+# --- Append post-deploy DATA scripts (Gate 7) ---
+# Schema (above) brings the structure up to date; these idempotent scripts backfill
+# DATA that the new code depends on (e.g. CR-171 partner M2M join tables — without
+# the backfill, certs/product IDs go invisible to partner logins on cutover). Any
+# *.sql dropped in Scripts/database/post-deploy/ is appended here (sorted), so it
+# runs in the SAME step as apply-migrations.sql. Each must be idempotent (NOT EXISTS).
+$postDeployDir = Join-Path (Split-Path $csproj -Parent) "Scripts/database/post-deploy"
+if (Test-Path $postDeployDir) {
+    $postScripts = Get-ChildItem -Path $postDeployDir -Filter *.sql | Sort-Object Name
+    foreach ($ps in $postScripts) {
+        Add-Content -Path $migrationSqlPath -Value "`r`nGO`r`n-- ===== post-deploy data: $($ps.Name) ====="
+        Add-Content -Path $migrationSqlPath -Value (Get-Content $ps.FullName -Raw)
+        Write-Host "  Appended post-deploy data script: $($ps.Name)" -ForegroundColor Green
+    }
+    if (-not $postScripts) { Write-Host "  (no post-deploy data scripts)" -ForegroundColor Gray }
+}
+
 # Drop a tiny README next to the SQL so the server-side operator (or future-self)
 # knows how to apply it without digging through deploy logs.
 $migrationReadme = Join-Path $migrationsDir "README.md"

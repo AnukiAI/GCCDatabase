@@ -263,7 +263,12 @@ namespace GCCWebApp.Controllers
                     .Where(p => p.IsActive && CertificateStatusHelper.PublicStatuses.Contains(p.Certificate.Status))
                     .Include(p => p.Certificate)
                         .ThenInclude(c => c.Company)
+                    .Include(p => p.Certificate)
+                        .ThenInclude(c => c.CertificationType)
+                    .Include(p => p.Certificate)
+                        .ThenInclude(c => c.Pathway)
                     .Include(p => p.CreatedByUser)
+                    .Include(p => p.UpdatedByUser)
                     .OrderBy(p => p.Certificate.Number)
                     .ThenBy(p => p.ProductIdType)
                     .ThenBy(p => p.Id)
@@ -277,28 +282,40 @@ namespace GCCWebApp.Controllers
                 csv.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
                 csv.AppendLine($"Total Active Product Identifiers: {rows.Count}");
                 csv.AppendLine();
-                // No status columns: the export is filtered to active identifiers (parent cert
-                // Paid/Republished), so every row is active by construction. Both the derived
-                // Identifier Status (CR-015) and the Certificate Status would be non-informative.
-                csv.AppendLine("Certificate Number,Company,Identifier Type,Id Value,Partner,Product Name,SKU,Description,Effective Date,Expiration Date,Created Date,Created By");
+                // Column set extended per client review of CR-184 (QC #184, 2026-06-17): cert-level
+                // context fields (Certification Type, cert Status, Cert Partner, Certification
+                // Results, Pathway) added for validation, plus product-ID-level Last Updated /
+                // Updated By. The product-ID partner column is titled "ID Partner" to disambiguate
+                // it from the cert-level "Cert Partner". The export is still filtered to active
+                // identifiers (parent cert Paid/Republished); the cert Status column is included
+                // for the client's cross-check even though every row is active by construction.
+                // Order matches the client's requested field sequence.
+                csv.AppendLine("Company,Certificate Number,Certification Type,Effective Date,Expiration Date,Cert Status,ID Partner,Cert Partner,Certification Results,Pathway,Identifier Type,Id Value,Product Name,SKU,Created Date,Created By,Last Updated,Updated By,Description");
 
                 foreach (var p in rows)
                 {
                     var c = p.Certificate;
                     csv.AppendLine(string.Join(",", new[]
                     {
-                        CsvField(c?.Number),
                         CsvField(c?.Company?.Name),
-                        CsvField(p.ProductIdType),
-                        CsvField(p.ProductIdValue),
-                        CsvField(p.Partner),
-                        CsvField(p.ProductName),
-                        CsvField(p.ProductSku),
-                        CsvField(p.Description),
+                        CsvField(c?.Number),
+                        CsvField(c?.CertificationType?.Name),
                         CsvField(c?.EffectiveDate.ToString("yyyy-MM-dd")),
                         CsvField(c?.ExpirationDate.ToString("yyyy-MM-dd")),
+                        CsvField(c?.Status),
+                        CsvField(p.Partner),
+                        CsvField(c?.Partner),
+                        CsvField(c?.CertificationResults),
+                        CsvField(c?.Pathway?.Name),
+                        CsvField(p.ProductIdType),
+                        CsvField(p.ProductIdValue),
+                        CsvField(p.ProductName),
+                        CsvField(p.ProductSku),
                         CsvField(p.CreatedAt.ToString("yyyy-MM-dd")),
-                        CsvField(p.CreatedByUser?.Username)
+                        CsvField(p.CreatedByUser?.Username),
+                        CsvField(p.UpdatedAt.ToString("yyyy-MM-dd")),
+                        CsvField(p.UpdatedByUser?.Username),
+                        CsvField(p.Description)
                     }));
                 }
 

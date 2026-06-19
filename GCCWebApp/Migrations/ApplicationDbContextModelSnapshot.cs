@@ -52,6 +52,21 @@ namespace GCCWebApp.Migrations
                     b.ToTable("CertificatePartners", (string)null);
                 });
 
+            modelBuilder.Entity("CertificateProductIdPartner", b =>
+                {
+                    b.Property<int>("CertificateProductIdId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PartnersId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CertificateProductIdId", "PartnersId");
+
+                    b.HasIndex("PartnersId");
+
+                    b.ToTable("CertificateProductIdPartners", (string)null);
+                });
+
             modelBuilder.Entity("CertificateTag", b =>
                 {
                     b.Property<int>("CertificatesId")
@@ -2064,6 +2079,21 @@ namespace GCCWebApp.Migrations
                     b.HasOne("GCCWebApp.Models.Certificate", null)
                         .WithMany()
                         .HasForeignKey("CertificatesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GCCWebApp.Models.Partner", null)
+                        .WithMany()
+                        .HasForeignKey("PartnersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CertificateProductIdPartner", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.CertificateProductId", null)
+                        .WithMany()
+                        .HasForeignKey("CertificateProductIdId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

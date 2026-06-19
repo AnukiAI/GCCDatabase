@@ -557,6 +557,13 @@ namespace GCCWebApp.Data
                 .WithMany(p => p.Certificates)
                 .UsingEntity(j => j.ToTable("CertificatePartners"));
 
+            // CR-171 Phase 2: CertificateProductId-Partner many-to-many (per-product partner sharing).
+            // No inverse navigation on Partner — product-ID membership is read from the product-ID side.
+            modelBuilder.Entity<CertificateProductId>()
+                .HasMany(pid => pid.Partners)
+                .WithMany()
+                .UsingEntity(j => j.ToTable("CertificateProductIdPartners"));
+
             // Certificate-CertificationTypeSubcategories many-to-many (multi-select subcategories)
             modelBuilder.Entity<Certificate>()
                 .HasMany(c => c.CertificationTypeSubcategories)

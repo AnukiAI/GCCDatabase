@@ -331,7 +331,7 @@ namespace GCCWebApp.Controllers
             var statusHint = "Status (Draft / Client Approved - Not Paid / Client Approved - Confidential / Client Approved - Paid / Hold / Expired / Republished / Expired - No Annual Verification — defaults to Draft if blank)";
             var templateCsv = "\"Certificate #\",\"Certification Type\",\"Cert Subcategories\"," +
                               $"\"{statusHint}\"," +
-                              "\"Company\",\"Company Email\",\"Company URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"";
+                              "\"Company\",\"Company Email\",\"Company URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner (one or more — separate multiple with | e.g. Amazon|Novi)\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"";
 
             // Prepend a UTF-8 BOM so Excel on Windows decodes the file as UTF-8 instead of
             // its default Windows-1252. Without the BOM, the em dash in the Status hint

@@ -506,7 +506,11 @@ namespace GCCWebApp.Services
                 if (request.AllowedPartnerNames.Any())
                 {
                     var allowed = request.AllowedPartnerNames;
-                    query = query.Where(c => allowed.Contains(c.Partner ?? "None"));
+                    // CR-171: scope by the M2M Partners collection, not the denormalized
+                    // primary Partner string — otherwise a co-partner (e.g. Novi on an
+                    // [Amazon, Novi] cert) is silently dropped from their CSV export while
+                    // the tile/API correctly show it. Matches every other partner-scoped surface.
+                    query = query.Where(c => c.Partners.Any(p => allowed.Contains(p.Name)));
                 }
                 else
                 {

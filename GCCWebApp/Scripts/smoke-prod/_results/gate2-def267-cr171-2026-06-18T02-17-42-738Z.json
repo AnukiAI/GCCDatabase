@@ -1,0 +1,79 @@
+{
+  "overallStatus": "FAIL",
+  "passes": 8,
+  "fails": 7,
+  "nits": 1,
+  "certNumberForEdit": null,
+  "results": [
+    {
+      "status": "PASS",
+      "label": "Admin/Create: partnerSelect is multiple",
+      "detail": "size=\"4\""
+    },
+    {
+      "status": "PASS",
+      "label": "Admin/Create: #partnersHidden sync input present"
+    },
+    {
+      "status": "PASS",
+      "label": "Admin/Create: CertificationResults field present"
+    },
+    {
+      "status": "NIT",
+      "label": "Admin/Create: 2 h1 elements (expected 1)"
+    },
+    {
+      "status": "PASS",
+      "label": "Analyst/Create: partnerSelect rendered"
+    },
+    {
+      "status": "FAIL",
+      "label": "Admin/Edit: no cert number discovered — skip"
+    },
+    {
+      "status": "PASS",
+      "label": "External: /Certificate/Create is inaccessible",
+      "detail": "redirected to: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "status": "PASS",
+      "label": "External/TileView: no \"Add Certificate\" button visible"
+    },
+    {
+      "status": "PASS",
+      "label": "External/TileView: no Edit links visible"
+    },
+    {
+      "status": "FAIL",
+      "label": "External/ProductManagement: Actions column header visible — should be hidden"
+    },
+    {
+      "status": "PASS",
+      "label": "Public: /Certificate/Create redirects to login",
+      "detail": "http://localhost:5101/Account/Login?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "status": "FAIL",
+      "label": "Responsive/Edit: no cert number — skip"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Create [serious]: aria-prohibited-attr",
+      "detail": "Ensure ARIA attributes are not prohibited for an element's role (3 nodes)"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Create [serious]: color-contrast",
+      "detail": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds (7 nodes)"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Create [critical]: select-name",
+      "detail": "Ensure select element has an accessible name (2 nodes)"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Edit: no cert number — skip"
+    }
+  ]
+}

@@ -196,6 +196,7 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.CreatedByUser)
                 .Include(c => c.UpdatedByUser)
                 .Include(c => c.ProductIds)
+                    .ThenInclude(pi => pi.Partners) // CR-171: edit-merge keeps per-product partners in step
                 // DEF-253: one cert but 5 collection Includes (Subcats, Tags, Partners, CustomFieldValues,
                 // ProductIds) cross-multiply into a cartesian — AsSplitQuery loads each collection
                 // separately. Single-entity fetch, so no .OrderBy tiebreaker needed.

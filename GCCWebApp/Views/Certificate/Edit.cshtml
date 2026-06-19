@@ -189,19 +189,29 @@
                         <span asp-validation-for="Status" class="text-danger" role="alert"></span>
                     </div>
 
+                    @{
+                        // CR-171: multi-partner. The hidden PartnerIds (CSV of partner IDs) is what the
+                        // POST handler consumes; the <select multiple> is the UI that keeps it in sync.
+                        var selectedPartnerIds = (Model.PartnerIds ?? "")
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => int.TryParse(s.Trim(), out var n) ? n : -1)
+                            .Where(n => n > 0)
+                            .ToHashSet();
+                    }
                     <div class="form-group">
-                        <label asp-for="Partner">Partner</label>
-                        <select asp-for="Partner" class="form-control">
-                            <option value="None">None</option>
+                        <label for="partnerSelect">Partner(s) <span class="text-muted" style="font-size: 12px;">(Optional - Multiple)</span></label>
+                        <select id="partnerSelect" class="form-control" multiple size="4" aria-label="Select one or more partners">
                             @if (ViewBag.Partners != null)
                             {
                                 foreach (var partner in ViewBag.Partners)
                                 {
-                                    <option value="@partner.Name" selected="@(Model.Partner == partner.Name ? "selected" : null)">@partner.Name</option>
+                                    <option value="@partner.Id" selected="@(selectedPartnerIds.Contains((int)partner.Id) ? "selected" : null)">@partner.Name</option>
                                 }
                             }
                         </select>
-                        <span asp-validation-for="Partner" class="text-danger" role="alert"></span>
+                        <input type="hidden" asp-for="PartnerIds" id="partnersHidden" />
+                        <small class="form-text text-muted">Hold Ctrl (Cmd on Mac) to select more than one. A certificate may be shared with multiple partners; each partner login sees only its own association.</small>
+                        <span asp-validation-for="PartnerIds" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
@@ -467,6 +477,20 @@
         new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });
         // Company and Product dropdowns are handled by certificate-inline-create.js (createCustomDropdown)
         // which provides search + "Add New" functionality. Do NOT also wrap them with SearchableSelect.
+    </script>
+
+    <script>
+        // CR-171: keep hidden PartnerIds (CSV of partner IDs) in sync with the multi-select.
+        (function () {
+            var sel = document.getElementById('partnerSelect');
+            var hidden = document.getElementById('partnersHidden');
+            if (!sel || !hidden) return;
+            function sync() {
+                hidden.value = Array.from(sel.selectedOptions).map(function (o) { return o.value; }).join(',');
+            }
+            sel.addEventListener('change', sync);
+            sync(); // capture server-side pre-selection of existing partners on load
+        })();
     </script>
 
     <script>

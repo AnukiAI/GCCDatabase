@@ -11,7 +11,7 @@ namespace GCCWebApp.Models
 
         [Required]
         [Display(Name = "Certificate Number")]
-        [MaxLength(7)]
+        [MaxLength(50)]
         public string Number { get; set; } = string.Empty;
 
         [Display(Name = "Status")]

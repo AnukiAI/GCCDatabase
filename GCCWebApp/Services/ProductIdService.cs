@@ -115,6 +115,7 @@ namespace GCCWebApp.Services
                 .ThenBy(p => p.CreatedAt)
                 .Include(p => p.CreatedByUser)
                 .Include(p => p.UpdatedByUser)
+                .Include(p => p.Partners) // CR-171: multi-partner round-trip
                 .ToListAsync();
         }
 
@@ -189,6 +190,8 @@ namespace GCCWebApp.Services
                 .Take(pageSize)
                 .Include(p => p.CreatedByUser)
                 .Include(p => p.UpdatedByUser)
+                .Include(p => p.Partners) // CR-171: multi-partner round-trip
+                .AsSplitQuery()
                 .ToListAsync();
 
             var totalPages = total == 0 ? 0 : (int)Math.Ceiling(total / (double)pageSize);
@@ -209,7 +212,30 @@ namespace GCCWebApp.Services
                 .Include(p => p.Certificate)
                 .Include(p => p.CreatedByUser)
                 .Include(p => p.UpdatedByUser)
+                .Include(p => p.Partners) // CR-171: multi-partner round-trip
                 .FirstOrDefaultAsync(p => p.Id == id);
+        }
+
+        // CR-171: resolve a comma/pipe-delimited partner string into the Partners (M2M) collection
+        // and normalize the denormalized primary to the first matched name. "None"/blank → no tags.
+        private async Task SyncPartnersAsync(CertificateProductId pid)
+        {
+            var names = (pid.Partner ?? string.Empty)
+                .Split(new[] { ',', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(n => n.Trim())
+                .Where(n => n.Length > 0 && !n.Equals("None", StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            pid.Partners.Clear();
+            if (names.Any())
+            {
+                var matched = await _context.Partners
+                    .Where(p => !p.IsDeleted && names.Contains(p.Name))
+                    .ToListAsync();
+                foreach (var p in matched) pid.Partners.Add(p);
+                pid.Partner = matched.FirstOrDefault()?.Name ?? pid.Partner;
+            }
         }
 
         public async Task<CertificateProductId> CreateProductIdAsync(CertificateProductId productId)
@@ -253,6 +279,7 @@ namespace GCCWebApp.Services
                 }
 
                 _context.CertificateProductIds.Add(productId);
+                await SyncPartnersAsync(productId); // CR-171: persist per-product partner tags
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Created product ID {ProductIdType}:{ProductIdValue} for certificate {CertificateId}",
@@ -272,7 +299,10 @@ namespace GCCWebApp.Services
         {
             try
             {
-                var existing = await _context.CertificateProductIds.FindAsync(productId.Id);
+                // CR-171: Include Partners so the M2M can be re-synced from the posted Partner string.
+                var existing = await _context.CertificateProductIds
+                    .Include(p => p.Partners)
+                    .FirstOrDefaultAsync(p => p.Id == productId.Id);
                 if (existing == null)
                 {
                     throw new ArgumentException("Product ID not found");
@@ -315,6 +345,7 @@ namespace GCCWebApp.Services
                 existing.DisplayOrder = productId.DisplayOrder;
                 existing.UpdatedBy = productId.UpdatedBy;
                 existing.UpdatedAt = DateTime.UtcNow;
+                await SyncPartnersAsync(existing); // CR-171: re-sync per-product partner tags
 
                 await _context.SaveChangesAsync();
 
@@ -506,6 +537,11 @@ namespace GCCWebApp.Services
                 .FirstOrDefaultAsync();
             var derivedStatus = CertificateProductId.DeriveStatusFromCert(parentCertStatus);
 
+            // CR-171: preload partners once so per-row partner resolution stays in memory (no N queries).
+            var partnerByName = await _context.Partners
+                .Where(p => !p.IsDeleted)
+                .ToDictionaryAsync(p => p.Name, StringComparer.OrdinalIgnoreCase);
+
             var existingRows = await _context.CertificateProductIds
                 .Where(p => p.CertificateId == certificateId)
                 .ToListAsync();
@@ -600,6 +636,18 @@ namespace GCCWebApp.Services
                         IsPublic = true,
                         DisplayOrder = nextDisplayOrder++
                     };
+
+                    // CR-171: resolve the (possibly delimited) Partner cell into the M2M collection.
+                    foreach (var pname in (item.Partner ?? string.Empty)
+                                 .Split(new[] { ',', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                                 .Select(n => n.Trim())
+                                 .Where(n => n.Length > 0 && !n.Equals("None", StringComparison.OrdinalIgnoreCase))
+                                 .Distinct(StringComparer.OrdinalIgnoreCase))
+                    {
+                        if (partnerByName.TryGetValue(pname, out var partnerEntity))
+                            entity.Partners.Add(partnerEntity);
+                    }
+                    entity.Partner = entity.Partners.FirstOrDefault()?.Name ?? entity.Partner;
 
                     _context.CertificateProductIds.Add(entity);
                     existingByKey[key] = entity; // prevent within-batch dup

@@ -1,0 +1,158 @@
+{
+  "overallStatus": "FAIL",
+  "passes": 25,
+  "fails": 7,
+  "nits": 1,
+  "certNumberForEdit": "26-0025",
+  "results": [
+    {
+      "status": "PASS",
+      "label": "Admin/Create: partnerSelect is multiple",
+      "detail": "size=\"4\""
+    },
+    {
+      "status": "PASS",
+      "label": "Admin/Create: #partnersHidden sync input present"
+    },
+    {
+      "status": "PASS",
+      "label": "Admin/Create: CertificationResults field present"
+    },
+    {
+      "status": "NIT",
+      "label": "Admin/Create: 2 h1 elements (expected 1)"
+    },
+    {
+      "status": "PASS",
+      "label": "Analyst/Create: partnerSelect rendered"
+    },
+    {
+      "status": "PASS",
+      "label": "Admin/Edit: partnerSelect is multiple"
+    },
+    {
+      "status": "PASS",
+      "label": "Admin/Edit: Save Changes button present"
+    },
+    {
+      "status": "PASS",
+      "label": "Admin/Edit: form intact (not submitted)"
+    },
+    {
+      "status": "PASS",
+      "label": "External: /Certificate/Create is inaccessible",
+      "detail": "redirected to: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "status": "PASS",
+      "label": "External: /Certificate/Edit is inaccessible",
+      "detail": "redirected to: http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F26-0025"
+    },
+    {
+      "status": "PASS",
+      "label": "External/TileView: no \"Add Certificate\" button visible"
+    },
+    {
+      "status": "PASS",
+      "label": "External/TileView: no Edit links visible"
+    },
+    {
+      "status": "PASS",
+      "label": "External/ProductManagement: Actions column header is CSS-hidden (correct)"
+    },
+    {
+      "status": "PASS",
+      "label": "External/CertDetail: internal tags not visible"
+    },
+    {
+      "status": "PASS",
+      "label": "Public: /Certificate/Create redirects to login",
+      "detail": "http://localhost:5101/Account/Login?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "status": "PASS",
+      "label": "Public: /Certificate/Edit redirects to login",
+      "detail": "http://localhost:5101/Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F26-0025"
+    },
+    {
+      "status": "PASS",
+      "label": "Responsive/desktop: no horizontal overflow",
+      "detail": "1920x1080"
+    },
+    {
+      "status": "PASS",
+      "label": "Responsive/desktop: partnerSelect visible"
+    },
+    {
+      "status": "PASS",
+      "label": "Responsive/laptop: no horizontal overflow",
+      "detail": "1366x768"
+    },
+    {
+      "status": "PASS",
+      "label": "Responsive/laptop: partnerSelect visible"
+    },
+    {
+      "status": "PASS",
+      "label": "Responsive/tablet: no horizontal overflow",
+      "detail": "768x1024"
+    },
+    {
+      "status": "PASS",
+      "label": "Responsive/tablet: partnerSelect visible"
+    },
+    {
+      "status": "PASS",
+      "label": "Responsive/mobile: no horizontal overflow",
+      "detail": "390x844"
+    },
+    {
+      "status": "PASS",
+      "label": "Responsive/mobile: partnerSelect visible"
+    },
+    {
+      "status": "PASS",
+      "label": "Responsive/small: no horizontal overflow",
+      "detail": "320x568"
+    },
+    {
+      "status": "PASS",
+      "label": "Responsive/small: partnerSelect visible"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Create [serious]: aria-prohibited-attr",
+      "detail": "Ensure ARIA attributes are not prohibited for an element's role (3 nodes)"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Create [serious]: color-contrast",
+      "detail": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds (7 nodes)"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Create [critical]: select-name",
+      "detail": "Ensure select element has an accessible name (2 nodes)"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Edit [serious]: aria-prohibited-attr",
+      "detail": "Ensure ARIA attributes are not prohibited for an element's role (3 nodes)"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Edit [serious]: color-contrast",
+      "detail": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds (7 nodes)"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Edit [serious]: link-in-text-block",
+      "detail": "Ensure links are distinguished from surrounding text in a way that does not rely on color (1 node)"
+    },
+    {
+      "status": "FAIL",
+      "label": "axe/Edit [critical]: select-name",
+      "detail": "Ensure select element has an accessible name (2 nodes)"
+    }
+  ]
+}

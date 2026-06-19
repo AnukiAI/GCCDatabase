@@ -588,6 +588,7 @@ namespace GCCWebApp.Controllers
                             productId.CreatedAt = now;
                             productId.UpdatedAt = now;
                             certificate.ProductIds.Add(productId);
+                            await SyncProductIdPartnersAsync(productId); // CR-171 Model A
                         }
                         await _unitOfWork.CompleteAsync();
                         _logger.LogInformation("Added {Count} product IDs to certificate {Number}", model.ProductIds.Count, certificate.Number);
@@ -1125,6 +1126,7 @@ namespace GCCWebApp.Controllers
                                 existing.Description = submitted.Description;
                                 existing.UpdatedBy = currentUserId;
                                 existing.UpdatedAt = now;
+                                await SyncProductIdPartnersAsync(existing); // CR-171 Model A
                             }
                             else
                             {
@@ -1135,6 +1137,7 @@ namespace GCCWebApp.Controllers
                                 submitted.UpdatedBy = currentUserId;
                                 submitted.UpdatedAt = now;
                                 certificate.ProductIds.Add(submitted);
+                                await SyncProductIdPartnersAsync(submitted); // CR-171 Model A
                             }
                         }
                     }
@@ -2069,6 +2072,32 @@ namespace GCCWebApp.Controllers
         /// Partner → must be in user's PartnerNames AND in PublicStatuses (non-expired).
         /// All other roles → denied.
         /// </summary>
+        /// <summary>
+        /// CR-171 Model A: keep a product ID's Partners (M2M) in step with its denormalized Partner
+        /// string. Parses comma/pipe-delimited names (forward-compatible with a multi-select UI;
+        /// the current single-select posts one name). Empty/None → no partner tags (= shared with all
+        /// the cert's partners). Also normalizes the denorm primary to the first matched partner.
+        /// </summary>
+        private async Task SyncProductIdPartnersAsync(CertificateProductId pid)
+        {
+            var names = (pid.Partner ?? string.Empty)
+                .Split(new[] { ',', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(n => n.Trim())
+                .Where(n => n.Length > 0 && !n.Equals("None", StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            pid.Partners.Clear();
+            if (names.Any())
+            {
+                var matched = await _context.Partners
+                    .Where(p => !p.IsDeleted && names.Contains(p.Name))
+                    .ToListAsync();
+                foreach (var p in matched) pid.Partners.Add(p);
+                pid.Partner = matched.FirstOrDefault()?.Name ?? pid.Partner;
+            }
+        }
+
         private bool FileAccessAllowed(Certificate certificate, out string denyReason)
         {
             var role = GetUserRole();
@@ -2101,9 +2130,17 @@ namespace GCCWebApp.Controllers
             else if (role == "Partner")
             {
                 var myPartnerNames = GetCurrentUserPartnerNamesAsync().GetAwaiter().GetResult();
-                if (!myPartnerNames.Contains(certificate.Partner ?? "", StringComparer.OrdinalIgnoreCase))
+                // CR-171: access is membership in the cert's Partners collection, not the denormalized
+                // primary (which may be a co-partner on a shared cert). Read from the DB so this gate
+                // does not depend on every caller eager-loading Partners.
+                var certPartnerNames = _context.Certificates
+                    .Where(c => c.Id == certificate.Id)
+                    .SelectMany(c => c.Partners)
+                    .Select(p => p.Name)
+                    .ToList();
+                if (!certPartnerNames.Any(n => myPartnerNames.Contains(n, StringComparer.OrdinalIgnoreCase)))
                 {
-                    denyReason = $"Partner not associated with cert Partner={certificate.Partner}";
+                    denyReason = $"Partner not associated with cert (cert partners: {string.Join(", ", certPartnerNames)})";
                     return false;
                 }
             }

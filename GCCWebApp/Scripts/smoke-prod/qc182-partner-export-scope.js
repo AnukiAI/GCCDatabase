@@ -1,36 +1,74 @@
 // QC #182 (6/3 log) — Partner "Export All to CSV" data-scoping verification.
 // Claim: partner export returns ALL certs in the DB, not just the partner's scope.
 //
-// Method (READ-ONLY, no writes): log in as partner.amazon on the live site, then compare
+// Method (READ-ONLY, no writes): log in as a real partner principal, then compare
 //   (a) authorized scope  = totalCount from the scoped tile API /api/CertificateTileExternal
-//   (b) export row count   = data rows returned by /Certificate/ExportCertificates (the
-//                            endpoint the "Export All" button calls, with no filters)
-//   (c) total DB certs     = 39 (measured directly against prod)
-// If (b) > (a)  => scoping gap / leak confirmed.  If (b) == (a) => DEF-198 fix holds.
+//   (b) export cert count  = DISTINCT certificate numbers in /Certificate/ExportCertificates
+//                            (the endpoint the "Export All" button calls, with no filters)
+// If (b) > (a)  => scoping gap / leak confirmed.  If (b) <= (a) => scoped OK.
 //
-// Run: node Scripts/smoke-prod/qc182-partner-export-scope.js
+// FIXES (2026-06-18): the old version hard-coded a partner user that did not exist
+// ('partner.amazon'), so login silently failed and the test measured the PUBLIC/anonymous
+// scope and reported a bogus "leak". It also counted CSV rows by splitting on newlines,
+// which over-counts when a field contains an embedded newline. This version (1) uses the
+// real partner user (env-overridable), (2) HARD-ASSERTS login succeeded before measuring,
+// and (3) parses the CSV properly and compares DISTINCT cert numbers.
+//
+// Run (local):  BASE_URL=http://localhost:5101 node Scripts/smoke-prod/qc182-partner-export-scope.js
+// Run (prod):   node Scripts/smoke-prod/qc182-partner-export-scope.js   (set SMOKE_PARTNER_USER if the prod username differs)
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
 const BASE = (process.env.BASE_URL || 'https://gccwebapp.com').replace(/\/$/, '');
+// Basic-auth gate in front of the remote test env (not the app login).
 const GATE = { username: process.env.SMOKE_REMOTE_USER || 'gcc',
                password: process.env.SMOKE_REMOTE_PASS || 'Cert-Test-Access-2026!' };
-const TOTAL_DB_CERTS = 39; // measured on prod 2026-06-03
+// App login for the partner principal under test. The real partner user is an email;
+// override per environment if prod uses a different one.
+const PARTNER_USER = process.env.SMOKE_PARTNER_USER || 'partner@amazon.com';
+const PARTNER_PASS = process.env.SMOKE_PARTNER_PASS || 'TestPass123!';
 const OUT = path.join(__dirname, '_results');
 if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
+
+// Minimal RFC-4180 CSV parser: handles quoted fields containing commas, embedded
+// newlines, and escaped double-quotes (""). Returns an array of rows (arrays of fields).
+function parseCsv(text) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += ch;
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      row.push(field); field = '';
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(field); rows.push(row); row = []; field = '';
+    } else field += ch;
+  }
+  // flush trailing field/row if the file doesn't end with a newline
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  // drop fully-empty trailing rows
+  return rows.filter(r => r.some(c => c && c.length));
+}
 
 (async () => {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ httpCredentials: GATE, ignoreHTTPSErrors: true,
     viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
-  const out = { ts: new Date().toISOString(), base: BASE, totalDbCerts: TOTAL_DB_CERTS };
+  const out = { ts: new Date().toISOString(), base: BASE, partnerUser: PARTNER_USER };
   try {
     // login as partner
     await page.goto(`${BASE}/Account/Login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.locator('#Email').fill('partner.amazon');
-    await page.locator('#Password').fill('TestPass123!');
+    await page.locator('#Email').fill(PARTNER_USER);
+    await page.locator('#Password').fill(PARTNER_PASS);
     await Promise.all([ page.waitForLoadState('domcontentloaded'),
       page.locator('button[type="submit"]').first().click() ]);
     await page.waitForTimeout(1200);
@@ -44,40 +82,60 @@ if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
     });
     out.authorizedScope = tile;
 
+    // HARD login-success gate: a 401 from the authenticated tile API (or a bounce back to
+    // the login page) means we are NOT logged in as the partner. Bail loudly instead of
+    // silently measuring the public scope (that produced the old false-positive "leak").
+    out.loginOk = !/\/Account\/Login/i.test(page.url()) && tile.status !== 401;
+    if (!out.loginOk) {
+      out.verdict = `LOGIN FAILED for '${PARTNER_USER}' (tileStatus=${tile.status}, landed=${out.landedAfterLogin}) — ` +
+        `cannot assess scope. Set SMOKE_PARTNER_USER/SMOKE_PARTNER_PASS to a valid partner login.`;
+      console.log(JSON.stringify(out, (k, v) => k === 'text' ? undefined : v, 2));
+      fs.writeFileSync(path.join(OUT, 'qc182-partner-export-results.json'),
+        JSON.stringify(out, (k, v) => k === 'text' ? undefined : v, 2));
+      process.exitCode = 1;
+      return;
+    }
+
     // (b) what Export All actually returns (no filters = "export all")
     const exp = await page.evaluate(async () => {
       const r = await fetch('/Certificate/ExportCertificates?format=csv', { headers: { 'Accept': 'text/csv' } });
       const text = await r.text();
       return { status: r.status, contentType: r.headers.get('content-type'), len: text.length, text };
     });
-    // count data rows (handle quoted newlines crudely: count lines, minus header)
-    const lines = exp.text.split(/\r?\n/).filter(l => l.trim().length > 0);
-    out.export = { status: exp.status, contentType: exp.contentType, bytes: exp.len,
-                   dataRows: Math.max(0, lines.length - 1), headerSample: lines[0]?.slice(0, 120) };
 
-    // best-effort: pull distinct company-ish column values to show cross-partner spread
-    const header = (lines[0] || '').split(',').map(s => s.replace(/^"|"$/g, '').trim().toLowerCase());
-    const compIdx = header.findIndex(h => h.includes('company'));
+    const rows = parseCsv(exp.text);
+    const header = rows.length ? rows[0] : [];
+    const dataRows = rows.slice(1);
+    // distinct certificate numbers = the true cert count (rows can exceed certs if a field
+    // wraps lines; certs can't be double-counted this way).
+    let certIdx = header.findIndex(h => /cert/i.test(h) && /(num|#)/i.test(h));
+    if (certIdx < 0) certIdx = header.findIndex(h => /number/i.test(h));
+    const distinctCerts = certIdx >= 0
+      ? new Set(dataRows.map(r => (r[certIdx] || '').trim()).filter(Boolean)).size
+      : null;
+    out.export = { status: exp.status, contentType: exp.contentType, bytes: exp.len,
+                   dataRows: dataRows.length, distinctCerts,
+                   certColumn: certIdx >= 0 ? header[certIdx] : '(not found)',
+                   headerSample: header.join(',').slice(0, 120) };
+
+    // best-effort: distinct company values, to show the (legitimate) cross-company spread
+    const compIdx = header.findIndex(h => /company/i.test(h));
     if (compIdx >= 0) {
-      const comps = new Set();
-      for (const l of lines.slice(1)) {
-        const cols = l.match(/("([^"]|"")*"|[^,]*)(,|$)/g) || [];
-        const v = (cols[compIdx] || '').replace(/^"|",?$|,$/g, '').trim();
-        if (v) comps.add(v);
-      }
+      const comps = new Set(dataRows.map(r => (r[compIdx] || '').trim()).filter(Boolean));
       out.distinctCompaniesInExport = comps.size;
       out.companiesSample = [...comps].slice(0, 12);
     }
 
-    // verdict
+    // verdict — compare DISTINCT certs (fallback to dataRows if the cert column is missing)
     const a = out.authorizedScope.totalCount;
-    const b = out.export.dataRows;
+    const b = out.export.distinctCerts != null ? out.export.distinctCerts : out.export.dataRows;
     if (b != null && a != null) {
       out.verdict = (b > a)
-        ? `LEAK CONFIRMED — export returned ${b} rows but partner is scoped to ${a} (DB total ${TOTAL_DB_CERTS})`
-        : `SCOPED OK — export ${b} rows matches authorized scope ${a}`;
+        ? `LEAK CONFIRMED — export exposed ${b} distinct certs but partner is scoped to ${a}`
+        : `SCOPED OK — export ${b} distinct certs within authorized scope ${a}`;
+      if (b > a) process.exitCode = 1;
     } else {
-      out.verdict = `INCONCLUSIVE — could not read counts (scope=${a}, exportRows=${b})`;
+      out.verdict = `INCONCLUSIVE — could not read counts (scope=${a}, exportCerts=${b})`;
     }
     console.log(JSON.stringify(out, (k, v) => k === 'text' ? undefined : v, 2));
     fs.writeFileSync(path.join(OUT, 'qc182-partner-export-results.json'),
@@ -87,6 +145,7 @@ if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
   } catch (e) {
     console.error('ERROR', e.message);
     out.error = e.message;
+    process.exitCode = 1;
   } finally {
     await ctx.close(); await browser.close();
   }

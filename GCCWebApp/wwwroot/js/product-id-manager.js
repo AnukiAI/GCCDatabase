@@ -546,9 +546,9 @@ class ProductIdManager {
                 </td>
                 <!-- CR-015: Status cell removed — derived from parent cert. -->
                 <td>
-                    ${productId.partner ?
-                        `<span class="partner-badge partner-${productId.partner.toLowerCase()}">${productId.partner}</span>` :
-                        '<span class="text-muted">-</span>'}
+                    ${(() => { const ps = this.getPartnerList(productId); return ps.length
+                        ? ps.map(n => `<span class="partner-badge partner-${n.toLowerCase()}">${n}</span>`).join(' ')
+                        : '<span class="text-muted">-</span>'; })()}
                 </td>
                 <td class="created-date" title="${this.formatDateTime(productId.createdAt)}">
                     ${this.formatDate(productId.createdAt)}
@@ -606,7 +606,7 @@ class ProductIdManager {
 
         this.filteredProductIds = this.productIds.filter(productId => {
             const typeMatch = !typeFilter || productId.productIdType === typeFilter;
-            const partnerMatch = !partnerFilter || productId.partner === partnerFilter;
+            const partnerMatch = !partnerFilter || this.getPartnerList(productId).includes(partnerFilter);
             const searchMatch = !searchFilter ||
                 productId.productIdValue.toLowerCase().includes(searchFilter) ||
                 (productId.productName && productId.productName.toLowerCase().includes(searchFilter)) ||
@@ -693,7 +693,14 @@ class ProductIdManager {
             const inputs = form.querySelectorAll('input[type="text"], textarea');
             inputs.forEach(input => input.value = '');
             const selects = form.querySelectorAll('select');
-            selects.forEach(select => select.selectedIndex = 0);
+            selects.forEach(select => {
+                // CR-171: multi-selects must clear ALL options, not select the first one.
+                if (select.multiple) {
+                    Array.from(select.options).forEach(o => o.selected = false);
+                } else {
+                    select.selectedIndex = 0;
+                }
+            });
 
             document.getElementById('productIdId').value = '0';
             document.getElementById('certificateId').value = this.certificateId;
@@ -702,13 +709,42 @@ class ProductIdManager {
         }
     }
 
+    // CR-171: normalize a product ID's partner association(s) to an array of names. Prefers the
+    // partners[] array (from the API DTO); falls back to splitting the delimited partner string.
+    getPartnerList(productId) {
+        if (Array.isArray(productId.partners) && productId.partners.length) {
+            return productId.partners.filter(Boolean);
+        }
+        return (productId.partner || '')
+            .split(/[|,]/)
+            .map(s => s.trim())
+            .filter(s => s.length && s.toLowerCase() !== 'none');
+    }
+
+    // CR-171: select the matching options in the #productIdPartner multi-select.
+    setSelectedPartners(names) {
+        const sel = document.getElementById('productIdPartner');
+        if (!sel) return;
+        const wanted = new Set((names || []).map(n => n.toLowerCase()));
+        Array.from(sel.options).forEach(o => { o.selected = wanted.has(o.value.toLowerCase()); });
+    }
+
+    // CR-171: read the selected partner names from the multi-select.
+    getSelectedPartners() {
+        const sel = document.getElementById('productIdPartner');
+        if (!sel) return [];
+        return Array.from(sel.selectedOptions).map(o => o.value).filter(Boolean);
+    }
+
     populateForm(productId) {
         document.getElementById('productIdId').value = productId.id;
         document.getElementById('certificateId').value = productId.certificateId;
         document.getElementById('productIdType').value = productId.productIdType;
         document.getElementById('productIdValue').value = productId.productIdValue;
         // CR-015: Status field removed from modal — derived from parent cert.
-        document.getElementById('productIdPartner').value = productId.partner || '';
+        // CR-171: partner is now a multi-select. Prefer partners[] (from the API); fall back to
+        // splitting the (possibly delimited) partner string for in-memory items.
+        this.setSelectedPartners(this.getPartnerList(productId));
         document.getElementById('productName').value = productId.productName || '';
         document.getElementById('productSku').value = productId.productSku || '';
         document.getElementById('productDescription').value = productId.description || '';
@@ -730,12 +766,15 @@ class ProductIdManager {
         // lowercase ASIN entered as `b08n5wrwnw` saves as `B08N5WRWNW`.
         const _type = document.getElementById('productIdType').value;
         const _rawValue = document.getElementById('productIdValue').value.trim();
+        // CR-171: collect the multi-select partners; persist as a pipe-delimited string (the backend
+        // SyncPartners splits on '|'/',' to populate the M2M). Empty = shared with all cert partners.
+        const _partners = this.getSelectedPartners();
         const productId = {
             Id: parseInt(document.getElementById('productIdId').value) || 0,
             CertificateId: parseInt(document.getElementById('certificateId').value) || this.certificateId,
             ProductIdType: _type,
             ProductIdValue: this.normalizeProductIdValue(_type, _rawValue),
-            Partner: document.getElementById('productIdPartner').value || '',
+            Partner: _partners.join('|'),
             ProductName: document.getElementById('productName').value.trim(),
             ProductSku: document.getElementById('productSku').value.trim(),
             Description: document.getElementById('productDescription').value.trim()
@@ -755,6 +794,7 @@ class ProductIdManager {
                         productIdType: productId.ProductIdType,
                         productIdValue: productId.ProductIdValue,
                         partner: productId.Partner || '',
+                        partners: _partners,
                         productName: productId.ProductName || '',
                         productSku: productId.ProductSku || '',
                         description: productId.Description || ''
@@ -769,6 +809,7 @@ class ProductIdManager {
                     productIdType: productId.ProductIdType,
                     productIdValue: productId.ProductIdValue,
                     partner: productId.Partner || '',
+                    partners: _partners,
                     productName: productId.ProductName || '',
                     productSku: productId.ProductSku || '',
                     description: productId.Description || '',
@@ -2006,8 +2047,10 @@ class ProductIdManager {
             const d = new Date(iso);
             return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
         };
+        // CR-171: Partner column carries ALL associated partners, pipe-delimited (e.g. "Amazon|Novi");
+        // empty = shared with all the certificate's partners. Re-import understands the same format.
         const rows = this.productIds.map(pid =>
-            `"${pid.productIdType || ''}","${pid.productIdValue || ''}","${pid.productName || ''}","${pid.productSku || ''}","${pid.partner || ''}","${formatCreated(pid.createdAt)}","${(pid.createdByUser && pid.createdByUser.username) || pid.createdBy || ''}","${pid.description || ''}"`
+            `"${pid.productIdType || ''}","${pid.productIdValue || ''}","${pid.productName || ''}","${pid.productSku || ''}","${this.getPartnerList(pid).join('|')}","${formatCreated(pid.createdAt)}","${(pid.createdByUser && pid.createdByUser.username) || pid.createdBy || ''}","${pid.description || ''}"`
         );
         const csvContent = [header, ...rows].join('\n');
 

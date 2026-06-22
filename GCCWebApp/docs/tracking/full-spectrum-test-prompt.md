@@ -77,7 +77,7 @@ Run every documented feature in **`docs/tracking/test-execution-log.md`** (163 Q
 - Partner API DTO projection on every endpoint (list / search / by-id / by-number / GS1 list / GS1 single / PDF download). DEF-103 caught two endpoints that were missed in the 2026-04-21 fix.
 - Tile-view list mode lazy-load (DEF-100) — internal AND external AND public.
 - Tablet 1024px filter UI (DEF-098/099) — single Hide Filters bar, single-click chevron toggle.
-- Import/Export icon arrows (DEF-101) — re-verify on Company/Index, Product/Management, Admin/ProductManagement, Admin/Tags, Admin/UserManagement, Product/Categories, _ProductIdManager.
+- Import/Export icon arrows (DEF-101) — re-verify on Company/Index, Product/Management, Admin/ProductManagement, Admin/Tags, Admin/UserManagement, _ProductIdManager. (`Product/Categories` removed per DEF-272 — orphan page deleted.)
 - `CertificationResults` display formatting (`0.17` → `17%`) on all 6 surfaces: internal detail view, internal tile API, Partner API list/search/single/GS1, product-ID search.
 - Product ID Status cascade (CR-015) — Status column/field/filter must be GONE from UI; cascade fires on cert status change in both directions.
 - Custom Fields rendering — single "Custom Fields" group everywhere, ignore `CustomField.Section`.

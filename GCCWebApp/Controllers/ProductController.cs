@@ -46,11 +46,6 @@ namespace GCCWebApp.Controllers
             return View();
         }
 
-        public IActionResult Categories()
-        {
-            return View();
-        }
-
         [HttpGet]
         public async Task<IActionResult> GetDashboardStats()
         {

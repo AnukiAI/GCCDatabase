@@ -163,7 +163,7 @@
       "id": "screenshot",
       "name": "Captured validation-state screenshot",
       "status": "PASS",
-      "notes": "_results\\cert-create-validations.png"
+      "notes": "Scripts\\smoke-prod\\_results\\cert-create-validations.png"
     }
   ]
 }

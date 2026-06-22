@@ -590,7 +590,10 @@ namespace GCCWebApp.Controllers.Api.v1
         [HttpGet("search")]
         [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<object>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> SearchCertificates(
-            [FromQuery] string term,
+            // DEF-269: term and status are OPTIONAL filters (the body already null-guards both), but
+            // as non-nullable reference types .NET 8 binds them as implicitly [Required], so an empty
+            // ?term= 400'd. Marked nullable so the documented optional-filter behavior actually works.
+            [FromQuery] string? term,
             [FromQuery] int? productId,
             [FromQuery] int? companyId,
             [FromQuery] int? certificationTypeId,
@@ -598,7 +601,7 @@ namespace GCCWebApp.Controllers.Api.v1
             [FromQuery] DateTime? effectiveDateTo,
             [FromQuery] DateTime? expirationDateFrom,
             [FromQuery] DateTime? expirationDateTo,
-            [FromQuery] string status,
+            [FromQuery] string? status,
             [FromQuery] PaginationParams parameters)
         {
             try
@@ -654,7 +657,12 @@ namespace GCCWebApp.Controllers.Api.v1
                 if (expirationDateTo.HasValue)
                     query = query.Where(c => c.ExpirationDate <= expirationDateTo.Value);
 
-                if (!string.IsNullOrEmpty(status))
+                // DEF-269: this is a literal match against the INTERNAL lifecycle status
+                // (e.g. "Client Approved - Paid", "Republished"). Partner callers are always
+                // reported status="Active" and are already constrained to PublicStatuses below, so
+                // a partner passing ?status=Active would match zero rows. Honor the filter only for
+                // internal callers (Admin/Analyst); ignore it for partners.
+                if (!string.IsNullOrEmpty(status) && !isPartnerCaller)
                     query = query.Where(c => c.Status == status);
 
                 if (isPartnerCaller)

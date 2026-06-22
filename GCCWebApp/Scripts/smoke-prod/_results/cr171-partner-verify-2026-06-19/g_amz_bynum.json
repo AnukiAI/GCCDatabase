@@ -1,0 +1,53 @@
+{
+  "success": true,
+  "data": {
+    "certificateNumber": "26-0147",
+    "status": "Active",
+    "issueDate": "2026-04-01T00:00:00Z",
+    "expirationDate": "2028-05-31T00:00:00Z",
+    "certificationCountries": "All",
+    "partner": "Amazon",
+    "certificationResults": "100%",
+    "pathway": "Renewable electricity usage",
+    "company": "KAO",
+    "productName": "John Frieda ProFiller plus Shampoo 250ml",
+    "certificationType": "Sustainable Energy Practices",
+    "amazonCode": "greencircle_sustainable_energy_practices",
+    "issuer": "GreenCircle Certified",
+    "productIds": [
+      {
+        "type": "ASIN",
+        "value": "B0BRNPBZJ8",
+        "status": "Active",
+        "partner": "Amazon",
+        "productName": "John Frieda ProFiller plus Shampoo 250ml",
+        "productSku": null
+      },
+      {
+        "type": "ASIN",
+        "value": "B01DSSNB5G",
+        "status": "Active",
+        "partner": "Amazon",
+        "productName": "John Frieda Sheer Blonde Go Blonder Shampoo 250ml",
+        "productSku": null
+      },
+      {
+        "type": "UPC",
+        "value": "BOTHTAG01",
+        "status": "Active",
+        "partner": "Amazon",
+        "productName": "Shared-to-both Variant",
+        "productSku": null
+      },
+      {
+        "type": "GTIN",
+        "value": "SHARED0147",
+        "status": "Active",
+        "partner": "",
+        "productName": "Shared Untagged",
+        "productSku": null
+      }
+    ],
+    "pdfDownloadUrl": "/api/v1/certificates/26-0147/download"
+  }
+}

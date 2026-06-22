@@ -1,0 +1,60 @@
+{
+  "success": true,
+  "data": [
+    {
+      "certificateNumber": "26-0146",
+      "status": "Active",
+      "issueDate": "2026-04-01T00:00:00Z",
+      "expirationDate": "2028-05-31T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "17%",
+      "pathway": "Energy usage reduction",
+      "company": "KAO",
+      "productName": "John Frieda PROfiller+ Thickening Conditioner",
+      "certificationType": "Sustainable Energy Practices",
+      "amazonCode": "greencircle_sustainable_energy_practices",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "AMZNONLY01",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Amazon widget",
+          "productSku": null,
+          "isMatchedId": true
+        },
+        {
+          "type": "ASIN",
+          "value": "B005PMYJBO",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "John Frieda Dream Curls Conditioner 250ml",
+          "productSku": null,
+          "isMatchedId": false
+        },
+        {
+          "type": "ASIN",
+          "value": "B0BRNN8BKS",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "John Frieda PROfiller+ Thickening Conditioner",
+          "productSku": null,
+          "isMatchedId": false
+        },
+        {
+          "type": "GTIN",
+          "value": "12345670",
+          "status": "Active",
+          "partner": "",
+          "productName": "Shared widget",
+          "productSku": null,
+          "isMatchedId": false
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/26-0146/download"
+    }
+  ],
+  "message": "Found 1 certificate(s) with 4 total product IDs for search: AMZNONLY01"
+}

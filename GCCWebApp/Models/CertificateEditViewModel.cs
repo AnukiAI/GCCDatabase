@@ -5,7 +5,7 @@ namespace GCCWebApp.Models
     /// <summary>
     /// ViewModel for creating and editing certificates
     /// </summary>
-    public class CertificateEditViewModel
+    public class CertificateEditViewModel : IValidatableObject
     {
         public int Id { get; set; }
 
@@ -121,5 +121,23 @@ namespace GCCWebApp.Models
 
         [Display(Name = "Product Subcategory")]
         public int? ProductSubcategoryId { get; set; }
+
+        /// <summary>
+        /// Cross-field rule: a certificate's Expiration Date must be after its Effective Date.
+        /// Both fields are independently [Required]; this guards the relationship between them.
+        /// Runs server-side on both Create and Edit POST (both gate on ModelState.IsValid). The
+        /// client mirrors this in each view's submit handler so the analyst sees it before posting.
+        /// Compared on .Date so the time component (always 00:00 for date-only inputs) is ignored.
+        /// </summary>
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (EffectiveDate.HasValue && ExpirationDate.HasValue &&
+                ExpirationDate.Value.Date <= EffectiveDate.Value.Date)
+            {
+                yield return new ValidationResult(
+                    "Expiration Date must be after the Effective Date.",
+                    new[] { nameof(ExpirationDate) });
+            }
+        }
     }
 }

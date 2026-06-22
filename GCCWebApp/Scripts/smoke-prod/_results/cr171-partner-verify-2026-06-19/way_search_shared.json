@@ -1,0 +1,33 @@
+{
+  "success": true,
+  "data": [
+    {
+      "certificateNumber": "26-0146",
+      "status": "Active",
+      "issueDate": "2026-04-01T00:00:00Z",
+      "expirationDate": "2028-05-31T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "Wayfair",
+      "certificationResults": "17%",
+      "pathway": "Energy usage reduction",
+      "company": "KAO",
+      "productName": "John Frieda PROfiller+ Thickening Conditioner",
+      "certificationType": "Sustainable Energy Practices",
+      "amazonCode": "greencircle_sustainable_energy_practices",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "GTIN",
+          "value": "12345670",
+          "status": "Active",
+          "partner": "",
+          "productName": "Shared widget",
+          "productSku": null,
+          "isMatchedId": true
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/26-0146/download"
+    }
+  ],
+  "message": "Found 1 certificate(s) with 1 total product IDs for search: 12345670"
+}

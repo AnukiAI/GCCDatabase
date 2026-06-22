@@ -1,0 +1,47 @@
+{
+  "success": true,
+  "pagination": {
+    "totalCount": 1,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  },
+  "data": [
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "http://localhost:5101/api/v1/certificates/gs1/26-0146",
+      "type": "CertificationReport",
+      "issueDate": "2026-04-01",
+      "issuer": "GreenCircle Certified",
+      "products": [
+        {
+          "id": "https://id.gs1.org/01/00000012345670",
+          "type": "Product",
+          "gtin": "00000012345670",
+          "name": "John Frieda PROfiller+ Thickening Conditioner",
+          "additionalTradeItemId": null,
+          "certificationInfo": {
+            "type": "CertificationDetails",
+            "agency": "GreenCircle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "Sustainable Energy Practices",
+            "certificateId": "26-0146",
+            "status": "ACTIVE",
+            "value": "17%",
+            "startDate": "2026-04-01",
+            "endDate": "2028-05-31",
+            "targetCountries": [
+              "All"
+            ],
+            "amazonCode": "greencircle_sustainable_energy_practices",
+            "pathway": "Energy usage reduction"
+          }
+        }
+      ]
+    }
+  ],
+  "message": "Found 1 certificate(s) in GS1 format"
+}

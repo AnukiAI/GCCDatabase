@@ -1,0 +1,169 @@
+{
+  "pass": 25,
+  "fail": 0,
+  "warn": 2,
+  "results": [
+    {
+      "id": "access",
+      "name": "Create page loads for analyst",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "cert-number.autofilled",
+      "name": "Certification # pre-filled",
+      "status": "PASS",
+      "notes": "value=\"26-1731\""
+    },
+    {
+      "id": "cert-number.readonly",
+      "name": "Certification # readonly",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "required.CompanyId",
+      "name": "CompanyId marked required",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "required.ProductId",
+      "name": "ProductId marked required",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "required.CertificationTypeId",
+      "name": "CertificationTypeId marked required",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "required.EffectiveDate",
+      "name": "EffectiveDate marked required",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "required.ExpirationDate",
+      "name": "ExpirationDate marked required",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "required.Status",
+      "name": "Status marked required",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "required.certificatePdf",
+      "name": "certificatePdf marked required",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "empty-submit.blocked",
+      "name": "Empty submit does NOT navigate away",
+      "status": "PASS",
+      "notes": "/Certificate/Create"
+    },
+    {
+      "id": "empty-submit.invalid.CompanyId",
+      "name": "CompanyId flagged invalid on empty submit",
+      "status": "PASS",
+      "notes": "Please select an item in the list."
+    },
+    {
+      "id": "empty-submit.invalid.ProductId",
+      "name": "ProductId flagged invalid on empty submit",
+      "status": "PASS",
+      "notes": "Please select an item in the list."
+    },
+    {
+      "id": "empty-submit.invalid.CertificationTypeId",
+      "name": "CertificationTypeId flagged invalid on empty submit",
+      "status": "PASS",
+      "notes": "Please select an item in the list."
+    },
+    {
+      "id": "empty-submit.invalid.EffectiveDate",
+      "name": "EffectiveDate flagged invalid on empty submit",
+      "status": "PASS",
+      "notes": "Please fill out this field."
+    },
+    {
+      "id": "empty-submit.invalid.ExpirationDate",
+      "name": "ExpirationDate flagged invalid on empty submit",
+      "status": "PASS",
+      "notes": "Please fill out this field."
+    },
+    {
+      "id": "empty-submit.invalid.Status",
+      "name": "Status flagged invalid on empty submit",
+      "status": "WARN",
+      "notes": "(no message)"
+    },
+    {
+      "id": "empty-submit.invalid.certificatePdf",
+      "name": "certificatePdf flagged invalid on empty submit",
+      "status": "PASS",
+      "notes": "Please select a file."
+    },
+    {
+      "id": "inline-error.custom-dropdowns",
+      "name": "Inline validation errors render for custom dropdowns",
+      "status": "PASS",
+      "notes": "count=2"
+    },
+    {
+      "id": "maxlength.CertificationResults",
+      "name": "Certification Results maxlength=1000",
+      "status": "PASS",
+      "notes": "maxlength=1000"
+    },
+    {
+      "id": "maxlength.CertificationResults.enforced",
+      "name": "Certification Results truncates to 1000 chars",
+      "status": "PASS",
+      "notes": "actual=1000"
+    },
+    {
+      "id": "maxlength.Location",
+      "name": "Location maxlength=175",
+      "status": "PASS",
+      "notes": "maxlength=175"
+    },
+    {
+      "id": "email.regex.no-tld-rejected",
+      "name": "Company email \"a@b\" rejected by pattern",
+      "status": "WARN",
+      "notes": "valid=true"
+    },
+    {
+      "id": "email.regex.valid-accepted",
+      "name": "Company email \"real@example.com\" accepted",
+      "status": "PASS",
+      "notes": "valid=true"
+    },
+    {
+      "id": "email.optional",
+      "name": "Company email empty is allowed (optional)",
+      "status": "PASS",
+      "notes": "valid=true"
+    },
+    {
+      "id": "pdf.accept",
+      "name": "PDF upload accepts application/pdf only",
+      "status": "PASS",
+      "notes": "accept=application/pdf"
+    },
+    {
+      "id": "screenshot",
+      "name": "Captured validation-state screenshot",
+      "status": "PASS",
+      "notes": "_results\\cert-create-validations.png"
+    }
+  ]
+}

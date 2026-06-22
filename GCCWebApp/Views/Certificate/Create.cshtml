@@ -221,7 +221,7 @@
                             }
                         </select>
                         <input type="hidden" asp-for="PartnerIds" id="partnersHidden" />
-                        <small class="form-text text-muted">Hold Ctrl (Cmd on Mac) to select more than one. A certificate may be shared with multiple partners; each partner login sees only its own association.</small>
+                        <small class="form-text text-muted">Select one or more partners. A certificate may be shared with multiple partners; each partner login sees only its own association.</small>
                         <span asp-validation-for="PartnerIds" class="text-danger" role="alert"></span>
                     </div>
 
@@ -416,6 +416,7 @@
     <script src="~/js/certificate-custom-fields.js"></script>
     <script src="~/js/certificate-create.js"></script>
     <script src="~/js/certificate-inline-create.js"></script>
+    <script src="~/js/partner-multiselect.js" asp-append-version="true"></script>
     <script src="~/js/searchable-select.js"></script>
     <script>
         var certTypeSearch = new SearchableSelect('#CertificationTypeId', { placeholder: 'Search certification types...' });
@@ -792,8 +793,43 @@
             // Intercept form submission to handle custom fields
             const form = document.getElementById('certificateCreateForm');
 
+            // Cross-field rule: Expiration Date must be after Effective Date.
+            // type="date" values are yyyy-MM-dd, so a string compare is chronological.
+            // Validates LIVE on either date's change (fires regardless of other required
+            // fields, which otherwise block the submit event from ever dispatching), and is
+            // re-checked in the submit handler. Mirrors the server-side IValidatableObject
+            // check on CertificateEditViewModel.
+            function validateCertDateRange() {
+                const effEl = document.getElementById('EffectiveDate');
+                const expEl = document.getElementById('ExpirationDate');
+                document.querySelectorAll('.date-range-error').forEach(el => el.remove());
+                expEl?.closest('.form-group')?.classList.remove('has-error');
+                if (effEl && expEl && effEl.value && expEl.value && expEl.value <= effEl.value) {
+                    const fg = expEl.closest('.form-group');
+                    if (fg) {
+                        fg.classList.add('has-error');
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'inline-validation-error date-range-error';
+                        errorDiv.textContent = 'Expiration Date must be after the Effective Date.';
+                        expEl.insertAdjacentElement('afterend', errorDiv);
+                    }
+                    return false;
+                }
+                return true;
+            }
+            document.getElementById('EffectiveDate')?.addEventListener('change', validateCertDateRange);
+            document.getElementById('ExpirationDate')?.addEventListener('change', validateCertDateRange);
+
             form.addEventListener('submit', function(e) {
                 try {
+                    // Re-check the date range; block + scroll to the field if invalid.
+                    if (!validateCertDateRange()) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        document.getElementById('ExpirationDate')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return false;
+                    }
+
                     // Only validate custom fields if container exists and fields are loaded
                     const customFieldsContainer = document.getElementById('custom-fields-container');
                     if (customFieldsContainer && typeof certificateCustomFields !== 'undefined' && certificateCustomFields.fields && certificateCustomFields.fields.length > 0) {

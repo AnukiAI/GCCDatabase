@@ -1,0 +1,39 @@
+{
+  "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+  "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+  "id": "http://localhost:5101/api/v1/certificates/gs1/26-0147",
+  "type": "CertificationReport",
+  "issueDate": "2026-04-01",
+  "issuer": "GreenCircle Certified",
+  "products": [
+    {
+      "id": "https://id.gs1.org/01/00000BOTHTAG01",
+      "type": "Product",
+      "gtin": "00000BOTHTAG01",
+      "name": "John Frieda ProFiller plus Shampoo 250ml",
+      "additionalTradeItemId": [
+        {
+          "type": "ASIN",
+          "value": "WAYONLY01",
+          "name": "Wayfair Variant"
+        }
+      ],
+      "certificationInfo": {
+        "type": "CertificationDetails",
+        "agency": "GreenCircle Certified",
+        "agencyURL": "https://www.greencirclecertified.com",
+        "program": "Sustainable Energy Practices",
+        "certificateId": "26-0147",
+        "status": "ACTIVE",
+        "value": "100%",
+        "startDate": "2026-04-01",
+        "endDate": "2028-05-31",
+        "targetCountries": [
+          "All"
+        ],
+        "amazonCode": "greencircle_sustainable_energy_practices",
+        "pathway": "Renewable electricity usage"
+      }
+    }
+  ]
+}

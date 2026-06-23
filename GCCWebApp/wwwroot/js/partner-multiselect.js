@@ -36,6 +36,8 @@
         trigger.setAttribute('tabindex', '0');
         trigger.setAttribute('aria-haspopup', 'listbox');
         trigger.setAttribute('aria-expanded', 'false');
+        trigger.setAttribute('aria-controls', selectId + '-partner-panel');
+        trigger.setAttribute('aria-label', 'Partner(s)');
         trigger.style.cssText = `
             display: flex; justify-content: space-between; align-items: center;
             padding: 10px 12px; border: 1px solid #ced4da; border-radius: 4px;
@@ -50,6 +52,7 @@
         // --- Panel ---
         const panel = document.createElement('div');
         panel.className = 'partner-multiselect-panel';
+        panel.id = selectId + '-partner-panel';
         panel.setAttribute('role', 'listbox');
         panel.setAttribute('aria-multiselectable', 'true');
         panel.style.cssText = `
@@ -76,6 +79,16 @@
         searchInput.onblur = () => (searchInput.style.borderColor = '#ced4da');
         searchInput.onclick = (e) => e.stopPropagation();
         searchInput.addEventListener('input', () => buildOptions(searchInput.value));
+        // Escape from the search box closes the panel and returns focus to the trigger
+        // (ARIA listbox pattern — focus must not be lost when the panel collapses).
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                closeDropdown();
+                trigger.focus();
+            }
+        });
         searchContainer.appendChild(searchInput);
 
         // --- Options (scrollable) ---
@@ -125,6 +138,9 @@
 
             if (matchCount === 0) {
                 const noResult = document.createElement('div');
+                noResult.setAttribute('role', 'option');
+                noResult.setAttribute('aria-selected', 'false');
+                noResult.setAttribute('aria-disabled', 'true');
                 noResult.style.cssText = 'padding: 10px 16px; color: #6c757d; font-style: italic; font-size: 14px;';
                 noResult.textContent = filterLower ? `No partner found matching "${filter}"` : 'No partners available';
                 optionsContainer.appendChild(noResult);
@@ -147,10 +163,12 @@
                 span.textContent = names.join(', ');
                 span.style.color = '#333';
                 span.title = names.join(', ');
+                trigger.setAttribute('aria-label', 'Partner(s): ' + names.join(', '));
             } else {
                 span.textContent = 'Select partner(s)...';
                 span.style.color = '#6c757d';
                 span.title = '';
+                trigger.setAttribute('aria-label', 'Partner(s)');
             }
         }
 

@@ -1,0 +1,14 @@
+﻿cert#,field,distinct_values
+25-0479,company,Block Inc. | Square
+25-0482,company,Block Inc. | Square
+23-0812,certType,Certified Energy Savings | Certified Environmenal Facts
+23-0812,amazonCode,greencircle_cef | greencircle_energy_savings
+24-1634,results,0.23 | 0.63
+24-1634,issueDate,2023-11-01 00:00:00 | 2024-07-08 00:00:00
+24-1634,expirationDate,2026-10-31 00:00:00 | 2027-07-07 00:00:00
+25-0485,company,"Spectrum Brand Holdings, Inc. | Spectrum Brands"
+25-0486,company,"Spectrum Brand Holdings, Inc. | Spectrum Brands"
+25-0484,company,"Spectrum Brand Holdings, Inc. | Spectrum Brands"
+26-0028,certType,Certified Environmenal Facts | Sustainable Energy Practices
+26-0028,amazonCode,greencircle_cef | greencircle_sustainable_energy_practices
+26-0028,results,0.84 | 1

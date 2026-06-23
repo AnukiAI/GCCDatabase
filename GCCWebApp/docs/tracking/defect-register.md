@@ -83,6 +83,29 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 ## Open / Recent
 
+### DEF-274 — Certificate Create/Edit: Partner(s) field changed from native Ctrl-click `<select multiple>` to a checkbox dropdown (proactive UX enhancement)
+
+- **Date:** 2026-06-22 (retro-logged 2026-06-22 to close a Gate-5 traceability gap — the work shipped in the 1007.zip batch without a DEF row).
+- **Severity:** N/A — proactive enhancement, not a defect.
+- **Status:** **Fixed locally — pending next deploy** (in `GCCWebApp-deploy-20260622-1431.zip`, which supersedes 1007.zip). Verified on `localhost:5101`.
+- **QC Ref:** none (client) — proactive Anuki UX enhancement tied to the [[feedback_partner_data_isolation]] / CR-171 UX backlog (the multi-partner control).
+- **Bucket:** Enhancement (UX).
+- **What changed.** Replaced the native `<select multiple size="4">` Partner(s) control (Ctrl/Cmd-click to multi-select — poor discoverability) on Certificate Create + Edit with a Company-style searchable dropdown using **checkboxes**, a search box, and **NO "Add" footer** (partners can't be created from the cert form). New `wwwroot/js/partner-multiselect.js`. The native `<select#partnerSelect>` stays in the DOM (hidden, `aria-hidden`) as the authoritative state, and toggling an option dispatches `change` so the existing CR-171 inline sync keeps mirroring the selection into the hidden `PartnerIds` CSV the POST handler consumes — **data contract unchanged**. Edit pre-selection honored; stale "Hold Ctrl…" helper text corrected to "Select one or more partners."
+- **Files:** `wwwroot/js/partner-multiselect.js` (new), `Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`.
+- **Verification.** `Scripts/smoke-prod/partner-multiselect.js` **21/21** (Create+Edit: native hidden, custom trigger, checkboxes, multi-select, hidden-CSV sync, deselect, Edit pre-select).
+- **A11y refinements (RESOLVED 2026-06-22).** A Gate-2 accessibility review flagged 3 medium items on the new control; all fixed in `partner-multiselect.js` before the zip shipped: (1) trigger now has an `aria-label` ("Partner(s)", updating to "Partner(s): <names>" on selection); (2) trigger `aria-controls` now points to the panel (`<selectId>-partner-panel`) and **Escape closes the panel and returns focus to the trigger** (ARIA listbox pattern); (3) the no-results placeholder carries `role="option"` + `aria-disabled="true"` so the listbox contains no role-less child. Verified `_verify-partner-a11y.js` **7/7** (attributes render, aria-label updates on select, Escape focus-return, no-results role) and the functional `partner-multiselect.js` smoke still **21/21**.
+
+### DEF-273 — Certificate Create/Edit: enforce Expiration Date strictly after Effective Date (proactive validation enhancement)
+
+- **Date:** 2026-06-22 (retro-logged to close the same Gate-5 traceability gap; shipped in the 1007.zip batch).
+- **Severity:** Low–Medium — a cert could previously be saved with an Expiration Date **before or equal to** its Effective Date (both fields were independently `[Required]` but the relationship was unvalidated).
+- **Status:** **Fixed locally — pending next deploy** (in `GCCWebApp-deploy-20260622-1431.zip`). Verified on `localhost:5101`.
+- **QC Ref:** none (client) — proactive Anuki data-integrity enhancement.
+- **Bucket:** Enhancement (validation).
+- **What changed.** Added a cross-field rule, **Expiration must be strictly after Effective**, enforced on both layers: server-side `CertificateEditViewModel : IValidatableObject` (`ExpirationDate.Date <= EffectiveDate.Date` rejected; shared by Create + Edit, both gate on `ModelState.IsValid`) and a live client-side `validateCertDateRange()` that fires on each date field's `change` and again on submit (blocks + scrolls to the field). `type="date"` values are `yyyy-MM-dd`, so the string compare is chronological.
+- **Files:** `Models/CertificateEditViewModel.cs`, `Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`.
+- **Verification.** `cert-date-range-validation.js` **4/4** (Create), `cert-edit-date-range-validation.js` **7/7** (Edit) — before/equal → error+blocked, after → cleared; full `cert-create-validations.js` **25/0/2-benign**.
+
 ### DEF-272 — `/Product/Categories` is a non-functional orphan page: its only client script `wwwroot/js/admin/productCategories.js` was never created, so the entirely JS-driven UI (table, Add/Edit/Import/Export/search/filter/bulk/modal) does nothing
 
 - **Date:** 2026-06-22

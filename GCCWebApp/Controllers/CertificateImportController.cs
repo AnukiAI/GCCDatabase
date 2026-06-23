@@ -209,6 +209,7 @@ namespace GCCWebApp.Controllers
                     companiesToCreate = preview.CompaniesToCreate,
                     productsToCreate = preview.ProductsToCreate,
                     tagsToCreate = preview.TagsToCreate,
+                    internalTagsToCreate = preview.InternalTagsToCreate,
                     canApply = preview.CanApply,
                     hasCriticalErrors = preview.HasCriticalErrors,
                     newRows = preview.NewRows.Select(r => new

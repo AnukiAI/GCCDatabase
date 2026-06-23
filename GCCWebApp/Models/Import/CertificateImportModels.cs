@@ -38,12 +38,14 @@ namespace GCCWebApp.Models.Import
         public int ProductsToCreate { get; set; }
         public int ProductTypesToCreate { get; set; }
         public int TagsToCreate { get; set; }
+        public int InternalTagsToCreate { get; set; }
 
         // Lists of entities to be created (for preview display)
         public List<string> NewCompanyNames { get; set; } = new();
         public List<string> NewProductNames { get; set; } = new();
         public List<string> NewProductTypeNames { get; set; } = new();
         public List<string> NewTagNames { get; set; } = new();
+        public List<string> NewInternalTagNames { get; set; } = new();
 
         // Multi-ASIN and PDF summaries
         public int ProductIdsToCreate { get; set; }
@@ -87,10 +89,22 @@ namespace GCCWebApp.Models.Import
         // Certification results
         public string? CertificationResults { get; set; }
 
-        // Tags (comma-separated in CSV, parsed to list)
+        // Pathway (optional; SEP/Amazon CPF). Name from CSV, resolved to PathwayId against
+        // the seeded Pathways lookup. No auto-create — unmatched names are warned, not blocked.
+        public string? Pathway { get; set; }
+        public int? PathwayId { get; set; }
+
+        // Tags (comma-separated in CSV, parsed to list) — external
         public List<string> TagNames { get; set; } = new();
         public List<int> TagIds { get; set; } = new();
         public List<string> TagsToCreate { get; set; } = new();
+
+        // Internal tags — parallel pipeline to external. Matched/created with TagType="internal"
+        // and attached to the same Certificate.Tags M2M. Kept separate so the creation phase
+        // tags them "internal" (the external phase hardcodes "external").
+        public List<string> InternalTagNames { get; set; } = new();
+        public List<int> InternalTagIds { get; set; } = new();
+        public List<string> InternalTagsToCreate { get; set; } = new();
 
         // Product IDs (for multi-ASIN support - additional rows with same cert number)
         public List<ProductIdEntry> ProductIdEntries { get; set; } = new();
@@ -174,7 +188,8 @@ namespace GCCWebApp.Models.Import
         public string Location { get; set; } = string.Empty;      // Maps to CERTIFICATE_LOCATION
         public string Country { get; set; } = string.Empty;       // Maps to CERTIFICATE_COUNTRY
         public string CertificationResults { get; set; } = string.Empty;
-        public string Tags { get; set; } = string.Empty;          // Comma-separated tags
+        public string Tags { get; set; } = string.Empty;          // Comma-separated tags (external)
+        public string InternalTags { get; set; } = string.Empty;  // Comma-separated internal tags
 
         // Company fields
         public string CompanyName { get; set; } = string.Empty;
@@ -204,6 +219,9 @@ namespace GCCWebApp.Models.Import
 
         // Partner
         public string Partner { get; set; } = string.Empty;
+
+        // Pathway (optional; resolved to PathwayId during processing)
+        public string Pathway { get; set; } = string.Empty;
 
         public string RawData { get; set; } = string.Empty; // Full CSV line for debugging
     }

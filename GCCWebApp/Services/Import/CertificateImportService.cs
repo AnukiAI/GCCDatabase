@@ -76,9 +76,13 @@ namespace GCCWebApp.Services.Import
         private static readonly string[] CertificateCountryColumns = { "CERTIFICATE_COUNTRY", "Country", "certificate_country", "country" };
         private static readonly string[] PartnerColumns = { "PARTNER", "Partner", "partner" };
         private static readonly string[] CertificationResultsColumns = { "CERTIFICATION_RESULTS", "CertificationResults", "certification_results", "Certification Results", "Cert Results" };
+        // Pathway (optional; SEP/Amazon CPF). The "Pathway (SEP Amazon only)" template header is
+        // resolved by the GetFieldWithMapping prefix fallback ("Pathway " + ...).
+        private static readonly string[] PathwayColumns = { "PATHWAY", "Pathway", "pathway" };
         // External Tag preferred (matches export column 19); generic TAGS kept for legacy clients.
-        // "Internal Tag" column from exports is silently ignored by the import data model (single Tags field).
         private static readonly string[] TagsColumns = { "External Tag", "ExternalTag", "EXTERNAL_TAG", "TAGS", "Tags", "tags" };
+        // Internal Tag column — ingested as TagType="internal" (parallel to external tags).
+        private static readonly string[] InternalTagsColumns = { "Internal Tag", "Internal Tags", "InternalTag", "INTERNAL_TAG" };
         private static readonly string[] AsinColumns = { "ASIN", "Asin", "asin" };
         private static readonly string[] UpcColumns = { "UPC", "Upc", "upc" };
         private static readonly string[] GtinColumns = { "GTIN", "Gtin", "gtin" };
@@ -199,6 +203,7 @@ namespace GCCWebApp.Services.Import
                 var companies = await _context.Companies.Where(c => !c.IsDeleted).ToListAsync();
                 var products = await _context.Products.Where(p => !p.IsDeleted).ToListAsync();
                 var certTypes = await _context.CertificationTypes.ToListAsync();
+                var pathways = await _context.Pathways.Where(p => p.IsActive && !p.IsDeleted).ToListAsync();
                 var productTypes = await _context.ProductTypes.Where(pt => pt.IsActive).ToListAsync();
                 var tags = await _context.Tags.Where(t => t.IsActive).ToListAsync();
                 var categories = await _context.ProductCategories.Where(c => c.IsActive).ToListAsync();
@@ -206,6 +211,7 @@ namespace GCCWebApp.Services.Import
                     .Include(c => c.Company)
                     .Include(c => c.Product)
                     .Include(c => c.CertificationType)
+                    .Include(c => c.Pathway)
                     .Include(c => c.Tags)
                     .ToListAsync();
 
@@ -228,6 +234,7 @@ namespace GCCWebApp.Services.Import
                 var productsToCreate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var productTypesToCreate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var tagsToCreate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var internalTagsToCreate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 // Group rows by certificate number to handle multi-ASIN rows
                 var groupedRows = csvRows
@@ -247,13 +254,15 @@ namespace GCCWebApp.Services.Import
                         companies,
                         products,
                         certTypes,
+                        pathways,
                         productTypes,
                         tags,
                         existingCerts,
                         companiesToCreate,
                         productsToCreate,
                         productTypesToCreate,
-                        tagsToCreate
+                        tagsToCreate,
+                        internalTagsToCreate
                     );
 
                     // Collect product ID entries from ALL rows in the group
@@ -368,15 +377,22 @@ namespace GCCWebApp.Services.Import
                 // Check for critical errors
                 result.HasCriticalErrors = result.TotalRows == result.InvalidRows;
 
+                // Tag names are globally unique: if a brand-new name appears in BOTH the external
+                // and internal columns, create it once (external wins) and let internal attach reuse
+                // it via the createdTags fallback below — avoids an IX_Tags_Name duplicate-key insert.
+                internalTagsToCreate.ExceptWith(tagsToCreate);
+
                 // Set entity creation summaries
                 result.CompaniesToCreate = companiesToCreate.Count;
                 result.ProductsToCreate = productsToCreate.Count;
                 result.ProductTypesToCreate = productTypesToCreate.Count;
                 result.TagsToCreate = tagsToCreate.Count;
+                result.InternalTagsToCreate = internalTagsToCreate.Count;
                 result.NewCompanyNames = companiesToCreate.ToList();
                 result.NewProductNames = productsToCreate.ToList();
                 result.NewProductTypeNames = productTypesToCreate.ToList();
                 result.NewTagNames = tagsToCreate.ToList();
+                result.NewInternalTagNames = internalTagsToCreate.ToList();
 
                 // Multi-ASIN and PDF summaries
                 result.ProductIdsToCreate = result.NewRows.Concat(result.ModifiedRows)
@@ -526,6 +542,24 @@ namespace GCCWebApp.Services.Import
                     _logger.LogInformation("Auto-created tag: {TagName} (ID: {TagId})", tagName, tag.Id);
                 }
 
+                // 1d-internal. Create new Internal Tags (as "internal" type)
+                var createdInternalTags = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var tagName in previewResult.NewInternalTagNames)
+                {
+                    var tag = new Tag
+                    {
+                        Name = tagName,
+                        TagType = "internal",
+                        Description = $"Auto-created via certificate import on {DateTime.UtcNow:yyyy-MM-dd}",
+                        IsActive = true
+                    };
+                    _context.Tags.Add(tag);
+                    await _context.SaveChangesAsync();
+                    createdInternalTags[tagName] = tag.Id;
+
+                    _logger.LogInformation("Auto-created internal tag: {TagName} (ID: {TagId})", tagName, tag.Id);
+                }
+
                 // 1e. Create new Products
                 var createdProducts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 foreach (var productName in previewResult.NewProductNames)
@@ -611,12 +645,22 @@ namespace GCCWebApp.Services.Import
                         if (row.ProductId.HasValue)
                             row.ProductId = await ResolveProductForImportAsync(row.ProductId.Value, row.ProductTypeId, null);
 
-                        // Resolve tag IDs
+                        // Resolve tag IDs (external + internal both land in the same Tags M2M)
                         var allTagIds = new List<int>(row.TagIds);
                         foreach (var tagName in row.TagsToCreate)
                         {
                             if (createdTags.TryGetValue(tagName, out var tId))
                                 allTagIds.Add(tId);
+                        }
+                        allTagIds.AddRange(row.InternalTagIds);
+                        foreach (var tagName in row.InternalTagsToCreate)
+                        {
+                            // Prefer the internally-created tag; fall back to an external creation
+                            // when the same new name was reconciled to the external set (unique names).
+                            if (createdInternalTags.TryGetValue(tagName, out var tId))
+                                allTagIds.Add(tId);
+                            else if (createdTags.TryGetValue(tagName, out var tId2))
+                                allTagIds.Add(tId2);
                         }
 
                         if (row.RowStatus == ImportRowStatus.New)
@@ -744,6 +788,7 @@ namespace GCCWebApp.Services.Import
                     Country = GetFieldWithMapping(csv, CertificateCountryColumns),
                     CertificationResults = GetFieldWithMapping(csv, CertificationResultsColumns),
                     Tags = GetFieldWithMapping(csv, TagsColumns),
+                    InternalTags = GetFieldWithMapping(csv, InternalTagsColumns),
                     // Company fields
                     CompanyName = GetFieldWithMapping(csv, CompanyNameColumns),
                     CompanyLocation = GetFieldWithMapping(csv, CompanyLocationColumns),
@@ -767,6 +812,8 @@ namespace GCCWebApp.Services.Import
                     PdfFilePath = GetFieldWithMapping(csv, PdfFilePathColumns),
                     // Partner
                     Partner = string.IsNullOrWhiteSpace(partner) ? "None" : partner,
+                    // Pathway (optional)
+                    Pathway = GetFieldWithMapping(csv, PathwayColumns),
                     RawData = csv.Context.Parser.RawRecord
                 });
             }
@@ -826,13 +873,15 @@ namespace GCCWebApp.Services.Import
             List<Company> companies,
             List<Product> products,
             List<CertificationType> certTypes,
+            List<Pathway> pathways,
             List<ProductType> productTypes,
             List<Tag> tags,
             List<Certificate> existingCerts,
             HashSet<string> companiesToCreate,
             HashSet<string> productsToCreate,
             HashSet<string> productTypesToCreate,
-            HashSet<string> tagsToCreate)
+            HashSet<string> tagsToCreate,
+            HashSet<string> internalTagsToCreate)
         {
             var row = new CertificateImportRow
             {
@@ -855,7 +904,8 @@ namespace GCCWebApp.Services.Import
                 CompanyEmail = csvRow.CompanyEmail,
                 CompanyWebsite = csvRow.CompanyWebsite,
                 ProductTypeName = csvRow.ProductType,
-                CertificationResults = csvRow.CertificationResults
+                CertificationResults = csvRow.CertificationResults,
+                Pathway = csvRow.Pathway
             };
 
             // Validate required fields
@@ -951,6 +1001,21 @@ namespace GCCWebApp.Services.Import
             else
                 row.ValidationMessages.Add($"Certification Type not found: '{row.CertificationType}'. Certification Types must exist before import.");
 
+            // === Pathway Lookup (optional; must exist if provided - no auto-create) ===
+            // Unmatched values are non-blocking: log a warning and leave PathwayId null so an
+            // unexpected pathway string never fails the whole certificate row.
+            if (!string.IsNullOrWhiteSpace(csvRow.Pathway))
+            {
+                var pathway = pathways.FirstOrDefault(p =>
+                    p.Name.Equals(row.Pathway, StringComparison.OrdinalIgnoreCase));
+                if (pathway != null)
+                    row.PathwayId = pathway.Id;
+                else
+                    _logger.LogWarning(
+                        "Import row {RowNumber} (cert {CertNumber}): Pathway '{Pathway}' not found in the Pathways list; leaving unset.",
+                        row.RowNumber, row.CertificateNumber, row.Pathway);
+            }
+
             // === Tags Processing ===
             if (!string.IsNullOrWhiteSpace(csvRow.Tags))
             {
@@ -974,6 +1039,41 @@ namespace GCCWebApp.Services.Import
                     {
                         row.TagsToCreate.Add(tagName);
                         tagsToCreate.Add(tagName);
+                    }
+                }
+            }
+
+            // === Internal Tags Processing (TagType="internal") ===
+            // Mirrors external tags but matches/creates against internal-typed tags so a same-named
+            // external tag is never reused for an internal value. Attached to the same Tags M2M.
+            if (!string.IsNullOrWhiteSpace(csvRow.InternalTags))
+            {
+                var internalTagNames = csvRow.InternalTags.Split(',')
+                    .Select(t => t.Trim())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                foreach (var tagName in internalTagNames)
+                {
+                    row.InternalTagNames.Add(tagName);
+                    // Tag names are globally unique (IX_Tags_Name) — a name maps to exactly one
+                    // tag regardless of type, so match by name across all types (same as external).
+                    var existingTag = tags.FirstOrDefault(t =>
+                        t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));
+
+                    if (existingTag != null)
+                    {
+                        row.InternalTagIds.Add(existingTag.Id);
+                        if (!existingTag.TagType.Equals("internal", StringComparison.OrdinalIgnoreCase))
+                            _logger.LogWarning(
+                                "Import row {RowNumber} (cert {CertNumber}): internal tag '{Tag}' already exists as a '{Type}' tag; reusing the existing tag (tag names are globally unique).",
+                                row.RowNumber, row.CertificateNumber, tagName, existingTag.TagType);
+                    }
+                    else
+                    {
+                        row.InternalTagsToCreate.Add(tagName);
+                        internalTagsToCreate.Add(tagName);
                     }
                 }
             }
@@ -1036,6 +1136,16 @@ namespace GCCWebApp.Services.Import
                     FieldName = "CertificationType",
                     OldValue = existing.CertificationType?.Name,
                     NewValue = newData.CertificationType
+                });
+
+            // Pathway: only flag a change when the CSV supplied a pathway (matches the
+            // conditional apply in UpdateCertificateAsync — a blank column is a no-op, not a clear).
+            if (!string.IsNullOrWhiteSpace(newData.Pathway) && existing.PathwayId != newData.PathwayId)
+                changes.Add(new FieldChange
+                {
+                    FieldName = "Pathway",
+                    OldValue = existing.Pathway?.Name,
+                    NewValue = newData.Pathway
                 });
 
             if (existing.Status != newData.Status)
@@ -1168,6 +1278,7 @@ namespace GCCWebApp.Services.Import
                 Ean = row.Ean,
                 Partner = row.Partner ?? "None",
                 CertificationResults = row.CertificationResults,
+                PathwayId = row.PathwayId,
                 CreatedBy = userId,
                 UpdatedBy = userId,
                 CreatedAt = DateTime.UtcNow,
@@ -1277,7 +1388,8 @@ namespace GCCWebApp.Services.Import
                 Gtin = certificate.Gtin,
                 Ean = certificate.Ean,
                 Partner = certificate.Partner,
-                CertificationResults = certificate.CertificationResults
+                CertificationResults = certificate.CertificationResults,
+                PathwayId = certificate.PathwayId
             };
 
             // Apply updates
@@ -1295,6 +1407,9 @@ namespace GCCWebApp.Services.Import
             certificate.Ean = row.Ean;
             await SyncCertificatePartnersAsync(certificate, row.Partner); // CR-171 (sets denorm + M2M)
             certificate.CertificationResults = row.CertificationResults;
+            // Pathway: only set when the CSV actually provided one, so a file without a Pathway
+            // column (e.g. the current export round-trip) never clears an existing pathway.
+            if (row.PathwayId.HasValue) certificate.PathwayId = row.PathwayId.Value;
             certificate.UpdatedBy = userId;
             certificate.UpdatedAt = DateTime.UtcNow;
 

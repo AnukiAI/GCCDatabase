@@ -921,8 +921,12 @@
             return;
         }
 
-        container.innerHTML = suggestions.map((s, index) => `
-            <div class="autocomplete-item ${index === 0 ? 'selected' : ''}" data-value="${escapeHtml(s.value)}">
+        // QC #197 / DEF-280: do NOT auto-select the first suggestion. Auto-highlighting item 0
+        // meant pressing Enter replaced the user's typed text with the top suggestion (typed
+        // "test" → became "carly test") with no way to override. With nothing pre-selected, Enter
+        // keeps the typed value; ArrowDown/hover still explicitly pick a suggestion.
+        container.innerHTML = suggestions.map((s) => `
+            <div class="autocomplete-item" data-value="${escapeHtml(s.value)}">
                 <span class="autocomplete-label">${escapeHtml(s.label)}</span>
                 <span class="autocomplete-type">${escapeHtml(s.type)}</span>
             </div>

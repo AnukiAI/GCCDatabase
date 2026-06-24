@@ -1,5 +1,11 @@
 # QC #164 — Validation Evidence
 
+> **Companion (2026-06-23):** the **date-expiry** case — a cert that ages past its expiration date,
+> proving its ASINs drop from the Amazon export automatically — is verified separately in
+> [`EVIDENCE-date-expiry-2026-06-23.md`](EVIDENCE-date-expiry-2026-06-23.md) (19/19 PASS, with
+> before/after export JSON samples). The document below covers the status-change (Hold) case and
+> the UI/import surfaces.
+
 **Test date:** 2026-05-12
 **Environment:** localhost:5101, GCCDatabase_Dev
 **QC item:** Product Identifier status follows cert; Status removed from UI, Import Template, Add popup
@@ -93,8 +99,22 @@ D_step2_promoted.json  — attempted promote (no change, transition blocked)
 EVIDENCE.md            — this file
 ```
 
+## E — Export column audit (2026-06-24, code-level — the 6/23 "confirm export matches CR" note)
+
+Shawn's 6/23 SIT note asked to *"confirm export matches CR details in email."* Static audit of the export/template column sets (no code change):
+
+| Export path | Source | Status column? |
+|---|---|---|
+| Per-cert in-memory export | `product-id-manager.js:2046` — `Type, Product ID, Product Name, SKU, Partner, Created, Created By, Description` | **None** (CR-015 comment `:2040`) |
+| Import template (sample) | `product-id-manager.js:2081` — `Type, Product ID, Product Name, SKU, Partner, Description` | **None** (CR-015 comment `:2077`) |
+| Global CR-184 export | `ExportController.DownloadActiveProductIds` (`ExportController.cs:293`) | **Cert-level** `Certificate Status` only — derived, added 6/17 per client "for additional validation"; no product-ID-controlled status column; set pre-filtered to active (parent cert Paid/Republished) |
+
+Remaining `<th>Status</th>` at `_ProductIdManager.cshtml:345` is the **import-preview row state** (New/Modified/Unchanged/Error), not the cert status — correct to keep.
+
+**Verdict: PASS** — exports match the CR. Status is never a user-controlled product-ID field anywhere; where status appears it is the cert's derived status.
+
 ## Conclusion
 
-QC #164 is **fully verified** through Playwright + SQL + Partner API. All UI surfaces are clean across 5 viewports, the auto-cascade fires correctly in both directions on real Edit-form saves, and the Partner API correctly filters non-public certs and emits the contract-literal `"Active"` status.
+QC #164 is **fully verified** through Playwright + SQL + Partner API, plus a code-level export-column audit (§E). All UI surfaces are clean across 5 viewports, the auto-cascade fires correctly in both directions on real Edit-form saves, the Partner API correctly filters non-public certs and emits the contract-literal `"Active"` status, and no export or template surfaces a user-controllable product-ID status.
 
 No code changes were made. One side effect: stale local dev-DB data for cert 26-0002 was incidentally corrected by exercising the cascade.

@@ -459,6 +459,9 @@ builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
+// DEF-286 (QC #198): single source of truth for the upload root + logical→physical
+// path resolution. Singleton — config + hosting env are fixed for the process lifetime.
+builder.Services.AddSingleton<IUploadPathResolver, UploadPathResolver>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<ICertificateFieldService, CertificateFieldService>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();

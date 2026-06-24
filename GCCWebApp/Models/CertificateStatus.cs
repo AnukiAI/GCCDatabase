@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text;
 
 namespace GCCWebApp.Models
 {
@@ -162,6 +163,48 @@ namespace GCCWebApp.Models
 
             return validTransitions.ContainsKey(fromStatus) &&
                    validTransitions[fromStatus].Contains(toStatus);
+        }
+
+        /// <summary>
+        /// Resolves a free-text status value (e.g. from a CSV import) to its canonical
+        /// status string, tolerating case, whitespace, and punctuation differences — so
+        /// "Client Approved Paid", "client approved-paid", or "CLIENT APPROVED  PAID" all
+        /// resolve to "Client Approved - Paid". Returns false (canonical = "") when the
+        /// value matches no known status, so callers can reject it instead of persisting
+        /// invalid text. The 8 canonical keys remain distinct after normalization, so there
+        /// is no ambiguity (e.g. "Expired" vs "Expired - No Annual Verification").
+        /// </summary>
+        public static bool TryResolveStatus(string? input, out string canonical)
+        {
+            canonical = string.Empty;
+            if (string.IsNullOrWhiteSpace(input))
+                return false;
+
+            var target = NormalizeStatusKey(input);
+            foreach (var status in GetAllStatuses().Keys)
+            {
+                if (NormalizeStatusKey(status) == target)
+                {
+                    canonical = status;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Collapses a status string to a comparison key: lowercase, letters/digits only.
+        /// "Client Approved - Paid" and "client approved paid" both → "clientapprovedpaid".
+        /// </summary>
+        private static string NormalizeStatusKey(string value)
+        {
+            var sb = new StringBuilder(value.Length);
+            foreach (var ch in value)
+            {
+                if (char.IsLetterOrDigit(ch))
+                    sb.Append(char.ToLowerInvariant(ch));
+            }
+            return sb.ToString();
         }
 
         /// <summary>

@@ -625,12 +625,12 @@ body:has(.main-container) .page-header {
 
 /* Ensure last element in card-body has bottom margin for spacing above card-actions */
 .certificate-card .card-body > *:last-child {
-    margin-bottom: 12px;
+    margin-bottom: 6px; /* QC #199 (DEF-281): condensed from 12px — the gap after Location/tags */
 }
 
 /* Tags spacing within card */
 .certificate-card .certificate-tags {
-    margin-bottom: 8px;
+    margin-bottom: 4px; /* QC #199 (DEF-281): condensed from 8px (desktop; mobile override below) */
     padding-bottom: 0;
 }
 
@@ -647,7 +647,7 @@ body:has(.main-container) .page-header {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 10px 10px 8px 10px;
+    padding: 6px 10px 6px 10px; /* QC #199 (DEF-281): condensed from 10px/8px */
     border-top: none;
     background-color: transparent;
     margin-top: auto;
@@ -706,7 +706,7 @@ body.theme-option4 .certificate-card .card-actions {
 .card-header {
     background-color: var(--blue-dark);
     color: var(--white);
-    padding: 10px 12px;
+    padding: 8px 12px; /* QC #199 (DEF-281): condensed from 10px; Status/Partner rows unchanged */
     font-size: 16px;
     font-weight: 500;
     text-transform: none;
@@ -740,7 +740,7 @@ body.theme-option4 .certificate-card .card-actions {
 .certificate-card .card-header .company-name {
     font-size: 18px;
     font-weight: 600;
-    line-height: 1.5;
+    line-height: 1.4; /* QC #199 (DEF-281): condensed from 1.5; still 3-line clamp, no truncation change */
     color: #fff;
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -748,14 +748,14 @@ body.theme-option4 .certificate-card .card-actions {
     overflow: hidden;
     text-overflow: ellipsis;
     /* 3 lines + 6px buffer so descenders ('g', 'p', 'y') aren't clipped on line 3.
-       6px is too small to fit a 4th line (which needs 27px) so no bleed. */
-    min-height: calc(18px * 1.5 * 3 + 6px);
-    max-height: calc(18px * 1.5 * 3 + 6px);
+       6px is too small to fit a 4th line so no bleed. */
+    min-height: calc(18px * 1.4 * 3 + 6px);
+    max-height: calc(18px * 1.4 * 3 + 6px);
 }
 
 /* Compact header for public/external views (no status/partner rows) */
 .certificate-card:not(.internal-card) .card-header {
-    padding: 8px 12px;
+    padding: 6px 12px; /* QC #199 (DEF-281): condensed from 8px */
 }
 /*
 .certificate-info {
@@ -793,7 +793,7 @@ body.theme-option4 .certificate-card .card-actions {
     font-weight: 600 !important;
     margin: 3px 0 3px 0 !important;
     color: var(--text-color) !important;
-    height: calc(22px * 1.45 * 3 + 16px) !important; /* Fixed height for 3 lines + padding - consistent across cards */
+    height: calc(22px * 1.45 * 3 + 10px) !important; /* QC #199 (DEF-281): trimmed buffer 16px→10px (still 3 lines, no truncation) */
     max-width: 100% !important;
     width: 100% !important;
     display: -webkit-box !important;

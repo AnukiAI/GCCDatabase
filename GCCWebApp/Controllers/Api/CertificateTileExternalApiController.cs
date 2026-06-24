@@ -16,13 +16,16 @@ namespace GCCWebApp.Controllers.Api
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CertificateTileExternalApiController> _logger;
+        private readonly GCCWebApp.Services.IUploadPathResolver _uploadPaths;
 
         public CertificateTileExternalApiController(
             ApplicationDbContext context,
-            ILogger<CertificateTileExternalApiController> logger)
+            ILogger<CertificateTileExternalApiController> logger,
+            GCCWebApp.Services.IUploadPathResolver uploadPaths)
         {
             _context = context;
             _logger = logger;
+            _uploadPaths = uploadPaths;
         }
 
         // CR-187: search normalization moved to the shared Search.SearchNormalizer, matched against
@@ -707,10 +710,17 @@ namespace GCCWebApp.Controllers.Api
                     return NotFound(new { error = "Certificate PDF not available" });
                 }
 
-                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", certificate.CertificateFile.TrimStart('/'));
-                
-                if (!System.IO.File.Exists(fullPath))
+                // DEF-286 (QC #198): resolve via the shared IUploadPathResolver (configured root →
+                // App_Data → wwwroot legacy). Replaces the prior local App_Data/wwwroot logic so this
+                // endpoint can never drift from the MVC download again (the DEF-262/264/279 bug class).
+                if (!_uploadPaths.TryResolveExisting(certificate.CertificateFile, out var fullPath))
                 {
+                    _logger.LogWarning(
+                        "Certificate PDF missing on disk: cert {Number} (id {Id}) references {Logical} but " +
+                        "no file found (resolved {Physical}). Likely the 2026-06-15 upload-store incident; " +
+                        "restore from backup.",
+                        certificate.Number, id, certificate.CertificateFile,
+                        string.IsNullOrEmpty(fullPath) ? "<malformed>" : fullPath);
                     return NotFound(new { error = "Certificate PDF file not found" });
                 }
 

@@ -36,7 +36,8 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
 
             SeedTestData();
 
-            _controller = new CertificateTileExternalApiController(_context, _loggerMock.Object);
+            _controller = new CertificateTileExternalApiController(
+                _context, _loggerMock.Object, Moq.Mock.Of<GCCWebApp.Services.IUploadPathResolver>());
 
             // Default: Admin role (full access)
             SetUserClaims("Admin", "admin@test.com");

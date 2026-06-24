@@ -1,0 +1,21 @@
+{
+  "ts": "2026-06-24T22:03:37.624Z",
+  "base": "https://gccwebapp.com",
+  "results": [
+    {
+      "id": "login:analyst",
+      "status": "PASS",
+      "detail": "landed=/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "id": "qc200:in-memory-date",
+      "status": "PASS",
+      "detail": "Created=\"—\"  CreatedBy=\"—\"  (expect \"—\" / \"—\", FAIL if \"Invalid Date\")"
+    },
+    {
+      "id": "qc195:detail-category",
+      "status": "PASS",
+      "detail": "8/8 detail pages show \"—\" -> backfill SQL still needed"
+    }
+  ]
+}

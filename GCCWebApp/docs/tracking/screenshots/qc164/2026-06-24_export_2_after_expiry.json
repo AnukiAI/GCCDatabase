@@ -1,0 +1,199 @@
+{
+  "success": true,
+  "pagination": {
+    "totalCount": 5,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  },
+  "data": [
+    {
+      "certificateNumber": "26-0146",
+      "status": "Active",
+      "issueDate": "2026-04-01T00:00:00Z",
+      "expirationDate": "2028-05-31T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "17%",
+      "pathway": "Energy usage reduction",
+      "company": "KAO",
+      "productName": "John Frieda PROfiller+ Thickening Conditioner",
+      "certificationType": "Sustainable Energy Practices",
+      "amazonCode": "greencircle_sustainable_energy_practices",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0BRNN8BKS",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "John Frieda PROfiller+ Thickening Conditioner",
+          "productSku": null
+        },
+        {
+          "type": "ASIN",
+          "value": "B005PMYJBO",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "John Frieda Dream Curls Conditioner 250ml",
+          "productSku": null
+        },
+        {
+          "type": "ASIN",
+          "value": "AMZNONLY01",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Amazon widget",
+          "productSku": null
+        },
+        {
+          "type": "GTIN",
+          "value": "12345670",
+          "status": "Active",
+          "partner": "",
+          "productName": "Shared widget",
+          "productSku": null
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/26-0146/download"
+    },
+    {
+      "certificateNumber": "26-0150",
+      "status": "Active",
+      "issueDate": "2026-04-01T00:00:00Z",
+      "expirationDate": "2028-05-31T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "27%",
+      "pathway": "Energy usage reduction",
+      "company": "KAO",
+      "productName": "Color Protecting Conditioner 200ml",
+      "certificationType": "Sustainable Energy Practices",
+      "amazonCode": "greencircle_sustainable_energy_practices",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0BQN8R7JJ",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Conditioner 200ml",
+          "productSku": null
+        },
+        {
+          "type": "ASIN",
+          "value": "B0BQN91QFB",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Conditioner 750ml",
+          "productSku": null
+        },
+        {
+          "type": "ASIN",
+          "value": "B0C54679T3",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Conditioner 75ml",
+          "productSku": null
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/26-0150/download"
+    },
+    {
+      "certificateNumber": "26-0151",
+      "status": "Active",
+      "issueDate": "2026-04-01T00:00:00Z",
+      "expirationDate": "2028-05-31T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "100%",
+      "pathway": "Renewable electricity usage",
+      "company": "KAO",
+      "productName": "Color Protecting Shampoo 250ml",
+      "certificationType": "Sustainable Energy Practices",
+      "amazonCode": "greencircle_sustainable_energy_practices",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0BQN8PSY6",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Shampoo 250ml",
+          "productSku": null
+        },
+        {
+          "type": "ASIN",
+          "value": "B0BQN9BJCB",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Shampoo 750ml",
+          "productSku": null
+        },
+        {
+          "type": "ASIN",
+          "value": "B0C544FF8Q",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Shampoo 75ml",
+          "productSku": null
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/26-0151/download"
+    },
+    {
+      "certificateNumber": "26-0106",
+      "status": "Active",
+      "issueDate": "2026-03-13T00:00:00Z",
+      "expirationDate": "2027-03-12T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "69%",
+      "pathway": null,
+      "company": "Amazon Devices",
+      "productName": "eero 7, Individual Unit, ISP, Bulk Pack",
+      "certificationType": "Recycled Content",
+      "amazonCode": "greencircle_recycled_content",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0D9HW3Z3Y",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "eero 7, Individual Unit, ISP, Bulk Pack",
+          "productSku": null
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/26-0106/download"
+    },
+    {
+      "certificateNumber": "26-0157",
+      "status": "Active",
+      "issueDate": "2026-03-12T00:00:00Z",
+      "expirationDate": "2027-03-11T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "17%",
+      "pathway": null,
+      "company": "Sonos",
+      "productName": "Sonos Play (Black)",
+      "certificationType": "Certified Energy Savings",
+      "amazonCode": "greencircle_energy_savings",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0GJRV3MZC",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Sonos Play (Black)",
+          "productSku": null
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/26-0157/download"
+    }
+  ]
+}

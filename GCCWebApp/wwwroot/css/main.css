@@ -1834,6 +1834,13 @@ body.theme-option4 .certificate-single-card .card-body {
 
     .certificate-single-card .certificate-field span {
         color: #495057;
+        /* QC #192 (DEF-283): a long Company URL ran off the page. The value is a flex item
+           next to the fixed 160px label; flex items default to min-width:auto and won't shrink
+           below their content, so an unbreakable URL overflowed. min-width:0 lets it shrink and
+           overflow-wrap/word-break makes the URL wrap within the card instead of clipping. */
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
 .no-data {

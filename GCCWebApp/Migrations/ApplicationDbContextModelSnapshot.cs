@@ -673,8 +673,8 @@ namespace GCCWebApp.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("ProductName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("ProductSku")
                         .HasMaxLength(100)

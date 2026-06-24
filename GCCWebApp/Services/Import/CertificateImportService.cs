@@ -27,8 +27,13 @@ namespace GCCWebApp.Services.Import
         private readonly IWebHostEnvironment _environment;
         private readonly IFileUploadService _fileUploadService;
         private readonly IProductIdService _productIdService;
+        private readonly IUploadPathResolver _uploadPaths;
         private const string CACHE_KEY_PREFIX = "CertImport_";
         private const int CACHE_MINUTES = 30;
+        // Deactivated placeholder type for migrated certs whose certification type isn't in the system
+        // (client directive 2026-06-24): map to this instead of rejecting the row. CertificationTypeId
+        // is a required FK, so this placeholder is how a cert imports with an effectively "blank" type.
+        private const string UnspecifiedCertTypeName = "Unspecified";
 
         public CertificateImportService(
             ApplicationDbContext context,
@@ -37,7 +42,8 @@ namespace GCCWebApp.Services.Import
             ILogger<CertificateImportService> logger,
             IWebHostEnvironment environment,
             IFileUploadService fileUploadService,
-            IProductIdService productIdService)
+            IProductIdService productIdService,
+            IUploadPathResolver uploadPaths)
         {
             _context = context;
             _auditService = auditService;
@@ -46,6 +52,7 @@ namespace GCCWebApp.Services.Import
             _environment = environment;
             _fileUploadService = fileUploadService;
             _productIdService = productIdService;
+            _uploadPaths = uploadPaths;
         }
 
         #region Column Name Mappings
@@ -63,6 +70,9 @@ namespace GCCWebApp.Services.Import
         private static readonly string[] CompanyWebsiteColumns = { "COMPANY_WEBSITE", "CompanyWebsite", "company_website", "Company URL", "Company Website", "Contact URL" };
         private static readonly string[] ProductNameColumns = { "PRODUCT_NAME", "ProductName", "product_name", "Product Name", "Product" };
         private static readonly string[] ProductTypeColumns = { "PRODUCT_TYPE", "ProductType", "product_type", "Product Type", "Prod Type" };
+        // QC #189 / DEF-278: Product Category column. Resolved against existing categories
+        // (case-insensitive); no auto-create — an unmatched value rejects the row.
+        private static readonly string[] ProductCategoryColumns = { "PRODUCT_CATEGORY", "ProductCategory", "product_category", "Product Category", "Category" };
         private static readonly string[] CertificationTypeColumns = { "CERTIFICATION_TYPE", "CertificationType", "certification_type", "Certification Type", "Cert Type" };
         // DEF-202 (QC #148): the downloaded template header reads
         // "Status (Draft / Client Approved - Not Paid / Client Approved - Confidential / Client Approved - Paid / Hold / Expired / Republished / Expired - No Annual Verification — defaults to Draft if blank)"
@@ -203,6 +213,31 @@ namespace GCCWebApp.Services.Import
                 var companies = await _context.Companies.Where(c => !c.IsDeleted).ToListAsync();
                 var products = await _context.Products.Where(p => !p.IsDeleted).ToListAsync();
                 var certTypes = await _context.CertificationTypes.ToListAsync();
+
+                // Ensure the deactivated "Unspecified" placeholder exists so certificates whose type
+                // isn't in the system import (mapped to it) instead of being rejected (client directive
+                // 2026-06-24). One-time idempotent system row; created deactivated so it's never an
+                // option for new certificates.
+                var unspecifiedType = certTypes.FirstOrDefault(ct =>
+                    ct.Name.Equals(UnspecifiedCertTypeName, StringComparison.OrdinalIgnoreCase) && ct.ParentId == null);
+                if (unspecifiedType == null)
+                {
+                    unspecifiedType = new CertificationType
+                    {
+                        Name = UnspecifiedCertTypeName,
+                        IsActive = false,
+                        Level = 1,
+                        ParentId = null,
+                        SortOrder = 9999,
+                        Description = "Placeholder for migrated certificates whose original certification type is not in the system. Deactivated — not selectable for new certificates."
+                    };
+                    _context.CertificationTypes.Add(unspecifiedType);
+                    await _context.SaveChangesAsync();
+                    certTypes.Add(unspecifiedType);
+                    _logger.LogInformation("Created deactivated '{Name}' certification-type placeholder (ID {Id}).",
+                        UnspecifiedCertTypeName, unspecifiedType.Id);
+                }
+
                 var pathways = await _context.Pathways.Where(p => p.IsActive && !p.IsDeleted).ToListAsync();
                 var productTypes = await _context.ProductTypes.Where(pt => pt.IsActive).ToListAsync();
                 var tags = await _context.Tags.Where(t => t.IsActive).ToListAsync();
@@ -256,6 +291,7 @@ namespace GCCWebApp.Services.Import
                         certTypes,
                         pathways,
                         productTypes,
+                        categories,
                         tags,
                         existingCerts,
                         companiesToCreate,
@@ -593,10 +629,14 @@ namespace GCCWebApp.Services.Import
                         productTypeId = newPtId;
                     }
 
+                    // QC #189 / DEF-278: use the row's resolved Product Category for the new product
+                    // (Product.CategoryId is required), falling back to the import default only when blank.
+                    int categoryIdForNewProduct = rowWithProductDetails?.ProductCategoryId ?? defaultCategory.Id;
+
                     var product = new Product
                     {
                         Name = productName,
-                        CategoryId = defaultCategory.Id,
+                        CategoryId = categoryIdForNewProduct,
                         ProductTypeId = productTypeId,
                         CompanyId = companyId,
                         CreatedAt = DateTime.UtcNow,
@@ -639,11 +679,12 @@ namespace GCCWebApp.Services.Import
                         // CR-186 SPLIT: re-resolve to the product RECORD matching the full identity tuple
                         // (Company, Name, Category, Type, Subcategory) so same-name/different-type rows land
                         // on SEPARATE records — consistent with the cert form's find-or-create. The name-keyed
-                        // step above can only ever return one record per name; this overrides it. The cert
-                        // import has no Subcategory/Category column yet, so Subcategory resolves as null (its
-                        // own combo) and Category falls back to the base product's. (§10.3 follow-up.)
+                        // step above can only ever return one record per name; this overrides it. QC #189 /
+                        // DEF-278: the template's Product Category is now honored (row.ProductCategoryId) and
+                        // passed through; Subcategory still resolves as null (no column yet) and Category falls
+                        // back to the base product's only when the row left it blank.
                         if (row.ProductId.HasValue)
-                            row.ProductId = await ResolveProductForImportAsync(row.ProductId.Value, row.ProductTypeId, null);
+                            row.ProductId = await ResolveProductForImportAsync(row.ProductId.Value, row.ProductTypeId, null, row.ProductCategoryId);
 
                         // Resolve tag IDs (external + internal both land in the same Tags M2M)
                         var allTagIds = new List<int>(row.TagIds);
@@ -798,6 +839,7 @@ namespace GCCWebApp.Services.Import
                     // Product fields
                     ProductName = GetFieldWithMapping(csv, ProductNameColumns),
                     ProductType = GetFieldWithMapping(csv, ProductTypeColumns),
+                    ProductCategory = GetFieldWithMapping(csv, ProductCategoryColumns),
                     // Product identifiers
                     Asin = GetFieldWithMapping(csv, AsinColumns),
                     Upc = GetFieldWithMapping(csv, UpcColumns),
@@ -875,6 +917,7 @@ namespace GCCWebApp.Services.Import
             List<CertificationType> certTypes,
             List<Pathway> pathways,
             List<ProductType> productTypes,
+            List<ProductCategory> categories,
             List<Tag> tags,
             List<Certificate> existingCerts,
             HashSet<string> companiesToCreate,
@@ -904,6 +947,7 @@ namespace GCCWebApp.Services.Import
                 CompanyEmail = csvRow.CompanyEmail,
                 CompanyWebsite = csvRow.CompanyWebsite,
                 ProductTypeName = csvRow.ProductType,
+                ProductCategoryName = csvRow.ProductCategory,
                 CertificationResults = csvRow.CertificationResults,
                 Pathway = csvRow.Pathway
             };
@@ -924,6 +968,19 @@ namespace GCCWebApp.Services.Import
             // Validate CertificationResults length
             if (!string.IsNullOrWhiteSpace(row.CertificationResults) && row.CertificationResults.Length > 1000)
                 row.ValidationMessages.Add("Certification Results exceeds maximum length of 1000 characters");
+
+            // === Status validation / normalization (QC #194 / DEF-276) ===
+            // Import previously stored the raw CSV status text, so a near-miss like
+            // "Client Approved Paid" (missing the dash) persisted as invalid text — the cert
+            // then showed a blank status and the Edit dropdown couldn't match it, forcing a
+            // delete-and-redo. Resolve tolerantly (case/space/punctuation) to the canonical
+            // 8-state value; if it matches no known status, reject the row in preview rather
+            // than persisting garbage. (Blank was already defaulted to Draft above.)
+            if (CertificateStatusHelper.TryResolveStatus(row.Status, out var canonicalStatus))
+                row.Status = canonicalStatus;
+            else
+                row.ValidationMessages.Add(
+                    $"Invalid Status: '{row.Status}'. Must be one of: {string.Join(", ", CertificateStatusHelper.GetAllStatuses().Keys)}.");
 
             // Validate company email format if provided
             if (!string.IsNullOrWhiteSpace(csvRow.CompanyEmail) && !IsValidEmail(csvRow.CompanyEmail))
@@ -993,13 +1050,51 @@ namespace GCCWebApp.Services.Import
                 productsToCreate.Add(row.ProductName);
             }
 
-            // === CertificationType Lookup (must exist - no auto-create) ===
+            // === CertificationType Lookup ===
+            // Must exist; but if the value isn't in the system we DON'T reject the row — we map it to
+            // the deactivated "Unspecified" placeholder (client directive 2026-06-24) so the certificate
+            // still imports. CertificationTypeId is a required FK, so the placeholder represents "blank".
             var certType = certTypes.FirstOrDefault(ct =>
                 ct.Name.Equals(row.CertificationType, StringComparison.OrdinalIgnoreCase));
             if (certType != null)
+            {
                 row.CertificationTypeId = certType.Id;
+            }
             else
-                row.ValidationMessages.Add($"Certification Type not found: '{row.CertificationType}'. Certification Types must exist before import.");
+            {
+                var placeholder = certTypes.FirstOrDefault(ct =>
+                    ct.Name.Equals(UnspecifiedCertTypeName, StringComparison.OrdinalIgnoreCase) && ct.ParentId == null);
+                if (placeholder != null)
+                {
+                    row.CertificationTypeId = placeholder.Id;
+                    _logger.LogWarning(
+                        "Import row {RowNumber} (cert {CertNumber}): Certification Type '{Type}' not found; mapped to the '{Placeholder}' placeholder.",
+                        row.RowNumber, row.CertificateNumber, row.CertificationType, UnspecifiedCertTypeName);
+                }
+                else
+                {
+                    // Defensive: placeholder couldn't be resolved (shouldn't happen — ensured in preview).
+                    row.ValidationMessages.Add($"Certification Type not found: '{row.CertificationType}'. Certification Types must exist before import.");
+                }
+            }
+
+            // === Product Category Lookup (QC #189 / DEF-278; optional, must exist if provided) ===
+            // Previously the template's Product Category was ignored entirely and every imported
+            // product/cert fell back to the first category ("Chemical and Raw Materials"). Now the
+            // value is honored: matched (case-insensitive) → drives the cert's ProductCategoryId
+            // (CR-186) and the auto-created product's category; provided-but-unmatched → reject the
+            // row (categories are a controlled hierarchy, so no auto-create — a typo shouldn't spawn
+            // a new category); blank → left null (cert shows no category; product falls back to the
+            // import default since Product.CategoryId is required).
+            if (!string.IsNullOrWhiteSpace(csvRow.ProductCategory))
+            {
+                var category = categories.FirstOrDefault(c =>
+                    c.Name.Equals(csvRow.ProductCategory, StringComparison.OrdinalIgnoreCase));
+                if (category != null)
+                    row.ProductCategoryId = category.Id;
+                else
+                    row.ValidationMessages.Add($"Product Category not found: '{csvRow.ProductCategory}'. Categories must exist before import.");
+            }
 
             // === Pathway Lookup (optional; must exist if provided - no auto-create) ===
             // Unmatched values are non-blocking: log a warning and leave PathwayId null so an
@@ -1117,7 +1212,7 @@ namespace GCCWebApp.Services.Import
             if (existing.CompanyId != newData.CompanyId)
                 changes.Add(new FieldChange
                 {
-                    FieldName = "Company",
+                    FieldName = FieldChange.CompanyFieldName,
                     OldValue = existing.Company?.Name,
                     NewValue = newData.CompanyName
                 });
@@ -1267,6 +1362,7 @@ namespace GCCWebApp.Services.Import
                 CompanyId = row.CompanyId!.Value,
                 ProductId = row.ProductId!.Value,
                 CertificationTypeId = row.CertificationTypeId!.Value,
+                ProductCategoryId = row.ProductCategoryId, // QC #189 / DEF-278: honor template category
                 Status = row.Status,
                 EffectiveDate = row.EffectiveDate ?? DateTime.UtcNow,
                 ExpirationDate = row.ExpirationDate ?? DateTime.UtcNow.AddYears(1),
@@ -1396,6 +1492,7 @@ namespace GCCWebApp.Services.Import
             if (row.CompanyId.HasValue) certificate.CompanyId = row.CompanyId.Value;
             if (row.ProductId.HasValue) certificate.ProductId = row.ProductId.Value;
             if (row.CertificationTypeId.HasValue) certificate.CertificationTypeId = row.CertificationTypeId.Value;
+            certificate.ProductCategoryId = row.ProductCategoryId; // QC #189 / DEF-278: honor template category
             certificate.Status = row.Status;
             if (row.EffectiveDate.HasValue) certificate.EffectiveDate = row.EffectiveDate.Value;
             if (row.ExpirationDate.HasValue) certificate.ExpirationDate = row.ExpirationDate.Value;
@@ -1542,10 +1639,10 @@ namespace GCCWebApp.Services.Import
             try
             {
                 // Copy the file to the uploads directory.
-                // DEF-262: write to App_Data/uploads/certificates (DEF-208 home) — same place direct
-                // uploads land — not wwwroot. Imported PDFs landed in wwwroot while the rest of the app
-                // read from App_Data, so their thumbnails never generated and the files were orphaned.
-                var uploadsDir = Path.Combine(_environment.ContentRootPath, "App_Data", "uploads", "certificates");
+                // DEF-286: write through the shared IUploadPathResolver so imported PDFs land in the
+                // same configured root as direct uploads (DEF-262 fixed imports writing to wwwroot
+                // while the rest of the app read from App_Data, orphaning the files).
+                var uploadsDir = _uploadPaths.CertificatesDir;
                 Directory.CreateDirectory(uploadsDir);
 
                 var fileName = $"{certificate.Number}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";

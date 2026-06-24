@@ -39,7 +39,9 @@ namespace GCCWebApp.Models
         [ValidateNever]
         public ICollection<Partner> Partners { get; set; } = new List<Partner>();
 
-        [MaxLength(200)]
+        // Widened 200 -> 1000 for migration: retailer product titles in the client ASIN data run up
+        // to ~951 chars and are passed to Amazon, so truncation is not acceptable (client directive).
+        [MaxLength(1000)]
         public string? ProductName { get; set; } // Optional product name for this specific ID
 
         [MaxLength(100)]

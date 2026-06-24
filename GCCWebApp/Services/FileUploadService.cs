@@ -32,66 +32,42 @@ namespace GCCWebApp.Services
         private readonly ILogger<FileUploadService> _logger;
         private readonly IWebHostEnvironment _environment;
         private readonly ApplicationDbContext _context;
-        private readonly string _uploadsPath;
+        private readonly IUploadPathResolver _uploadPaths;
         private readonly string _certificatesPath;
         private readonly string _imagesPath;
         private readonly FileUploadConfiguration _config;
 
-        public FileUploadService(ILogger<FileUploadService> logger, IWebHostEnvironment environment, ApplicationDbContext context)
+        public FileUploadService(
+            ILogger<FileUploadService> logger,
+            IWebHostEnvironment environment,
+            ApplicationDbContext context,
+            IUploadPathResolver uploadPaths)
         {
             _logger = logger;
             _environment = environment;
             _context = context;
+            _uploadPaths = uploadPaths;
 
-            // DEF-208: physical upload files now live OUTSIDE the web root so the
-            // static-file middleware can't serve them. Logical paths in DB columns
-            // (CertificateFile, CertificateImagePath) keep their existing
-            // "uploads/.../{filename}" shape — resolved against ContentRootPath/App_Data
-            // by CertificateController.StreamUploadedFile.
-            //
-            // Defensive guard: ContentRootPath must resolve before we build upload paths.
-            // Fail loudly so a missing ContentRootPath can't silently land uploads at
-            // the application root.
-            if (string.IsNullOrEmpty(_environment.ContentRootPath))
-            {
-                _logger.LogCritical("ContentRootPath is null or empty at FileUploadService init.");
-                throw new InvalidOperationException(
-                    "ContentRootPath is null or empty. Aborting FileUploadService init to " +
-                    "prevent uploads landing at the application root.");
-            }
-
-            // Set up upload directories under App_Data (outside wwwroot — see DEF-208).
-            _uploadsPath = Path.Combine(_environment.ContentRootPath, "App_Data", "uploads");
-            _certificatesPath = Path.Combine(_uploadsPath, "certificates");
-            _imagesPath = Path.Combine(_uploadsPath, "images");
-
-            // Ensure directories exist
-            Directory.CreateDirectory(_certificatesPath);
-            Directory.CreateDirectory(_imagesPath);
+            // DEF-208/DEF-286: physical upload files live OUTSIDE the web root so static-file
+            // middleware can't serve them, and the root is now resolved by IUploadPathResolver
+            // (config-driven FileStorage:StoragePath, defaulting to App_Data/uploads). Logical
+            // paths in DB columns (CertificateFile, CertificateImagePath) keep their existing
+            // "uploads/.../{filename}" shape.
+            _certificatesPath = _uploadPaths.CertificatesDir;
+            _imagesPath = _uploadPaths.ImagesDir;
 
             // Initialize configuration with defaults
             _config = new FileUploadConfiguration();
         }
 
         /// <summary>
-        /// DEF-262: resolve a logical "uploads/{subdir}/{file}" path to a physical file path.
-        /// Uploads moved out of wwwroot to ContentRootPath/App_Data/uploads as of DEF-208, but
-        /// several resolvers here still pointed at WebRootPath — so PDFs/thumbnails were never
-        /// found (cert saved with no preview; old files never deleted). Check the App_Data home
-        /// first, then fall back to the pre-DEF-208 wwwroot location so legacy files (uploaded
-        /// before the server-side Move-Item migration) stay reachable. When neither exists, return
-        /// the App_Data candidate (the canonical new home) so the caller's own File.Exists handles absence.
+        /// DEF-286: resolve a logical "uploads/{subdir}/{file}" path to a physical file path via the
+        /// shared <see cref="IUploadPathResolver"/> (configured root → App_Data → wwwroot legacy).
+        /// Centralised so this can never drift from the other resolvers again (the DEF-262/264/279
+        /// bug class).
         /// </summary>
         private string ResolvePhysicalUploadPath(string logicalPath)
-        {
-            var rel = logicalPath.Replace("/", Path.DirectorySeparatorChar.ToString())
-                                 .Replace("\\", Path.DirectorySeparatorChar.ToString());
-            var appData = Path.Combine(_environment.ContentRootPath, "App_Data", rel);
-            if (File.Exists(appData)) return appData;
-            var legacy = Path.Combine(_environment.WebRootPath ?? string.Empty, rel);
-            if (File.Exists(legacy)) return legacy;
-            return appData;
-        }
+            => _uploadPaths.ResolvePhysical(logicalPath);
 
         public async Task<FileUploadResult> UploadCertificateAsync(IFormFile file, string certificateNumber)
         {

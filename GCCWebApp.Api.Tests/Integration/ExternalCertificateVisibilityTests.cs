@@ -144,7 +144,8 @@ namespace GCCWebApp.Api.Tests.Integration
             var identity = new ClaimsIdentity(claims, "TestAuth");
             var principal = new ClaimsPrincipal(identity);
 
-            var controller = new CertificateTileExternalApiController(_context, _logger.Object);
+            var controller = new CertificateTileExternalApiController(
+                _context, _logger.Object, Moq.Mock.Of<GCCWebApp.Services.IUploadPathResolver>());
             controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext { User = principal }

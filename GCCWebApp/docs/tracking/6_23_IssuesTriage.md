@@ -163,7 +163,80 @@ Provide specific regression tests for:
 
 List any questions that need to be answered by the testers or product owner before development begins. Do not block obvious fixes if the expected behavior is clear.
 
-## Issue List
+## TRIAGE REPORT — Sprint 3 (compiled 2026-06-23)
+
+> Analysis only, no code changes (per QC-review convention). File:line refs verified against current working tree.
+
+| ID | Area | Summary | Likely Root Cause | Related | Severity | Priority | Recommended Fix | Regression Tests |
+|----|------|---------|-------------------|---------|----------|----------|-----------------|------------------|
+| 194 ✅ | Back-end validation / Import | Status imported without an exact match (e.g. `Client Approved Paid` vs `Client Approved - Paid`) saves as raw text; record then shows blank status and the dropdown won't accept any value — must delete & restart | Import did not validate Status against `CertificateStatusHelper.GetAllStatuses()` keys; raw text persisted (`Services/Import/CertificateImportService.cs:~893`, create ~1270 / update ~1399). Edit dropdown can't locate the invalid value so it renders blank/locked (`Models/CertificateStatus.cs`) | 188 | High | P1 | **FIXED (DEF-276, 2026-06-23):** added `CertificateStatusHelper.TryResolveStatus` (tolerant case/space/punctuation match to the canonical 8 states); import now auto-corrects near-misses to the canonical value and rejects truly-unknown statuses as a preview Error (never persisted). 8/8 keys verified distinct. | Import w/ exact, near-miss, bogus, and blank status; confirm near-miss imports canonical + editable, bogus rejected in preview, blank → Draft |
+| 188 ✅ | Workflow / Date logic | Past expiration date auto-flips status to Expired; revising date to the future then errors "cannot change from Expired to Client Approved - Paid"; user cannot recover | Auto-expire via `CertificateExpirationService` (save-time + login/background); Edit POST enforces the matrix (Expired → only Republished/Draft, DEF-203) so the prior status can't be restored. (The `CertificateWorkflowService` auto-expire is dead legacy code — wrong status names.) | 194 | High | P1 | **FIXED (DEF-285, 2026-06-24):** decision = **revert to prior status**. Edit POST now detects expiry-correction (was Expired + new date today/future + user didn't pick a valid alternative) and restores the pre-expiry status from the auto-expire history row (fallback Draft), bypassing the matrix block. Matrix itself unchanged. | Past date→Expired; future date→reverts to prior (e.g. Paid); explicit Republished still honored; still-past date stays Expired |
+| 189 ✅ | Data mapping / Import | Product Category imports as "Chemical and Raw Materials" even when another category was on the template | Import had NO column mapping for Product Category; auto-created products hardcoded to `categories.FirstOrDefault()`; cert `ProductCategoryId` never set; `ResolveProductForImportAsync(...categoryId: null)` | 195, 186 | High | P1 | **FIXED (DEF-278, 2026-06-23):** added `ProductCategoryColumns` mapping; resolve against existing categories (case-insensitive); matched → set cert `ProductCategoryId` + auto-created product category; **unmatched → reject row** (per Shawn); blank → null. | Import rows with valid / different-case / bogus / blank category; verify assigned category matches template, bogus rejected in preview |
+| 195 ✅ | Display / Create | Cert shows "Chemical and Raw Materials" when category left blank | Cert detail views rendered `cert.ProductCategory ?? Product.Category ?? "—"`; null cert category fell back to the product's (defaulted) category. Create form also auto-fills category from the picked product | 189, 186 | High | P1 | **FIXED (DEF-278, 2026-06-23):** detail views now show `cert.ProductCategory ?? "—"` (no product fallback), per Shawn's "show blank/—" choice. **Ships coupled** with backfill `Scripts/data-ops/2026-06-23-cert-category-backfill-UPDATE.sql` so existing certs keep their category. Root data source fixed by #189. | Create/import cert with blank category → detail shows "—"; existing certs (post-backfill) still show their category |
+| 198 ✅ code / ⚠ data | File handling / Incident | "Can't download PDF" from search, but the card "shows the PDF" | **Re-diagnosed:** the card shows a *preview IMAGE* (`CertificateImagePath`), a different file from the PDF (`CertificateFile`) — so "the PDF is there" is the image. The **active** search download (tile views → MVC `/Certificate/Download`) is already App_Data-aware (DEF-264). QC dated **6/15 = the day of the [[incident_prod_all_pdfs_missing_2026-06-15]]** (PDF store wiped) → downloads 404 because files are physically gone. Separately found a **latent** wwwroot-only bug in both tile-API `{id}/download` endpoints (not wired to UI). | — | High→Med | P1 | **PARTIAL (DEF-279, 2026-06-23):** fixed the latent tile-API endpoints to App_Data-first (DEF-264 follow-through). **Actual #198 resolution = restore PDFs from backup** (the incident); re-run `prod-missing-pdf-sweep.js` after restore. Optional UX: gate the tile download icon on file presence. | After PDF restore: view + download same cert from search/tile/detail; confirm `CertificateFile` set + file present |
+| 196 ✅ (no code change) | Search normalization | Search "Product A" returns nothing when name is "Product™ A" | **VERIFIED resolved by CR-187.** `SearchNormalizer` strips ™/®/©/punctuation **and whitespace** from BOTH the input and the stored `NormalizedX` columns (`"Product A"`/`"Product™ A"` → `"producta"`); the public search path `CertificateRepository.cs:217-232` queries those columns with the normalized term (`CertificateService`/`FilterService` too). CR-187 shipped in the 6/18-19 deploy; post-deploy regression confirmed `3M™`→4 on prod. QC #196 was filed **6/11, before CR-187 existed**. | 197 | High→Resolved | P2 | **None — CR-187 already fixes this.** Only the public *autocomplete* still uses raw `.Contains` (suggestions only; main search is normalized) — minor, optional. | Post-deploy: search `Product A` vs `Product™ A`, plus ® © - . & on public + internal — confirm same results |
+| 200 ✅ | Front-end render | Imported Product ID rows show Created = "Invalid Date" and Created By = "System" | **Re-diagnosed:** NOT a data/serialization bug — both write paths set `CreatedBy`+`CreatedAt`, the GET includes `CreatedByUser` + maps `CreatedAt`, and saved-cert imports re-fetch correctly. Fails only for **in-memory rows on the Create page** (new cert, no audit fields until save): render did `new Date(undefined)`→"Invalid Date" and `…||'System'`. | — | Medium | P2 | **FIXED (DEF-282, 2026-06-23):** `formatDate`/`formatDateTime` guard invalid dates → "—"; Created By shows "—" for not-yet-saved rows (keeps username for saved, "System" only for genuinely-null CreatedBy). After save+reopen, server values show. | Create page: add/import Product IDs → "—/—"; save+reopen → real date+user; existing cert import → correct |
+| 201 ✅ | Export formatting | Partner CSV "Cert Results" exports inconsistently — some `0.17`, some `100`, all should be % | `CertificationResults` is a free-text `string?` (`Models/Certificate.cs:51`); export wrote it raw (`Controllers/ExportController.cs:308`). Users entered mixed formats; the display paths use `DisplayFormatters.FormatCertificationResults` but the export bypassed it | — | Medium | P2 | **FIXED (DEF-275, 2026-06-23):** wrapped the export value in `DisplayFormatters.FormatCertificationResults` so CSV matches the web page (always a percentage). PO confirmed percentage is correct. | Export certs with %, decimal, integer, non-numeric, and blank cert results |
+| 197 ✅ | UI state / Autocomplete | Filter text box auto-populates a fuller suggestion ("carly test" vs typed "test") and user can't override | **Confirmed exact cause:** `renderAutocomplete` auto-marked the FIRST suggestion `selected` (`index === 0 ? 'selected'`); the Enter handler's `selectedIndex >= 0` branch then overwrote the input with that suggestion. Identical in all 3 tile JS (public/internal/external). | 196 | Medium | P2 | **FIXED (DEF-280, 2026-06-23):** render suggestions with **none pre-selected** → Enter keeps the typed value; ArrowDown/hover/click still explicitly choose. Applied to all 3 tile views. `node --check` clean. | Type "test" (with "carly test" a suggestion) → Enter keeps "test"; ArrowDown+Enter picks "carly test" |
+| 190 ✅ | File handling / Front-end | Re-selecting a revised file with the SAME filename in Import errors | **Confirmed not a server collision** (preview cached by GUID, file not persisted by name). Browser suppresses `change` when re-selecting an identical path → stale file kept; plus Back-from-preview leaves the submit button stuck disabled + input cleared → "select a file" error. | — | Medium | P3 | **FIXED (DEF-284, 2026-06-23):** clear file-input `value` on click (same-name reselection always fires change → fresh file); `pageshow`/bfcache handler re-enables the stuck submit button + resets the label. `Views/CertificateImport/Index.cshtml`. | Upload → preview → Back → edit same-named file → re-select → label updates + uploads revised content; button not stuck |
+| 193 | UI state / Front-end | After a successful upload, clicking "Add Certificate" shows the previous cert's success toast | `TempData["SuccessMessage"]` not cleared after render; sessionStorage guard is keyed per-message so differing cert numbers leak stale toasts (`Views/Certificate/Create.cshtml:44-62`, `Controllers/CertificateController.cs:698`) | — | Low | P3 | Consume/clear TempData after display or use a fixed sessionStorage guard key | Create cert → Add another → confirm no stale toast; back-button behavior |
+| 192 ✅ | UI / CSS | Long Company URL runs off the page on public + internal detail pages; part of URL hidden | `.certificate-field span` is a flex item with default `min-width:auto` → won't shrink below content, so an unbreakable URL overflows; no wrap rules either | — | Low | P3 | **FIXED (DEF-283, 2026-06-23):** added `min-width:0` + `overflow-wrap:anywhere` + `word-break:break-word` to `.certificate-single-card .certificate-field span` (covers all 3 detail views) | Open detail page with a very long company URL on public + internal → wraps fully, nothing clipped |
+| 199 ✅ (needs visual sign-off) | UI / CSS | Tiles have excess vertical whitespace; condense without breaking Status/Partner | Fixed-height blocks + paddings/margins (`certificatetileview.css`). Status/Partner render in the blue header (preserve). | — | Low | P3 | **FIXED (DEF-281, 2026-06-23):** conservative whitespace pass — trimmed header/actions/body/tag padding+margins, the after-Location gap, header line-height 1.5→1.4, product-name buffer 16→10px. **No line-clamp/truncation change; Status/Partner untouched.** ~30px shorter/tile. CSS cache-busted. | Couldn't screenshot locally (dev app 400s on cert endpoints). Carly to review vs image #90 after deploy; can tighten further (3→2 line clamps) if wanted |
+
+\* #196 severity is High *if reproducible*, but most likely an environment/migration gap rather than a code defect.
+
+## Recommended Fix Order
+
+**Batch A — Data integrity in import/create (do first; shared root causes):**
+- #194 + #188 (status validation + Expired recovery) — both rooted in status handling.
+- #189 + #195 (Product Category mapping/default) — shared `FirstOrDefault()` fallback; coordinate with CR-186.
+- #200 (import audit metadata) — same import pipeline.
+
+**Batch B — Core access, environment-gated:**
+- #198 (PDF download path unification) — core function.
+- #196 (verify CR-187 migration deployed) — likely just a deploy/verify step, do early/cheaply.
+
+**Batch C — Export & search UX:**
+- #201 (CSV % formatting), #197 (autocomplete override).
+
+**Batch D — Front-end state & polish:**
+- #190 (file input reset), #193 (stale toast), #192 (URL wrap), #199 (tile spacing).
+
+## Developer Action Plan
+
+1. **Confirm #196 is just a deploy gap** before touching code (cheapest win): verify CR-187 migration + `NormalizedX` columns in the test env.
+2. **Status cluster (#194/#188):** add enum-validated status mapping on import (trim/case/hyphen-normalize); decide and implement Expired-recovery behavior (PO sign-off — workflow is protected); ensure edit dropdown never locks on an invalid stored value.
+3. **Category cluster (#189/#195):** add a Product Category column mapping; find-or-create by normalized name; replace the `FirstOrDefault()` fallback with a true default or required-field. Reconcile with CR-186 split model before coding.
+4. **#200:** confirm the Product-ID API returns parseable `CreatedAt` and includes `CreatedByUser`; fix the projection/serialization gap.
+5. **#198:** unify view vs download path resolution; normalize stored `CertificateFile` paths; replace silent placeholder fallback with a real error.
+6. **#201:** apply the existing display formatter on CSV export (PO confirms target format).
+7. **Front-end batch:** #197 explicit-value-wins; #190 reset file input; #193 clear TempData/guard; #192 + #199 CSS.
+8. Each fix gets a DEF-XXX referencing its QC #; append to defect register and shipped log when shipped.
+
+## Regression Test Plan
+
+- **Manual cert creation:** blank/valid category; status selection persists; no stale success toast on repeat add.
+- **Certificate import:** valid/invalid/blank/near-miss status; category matches template; audit Created date + Created By correct; re-upload same-named revised file.
+- **Status dropdown:** invalid stored status still selectable; valid transitions only.
+- **Expiration date logic:** past→Expired auto-set; future correction recovers per agreed behavior.
+- **Product category mapping:** template value honored; default only when blank.
+- **Search w/ special chars:** ™ ® © - . & match correctly (post-migration).
+- **Filter/autocomplete:** explicit user value overrides suggestions.
+- **PDF view + download:** from search, tile, and detail for standard and non-standard stored paths.
+- **CSV export:** Cert Results consistent format across %, decimal, integer, blank.
+- **Audit metadata:** imported records show correct date + importing user.
+
+## Questions / Clarifications Needed
+
+1. **#188 (PO):** When a user corrects a past expiration date to the future, what SHOULD happen to the auto-applied Expired status — revert to the prior status, go to Draft, or require manual re-approval? (The 8-state workflow is protected; need direction before changing transition behavior.)
+2. **#189/#195/#186 (PO):** What is the correct behavior when Product Category is blank or unmatched — reject the row, assign "Uncategorized", or prompt? And confirm the exact template column name for category.
+3. **#201 (PO):** "Cert Results" is intentionally a free-text field (per requirement). What is the desired CSV output — always a percentage with `%`, a 0–100 integer, or leave as entered? Should input be constrained going forward?
+4. **#196 (Tester/DevOps):** Confirm the CR-187 search-normalization build is deployed to the environment where the failure was seen.
+5. **#190 (Tester):** Capture the exact error text/screenshot on same-filename re-upload to confirm it's client-side state vs a server response.
+
+---
+
+## Issue List (source — tester table)
 
 [PASTE TESTER ISSUE TABLE HERE]
 ID	Date Opened	classification	Sprint 3 5-4	Sprint 3 6/23 Notes	Sprint 3 Notes	Anuki Status Sprint 2	4-10-26 comments - SP2	"Date Closed - 

@@ -117,7 +117,7 @@ namespace GCCWebApp.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Apply(string importId, string reason)
+        public async Task<IActionResult> Apply(string importId, string reason, bool acknowledgeReassignments = false)
         {
             try
             {
@@ -132,6 +132,18 @@ namespace GCCWebApp.Controllers
                 if (!preview.CanApply)
                 {
                     TempData["Error"] = "This import cannot be applied due to validation errors.";
+                    return View("Preview", preview);
+                }
+
+                // Company-reassignment guard: when one or more rows would move an existing certificate
+                // to a different company (the miskeyed cert-number collision), refuse to apply unless
+                // the analyst explicitly acknowledged it on the preview. Enforced here — not just in the
+                // view — so the block cannot be bypassed by posting the form directly.
+                if (preview.HasCompanyReassignments && !acknowledgeReassignments)
+                {
+                    TempData["Error"] = $"{preview.CompanyReassignmentCount} row(s) would reassign an existing " +
+                        "certificate to a different company. Review the highlighted rows and check the " +
+                        "acknowledgement box to confirm before applying.";
                     return View("Preview", preview);
                 }
 
@@ -281,6 +293,19 @@ namespace GCCWebApp.Controllers
                     return BadRequest(new { success = false, message = "This import cannot be applied due to validation errors." });
                 }
 
+                // Company-reassignment guard (mirrors the MVC Apply action): block until acknowledged.
+                if (preview.HasCompanyReassignments && !request.AcknowledgeReassignments)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        requiresReassignmentAck = true,
+                        companyReassignmentCount = preview.CompanyReassignmentCount,
+                        message = $"{preview.CompanyReassignmentCount} row(s) would reassign an existing certificate " +
+                            "to a different company. Acknowledge the reassignment to proceed."
+                    });
+                }
+
                 var userId = await GetCurrentUserIdAsync();
                 var username = GetCurrentUsername();
 
@@ -307,6 +332,9 @@ namespace GCCWebApp.Controllers
         {
             public string ImportId { get; set; } = string.Empty;
             public string? Reason { get; set; }
+
+            // Set true by the client only after the analyst confirms the company-reassignment warning.
+            public bool AcknowledgeReassignments { get; set; }
         }
 
         #endregion

@@ -290,7 +290,7 @@ namespace GCCWebApp.Controllers
                 // identifiers (parent cert Paid/Republished); the cert Status column is included
                 // for the client's cross-check even though every row is active by construction.
                 // Order matches the client's requested field sequence.
-                csv.AppendLine("Company,Certificate Number,Certification Type,Effective Date,Expiration Date,Cert Status,ID Partner,Cert Partner,Certification Results,Pathway,Identifier Type,Id Value,Product Name,SKU,Created Date,Created By,Last Updated,Updated By,Description");
+                csv.AppendLine("Company,Certificate Number,Certification Type,Effective Date,Expiration Date,Certificate Status,ID Partner,Cert Partner,Certification Results,Pathway,Identifier Type,Product ID/ID Value,Product Name,SKU,Created Date,Created By,Last Updated,Updated By,Description");
 
                 foreach (var p in rows)
                 {
@@ -305,7 +305,7 @@ namespace GCCWebApp.Controllers
                         CsvField(c?.Status),
                         CsvField(p.Partner),
                         CsvField(c?.Partner),
-                        CsvField(c?.CertificationResults),
+                        CsvField(GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(c?.CertificationResults)),
                         CsvField(c?.Pathway?.Name),
                         CsvField(p.ProductIdType),
                         CsvField(p.ProductIdValue),

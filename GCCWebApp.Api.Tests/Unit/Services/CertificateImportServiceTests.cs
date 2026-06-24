@@ -31,6 +31,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         private readonly Mock<ILogger<CertificateImportService>> _mockLogger;
         private readonly Mock<IWebHostEnvironment> _mockEnvironment;
         private readonly Mock<IFileUploadService> _mockFileUploadService;
+        private readonly GCCWebApp.Services.IUploadPathResolver _uploadPathsStub;
         private readonly CertificateImportService _service;
 
         public CertificateImportServiceTests()
@@ -52,9 +53,12 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _mockEnvironment.Setup(e => e.WebRootPath).Returns(Path.GetTempPath());
             _mockFileUploadService = new Mock<IFileUploadService>();
             var mockProductIdService = new Mock<IProductIdService>();
+            _uploadPathsStub = Moq.Mock.Of<GCCWebApp.Services.IUploadPathResolver>(r =>
+                r.CertificatesDir == Path.GetTempPath() && r.ImagesDir == Path.GetTempPath());
             _service = new CertificateImportService(
                 _context, _mockAuditService.Object, _cache, _mockLogger.Object,
-                _mockEnvironment.Object, _mockFileUploadService.Object, mockProductIdService.Object);
+                _mockEnvironment.Object, _mockFileUploadService.Object, mockProductIdService.Object,
+                _uploadPathsStub);
 
             SeedData();
         }
@@ -669,7 +673,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var freshService = new CertificateImportService(
                 freshContext, _mockAuditService.Object, _cache,
                 _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object,
-                new Mock<IProductIdService>().Object);
+                new Mock<IProductIdService>().Object, _uploadPathsStub);
 
             var csv = BuildCsv(StdHeaders, StdRow());
             var file = CreateCsvFormFile(csv);
@@ -1326,7 +1330,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 freshContext, _mockAuditService.Object,
                 new MemoryCache(new MemoryCacheOptions()),
                 _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object,
-                new Mock<IProductIdService>().Object);
+                new Mock<IProductIdService>().Object, _uploadPathsStub);
 
             var preview = CreatePreviewWithNewRow("25-8000");
             preview.NewCompanyNames = new List<string> { "NewCo" };
@@ -1338,6 +1342,90 @@ namespace GCCWebApp.Api.Tests.Unit.Services
 
             result.Success.Should().BeFalse();
             result.Errors.Should().NotBeEmpty();
+        }
+
+        #endregion
+
+        #region PreviewImportAsync - Product Category Mapping (QC #189/#195, DEF-278)
+
+        // Proves the importer honors the template's "Product Category" column:
+        //   exact match / different-case match -> sets the cert's ProductCategoryId;
+        //   blank -> left null (no error, cert shows "—"); unmatched/typo -> row REJECTED
+        //   in preview (never silently defaulted to "Chemical and Raw Materials").
+        // Writes a readable result table + the exact template CSV to the OS temp dir so the
+        // outcome can be eyeballed without standing up the app or touching a real DB.
+        [Fact]
+        public async Task PreviewImportAsync_ProductCategory_MappingScenarios_DEF278()
+        {
+            // Seed two more categories alongside the seeded "General" (Id=1).
+            _context.ProductCategories.AddRange(
+                new ProductCategory { Id = 2, Name = "Paper and Packaging", IsActive = true },
+                new ProductCategory { Id = 3, Name = "Cleaning Products", IsActive = true });
+            _context.SaveChanges();
+
+            var headers = new[]
+            {
+                "Certificate #", "Company", "Product Name", "Certification Type",
+                "Product Category", "Status", "Effective Date", "Expiration Date",
+                "Location", "Country", "Partner"
+            };
+            string[] Row(string cert, string category) => new[]
+            {
+                cert, "Test Company", "Test Product", "UL 2809",
+                category, "Client Approved - Paid", "2025-01-01", "2026-01-01",
+                "NYC", "USA", "Amazon"
+            };
+
+            var csv = BuildCsv(headers,
+                Row("26-9001", "Paper and Packaging"),   // exact match     -> Id 2
+                Row("26-9002", "paper AND packaging"),    // different case  -> Id 2
+                Row("26-9003", ""),                       // blank           -> null, no error
+                Row("26-9004", "Totally Made Up Cat"));   // unmatched/typo  -> REJECTED
+
+            // Save the exact template that produced this result set, for reuse in the real UI.
+            var csvPath = Path.Combine(Path.GetTempPath(), "gcc-import-category-template.csv");
+            File.WriteAllText(csvPath, csv, new UTF8Encoding(true));
+
+            var file = CreateCsvFormFile(csv);
+            var result = await _service.PreviewImportAsync(file, 1, "admin");
+
+            // Build a human-readable result table and write it to disk.
+            string CatName(int? id) => id == null
+                ? "(null / shows \"—\")"
+                : _context.ProductCategories.FirstOrDefault(c => c.Id == id)?.Name ?? $"#{id}";
+            var sb = new StringBuilder();
+            sb.AppendLine("=== Import \"Product Category\" mapping — RESULT SET (DEF-278, QC #189/#195) ===");
+            sb.AppendLine($"Reusable template written to: {csvPath}");
+            sb.AppendLine("Existing categories in DB: General(1), Paper and Packaging(2), Cleaning Products(3)");
+            sb.AppendLine($"Totals -> rows={result.TotalRows}  valid={result.ValidRows}  invalid={result.InvalidRows}  new={result.NewCertificates}  rejected={result.ErrorRows.Count}");
+            sb.AppendLine();
+            sb.AppendLine($"{"Cert#",-9} {"Category in template",-22} {"Outcome",-10} Resolved / message");
+            sb.AppendLine(new string('-', 92));
+            foreach (var r in result.NewRows.OrderBy(r => r.CertificateNumber))
+                sb.AppendLine($"{r.CertificateNumber,-9} {(string.IsNullOrEmpty(r.ProductCategoryName) ? "(blank)" : r.ProductCategoryName),-22} {"ACCEPTED",-10} {CatName(r.ProductCategoryId)}");
+            foreach (var e in result.ErrorRows.OrderBy(e => e.CertificateNumber))
+                sb.AppendLine($"{e.CertificateNumber,-9} {"Totally Made Up Cat",-22} {"REJECTED",-10} {string.Join("; ", e.ErrorMessages)}");
+
+            var outPath = Path.Combine(Path.GetTempPath(), "gcc-import-category-dryrun.txt");
+            File.WriteAllText(outPath, sb.ToString());
+
+            // ---- Assertions: lock in the DEF-278 behavior ----
+            var r1 = result.NewRows.FirstOrDefault(r => r.CertificateNumber == "26-9001");
+            r1.Should().NotBeNull("an exact-match category row should be accepted as New");
+            r1!.ProductCategoryId.Should().Be(2, "exact match resolves to Paper and Packaging");
+
+            var r2 = result.NewRows.FirstOrDefault(r => r.CertificateNumber == "26-9002");
+            r2.Should().NotBeNull("a different-case category should still match");
+            r2!.ProductCategoryId.Should().Be(2, "match is case-insensitive");
+
+            var r3 = result.NewRows.FirstOrDefault(r => r.CertificateNumber == "26-9003");
+            r3.Should().NotBeNull("a blank category is allowed");
+            r3!.ProductCategoryId.Should().BeNull("blank leaves the cert category null (shows \"—\"), no error");
+
+            result.ErrorRows.Should().Contain(e => e.CertificateNumber == "26-9004",
+                "an unmatched/typo category must REJECT the row, not silently default it");
+            result.ErrorRows.First(e => e.CertificateNumber == "26-9004")
+                .ErrorMessages.Should().Contain(m => m.Contains("Product Category not found"));
         }
 
         #endregion

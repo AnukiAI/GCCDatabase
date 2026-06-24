@@ -553,8 +553,10 @@ class ProductIdManager {
                 <td class="created-date" title="${this.formatDateTime(productId.createdAt)}">
                     ${this.formatDate(productId.createdAt)}
                 </td>
-                <td class="created-by" title="${(productId.createdByUser && productId.createdByUser.username) || 'System'}">
-                    ${(productId.createdByUser && productId.createdByUser.username) || 'System'}
+                <td class="created-by" title="${(productId.createdByUser && productId.createdByUser.username) || (productId.createdAt ? 'System' : '—')}">
+                    ${/* QC #200 (DEF-282): unsaved in-memory rows (no createdAt) show '—', not the
+                          misleading 'System'; saved rows keep username, or 'System' only when CreatedBy is genuinely null. */ ''}
+                    ${(productId.createdByUser && productId.createdByUser.username) || (productId.createdAt ? 'System' : '—')}
                 </td>
                 ${actionsHtml}
             </tr>`;
@@ -2126,12 +2128,19 @@ class ProductIdManager {
         }
     }
 
+    // QC #200 (DEF-282): guard against missing/invalid dates so unsaved (in-memory,
+    // Create-page) product IDs — which have no createdAt until the cert is saved —
+    // render "—" instead of the alarming "Invalid Date".
     formatDate(dateString) {
-        return new Date(dateString).toLocaleDateString();
+        if (!dateString) return '—';
+        const d = new Date(dateString);
+        return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
     }
 
     formatDateTime(dateString) {
-        return new Date(dateString).toLocaleString();
+        if (!dateString) return '';
+        const d = new Date(dateString);
+        return isNaN(d.getTime()) ? '' : d.toLocaleString();
     }
 }
 

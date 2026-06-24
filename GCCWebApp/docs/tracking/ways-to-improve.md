@@ -32,3 +32,27 @@ requests (`change-request-register.md`).
    wrong-but-renderable logic bugs (the DEF-220 class), full WCAG keyboard audit,
    performance/load, and cross-browser (Chromium only). These remain UAT/targeted-probe
    territory until explicitly scoped.
+
+## 2026-06-24 — surfaced during the QC #198 / DEF-286 upload-storage work
+
+- **Centralise duplicated "resolver" logic the moment a second copy appears.** The
+  logical→physical upload-path resolution was copy-pasted across 5+ call sites; DEF-262, 264,
+  and 279 were three separate defects that each fixed one copy and missed the neighbours. The
+  cost of those three defects far exceeded the cost of the single `IUploadPathResolver` that
+  DEF-286 should have been from the start. Heuristic: when the same non-trivial logic lands in
+  a second place, extract it then — don't wait for the divergence bug.
+- **Dead config keys are a trap.** `FileStorage:StoragePath` sat in the production template
+  for months looking like it controlled upload location, but nothing read it — operators could
+  "configure" it with zero effect. Either wire a config key or delete it; a key that lies is
+  worse than no key.
+- **Treat "inside the deploy folder" as non-persistent.** `App_Data/uploads` looked safe but a
+  Plesk publish wipes it — the root of a recurring incident that was being managed with a manual
+  "zip before deploy" ritual. Anything that must survive deploys belongs on a path outside the
+  deploy folder, resolved by config. Audit other write locations (logs, generated files, caches)
+  for the same assumption.
+- **Test infra: persisted computed columns don't exist under the InMemory provider.** The
+  CR-187 `NormalizedX` search columns are SQL computed columns, so ~18 unit/integration tests
+  that filter on them fail under EF InMemory (the column is null). This made it hard to tell my
+  change's failures from the baseline. Worth either (a) a SQLite-backed test fixture for the
+  search/normalization tests, or (b) a clearly-labelled `[Trait("RequiresRelational")]` skip so
+  the baseline failure set is unambiguous.

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace GCCWebApp.Models.Import
 {
@@ -50,6 +51,17 @@ namespace GCCWebApp.Models.Import
         // Multi-ASIN and PDF summaries
         public int ProductIdsToCreate { get; set; }
         public int PdfFilesToUpload { get; set; }
+
+        // --- Company-reassignment guard ---------------------------------------------------------
+        // A number-match that ALSO changes the Company almost always means a miskeyed certificate
+        // number that collided with a DIFFERENT company's existing cert — applying it would silently
+        // overwrite/reassign that company's certificate. These rows are surfaced separately so the
+        // preview can require an explicit acknowledgement, and the apply is blocked server-side until
+        // the analyst confirms (see CertificateImportController.Apply / ApiApply).
+        public List<CertificateImportRow> CompanyReassignmentRows =>
+            ModifiedRows.Where(r => r.ChangesCompany).ToList();
+        public int CompanyReassignmentCount => CompanyReassignmentRows.Count;
+        public bool HasCompanyReassignments => CompanyReassignmentCount > 0;
     }
 
     /// <summary>
@@ -85,6 +97,12 @@ namespace GCCWebApp.Models.Import
         public int? ProductTypeId { get; set; }
         public bool ProductWillBeCreated { get; set; }
         public bool ProductTypeWillBeCreated { get; set; }
+
+        // Product Category (QC #189 / DEF-278): resolved from the template's Product Category
+        // column against existing categories. No auto-create — an unmatched value rejects the row.
+        // Drives the cert-level ProductCategoryId (CR-186) and the auto-created product's category.
+        public string? ProductCategoryName { get; set; }
+        public int? ProductCategoryId { get; set; }
 
         // Certification results
         public string? CertificationResults { get; set; }
@@ -122,6 +140,12 @@ namespace GCCWebApp.Models.Import
         public int? ProductId { get; set; }
         public int? CertificationTypeId { get; set; }
         public int? ExistingCertificateId { get; set; } // If updating existing
+
+        // True when this row matches an existing cert number BUT would move it to a different
+        // company — the classic "miskeyed cert number" collision. Drives the preview warning and
+        // the apply-time acknowledgement gate.
+        public bool ChangesCompany =>
+            Changes.Any(c => c.FieldName == FieldChange.CompanyFieldName && c.IsSignificant);
     }
 
     /// <summary>
@@ -155,6 +179,10 @@ namespace GCCWebApp.Models.Import
     /// </summary>
     public class FieldChange
     {
+        // Single source of truth for the Company change label so the detector (DetectChanges) and
+        // the reassignment guard (CertificateImportRow.ChangesCompany) can never drift apart.
+        public const string CompanyFieldName = "Company";
+
         public string FieldName { get; set; } = string.Empty;
         public string? OldValue { get; set; }
         public string? NewValue { get; set; }
@@ -201,6 +229,7 @@ namespace GCCWebApp.Models.Import
         // Product fields
         public string ProductName { get; set; } = string.Empty;
         public string ProductType { get; set; } = string.Empty;
+        public string ProductCategory { get; set; } = string.Empty;
 
         // Product identifiers
         public string Asin { get; set; } = string.Empty;

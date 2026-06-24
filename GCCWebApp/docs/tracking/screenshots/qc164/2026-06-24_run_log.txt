@@ -1,0 +1,64 @@
+[0] Capture original state + mint Amazon key
+
+--- DB: ORIGINAL (before test) ---
+Number|CertStatus|Exp|PType|PVal|PidStatus
+------|----------|---|-----|----|---------
+26-0147|Client Approved - Paid|2028-05-31|ASIN|B0BRNPBZJ8|Active
+26-0147|Client Approved - Paid|2028-05-31|ASIN|B01DSSNB5G|Active
+  PASS  original cert is in an active/public status  — Client Approved - Paid, exp 2028-05-31
+   (login attempt 1 did not navigate — retrying)
+   (login attempt 2 did not navigate — retrying)
+  PASS  admin logged in  — http://localhost:5101/Certificate/CertificateTileViewInternal
+  PASS  fresh Amazon partner key minted  — gcc_partner_7da18ce312…
+
+[1] BASELINE — Amazon export BEFORE expiry
+  PASS  26-0147 present in baseline export  — status=Active
+  PASS  26-0147 status literal "Active"  — Active
+  PASS  baseline export includes ASIN B01DSSNB5G  — B0BRNPBZJ8, B01DSSNB5G
+  PASS  baseline export includes ASIN B0BRNPBZJ8  — B0BRNPBZJ8, B01DSSNB5G
+  PASS  ASIN B01DSSNB5G findable via productid search (baseline)  — 1 cert(s)
+
+[2] AGE OUT — backdate ExpirationDate to 2026-06-01 (simulating natural expiry)
+
+--- DB: after backdating expiration (status not yet swept) ---
+Number|CertStatus|Exp|PType|PVal|PidStatus
+------|----------|---|-----|----|---------
+26-0147|Client Approved - Paid|2026-06-01|ASIN|B0BRNPBZJ8|Active
+26-0147|Client Approved - Paid|2026-06-01|ASIN|B01DSSNB5G|Active
+
+[3] WAIT — polling for CertificateExpirationBackgroundService to auto-expire
+   swept after ~10s: Status='Expired'
+  PASS  background sweep flipped cert to Expired
+
+--- DB: after background sweep (expect CertStatus=Expired, PidStatus=Inactive) ---
+Number|CertStatus|Exp|PType|PVal|PidStatus
+------|----------|---|-----|----|---------
+26-0147|Expired|2026-06-01|ASIN|B0BRNPBZJ8|Inactive
+26-0147|Expired|2026-06-01|ASIN|B01DSSNB5G|Inactive
+  PASS  all child ASIN product IDs cascaded to Inactive  — see db_after_expiry.txt
+
+--- CertificateStatusHistory (most recent) ---
+PreviousStatus|NewStatus|ChangedByUsername|WorkflowStep
+--------------|---------|-----------------|------------
+Client Approved - Paid|Expired|System|Auto-Expiration
+  PASS  auto-expire logged by System / Auto-Expiration  — Client Approved - Paid|Expired|System|Auto-Expiration
+
+[4] PROVE — Amazon export AFTER expiry
+  PASS  26-0147 EXCLUDED from export after expiry  — absent ✓
+  PASS  ASIN B01DSSNB5G absent from entire export payload  — gone ✓
+  PASS  ASIN B0BRNPBZJ8 absent from entire export payload  — gone ✓
+  PASS  ASIN B01DSSNB5G no longer found via productid search  — 0 cert(s)
+  PASS  GET /certificates/number/26-0147 -> 404 for partner  — status 404
+
+[5] RESTORE — return cert 26-0147 to original state
+
+--- DB: after restore ---
+Number|CertStatus|Exp|PType|PVal|PidStatus
+------|----------|---|-----|----|---------
+26-0147|Client Approved - Paid|2028-05-31|ASIN|B0BRNPBZJ8|Active
+26-0147|Client Approved - Paid|2028-05-31|ASIN|B01DSSNB5G|Active
+  PASS  cert restored to original status  — Client Approved - Paid, 2028-05-31
+  PASS  child ASIN product IDs restored to Active  — see snapshot
+  PASS  26-0147 reappears in export after restore  — present ✓
+
+=== QC #164 date-expiry exclusion: 19 passed, 0 failed ===

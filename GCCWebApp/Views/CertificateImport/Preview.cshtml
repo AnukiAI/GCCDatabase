@@ -75,6 +75,49 @@
             </div>
         </div>
 
+        <!-- Company Reassignment Warning (miskeyed cert-number guard) -->
+        @if (Model.HasCompanyReassignments)
+        {
+            <div class="alert alert-danger" style="margin-bottom: 2rem;" id="reassignmentWarning">
+                <h4 style="margin-top: 0;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    @Model.CompanyReassignmentCount certificate(s) would change company
+                </h4>
+                <p style="margin-bottom: 0.75rem;">
+                    The certificate number(s) below already exist under a <strong>different company</strong>.
+                    Applying this import will <strong>overwrite those existing certificates</strong> and reassign
+                    them. If a number was mistyped, this would replace the wrong certificate. Confirm each one is
+                    intentional before applying.
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-sm" style="margin-bottom: 0;">
+                        <thead>
+                            <tr>
+                                <th>Row</th>
+                                <th>Certificate #</th>
+                                <th>Current Company</th>
+                                <th></th>
+                                <th>New Company (from file)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.CompanyReassignmentRows)
+                            {
+                                var companyChange = row.Changes.FirstOrDefault(c => c.FieldName == GCCWebApp.Models.Import.FieldChange.CompanyFieldName);
+                                <tr>
+                                    <td>@row.RowNumber</td>
+                                    <td><code>@row.CertificateNumber</code></td>
+                                    <td>@(string.IsNullOrEmpty(companyChange?.OldValue) ? "(empty)" : companyChange!.OldValue)</td>
+                                    <td><i class="fas fa-arrow-right"></i></td>
+                                    <td><strong>@(string.IsNullOrEmpty(companyChange?.NewValue) ? "(empty)" : companyChange!.NewValue)</strong></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
         <!-- Action Buttons -->
         @if (Model.CanApply)
         {
@@ -83,6 +126,20 @@
                     <form asp-action="Apply" asp-controller="CertificateImport" method="post" id="applyForm">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="importId" value="@Model.ImportId" />
+
+                        @if (Model.HasCompanyReassignments)
+                        {
+                            <div class="alert alert-warning" style="margin-bottom: 1rem;">
+                                <label style="margin-bottom: 0; font-weight: 600; cursor: pointer;">
+                                    <input type="checkbox"
+                                           name="acknowledgeReassignments"
+                                           value="true"
+                                           id="acknowledgeReassignments" />
+                                    I confirm the @Model.CompanyReassignmentCount certificate(s) above should be
+                                    reassigned to a different company.
+                                </label>
+                            </div>
+                        }
 
                         <div class="row align-items-end">
                             <div class="col-md-8">
@@ -319,12 +376,28 @@
         document.getElementById('applyForm')?.addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // Company-reassignment guard: don't even open the confirm dialog until the analyst has
+            // ticked the acknowledgement box. (The server enforces this too — this is just the UX.)
+            const ackBox = document.getElementById('acknowledgeReassignments');
+            if (ackBox && !ackBox.checked) {
+                AdminCore.showNotification(
+                    'Please confirm the company reassignment(s) by checking the acknowledgement box before applying.',
+                    'warning');
+                document.getElementById('reassignmentWarning')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            const reassignmentLine = ackBox
+                ? '<br><strong style="color:#dc3545;">@Model.CompanyReassignmentCount certificate(s) will be reassigned to a different company.</strong><br>'
+                : '';
+
             const confirmed = await AdminCore.showConfirmation({
                 title: 'Apply Import',
                 message: 'Are you sure you want to apply this import?<br><br>' +
                          '<strong>@Model.NewCertificates</strong> new certificate(s) will be created<br>' +
-                         '<strong>@Model.ModifiedCertificates</strong> certificate(s) will be updated<br><br>' +
-                         'All changes will be logged to audit history.',
+                         '<strong>@Model.ModifiedCertificates</strong> certificate(s) will be updated<br>' +
+                         reassignmentLine +
+                         '<br>All changes will be logged to audit history.',
                 confirmText: 'Apply',
                 cancelText: 'Cancel',
                 type: 'warning',

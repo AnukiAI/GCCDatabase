@@ -169,17 +169,40 @@
 
 @section Scripts {
     <script>
+        var csvInput = document.getElementById('csvFile');
+        var uploadForm = document.getElementById('uploadForm');
+
+        // QC #190 (DEF-284): clear the value each time the picker opens so re-selecting a REVISED
+        // file with the SAME name still fires 'change' and uploads the fresh file. Browsers suppress
+        // the change event when the chosen path is identical to the input's current value, so without
+        // this the form would keep the stale first selection (the "can't replace the attached file
+        // with a same-named revision" bug).
+        csvInput.addEventListener('click', function() { this.value = ''; });
+
         // Update file input label with selected filename
-        document.getElementById('csvFile').addEventListener('change', function(e) {
+        csvInput.addEventListener('change', function(e) {
             var fileName = e.target.files[0]?.name || 'Choose file...';
             e.target.nextElementSibling.textContent = fileName;
         });
 
         // Show loading state on form submit
-        document.getElementById('uploadForm').addEventListener('submit', function() {
+        uploadForm.addEventListener('submit', function() {
             const submitBtn = this.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        });
+
+        // QC #190 (DEF-284): when the user returns here via the browser Back button (bfcache) after
+        // viewing the preview, reset the stuck "Processing..." button and the (now-empty) file label
+        // so they can immediately re-upload a revised file instead of hitting a disabled form.
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) {
+                var submitBtn = uploadForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-upload"></i> Upload & Preview';
+                csvInput.value = '';
+                csvInput.nextElementSibling.textContent = 'Choose file...';
+            }
         });
     </script>
 }

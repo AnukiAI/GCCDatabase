@@ -30,6 +30,7 @@ namespace GCCWebApp.Controllers
         private readonly GCCWebApp.Services.Audit.IAuditService _auditService;
         private readonly ApplicationDbContext _context;
         private readonly IProductIdService _productIdService;
+        private readonly IUploadPathResolver _uploadPaths;
 
         public CertificateController(
             ILogger<CertificateController> logger,
@@ -42,7 +43,8 @@ namespace GCCWebApp.Controllers
             ICertificateFieldService certificateFieldService,
             GCCWebApp.Services.Audit.IAuditService auditService,
             ApplicationDbContext context,
-            IProductIdService productIdService)
+            IProductIdService productIdService,
+            IUploadPathResolver uploadPaths)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -55,6 +57,7 @@ namespace GCCWebApp.Controllers
             _auditService = auditService;
             _context = context;
             _productIdService = productIdService;
+            _uploadPaths = uploadPaths;
         }
 
         #region Basic CRUD Operations
@@ -994,7 +997,45 @@ namespace GCCWebApp.Controllers
                     // and Draft → Expired-via-time-elapse is also a sane fallback.
                     var oldStatus = certificate.Status;
                     var requestedStatus = model.Status ?? "Draft";
-                    if (!string.Equals(oldStatus, requestedStatus, StringComparison.Ordinal)
+
+                    // DEF-285 (QC #188): expiry-correction auto-revert. A cert that auto-expired
+                    // (date-driven) is otherwise trapped by the Expired→{Republished,Draft} matrix —
+                    // the user can fix the expiration date but can't restore the prior status
+                    // ("a certificate cannot be changed from Expired to Client Approved - Paid").
+                    // Per Shawn (2026-06-24): when the edit moves the ExpirationDate back to today/
+                    // future on a currently-Expired cert AND the user didn't pick a valid alternative
+                    // themselves, restore the status the cert held immediately before it auto-expired
+                    // (recovered from the auto-expire history row), bypassing the transition block for
+                    // this corrective restore. Falls back to Draft if no pre-expiry status is recorded.
+                    var isExpiryRevert = false;
+                    if (string.Equals(oldStatus, CertificateStatusHelper.StatusExpired, StringComparison.Ordinal)
+                        && model.ExpirationDate.HasValue
+                        && model.ExpirationDate.Value.Date >= CertificateStatusHelper.BusinessToday
+                        && (string.Equals(requestedStatus, oldStatus, StringComparison.Ordinal)
+                            || !CertificateStatusHelper.IsValidTransition(oldStatus, requestedStatus)))
+                    {
+                        var priorStatus = await _context.CertificateStatusHistory
+                            .Where(h => h.CertificateId == certificate.Id
+                                && h.IsAutomatedTransition
+                                && h.NewStatus == CertificateStatusHelper.StatusExpired
+                                && h.PreviousStatus != CertificateStatusHelper.StatusExpired
+                                && h.PreviousStatus != CertificateStatusHelper.StatusExpiredNoAnnualVerification)
+                            .OrderByDescending(h => h.ChangedAt)
+                            .Select(h => h.PreviousStatus)
+                            .FirstOrDefaultAsync();
+
+                        requestedStatus = !string.IsNullOrEmpty(priorStatus)
+                            ? priorStatus
+                            : CertificateStatusHelper.StatusDraft;
+                        isExpiryRevert = true;
+
+                        _logger.LogInformation(
+                            "QC#188 expiry-correction: cert {Number} ExpirationDate moved to {Date:yyyy-MM-dd}; reverting status 'Expired' → '{New}'",
+                            certificate.Number, model.ExpirationDate.Value, requestedStatus);
+                    }
+
+                    if (!isExpiryRevert
+                        && !string.Equals(oldStatus, requestedStatus, StringComparison.Ordinal)
                         && !CertificateStatusHelper.IsValidTransition(oldStatus, requestedStatus))
                     {
                         var fromDisplay = CertificateStatusHelper.GetDisplayName(oldStatus);
@@ -1302,13 +1343,15 @@ namespace GCCWebApp.Controllers
                             CertificateNumber = certificate.Number,
                             PreviousStatus = oldStatus,
                             NewStatus = certificate.Status,
-                            Reason = "User-initiated transition via Edit form",
+                            Reason = isExpiryRevert
+                                ? "Expiry corrected: status restored to its pre-expiry value (QC #188)"
+                                : "User-initiated transition via Edit form",
                             ChangedBy = actingUserId ?? 1,
                             ChangedByUsername = actingUsername,
                             ChangedAt = DateTime.UtcNow,
                             ChangeSource = AuditChangeSource.WebUI,
                             IsAutomatedTransition = false,
-                            WorkflowStep = "Edit-POST"
+                            WorkflowStep = isExpiryRevert ? "Expiry-Correction-Revert" : "Edit-POST"
                         });
                     }
 
@@ -2014,8 +2057,7 @@ namespace GCCWebApp.Controllers
             {
                 return NotFound();
             }
-            var physical = Path.Combine(
-                _hostingEnvironment.ContentRootPath, "App_Data", "uploads", "images", fileName);
+            var physical = Path.Combine(_uploadPaths.ImagesDir, fileName); // DEF-286: configured root
             if (!System.IO.File.Exists(physical)) return NotFound();
             var contentType = GetContentType(physical);
             return PhysicalFile(physical, contentType);
@@ -2165,42 +2207,17 @@ namespace GCCWebApp.Controllers
         {
             if (string.IsNullOrEmpty(logicalPath)) return null;
 
-            // Normalize — strip ~/ and leading / so we always join against App_Data
-            var clean = logicalPath.TrimStart('~').TrimStart('/').Replace('\\', '/');
-
-            // Must be a known uploads subpath, no traversal
-            if (!clean.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase)
-                || clean.Contains("..", StringComparison.Ordinal))
+            // DEF-286: resolution (configured root → App_Data → wwwroot legacy) and traversal
+            // rejection are centralised in IUploadPathResolver so this can't drift from the
+            // other resolvers (the DEF-262/264/279 bug class).
+            if (!_uploadPaths.TryResolveExisting(logicalPath, out var physical))
             {
-                _logger.LogWarning("StreamUploadedFile rejected suspicious path: {Path}", logicalPath);
+                _logger.LogWarning(
+                    "StreamUploadedFile: no file on disk for logical path {Path} (resolved {Physical}). " +
+                    "If the DB references this file it is missing — likely the 2026-06-15 upload-store " +
+                    "incident; restore from backup. See incident_prod_all_pdfs_missing_2026-06-15.",
+                    logicalPath, string.IsNullOrEmpty(physical) ? "<malformed>" : physical);
                 return null;
-            }
-
-            var subPath = clean.Replace('/', Path.DirectorySeparatorChar);
-
-            // Resolve under App_Data first (the new home as of DEF-208 fix).
-            var physical = Path.Combine(
-                _hostingEnvironment.ContentRootPath, "App_Data", subPath);
-
-            // Migration-friendly fallback: pre-DEF-208 files still live under wwwroot/.
-            // The static-file leak is closed by the /uploads/* middleware block in
-            // Program.cs regardless of where the file physically sits; this fallback
-            // just keeps existing files reachable through the controller until the
-            // one-time Move-Item migration runs on the server. Remove this branch
-            // after the migration has propagated everywhere.
-            if (!System.IO.File.Exists(physical))
-            {
-                var legacy = Path.Combine(
-                    _hostingEnvironment.WebRootPath ?? "", subPath);
-                if (System.IO.File.Exists(legacy))
-                {
-                    physical = legacy;
-                }
-                else
-                {
-                    _logger.LogInformation("StreamUploadedFile: file not found in App_Data nor wwwroot: {Path}", subPath);
-                    return null;
-                }
             }
 
             var contentType = GetContentType(physical);
@@ -2208,21 +2225,13 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// DEF-262: resolve a logical "uploads/{subdir}/{file}" path to a physical path for
-        /// File.Exists checks — App_Data home first (DEF-208), wwwroot legacy fallback. Returns
-        /// the App_Data candidate when neither exists so callers branch on the new home.
+        /// DEF-286: resolve a logical "uploads/{subdir}/{file}" path to a physical path for
+        /// File.Exists checks via the shared <see cref="IUploadPathResolver"/> (configured root →
+        /// App_Data → wwwroot legacy). Returns the canonical candidate when nothing exists so
+        /// callers can branch on it.
         /// </summary>
         private string ResolveUploadPhysicalPath(string logicalPath)
-        {
-            var rel = (logicalPath ?? string.Empty)
-                .Replace("/", Path.DirectorySeparatorChar.ToString())
-                .Replace("\\", Path.DirectorySeparatorChar.ToString());
-            var appData = Path.Combine(_hostingEnvironment.ContentRootPath, "App_Data", rel);
-            if (System.IO.File.Exists(appData)) return appData;
-            var legacy = Path.Combine(_hostingEnvironment.WebRootPath ?? string.Empty, rel);
-            if (System.IO.File.Exists(legacy)) return legacy;
-            return appData;
-        }
+            => _uploadPaths.ResolvePhysical(logicalPath ?? string.Empty);
 
         private string GetContentType(string path)
         {

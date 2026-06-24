@@ -1,0 +1,4 @@
+Number|CertStatus|Exp|PType|PVal|PidStatus
+------|----------|---|-----|----|---------
+26-0147|Client Approved - Paid|2028-05-31|ASIN|B0BRNPBZJ8|Active
+26-0147|Client Approved - Paid|2028-05-31|ASIN|B01DSSNB5G|Active

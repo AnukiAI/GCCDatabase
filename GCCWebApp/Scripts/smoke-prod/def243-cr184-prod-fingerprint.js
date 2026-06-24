@@ -67,7 +67,7 @@ async function login(ctx, user) {
     // context + product-ID Last Updated/Updated By; product-ID partner titled "ID Partner").
     const exp = await adminCtx.request.get(`${BASE}/Export/DownloadActiveProductIds`);
     const csv = await exp.text();
-    const header = 'Company,Certificate Number,Certification Type,Effective Date,Expiration Date,Cert Status,ID Partner,Cert Partner,Certification Results,Pathway,Identifier Type,Id Value,Product Name,SKU,Created Date,Created By,Last Updated,Updated By,Description';
+    const header = 'Company,Certificate Number,Certification Type,Effective Date,Expiration Date,Certificate Status,ID Partner,Cert Partner,Certification Results,Pathway,Identifier Type,Product ID/ID Value,Product Name,SKU,Created Date,Created By,Last Updated,Updated By,Description';
     const totalLine = (csv.split('\n').find(l => l.startsWith('Total Active')) || '').trim();
     const ctype = exp.headers()['content-type'] || '';
     rec('CR184-admin-export', 'Admin export returns active-identifier CSV',

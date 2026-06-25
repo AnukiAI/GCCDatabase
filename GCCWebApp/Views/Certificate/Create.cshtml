@@ -44,20 +44,35 @@
     @* Success message will be shown as toast notification via JavaScript *@
     @if (TempData["SuccessMessage"] is string successMsg)
     {
+        @* QC #193 / DEF-291: show the "created successfully" toast exactly once per server
+           render. The guard is keyed on a per-render nonce (NOT the message text) so that
+           when the browser restores this page from bfcache/Back/disk-cache — carrying this
+           same inline script with the prior cert's message — the nonce is already marked seen
+           and the stale toast is suppressed. (TempData is read-once, so a genuine fresh
+           "Add Certificate" GET renders no script at all.) *@
         <script>
-            // Guard against mobile bfcache / disk-cache re-firing this toast on subsequent
-            // direct loads of /Certificate/Create after a "Save & Add Another" submit.
-            document.addEventListener('DOMContentLoaded', function() {
-                var msg = '@Html.Raw(successMsg.Replace("'", "\\'"))';
-                var seenKey = 'createSuccessMsg:' + msg;
-                try {
-                    if (sessionStorage.getItem(seenKey)) return;
-                    sessionStorage.setItem(seenKey, '1');
-                } catch (e) { /* sessionStorage unavailable — fall through and show once */ }
-                if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
-                    AdminCore.showNotification(msg, 'success');
+            (function () {
+                var nonce = '@(Guid.NewGuid().ToString("N"))';
+                var msg = '@Html.Raw(successMsg.Replace("\\", "\\\\").Replace("'", "\\'"))';
+                var seenKey = 'createSuccessMsgShown:' + nonce;
+                function showOnce() {
+                    try {
+                        if (sessionStorage.getItem(seenKey)) return;
+                        sessionStorage.setItem(seenKey, '1');
+                    } catch (e) { /* sessionStorage unavailable — fall through and show once */ }
+                    if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                        AdminCore.showNotification(msg, 'success');
+                    }
                 }
-            });
+                // bfcache restore (Back button) re-fires pageshow with persisted=true but NOT
+                // DOMContentLoaded; the seen-nonce check below blocks the stale re-show either way.
+                window.addEventListener('pageshow', function (e) { if (e.persisted) showOnce(); });
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', showOnce);
+                } else {
+                    showOnce();
+                }
+            })();
         </script>
     }
 

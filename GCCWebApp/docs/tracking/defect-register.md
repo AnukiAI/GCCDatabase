@@ -83,6 +83,71 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 ## Open / Recent
 
+### DEF-292 — Certificate Import: a miskeyed certificate number silently overwrites a different company's certificate (no reassignment guard)
+
+- **Date:** 2026-06-24 (fixed locally)
+- **Severity:** **High** — data integrity / data loss. A single mistyped cert number can silently overwrite and reassign an unrelated, accurate certificate, with no warning beyond the generic preview.
+- **Status:** **Fixed locally — pending next deploy.** Built and verified on `localhost:5101` + dev DB. No commit yet (working tree).
+- **QC Ref:** None — surfaced during an agile requirements discussion on the import test template (2026-06-24), not a client QC item. ([[feedback_data_issue_vs_defect]]: this is a genuine code-path defect, not a broken-data row, so it gets a DEF.)
+- **Bucket:** Bug (data integrity / back-end + UX).
+- **Root cause.** CSV import matches an incoming row to an existing certificate **by certificate number only**, case-insensitive (`Services/Import/CertificateImportService.cs:1184`). On a match the row is classified `Modified` and `UpdateCertificateAsync` overwrites the existing record **in place — including `CompanyId`** (`CertificateImportService.cs:1492`). So if an analyst mistypes a number that happens to belong to a *different* company's cert, the import reassigns and overwrites that cert rather than creating a new one. The only prior safeguard was the generic preview diff; nothing flagged the company change or blocked apply. Cert number is treated as the unique business key, which is by design — but that makes a miskey destructive.
+- **Fix (applied locally).** Added a **company-reassignment guard**: any number-match whose detected changes include the Company field is surfaced as a blocking warning and apply is refused until explicitly acknowledged.
+  - Detection: `FieldChange.CompanyFieldName` constant (single source of truth, shared with `DetectChanges`); per-row `CertificateImportRow.ChangesCompany`; preview-level `CompanyReassignmentRows` / `CompanyReassignmentCount` / `HasCompanyReassignments`.
+  - **Server-side enforcement** (the real guard, not bypassable): `Apply` (MVC) and `ApiApply` (JSON) both refuse to call `ApplyImportAsync` when `HasCompanyReassignments && !acknowledgeReassignments`, returning the preview with an error / a `requiresReassignmentAck` 400.
+  - UI affordance: Preview shows a red warning card listing each `Current Company → New Company`, plus a required acknowledgement checkbox wired into the apply form; the Apply button refuses to open the confirm dialog until it is ticked, and the confirm modal calls out the reassignment count.
+  - Scope: Company change only (the strongest miskey signal). Product/type/date changes remain ordinary `Modified` edits. Blocks the whole batch until acknowledged.
+- **Files:** `Models/Import/CertificateImportModels.cs`, `Services/Import/CertificateImportService.cs`, `Controllers/CertificateImportController.cs`, `Views/CertificateImport/Preview.cshtml`.
+- **Verification (2026-06-24, localhost:5101, Playwright as admin).** Fixture cert `ZZ-9001` created under Acme Corporation; collision CSV imported it as Globex Industries. Confirmed: (1) preview shows the red warning naming the cert + Acme→Globex; (2) UI gate — Apply without ticking ack stays on Preview; (3) **server gate** — a bare `POST /CertificateImport/Apply` with valid importId + antiforgery token but no ack flag is blocked (`success=false`), proving enforcement is independent of the JS; (4) happy path — ack checked → apply → DB shows `ZZ-9001` reassigned Acme→Globex. Fixture deleted; dev DB restored.
+- **Regression test.** Import a CSV row whose cert number exists under a *different* company → preview must list it under the reassignment warning; posting apply without the ack flag must be rejected server-side; ticking ack + apply must succeed and reassign. Also confirm a normal `Modified` row that does **not** change company is unaffected (no warning, applies as before).
+
+### DEF-291 — Certificate Create: clicking "Add Certificate" after a successful save re-shows the previous cert's success toast
+
+- **Date:** 2026-06-24 (opened)
+- **Severity:** Low — cosmetic; a stale "Certificate NN created successfully!" toast appears on a fresh Create page. No data impact; workaround is to ignore it.
+- **Status:** **Fixed locally — pending next deploy.** Code fix applied in `Views/Certificate/Create.cshtml` (verified in-tree 2026-06-24). *Register reconciled 2026-06-24: this entry previously read "Open — not yet fixed"; a parallel session had applied the fix without updating the register (tracking drift).*
+- **QC Ref:** QC #193 (Sprint 3, Reporter: Gemma — 6/11/26, Cert Creation Page): *"When I've just successfully uploaded a certificate, and go to click the 'Add Certificate' button to create another, a pop-up appears saying the last certificate was successfully uploaded."* Triaged in `docs/tracking/6_23_IssuesTriage.md`.
+- **Bucket:** Bug (front-end / TempData lifecycle).
+- **Root cause.** After a "Save & Add Another" create the controller sets `TempData["SuccessMessage"]` and redirects to Create (`Controllers/CertificateController.cs:699-702`); the Create view renders it as a toast via `AdminCore.showNotification` (`Views/Certificate/Create.cshtml`). The prior bfcache/disk-cache re-fire guard was keyed **per message content**, so a *different* cert number produced a new key and the guard didn't suppress the stale re-show when the browser restored the page from cache.
+- **Fix (applied).** The toast block now reads `TempData["SuccessMessage"]` (read-once — cleared for the next request, so a genuine fresh "Add Certificate" GET renders no script at all) and guards the show with a **per-render `Guid` nonce** (`Create.cshtml:47-76`): `pageshow`/`DOMContentLoaded` call `showOnce()`, which no-ops if the nonce is already marked in `sessionStorage`. A bfcache restore carries the same inline script with the prior message but the nonce is already "seen", so the stale toast is suppressed; the genuine toast still shows exactly once right after each save. View-only change — the controller TempData handling was already correct.
+- **Files:** `Views/Certificate/Create.cshtml` (toast block).
+- **Regression test.** Create a cert → click "Add Certificate" → confirm no stale toast on the fresh form; repeat with a second cert; verify the genuine success toast still shows exactly once immediately after each save; check browser Back-button behavior.
+
+### DEF-290 — Admin entity deletes (10 actions): soft-delete + audit coverage is inconsistent entity-by-entity
+
+- **Date:** 2026-06-24
+- **Severity:** High — data-loss exposure / incomplete audit trail. No confirmed live bug; flagged by review.
+- **Status:** **OPEN — review/harden.** No code change yet (review-only audit).
+- **QC Ref:** none. **Found by:** Data-Protection Controls Review, 2026-06-24 (`docs/tracking/data-protection-controls-review-2026-06-24.md`, R6).
+- **Bucket:** Bug (data-integrity) / hardening.
+- **Root cause.** `AdminController` exposes 10 delete actions (User, Role, ProductType, CertificateType, CertificateField, Tag, Partner, Pathway, Product, plus `DeleteEntity`). Soft-delete exists only on **User** and **Pathway** (`IsDeleted` from migrations `FixUserUniqueIndexesForSoftDelete` / `FixPathwayUniqueIndexForSoftDelete`); the others appear hard-delete. `AdminService` injects `IAuditService`, but per-action DELETE-audit coverage is not uniformly verified. Most FKs are `OnDelete(Restrict/NoAction)` in `ApplicationDbContext.cs`, which blocks orphaning (good) but means a delete of a referenced entity may surface a raw 500 rather than a friendly block.
+- **Proposed fix (when picked up).** For each of the 10 actions confirm (a) an `AuditHistory` DELETE row is written, and (b) a deliberate soft-delete vs. hard-delete decision is recorded per entity. Convert friendly-error handling for `Restrict`-blocked deletes.
+- **Files (when picked up):** `Controllers/AdminController.cs`, `Services/AdminService.cs`, `Data/ApplicationDbContext.cs`.
+- **Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_scoping_check_adjacent_endpoints]].
+
+### DEF-289 — Document delete physically destroys the PDF from disk (irreversible) and writes no attributed audit row
+
+- **Date:** 2026-06-24
+- **Severity:** 🔴 Critical — irreversible data loss + same class as the 2026-06-15 PDF-wipe incident.
+- **Status:** **OPEN — fix proposed.** No code change yet (review-only audit). Decision needed on quarantine vs. retain-in-place.
+- **QC Ref:** none. **Found by:** Data-Protection Controls Review, 2026-06-24 (`docs/tracking/data-protection-controls-review-2026-06-24.md`, R3).
+- **Bucket:** Bug (file handling) / data-protection.
+- **Root cause.** `DocumentController.Delete` (`:231`) correctly **soft-deletes the DB row** (`IsActive=false`) but then calls `FileUploadService.DeleteFileAsync`, which does a hard `File.Delete(fullPath)` (`FileUploadService.cs:220`) — so the row is recoverable but **the actual PDF on disk is gone permanently**. Compounding it, `DocumentController.GetCurrentUserId()` returns `null` (stub), so the delete has **no user attribution** and no `AuditHistory` row is written. Echoes [[incident_prod_all_pdfs_missing_2026-06-15]].
+- **Proposed fix.** (1) Stop physically deleting on document delete — the soft-deleted row is enough; either leave the file in place or move it to a `_deleted/` quarantine folder under the upload root (via `IUploadPathResolver`, DEF-286). (2) Wire `GetCurrentUserId()` to the `NameIdentifier` claim and write an `AuditHistory` DELETE row. (3) Add a retention/purge decision (see review Open Q2).
+- **Files (when picked up):** `Controllers/DocumentController.cs`, `Services/FileUploadService.cs`.
+- **Linked memory.** [[incident_prod_all_pdfs_missing_2026-06-15]], [[feedback_backup_uploads_before_deploy]], [[project_upload_storage_resolver]].
+
+### DEF-288 — Certificate deletion is permanent and unaudited (single + bulk): no soft-delete, no AuditHistory row, status history cascade-wiped
+
+- **Date:** 2026-06-24
+- **Severity:** 🔴 Critical — irreversible loss of the core business record with no audit trail. No confirmed live deletion yet; this is the latent exposure.
+- **Status:** **OPEN — fix approved in principle.** No code change yet (review-only audit). **Decision (Shawn, 2026-06-24): certificates must be recoverable (soft-delete).** Implementation plan drafted: `docs/tracking/DEF-288-certificate-soft-delete-plan.md` (awaiting sign-off on 2 design decisions).
+- **QC Ref:** none. **Found by:** Data-Protection Controls Review, 2026-06-24 (`docs/tracking/data-protection-controls-review-2026-06-24.md`, R1/R2/R4).
+- **Bucket:** Bug (data-protection / audit).
+- **Root cause.** The `Certificate` entity has **no soft-delete** (`Models/Certificate.cs` — no `IsDeleted`/query filter), so every delete path is permanent: (a) `CertificateController.DeleteConfirmed` (`:1591`) calls `RemoveAsync` and only logs `_logger.LogInformation` — **no `AuditHistory` row**; (b) `BulkCertificatesController.BulkDelete` (`:236`) does `_context.Certificates.Remove()` for up to 100 certs with **no audit row and no confirm** (the controller doesn't inject `IAuditService`). Both cascade-delete `CertificateStatusHistory` (`ApplicationDbContext.cs:753`). The `AuditService` infrastructure already supports a recoverable DELETE snapshot but is not called from either path.
+- **Proposed fix (per approved decision).** (1) Add `IsDeleted`/`DeletedAt`/`DeletedBy` to `Certificate` + a global query filter (mirror the User/Pathway pattern). (2) Convert both delete paths to soft-delete and call `_auditService.LogEntityChangeAsync(..., AuditAction.Delete, oldEntity, null, ...)` before save. (3) Add a typed count-confirmation for bulk delete (or disable `BulkDelete` entirely — DEF-131 notes no repo caller). (4) Ensure `CertificateStatusHistory` survives a soft-delete (don't hard-cascade). New migration → couple a Gate-7 prod SQL per [[project_predeploy_agent_checklist]].
+- **Files (when picked up):** `Models/Certificate.cs`, `Data/ApplicationDbContext.cs` (query filter + cascade), `Controllers/CertificateController.cs` (`DeleteConfirmed`), `Controllers/Api/v1/BulkCertificatesController.cs` (`BulkDelete`), new migration.
+- **Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_data_changes_require_cr]], [[project_predeploy_agent_checklist]].
+
 ### DEF-287 — Partner "Export All" CSV (external tile view): "Cert Results" column STILL exported the raw decimal instead of the percentage — the adjacent export path DEF-275 missed
 
 - **Date:** 2026-06-24

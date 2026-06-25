@@ -377,17 +377,23 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         }
 
         [Fact]
-        public async Task PreviewImportAsync_CertTypeNotFound_ReturnsError()
+        public async Task PreviewImportAsync_CertTypeNotFound_MapsToUnspecifiedPlaceholder()
         {
+            // Client directive 2026-06-24: an unknown Certification Type no longer rejects the
+            // row — it maps to the deactivated "Unspecified" placeholder so the cert still imports
+            // (CertificationTypeId is a required FK). Previously this asserted a "not found" error.
             var csv = BuildCsv(StdHeaders,
                 StdRow(certType: "NonExistent Type"));
             var file = CreateCsvFormFile(csv);
 
             var result = await _service.PreviewImportAsync(file, 1, "admin");
 
-            result.InvalidRows.Should().Be(1);
-            result.ErrorRows[0].ErrorMessages
-                .Should().Contain(m => m.Contains("Certification Type not found"));
+            result.NewRows.Should().HaveCount(1);
+            result.ErrorRows.Should().NotContain(e =>
+                e.ErrorMessages.Any(m => m.Contains("Certification Type not found")));
+            var unspecified = _context.CertificationTypes
+                .First(ct => ct.Name == "Unspecified" && ct.ParentId == null);
+            result.NewRows[0].CertificationTypeId.Should().Be(unspecified.Id);
         }
 
         [Fact]
@@ -426,7 +432,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-9999", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "NYC", "USA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "NYC", "USA",
                 "Amazon", "not-an-email", "", "", "", "", "", "",
                 "", "", "", ""
             });
@@ -445,7 +451,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-9999", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "NYC", "USA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "NYC", "USA",
                 "Amazon", "valid@email.com", "", "", "", "", "", "",
                 "", "", "", ""
             });
@@ -467,7 +473,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-9999", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "NYC", "USA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "NYC", "USA",
                 "Amazon", "", "", "", "", "", "95.5% recycled", "",
                 "", "", "", ""
             });
@@ -487,7 +493,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-9999", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "NYC", "USA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "NYC", "USA",
                 "Amazon", "", "", "", "", "", longResult, "",
                 "", "", "", ""
             });
@@ -536,7 +542,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-9999", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "NYC", "USA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "NYC", "USA",
                 "Amazon", "", "", "", "", "New Product Type", "", "",
                 "", "", "", ""
             });
@@ -555,7 +561,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-9999", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "NYC", "USA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "NYC", "USA",
                 "Amazon", "", "", "", "", "", "",
                 "new-tag-1,new-tag-2", "", "", "", ""
             });
@@ -574,7 +580,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-9999", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "NYC", "USA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "NYC", "USA",
                 "Amazon", "", "", "", "", "", "", "eco-friendly",
                 "", "", "", ""
             });
@@ -592,7 +598,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-9999", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "NYC", "USA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "NYC", "USA",
                 "Amazon", "", "", "", "", "", "",
                 "eco-friendly,brand-new-tag", "", "", "", ""
             });
@@ -613,7 +619,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-9999", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "NYC", "USA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "NYC", "USA",
                 "Amazon", "", "", "", "", "Cleaning", "", "",
                 "", "", "", ""
             });
@@ -633,7 +639,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         public async Task PreviewImportAsync_AllRequiredFieldsEmpty_SkipsRow()
         {
             var csv = BuildCsv(StdHeaders,
-                new[] { "", "", "", "", "Active", "2025-01-01",
+                new[] { "", "", "", "", "Client Approved - Paid", "2025-01-01",
                     "2026-01-01", "NYC", "USA", "Amazon" });
             var file = CreateCsvFormFile(csv);
 
@@ -690,8 +696,10 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         [Fact]
         public async Task PreviewImportAsync_AllRowsError_SetsCriticalErrors()
         {
+            // An unknown cert type no longer errors (maps to "Unspecified" — 2026-06-24 directive);
+            // use an invalid date to make the only row invalid so ALL rows are errors → critical.
             var csv = BuildCsv(StdHeaders,
-                StdRow(certType: "Nonexistent Type"));
+                StdRow(effDate: "not-a-date"));
             var file = CreateCsvFormFile(csv);
 
             var result = await _service.PreviewImportAsync(file, 1, "admin");
@@ -702,9 +710,12 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         [Fact]
         public async Task PreviewImportAsync_SomeRowsValid_NoCriticalErrors()
         {
+            // Second row invalid via a bad date (unknown cert type no longer errors — it maps to
+            // "Unspecified" per the 2026-06-24 directive): one valid + one invalid → has errors,
+            // but not critical (at least one row is importable).
             var csv = BuildCsv(StdHeaders,
                 StdRow(),
-                StdRow("25-9998", certType: "Nonexistent Type"));
+                StdRow("25-9998", effDate: "not-a-date"));
             var file = CreateCsvFormFile(csv);
 
             var result = await _service.PreviewImportAsync(file, 1, "admin");
@@ -718,8 +729,11 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         #region PreviewImportAsync - Defaults
 
         [Fact]
-        public async Task PreviewImportAsync_EmptyStatus_DefaultsToActive()
+        public async Task PreviewImportAsync_EmptyStatus_DefaultsToDraft()
         {
+            // QC #194 / DEF-276: blank status now defaults to the canonical "Draft"
+            // (previously the importer accepted free-text "Active"; status is now
+            // validated against the 8 canonical states).
             var csv = BuildCsv(StdHeaders, StdRow(status: ""));
             var file = CreateCsvFormFile(csv);
 
@@ -906,7 +920,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-9999", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "NYC", "USA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "NYC", "USA",
                 "Amazon", "", "", "", "", "", "", "", "B08XQRT456",
                 "012345678901", "00012345678901", "1234567890123"
             });

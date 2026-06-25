@@ -1,0 +1,34 @@
+[
+  {
+    "view": "public",
+    "vp": 1440,
+    "n": 29,
+    "min": 565,
+    "median": 584,
+    "max": 676
+  },
+  {
+    "view": "public",
+    "vp": 390,
+    "n": 29,
+    "min": 559,
+    "median": 559,
+    "max": 663
+  },
+  {
+    "view": "internal",
+    "vp": 1440,
+    "n": 20,
+    "min": 565,
+    "median": 565,
+    "max": 676
+  },
+  {
+    "view": "internal",
+    "vp": 390,
+    "n": 20,
+    "min": 559,
+    "median": 559,
+    "max": 663
+  }
+]

@@ -594,6 +594,12 @@ body:has(.main-container) .page-header {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 20px;
     width: 100%;
+    /* QC #199 (DEF-292): each card takes its NATURAL height instead of stretching to
+       the tallest card in its grid row. Without this, a single long-content card pinned
+       the whole row's height and short cards just gained empty space at the bottom — so
+       the shrink-to-content changes (product-name/company-name max-height) had no visible
+       effect. Tops stay aligned per row; short tiles now condense fully. */
+    align-items: start;
 }
 
 .certificate-card {
@@ -625,7 +631,7 @@ body:has(.main-container) .page-header {
 
 /* Ensure last element in card-body has bottom margin for spacing above card-actions */
 .certificate-card .card-body > *:last-child {
-    margin-bottom: 6px; /* QC #199 (DEF-281): condensed from 12px — the gap after Location/tags */
+    margin-bottom: 4px; /* QC #199 (DEF-292): condensed from 6px — the gap after Location/tags */
 }
 
 /* Tags spacing within card */
@@ -647,7 +653,7 @@ body:has(.main-container) .page-header {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 6px 10px 6px 10px; /* QC #199 (DEF-281): condensed from 10px/8px */
+    padding: 4px 10px 4px 10px; /* QC #199 (DEF-292): condensed from 6px */
     border-top: none;
     background-color: transparent;
     margin-top: auto;
@@ -748,8 +754,12 @@ body.theme-option4 .certificate-card .card-actions {
     overflow: hidden;
     text-overflow: ellipsis;
     /* 3 lines + 6px buffer so descenders ('g', 'p', 'y') aren't clipped on line 3.
-       6px is too small to fit a 4th line so no bleed. */
-    min-height: calc(18px * 1.4 * 3 + 6px);
+       6px is too small to fit a 4th line so no bleed.
+       QC #199 (DEF-292): dropped the 3-line MIN reservation so a short company name
+       (e.g. "3M") no longer pads the dark-blue header to 3 lines tall; max-height keeps
+       the 3-line clamp for long names (no truncation change). Status/Partner rows that
+       follow in the header are untouched. */
+    min-height: 0;
     max-height: calc(18px * 1.4 * 3 + 6px);
 }
 
@@ -793,7 +803,13 @@ body.theme-option4 .certificate-card .card-actions {
     font-weight: 600 !important;
     margin: 3px 0 3px 0 !important;
     color: var(--text-color) !important;
-    height: calc(22px * 1.45 * 3 + 10px) !important; /* QC #199 (DEF-281): trimmed buffer 16px→10px (still 3 lines, no truncation) */
+    /* QC #199 (DEF-292): was a fixed `height` that ALWAYS reserved 3 lines, so a
+       1-line product name (e.g. "3M Test Product") left ~74px of empty space below it
+       — the single biggest source of tile whitespace in Image #90. Now max-height so
+       short names shrink to content while long names still clamp at 3 lines (the
+       -webkit-line-clamp:3 below enforces the cap — no truncation change). */
+    min-height: 0 !important;
+    max-height: calc(22px * 1.45 * 3 + 10px) !important;
     max-width: 100% !important;
     width: 100% !important;
     display: -webkit-box !important;
@@ -804,7 +820,7 @@ body.theme-option4 .certificate-card .card-actions {
     text-overflow: ellipsis !important;
     word-wrap: break-word !important;
     word-break: break-word !important;
-    padding: 8px !important;
+    padding: 2px 8px !important; /* QC #199 (DEF-292): trim vertical padding 8→2px */
     box-sizing: border-box !important;
     white-space: normal !important;
 }
@@ -835,9 +851,9 @@ body.theme-option4 .certificate-card .card-actions {
 .certificate-location {
     font-size: 16px;
     color: #666;
-    margin-top: 6px; /* Reduced from 10px */
-    margin-bottom: 8px; /* Reduced from 12px */
-    padding-top: 4px; /* Reduced from 6px */
+    margin-top: 4px; /* QC #199 (DEF-292): condensed from 6px */
+    margin-bottom: 4px; /* QC #199 (DEF-292): condensed from 8px — the "after location" gap Carly flagged */
+    padding-top: 2px; /* QC #199 (DEF-292): condensed from 4px */
     display: flex;
     align-items: flex-start;
     gap: 8px;

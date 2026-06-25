@@ -6780,3 +6780,26 @@ Ties to prior QC #164 evidence: DEF-097 (shipped 2026-05-06), `docs/tracking/scr
 - 2026-06-24 — Created test import CSV `Scripts/testing/GCC_Certificate_Import_TEST_Sample.csv` (5 sample rows, real seeded Certification Types) for manually exercising the Certificate Import upload page. Headers match `DownloadTemplate` output exactly.
 
 - 2026-06-24 — Drafted import **company-reassignment guard**. A CSV import matches existing certs by number only and overwrites in place (incl. CompanyId), so a miskeyed number silently reassigns a different company's cert. Guard: preview now flags any number-match that changes Company as a blocking warning; apply is refused server-side (MVC Apply + ApiApply) until the analyst ticks an acknowledgement checkbox. Files: Models/Import/CertificateImportModels.cs, Services/Import/CertificateImportService.cs, Controllers/CertificateImportController.cs, Views/CertificateImport/Preview.cshtml. Build clean. NOT yet tested on localhost; no DEF/CR row yet.
+
+## 2026-06-24 — Data-Protection Controls Review (read-only audit of destructive paths)
+
+Audited where users can delete/overwrite/corrupt data and where audit trail / soft-delete / recovery is missing. **No code changed** (review-only). Decision captured: **certificates must be recoverable (soft-delete)** — Shawn, 2026-06-24.
+
+Key findings (full inventory: `docs/tracking/data-protection-controls-review-2026-06-24.md`):
+- The `AuditHistory`/`AuditService` infra is strong (field-level diff, full-entity DELETE snapshot, IP/UA/session, PasswordHash redaction) but is **not wired into the destructive paths**.
+- **Certificate delete is permanent + unaudited** — `CertificateController.DeleteConfirmed` (logs only, no audit) and `BulkCertificatesController.BulkDelete` (up to 100, hard-delete, no audit/confirm); `Certificate` has no `IsDeleted`. Both cascade-wipe `CertificateStatusHistory`. → **DEF-288**.
+- **Document delete hard-deletes the PDF from disk** — row soft-deletes (`IsActive=false`) but `FileUploadService.DeleteFileAsync` does `File.Delete`; `GetCurrentUserId()` returns null (no attribution). Same class as the 2026-06-15 wipe. → **DEF-289**.
+- **Admin deletes (10 actions) inconsistent** — soft-delete only on User/Pathway; audit coverage not uniform. → **DEF-290**.
+- Lower-risk notes: import overwrite (R5 — mitigated by preview + audit) and `File.Copy(overwrite:true)` on import attach (R7).
+
+Registered DEF-288/289/290 (all OPEN, fix proposed, no code yet). Soft-delete migration will need a Gate-7 prod SQL when picked up.
+
+- 2026-06-24 — VERIFIED import company-reassignment guard on localhost:5101 (Playwright, admin). Fixture cert ZZ-9001 created under Acme; collision.csv imported it as Globex. Confirmed: (1) preview shows red warning naming cert + Acme→Globex; (2) UI gate — Apply without ticking ack stays on preview; (3) SERVER gate — bare POST /CertificateImport/Apply w/o ack returns blocked (success=false), proving enforcement is independent of JS; (4) happy path — ack checked → apply → DB shows ZZ-9001 reassigned Acme→Globex. 9/10 script asserts pass (10th was a selector miss on the success redirect; DB is ground truth). Fixture deleted; dev DB restored. Still no DEF/CR row; no commit.
+
+## 2026-06-24 — Open QC-log sweep + DEF-291 register reconciliation (governance)
+
+Pivoted to "fix open QC log issues first." Swept the Sprint 3 triage (`6_23_IssuesTriage.md`): of the 12 items, 11 are already FIXED (DEF-275→285, pending deploy). The only one flagged OPEN was **#193 / DEF-291** (stale "created successfully" toast on a fresh Create page after Save & Add Another).
+
+**Finding — tracking drift, not a missing fix.** The DEF-291 code fix was **already applied** in `Views/Certificate/Create.cshtml` (read-once `TempData["SuccessMessage"]` + per-render `Guid` nonce guard that suppresses the bfcache/Back re-show), almost certainly by a parallel session — but the defect register still read "Open — not yet fixed / Recommended fix (not yet applied)." Verified the fix is complete (controller `:699-702` sets TempData only on saveAndAddAnother→redirect; view reads it once + nonce-guards; genuine toast still fires once per save). **No code written** — reconciled the bookkeeping instead: updated DEF-291 to "Fixed locally — pending next deploy" and the triage #193 row to ✅, both noting the drift.
+
+Lesson: parallel sessions are applying code without updating `defect-register.md` — exactly the silent-drift risk. Worth a governance pass before the next deploy bundle so every working-tree change has a matching, current DEF row.

@@ -1,0 +1,77 @@
+[
+  {
+    "id": "import1.created",
+    "status": "PASS",
+    "notes": "ZZ-9001 exists"
+  },
+  {
+    "id": "import1.company",
+    "status": "PASS",
+    "notes": "company=CR023 Undo Co A"
+  },
+  {
+    "id": "import2.overwrite-warning",
+    "status": "PASS",
+    "notes": "overwrite ack shown"
+  },
+  {
+    "id": "import2.reassign-warning",
+    "status": "PASS",
+    "notes": "reassign ack shown"
+  },
+  {
+    "id": "import2.reassigned",
+    "status": "PASS",
+    "notes": "ZZ-9001 company=CR023 Undo Co B"
+  },
+  {
+    "id": "import2.created",
+    "status": "PASS",
+    "notes": "ZZ-9002 created"
+  },
+  {
+    "id": "history.has-undo",
+    "status": "PASS",
+    "notes": "2 undoable batch(es)"
+  },
+  {
+    "id": "history.batchid",
+    "status": "PASS",
+    "notes": "fe3a8ee4-3b69-4917-8853-dd2ab5c0d3cc"
+  },
+  {
+    "id": "undo.restored-company",
+    "status": "PASS",
+    "notes": "ZZ-9001 company=CR023 Undo Co A (expect CR023 Undo Co A)"
+  },
+  {
+    "id": "undo.created-removed",
+    "status": "PASS",
+    "notes": "ZZ-9002 removed"
+  },
+  {
+    "id": "undo.batch-status",
+    "status": "PASS",
+    "notes": "status=UNDONE"
+  },
+  {
+    "id": "undo.audit-restore",
+    "status": "PASS",
+    "notes": "RESTORE rows=1"
+  },
+  {
+    "id": "undo.audit-delete",
+    "status": "PASS",
+    "notes": "DELETE rows=1"
+  },
+  {
+    "id": "history.shows-undone",
+    "status": "PASS",
+    "notes": "1 Undone badge(s)"
+  },
+  {
+    "id": "undo.idempotent",
+    "status": "PASS",
+    "notes": "no Undo button on undone batch"
+  }
+]

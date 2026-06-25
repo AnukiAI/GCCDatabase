@@ -32,6 +32,9 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         private readonly Mock<IWebHostEnvironment> _mockEnvironment;
         private readonly Mock<IFileUploadService> _mockFileUploadService;
         private readonly GCCWebApp.Services.IUploadPathResolver _uploadPathsStub;
+        // DEF-293 added certificateService to the ctor (pre-import backup snapshot). Shared mock returns
+        // non-empty CSV bytes so the fail-safe backup step doesn't abort imports under test.
+        private readonly Mock<GCCWebApp.Services.ICertificateService> _mockCertificateService;
         private readonly CertificateImportService _service;
 
         public CertificateImportServiceTests()
@@ -54,11 +57,19 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _mockFileUploadService = new Mock<IFileUploadService>();
             var mockProductIdService = new Mock<IProductIdService>();
             _uploadPathsStub = Moq.Mock.Of<GCCWebApp.Services.IUploadPathResolver>(r =>
-                r.CertificatesDir == Path.GetTempPath() && r.ImagesDir == Path.GetTempPath());
+                r.CertificatesDir == Path.GetTempPath() && r.ImagesDir == Path.GetTempPath()
+                && r.ImportBackupsDir == Path.GetTempPath());
+            _mockCertificateService = new Mock<GCCWebApp.Services.ICertificateService>();
+            _mockCertificateService
+                .Setup(c => c.ExportCertificatesByIdsAsync(
+                    It.IsAny<List<string>>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<GCCWebApp.Models.CertificateListRequest?>()))
+                .ReturnsAsync(Encoding.UTF8.GetBytes("Certificate #\n"));
             _service = new CertificateImportService(
                 _context, _mockAuditService.Object, _cache, _mockLogger.Object,
                 _mockEnvironment.Object, _mockFileUploadService.Object, mockProductIdService.Object,
-                _uploadPathsStub);
+                _uploadPathsStub, _mockCertificateService.Object);
 
             SeedData();
         }
@@ -679,7 +690,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var freshService = new CertificateImportService(
                 freshContext, _mockAuditService.Object, _cache,
                 _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object,
-                new Mock<IProductIdService>().Object, _uploadPathsStub);
+                new Mock<IProductIdService>().Object, _uploadPathsStub, _mockCertificateService.Object);
 
             var csv = BuildCsv(StdHeaders, StdRow());
             var file = CreateCsvFormFile(csv);
@@ -1232,7 +1243,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 1,
                 "admin",
                 "Audit test",
-                AuditChangeSource.Import
+                AuditChangeSource.Import,
+                It.IsAny<Guid?>()
             ), Times.Once);
         }
 
@@ -1282,8 +1294,98 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 1,
                 "admin",
                 It.IsAny<string>(),
-                AuditChangeSource.Import
+                AuditChangeSource.Import,
+                It.IsAny<Guid?>()
             ), Times.Once);
+        }
+
+        #endregion
+
+        #region UndoImportBatchAsync (CR-023)
+
+        [Fact]
+        public async Task UndoImportBatchAsync_RestoresOverwritten_AndDeletesCreated()
+        {
+            // Arrange: simulate a completed import that CREATED one cert and OVERWROTE another.
+            var created = new Certificate
+            {
+                Number = "26-9100", CompanyId = 1, ProductId = 1, CertificationTypeId = 1,
+                Status = "Draft", EffectiveDate = DateTime.UtcNow, ExpirationDate = DateTime.UtcNow.AddYears(1)
+            };
+            var overwritten = new Certificate
+            {
+                Number = "26-9200", CompanyId = 2, ProductId = 1, CertificationTypeId = 1,
+                Status = "Client Approved - Paid", EffectiveDate = DateTime.UtcNow, ExpirationDate = DateTime.UtcNow.AddYears(1)
+            };
+            _context.Certificates.AddRange(created, overwritten);
+            await _context.SaveChangesAsync();
+
+            var batchId = Guid.NewGuid();
+            _context.ImportBatches.Add(new ImportBatch
+            {
+                Id = batchId, EntityType = "Certificate", FileName = "bad.csv",
+                Status = ImportBatchStatus.Completed, ImportedBy = 1, ImportedByUsername = "admin"
+            });
+            // Audit rows as ApplyImportAsync would have stamped them with the batch id.
+            _context.AuditHistory.Add(new AuditHistory
+            {
+                EntityType = "Certificate", EntityId = created.Id.ToString(), Action = AuditAction.Create,
+                ImportBatchId = batchId, ChangedBy = 1, ChangedByUsername = "admin"
+            });
+            _context.AuditHistory.Add(new AuditHistory
+            {
+                EntityType = "Certificate", EntityId = overwritten.Id.ToString(), Action = AuditAction.Update,
+                FieldName = "CompanyId", OldValue = "1", NewValue = "2",
+                ImportBatchId = batchId, ChangedBy = 1, ChangedByUsername = "admin"
+            });
+            _context.AuditHistory.Add(new AuditHistory
+            {
+                EntityType = "Certificate", EntityId = overwritten.Id.ToString(), Action = AuditAction.Update,
+                FieldName = "Status", OldValue = "Draft", NewValue = "Client Approved - Paid",
+                ImportBatchId = batchId, ChangedBy = 1, ChangedByUsername = "admin"
+            });
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _service.UndoImportBatchAsync(batchId, 1, "admin");
+
+            // Assert: created cert removed, overwritten cert restored to pre-import values, batch marked undone.
+            result.Success.Should().BeTrue();
+            result.CertificatesDeleted.Should().Be(1);
+            result.CertificatesRestored.Should().Be(1);
+            (await _context.Certificates.FindAsync(created.Id)).Should().BeNull();
+            var restored = await _context.Certificates.FindAsync(overwritten.Id);
+            restored.Should().NotBeNull();
+            restored!.CompanyId.Should().Be(1);
+            restored.Status.Should().Be("Draft");
+            var batch = await _context.ImportBatches.FindAsync(batchId);
+            batch!.Status.Should().Be(ImportBatchStatus.Undone);
+        }
+
+        [Fact]
+        public async Task UndoImportBatchAsync_AlreadyUndone_IsRefused()
+        {
+            var batchId = Guid.NewGuid();
+            _context.ImportBatches.Add(new ImportBatch
+            {
+                Id = batchId, EntityType = "Certificate",
+                Status = ImportBatchStatus.Undone, ImportedBy = 1, ImportedByUsername = "admin"
+            });
+            await _context.SaveChangesAsync();
+
+            var result = await _service.UndoImportBatchAsync(batchId, 1, "admin");
+
+            result.Success.Should().BeFalse();
+            result.Message.Should().Contain("already been undone");
+        }
+
+        [Fact]
+        public async Task UndoImportBatchAsync_UnknownBatch_ReturnsNotFound()
+        {
+            var result = await _service.UndoImportBatchAsync(Guid.NewGuid(), 1, "admin");
+
+            result.Success.Should().BeFalse();
+            result.Message.Should().Contain("not found");
         }
 
         #endregion
@@ -1344,7 +1446,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 freshContext, _mockAuditService.Object,
                 new MemoryCache(new MemoryCacheOptions()),
                 _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object,
-                new Mock<IProductIdService>().Object, _uploadPathsStub);
+                new Mock<IProductIdService>().Object, _uploadPathsStub, _mockCertificateService.Object);
 
             var preview = CreatePreviewWithNewRow("25-8000");
             preview.NewCompanyNames = new List<string> { "NewCo" };

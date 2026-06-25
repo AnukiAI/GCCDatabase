@@ -3,32 +3,36 @@
     "view": "public",
     "vp": 1440,
     "n": 29,
-    "min": 561,
-    "median": 580,
-    "max": 672
+    "min": 557,
+    "median": 576,
+    "max": 668,
+    "gridAlign": "stretch"
   },
   {
     "view": "public",
     "vp": 390,
     "n": 29,
-    "min": 557,
-    "median": 557,
-    "max": 659
+    "min": 553,
+    "median": 553,
+    "max": 655,
+    "gridAlign": "stretch"
   },
   {
     "view": "internal",
     "vp": 1440,
     "n": 20,
-    "min": 561,
-    "median": 561,
-    "max": 672
+    "min": 557,
+    "median": 557,
+    "max": 668,
+    "gridAlign": "stretch"
   },
   {
     "view": "internal",
     "vp": 390,
     "n": 20,
-    "min": 557,
-    "median": 557,
-    "max": 659
+    "min": 553,
+    "median": 553,
+    "max": 655,
+    "gridAlign": "stretch"
   }
 ]

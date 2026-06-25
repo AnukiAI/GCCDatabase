@@ -117,7 +117,7 @@ namespace GCCWebApp.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Apply(string importId, string reason, bool acknowledgeReassignments = false)
+        public async Task<IActionResult> Apply(string importId, string reason, bool acknowledgeReassignments = false, bool acknowledgeOverwrites = false)
         {
             try
             {
@@ -147,6 +147,18 @@ namespace GCCWebApp.Controllers
                     return View("Preview", preview);
                 }
 
+                // Overwrite guard (CR-023 R5): applying over existing certificates is destructive.
+                // Require an explicit acknowledgement (enforced here, not just in the view) before we
+                // overwrite live records. A safety backup of those records is taken automatically by
+                // the service before any change is applied.
+                if (preview.WillOverwriteExisting && !acknowledgeOverwrites)
+                {
+                    TempData["Error"] = $"{preview.OverwriteCount} existing certificate(s) would be overwritten. " +
+                        "Check the acknowledgement box to confirm — a backup of their current data is saved " +
+                        "automatically before any changes are applied.";
+                    return View("Preview", preview);
+                }
+
                 var userId = await GetCurrentUserIdAsync();
                 var username = GetCurrentUsername();
 
@@ -155,7 +167,10 @@ namespace GCCWebApp.Controllers
 
                 if (result.Success)
                 {
-                    TempData["Success"] = $"Import completed successfully! {result.CertificatesCreated} created, {result.CertificatesUpdated} updated.";
+                    var backupNote = result.BackupCertificateCount > 0
+                        ? $" A backup of {result.BackupCertificateCount} overwritten certificate(s) was saved ({result.BackupFileName})."
+                        : string.Empty;
+                    TempData["Success"] = $"Import completed successfully! {result.CertificatesCreated} created, {result.CertificatesUpdated} updated.{backupNote}";
                     return RedirectToAction("CertificateTileView", "Certificate");
                 }
                 else
@@ -174,6 +189,46 @@ namespace GCCWebApp.Controllers
                 TempData["Error"] = $"Import failed: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
+        }
+
+        /// <summary>
+        /// GET: /CertificateImport/History
+        /// CR-023: lists past certificate imports (most recent first) with an Undo action.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> History()
+        {
+            var batches = await _importService.GetImportHistoryAsync(100);
+            return View(batches);
+        }
+
+        /// <summary>
+        /// POST: /CertificateImport/UndoImport
+        /// CR-023: rolls back a completed import batch — restores overwritten certificates to their
+        /// pre-import values and removes the certificates the import created. Admin-only (controller
+        /// policy) + antiforgery; the destructive confirmation is shown client-side before posting.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UndoImport(Guid batchId)
+        {
+            try
+            {
+                var userId = await GetCurrentUserIdAsync();
+                var username = GetCurrentUsername();
+                var result = await _importService.UndoImportBatchAsync(batchId, userId, username);
+
+                if (result.Success)
+                    TempData["Success"] = result.Message;
+                else
+                    TempData["Error"] = result.Message;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to undo import batch {BatchId}", batchId);
+                TempData["Error"] = $"Undo failed: {ex.Message}";
+            }
+            return RedirectToAction(nameof(History));
         }
 
         #region API Endpoints for Modal
@@ -306,6 +361,19 @@ namespace GCCWebApp.Controllers
                     });
                 }
 
+                // Overwrite guard (CR-023 R5; mirrors the MVC Apply action): block until acknowledged.
+                if (preview.WillOverwriteExisting && !request.AcknowledgeOverwrites)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        requiresOverwriteAck = true,
+                        overwriteCount = preview.OverwriteCount,
+                        message = $"{preview.OverwriteCount} existing certificate(s) would be overwritten. " +
+                            "Acknowledge to proceed — a backup of their current data is saved automatically first."
+                    });
+                }
+
                 var userId = await GetCurrentUserIdAsync();
                 var username = GetCurrentUsername();
 
@@ -318,7 +386,9 @@ namespace GCCWebApp.Controllers
                     certificatesCreated = result.CertificatesCreated,
                     certificatesUpdated = result.CertificatesUpdated,
                     certificatesFailed = result.CertificatesFailed,
-                    errors = result.Errors
+                    errors = result.Errors,
+                    backupFileName = result.BackupFileName,
+                    backupCertificateCount = result.BackupCertificateCount
                 });
             }
             catch (Exception ex)
@@ -335,6 +405,10 @@ namespace GCCWebApp.Controllers
 
             // Set true by the client only after the analyst confirms the company-reassignment warning.
             public bool AcknowledgeReassignments { get; set; }
+
+            // CR-023 R5: set true only after the analyst confirms existing certificates will be
+            // overwritten (a safety backup is taken automatically before changes are applied).
+            public bool AcknowledgeOverwrites { get; set; }
         }
 
         #endregion

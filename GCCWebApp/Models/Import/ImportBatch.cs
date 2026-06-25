@@ -118,6 +118,22 @@ namespace GCCWebApp.Models.Import
         public const string PartialSuccess = "PARTIAL_SUCCESS";
         public const string Failed = "FAILED";
         public const string Cancelled = "CANCELLED";
+        // CR-023: a previously-Completed batch that an admin has rolled back ("undo this import").
+        public const string Undone = "UNDONE";
+    }
+
+    /// <summary>
+    /// CR-023: result of undoing (rolling back) a certificate import batch.
+    /// </summary>
+    public class UndoImportResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        /// <summary>Certificates the original import created, now removed by the undo.</summary>
+        public int CertificatesDeleted { get; set; }
+        /// <summary>Certificates the original import overwrote, now restored to their pre-import values.</summary>
+        public int CertificatesRestored { get; set; }
+        public List<string> Errors { get; set; } = new();
     }
 
     /// <summary>

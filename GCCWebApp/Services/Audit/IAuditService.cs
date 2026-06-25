@@ -23,6 +23,8 @@ namespace GCCWebApp.Services.Audit
         /// <param name="username">Username of user</param>
         /// <param name="reason">Optional reason for change</param>
         /// <param name="changeSource">Source of change (Web UI, API, Import, etc.)</param>
+        /// <param name="importBatchId">Optional import batch correlation id (CR-023) — stamped on
+        /// every audit row written for one import apply so the batch can later be undone.</param>
         /// <returns>Number of audit records created</returns>
         Task<int> LogEntityChangeAsync<T>(
             string entityId,
@@ -33,7 +35,8 @@ namespace GCCWebApp.Services.Audit
             int userId,
             string username,
             string? reason = null,
-            string? changeSource = null
+            string? changeSource = null,
+            Guid? importBatchId = null
         ) where T : class;
 
         /// <summary>

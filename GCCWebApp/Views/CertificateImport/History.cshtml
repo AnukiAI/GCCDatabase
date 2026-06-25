@@ -1,0 +1,182 @@
+@model List<GCCWebApp.Models.Import.ImportBatch>
+@using GCCWebApp.Models.Import
+@{
+    ViewData["Title"] = "Import History";
+    ViewData["BodyClass"] = "role-admin";
+}
+
+@section Styles {
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <a href="@Url.Action("CertificateTileViewInternal", "Certificate")">Certificates</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="@Url.Action("Index", "CertificateImport")">Import</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">History</span>
+    </span>
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@fortawesome/fontawesome-free@@6.4.0/css/all.min.css">
+
+<div class="admin-container">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <h1 class="admin-page-title">@ViewData["Title"]</h1>
+                <p class="admin-page-subtitle">Review past certificate imports and undo a mistaken one</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <a href="@Url.Action("Index", "CertificateImport")" class="admin-btn admin-btn--secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Import
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-content">
+        <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+            <i class="fas fa-info-circle"></i>
+            <strong>Undo</strong> rolls an import back: certificates it <em>created</em> are removed, and certificates it
+            <em>overwrote</em> are restored to their values from just before the import. Tag, partner, and product-ID
+            collection changes on overwritten certificates are not auto-reverted &mdash; if you need those, use the backup
+            CSV saved at import time. An import can only be undone once.
+        </div>
+
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">Certificate Imports</h3>
+            </div>
+            <div class="admin-card-body">
+                @if (Model == null || Model.Count == 0)
+                {
+                    <p class="text-muted" style="margin: 0;">
+                        <i class="fas fa-inbox"></i> No imports recorded yet. Imports applied from now on will appear here.
+                    </p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>When (UTC)</th>
+                                    <th>File</th>
+                                    <th>Imported By</th>
+                                    <th class="text-center">Created</th>
+                                    <th class="text-center">Updated</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var batch in Model)
+                                {
+                                    var canUndo = batch.Status == ImportBatchStatus.Completed
+                                                  || batch.Status == ImportBatchStatus.PartialSuccess;
+                                    <tr>
+                                        <td>@batch.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@(string.IsNullOrEmpty(batch.FileName) ? "—" : batch.FileName)</td>
+                                        <td>@batch.ImportedByUsername</td>
+                                        <td class="text-center">@batch.NewCount</td>
+                                        <td class="text-center">@batch.ModifiedCount</td>
+                                        <td class="text-center">
+                                            @if (batch.Status == ImportBatchStatus.Undone)
+                                            {
+                                                <span class="badge bg-secondary" title="@batch.ErrorMessage">Undone</span>
+                                            }
+                                            else if (batch.Status == ImportBatchStatus.PartialSuccess)
+                                            {
+                                                <span class="badge bg-warning text-dark">Partial</span>
+                                            }
+                                            else if (batch.Status == ImportBatchStatus.Completed)
+                                            {
+                                                <span class="badge bg-success">Completed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-dark">@batch.Status</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (canUndo)
+                                            {
+                                                <form asp-action="UndoImport" method="post"
+                                                      class="undo-import-form" style="display:inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="batchId" value="@batch.Id" />
+                                                    <button type="button"
+                                                            class="admin-btn admin-btn--danger admin-btn--sm undo-import-btn"
+                                                            data-file="@(string.IsNullOrEmpty(batch.FileName) ? "this import" : batch.FileName)"
+                                                            data-created="@batch.NewCount"
+                                                            data-updated="@batch.ModifiedCount">
+                                                        <i class="fas fa-rotate-left"></i> Undo
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </main>
+</div>
+
+@section Scripts {
+    <script>
+        // CR-023: confirm before rolling back an import. Per project UI standards, use
+        // AdminCore.showConfirmation() (never a native confirm()) BEFORE the destructive action.
+        document.querySelectorAll('.undo-import-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var form = btn.closest('form');
+                var file = btn.getAttribute('data-file');
+                var created = btn.getAttribute('data-created');
+                var updated = btn.getAttribute('data-updated');
+                var message = 'Undo the import of "' + file + '"? This will remove ' + created +
+                    ' certificate(s) it created and restore ' + updated +
+                    ' certificate(s) it overwrote. This cannot be undone again.';
+
+                if (window.AdminCore && typeof AdminCore.showConfirmation === 'function') {
+                    AdminCore.showConfirmation({
+                        title: 'Undo Import',
+                        message: message,
+                        confirmText: 'Undo Import',
+                        confirmClass: 'admin-btn--danger',
+                        onConfirm: function () { form.submit(); }
+                    });
+                } else {
+                    // Fallback only if the shared modal helper isn't loaded on this page.
+                    form.submit();
+                }
+            });
+        });
+    </script>
+}

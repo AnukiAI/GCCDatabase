@@ -35,6 +35,12 @@ namespace GCCWebApp.Services
         string ImagesDir { get; }
 
         /// <summary>
+        /// Physical directory pre-import safety snapshots are written to (CR-023 R5).
+        /// Lives under the same persistent uploads root so a deploy can't wipe it.
+        /// </summary>
+        string ImportBackupsDir { get; }
+
+        /// <summary>
         /// Resolve a logical "uploads/&lt;subdir&gt;/&lt;file&gt;" path to a physical path.
         /// Returns the first existing candidate; if none exist, returns the canonical
         /// configured-root candidate so the caller's own File.Exists handles absence.
@@ -58,6 +64,7 @@ namespace GCCWebApp.Services
         public string UploadsRoot { get; }
         public string CertificatesDir { get; }
         public string ImagesDir { get; }
+        public string ImportBackupsDir { get; }
 
         public UploadPathResolver(IWebHostEnvironment env, IConfiguration config, ILogger<UploadPathResolver> logger)
         {
@@ -94,11 +101,13 @@ namespace GCCWebApp.Services
 
             CertificatesDir = Path.Combine(UploadsRoot, "certificates");
             ImagesDir = Path.Combine(UploadsRoot, "images");
+            ImportBackupsDir = Path.Combine(UploadsRoot, "import-backups");
 
             try
             {
                 Directory.CreateDirectory(CertificatesDir);
                 Directory.CreateDirectory(ImagesDir);
+                Directory.CreateDirectory(ImportBackupsDir);
             }
             catch (Exception ex)
             {

@@ -1172,6 +1172,38 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             csv.Should().Contain("Internal Tag");
         }
 
+        [Fact]
+        public async Task ExportCertificatesAsync_DefaultParams_OmitsAdminOnlyColumns_DEF295()
+        {
+            // DEF-295: Cert Subcategories, Pathway, and Cert Results are Admin/Analyst-only and
+            // must NOT appear in the Partner/External/anonymous export (they're on no partner-facing
+            // surface). Same gate as the Internal Tag column.
+            var request = CreateDefaultRequest();
+            var result = await _service.ExportCertificatesAsync(request, includeInternalTags: false);
+
+            result.Should().NotBeNull();
+            var csv = System.Text.Encoding.UTF8.GetString(result!);
+            csv.Should().Contain("Certification Type"); // partner-visible columns remain
+            csv.Should().Contain("External Tag");
+            csv.Should().NotContain("Cert Subcategories");
+            csv.Should().NotContain("Pathway");
+            csv.Should().NotContain("Cert Results");
+        }
+
+        [Fact]
+        public async Task ExportCertificatesAsync_AdminInclude_IncludesAdminOnlyColumns_DEF295()
+        {
+            // DEF-295: Admin/Analyst callers retain Cert Subcategories, Pathway, and Cert Results.
+            var request = CreateDefaultRequest();
+            var result = await _service.ExportCertificatesAsync(request, includeInternalTags: true);
+
+            result.Should().NotBeNull();
+            var csv = System.Text.Encoding.UTF8.GetString(result!);
+            csv.Should().Contain("Cert Subcategories");
+            csv.Should().Contain("Pathway");
+            csv.Should().Contain("Cert Results");
+        }
+
         #endregion
 
         #region GetCertificateByCertificateNumberAsync Tests

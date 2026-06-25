@@ -625,50 +625,17 @@
                 await loadProductsForCompany(companyId);
             });
 
-            // When product changes, auto-fill category/type/subcategory
-            $('#ProductId').change(async function() {
-                // QC #186: skip the destructive auto-fill on the initial programmatic pre-select —
-                // respect the cert's own saved Category/Type/Subcategory (loaded by initProductCascade).
-                if (suppressProductAutoFill) return;
-                const productId = parseInt($(this).val());
-                if (!productId) return;
-
-                const product = companyProducts.find(p => p.id === productId);
-                if (!product) return;
-
-                if (product.categoryId) {
-                    $('#ProductCategoryId').val(product.categoryId);
-                    // Sync the SearchableSelect display to the auto-filled category.
-                    document.querySelector('#ProductCategoryId')?._searchableSelect?.refresh(product.categoryId);
-                    try {
-                        const response = await fetch(`/Certificate/GetProductTypes?categoryId=${product.categoryId}`);
-                        const result = await response.json();
-                        if (result.success && result.data) {
-                            const typeSelect = $('#ProductTypeId');
-                            typeSelect.html('<option value="">Select a type...</option>');
-                            result.data.forEach(pt => {
-                                typeSelect.append(`<option value="${pt.id}">${pt.name}</option>`);
-                            });
-                            if (product.productTypeId) {
-                                typeSelect.val(product.productTypeId);
-                                const subResponse = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${product.productTypeId}`);
-                                const subResult = await subResponse.json();
-                                if (subResult.success && subResult.data && subResult.data.length > 0) {
-                                    const subSelect = $('#ProductSubcategoryId');
-                                    subSelect.html('<option value="">Select subcategory...</option>');
-                                    subResult.data.forEach(sub => {
-                                        subSelect.append(`<option value="${sub.id}">${sub.name}</option>`);
-                                    });
-                                    if (product.productSubcategoryId) {
-                                        subSelect.val(product.productSubcategoryId);
-                                    }
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Error auto-filling product hierarchy:', error);
-                    }
-                }
+            // When product changes: do NOT auto-fill Product Category/Type/Subcategory.
+            // QC #195 (Shawn, 2026-06-24 decision): Product Category is optional and
+            // analyst-controlled. Previously, picking a product copied that product's hierarchy
+            // onto the cert, which propagated the mis-filed default category ("Chemical and Raw
+            // Materials") whenever the product itself was mis-categorized. The analyst now sets
+            // Category → Type → Subcategory by hand; the picked product's own value is unchanged.
+            // The cert's OWN saved Category/Type/Subcategory still loads via initProductCascade
+            // (below) — that restore is independent of this product auto-fill. The
+            // suppressProductAutoFill guard is left intact (now a no-op for the hierarchy).
+            $('#ProductId').change(function() {
+                // No hierarchy auto-fill by design (QC #195).
             });
 
             // ===== Product Category/Type/Subcategory 3-Level Cascading Dropdowns =====

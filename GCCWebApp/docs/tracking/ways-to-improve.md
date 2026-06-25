@@ -56,3 +56,21 @@ requests (`change-request-register.md`).
   change's failures from the baseline. Worth either (a) a SQLite-backed test fixture for the
   search/normalization tests, or (b) a clearly-labelled `[Trait("RequiresRelational")]` skip so
   the baseline failure set is unambiguous.
+
+- **Column/field-level visibility keeps leaking one surface at a time.** The partner export has
+  now needed three separate scoping fixes for the SAME confidentiality rule: Internal Tag column
+  (DEF-128), Internal custom fields (DEF-247), and three first-class schema columns —
+  Cert Subcategories / Pathway / Cert Results (DEF-295). Each was a hand-maintained column list
+  in `GenerateCsvExport` that drifted from "what a partner is actually allowed to see." The real
+  fix is to stop hand-listing: derive the export's partner column set from a single declared
+  source (the same field-visibility metadata the external tile API / v1 partner API project), so
+  adding a new certificate column can't silently appear in the partner CSV. Until then, every new
+  export column needs an explicit "is this partner-visible?" review. See
+  [[feedback_scoping_check_adjacent_endpoints]].
+
+## 2026-06-25 — CSS verified only against stale dev hash → shipped a tile regression
+**What happened:** DEF-293 tile-condensing CSS was marked "verified uniform on localhost," deployed, and immediately regressed the live tiles. The dev env serves a stale `asp-append-version` hash, so the "before/after" screenshots had been captured against OLD CSS — the real render was never seen until after it broke prod.
+**Improve:**
+1. **Never sign off CSS from the stale-hash dev path.** Always verify with a FRESH Playwright context (no cache) hitting the actual stylesheet, and assert the new rule is present (e.g. grep the served CSS for a marker string) before claiming "verified."
+2. **Measure, don't eyeball.** Capture card heights programmatically (`getBoundingClientRect`) so "uniform/condensed" is a number, not an impression.
+3. **CSS deploys carry a Plesk-overwrite risk.** Plesk extract can skip existing files; the `?v=` cache-bust changes the URL, not the served file. For CSS changes, confirm the file is actually overwritten on the server (or delete-first), or the change silently no-ops on prod.

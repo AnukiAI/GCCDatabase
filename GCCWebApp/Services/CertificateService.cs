@@ -1121,7 +1121,17 @@ namespace GCCWebApp.Services
 
                 // CSV Header — all certificate fields + admin custom fields
                 // CSV header text matches the certificate tile UI column labels.
-                csv.Append("\"Certificate #\",\"Certification Type\",\"Cert Subcategories\",\"Status\",\"Company\",\"Company Contact Email/URL\",\"Contact URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\"");
+                // DEF-295: Cert Subcategories, Pathway, and Cert Results are Admin/Analyst-only —
+                // they appear on NO partner-facing surface (external tile view, external table view,
+                // external tile API, or the v1 partner API), so they are gated behind the same
+                // internal-caller flag (`includeInternalTags`, true only for Admin/Analyst) that
+                // already hides the Internal Tag column (DEF-128) and Internal custom fields
+                // (DEF-247). Column order here MUST stay in lock-step with the data-row builder below.
+                csv.Append("\"Certificate #\",\"Certification Type\"");
+                if (includeInternalTags) csv.Append(",\"Cert Subcategories\"");
+                csv.Append(",\"Status\",\"Company\",\"Company Contact Email/URL\",\"Contact URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\"");
+                if (includeInternalTags) csv.Append(",\"Pathway\",\"Cert Results\"");
+                csv.Append(",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\"");
                 if (includeInternalTags)
                 {
                     csv.Append(",\"Internal Tag\"");
@@ -1136,7 +1146,15 @@ namespace GCCWebApp.Services
                 // CSV Data with proper escaping
                 foreach (var cert in certificates)
                 {
-                    csv.Append($"\"{EscapeCsvField(cert.CertificateNumber)}\",\"{EscapeCsvField(cert.CertificationType)}\",\"{EscapeCsvField(cert.CertificationSubcategories)}\",\"{EscapeCsvField(cert.Status)}\",\"{EscapeCsvField(cert.CompanyName)}\",\"{EscapeCsvField(cert.CompanyContactEmail)}\",\"{EscapeCsvField(cert.CompanyContactUrl)}\",\"{EscapeCsvField(cert.ProductName)}\",\"{EscapeCsvField(cert.ProductCategory)}\",\"{EscapeCsvField(cert.ProductType)}\",\"{EscapeCsvField(cert.ProductSubcategory)}\",\"{EscapeCsvField(cert.Partner)}\",\"{EscapeCsvField(cert.Pathway)}\",\"{EscapeCsvField(GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(cert.CertificationResults) ?? "")}\",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",\"{EscapeCsvField(cert.Location)}\",\"{EscapeCsvField(cert.Country)}\",\"{EscapeCsvField(cert.ExternalTags)}\"");
+                    csv.Append($"\"{EscapeCsvField(cert.CertificateNumber)}\",\"{EscapeCsvField(cert.CertificationType)}\"");
+                    // DEF-295: Cert Subcategories — Admin/Analyst-only.
+                    if (includeInternalTags) csv.Append($",\"{EscapeCsvField(cert.CertificationSubcategories)}\"");
+                    csv.Append($",\"{EscapeCsvField(cert.Status)}\",\"{EscapeCsvField(cert.CompanyName)}\",\"{EscapeCsvField(cert.CompanyContactEmail)}\",\"{EscapeCsvField(cert.CompanyContactUrl)}\",\"{EscapeCsvField(cert.ProductName)}\",\"{EscapeCsvField(cert.ProductCategory)}\",\"{EscapeCsvField(cert.ProductType)}\",\"{EscapeCsvField(cert.ProductSubcategory)}\",\"{EscapeCsvField(cert.Partner)}\"");
+                    // DEF-295: Pathway + Cert Results — Admin/Analyst-only. (The Cert Results
+                    // percentage formatting via DisplayFormatters.FormatCertificationResults stays
+                    // — see DEF-287 — but only the internal export now carries the column.)
+                    if (includeInternalTags) csv.Append($",\"{EscapeCsvField(cert.Pathway)}\",\"{EscapeCsvField(GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(cert.CertificationResults) ?? "")}\"");
+                    csv.Append($",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",\"{EscapeCsvField(cert.Location)}\",\"{EscapeCsvField(cert.Country)}\",\"{EscapeCsvField(cert.ExternalTags)}\"");
                     if (includeInternalTags)
                     {
                         csv.Append($",\"{EscapeCsvField(cert.InternalTags)}\"");

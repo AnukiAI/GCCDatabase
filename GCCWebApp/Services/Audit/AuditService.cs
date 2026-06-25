@@ -44,7 +44,8 @@ namespace GCCWebApp.Services.Audit
             int userId,
             string username,
             string? reason = null,
-            string? changeSource = null
+            string? changeSource = null,
+            Guid? importBatchId = null
         ) where T : class
         {
             try
@@ -52,8 +53,10 @@ namespace GCCWebApp.Services.Audit
                 var entityType = typeof(T).Name;
                 var auditRecords = new List<AuditHistory>();
 
-                // For CREATE or DELETE, log single record with full entity data
-                if (action == AuditAction.Create || action == AuditAction.Delete)
+                // For CREATE, DELETE, or RESTORE, log single record with full entity data.
+                // RESTORE (CR-023 import undo) behaves like CREATE: the restored/new state goes in
+                // NewValue. Without this it would match no branch and write nothing.
+                if (action == AuditAction.Create || action == AuditAction.Delete || action == AuditAction.Restore)
                 {
                     var singleRecord = CreateAuditRecord(
                         entityType,
@@ -61,12 +64,13 @@ namespace GCCWebApp.Services.Audit
                         entityName,
                         action,
                         null, // No specific field
-                        action == AuditAction.Create ? null : SerializeEntity(oldEntity),
+                        action == AuditAction.Create || action == AuditAction.Restore ? null : SerializeEntity(oldEntity),
                         action == AuditAction.Delete ? null : SerializeEntity(newEntity),
                         userId,
                         username,
                         reason,
-                        changeSource
+                        changeSource,
+                        importBatchId
                     );
                     auditRecords.Add(singleRecord);
                 }
@@ -95,7 +99,8 @@ namespace GCCWebApp.Services.Audit
                             userId,
                             username,
                             reason,
-                            changeSource
+                            changeSource,
+                            importBatchId
                         );
                         auditRecords.Add(record);
                     }
@@ -334,7 +339,8 @@ namespace GCCWebApp.Services.Audit
             int userId,
             string username,
             string? reason,
-            string? changeSource
+            string? changeSource,
+            Guid? importBatchId = null
         )
         {
             var httpContext = _httpContextAccessor.HttpContext;
@@ -358,7 +364,8 @@ namespace GCCWebApp.Services.Audit
                 UserAgent = userAgent,
                 ChangeSource = changeSource ?? AuditChangeSource.WebUI,
                 Reason = reason,
-                SessionId = sessionId
+                SessionId = sessionId,
+                ImportBatchId = importBatchId
             };
         }
 

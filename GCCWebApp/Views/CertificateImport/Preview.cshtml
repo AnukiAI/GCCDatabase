@@ -118,6 +118,23 @@
             </div>
         }
 
+        <!-- Overwrite Warning (CR-023 R5): existing certs will be replaced; a backup is auto-saved) -->
+        @if (Model.WillOverwriteExisting)
+        {
+            <div class="alert alert-warning" style="margin-bottom: 2rem;" id="overwriteWarning">
+                <h4 style="margin-top: 0;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    @Model.OverwriteCount existing certificate(s) will be overwritten
+                </h4>
+                <p style="margin-bottom: 0;">
+                    Applying this import will <strong>replace the current data</strong> on
+                    @Model.OverwriteCount existing certificate(s) (listed under <em>Modified Certificates</em> below).
+                    A <strong>backup CSV of their current data is saved automatically</strong> before any change is
+                    applied, so the import can be reversed if a wrong file was matched.
+                </p>
+            </div>
+        }
+
         <!-- Action Buttons -->
         @if (Model.CanApply)
         {
@@ -126,6 +143,20 @@
                     <form asp-action="Apply" asp-controller="CertificateImport" method="post" id="applyForm">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="importId" value="@Model.ImportId" />
+
+                        @if (Model.WillOverwriteExisting)
+                        {
+                            <div class="alert alert-warning" style="margin-bottom: 1rem;">
+                                <label style="margin-bottom: 0; font-weight: 600; cursor: pointer;">
+                                    <input type="checkbox"
+                                           name="acknowledgeOverwrites"
+                                           value="true"
+                                           id="acknowledgeOverwrites" />
+                                    I understand @Model.OverwriteCount existing certificate(s) will be overwritten
+                                    (a backup of their current data is saved automatically first).
+                                </label>
+                            </div>
+                        }
 
                         @if (Model.HasCompanyReassignments)
                         {
@@ -376,6 +407,17 @@
         document.getElementById('applyForm')?.addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // Overwrite guard (CR-023 R5): don't open the confirm dialog until the analyst has
+            // ticked the overwrite acknowledgement box. (The server enforces this too — UX only.)
+            const overwriteBox = document.getElementById('acknowledgeOverwrites');
+            if (overwriteBox && !overwriteBox.checked) {
+                AdminCore.showNotification(
+                    'Please acknowledge that existing certificate(s) will be overwritten before applying.',
+                    'warning');
+                document.getElementById('overwriteWarning')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
             // Company-reassignment guard: don't even open the confirm dialog until the analyst has
             // ticked the acknowledgement box. (The server enforces this too — this is just the UX.)
             const ackBox = document.getElementById('acknowledgeReassignments');
@@ -391,12 +433,17 @@
                 ? '<br><strong style="color:#dc3545;">@Model.CompanyReassignmentCount certificate(s) will be reassigned to a different company.</strong><br>'
                 : '';
 
+            const backupLine = overwriteBox
+                ? '<br><strong>@Model.OverwriteCount existing certificate(s) will be overwritten.</strong> A backup of their current data will be saved automatically first.<br>'
+                : '';
+
             const confirmed = await AdminCore.showConfirmation({
                 title: 'Apply Import',
                 message: 'Are you sure you want to apply this import?<br><br>' +
                          '<strong>@Model.NewCertificates</strong> new certificate(s) will be created<br>' +
                          '<strong>@Model.ModifiedCertificates</strong> certificate(s) will be updated<br>' +
                          reassignmentLine +
+                         backupLine +
                          '<br>All changes will be logged to audit history.',
                 confirmText: 'Apply',
                 cancelText: 'Cancel',

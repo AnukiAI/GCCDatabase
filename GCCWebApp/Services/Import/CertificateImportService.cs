@@ -3,6 +3,7 @@ using CsvHelper.Configuration;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Models.Import;
+using GCCWebApp.Services;
 using GCCWebApp.Services.Audit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,7 @@ namespace GCCWebApp.Services.Import
         private readonly IFileUploadService _fileUploadService;
         private readonly IProductIdService _productIdService;
         private readonly IUploadPathResolver _uploadPaths;
+        private readonly ICertificateService _certificateService;
         private const string CACHE_KEY_PREFIX = "CertImport_";
         private const int CACHE_MINUTES = 30;
         // Deactivated placeholder type for migrated certs whose certification type isn't in the system
@@ -43,7 +45,8 @@ namespace GCCWebApp.Services.Import
             IWebHostEnvironment environment,
             IFileUploadService fileUploadService,
             IProductIdService productIdService,
-            IUploadPathResolver uploadPaths)
+            IUploadPathResolver uploadPaths,
+            ICertificateService certificateService)
         {
             _context = context;
             _auditService = auditService;
@@ -53,6 +56,7 @@ namespace GCCWebApp.Services.Import
             _fileUploadService = fileUploadService;
             _productIdService = productIdService;
             _uploadPaths = uploadPaths;
+            _certificateService = certificateService;
         }
 
         #region Column Name Mappings
@@ -471,6 +475,71 @@ namespace GCCWebApp.Services.Import
         {
             var result = new ApplyImportResult();
 
+            // === Pre-import auto-backup (CR-023 R5) ===
+            // Every Modified row overwrites a live certificate. A mis-matched file (e.g. a wrong
+            // cert-number column) could overwrite many real certs at once. Before mutating anything,
+            // snapshot the CURRENT state of every cert that would be overwritten to a re-importable
+            // CSV. Fail-safe: if the snapshot can't be written, abort the whole import rather than
+            // overwrite live data with no recovery path. (New-only imports skip this — nothing to back up.)
+            try
+            {
+                var overwriteIds = previewResult.ModifiedRows
+                    .Where(r => r.ExistingCertificateId.HasValue)
+                    .Select(r => r.ExistingCertificateId!.Value.ToString())
+                    .Distinct()
+                    .ToList();
+
+                if (overwriteIds.Any())
+                {
+                    // includeInternalTags: true → full round-trip fidelity (the restore CSV carries
+                    // both External Tag and Internal Tag columns, matching the import template).
+                    var csvBytes = await _certificateService.ExportCertificatesByIdsAsync(overwriteIds, includeInternalTags: true);
+                    if (csvBytes == null || csvBytes.Length == 0)
+                        throw new InvalidOperationException(
+                            "Snapshot of the certificates that would be overwritten could not be generated.");
+
+                    var backupsDir = _uploadPaths.ImportBackupsDir;
+                    Directory.CreateDirectory(backupsDir);
+                    var fileName = $"cert-import-backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{previewResult.ImportId.Substring(0, 8)}.csv";
+                    var backupPath = Path.Combine(backupsDir, fileName);
+                    await File.WriteAllBytesAsync(backupPath, csvBytes);
+
+                    result.BackupFilePath = backupPath;
+                    result.BackupFileName = fileName;
+                    result.BackupCertificateCount = overwriteIds.Count;
+
+                    _logger.LogInformation(
+                        "Pre-import backup written for {ImportId}: {Count} certificate(s) snapshotted to {Path} before overwrite.",
+                        previewResult.ImportId, overwriteIds.Count, backupPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Pre-import backup failed for {ImportId}; aborting before any changes were made.", previewResult.ImportId);
+                result.Success = false;
+                result.Message = "Import aborted: the safety backup of the certificates that would be " +
+                    $"overwritten could not be created ({ex.Message}). No changes were made.";
+                result.Errors.Add(ex.Message);
+                return result;
+            }
+
+            // === CR-023: one ImportBatch per apply, so the whole operation can later be undone ===
+            // The batch id is stamped on every audit row written below (created + overwritten certs),
+            // which is what UndoImportBatchAsync reads to reverse the import. The row is created inside
+            // the transaction (Phase 0) so a rolled-back import leaves no batch behind, and finalized
+            // with counts + COMPLETED status just before commit.
+            var importBatch = new ImportBatch
+            {
+                EntityType = AuditEntityType.Certificate,
+                FileName = previewResult.FileName,
+                TotalRows = previewResult.TotalRows,
+                ImportedBy = userId,
+                ImportedByUsername = username,
+                Status = ImportBatchStatus.Processing
+            };
+            var importBatchId = importBatch.Id;
+            result.ImportBatchId = importBatchId;
+
             // Use execution strategy to handle SQL Server retries with transactions
             var strategy = _context.Database.CreateExecutionStrategy();
 
@@ -480,6 +549,10 @@ namespace GCCWebApp.Services.Import
 
                 try
                 {
+                // === Phase 0: persist the batch row (CR-023) ===
+                _context.ImportBatches.Add(importBatch);
+                await _context.SaveChangesAsync();
+
                 // === Phase 1: Create all new entities first ===
 
                 // 1a. Create new Companies
@@ -706,12 +779,12 @@ namespace GCCWebApp.Services.Import
 
                         if (row.RowStatus == ImportRowStatus.New)
                         {
-                            await CreateCertificateAsync(row, allTagIds, userId, username, reason);
+                            await CreateCertificateAsync(row, allTagIds, userId, username, reason, importBatchId);
                             result.CertificatesCreated++;
                         }
                         else if (row.RowStatus == ImportRowStatus.Modified)
                         {
-                            await UpdateCertificateAsync(row, allTagIds, userId, username, reason);
+                            await UpdateCertificateAsync(row, allTagIds, userId, username, reason, importBatchId);
                             result.CertificatesUpdated++;
                         }
                     }
@@ -749,6 +822,16 @@ namespace GCCWebApp.Services.Import
                             row.CertificateNumber);
                     }
                 }
+
+                // === CR-023: finalize the batch row with outcome counts before commit ===
+                importBatch.NewCount = result.CertificatesCreated;
+                importBatch.ModifiedCount = result.CertificatesUpdated;
+                importBatch.UnchangedCount = previewResult.UnchangedRows.Count;
+                importBatch.ErrorCount = result.CertificatesFailed;
+                importBatch.CompletedAt = DateTime.UtcNow;
+                importBatch.Status = result.CertificatesFailed == 0
+                    ? ImportBatchStatus.Completed
+                    : ImportBatchStatus.PartialSuccess;
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -789,6 +872,191 @@ namespace GCCWebApp.Services.Import
         public async Task<CertificateImportPreviewResult?> GetCachedPreviewAsync(string importId)
         {
             return await Task.FromResult(_cache.Get<CertificateImportPreviewResult>(CACHE_KEY_PREFIX + importId));
+        }
+
+        // === CR-023: Import History + Undo ===========================================================
+
+        public async Task<List<ImportBatch>> GetImportHistoryAsync(int limit = 100)
+        {
+            return await _context.ImportBatches
+                .Where(b => b.EntityType == AuditEntityType.Certificate)
+                .OrderByDescending(b => b.CreatedAt)
+                .Take(limit > 0 ? limit : 100)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// CR-023: roll back a certificate import. Restores every certificate the batch overwrote to its
+        /// pre-import field values (from the per-field audit rows stamped with this batch id) and removes
+        /// every certificate the batch created. Idempotent — a batch already UNDONE is refused.
+        ///
+        /// Limitation (documented): the per-field audit captures scalar certificate fields only, so a
+        /// restore reverts Company/Status/dates/identifiers etc. but NOT tag/partner/product-id collection
+        /// changes that an overwrite may have made. The CR-023 R5 pre-import backup CSV remains the
+        /// full-fidelity manual fallback for those rare cases. Created certs are removed whole (children
+        /// included), so their collections need no special handling.
+        /// </summary>
+        public async Task<UndoImportResult> UndoImportBatchAsync(Guid batchId, int userId, string username)
+        {
+            var result = new UndoImportResult();
+
+            var batch = await _context.ImportBatches.FirstOrDefaultAsync(b => b.Id == batchId);
+            if (batch == null)
+            {
+                result.Success = false;
+                result.Message = "Import batch not found. It may be from before import history was tracked.";
+                return result;
+            }
+            if (batch.Status == ImportBatchStatus.Undone)
+            {
+                result.Success = false;
+                result.Message = "This import has already been undone.";
+                return result;
+            }
+            if (batch.Status != ImportBatchStatus.Completed && batch.Status != ImportBatchStatus.PartialSuccess)
+            {
+                result.Success = false;
+                result.Message = $"Only completed imports can be undone (this batch is '{batch.Status}').";
+                return result;
+            }
+
+            // Pull this batch's certificate audit rows: UPDATE rows (per-field, to restore) and CREATE
+            // rows (whole-cert, to delete). Both are stamped with the batch id by ApplyImportAsync.
+            var auditRows = await _context.AuditHistory
+                .Where(a => a.ImportBatchId == batchId && a.EntityType == AuditEntityType.Certificate)
+                .ToListAsync();
+
+            var updateRowsByCert = auditRows
+                .Where(a => a.Action == AuditAction.Update)
+                .GroupBy(a => a.EntityId)
+                .ToList();
+
+            var createdCertIds = auditRows
+                .Where(a => a.Action == AuditAction.Create)
+                .Select(a => a.EntityId)
+                .Distinct()
+                .ToList();
+
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var undoReason = $"Undo of import batch {batchId} ({batch.FileName ?? "import"})";
+
+                    // --- Restore overwritten certificates to their pre-import field values ---
+                    foreach (var group in updateRowsByCert)
+                    {
+                        if (!int.TryParse(group.Key, out var certId)) continue;
+                        var cert = await _context.Certificates.FirstOrDefaultAsync(c => c.Id == certId);
+                        if (cert == null)
+                        {
+                            result.Errors.Add($"Certificate {group.Key} no longer exists; skipped restore.");
+                            continue;
+                        }
+
+                        foreach (var change in group)
+                        {
+                            if (!string.IsNullOrEmpty(change.FieldName))
+                                ApplyOldValueToCertificate(cert, change.FieldName!, change.OldValue);
+                        }
+                        cert.UpdatedBy = userId;
+                        cert.UpdatedAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+
+                        // CR-015: re-derive product-ID statuses from the restored cert state.
+                        await _productIdService.SyncProductIdStatusesForCertificateAsync(cert.Id);
+
+                        await _auditService.LogEntityChangeAsync(
+                            cert.Id.ToString(), cert.Number, AuditAction.Restore,
+                            null, cert, userId, username, undoReason, AuditChangeSource.System);
+                        result.CertificatesRestored++;
+                    }
+
+                    // --- Remove certificates the import created ---
+                    foreach (var idStr in createdCertIds)
+                    {
+                        if (!int.TryParse(idStr, out var certId)) continue;
+                        var cert = await _context.Certificates
+                            .Include(c => c.Tags)
+                            .Include(c => c.Partners)
+                            .FirstOrDefaultAsync(c => c.Id == certId);
+                        if (cert == null) continue; // already gone
+
+                        // Remove dependent rows explicitly (FKs are mostly Restrict) before the cert.
+                        var productIds = await _context.CertificateProductIds.Where(p => p.CertificateId == certId).ToListAsync();
+                        if (productIds.Count > 0) _context.CertificateProductIds.RemoveRange(productIds);
+                        var statusHistory = await _context.CertificateStatusHistory.Where(h => h.CertificateId == certId).ToListAsync();
+                        if (statusHistory.Count > 0) _context.CertificateStatusHistory.RemoveRange(statusHistory);
+                        var documents = await _context.CertificateDocuments.Where(d => d.CertificateId == certId).ToListAsync();
+                        if (documents.Count > 0) _context.CertificateDocuments.RemoveRange(documents);
+                        var customValues = await _context.CustomFieldValues.Where(v => v.CertificateId == certId).ToListAsync();
+                        if (customValues.Count > 0) _context.CustomFieldValues.RemoveRange(customValues);
+                        cert.Tags.Clear();
+                        cert.Partners.Clear();
+
+                        var snapshot = cert.Number;
+                        _context.Certificates.Remove(cert);
+                        await _context.SaveChangesAsync();
+
+                        await _auditService.LogEntityChangeAsync(
+                            certId.ToString(), snapshot, AuditAction.Delete,
+                            cert, null, userId, username, undoReason, AuditChangeSource.System);
+                        result.CertificatesDeleted++;
+                    }
+
+                    batch.Status = ImportBatchStatus.Undone;
+                    batch.ErrorMessage = $"Undone by {username} on {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC " +
+                        $"({result.CertificatesRestored} restored, {result.CertificatesDeleted} removed).";
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    result.Success = true;
+                    result.Message = $"Import undone: {result.CertificatesRestored} certificate(s) restored, " +
+                        $"{result.CertificatesDeleted} created certificate(s) removed.";
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    var inner = ex.InnerException?.Message ?? ex.Message;
+                    _logger.LogError(ex, "Failed to undo import batch {BatchId}. Inner: {Inner}", batchId, inner);
+                    result.Success = false;
+                    result.Message = $"Undo failed: {inner}";
+                    result.Errors.Add(inner);
+                }
+            });
+
+            return result;
+        }
+
+        // CR-023: restores a single scalar certificate field from its audit-captured OldValue.
+        // FieldName is the CLR property name (AuditService.DetectChanges uses prop.Name) and OldValue
+        // is the serialized prior value (strings verbatim, dates "yyyy-MM-dd HH:mm:ss", numbers ToString).
+        // Only the fields the import path can mutate are handled; anything else is ignored.
+        private static void ApplyOldValueToCertificate(Certificate cert, string fieldName, string? oldValue)
+        {
+            switch (fieldName)
+            {
+                case nameof(Certificate.CompanyId): cert.CompanyId = int.Parse(oldValue!, CultureInfo.InvariantCulture); break;
+                case nameof(Certificate.ProductId): cert.ProductId = int.Parse(oldValue!, CultureInfo.InvariantCulture); break;
+                case nameof(Certificate.CertificationTypeId): cert.CertificationTypeId = int.Parse(oldValue!, CultureInfo.InvariantCulture); break;
+                case nameof(Certificate.ProductCategoryId): cert.ProductCategoryId = string.IsNullOrEmpty(oldValue) ? (int?)null : int.Parse(oldValue, CultureInfo.InvariantCulture); break;
+                case nameof(Certificate.PathwayId): cert.PathwayId = string.IsNullOrEmpty(oldValue) ? (int?)null : int.Parse(oldValue, CultureInfo.InvariantCulture); break;
+                case nameof(Certificate.Status): cert.Status = oldValue ?? "Draft"; break;
+                case nameof(Certificate.EffectiveDate): cert.EffectiveDate = DateTime.Parse(oldValue!, CultureInfo.InvariantCulture); break;
+                case nameof(Certificate.ExpirationDate): cert.ExpirationDate = DateTime.Parse(oldValue!, CultureInfo.InvariantCulture); break;
+                case nameof(Certificate.Location): cert.Location = oldValue; break;
+                case nameof(Certificate.Country): cert.Country = oldValue; break;
+                case nameof(Certificate.Asin): cert.Asin = oldValue; break;
+                case nameof(Certificate.Upc): cert.Upc = oldValue; break;
+                case nameof(Certificate.Gtin): cert.Gtin = oldValue; break;
+                case nameof(Certificate.Ean): cert.Ean = oldValue; break;
+                case nameof(Certificate.Partner): cert.Partner = oldValue; break;
+                case nameof(Certificate.CertificationResults): cert.CertificationResults = oldValue; break;
+                // Unhandled fields (e.g. computed Normalized* or collection-derived) are intentionally skipped.
+                default: break;
+            }
         }
 
         #region Private Helper Methods
@@ -1354,7 +1622,8 @@ namespace GCCWebApp.Services.Import
             List<int> tagIds,
             int userId,
             string username,
-            string? reason)
+            string? reason,
+            Guid? importBatchId = null)
         {
             var certificate = new Certificate
             {
@@ -1415,7 +1684,8 @@ namespace GCCWebApp.Services.Import
                 userId,
                 username,
                 reason ?? "Created via CSV import",
-                AuditChangeSource.Import
+                AuditChangeSource.Import,
+                importBatchId
             );
         }
 
@@ -1451,7 +1721,8 @@ namespace GCCWebApp.Services.Import
             List<int> tagIds,
             int userId,
             string username,
-            string? reason)
+            string? reason,
+            Guid? importBatchId = null)
         {
             var certificate = await _context.Certificates
                 .Include(c => c.Company)
@@ -1542,7 +1813,8 @@ namespace GCCWebApp.Services.Import
                 userId,
                 username,
                 reason ?? "Updated via CSV import",
-                AuditChangeSource.Import
+                AuditChangeSource.Import,
+                importBatchId
             );
         }
 

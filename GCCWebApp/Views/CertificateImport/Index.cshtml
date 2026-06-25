@@ -48,6 +48,11 @@
             </div>
             <div class="admin-actions-section">
                 <div class="admin-button-group">
+                    <a href="@Url.Action("History", "CertificateImport")"
+                       class="admin-btn admin-btn--secondary"
+                       title="View past imports and undo a mistaken import">
+                        <i class="fas fa-clock-rotate-left"></i> Import History
+                    </a>
                     <a href="@Url.Action("DownloadTemplate", "CertificateImport")"
                        class="admin-btn admin-btn--secondary"
                        title="Download CSV template with example data">

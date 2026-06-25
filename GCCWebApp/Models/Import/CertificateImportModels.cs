@@ -62,6 +62,15 @@ namespace GCCWebApp.Models.Import
             ModifiedRows.Where(r => r.ChangesCompany).ToList();
         public int CompanyReassignmentCount => CompanyReassignmentRows.Count;
         public bool HasCompanyReassignments => CompanyReassignmentCount > 0;
+
+        // --- Overwrite guard (CR-023 R5) -----------------------------------------------------
+        // Any matched cert-number row that carries changes will OVERWRITE a live certificate. A
+        // mis-matched file could overwrite many real certs at once, so the apply requires an
+        // explicit acknowledgement (server-enforced) and a CSV snapshot of the current state of
+        // every affected cert is auto-saved before any change is applied. ModifiedRows already
+        // excludes Unchanged rows, so its count is exactly the number of certs that get overwritten.
+        public bool WillOverwriteExisting => ModifiedRows.Count > 0;
+        public int OverwriteCount => ModifiedRows.Count;
     }
 
     /// <summary>
@@ -277,5 +286,15 @@ namespace GCCWebApp.Models.Import
         public int CertificatesFailed { get; set; }
         public List<string> Errors { get; set; } = new();
         public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
+
+        // CR-023 R5: pre-import safety snapshot. When the import overwrites existing certificates,
+        // their current state is exported to this re-importable CSV before any change is applied.
+        // Empty when the import only created new certificates (nothing to back up).
+        public string? BackupFilePath { get; set; }
+        public string? BackupFileName { get; set; }
+        public int BackupCertificateCount { get; set; }
+
+        // CR-023: the ImportBatch this apply created, so the result/UI can reference it for undo.
+        public Guid? ImportBatchId { get; set; }
     }
 }

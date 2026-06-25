@@ -101,3 +101,15 @@ DataProtectionKeys/*.xml
 
 # Test artifacts at root
 test_results/
+
+# Ephemeral pre-deploy Gate 2 / probe smoke scripts + their results (throwaway, not committed)
+Scripts/smoke-prod/gate2-*.js
+Scripts/smoke-prod/_results/gate2-*.json
+Scripts/smoke-prod/_axe-public.js
+
+# Runtime-generated import safety backups (CR-023 R5 writes these per-import; not source)
+App_Data/uploads/import-backups/
+
+# Untracked test-helper fixtures (the tracked TEST_Sample.csv + run-tests scripts stay tracked)
+Scripts/testing/GCC_Certificate_Import_COLLISION_Example.csv
+Scripts/testing/README.md

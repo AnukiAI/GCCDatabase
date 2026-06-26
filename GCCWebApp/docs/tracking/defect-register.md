@@ -83,6 +83,19 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 ## Open / Recent
 
+### DEF-299 — External table view: clicking a column header (e.g. External Tag) sorted **descending** on the first click instead of ascending
+
+- **Date:** 2026-06-26
+- **Severity:** Low — UX. The external certificate **table** view's sortable column headers fired descending (Z-A) on the *first* click; the user expected the first click to sort ascending (A-Z), with the second click flipping to descending. Reported specifically against the **External Tag** column, but the bug was global to every sortable header in that view.
+- **Status:** **Fixed locally — pending next deploy.** JS-only change; no markup/CSS/API change.
+- **QC Ref:** Raised by Shawn West, 2026-06-26 — *"external tag sorting on the certificate view table is not sorting correctly… they want the first tag to sort ascending vs descending."*
+- **Bucket:** Bug (sort direction).
+- **Root cause.** `wwwroot/js/certificate-tile-view-external.js::setupTableColumnSort` seeded the direction as `const currentDir = header.dataset.sortDir || 'asc';` then immediately flipped it (`newDir = currentDir === 'asc' ? 'desc' : 'asc'`). On a never-clicked header that resolves `currentDir → 'asc'` and flips to `'desc'`, so the **first** click always went descending. The **internal** view (`certificate-tile-view-internal.js`) already had the correct pattern (`currentDir = header.dataset.sortDir; newDir = !currentDir ? 'asc' : …`) plus a reset of sibling columns — the external view was simply out of sync (classic [[feedback_scoping_check_adjacent_endpoints]]: fix applied to one of two parallel views).
+- **Fix.** Aligned the external handler with the internal one: first click on a column → `'asc'`; same column again → `'desc'`; and clicking a different column clears the others' `sortDir` so only one active direction exists at a time. The existing `reverseSortMap` (e.g. `ext-tag → ext-tag-za`) already supplies the descending variant, so no API/sort-key change was needed.
+- **Files:** `wwwroot/js/certificate-tile-view-external.js` (`setupTableColumnSort`, direction-init block).
+- **Verification.** **Localhost:5101, 2026-06-26 (server build 0 errors).** (1) **JS toggle logic** — replicated the fixed `setupTableColumnSort` direction state machine and exercised it: 1st click External Tag → `asc`, 2nd → `desc`, 3rd → `asc`; clicking a different column (Company) clears External Tag's direction; re-clicking External Tag → `asc` again (first click after reset is ascending). Matches the internal-view handler exactly. (2) **Live external API** (`/api/CertificateTileExternal`, admin session — internal role passes the `ExternalAccess` policy and returns the full set) — `sortBy=ext-tag` and `ext-tag-za` both returned monotonically-ordered rows with empties last (dev seed has only 2 tagged certs, both "APR", so the tag values can't show a multi-value flip; ordering assertion = True for both). (3) **asc↔desc flip proof on a diverse column** (same `OrderByTextEmptiesLast` path the External Tag column uses): `company-az` → "3M → Alcon → Amazon…" (A-Z); `company-za` → "Testing Very Long… → Sonos → Sofidel…" (Z-A) — confirms first-click-asc / second-click-desc produces a real reversal. **Note:** the Chrome automation instance could not render the page itself (returned `chrome-error://` for both `localhost` and `127.0.0.1:5101` though the server served a valid 200 login form over direct HTTP — a browser-side networking issue, not an app fault), so the UI was verified functionally against the live server rather than by screenshot. **Post-deploy eyeball:** on the external table view, click **External Tag** once → A-Z + ▲; again → Z-A + ▼; click another column → External Tag resets to A-Z on next click.
+- **Linked memory.** [[feedback_scoping_check_adjacent_endpoints]] (the internal/external view pair), [[feedback_client_requested_labels_immutable]] (behavior fix, not a copy change).
+
 ### DEF-298 — Certificate tile views: filter-tree `<ul>`s carried `role="group"`, stripping implicit list semantics and orphaning the JS-injected `<li>` filter items (axe `listitem`, Serious, WCAG 2.1 AA 1.3.1)
 
 - **Date:** 2026-06-25
@@ -7459,6 +7472,51 @@ Fix: `Controllers/AdminController.cs` — `ImportUsers()` now special-cases `com
 4. Post-deploy: re-run the prod smoke header assertion to confirm count=1.
 
 **Cross-ref:** `feedback_*` n/a. Architecture lesson already on file (2026-05-04 DEF-135 memory): dual CSP/header sources (web.config + middleware) drift — a consolidation pass would close this whole class.
+
+---
+
+### DEF-299 — SearchableSelect drops typed value unless a row is mouse-clicked → Create cert fails "Certification Type: the value '' is invalid"
+
+**Date:** 2026-06-25 | **Status:** Fixed locally (`wwwroot/js/searchable-select.js`) — pending deploy | **Severity:** High (blocks the core Create-certificate flow for the most common selection gesture) | **QC Ref:** internal — live report during Create-cert testing | **Reporter:** Shawn (2026-06-25)
+
+**Symptom.** On `/Certificate/Create`, selecting a Certification Type then saving threw a validation error: *"Certification Type — the value is invalid."* Reproduced reliably even though a type was visibly chosen.
+
+**Root cause.** `Certification Type` (and other fields) use the `SearchableSelect` type-ahead widget, which hides the native `<select>` and drives it from a text input. The widget only wrote the value back to the underlying `<select>` when the user **clicked a dropdown row with the mouse**. The three keyboard/blur gestures all left the `<select>` empty:
+
+| Gesture | Before | After |
+|---|---|---|
+| Click option | ✅ commits | ✅ |
+| Type name + Enter | ❌ empty | ✅ |
+| Type name + Tab | ❌ empty | ✅ |
+| Type name + click away | ❌ empty | ✅ |
+
+`CertificationTypeId` is a `[Required]` non-nullable `int`, so an empty post produces ASP.NET's model-binding message *"The value '' is invalid."* (not the friendlier controller guard). Most users type-then-Enter, so they hit this constantly.
+
+**Fix.** Added `commitTypedValue()` to `SearchableSelect`: on Enter (when no row is arrow-highlighted), Tab, and click-away, the typed text commits to the `<select>` when it resolves to a single option (exact case-insensitive match, or a unique partial match). Ambiguous/no-match text still commits nothing (forces an explicit pick) — no risk of selecting the wrong option. This is a shared-component fix, so it corrects the same trap on every `SearchableSelect`-wrapped field (Certification Type, Product Category, etc.).
+
+**Verification.** `Scripts/smoke-prod/_certtype-gesture-repro.js` (localhost, analyst) — all four gestures now set `select.value`; before the fix only the mouse-click did.
+
+**Cross-ref:** component shared with the Product Category cascade. Relates to the DEF-185 class (non-nullable FK guards) — the guard message is friendlier, but the real bug here was the empty post, not the message.
+
+---
+
+### DEF-300 — Certificate CSV import: overwriting existing certs is impossible from the Internal tile view (overwrite-acknowledgement guard dead-ends as an error)
+
+**Date:** 2026-06-25 | **Status:** Fixed locally (`Views/Certificate/CertificateTileViewInternal.cshtml`) — pending deploy | **Severity:** High (blocks re-importing / updating any existing certificate via the Internal tile-view import modal) | **QC Ref:** internal — live report during import testing | **Reporter:** Shawn (2026-06-25)
+
+**Symptom.** On `/Certificate/CertificateTileViewInternal`, importing a CSV that matches existing certificates: preview reported "0 new, 5 updated", the analyst clicked **Apply Import** on the Confirm dialog, and the modal then showed a red **Error** dialog — *"Import failed: 5 existing certificate(s) would be overwritten. Acknowledge to proceed — a backup of their current data is saved automatically first."* — with only an **OK** button. Clicking OK looped back to Confirm → Apply → same error, with no way to ever proceed. Reported as "it kinda works to overwrite after the analyst agrees but then fails anyway."
+
+**Root cause.** Front-end gap, not a server/DB failure. The server's `ApiApply` (CR-023 R5 overwrite guard, `Controllers/CertificateImportController.cs`) is working as designed: when overwrites are pending and not yet acknowledged it returns a 400 with `requiresOverwriteAck: true` + `overwriteCount` so the **client** can prompt and re-submit with `acknowledgeOverwrites: true` (same pattern for `requiresReassignmentAck`). The import modal's `applyBtn` handler in `CertificateTileViewInternal.cshtml` posted `{ importId }` with **no acknowledgement flags** and treated any non-success response as `throw new Error(result.message)` — so the guard message rendered as a terminal error with no acknowledge-and-retry path. The full-page MVC flow (`Views/CertificateImport/Preview.cshtml`) already handles this via server-rendered ack checkboxes; only the modal path was broken.
+
+**Fix.** Extracted the apply call into a retryable `applyImport(acks)` function. On a `requiresReassignmentAck` or `requiresOverwriteAck` response it shows an `AdminCore.showConfirmation` (`type: 'danger'`) explaining the consequence (and the automatic backup), and on confirm re-calls `applyImport()` with the matching flag set true — accumulating both acks if the server requests them in sequence (reassignment is checked before overwrite server-side). Success toast now also notes the backup count when one was taken.
+
+**Verification.** ✅ VERIFIED on localhost (2026-06-25) via `Scripts/smoke-prod/def300-import-overwrite-verify.js` — ALL PASS. The smoke exports one existing cert, tweaks its Location to force a Modified/overwrite row, drives the real modal (open → upload → preview shows 1 modified → Apply → Confirm → **"Overwrite existing certificate(s)?" prompt appears** → confirm), and asserts the two API calls: first `/api/CertificateImport/Apply` returns `requiresOverwriteAck:true` (overwriteCount 1), second returns `success:true, certificatesUpdated:1, backupCertificateCount:1`; the new Location is then confirmed persisted via re-export. (User also has the pre-fix dead-end loop screenshots: `Screenshot_25-6-2026_1519*–1520*`.)
+
+**Follow-ups observed while tracing (NOT part of this fix — logged for triage):**
+1. **Identical re-imports are flagged "Modified" when a cert has internal tags.** `DetectChanges` (`CertificateImportService.cs`) compares the cert's existing tags (internal **and** external) against the CSV's external-tag column only, so any cert carrying an internal tag always shows as changed on a clean round-trip — which is why a re-import of unchanged data even triggers the overwrite prompt.
+2. **An applied overwrite drops internal tags.** `UpdateCertificateAsync` does `Tags.Clear()` then re-adds external tags only, so overwriting silently removes internal tags. Both (1) and (2) warrant their own DEF once confirmed.
+
+**Cross-ref:** server contract intentionally unchanged (guard + auto-backup are correct). Same modal lives only in the Internal tile view; External has no import.
 
 ---
 

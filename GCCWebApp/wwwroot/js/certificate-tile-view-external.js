@@ -659,9 +659,14 @@
 
                 const sortValue = sortMap[column] || 'newest';
 
-                // Toggle ascending/descending
-                const currentDir = header.dataset.sortDir || 'asc';
-                const newDir = currentDir === 'asc' ? 'desc' : 'asc';
+                // First click on a column sorts ascending (A-Z); second click flips to
+                // descending. Clicking a different column resets all other columns so only one
+                // active sort direction exists at a time. (Mirrors internal view behavior.)
+                document.querySelectorAll('.sticky-header-cell[data-sort-column]').forEach(h => {
+                    if (h !== header) delete h.dataset.sortDir;
+                });
+                const currentDir = header.dataset.sortDir;
+                const newDir = !currentDir ? 'asc' : (currentDir === 'asc' ? 'desc' : 'asc');
                 header.dataset.sortDir = newDir;
 
                 // Map to reverse sort if descending

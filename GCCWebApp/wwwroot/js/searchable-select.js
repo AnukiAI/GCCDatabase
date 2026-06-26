@@ -143,6 +143,37 @@
             select.dispatchEvent(event);
         }
 
+        // Commit the typed text to the underlying <select> when it unambiguously
+        // identifies an option: an exact (case-insensitive) text match, or — when the
+        // typed filter narrows the list to exactly one option — that lone option.
+        // Returns true if a value was committed.
+        //
+        // Without this, the value only committed on a mouse click of a dropdown row;
+        // typing a type name then pressing Enter/Tab or clicking away left the <select>
+        // empty, which posted an empty value for [Required] fields (e.g. Certification
+        // Type → ".NET: The value '' is invalid").
+        function commitTypedValue() {
+            var typed = (input.value || '').trim();
+            if (!typed) { return false; }
+            var typedLower = typed.toLowerCase();
+            // 1) exact text match
+            for (var a = 0; a < allOptions.length; a++) {
+                if (allOptions[a].value && allOptions[a].text.toLowerCase() === typedLower) {
+                    selectOption(allOptions[a].value, allOptions[a].text);
+                    return true;
+                }
+            }
+            // 2) unique partial match — the filter resolves to exactly one real option
+            var matches = allOptions.filter(function (o) {
+                return o.value && o.text.toLowerCase().indexOf(typedLower) !== -1;
+            });
+            if (matches.length === 1) {
+                selectOption(matches[0].value, matches[0].text);
+                return true;
+            }
+            return false;
+        }
+
         function showDropdown() {
             dropdown.style.display = 'block';
             input.setAttribute('aria-expanded', 'true');
@@ -213,6 +244,11 @@
                 if (activeIndex >= 0 && activeIndex < items.length) {
                     var sel = items[activeIndex];
                     selectOption(sel.getAttribute('data-value'), sel.textContent);
+                } else {
+                    // No row arrow-highlighted: commit the typed text if it resolves
+                    // to a single option (the common type-then-Enter gesture).
+                    commitTypedValue();
+                    hideDropdown();
                 }
             } else if (e.key === 'Escape') {
                 hideDropdown();
@@ -228,6 +264,8 @@
                     input.value = '';
                 }
             } else if (e.key === 'Tab') {
+                // Commit the typed match before focus leaves (so Tab doesn't discard it).
+                commitTypedValue();
                 hideDropdown();
             }
         });
@@ -235,6 +273,11 @@
         // Close dropdown on outside click
         document.addEventListener('click', function (e) {
             if (!wrapper.contains(e.target)) {
+                // Clicking away commits an unambiguous typed match rather than
+                // silently discarding it (which posted an empty value).
+                if (!select.value && input.value && input.value.trim()) {
+                    commitTypedValue();
+                }
                 hideDropdown();
                 // Restore display to match select value
                 if (select.value) {

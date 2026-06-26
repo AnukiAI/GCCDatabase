@@ -1,5 +1,5 @@
 {
-  "pass": 25,
+  "pass": 30,
   "fail": 0,
   "warn": 2,
   "results": [
@@ -13,7 +13,7 @@
       "id": "cert-number.autofilled",
       "name": "Certification # pre-filled",
       "status": "PASS",
-      "notes": "value=\"26-1731\""
+      "notes": "value=\"26-1732\""
     },
     {
       "id": "cert-number.readonly",
@@ -163,7 +163,37 @@
       "id": "screenshot",
       "name": "Captured validation-state screenshot",
       "status": "PASS",
-      "notes": "Scripts\\smoke-prod\\_results\\cert-create-validations.png"
+      "notes": "_results\\cert-create-validations.png"
+    },
+    {
+      "id": "happy.company-product",
+      "name": "Company + Product selected",
+      "status": "PASS",
+      "notes": "company=131 product=127"
+    },
+    {
+      "id": "happy.certtype-keyboard",
+      "name": "Certification Type commits via type+Enter (DEF-299 guard)",
+      "status": "PASS",
+      "notes": "typed=\"+Vantage Vinyl Verified\" committed=24"
+    },
+    {
+      "id": "happy.pdf",
+      "name": "Sample PDF attached",
+      "status": "PASS",
+      "notes": "..\\..\\App_Data\\uploads\\certificates\\26-0023_20260612_161411.pdf"
+    },
+    {
+      "id": "happy.submit-redirect",
+      "name": "Full create submits and redirects to cert view",
+      "status": "PASS",
+      "notes": "/Certificate/CertificateInternalView/26-1732"
+    },
+    {
+      "id": "happy.screenshot",
+      "name": "Captured happy-path result screenshot",
+      "status": "PASS",
+      "notes": "_results\\cert-create-happy-path.png"
     }
   ]
 }

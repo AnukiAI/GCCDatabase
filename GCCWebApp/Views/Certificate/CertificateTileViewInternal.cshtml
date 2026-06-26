@@ -954,6 +954,16 @@
 
         if (!confirmed) return;
 
+        // Start with no acknowledgements; the server's overwrite / company-reassignment
+        // guards (CR-023 R5) return requiresOverwriteAck / requiresReassignmentAck, and
+        // applyImport() prompts the analyst then re-submits with the matching flag set.
+        await applyImport({ acknowledgeReassignments: false, acknowledgeOverwrites: false });
+    });
+
+    // Posts the import apply request and handles the acknowledgement-required guards by
+    // prompting the analyst and retrying with the flag set, rather than dead-ending on an
+    // error (the previous behaviour, which made overwrites impossible to apply from here).
+    async function applyImport(acks) {
         document.getElementById('importStep2').style.display = 'none';
         document.getElementById('importStep3').style.display = 'block';
 
@@ -967,13 +977,20 @@
                     'Content-Type': 'application/json',
                     'RequestVerificationToken': token || ''
                 },
-                body: JSON.stringify({ importId: importId })
+                body: JSON.stringify({
+                    importId: importId,
+                    acknowledgeReassignments: acks.acknowledgeReassignments,
+                    acknowledgeOverwrites: acks.acknowledgeOverwrites
+                })
             });
 
             const result = await response.json();
 
             if (result.success) {
-                AdminCore.showNotification(`Import successful! ${result.certificatesCreated} created, ${result.certificatesUpdated} updated.`, 'success');
+                const backupNote = result.backupCertificateCount > 0
+                    ? ` A backup of ${result.backupCertificateCount} overwritten certificate(s) was saved automatically.`
+                    : '';
+                AdminCore.showNotification(`Import successful! ${result.certificatesCreated} created, ${result.certificatesUpdated} updated.${backupNote}`, 'success');
                 closeModal();
                 // Refresh the certificate list
                 if (typeof loadCertificates === 'function') {
@@ -981,15 +998,46 @@
                 } else {
                     location.reload();
                 }
-            } else {
-                throw new Error(result.message || 'Import failed');
+                return;
             }
+
+            // Company-reassignment guard: an existing cert# would move to a different company.
+            // Server checks this before the overwrite guard, so handle it first.
+            if (result.requiresReassignmentAck) {
+                document.getElementById('importStep3').style.display = 'none';
+                document.getElementById('importStep2').style.display = 'block';
+                const ok = await AdminCore.showConfirmation({
+                    title: 'Reassign certificate(s) to a different company?',
+                    message: result.message,
+                    confirmText: 'Reassign & continue',
+                    type: 'danger'
+                });
+                if (!ok) return;
+                return applyImport({ ...acks, acknowledgeReassignments: true });
+            }
+
+            // Overwrite guard (CR-023 R5): existing certificates will be overwritten. Prompt,
+            // then retry with the acknowledgement set — a backup is taken automatically server-side.
+            if (result.requiresOverwriteAck) {
+                document.getElementById('importStep3').style.display = 'none';
+                document.getElementById('importStep2').style.display = 'block';
+                const ok = await AdminCore.showConfirmation({
+                    title: 'Overwrite existing certificate(s)?',
+                    message: result.message,
+                    confirmText: 'Overwrite & continue',
+                    type: 'danger'
+                });
+                if (!ok) return;
+                return applyImport({ ...acks, acknowledgeOverwrites: true });
+            }
+
+            throw new Error(result.message || 'Import failed');
         } catch (error) {
             AdminCore.showNotification('Import failed: ' + error.message, 'error');
             document.getElementById('importStep3').style.display = 'none';
             document.getElementById('importStep2').style.display = 'block';
         }
-    });
+    }
 
     function showPreview(data) {
         document.getElementById('importStep1').style.display = 'none';

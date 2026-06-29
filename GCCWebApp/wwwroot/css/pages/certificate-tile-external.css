@@ -9,6 +9,39 @@
    ============================================================================= */
 
 /* =============================================================================
+   TILE HEADER HEIGHT - EXTERNAL VIEW
+   External tiles carry the same Status (+ optional Partner) header rows as
+   internal tiles. The public view's fixed 165px header (certificatetileview.css)
+   was sized for the 2-row public header and would CLIP external's status/partner
+   rows on multi-line-company cards. Restore natural height with the same 220px
+   floor internal uses: consistent across external tiles, never clips. Selector
+   matches the certificatetileview.css rule's specificity; this file loads after
+   it (and only on the external view), so it wins here and leaves public alone.
+
+   CONSISTENT + tightened: a fixed 200px fits the worst case — 3-line category +
+   3-line company + Status + Partner ≈ 196px content (measured actual worst is
+   175px) — with no clipping, and is 20px tighter than the old 220px floor. The
+   green wave (::after) sits at the bottom; overflow:hidden guards any overflow.
+   ============================================================================= */
+body.theme-option4 .certificate-card:not(.internal-card) .card-header {
+    height: 200px;
+    min-height: 200px;
+    flex-shrink: 0;
+}
+
+/* Tablet/mobile (<=1024px): let the header grow with content (auto) so a long
+   category + 3-line company + Status/Partner never overlaps the green wave; 200px
+   floor + bottom padding for wave clearance. Mirrors the internal rule in
+   certificatetileview.css. Loads after it, so it wins for external cards. */
+@media (max-width: 1024px) {
+    body.theme-option4 .certificate-card:not(.internal-card) .card-header {
+        height: auto;
+        min-height: 200px;
+        padding-bottom: 22px;
+    }
+}
+
+/* =============================================================================
    STICKY TABLE COLUMN WIDTHS - EXTERNAL VIEW
    Same as internal minus Internal Tag column, narrower Actions (no Edit button)
    ============================================================================= */

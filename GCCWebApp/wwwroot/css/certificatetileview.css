@@ -767,6 +767,129 @@ body.theme-option4 .certificate-card .card-actions {
 .certificate-card:not(.internal-card) .card-header {
     padding: 6px 12px; /* QC #199 (DEF-281): condensed from 8px */
 }
+
+/* ---------------------------------------------------------------------------
+   Tile vertical-spacing tightening (tile context only).
+   VERTICAL margins/padding/gap ONLY — left/right padding, fonts, borders,
+   heights/min-heights, and grid alignment are intentionally left alone.
+   Scoped with `.certificate-card` so the single-card detail view
+   (`.certificate-single-card`) is untouched. Overrides the matching
+   `body.theme-option4 .<el>` rules in main.css (higher specificity + later load).
+   --------------------------------------------------------------------------- */
+body.theme-option4 .certificate-card .card-body {
+    padding-top: 12px;    /* was 20px */
+    padding-bottom: 8px;  /* was 20px */
+    /* was space-between, which dropped the card's slack into a gap between the
+       product name and the certification period. flex-start stacks the content
+       at the top so the period sits directly under the product name; any residual
+       (uniform-height stretch) collects naturally above the action icons. */
+    justify-content: flex-start;
+}
+body.theme-option4 .certificate-card .certificate-details {
+    margin-top: 6px;      /* was 12px */
+    margin-bottom: 2px;   /* was 4px (tile) / 12px (theme) */
+    gap: 6px;             /* was 8px (vertical gap between detail rows) */
+}
+body.theme-option4 .certificate-card .certificate-period {
+    padding-top: 6px;     /* was 8px */
+    padding-bottom: 6px;  /* was 8px */
+    margin-bottom: 4px;   /* was 6px */
+}
+body.theme-option4 .certificate-card .certificate-location {
+    margin-top: 2px;      /* was 4px */
+    margin-bottom: 6px;   /* was 16px */
+    padding-bottom: 4px;  /* was 14px */
+}
+body.theme-option4 .certificate-card .card-actions {
+    padding-top: 2px;      /* was 6px */
+    padding-bottom: 10px;  /* breathing room so the icons aren't flush to the card's bottom edge */
+}
+
+/* ---------------------------------------------------------------------------
+   Tile HEIGHT tightening (tile context only).
+   main.css forces oversized fixed reservations on every tile regardless of
+   content. These are FLOORS/auto — never go below content, so nothing clips
+   and long company/product names still expand. Grid `align-items` is left as
+   stretch on purpose so cards stay UNIFORM within a row (the previous attempt
+   that switched to `align-items:start` made cards ragged — that was the layout
+   regression). Scoped with `.certificate-card` so `.certificate-single-card`
+   is untouched. Specificity (0,3,1) beats main.css's `body.theme-option4 .<el>`
+   rules, so this single non-media rule also overrides the 240px mobile bump.
+   NOTE: scoped to :not(.internal-card) — internal tiles add Status + Partner
+   rows to the header, so a fixed 165px would clip them. Internal headers keep
+   their natural (expanding) height. */
+body.theme-option4 .certificate-card:not(.internal-card) .card-header {
+    /* CONSISTENT header height across all tiles (client requirement). The company
+       name is clamped to 3 lines, so the worst-case header content is bounded
+       (~161px measured). A FIXED height makes every blue header identical instead
+       of a min-height floor that let short-company tiles shrink and long-company
+       tiles grow. Header already has overflow:hidden; flex-shrink:0 stops the
+       card's column flex from squeezing it. ~60px tighter than the old 220/240px.
+       Lowered 175→165 after trimming the company-name / header-row vertical
+       margins below, which shrank the 3-line worst case. 165 keeps ~14px
+       clearance between a 3-line company name and the green wave. */
+    height: 165px;       /* was 220px desktop / 240px mobile */
+    min-height: 165px;
+    flex-shrink: 0;
+}
+/* Tablet/mobile (<=1024px) header fixes:
+   1. main.css stacks the header-row into a column at <=768px, dropping the cert#
+      pill onto its own line below the category — looks broken and adds ~30px of
+      header height. Keep it a row (category left, pill top-right) like desktop.
+      (Harmless above 768px where it is already a row.)
+   2. Across the whole tablet range, narrow 2-column cards can wrap the (unclamped)
+      category a few lines, so a fixed height risks overlapping the green wave. Let
+      the header GROW with its content (auto height) keeping the same floor as
+      desktop, with bottom padding so the last row always clears the wave. True
+      desktop (>1024px) keeps the fixed consistent heights.
+   Applies to all three views (external/internal override the floor via their own
+   rules to match their taller desktop height). */
+@media (max-width: 1024px) {
+    body.theme-option4 .certificate-card .header-row {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+    body.theme-option4 .certificate-card:not(.internal-card) .card-header {
+        height: auto;
+        min-height: 165px;
+        padding-bottom: 22px;
+    }
+    body.theme-option4 .certificate-card.internal-card .card-header {
+        height: auto;
+        min-height: 200px;
+        padding-bottom: 22px;
+    }
+}
+/* Vertical-only trim of the header's inner spacing so the 3-line worst case fits a
+   shorter consistent header. Left padding (10px, with the white border-left bar),
+   right padding, fonts, and borders are intentionally left untouched. */
+body.theme-option4 .certificate-card .company-name {
+    margin-top: 4px;     /* was 10px */
+    padding-top: 4px;    /* was 8px */
+    padding-bottom: 4px; /* was 8px */
+}
+body.theme-option4 .certificate-card .header-row {
+    margin-bottom: 2px;  /* was 4px */
+}
+body.theme-option4 .certificate-card .card-body {
+    min-height: 120px;   /* was 200px; floor only, not 0 */
+}
+body.theme-option4 .certificate-card .product-name {
+    height: auto;        /* was fixed 170px; 3-line max-height clamp above still caps long names */
+}
+
+/* Internal tiles: same 4-row header as external (Status + optional Partner), so
+   they get the same consistent, tightened treatment. .internal-card only exists
+   on the internal view, so this is safe in the shared stylesheet. Compact 6px
+   header padding (internal otherwise inherits main.css 12px) + a fixed 200px that
+   fits the 3-line-company + Status + Partner worst case (~196px) with no clip —
+   down from internal's old 220px floor. */
+body.theme-option4 .certificate-card.internal-card .card-header {
+    padding: 6px 12px;
+    height: 200px;
+    min-height: 200px;
+    flex-shrink: 0;
+}
 /*
 .certificate-info {
     padding: 15px;

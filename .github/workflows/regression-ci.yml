@@ -15,7 +15,10 @@ name: Regression CI
 
 on:
   push:
-    branches: [ master ]
+    # `ci-regression` is a validation branch: since workflow_dispatch only works off the DEFAULT
+    # branch (master, which doesn't yet have this workflow), pushing to ci-regression is how we
+    # trigger a real run — including deploy-gate — without touching the diverged master.
+    branches: [ master, ci-regression ]
   pull_request:
   workflow_dispatch:
 
@@ -72,7 +75,10 @@ jobs:
   # `if:` and make it a required status check.
   # ---------------------------------------------------------------------------
   deploy-gate:
-    if: github.event_name == 'workflow_dispatch'
+    # Runs on manual dispatch OR on a push to the ci-regression validation branch (so it can be
+    # exercised before the workflow reaches the default branch). Once on master + confirmed green,
+    # drop the ci-regression clause and gate it on master push.
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/ci-regression'
     runs-on: ubuntu-latest
 
     services:

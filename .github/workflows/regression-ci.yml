@@ -127,18 +127,23 @@ jobs:
           npm ci || npm install
           npx playwright install --with-deps chromium
 
+      - name: Build app (Release)
+        run: dotnet build GCCWebApp/GCCWebApp.csproj -c Release
+
       - name: Start app (auto-migrates + seeds users in Development)
         env:
           ConnectionStrings__DefaultConnection: ${{ env.CI_DB_CONN }}
         run: |
-          nohup dotnet run --project GCCWebApp/GCCWebApp/GCCWebApp.csproj -c Release --urls "http://localhost:5101" > app.log 2>&1 &
-          echo "waiting for app on :5101..."
-          for i in $(seq 1 60); do
+          # App project is GCCWebApp/GCCWebApp.csproj (the .sln is GCCWebApp/GCCWebApp.sln).
+          # --no-build: we built above, so startup isn't racing the readiness poll.
+          nohup dotnet run --project GCCWebApp/GCCWebApp.csproj -c Release --no-build --urls "http://localhost:5101" > app.log 2>&1 &
+          echo "waiting for app on :5101 (fresh DB migrate + seed can take a while)..."
+          for i in $(seq 1 90); do
             code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5101/ || true)
-            if [ "$code" = "200" ]; then echo "app ready"; exit 0; fi
-            sleep 3
+            if [ "$code" = "200" ]; then echo "app ready after ~$((i*4))s"; exit 0; fi
+            sleep 4
           done
-          echo "app did not become ready; tail of app.log:"; tail -50 app.log; exit 1
+          echo "app did not become ready; tail of app.log:"; tail -80 app.log; exit 1
 
       - name: Seed E2E business data (REQUIRED for a full-green gate)
         run: |

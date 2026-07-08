@@ -1,0 +1,19 @@
+{
+  "specId": "cert-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 0,
+  "fail": 1,
+  "warn": 0,
+  "blocked": 0,
+  "total": 1,
+  "results": [
+    {
+      "id": "crud.error",
+      "name": "spec ran without throwing",
+      "status": "FAIL",
+      "notes": "Command failed: sqlcmd -S ANUKI01 -d GCCDatabase_Dev -U GCC_DevUser -P DevP@ss2024!SQL -C -b -Q SET NOCOUNT ON; DELETE FROM Certificates WHERE Location LIKE 'ZZ_SmokeFixture_CRUD%'"
+    }
+  ],
+  "finishedAt": "2026-07-07T20:09:58.636Z"
+}

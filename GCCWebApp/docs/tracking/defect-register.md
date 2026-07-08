@@ -7520,6 +7520,38 @@ Fix: `Controllers/AdminController.cs` — `ImportUsers()` now special-cases `com
 
 ---
 
+### DEF-301 — Company names (or any query value) containing an apostrophe/quote fail to load: SQL-injection middleware false-positives on URL-encoded `%27`/`%22`
+
+**Date:** 2026-07-01 | **Status:** Fixed (`Middleware/SecurityHeadersMiddleware.cs`) — **bundled in `GCCWebApp-deploy-20260701-1639.zip`**, pending deploy | **Severity:** High (any certificate whose company name contains an apostrophe — e.g. `Gemma's Company Co.`, `O'Brien` — cannot be filtered/viewed in the tile views; also blocks search terms and autocomplete carrying `'` or `"`) | **QC Ref:** internal — live report during tile-view filter testing | **Reporter:** Shawn (2026-07-01)
+
+**Symptom.** Filtering the certificate tile views by a company whose name contains an apostrophe (e.g. `Gemma's Company Co.`) shows the red **"Failed to load certificates"** error and no tiles render. Reported as a "URL encoding issue with `'` → `%27`."
+
+**Root cause.** Server-side, **not** a client encoding bug. The tile JS is correct — `buildApiParams()` uses `URLSearchParams`, which properly encodes `'` → `%27`. The failure is in `SecurityHeadersMiddleware.DetectSqlInjectionAsync`: it inspected `context.Request.QueryString.ToString()`, which returns the **still-URL-encoded** query string, and its pattern list contained the bare tokens `%27` and `%22`. So a filter like `company=Gemma%27s%20Company%20Co.` matched the "SQL injection" signature → middleware short-circuited with **HTTP 400 "Bad request"** → the tile `fetch` failed → the UI surfaced "Failed to load certificates." Because the check was on the raw query string, this hit **every** query parameter carrying a legitimate apostrophe or double-quote (company/search/autocomplete), not just company names.
+
+**Fix.** In `DetectSqlInjectionAsync`, decode the query string before matching (`Uri.UnescapeDataString`, with `+`→space) and drop the standalone `%27`/`%22` (and now-redundant `%3b%20drop`/`%3b%20delete`) tokens from the query pattern list. Detection now runs against actual values, so the meaningful injection combinations (`' or `, `'; drop`, `'--`, `union select`, …) still fire — and in fact now work against decoded input where the encoded-only matching had been largely inert — while an ordinary lone apostrophe/quote passes. `pathInjectionPatterns` left untouched (`Request.Path` is already framework-decoded; company values never travel in the path).
+
+**Verification.** ✅ VERIFIED on localhost:5101 (2026-07-01) via `curl` against `/api/certificate-tiles`: `company=Gemma%27s%20Company%20Co.` → **HTTP 200** (was 400 pre-fix); `search=O%27Brien` → **200**; plain control → **200**; real injection `company=x%27 OR %271%27%3D%271` → **400** (still blocked); `search=1 union select password from users` → **400** (still blocked). Legitimate apostrophes load; genuine injection payloads remain rejected.
+
+**Linked memory.** [[feedback_client_requested_labels_immutable]] (data/behavior fix, not a copy change), [[feedback_scoping_check_adjacent_endpoints]] (verified the same middleware guards all three tile APIs + autocomplete, not just the reported one).
+
+---
+
+### DEF-302 — Certificate tile views flash a misleading "0 Results" before the first load resolves (search reads as "nothing found")
+
+**Date:** 2026-07-01 | **Status:** Fixed (3 views `Views/Certificate/CertificateTileView*.cshtml` + 3 scripts `wwwroot/js/certificate-tile-view*.js`) — **bundled in `GCCWebApp-deploy-20260701-1639.zip`**, pending deploy | **Severity:** Low — UX polish. Search is functionally correct (a free-text query returns the right rows); the count area just momentarily reads "0 Results" during the fetch, which looks like "no matches found." | **QC Ref:** internal — live report during search testing | **Reporter:** Shawn (2026-07-01)
+
+**Symptom.** On the certificate tile views, running a free-text search (e.g. "Recycled") correctly returns the matching certificates, but on the initial render the results count briefly shows **"0 Results"** before the tiles load — reading as "nothing found" for a beat even though matches are on the way.
+
+**Root cause.** Pure front-end placeholder, not a search bug. The results-count element was hardcoded in the Razor markup as `<div id="resultsCount">0 Results</div>`. The count is only corrected by `updateResultsCount()` **after** the async `/api/certificate-tiles` fetch resolves (`Showing N of N …`), so during the initial load window — page load, a hard nav to a `?search=…` URL, or any first fetch — the static "0 Results" is what shows. `showLoadingIndicator()` puts a spinner in the grid, but the count line still contradicted it by asserting zero.
+
+**Fix.** Two parts: **(1) Initial render** — changed the static placeholder in all three tile views from `0 Results` to a neutral **`Loading…`**, so the first paint never asserts "zero matches" before data arrives. **(2) Every re-search / filter change** (per Shawn 2026-07-01) — in each tile view's `loadCertificates(append)`, on a fresh (`!append`) load the count is now reset to `Loading…` **synchronously, before the `await fetch`**, so a subsequent search/filter no longer leaves the stale prior "Showing N of N" up during the new fetch either. In both cases `updateResultsCount()` overwrites it with the real "Showing N of N certificates" on fetch success exactly as before. Markup + JS only, **no API/migration change**; the three scripts already carry `asp-append-version="true"` (DEF-271) so the JS change cache-busts on deploy. (The public view's `resultsCount` carries `aria-live="polite"`, so this also stops a screen reader from ever seeing a "0 Results" value.)
+
+**Verification.** ✅ VERIFIED on localhost:5101 (2026-07-01): the public tile page now server-renders `id="resultsCount" …>Loading…</div>` and `grep` finds **zero** `>0 Results<` occurrences; a `search=Recycled` query against `/api/certificate-tiles` returns `totalCount=4` (dev-seed data set — client env had 7), confirming the filter itself is unaffected. Internal/External carry the identical markup change (both require auth, so unauthenticated curl returns the login redirect; source-string replacement confirmed in each file). JS extension: `node --check` clean on all three scripts, and the reset is placed synchronously ahead of the `await` so the "Loading…" state is deterministic on every fresh load (the flip back to "Showing N" is sub-second, so not separately screenshotted).
+
+**Linked memory.** [[feedback_no_chaos_rabbit_holes]] (single-cause markup fix, no over-diagnosis), [[feedback_client_requested_labels_immutable]] (label swap is a loading-state correction, not a client-requested copy change).
+
+---
+
 ## Closed / Historical
 
 *(Entries from the pre-existing register to be merged here if recovered.)*

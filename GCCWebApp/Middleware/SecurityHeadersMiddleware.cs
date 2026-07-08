@@ -238,7 +238,16 @@ public class SecurityHeadersMiddleware
     private async Task<bool> DetectSqlInjectionAsync(HttpContext context)
     {
         var path = context.Request.Path.ToString().ToLowerInvariant();
-        var queryString = context.Request.QueryString.ToString().ToLowerInvariant();
+
+        // Match against the DECODED query string, not the raw percent-encoded form.
+        // Inspecting the encoded string meant a lone apostrophe/quote arrived as %27/%22
+        // and had to be blocked outright — which false-positived on legitimate values
+        // (e.g. a company filter "Gemma's Company Co." -> company=Gemma%27s... returned
+        // HTTP 400 "Bad request", surfacing as "Failed to load certificates" in the UI).
+        // Decoding lets us match the meaningful injection combinations ("' or ", "'; drop",
+        // "'--", ...) instead, so ordinary apostrophes pass. '+' means space in a query string.
+        var queryString = Uri.UnescapeDataString(
+            context.Request.QueryString.ToString().Replace('+', ' ')).ToLowerInvariant();
 
         // IMPORTANT: For URL paths, only check for ACTUAL SQL injection patterns
         // Words like "delete", "update", "select", "create" are common in action method names
@@ -273,8 +282,10 @@ public class SecurityHeadersMiddleware
             "xp_", "sp_", "@@version", "@@servername",
             "/**/", "char(", "nchar(", "varchar(", "nvarchar(",
             "waitfor delay", "benchmark(", "sleep(",
-            "; drop ", "; delete ", "; update ", "; insert ",
-            "%27", "%22", "%3b%20drop", "%3b%20delete"  // URL-encoded patterns
+            "; drop ", "; delete ", "; update ", "; insert "
+            // NOTE: the query string is decoded before matching (see above), so the
+            // meaningful combinations here catch encoded injection too. A bare %27/%22
+            // (lone apostrophe/quote) is NOT flagged — it is legitimate in names/search.
         };
 
         if (queryInjectionPatterns.Any(pattern => queryString.Contains(pattern)))

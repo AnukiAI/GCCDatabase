@@ -1,0 +1,37 @@
+{
+  "specId": "cert-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 3,
+  "fail": 1,
+  "warn": 0,
+  "blocked": 0,
+  "total": 4,
+  "results": [
+    {
+      "id": "crud.pre",
+      "name": "clonable combo + count snapshot",
+      "status": "PASS",
+      "notes": "company=265 product=141 cat=- type=- sub=- certType=15 | products=119 certs=52"
+    },
+    {
+      "id": "crud.C1.create-302",
+      "name": "analyst Create POST redirects on success",
+      "status": "FAIL",
+      "notes": "HTTP 200, redirect=\"\", number=null — ModelState invalid (form re-rendered)"
+    },
+    {
+      "id": "crud.INV.products",
+      "name": "Products count unchanged (no find-or-create pollution)",
+      "status": "PASS",
+      "notes": "before=119 after=119"
+    },
+    {
+      "id": "crud.INV.certs",
+      "name": "Certificates count net-zero after round-trip",
+      "status": "PASS",
+      "notes": "before=52 after=52"
+    }
+  ],
+  "finishedAt": "2026-07-07T20:16:16.246Z"
+}

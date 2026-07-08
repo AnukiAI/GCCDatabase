@@ -210,6 +210,14 @@
         state.isLoading = true;
         showLoadingIndicator();
 
+        // On a fresh load (search / filter change / initial), reset the count to a
+        // neutral "Loading…" so it never shows a stale or "0 Results" value mid-fetch
+        // (DEF-302). updateResultsCount() restores "Showing N of N" on success.
+        if (!append) {
+            const resultsCount = document.getElementById('resultsCount');
+            if (resultsCount) resultsCount.textContent = 'Loading…';
+        }
+
         try {
             const params = buildApiParams();
             const response = await fetch(`/api/certificate-tiles-internal?${params}`);

@@ -1,0 +1,163 @@
+name: Regression CI
+
+# Regression CI for GCCWebApp (docs/qa/regression-e2e-strategy.md §8, Phase 5).
+# Lives at the REPO ROOT .github/workflows (git root is this dir; the app + .sln are under GCCWebApp/).
+# Separate from the dormant ci-cd-pipeline.yml (which targets main/develop + Azure and does not run
+# on master). Targets `master` — the actual working branch.
+#
+#   build-test   — portable, every push/PR: build + test the PORTABLE projects only
+#                  (GCCWebApp.Tests + GCCWebApp.Api.Tests; both InMemory/mock, no SQL Server).
+#                  Deliberately EXCLUDES the Playwright/live-app suites (RoleBasedUI/UAT/Security/
+#                  Accessibility/Performance) — they need a running app and belong in deploy-gate.
+#   deploy-gate  — deterministic E2E gate (deploy-gate.js: security + CRUD + Amazon contract) on a
+#                  throwaway SQL Server. MANUAL until Scripts/ci/seed-e2e.sql provisions the
+#                  partner users + business data the security/cert-detail gates need.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Portable gate — runs on every change. No database, no browser.
+  # ---------------------------------------------------------------------------
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore GCCWebApp/GCCWebApp.sln
+
+      - name: Build (Release)
+        run: dotnet build GCCWebApp/GCCWebApp.sln --no-restore -c Release
+
+      # Only the portable projects. Do NOT run the whole solution — GCCWebApp.RoleBasedUI.Tests
+      # is a Playwright suite that needs a live app (91/98 fail + ~29 min under a plain dotnet test).
+
+      # BLOCKING gate: GCCWebApp.Tests is clean (24/24). A failure here fails the build.
+      - name: Unit tests — SearchNormalizer (blocking)
+        run: dotnet test GCCWebApp/GCCWebApp.Tests/GCCWebApp.Tests.csproj --no-build -c Release --logger "trx;LogFileName=unit.trx" --results-directory ./TestResults
+
+      # NON-BLOCKING: Api.Tests is portable (InMemory, ~26s) but has 61 PRE-EXISTING failures
+      # (641/702 pass as of 2026-07-08) that predate this CI and need triage. Run for visibility;
+      # once the 61 are fixed, drop continue-on-error to make it a required gate too.
+      - name: Integration tests — Api.Tests (WebApplicationFactory + InMemory, non-blocking)
+        continue-on-error: true
+        run: dotnet test GCCWebApp.Api.Tests/GCCWebApp.Api.Tests.csproj -c Release --logger "trx;LogFileName=api.trx" --results-directory ./TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-test-results
+          path: ./TestResults/**/*.trx
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # Deterministic E2E deploy gate — security + CRUD + Amazon contract via
+  # GCCWebApp/Scripts/smoke-prod/deploy-gate.js against a throwaway SQL Server.
+  #
+  # STATUS: MANUAL (workflow_dispatch). Scripts/ci/seed-e2e.sql now provisions the partner users +
+  # certs/companies/products the security & cert-detail gates need (SeedData seeds LOGIN USERS only).
+  # The seed is SCHEMA-validated (applies cleanly, exact row counts) but not yet behaviorally proven
+  # green in this CI env — dispatch this job once to confirm GREEN, THEN add `master` push to the
+  # `if:` and make it a required status check.
+  # ---------------------------------------------------------------------------
+  deploy-gate:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Str0ng!Passw0rd#CI"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'Str0ng!Passw0rd#CI' -Q 'SELECT 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 15
+
+    env:
+      CI_DB_CONN: "Server=localhost,1433;Database=GCC_CI;User Id=sa;Password=Str0ng!Passw0rd#CI;TrustServerCertificate=true;MultipleActiveResultSets=true;Encrypt=false"
+      ASPNETCORE_ENVIRONMENT: "Development"
+      BASE_URL: "http://localhost:5101"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install sqlcmd (mssql-tools18)
+        run: |
+          curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc >/dev/null
+          curl -sSL https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list >/dev/null
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18 unixodbc-dev
+          echo "/opt/mssql-tools18/bin" >> "$GITHUB_PATH"
+
+      - name: Install smoke-suite deps + Playwright
+        working-directory: GCCWebApp/Scripts/smoke-prod
+        run: |
+          npm ci || npm install
+          npx playwright install --with-deps chromium
+
+      - name: Start app (auto-migrates + seeds users in Development)
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.CI_DB_CONN }}
+        run: |
+          nohup dotnet run --project GCCWebApp/GCCWebApp/GCCWebApp.csproj -c Release --urls "http://localhost:5101" > app.log 2>&1 &
+          echo "waiting for app on :5101..."
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5101/ || true)
+            if [ "$code" = "200" ]; then echo "app ready"; exit 0; fi
+            sleep 3
+          done
+          echo "app did not become ready; tail of app.log:"; tail -50 app.log; exit 1
+
+      - name: Seed E2E business data (REQUIRED for a full-green gate)
+        run: |
+          if [ -f GCCWebApp/Scripts/ci/seed-e2e.sql ]; then
+            echo "Applying GCCWebApp/Scripts/ci/seed-e2e.sql ..."
+            /opt/mssql-tools18/bin/sqlcmd -C -S localhost,1433 -U sa -P 'Str0ng!Passw0rd#CI' -d GCC_CI -i GCCWebApp/Scripts/ci/seed-e2e.sql
+          else
+            echo "::warning::No GCCWebApp/Scripts/ci/seed-e2e.sql — deploy-gate runs PARTIAL (partner-isolation, cert-detail, Amazon-contract gates lack data)."
+          fi
+
+      - name: Run deploy gate (security + CRUD; contract stays local)
+        env:
+          SMOKE_DB_CONN: ${{ env.CI_DB_CONN }}
+          BASE_URL: "http://localhost:5101"
+          DEPLOY_GATE_SKIP_CONTRACT: "1"   # Amazon contract-diff needs the frozen real certs — local-only
+        run: node GCCWebApp/Scripts/smoke-prod/deploy-gate.js
+
+      - name: Upload gate results + app log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-gate-results
+          path: |
+            GCCWebApp/Scripts/smoke-prod/_results/deploy-gate-*.json
+            GCCWebApp/Scripts/smoke-prod/_results/security-summary-*.json
+            GCCWebApp/Scripts/smoke-prod/_results/crud-summary-*.json
+            app.log
+          if-no-files-found: ignore

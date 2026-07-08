@@ -1,0 +1,19 @@
+{
+  "specId": "cert-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 0,
+  "fail": 1,
+  "warn": 0,
+  "blocked": 0,
+  "total": 1,
+  "results": [
+    {
+      "id": "crud.error",
+      "name": "spec ran without throwing",
+      "status": "FAIL",
+      "notes": "ENOENT: no such file or directory, open 'C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\appsettings.Development.json'"
+    }
+  ],
+  "finishedAt": "2026-07-07T19:51:33.526Z"
+}

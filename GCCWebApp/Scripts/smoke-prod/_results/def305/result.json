@@ -1,0 +1,43 @@
+{
+  "base": "http://localhost:5101",
+  "cert": "99-9001",
+  "pass": 7,
+  "fail": 0,
+  "results": [
+    {
+      "name": "edit-form loads with stored status = Draft",
+      "pass": true,
+      "detail": "#Status=\"Draft\""
+    },
+    {
+      "name": "shows the invalid-transition error",
+      "pass": true,
+      "detail": "Invalid status transition from 'Draft' to 'Republished'. From 'Draft' you can move to: Client Approved - Not Paid, Client Approved - Confidential, Client Approved - Paid, Hold. Invalid status transiti"
+    },
+    {
+      "name": "error now lists allowed next states (the DEF-305 message add)",
+      "pass": true,
+      "detail": "Invalid status transition from 'Draft' to 'Republished'. From 'Draft' you can move to: Client Approved - Not Paid, Client Approved - Confidential, Client Approved - Paid, Hold. Invalid status transition from 'Draft' to 'Republished'. From '"
+    },
+    {
+      "name": "lists all 4 valid targets (NotPaid, Confidential, Paid, Hold)",
+      "pass": true,
+      "detail": "Invalid status transition from 'Draft' to 'Republished'. From 'Draft' you can move to: Client Approved - Not Paid, Client Approved - Confidential, Client Approved - Paid, Hold. Invalid status transition from 'Draft' to 'Republished'. From '"
+    },
+    {
+      "name": "Status dropdown snapped back to Draft (no lock-out)",
+      "pass": true,
+      "detail": "#Status=\"Draft\""
+    },
+    {
+      "name": "re-saving unchanged succeeds — no transition error",
+      "pass": true,
+      "detail": "url=http://localhost:5101/Certificate/CertificateInternalView/99-9001"
+    },
+    {
+      "name": "left the Edit page after successful save",
+      "pass": true,
+      "detail": "url=http://localhost:5101/Certificate/CertificateInternalView/99-9001"
+    }
+  ]
+}

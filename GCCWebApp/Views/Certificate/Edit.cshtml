@@ -215,10 +215,10 @@
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="CertificationResults">Certification Results <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <label asp-for="CertificationResults">Certification Results <span class="text-muted" style="font-size: 12px;">(Required for Amazon CPF)</span></label>
                         <textarea asp-for="CertificationResults" rows="3" maxlength="1000" placeholder="Enter test results or scores if required by partner (e.g., threshold values for Amazon)"></textarea>
                         <span asp-validation-for="CertificationResults" class="text-danger" role="alert"></span>
-                        <small class="form-text text-muted">Optional field for recording certification test results or scores.</small>
+                        <small class="form-text text-muted">Enter numeric certification results (e.g., 65%, 100%)</small>
                     </div>
 
                     <div class="form-group">

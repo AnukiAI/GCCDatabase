@@ -896,9 +896,11 @@ using (var scope = app.Services.CreateScope())
 
         if (app.Environment.IsDevelopment())
         {
-            // Development: Apply migrations automatically (data seeding via SQL scripts only)
-            await SeedData.InitializeAsync(context);
-            logger.LogInformation("✅ Development database migrations applied successfully (use SQL scripts in Database_Scripts/ to seed data)");
+            // Development: apply migrations and seed the essential baseline data on a fresh
+            // DB (Roles/Permissions/Users/API keys). Idempotent — no-ops when the DB already
+            // has Roles, so existing dev databases are untouched. ISS-001.
+            await SeedData.InitializeAsync(context, seedEssentialData: true);
+            logger.LogInformation("✅ Development database migrations applied successfully (essential baseline data seeded on fresh DBs; ISS-001)");
         }
         else if (app.Environment.EnvironmentName == "Testing")
         {
@@ -908,8 +910,9 @@ using (var scope = app.Services.CreateScope())
         }
         else if (app.Environment.IsStaging())
         {
-            // Staging: MANUAL MIGRATION MANAGEMENT - Do not auto-migrate
-            // Database schema must be managed via SQL scripts (00_CREATE_SCHEMA.sql, FULL_TEST_DATA_SEED.sql)
+            // Staging: MANUAL MIGRATION MANAGEMENT - Do not auto-migrate.
+            // Schema is applied out-of-band by the deploy process (the generated
+            // migration SQL, e.g. migrations/apply-migrations.sql, run at deploy time).
             logger.LogInformation("🔧 Staging environment - skipping automatic migrations (manual migration management enabled)");
 
             // Validate database connectivity

@@ -134,6 +134,30 @@ Audit the working tree against the tracking docs:
 
 ---
 
+## Deploy gate results log
+
+Per-bundle record of gate outcomes. Be precise: **VERIFIED** = mechanically run/checked; **N/A** = gate does not fire for this changeset (with the scope reason); **REASONED** = firing gate not run through its full agent/script, assessed by scope+diff instead (a conscious call, not a silent skip); **DEPLOY-TIME** = a manual step owed at upload, not at bundle time.
+
+### `GCCWebApp-deploy-20260713-1242.zip` — assessed 2026-07-13 (supersedes the 0932 assessment; adds DEF-304)
+
+**Shippable code in this changeset:** `wwwroot/js/certificate-tile-view{,-internal,-external}.js` (DEF-303 — search commits on Enter; DEF-304 — shareable filter URLs on the two authed views) + `Data/SeedData.cs`, `Program.cs` (ISS-001 — fresh-DB seeding re-wire, Development-only path). Tracking-doc edits are non-shippable. The bundle is a full working-tree publish, so it also re-carries the prior pending backlog (DEF-301/302 + committed items).
+
+| Gate | Fires? | Result | Evidence / rationale |
+|------|--------|--------|----------------------|
+| 0 — Uploads backup | Yes (every deploy) | **DEPLOY-TIME** | Owed at upload — zip server `wwwroot/uploads/` before extract. Not done at bundle time. |
+| 1 — UI / Design-Guide | Yes (`wwwroot/js/*`) | **REASONED** | Diff is search-commit *timing* only — no markup/CSS/label/dialog change, no new `alert/confirm/prompt`, no `<h1>`/font/label edits. `ux-design-compliance` agent not run (no visual surface changed). |
+| 2 — Cross-role + responsive | Yes (role-conditional tile JS) | **VERIFIED (behavior) / REASONED (visual)** | DEF-303: Playwright drove all three views — public (anon), internal + external (analyst): typing draws no chip/no reload; Enter commits chip+reload; clear+Enter clears; autocomplete intact; **zero console errors**. DEF-304: Playwright on internal + external — applied `certType`+`company` filters, confirmed they land in the URL and a fresh load of that URL re-checks the boxes + shows the chips. Full 4-login × 5-viewport screenshot + AxeCore pass not run (no layout/CSS change). |
+| 3 — Data-scoping & endpoints | No (ran anyway) | **N/A — but VERIFIED GREEN** | Didn't fire (no business-data endpoint changed), but the `deploy-gate.js` **security** suite (isolation/RBAC/IDOR/detail scoping) ran GREEN (exit 0, 41s) — confirms no scoping regression. |
+| 4 — Partner API contract | No (ran anyway) | **N/A — but VERIFIED GREEN** | Didn't fire (no `/api/v1/*` or v1-path change), but `amazon-contract-diff.js` ran: **CONTRACT UNCHANGED** (7 pass / 0 fail) vs the April baselines — GS1 list, GS1 single, Standard list all identical structure. |
+| 5 — Traceability audit | Yes (always) | **VERIFIED (manual)** | Git-based audit: every code change maps to **DEF-303** or **ISS-001** (both registered with source/Reporter); `shipped-2026-07.md` has stakeholder entries; no orphan changes; no real-record UPDATE/DELETE in the deploy. `governance-manager` agent not invoked — audit done by hand. |
+| 6 — Performance / EF | No (effectively) | **N/A** | `Program.cs` change is limited to the **Development** DB-init branch (a seeding call) — no EF query, service registration, or hosted-service change, and the modified branch does not execute on the Production-configured deploy target. |
+| 7 — Pending migration → prod | Yes (bundle carries a pending migration) | **VERIFIED** | This changeset adds **no** new migration and no mapped-entity change. In-zip `migrations/apply-migrations.sql` verified: 71 lines, scripted from prod high-water `AddProductIdPartnersM2M`, applies only `WidenCertificateProductIdProductName` (metadata-only widen) + idempotent CR-171 backfill, **0 CONCAT**. Script unchanged from the prior bundle, which was prod-`.bak`-validated 2026-06-18. **DEPLOY-TIME:** still run this SQL (`sqlcmd -I`) *before* recycling the app pool. |
+| 8 — CRUD write-path | No (ran anyway) | **N/A — but VERIFIED GREEN** | Didn't fire (no create/update/delete path/service/entity changed), but the `deploy-gate.js` **crud** suite ran **39 PASS / 0 FAIL => GREEN** (exit 0, 49s): full create→edit→delete + SQL-verified persistence + net-zero counts for cert/tag/company/product/user, with the CR-186 no-duplicate-product invariant holding. |
+
+**Net:** no gate failed; no waiver required. Gates 1/2/5/7 were satisfied by targeted verification. The full deterministic backbone **was run** for this bundle — `node Scripts/smoke-prod/deploy-gate.js` (app on `localhost:5101` against the seeded `GCCDatabase_Dev`, incl. the Amazon-baseline certs) returned **GREEN — safe to deploy** (security ✔ 41s · crud ✔ 49s · contract ✔ 4s; results in `Scripts/smoke-prod/_results/deploy-gate-2026-07-13T15-10-55-161Z.json`). So even though Gates 3/4/8 don't formally fire for a frontend-search + dev-seeding changeset, the suites that back them are confirmed green with no collateral regression.
+
+---
+
 ## Waiver log
 
 If you ship past a failed gate on purpose, add a line here so it's not silently lost.

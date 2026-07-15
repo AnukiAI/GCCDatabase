@@ -1,0 +1,47 @@
+{
+  "status": "GREEN",
+  "totals": {
+    "pass": 39,
+    "fail": 0,
+    "warn": 0,
+    "blocked": 0
+  },
+  "specs": [
+    {
+      "spec": "tag-crud-roundtrip",
+      "pass": 7,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "company-crud-roundtrip",
+      "pass": 7,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "product-crud-roundtrip",
+      "pass": 8,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "user-crud-roundtrip",
+      "pass": 8,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "cert-crud-roundtrip",
+      "pass": 9,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    }
+  ],
+  "finishedAt": "2026-07-13T15:10:50.874Z"
+}

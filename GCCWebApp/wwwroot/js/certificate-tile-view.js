@@ -708,13 +708,9 @@
                 autocompleteContainer.style.display = 'none';
             }
             
-            // Debounced search execution
-            state.debounceTimer = setTimeout(() => {
-                state.filters.search = term;
-                renderActiveFilterTags();
-                updateUrl();
-                loadInitialCertificates();
-            }, 300);
+            // Search is committed only on Enter or when a suggestion is picked
+            // (see keydown/click handlers below). Typing no longer auto-runs the
+            // search or draws the active-filter chip before the user submits.
         });
 
         // Close autocomplete on outside click
@@ -751,16 +747,14 @@
                         const selectedItem = items[selectedIndex];
                         searchInput.value = selectedItem.dataset.value;
                         state.filters.search = selectedItem.dataset.value;
-                        autocompleteContainer.style.display = 'none';
-                        updateUrl();
-                        loadInitialCertificates();
-                    } else if (searchInput.value.trim()) {
-                        // No autocomplete selected, but there's text - use it for search
+                    } else {
+                        // Commit the typed text; empty clears an active search
                         state.filters.search = searchInput.value.trim();
-                        autocompleteContainer.style.display = 'none';
-                        updateUrl();
-                        loadInitialCertificates();
                     }
+                    autocompleteContainer.style.display = 'none';
+                    renderActiveFilterTags();
+                    updateUrl();
+                    loadInitialCertificates();
                     break;
                 case 'Escape':
                     autocompleteContainer.style.display = 'none';
@@ -794,7 +788,7 @@
                 input.value = item.dataset.value;
                 state.filters.search = item.dataset.value;
                 container.style.display = 'none';
-                clearTimeout(state.debounceTimer); // Cancel pending search
+                renderActiveFilterTags();
                 updateUrl(); // Update URL before loading to preserve state
                 loadInitialCertificates();
             });

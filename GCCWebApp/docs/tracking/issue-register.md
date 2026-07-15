@@ -1,0 +1,40 @@
+# Issue Register
+
+Running log of **infrastructure / tooling / process** issues that are not product defects (those live in `defect-register.md`) and not scoped feature changes (those live in `change-request-register.md`). Newest first. IDs are `ISS-NNN`.
+
+---
+
+### ISS-001 — Fresh-database seeding is broken: `SeedData.cs` and `seed-e2e.sql` reference seed scripts that no longer exist in the repo, and the in-code seeder is orphaned
+
+**Date:** 2026-07-13 | **Status:** Fix drafted + verified (working tree, `Data/SeedData.cs` + `Program.cs`), **pending next deploy bundle** — see **Fix** below | **Severity:** Medium — does not affect the running product or any existing database; blocks standing up a **brand-new** dev/CI database from scratch. Surfaced during DEF-303 validation (see [[feedback_testing_environment]]). | **Reporter:** Shawn (2026-07-13)
+
+**Symptom.** On a freshly-migrated database, the app boots with no login users, so **every login fails** ("Invalid email or password") and any authenticated view is unreachable. The startup log says *"Database migrations applied. No automatic seeding performed. Use SQL scripts in Database_Scripts/ folder to seed data when needed"* — but the scripts it points to are not in the repo. (Discovered because the local app defaulted to an empty DB when `DATABASE_CONNECTION_STRING` wasn't set in-shell; validating DEF-303's internal/external views required repointing at the already-seeded `GCCDatabase_Dev`.)
+
+**Details / evidence.**
+- `Data/SeedData.cs::InitializeAsync` only runs `MigrateAsync()` then early-returns with the "No automatic seeding" message. The idempotent seeder that actually creates Roles/Permissions/Users/API keys — `SeedData.SeedEssentialSecurityDataAsync` (produces `admin` / `analyst` / `external` with a fixed bcrypt hash) — **still exists in the file but is never called** from anywhere.
+- The comments in `SeedData.cs` (lines 23–25) and `Program.cs` (line 912) direct the operator to run these scripts, **all four of which are missing** from the working tree:
+  - `Database_Scripts/PRODUCTION_ESSENTIAL_SEED.sql`
+  - `Database_Scripts/FULL_TEST_DATA_SEED_uniqueemails.sql`
+  - `Database_Scripts/FULL_TEST_DATA_SEED.sql`
+  - `Database_Scripts/00_CREATE_SCHEMA.sql`
+- `Scripts/ci/seed-e2e.sql` is **not** a substitute: its header explicitly assumes *"SeedData has seeded login users admin/analyst/external + the Roles incl. 'Partner'"*, and its prerequisite check `RAISERROR`s (and rolls back) if the `admin` user / `Partner` role / `external` user are absent. So on a truly fresh DB, CI's own seed step would fail too — CI presumably works today only because its databases already carry the base users from some earlier path.
+- The only seed-ish SQL still present: `Scripts/ci/seed-e2e.sql` (business data, needs base users) and `Scripts/smoke-prod/_lib/seed-state-fixtures.sql` (smoke fixtures).
+
+**Impact.** New-environment bring-up (a fresh dev laptop, a clean CI database, a rebuilt test DB) cannot be seeded from the documented path. Existing databases (`GCCDatabase_Dev`, prod, current CI) are unaffected — this only bites when starting from an empty schema.
+
+**Candidate fixes (for triage — not yet decided).**
+1. **Re-wire the existing in-code seeder** — have `InitializeAsync` call `SeedEssentialSecurityDataAsync` in Development (it's already idempotent and guards on `Roles.AnyAsync()`), so a fresh dev/CI DB self-seeds base users + roles, and `seed-e2e.sql` can then layer business data on top. Lowest-effort, keeps one source of truth in code.
+2. **Restore the missing SQL scripts** to `Database_Scripts/` (recover from an earlier commit / backup) and keep the script-based flow the comments describe.
+3. **Do both** minimally: re-point the comments/logs at whatever the real, present path is, and delete references to files that no longer exist so operators aren't sent to dead scripts.
+
+**Fix (drafted 2026-07-13, candidate #1 — re-wire the in-code seeder).** Two files, no new SQL, no migration:
+- `Data/SeedData.cs` — `InitializeAsync(context)` → `InitializeAsync(context, bool seedEssentialData = false)`. When `true`, after `MigrateAsync()` it calls the pre-existing idempotent `SeedEssentialSecurityDataAsync(context)` (guards on `Roles.AnyAsync()` → no-ops on an already-seeded DB); when `false` it keeps the old "no automatic seeding" log. Default `false` preserves behavior for any other caller (there are none today besides Program.cs).
+- `Program.cs` — the Development branch now calls `SeedData.InitializeAsync(context, seedEssentialData: true)`. Development only; Testing/Staging/Production branches are untouched.
+
+**Verification.** ✅ VERIFIED on localhost:5101 (2026-07-13). `dotnet build` clean (0 errors). Booted the app against a **fresh empty** `GCCDatabase_ISS001Verify` (created empty via trusted `sqlcmd`; `GCC_DevUser` lacks `CREATE DATABASE`, an unrelated env perms note): startup logged *"Seeding essential security data (Roles, Permissions, Users, API Keys)…"* and the schema+data built from zero → **14 Users / 5 Roles / 22 Permissions**, incl. `analyst@test-gcc.local` (Analyst) and `external@test-gcc.local` (External). Playwright login as `analyst@test-gcc.local` / `TestPass123!` then reached `/Certificate/CertificateTileViewInternal` (authed view rendered). Also re-confirmed idempotency in the prior run against the already-seeded `GCCDatabase_Dev` (seeder skipped — DB untouched). Throwaway DB dropped after.
+
+**Follow-ups (not done here).** (1) The stale comments in `SeedData.cs` (lines ~23–25) and `Program.cs` (~912) still name the missing `Database_Scripts/*_SEED.sql` / `00_CREATE_SCHEMA.sql` files — left as-is to keep this diff minimal; worth a cleanup pass. (2) The in-code seeder's users (`analyst@test-gcc.local`, `external@test-gcc.local`, admin `swest@anukiconsulting.com`) differ from the emails currently in `GCCDatabase_Dev` (`jane.analyst@anukiconsulting.com`, …) — a pre-existing divergence between the code seeder and whatever script seeded the live dev DB; not reconciled here.
+
+**Notes.** Related: DEF-303 (its verification is what surfaced this); [[project_predeploy_agent_checklist]] (fresh-DB bring-up touches deploy/seed steps); [[feedback_testing_environment]].
+
+---

@@ -13,19 +13,29 @@ namespace GCCWebApp.Data
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
-        public static async Task InitializeAsync(ApplicationDbContext context)
+        public static async Task InitializeAsync(ApplicationDbContext context, bool seedEssentialData = false)
         {
             // Apply any pending migrations
             await context.Database.MigrateAsync();
 
-            // NOTE: Manual seeding control - Automatic seeding is disabled
-            // To seed data, use one of these approaches:
-            // 1. Run Database_Scripts/PRODUCTION_ESSENTIAL_SEED.sql for production setup
-            // 2. Run Database_Scripts/FULL_TEST_DATA_SEED_uniqueemails.sql for testing/development
-            // 3. Run: sqlcmd -S ANUKI01 -U GCC_DevUser -P "DevP@ss2024!SQL" -d GCCDatabase_Dev -i "Database_Scripts\FULL_TEST_DATA_SEED_uniqueemails.sql"
-
-            Console.WriteLine("Database migrations applied. No automatic seeding performed.");
-            Console.WriteLine("Use SQL scripts in Database_Scripts/ folder to seed data when needed.");
+            if (seedEssentialData)
+            {
+                // ISS-001: On a fresh DB (Development bring-up / CI), create the baseline
+                // Roles, Permissions, Users (admin/analyst/external), API keys, a default
+                // CertificationType and CustomFields so the app is usable and CI's
+                // Scripts/ci/seed-e2e.sql (which requires those base users + the Partner
+                // role) can layer business data on top. This is the single source of truth
+                // for essential data — the previously-referenced Database_Scripts/*_SEED.sql
+                // files no longer exist. Idempotent: SeedEssentialSecurityDataAsync no-ops
+                // when Roles already exist, so it never touches an already-seeded database.
+                await SeedEssentialSecurityDataAsync(context);
+            }
+            else
+            {
+                // Non-Development callers manage seeding out-of-band.
+                Console.WriteLine("Database migrations applied. No automatic seeding performed.");
+                Console.WriteLine("Use SQL scripts in Database_Scripts/ folder to seed data when needed.");
+            }
         }
 
         /// <summary>

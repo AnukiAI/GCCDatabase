@@ -166,6 +166,23 @@ namespace GCCWebApp.Models
         }
 
         /// <summary>
+        /// Returns the display names of every status the given current status may
+        /// transition to, per the workflow matrix. Empty when the status is terminal
+        /// or unknown. Used to tell the user their valid options inline instead of
+        /// making them guess (DEF-305 UX fix for the workflow-transition error).
+        /// </summary>
+        public static List<string> GetAllowedNextStatusDisplayNames(string fromStatus)
+        {
+            var result = new List<string>();
+            foreach (var status in GetAllStatuses().Keys)
+            {
+                if (IsValidTransition(fromStatus, status))
+                    result.Add(GetDisplayName(status));
+            }
+            return result;
+        }
+
+        /// <summary>
         /// Resolves a free-text status value (e.g. from a CSV import) to its canonical
         /// status string, tolerating case, whitespace, and punctuation differences — so
         /// "Client Approved Paid", "client approved-paid", or "CLIENT APPROVED  PAID" all

@@ -1040,12 +1040,25 @@ namespace GCCWebApp.Controllers
                     {
                         var fromDisplay = CertificateStatusHelper.GetDisplayName(oldStatus);
                         var toDisplay = CertificateStatusHelper.GetDisplayName(requestedStatus);
+                        var allowedNext = CertificateStatusHelper.GetAllowedNextStatusDisplayNames(oldStatus);
+                        var allowedText = allowedNext.Count > 0
+                            ? $"From '{fromDisplay}' you can move to: {string.Join(", ", allowedNext)}."
+                            : $"'{fromDisplay}' is a final state with no further transitions.";
                         _logger.LogWarning(
                             "Invalid workflow transition rejected for cert {Number}: '{From}' → '{To}' by user {UserId}",
                             certificate.Number, oldStatus, requestedStatus, GetCurrentUserId());
+                        // DEF-305 UX trap fix: the rejected save persists nothing, but the
+                        // Status dropdown would otherwise redisplay the invalid choice — so a
+                        // blind re-save fails again and feels like a lock-out. Snap the field
+                        // back to the certificate's true stored status before re-rendering.
+                        // The <select asp-for="Status"> tag helper binds to ModelState's
+                        // POSTED value, which would win over model.Status on re-render — so we
+                        // must clear that stale entry, then re-attach the error (with no raw
+                        // value) so the message still shows against the field.
+                        model.Status = oldStatus;
+                        ModelState.Remove(nameof(model.Status));
                         ModelState.AddModelError(nameof(model.Status),
-                            $"Invalid status transition from '{fromDisplay}' to '{toDisplay}'. " +
-                            $"Check workflow rules for the allowed next states from '{fromDisplay}'.");
+                            $"Invalid status transition from '{fromDisplay}' to '{toDisplay}'. {allowedText}");
                         await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
                         return View(model);
                     }

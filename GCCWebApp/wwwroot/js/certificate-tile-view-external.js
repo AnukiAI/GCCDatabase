@@ -847,13 +847,9 @@
                 autocompleteContainer.style.display = 'none';
             }
             
-            // Debounced search execution
-            state.debounceTimer = setTimeout(() => {
-                state.filters.search = term;
-                renderActiveFilterTags();
-                loadInitialCertificates();
-                updateUrl();
-            }, 300);
+            // Search is committed only on Enter or when a suggestion is picked
+            // (see keydown/click handlers below). Typing no longer auto-runs the
+            // search or draws the active-filter chip before the user submits.
         });
 
         // Close autocomplete on outside click
@@ -890,16 +886,14 @@
                         const selectedItem = items[selectedIndex];
                         searchInput.value = selectedItem.dataset.value;
                         state.filters.search = selectedItem.dataset.value;
-                        autocompleteContainer.style.display = 'none';
-                        loadInitialCertificates();
-                        updateUrl();
-                    } else if (searchInput.value.trim()) {
-                        // No autocomplete selected, but there's text - use it for search
+                    } else {
+                        // Commit the typed text; empty clears an active search
                         state.filters.search = searchInput.value.trim();
-                        autocompleteContainer.style.display = 'none';
-                        loadInitialCertificates();
-                        updateUrl();
                     }
+                    autocompleteContainer.style.display = 'none';
+                    renderActiveFilterTags();
+                    loadInitialCertificates();
+                    updateUrl();
                     break;
                 case 'Escape':
                     autocompleteContainer.style.display = 'none';
@@ -934,7 +928,7 @@
                 input.value = item.dataset.value;
                 state.filters.search = item.dataset.value;
                 container.style.display = 'none';
-                clearTimeout(state.debounceTimer);
+                renderActiveFilterTags();
                 loadInitialCertificates();
                 updateUrl();
             });
@@ -956,6 +950,24 @@
             if (searchInput) searchInput.value = state.filters.search;
         }
 
+        // Shareable filters: restore the sidebar filter selections from the URL so a
+        // shared link reopens with the same filters applied (parity with the public view).
+        if (params.has('certType')) {
+            state.filters.certType = params.get('certType').split('|');
+        }
+        if (params.has('category')) {
+            state.filters.productCategory = params.get('category').split('|');
+        }
+        if (params.has('company')) {
+            state.filters.company = params.get('company').split('|');
+        }
+        if (params.has('country')) {
+            state.filters.country = params.get('country').split('|');
+        }
+        if (params.has('tags')) {
+            state.filters.tags = params.get('tags').split('|');
+        }
+
         if (params.has('status')) {
             state.filters.status = params.get('status').split('|');
         }
@@ -971,6 +983,21 @@
 
     // Restore checkbox states and UI after filter options have been populated
     function restoreFilterCheckboxes() {
+        if (state.filters.certType && state.filters.certType.length > 0) {
+            updateCheckboxes('cert-type', state.filters.certType);
+        }
+        if (state.filters.productCategory && state.filters.productCategory.length > 0) {
+            updateCheckboxes('product-cat', state.filters.productCategory);
+        }
+        if (state.filters.company && state.filters.company.length > 0) {
+            updateCheckboxes('company', state.filters.company);
+        }
+        if (state.filters.country && state.filters.country.length > 0) {
+            updateCheckboxes('countries', state.filters.country);
+        }
+        if (state.filters.tags && state.filters.tags.length > 0) {
+            updateCheckboxes('additional', state.filters.tags);
+        }
         if (state.filters.status && state.filters.status.length > 0) {
             updateCheckboxes('status', state.filters.status);
         }
@@ -988,10 +1015,15 @@
         const params = new URLSearchParams();
         
         if (state.filters.search) params.set('search', state.filters.search);
+        if (state.filters.certType.length > 0) params.set('certType', state.filters.certType.join('|'));
+        if (state.filters.productCategory.length > 0) params.set('category', state.filters.productCategory.join('|'));
+        if (state.filters.company.length > 0) params.set('company', state.filters.company.join('|'));
+        if (state.filters.country.length > 0) params.set('country', state.filters.country.join('|'));
+        if (state.filters.tags.length > 0) params.set('tags', state.filters.tags.join('|'));
         if (state.filters.status.length > 0) params.set('status', state.filters.status.join('|'));
         if (state.filters.partner.length > 0) params.set('partner', state.filters.partner.join('|'));
-        // ... other parameters
-        
+        if (state.filters.sortBy && state.filters.sortBy !== 'newest') params.set('sort', state.filters.sortBy);
+
         const newUrl = params.toString() 
             ? `${window.location.pathname}?${params.toString()}`
             : window.location.pathname;

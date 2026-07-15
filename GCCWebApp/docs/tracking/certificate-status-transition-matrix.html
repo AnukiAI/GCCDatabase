@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Certificate Status Workflow — Transition Rules for Review &amp; Sign-Off</title>
+<style>
+  :root{
+    --ink:#1f2933;
+    --muted:#5c6b7a;
+    --line:#d7dee5;
+    --brand:#12674f;        /* deep GreenCircle green */
+    --brand-tint:#e7f1ee;
+    --ok:#1a8f5f;
+    --ok-bg:#e4f4ec;
+    --no:#b4331f;
+    --no-bg:#fbe8e5;
+    --na:#9aa5b1;
+    --na-bg:#f0f2f5;
+    --warn-bg:#fdf4e3;
+    --warn-line:#e6c15a;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body{
+    font-family:"Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    line-height:1.5;
+    font-size:11pt;
+    margin:0;
+    background:#fff;
+  }
+  .page{max-width:8in;margin:0 auto;padding:0 0.15in;}
+
+  /* ---- Masthead ---- */
+  .masthead{
+    border-bottom:3px solid var(--brand);
+    padding:4px 0 14px;
+    margin-bottom:20px;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:24px;
+  }
+  .masthead .brand{font-weight:700;color:var(--brand);font-size:12.5pt;letter-spacing:.02em;}
+  .masthead .brand small{display:block;font-weight:400;color:var(--muted);font-size:9pt;letter-spacing:0;margin-top:2px;}
+  .masthead .doc-tag{text-align:right;font-size:8.5pt;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;}
+
+  h1{font-size:19pt;line-height:1.2;margin:0 0 4px;color:var(--ink);font-weight:700;}
+  .subtitle{color:var(--muted);font-size:11pt;margin:0 0 18px;}
+
+  .meta{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:0;
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:22px;
+  }
+  .meta div{padding:9px 13px;border-right:1px solid var(--line);}
+  .meta div:last-child{border-right:0;}
+  .meta .k{font-size:7.8pt;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px;}
+  .meta .v{font-size:10pt;font-weight:600;}
+  .badge{display:inline-block;background:var(--warn-bg);border:1px solid var(--warn-line);color:#8a6410;
+    font-size:8.5pt;font-weight:600;padding:1px 8px;border-radius:20px;}
+
+  h2{
+    font-size:13pt;color:var(--brand);margin:26px 0 8px;padding-bottom:5px;
+    border-bottom:1px solid var(--line);font-weight:700;
+  }
+  .lead{font-size:10.5pt;}
+  p{margin:8px 0;}
+  ol,ul{margin:8px 0;padding-left:20px;}
+  li{margin:5px 0;}
+  strong{color:var(--ink);}
+
+  table{border-collapse:collapse;width:100%;margin:12px 0 4px;font-size:9.7pt;}
+  th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:middle;}
+  thead th{background:var(--brand-tint);color:#0e4a39;font-weight:700;font-size:9pt;}
+  tbody tr:nth-child(even) td{background:#fafbfc;}
+  .num{color:var(--muted);text-align:center;width:34px;}
+  code{font-family:"Cascadia Code",Consolas,"Courier New",monospace;font-size:8.8pt;background:#f2f4f6;
+    padding:1px 5px;border-radius:4px;color:#31485a;}
+
+  /* ---- Grid ---- */
+  .grid th,.grid td{text-align:center;padding:5px 4px;}
+  .grid thead th{font-size:8.3pt;}
+  .grid .rowhead{text-align:left;font-weight:700;background:var(--brand-tint);color:#0e4a39;white-space:nowrap;}
+  .cell-ok{background:var(--ok-bg);color:var(--ok);font-weight:700;}
+  .cell-no{background:var(--no-bg);color:var(--no);font-weight:700;}
+  .cell-na{background:var(--na-bg);color:var(--na);}
+  .legend{font-size:9pt;color:var(--muted);margin:6px 0 0;}
+  .legend span{display:inline-block;margin-right:16px;}
+  .chip{display:inline-block;width:15px;height:15px;border-radius:3px;vertical-align:-3px;margin-right:5px;}
+
+  .callout{
+    border:1px solid var(--warn-line);background:var(--warn-bg);border-radius:8px;
+    padding:12px 16px;margin:16px 0;
+  }
+  .callout .title{font-weight:700;color:#8a6410;margin-bottom:2px;}
+
+  .note{background:#f6f8fa;border-left:3px solid var(--brand);border-radius:0 6px 6px 0;padding:10px 14px;margin:14px 0;font-size:10pt;}
+
+  /* ---- Sign-off ---- */
+  .box{display:inline-block;width:14px;height:14px;border:1.5px solid #7c8794;border-radius:3px;vertical-align:-2px;}
+  .signoff td{font-size:9.7pt;}
+  .signoff .yn{white-space:nowrap;}
+  .sig{margin-top:26px;display:flex;gap:40px;}
+  .sig .line{flex:1;border-top:1px solid #7c8794;padding-top:5px;font-size:9pt;color:var(--muted);}
+
+  footer{margin-top:30px;padding-top:12px;border-top:1px solid var(--line);
+    font-size:8.3pt;color:var(--na);display:flex;justify-content:space-between;}
+
+  .avoid-break{page-break-inside:avoid;}
+  @media print{
+    .page{max-width:none;padding:0;}
+    h2{page-break-after:avoid;}
+    table{page-break-inside:auto;}
+    tr{page-break-inside:avoid;}
+  }
+  @page{margin:0.7in 0.75in;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div class="brand">Anuki Consulting
+      <small>GreenCircle Certified Database</small>
+    </div>
+    <div class="doc-tag">Client Review Document<br>Confidential</div>
+  </div>
+
+  <h1>Certificate Status Workflow</h1>
+  <p class="subtitle">Transition rules currently in effect — for your review and sign-off</p>
+
+  <div class="meta">
+    <div><div class="k">Prepared by</div><div class="v">Anuki Consulting</div></div>
+    <div><div class="k">Prepared</div><div class="v">July 14, 2026</div></div>
+    <div><div class="k">Status</div><div class="v"><span class="badge">Awaiting sign-off</span></div></div>
+  </div>
+
+  <h2>Purpose</h2>
+  <p class="lead">Your certificate records move through a defined set of statuses over their lifecycle.
+  This document lays out the rules that control <strong>which status a certificate may move to next</strong>,
+  so you can confirm they match how your business actually works — or tell us what to change.
+  Reviewing this document changes nothing in the system; it is for your verification only.</p>
+
+  <h2>Background</h2>
+  <p>Earlier this year, as part of a security update, we added rules that govern how a certificate moves
+  from one status to the next — so a record can't accidentally be placed in a state that doesn't reflect
+  where it actually is in the process. Before that update, the edit screen accepted any status change
+  without checking.</p>
+  <p>The <strong>eight statuses themselves were defined by your team.</strong> The specific rules for
+  <em>which status may follow which</em> were set by our team during that security update and have not yet
+  been formally reviewed with you. That is the reason for this document.</p>
+
+  <h2>The eight certificate statuses</h2>
+  <table class="avoid-break">
+    <thead><tr><th class="num">#</th><th>Status</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td><strong>Draft</strong></td><td>Initial working state; not yet approved.</td></tr>
+      <tr><td class="num">2</td><td><strong>Client Approved – Not Paid</strong></td><td>Approved by the client, payment outstanding.</td></tr>
+      <tr><td class="num">3</td><td><strong>Client Approved – Confidential</strong></td><td>Approved and paid, but kept private (not shown publicly).</td></tr>
+      <tr><td class="num">4</td><td><strong>Client Approved – Paid</strong></td><td>Approved and paid; publicly visible.</td></tr>
+      <tr><td class="num">5</td><td><strong>Hold</strong></td><td>Temporarily paused.</td></tr>
+      <tr><td class="num">6</td><td><strong>Expired</strong></td><td>Past its expiration date.</td></tr>
+      <tr><td class="num">7</td><td><strong>Republished</strong></td><td>A previously-live certificate re-issued with a fresh term; publicly visible.</td></tr>
+      <tr><td class="num">8</td><td><strong>Expired – No Annual Verification</strong></td><td>Expired because the annual verification was not completed.</td></tr>
+    </tbody>
+  </table>
+  <p class="legend"><strong>Publicly visible statuses:</strong> Client Approved – Paid and Republished only.</p>
+
+  <h2>Which status may follow which</h2>
+  <p>From its current status, a certificate may only move to the statuses listed below.</p>
+  <table class="avoid-break">
+    <thead><tr><th style="width:38%">Current status</th><th>May move to</th></tr></thead>
+    <tbody>
+      <tr><td class="rowhead" style="text-align:left">Draft</td><td>Client Approved – Not Paid · Confidential · Paid · Hold</td></tr>
+      <tr><td class="rowhead" style="text-align:left">Client Approved – Not Paid</td><td>Paid · Confidential · Hold · Expired</td></tr>
+      <tr><td class="rowhead" style="text-align:left">Client Approved – Confidential</td><td>Paid · Hold · Expired</td></tr>
+      <tr><td class="rowhead" style="text-align:left">Client Approved – Paid</td><td>Hold · Expired · Republished · Expired – No Annual Verification</td></tr>
+      <tr><td class="rowhead" style="text-align:left">Hold</td><td>Draft · Not Paid · Confidential · Paid</td></tr>
+      <tr><td class="rowhead" style="text-align:left">Expired</td><td>Republished · Draft</td></tr>
+      <tr><td class="rowhead" style="text-align:left">Republished</td><td>Expired · Expired – No Annual Verification · Hold</td></tr>
+      <tr><td class="rowhead" style="text-align:left">Expired – No Annual Verification</td><td>Draft</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Complete scenario grid</h2>
+  <p>Every possible change, at a glance. Read a row as the <em>current</em> status and a column as the
+  <em>target</em> status.</p>
+  <table class="grid avoid-break">
+    <thead>
+      <tr>
+        <th style="text-align:left">From ↓ &nbsp; To →</th>
+        <th>Draft</th><th>Not&nbsp;Paid</th><th>Confid.</th><th>Paid</th><th>Hold</th><th>Expired</th><th>Repub.</th><th>Exp-NAV</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="rowhead">Draft</td>            <td class="cell-na">—</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td></tr>
+      <tr><td class="rowhead">Not Paid</td>         <td class="cell-no">✗</td><td class="cell-na">—</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-no">✗</td><td class="cell-no">✗</td></tr>
+      <tr><td class="rowhead">Confidential</td>     <td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-na">—</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-no">✗</td><td class="cell-no">✗</td></tr>
+      <tr><td class="rowhead">Paid</td>             <td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-na">—</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td></tr>
+      <tr><td class="rowhead">Hold</td>             <td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-na">—</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td></tr>
+      <tr><td class="rowhead">Expired</td>          <td class="cell-ok">✓</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-na">—</td><td class="cell-ok">✓</td><td class="cell-no">✗</td></tr>
+      <tr><td class="rowhead">Republished</td>      <td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-ok">✓</td><td class="cell-ok">✓</td><td class="cell-na">—</td><td class="cell-ok">✓</td></tr>
+      <tr><td class="rowhead">Exp-NAV</td>          <td class="cell-ok">✓</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-no">✗</td><td class="cell-na">—</td></tr>
+    </tbody>
+  </table>
+  <p class="legend">
+    <span><span class="chip" style="background:var(--ok-bg);border:1px solid var(--ok)"></span>Allowed</span>
+    <span><span class="chip" style="background:var(--no-bg);border:1px solid var(--no)"></span>Blocked</span>
+    <span><span class="chip" style="background:var(--na-bg);border:1px solid var(--na)"></span>Same status (n/a)</span>
+  </p>
+
+  <div class="callout avoid-break">
+    <div class="title">The scenario that prompted this review</div>
+    <div>Moving a certificate directly from <strong>Draft → Republished</strong> is currently <strong>blocked</strong>.
+    Republished can only be reached from <strong>Client Approved – Paid</strong> or <strong>Expired</strong>,
+    because it means a previously-live certificate is being re-issued. This is a rule to confirm — not a system fault.
+    The sign-off section below includes a specific Yes/No line for it.</div>
+  </div>
+
+  <h2>Automatic exceptions</h2>
+  <p>Three behaviors intentionally override the rules above. Please confirm they are still what you want.</p>
+  <ol>
+    <li><strong>Automatic expiry on save.</strong> If a certificate's expiration date is already in the past when it is saved, its status is automatically set to <strong>Expired</strong>, regardless of the rules above.</li>
+    <li><strong>Correcting an expiration date.</strong> If a certificate expired automatically and you later move its expiration date back to today or the future, the system restores the status it held just before it expired — even where the rules above wouldn't otherwise allow that step. This lets you undo a date-driven expiry.</li>
+    <li><strong>Overnight expiry check.</strong> An automated nightly process moves any active certificate whose expiration date has passed to <strong>Expired</strong>.</li>
+  </ol>
+
+  <h2>Who can change status</h2>
+  <ul>
+    <li><strong>Analysts and Administrators</strong> may move a certificate to any status permitted by the rules above.</li>
+    <li><strong>External users</strong> may only create certificates in <strong>Draft</strong>; they cannot change status.</li>
+  </ul>
+
+  <div class="note">
+    <strong>A note on the editing experience.</strong> When the block first appeared, the edit screen kept your
+    rejected choice selected, which made it feel like you were locked out (nothing was ever lost). This has already
+    been corrected in the upcoming update: the status field now returns to the certificate's real status, and the
+    message lists exactly which statuses you can move to. No action is needed — noted here for completeness.
+  </div>
+
+  <h2>Client sign-off</h2>
+  <p>For each rule set, mark <strong>Confirm</strong> if the rule is correct, or note the change you'd like.</p>
+  <table class="signoff avoid-break">
+    <thead><tr><th style="width:52%">Rule set</th><th class="yn" style="text-align:center;width:14%">Confirm</th><th>Requested change / notes</th></tr></thead>
+    <tbody>
+      <tr><td>Draft → Not Paid · Confidential · Paid · Hold</td><td style="text-align:center"><span class="box"></span></td><td></td></tr>
+      <tr><td>Not Paid → Paid · Confidential · Hold · Expired</td><td style="text-align:center"><span class="box"></span></td><td></td></tr>
+      <tr><td>Confidential → Paid · Hold · Expired</td><td style="text-align:center"><span class="box"></span></td><td></td></tr>
+      <tr><td>Paid → Hold · Expired · Republished · Exp-NAV</td><td style="text-align:center"><span class="box"></span></td><td></td></tr>
+      <tr><td>Hold → Draft · Not Paid · Confidential · Paid</td><td style="text-align:center"><span class="box"></span></td><td></td></tr>
+      <tr><td>Expired → Republished · Draft</td><td style="text-align:center"><span class="box"></span></td><td></td></tr>
+      <tr><td>Republished → Expired · Exp-NAV · Hold</td><td style="text-align:center"><span class="box"></span></td><td></td></tr>
+      <tr><td>Exp-NAV → Draft</td><td style="text-align:center"><span class="box"></span></td><td></td></tr>
+      <tr><td><strong>Should Draft → Republished be allowed?</strong></td><td class="yn" style="text-align:center"><span class="box"></span> Yes &nbsp; <span class="box"></span> No</td><td></td></tr>
+      <tr><td>Automatic exceptions 1–3 (above) are correct</td><td style="text-align:center"><span class="box"></span></td><td></td></tr>
+    </tbody>
+  </table>
+
+  <div class="sig">
+    <div class="line">Signature</div>
+    <div class="line">Name &amp; title</div>
+    <div class="line">Date</div>
+  </div>
+
+  <footer>
+    <span>Anuki Consulting · GreenCircle Certified Database</span>
+    <span>Confidential — for client review · Prepared July 14, 2026</span>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,9 @@
+SOURCE_STATUS,TARGET_STATE,ENUM_NAME,ENUM_VALUE,IS_PUBLIC,IN_SAMPLE,NOTES
+Client Approved - Paid,Client Approved - Paid,ClientApprovedPaid,3,Yes,920,Exact match. Public + counts as Active on dashboard/API.
+Client Approved - Confidential,Client Approved - Confidential,ClientApprovedConfidential,2,No,39,Exact match. Paid-but-embargoed: load but MUST stay non-public (DEF-223).
+Expired,Expired,Expired,5,No,4374,Exact match. From Expired List sheet.
+Draft,Draft,Draft,0,No,0,Canonical state; not present in sample but valid target.
+Client Approved - Not Paid,Client Approved - Not Paid,ClientApprovedNotPaid,1,No,0,Canonical state; not in sample.
+Hold,Hold,Hold,4,No,0,Canonical state; not in sample.
+Republished,Republished,Republished,6,Yes,0,Canonical state; public + active. Not in sample.
+Expired - No Annual Verification,Expired - No Annual Verification,ExpiredNoAnnualVerification,7,No,0,Terminal state; not in sample.

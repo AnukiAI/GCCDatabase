@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenCircle Certified Database</title>
+    <style>
+        @import url('https://fonts.cdnjs.com/css?family=Century+Gothic');
+
+        * {
+            margin: 0;
+            padding: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Century Gothic', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #ffffff;
+            color: #333;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            background-image: url('/api/placeholder/120/120');
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        .logo-text {
+            margin-left: 20px;
+            font-size: 28px;
+            color: #666;
+        }
+
+        .version-badge {
+            background-color: var(--badge-blue);
+            color: var(--white);
+            padding: 5px 15px;
+            font-weight: bold;
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            justify-content: flex-end;
+            padding: 10px 20px;
+            border-bottom: 2px solid #92C83E;
+        }
+
+        .nav-item {
+            margin-left: 20px;
+            font-size: 18px;
+            color: #333;
+            text-decoration: none;
+        }
+
+            .nav-item.active {
+                font-weight: bold;
+                border-bottom: 2px solid #000;
+                padding-bottom: 5px;
+            }
+
+        /* Certificate Container */
+        .certificate-container {
+            border: 2px solid #00205B;
+            margin: 20px;
+        }
+
+        /* Certificate Header */
+        .certificate-header {
+            background-color: #00205B;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Certificate Content */
+        .certificate-content {
+            padding: 20px;
+        }
+
+        .certificate-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .certificate-number {
+            font-size: 18px;
+        }
+
+        .product-name {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        /* Certificate Details Section */
+        .certificate-details {
+            display: flex;
+        }
+
+        .details-column {
+            flex: 2;
+        }
+
+        .certificate-image-column {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .details-section {
+            margin-bottom: 20px;
+        }
+
+        .details-section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 18px;
+            border-bottom: 1px dotted #ccc;
+            padding-bottom: 5px;
+        }
+
+        .details-row {
+            margin-bottom: 10px;
+        }
+
+        .details-label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .details-value {
+            color: #444;
+        }
+
+        .certification-period {
+            margin-left: 20px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .contact-info {
+            margin-top: 20px;
+        }
+
+            .contact-info div {
+                margin-bottom: 10px;
+            }
+
+        /* Tags Section */
+        .tags-section {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .tags-label {
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .tag {
+            padding: 8px 20px;
+            border-radius: 20px;
+            margin-right: 10px;
+            color: #333;
+            font-weight: bold;
+        }
+
+            .tag.external {
+                background-color: #C5E0A5;
+            }
+
+            .tag.internal {
+                background-color: #29B6F6;
+                color: white;
+            }
+
+        .details-section:not(:last-child) {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px dotted #eee;
+        }
+
+        /* Certificate Image */
+        .certificate-image {
+            width: 350px;
+            height: 350px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+
+        .download-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+            .download-button svg {
+                width: 24px;
+                height: 24px;
+                fill: var(--dark-gray);
+            }
+        /* Disclaimer */
+        .disclaimer {
+            background-color: var(--light-gray);
+            padding: 15px;
+            margin: 20px;
+            font-size: 12px;
+            line-height: 1.5;
+            border: 1px solid var(--medium-gray);
+        }
+        
+        .btn {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+
+            .btn img {
+                width: 32px;
+                height: 32px;
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo"></div>
+                <div class="logo-text">GreenCircle Certified Database</div>
+            </div>
+            <div class="version-badge">Certificate 1.1</div>
+        </div>
+
+        <div class="nav">
+            <a href="#" class="nav-item">Certificates</a>
+            <a href="#" class="nav-item active">Certificate View</a>
+        </div>
+
+        <div class="certificate-container">
+            <div class="certificate-header">
+                CERTIFIED SUSTAINABILITY FACTS
+            </div>
+
+            <div class="certificate-content">
+                <div class="certificate-title-row">
+                    <div class="company-name">Green Products Inc. - Environmental Division</div>
+                    <div class="certificate-number">Certificate #: XX-XXXX</div>
+                </div>
+
+                <div class="product-name">
+                    900ET Exit Device Trim with EcoFlex®
+                </div>
+
+                <div class="certificate-details">
+                    <div class="details-column">
+                        <div class="details-section">
+                            <div class="details-section-title">Certification Details:</div>
+                            <div class="details-row">
+                                <span class="details-label">Certification Type:</span>
+                                <span class="details-value">Certified Environmental Facts</span>
+                            </div>
+                            <div class="details-row">
+                                <span class="details-label">Product Category:</span>
+                                <span class="details-value">Reusable Containers</span>
+                            </div>
+                            <div class="details-row">
+                                <span class="details-label">Product Type:</span>
+                                <span class="details-value">Container</span>
+                            </div>
+                            <div class="details-row">
+                                <span class="details-label">Product Type Subcategory:</span>
+                                <span class="details-value">Drinkware</span>
+                            </div>
+                        </div>
+
+                        <div class="details-section">
+                            <div class="details-section-title">Certification Period:</div>
+                            <div class="details-row">
+                                <span class="details-label">Effective Date:</span>
+                                <span class="details-value">01/01/2023</span>
+                            </div>
+                            <div class="details-row">
+                                <span class="details-label">Expiration Date:</span>
+                                <span class="details-value">12/31/2023</span>
+                            </div>
+                        </div>
+
+                        <div class="details-section">
+                            <div class="details-section-title">Contact Information:</div>
+                            <div class="contact-info">
+                                <div><span class="details-label">Company Contact:</span>contact@greenproducts.com</div>
+                                <div><span class="details-label">Location:</span> Portland, OR</div>
+                                <div><span class="details-label">Country:</span> United States</div>
+                            </div>
+                        </div>
+
+                        <div class="details-section">
+
+                        </div>
+
+                        <div class="tags-section">
+                            <span class="tags-label">Tags:</span>
+                            <span class="tag external">[External]</span>
+                            <span class="tag external">[External]</span>
+                        </div>
+                    </div>
+
+                    <div class="certificate-image-column">
+                        <img src="/api/placeholder/350/350" alt="Certified Environmental Facts" class="certificate-image">
+                    </div>
+                </div>
+
+                <div class="details-section">
+
+                </div>
+
+                <button class="download-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="disclaimer">
+            The certificates in this public database are available for viewing at the consent of the client; not all awarded certificates are made publicly available. Additionally, some previously awarded certificates might not come up in a search of this database but may be valid for products in circulation that were produced during the evaluation period. Please contact GreenCircle with questions.
+        </div>
+    </div>
+
+    <script>
+        function downloadCertificate() {
+            alert('Certificate download started');
+            // In a real implementation, this would trigger a PDF download
+        }
+    </script>
+</body>
+</html>

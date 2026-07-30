@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Certificate Table - Sticky Table &amp; Column Toggle Feature Summary</title>
+    <style>
+        :root {
+            --primary: #1a5276;
+            --primary-light: #2980b9;
+            --accent: #27ae60;
+            --white: #ffffff;
+            --gray-50: #f8f9fa;
+            --gray-100: #f0f0f0;
+            --gray-200: #e0e0e0;
+            --gray-500: #6c757d;
+            --gray-700: #495057;
+            --gray-900: #212529;
+            --border: #e0e0e0;
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font); font-size: 16px; color: var(--gray-900); background: var(--white); line-height: 1.6; }
+
+        /* Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: var(--white);
+            padding: 40px 48px 32px;
+        }
+        .page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+        .page-header .subtitle { font-size: 16px; opacity: 0.85; }
+        .page-header .meta { margin-top: 16px; font-size: 13px; opacity: 0.7; display: flex; gap: 24px; }
+
+        /* Content */
+        .content { max-width: 900px; margin: 0 auto; padding: 40px 48px 60px; }
+
+        h2 {
+            font-size: 20px; font-weight: 700; color: var(--primary);
+            margin: 36px 0 16px; padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary-light);
+        }
+        h2:first-child { margin-top: 0; }
+
+        h3 { font-size: 17px; font-weight: 600; color: var(--gray-700); margin: 24px 0 10px; }
+
+        p { margin-bottom: 14px; color: var(--gray-700); }
+
+        ul, ol { margin: 0 0 16px 24px; color: var(--gray-700); }
+        li { margin-bottom: 6px; }
+
+        strong { color: var(--gray-900); }
+
+        /* Feature Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 20px 0 24px;
+        }
+        .feature-card {
+            background: var(--gray-50);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .feature-card .icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            background: var(--primary);
+            color: var(--white);
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .feature-card h4 { font-size: 15px; font-weight: 600; color: var(--gray-900); margin-bottom: 6px; }
+        .feature-card p { font-size: 14px; margin-bottom: 0; }
+
+        /* Diagram */
+        .diagram {
+            background: var(--gray-50);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin: 20px 0;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: var(--gray-700);
+            overflow-x: auto;
+        }
+        .diagram .sticky-label {
+            display: inline-block;
+            background: var(--primary);
+            color: var(--white);
+            padding: 1px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+        .diagram .scrolls-label {
+            display: inline-block;
+            background: var(--accent);
+            color: var(--white);
+            padding: 1px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0 24px;
+            font-size: 14px;
+        }
+        .comparison-table th {
+            background: var(--primary);
+            color: var(--white);
+            padding: 10px 16px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .comparison-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--gray-700);
+        }
+        .comparison-table tr:nth-child(even) td { background: var(--gray-50); }
+        .comparison-table .check { color: var(--accent); font-weight: 700; }
+        .comparison-table .dash { color: var(--gray-500); }
+
+        /* Info Box */
+        .info-box {
+            background: #e8f4fd;
+            border-left: 4px solid var(--primary-light);
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        .info-box strong { color: var(--primary); }
+
+        .warning-box {
+            background: #fff8e1;
+            border-left: 4px solid #f39c12;
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        .warning-box strong { color: #e65100; }
+
+        /* localStorage Section */
+        .storage-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        .storage-table th {
+            background: var(--gray-50);
+            padding: 10px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--border);
+        }
+        .storage-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--gray-700);
+        }
+        .storage-table code {
+            background: var(--gray-100);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--primary);
+        }
+
+        /* Code Block */
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            overflow-x: auto;
+        }
+        .code-block .comment { color: #64748b; }
+        .code-block .key { color: #7dd3fc; }
+        .code-block .string { color: #86efac; }
+        .code-block .bracket { color: #fbbf24; }
+
+        /* Footer */
+        .footer {
+            background: var(--gray-50);
+            border-top: 1px solid var(--border);
+            padding: 24px 48px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        @media print {
+            body { font-size: 12pt; }
+            .page-header { padding: 24px 32px 20px; }
+            .content { padding: 24px 32px; }
+            .feature-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<div class="page-header">
+    <h1>Certificate Table View Enhancement</h1>
+    <p class="subtitle">Sticky Headers, Sticky Scrollbar &amp; Column Toggle</p>
+    <div class="meta">
+        <span>Prepared by: Anuki Consulting</span>
+        <span>Date: March 12, 2026</span>
+        <span>Platform: GCC Certificate Management System</span>
+    </div>
+</div>
+
+<div class="content">
+
+    <!-- ============================================================
+         OVERVIEW
+         ============================================================ -->
+    <h2>Overview</h2>
+    <p>
+        The certificate table view has been redesigned to improve usability when working
+        with wide, data-rich tables. Users no longer need to scroll to the bottom of the page
+        to find the horizontal scrollbar, and column headers remain visible at all times
+        regardless of vertical scroll position.
+    </p>
+    <p>
+        Internal users also gain the ability to show or hide individual columns,
+        with their preferences automatically saved between sessions.
+    </p>
+
+    <!-- ============================================================
+         KEY FEATURES
+         ============================================================ -->
+    <h2>Key Features</h2>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">&#x2195;</div>
+            <h4>Sticky Column Headers</h4>
+            <p>Column headers pin to the top of the viewport as you scroll down through certificate rows. You always know which column you are reading.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#x2194;</div>
+            <h4>Sticky Horizontal Scrollbar</h4>
+            <p>A visible scrollbar is always accessible at the top of the table. No more scrolling to the very bottom of a long list just to pan left and right.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#x2699;</div>
+            <h4>Column Toggle (Internal)</h4>
+            <p>Internal users can show or hide any data column via a dropdown with toggle switches. Reduces clutter and lets each user tailor the view to their workflow.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#x1F4BE;</div>
+            <h4>Saved Preferences</h4>
+            <p>Column visibility choices are saved automatically in your browser. When you return to the page, your preferred column layout is restored without any extra steps.</p>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         HOW IT WORKS
+         ============================================================ -->
+    <h2>How It Works</h2>
+
+    <h3>Layout Architecture</h3>
+    <p>
+        The toolbar, horizontal scrollbar, and column headers are grouped into a single
+        block that sticks to the top of the screen. The table rows scroll independently
+        beneath this block. All three horizontal areas (scrollbar, headers, body) stay
+        synchronized so they always align.
+    </p>
+
+    <div class="diagram">
+        <strong>Sticky Block</strong> <span class="sticky-label">PINS TO TOP</span><br>
+        &nbsp;&nbsp;&#9500;&#9472; Toolbar Row &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(results count, column toggle button)<br>
+        &nbsp;&nbsp;&#9500;&#9472; Scrollbar Row &nbsp;&nbsp;&nbsp;&nbsp;(always-visible horizontal scrollbar)<br>
+        &nbsp;&nbsp;&#9492;&#9472; Header Row &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(column names with sort indicators)<br>
+        <br>
+        <strong>Table Body</strong> <span class="scrolls-label">SCROLLS VERTICALLY</span><br>
+        &nbsp;&nbsp;&#9492;&#9472; Data Rows &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(certificate records, infinite scroll)
+    </div>
+
+    <h3>Synchronized Scrolling</h3>
+    <p>
+        When you drag the sticky scrollbar left or right, the column headers and body rows
+        move in sync. If you scroll the body area directly (e.g., via trackpad), the
+        scrollbar and headers follow automatically. This three-way sync ensures all parts
+        of the table always line up, regardless of how you scroll.
+    </p>
+
+    <h3>Column Toggle (Internal Users)</h3>
+    <p>
+        Clicking the <strong>Columns</strong> button in the toolbar opens a dropdown organized
+        into four groups:
+    </p>
+    <ul>
+        <li><strong>Core Fields</strong> &mdash; Certificate #, Type, Status, Dates</li>
+        <li><strong>Company &amp; Product</strong> &mdash; Company, Contact, Product Name, Category, Type, Subcategory</li>
+        <li><strong>Location &amp; Tags</strong> &mdash; Location, Country, External Tag, Internal Tag, Partner</li>
+        <li><strong>Product IDs</strong> &mdash; ASIN, UPC, GTIN, EAN</li>
+    </ul>
+    <p>
+        Each column has a toggle switch. The <strong>Select</strong> and <strong>Actions</strong>
+        columns are locked and always visible. A badge on the button shows the count
+        of currently visible columns. Click <strong>Show All</strong> to reset.
+    </p>
+
+    <!-- ============================================================
+         INTERNAL vs EXTERNAL
+         ============================================================ -->
+    <h2>Internal vs. External View</h2>
+
+    <table class="comparison-table">
+        <thead>
+            <tr>
+                <th>Capability</th>
+                <th>Internal Users</th>
+                <th>External Users</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Sticky column headers</td>
+                <td class="check">&#10003; Yes</td>
+                <td class="check">&#10003; Yes</td>
+            </tr>
+            <tr>
+                <td>Sticky horizontal scrollbar</td>
+                <td class="check">&#10003; Yes</td>
+                <td class="check">&#10003; Yes</td>
+            </tr>
+            <tr>
+                <td>Synchronized scrolling</td>
+                <td class="check">&#10003; Yes</td>
+                <td class="check">&#10003; Yes</td>
+            </tr>
+            <tr>
+                <td>Column sort (click headers)</td>
+                <td class="check">&#10003; Yes</td>
+                <td class="check">&#10003; Yes</td>
+            </tr>
+            <tr>
+                <td>Select / bulk actions</td>
+                <td class="check">&#10003; Yes</td>
+                <td class="check">&#10003; Yes</td>
+            </tr>
+            <tr>
+                <td>Column toggle (show/hide)</td>
+                <td class="check">&#10003; Yes</td>
+                <td class="dash">&mdash; Not available</td>
+            </tr>
+            <tr>
+                <td>Saved column preferences</td>
+                <td class="check">&#10003; Yes (localStorage)</td>
+                <td class="dash">&mdash; Not applicable</td>
+            </tr>
+            <tr>
+                <td>Internal Tag column</td>
+                <td class="check">&#10003; Visible</td>
+                <td class="dash">&mdash; Not shown</td>
+            </tr>
+            <tr>
+                <td>Edit button in Actions</td>
+                <td class="check">&#10003; Yes</td>
+                <td class="dash">&mdash; Not shown</td>
+            </tr>
+            <tr>
+                <td>Total columns</td>
+                <td>22</td>
+                <td>21</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================================
+         LOCAL STORAGE
+         ============================================================ -->
+    <h2>How localStorage Is Used</h2>
+
+    <p>
+        <strong>localStorage</strong> is a built-in browser feature that lets a website save
+        small amounts of data on the user's computer. It persists between page loads and
+        browser sessions &mdash; the data stays until the user clears their browser data
+        or it is explicitly removed by the application.
+    </p>
+
+    <h3>What Is Stored</h3>
+
+    <table class="storage-table">
+        <thead>
+            <tr>
+                <th>Property</th>
+                <th>Detail</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Key</td>
+                <td><code>gcc-cert-columns-internal</code></td>
+            </tr>
+            <tr>
+                <td>Value</td>
+                <td>A JSON array of hidden column identifiers (e.g., column class names)</td>
+            </tr>
+            <tr>
+                <td>Size</td>
+                <td>Typically under 200 bytes</td>
+            </tr>
+            <tr>
+                <td>Applies to</td>
+                <td>Internal certificate table view only</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Example</h3>
+    <p>If a user hides the Contact and GTIN columns, the browser stores:</p>
+    <div class="code-block">
+        <span class="comment">// Browser localStorage</span><br>
+        <span class="key">Key:</span> &nbsp;&nbsp;<span class="string">"gcc-cert-columns-internal"</span><br>
+        <span class="key">Value:</span> <span class="bracket">[</span><span class="string">"tc-contact"</span>, <span class="string">"tc-gtin"</span><span class="bracket">]</span>
+    </div>
+    <p>
+        When the user returns to the page, the application reads this value and
+        automatically hides those two columns, restoring the user's preferred layout.
+    </p>
+
+    <h3>Behavior Details</h3>
+    <ul>
+        <li><strong>Automatic save:</strong> Every time a column is toggled on or off, the preference is saved immediately. There is no "Save" button needed.</li>
+        <li><strong>Automatic restore:</strong> When the page loads and when new rows are added via infinite scroll, hidden columns are re-applied to the new content.</li>
+        <li><strong>Reset:</strong> Clicking "Show All" in the column dropdown makes all columns visible and clears the stored preference.</li>
+        <li><strong>Browser-specific:</strong> Preferences are stored per browser. If a user switches to a different browser or device, they start with all columns visible.</li>
+        <li><strong>No server communication:</strong> Column preferences are stored entirely in the browser. No data is sent to the server, and no user account or profile is required.</li>
+        <li><strong>Graceful fallback:</strong> If localStorage is unavailable (e.g., private browsing mode in some browsers), the feature still works &mdash; columns can be toggled during the session, but preferences are not saved between visits.</li>
+    </ul>
+
+    <div class="info-box">
+        <strong>Privacy note:</strong> The only data stored is a list of hidden column names
+        (e.g., "tc-contact", "tc-gtin"). No personal information, certificate data, or user
+        identifiers are saved to localStorage.
+    </div>
+
+    <div class="warning-box">
+        <strong>Clearing browser data:</strong> If a user clears their browser's site data
+        or cookies, saved column preferences will be removed. All columns will return to
+        their default visible state on the next visit.
+    </div>
+
+    <!-- ============================================================
+         FUTURE CONSIDERATIONS
+         ============================================================ -->
+    <h2>Future Considerations</h2>
+    <ul>
+        <li><strong>User profiles:</strong> If user accounts with server-side profiles are added in the future, column preferences could be migrated from localStorage to the user profile so they follow the user across browsers and devices.</li>
+        <li><strong>External column toggle:</strong> The column toggle capability can be extended to external users if needed &mdash; the underlying architecture supports it.</li>
+        <li><strong>Column reordering:</strong> The current architecture uses shared CSS width classes between headers and body, which could support drag-to-reorder columns in a future enhancement.</li>
+    </ul>
+
+</div>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<div class="footer">
+    GCC Certificate Management System &bull; Anuki Consulting &bull; March 2026
+</div>
+
+</body>
+</html>

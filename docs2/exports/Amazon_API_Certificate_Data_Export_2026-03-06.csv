@@ -1,0 +1,2 @@
+Certificate Number,Status,Company,Product Name,Certification Type,Certification Type Subcategory,Amazon Code,Certification Results,Pathway,Issue Date,Expiration Date,Country,Partner,Issuer,ASIN(s),UPC(s),GTIN(s),PDF Download URL
+26-0001,Active,Acme Corporation,Widget Pro,Recycled Content,,RC,95%,,2026-01-01,2027-01-01,United States,Amazon,Green Circle Certified,,,,/api/v1/certificates/26-0001/download

@@ -123,6 +123,19 @@
                             <strong>Expiration Date:</strong> @expirationDate
                         </div>
                     </div>
+
+                    @* Certification Results — QC #201 (client, 7/6/2026): the percentage was showing
+                       in the export but not on the certificate detail for the Partner role. Mirrors
+                       the internal view (CertificateInternalView.cshtml); percentage formatting via
+                       the shared DisplayFormatters (DEF-287). Hidden when the cert has no result. *@
+                    @if (!string.IsNullOrWhiteSpace(Model.Certificate?.CertificationResults))
+                    {
+                        <div class="detail-section">
+                            <h3 class="certificate-section-title">Certification Results</h3>
+                            <div class="certificate-field">@GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(Model.Certificate.CertificationResults)</div>
+                        </div>
+                    }
+
                     <!-- Contact Info -->
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Contact Information</h3>
@@ -201,7 +214,8 @@
                             // rendering the raw /uploads/* path that static-file middleware would serve.
                             certificateImageSrc = certificateImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                                 ? certificateImagePath
-                                : Url.Action("ViewCertificateImage", "Certificate", new { id = Model.Certificate.Id }) ?? "";
+                                // DEF-310 (QC #191): `v` busts a stale cache after a document replace.
+                                : Url.Action("ViewCertificateImage", "Certificate", new { id = Model.Certificate.Id, v = UploadCacheBusting.VersionToken(certificateImagePath) }) ?? "";
                         }
                         var altText = $"Certificate {GetFormattedCertificateNumber()}";
                     }

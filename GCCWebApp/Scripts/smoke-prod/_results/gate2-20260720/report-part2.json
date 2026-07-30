@@ -1,0 +1,731 @@
+{
+  "pages": [
+    {
+      "role": "Analyst",
+      "loggedIn": true
+    },
+    {
+      "role": "Analyst",
+      "page": "CertificateTileViewInternal",
+      "results": [
+        {
+          "viewport": "desktop-1920",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__tileview-internal__desktop-1920.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileViewInternal"
+        },
+        {
+          "viewport": "desktop-1440",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__tileview-internal__desktop-1440.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileViewInternal"
+        },
+        {
+          "viewport": "tablet-768",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__tileview-internal__tablet-768.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileViewInternal"
+        },
+        {
+          "viewport": "mobile-390",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__tileview-internal__mobile-390.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileViewInternal"
+        },
+        {
+          "viewport": "mobile-360",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__tileview-internal__mobile-360.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileViewInternal"
+        }
+      ]
+    },
+    {
+      "role": "Analyst",
+      "page": "Edit",
+      "results": [
+        {
+          "viewport": "desktop-1920",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__edit__desktop-1920.png",
+          "finalUrl": "http://localhost:5101/Certificate/Edit/26-1733"
+        },
+        {
+          "viewport": "desktop-1440",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__edit__desktop-1440.png",
+          "finalUrl": "http://localhost:5101/Certificate/Edit/26-1733"
+        },
+        {
+          "viewport": "tablet-768",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__edit__tablet-768.png",
+          "finalUrl": "http://localhost:5101/Certificate/Edit/26-1733"
+        },
+        {
+          "viewport": "mobile-390",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__edit__mobile-390.png",
+          "finalUrl": "http://localhost:5101/Certificate/Edit/26-1733"
+        },
+        {
+          "viewport": "mobile-360",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__edit__mobile-360.png",
+          "finalUrl": "http://localhost:5101/Certificate/Edit/26-1733"
+        }
+      ]
+    },
+    {
+      "role": "Analyst",
+      "page": "Create",
+      "results": [
+        {
+          "viewport": "desktop-1920",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__create__desktop-1920.png",
+          "finalUrl": "http://localhost:5101/Certificate/Create"
+        },
+        {
+          "viewport": "desktop-1440",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__create__desktop-1440.png",
+          "finalUrl": "http://localhost:5101/Certificate/Create"
+        },
+        {
+          "viewport": "tablet-768",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__create__tablet-768.png",
+          "finalUrl": "http://localhost:5101/Certificate/Create"
+        },
+        {
+          "viewport": "mobile-390",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__create__mobile-390.png",
+          "finalUrl": "http://localhost:5101/Certificate/Create"
+        },
+        {
+          "viewport": "mobile-360",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\analyst__create__mobile-360.png",
+          "finalUrl": "http://localhost:5101/Certificate/Create"
+        }
+      ]
+    },
+    {
+      "role": "Analyst",
+      "check": "CR-026 Import button visible",
+      "result": true
+    },
+    {
+      "role": "External",
+      "loggedIn": true
+    },
+    {
+      "role": "External",
+      "page": "CertificateTileViewExternal",
+      "results": [
+        {
+          "viewport": "desktop-1920",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\external__tileview-external__desktop-1920.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileViewExternal"
+        },
+        {
+          "viewport": "desktop-1440",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\external__tileview-external__desktop-1440.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileViewExternal"
+        },
+        {
+          "viewport": "tablet-768",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\external__tileview-external__tablet-768.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileViewExternal"
+        },
+        {
+          "viewport": "mobile-390",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\external__tileview-external__mobile-390.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileViewExternal"
+        },
+        {
+          "viewport": "mobile-360",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\external__tileview-external__mobile-360.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileViewExternal"
+        }
+      ]
+    },
+    {
+      "role": "Public",
+      "page": "CertificateTileView",
+      "results": [
+        {
+          "viewport": "desktop-1920",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\public__tileview__desktop-1920.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileView"
+        },
+        {
+          "viewport": "desktop-1440",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\public__tileview__desktop-1440.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileView"
+        },
+        {
+          "viewport": "tablet-768",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\public__tileview__tablet-768.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileView"
+        },
+        {
+          "viewport": "mobile-390",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\public__tileview__mobile-390.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileView"
+        },
+        {
+          "viewport": "mobile-360",
+          "status": 200,
+          "contentOk": true,
+          "screenshot": "C:\\Users\\swest\\OneDrive - PointSolve Technology Inc\\LocalWest\\Projects\\GCC Database Solution\\GCCWebApp\\GCCWebApp\\Scripts\\smoke-prod\\_results\\gate2-20260720\\public__tileview__mobile-360.png",
+          "finalUrl": "http://localhost:5101/Certificate/CertificateTileView"
+        }
+      ]
+    }
+  ],
+  "axe": [
+    {
+      "slug": "analyst__tileview-internal",
+      "url": "http://localhost:5101/Certificate/CertificateTileViewInternal",
+      "violationCount": 1,
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".active.nav-link"
+              ],
+              "html": "<a class=\"nav-link active\" href=\"/Certificate/CertificateTileViewInternal\">\n                                    Certificates\n                                </a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #00aeef, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#sidebarCollapseBtn > span"
+              ],
+              "html": "<span>Hide Filters</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #ffffff, background color: #00aeef, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".btn-add"
+              ],
+              "html": "<a href=\"/Certificate/Create\" class=\"btn btn-add\" aria-label=\"Add new certificate\">\n                        <i class=\"fas fa-plus\" aria-hidden=\"true\"></i> Add Certificate\n                    </a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#exportAllBtn"
+              ],
+              "html": "<button class=\"btn btn-primary\" id=\"exportAllBtn\" aria-label=\"Export all visible certificates to CSV file\">\n                        <i class=\"fas fa-file-csv\" aria-hidden=\"true\"></i> Export All to CSV\n                    </button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[data-view=\"tile\"]"
+              ],
+              "html": "<button class=\"toggle-btn active\" data-view=\"tile\" aria-pressed=\"true\" aria-label=\"Tile view\">\n                            <i class=\"fas fa-th\" aria-hidden=\"true\"></i> Tile\n                        </button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.97 (foreground color: #ffffff, background color: #007bff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div[data-id=\"94\"] > .card-body > .certificate-tags > .tag.external"
+              ],
+              "html": "<span class=\"tag external\">APR</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #2c5530, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".internal"
+              ],
+              "html": "<span class=\"tag internal\">PL/BE</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #ffffff, background color: #00aeef, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div[data-id=\"74\"] > .card-body > .certificate-tags > .tag.external"
+              ],
+              "html": "<span class=\"tag external\">APR</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #2c5530, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(1)"
+              ],
+              "html": "<div class=\"disclaimer\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(1) > a"
+              ],
+              "html": "<a href=\"mailto:info@greencirclecertified.com\">GreenCircle</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #00aeef, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(2)"
+              ],
+              "html": "<div class=\"disclaimer\">\n                © 2026 GreenCircle Certified. All rights reserved.\n            </div>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "analyst__edit",
+      "url": "http://localhost:5101/Certificate/Edit/26-1733",
+      "violationCount": 4,
+      "violations": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "help": "Elements must only use permitted ARIA attributes",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/aria-prohibited-attr?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#subcategoriesContainer"
+              ],
+              "html": "<div class=\"subcategories-container\" id=\"subcategoriesContainer\" aria-live=\"polite\" aria-label=\"Selected subcategories\"></div>",
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".internal"
+              ],
+              "html": "<span class=\"tag internal\" data-tag-id=\"35\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #ffffff, background color: #00aeef, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[title=\"View Certificate Preview\"]"
+              ],
+              "html": "<button type=\"button\" onclick=\"openImageZoom('/Certificate/ViewCertificateImage/175?v=c789f5a6')\" class=\"btn btn-sm\" style=\"background-color: #4caf50; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;\" title=\"View Certificate Preview\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.77 (foreground color: #ffffff, background color: #4caf50, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[title=\"Remove uploaded PDF\"]"
+              ],
+              "html": "<button type=\"button\" onclick=\"window.CertificateEdit.confirmRemovePdf(175)\" class=\"btn btn-sm\" style=\"background-color: #FF5252; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;\" title=\"Remove uploaded PDF\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #ffffff, background color: #ff5252, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#addProductId"
+              ],
+              "html": "<button type=\"button\" class=\"btn btn-primary btn-sm\" id=\"addProductId\">\n                    <i class=\"fas fa-plus me-1\"></i>Add Product ID\n                </button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#saveButton"
+              ],
+              "html": "<button type=\"submit\" name=\"action\" value=\"save\" class=\"btn btn-primary\" aria-label=\"Save certificate changes\" id=\"saveButton\">\n                    Save Changes\n                </button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(1)"
+              ],
+              "html": "<div class=\"disclaimer\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(1) > a"
+              ],
+              "html": "<a href=\"mailto:info@greencirclecertified.com\">GreenCircle</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #00aeef, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(2)"
+              ],
+              "html": "<div class=\"disclaimer\">\n                © 2026 GreenCircle Certified. All rights reserved.\n            </div>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "link-in-text-block",
+          "impact": "serious",
+          "help": "Links must be distinguishable without relying on color",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/link-in-text-block?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".role-element > a"
+              ],
+              "html": "<a href=\"/Certificate/CertificateTileViewInternal\">Certificate Management</a>",
+              "failureSummary": "Fix any of the following:\n  The link has insufficient color contrast of 1.61:1 with the surrounding text. (Minimum contrast is 3:1, link text: #666666, surrounding text: #888888)\n  The link has no styling (such as underline) to distinguish it from the surrounding text"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/select-name?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#filterByType"
+              ],
+              "html": "<select class=\"form-select form-select-sm pid-filter-type\" id=\"filterByType\">",
+              "failureSummary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            },
+            {
+              "target": [
+                "#filterByPartner"
+              ],
+              "html": "<select class=\"form-select form-select-sm pid-filter-partner\" id=\"filterByPartner\">",
+              "failureSummary": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "external__tileview-external",
+      "url": "http://localhost:5101/Certificate/CertificateTileViewExternal",
+      "violationCount": 1,
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".nav-link.active"
+              ],
+              "html": "<a class=\"nav-link active\" href=\"/Certificate/CertificateTileViewExternal\">\n                                    Certificates\n                                </a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #00aeef, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#sidebarCollapseBtn > span"
+              ],
+              "html": "<span>Hide Filters</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #ffffff, background color: #00aeef, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#exportAllBtn"
+              ],
+              "html": "<button class=\"btn btn-primary\" id=\"exportAllBtn\" aria-label=\"Export all visible certificates to CSV file\">\n                        <i class=\"fas fa-file-csv\" aria-hidden=\"true\"></i> Export All to CSV\n                    </button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.98 (foreground color: #ffffff, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[data-view=\"tile\"]"
+              ],
+              "html": "<button class=\"toggle-btn active\" data-view=\"tile\" aria-pressed=\"true\" aria-label=\"Tile view\">\n                            <i class=\"fas fa-th\" aria-hidden=\"true\"></i> Tile\n                        </button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.97 (foreground color: #ffffff, background color: #007bff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(1)"
+              ],
+              "html": "<div class=\"disclaimer\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(1) > a"
+              ],
+              "html": "<a href=\"mailto:info@greencirclecertified.com\">GreenCircle</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #00aeef, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(2)"
+              ],
+              "html": "<div class=\"disclaimer\">\n                © 2026 GreenCircle Certified. All rights reserved.\n            </div>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "public__tileview",
+      "url": "http://localhost:5101/Certificate/CertificateTileView",
+      "violationCount": 1,
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#sidebarCollapseBtn > span"
+              ],
+              "html": "<span>Hide Filters</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #ffffff, background color: #00aeef, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(1)"
+              ],
+              "html": "<div class=\"disclaimer\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(1) > a"
+              ],
+              "html": "<a href=\"mailto:info@greencirclecertified.com\">GreenCircle</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #00aeef, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".disclaimer:nth-child(2)"
+              ],
+              "html": "<div class=\"disclaimer\">\n                © 2026 GreenCircle Certified. All rights reserved.\n            </div>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "externalChecks": [
+    {
+      "check": "Add Certificate button present (should be false)",
+      "result": false
+    },
+    {
+      "check": "Import button present (should be false)",
+      "result": false
+    },
+    {
+      "check": "Internal tag elements present (should be 0)",
+      "result": 0
+    },
+    {
+      "check": "External GET /Certificate/Edit/26-1733",
+      "status": 200,
+      "finalUrl": "http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F26-1733"
+    },
+    {
+      "check": "External GET /Certificate/Create",
+      "status": 200,
+      "finalUrl": "http://localhost:5101/Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "check": "External /Product/Index Actions column present (should be false)",
+      "status": 200,
+      "hasActionsHeader": true,
+      "finalUrl": "http://localhost:5101/Product/Management"
+    },
+    {
+      "check": "Public GET /Certificate/Edit/26-1733 (should redirect to login)",
+      "status": 200,
+      "finalUrl": "http://localhost:5101/Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F26-1733"
+    }
+  ],
+  "cr025": {
+    "focusTrace": {
+      "tabIndex": "0",
+      "role": "button",
+      "ariaPressedBefore": "false"
+    },
+    "isFocused": true,
+    "focusStyle": {
+      "outlineStyle": "solid",
+      "outlineWidth": "3px",
+      "outlineColor": "rgb(0, 102, 204)",
+      "boxShadow": "none"
+    },
+    "afterSpace": {
+      "ariaPressed": "true",
+      "borderColor": "rgb(68, 118, 56)",
+      "visibleRows": 1,
+      "totalRows": 4,
+      "countText": "Showing 1 of 4"
+    },
+    "afterEnterToggleOff": {
+      "ariaPressed": "false",
+      "visibleRows": 4,
+      "totalRows": 4
+    },
+    "tabOrder": [
+      {
+        "id": "stat-box-new",
+        "exists": true,
+        "tabIndex": 0
+      },
+      {
+        "id": "stat-box-modified",
+        "exists": true,
+        "tabIndex": 0
+      },
+      {
+        "id": "stat-box-unchanged",
+        "exists": true,
+        "tabIndex": 0
+      },
+      {
+        "id": "stat-box-errors",
+        "exists": true,
+        "tabIndex": 0
+      },
+      {
+        "id": "import-preview-search",
+        "exists": true,
+        "tabIndex": 0
+      }
+    ],
+    "accessibleNameOfNewBox": "1 New",
+    "axeViolations": [
+      {
+        "id": "button-name",
+        "impact": "critical",
+        "help": "Buttons must have discernible text",
+        "nodes": [
+          {
+            "target": [
+              ".admin-modal-close"
+            ],
+            "html": "<button class=\"admin-modal-close\" onclick=\"productIdManager.closeImportPreviewModal()\" style=\"background: none; border: none; font-size: 20px; cursor: pointer; color: #666; padding: 4px 8px;\">\n       "
+          }
+        ]
+      },
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              "del"
+            ],
+            "html": "<del style=\"color: #999;\">Old B</del>"
+          },
+          {
+            "target": [
+              "tr[data-index=\"2\"] > td:nth-child(2) > span"
+            ],
+            "html": "<span style=\"display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;\n                        background: #f5f5f5; color: #999;\">Unchanged</span>"
+          },
+          {
+            "target": [
+              "tr[data-index=\"2\"] > td:nth-child(8) > span"
+            ],
+            "html": "<span style=\"font-size: 12px; color: #999;\">No changes</span>"
+          },
+          {
+            "target": [
+              "tr[data-index=\"3\"] > td:nth-child(2) > span"
+            ],
+            "html": "<span style=\"display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;\n                        background: #ffebee; color: #ff5252;\">Error</span>"
+          },
+          {
+            "target": [
+              "tr[data-index=\"3\"] > td:nth-child(8) > span"
+            ],
+            "html": "<span style=\"color: #ff5252; font-size: 12px;\">Invalid ASIN format</span>"
+          },
+          {
+            "target": [
+              "#apply-import-btn"
+            ],
+            "html": "<button type=\"button\" class=\"btn btn-primary\" id=\"apply-import-btn\" onclick=\"productIdManager.applyImport()\"><i class=\"fas fa-check me-1\"></i> Apply Import (2)</button>"
+          }
+        ]
+      },
+      {
+        "id": "label",
+        "impact": "critical",
+        "help": "Form elements must have labels",
+        "nodes": [
+          {
+            "target": [
+              "#select-all-import"
+            ],
+            "html": "<input type=\"checkbox\" id=\"select-all-import\" checked=\"\" onchange=\"productIdManager.toggleAllImportRows(this.checked)\" style=\"\">"
+          },
+          {
+            "target": [
+              ".import-row-checkbox[data-index=\"0\"][type=\"checkbox\"]"
+            ],
+            "html": "<input type=\"checkbox\" class=\"import-row-checkbox\" data-index=\"0\" checked=\"\" onchange=\"productIdManager.toggleImportRow(0, this.checked)\" style=\"\">"
+          },
+          {
+            "target": [
+              ".import-row-checkbox[data-index=\"1\"][type=\"checkbox\"]"
+            ],
+            "html": "<input type=\"checkbox\" class=\"import-row-checkbox\" data-index=\"1\" checked=\"\" onchange=\"productIdManager.toggleImportRow(1, this.checked)\" style=\"\">"
+          },
+          {
+            "target": [
+              ".import-row-checkbox[data-index=\"2\"][type=\"checkbox\"]"
+            ],
+            "html": "<input type=\"checkbox\" class=\"import-row-checkbox\" data-index=\"2\" onchange=\"productIdManager.toggleImportRow(2, this.checked)\" style=\"\">"
+          },
+          {
+            "target": [
+              ".import-row-checkbox[data-index=\"3\"][type=\"checkbox\"]"
+            ],
+            "html": "<input type=\"checkbox\" class=\"import-row-checkbox\" data-index=\"3\" disabled=\"\" onchange=\"productIdManager.toggleImportRow(3, this.checked)\" style=\"\">"
+          }
+        ]
+      }
+    ]
+  },
+  "errors": []
+}

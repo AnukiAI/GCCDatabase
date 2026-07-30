@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User-Company Association - Design Options</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #adb5bd;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+
+        /* Current State Section */
+        .current-state {
+            background: #2d2d44;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 40px;
+        }
+
+        .current-state h2 {
+            color: #ff6b6b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .data-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .entity-box {
+            background: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .entity-box.user { border-top: 4px solid #3498db; }
+        .entity-box.partner { border-top: 4px solid #f39c12; }
+        .entity-box.company { border-top: 4px solid #92C83E; }
+        .entity-box.certificate { border-top: 4px solid #9b59b6; }
+
+        .entity-box i {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .entity-box.user i { color: #3498db; }
+        .entity-box.partner i { color: #f39c12; }
+        .entity-box.company i { color: #92C83E; }
+        .entity-box.certificate i { color: #9b59b6; }
+
+        .arrow {
+            color: #6c757d;
+            font-size: 20px;
+        }
+
+        .problem-box {
+            background: #ffebee;
+            border-left: 4px solid #ff6b6b;
+            padding: 16px;
+            border-radius: 0 8px 8px 0;
+            color: #333;
+        }
+
+        .problem-box h4 {
+            color: #c62828;
+            margin-bottom: 8px;
+        }
+
+        .problem-box ul {
+            margin-left: 20px;
+            font-size: 14px;
+        }
+
+        /* Options Grid */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .option-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .option-header {
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+
+        .option-header.a { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .option-header.b { background: linear-gradient(135deg, #92C83E, #7ab02d); }
+        .option-header.c { background: linear-gradient(135deg, #3498db, #2980b9); }
+
+        .option-header h3 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .option-header .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+
+        .option-body {
+            padding: 20px;
+        }
+
+        .option-diagram {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .option-pros, .option-cons {
+            margin-bottom: 16px;
+        }
+
+        .option-pros h4 {
+            color: #28a745;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .option-cons h4 {
+            color: #dc3545;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .option-pros ul, .option-cons ul {
+            font-size: 13px;
+            margin-left: 16px;
+        }
+
+        .option-pros li { color: #28a745; }
+        .option-cons li { color: #dc3545; }
+
+        /* Mockup Sections */
+        .mockup-section {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            overflow: hidden;
+        }
+
+        .mockup-header {
+            background: linear-gradient(135deg, #002B76, #1a4a9e);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mockup-header h3 {
+            font-size: 18px;
+        }
+
+        .mockup-body {
+            padding: 24px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .form-label--required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+
+        .form-select, .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        /* Partner-Company Selector (Option B) */
+        .partner-selector {
+            border: 2px solid #92C83E;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .partner-selector-header {
+            background: linear-gradient(135deg, #92C83E, #7ab02d);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .partner-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .partner-logo {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #f39c12;
+        }
+
+        .partner-details h4 {
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .partner-details span {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .inherited-companies {
+            background: #f0f7e6;
+            padding: 16px;
+        }
+
+        .inherited-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .inherited-header h5 {
+            font-size: 13px;
+            color: #447638;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .company-count {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .company-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .company-tag {
+            background: white;
+            border: 1px solid #c8e6c9;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .company-tag.more {
+            background: #e8f5e1;
+            color: #447638;
+            font-weight: 500;
+        }
+
+        /* Override Section */
+        .override-section {
+            border-top: 1px dashed #ced4da;
+            padding: 16px;
+            background: white;
+        }
+
+        .override-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .override-toggle input {
+            accent-color: #92C83E;
+        }
+
+        .override-content {
+            margin-top: 16px;
+            padding: 16px;
+            background: #fff3cd;
+            border-radius: 6px;
+            border: 1px solid #ffc107;
+        }
+
+        .override-content p {
+            font-size: 12px;
+            color: #856404;
+            margin-bottom: 12px;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .comparison-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .comparison-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 13px;
+        }
+
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .check { color: #28a745; }
+        .cross { color: #dc3545; }
+        .partial { color: #ffc107; }
+
+        /* Recommendation */
+        .recommendation {
+            background: linear-gradient(135deg, #e8f5e1, #c8e6c9);
+            border: 2px solid #92C83E;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 40px;
+        }
+
+        .recommendation h2 {
+            color: #447638;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .recommendation-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        .recommendation p {
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .recommendation ul {
+            margin-left: 20px;
+            font-size: 14px;
+        }
+
+        .db-changes {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .db-changes h4 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .db-changes pre {
+            background: #1a1a2e;
+            color: #92C83E;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+            .recommendation-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-sitemap"></i> User-Company Association Design</h1>
+        <p class="subtitle">Evaluating the best approach for linking users to companies based on role and partner relationships</p>
+
+        <!-- Current State -->
+        <div class="current-state">
+            <h2><i class="fas fa-exclamation-triangle"></i> Current Data Model</h2>
+
+            <div class="data-flow">
+                <div class="entity-box user">
+                    <i class="fas fa-user"></i>
+                    <strong>User</strong>
+                </div>
+                <span class="arrow">→ many-to-many →</span>
+                <div class="entity-box company">
+                    <i class="fas fa-building"></i>
+                    <strong>Company</strong>
+                </div>
+                <span class="arrow">← owns ←</span>
+                <div class="entity-box certificate">
+                    <i class="fas fa-certificate"></i>
+                    <strong>Certificate</strong>
+                </div>
+            </div>
+
+            <div class="data-flow">
+                <div class="entity-box user">
+                    <i class="fas fa-user"></i>
+                    <strong>User</strong>
+                </div>
+                <span class="arrow">→ many-to-many →</span>
+                <div class="entity-box partner">
+                    <i class="fas fa-handshake"></i>
+                    <strong>Partner</strong>
+                </div>
+                <span class="arrow" style="color: #ff6b6b;">✗ NO LINK ✗</span>
+                <div class="entity-box company">
+                    <i class="fas fa-building"></i>
+                    <strong>Company</strong>
+                </div>
+            </div>
+
+            <div class="problem-box">
+                <h4><i class="fas fa-bug"></i> Problems with Current Design</h4>
+                <ul>
+                    <li><strong>No Partner→Company relationship</strong> - Partners (Amazon, Novi) aren't linked to the companies they work with</li>
+                    <li><strong>Manual company selection</strong> - If Amazon works with 50 companies, admin must manually select all 50 for each Amazon user</li>
+                    <li><strong>Maintenance nightmare</strong> - When a new company joins Amazon, must update ALL Amazon users</li>
+                    <li><strong>Error prone</strong> - Easy to miss companies or add wrong ones</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Three Options -->
+        <h2 style="color: white; margin-bottom: 20px; text-align: center;">
+            <i class="fas fa-lightbulb"></i> Three Design Options
+        </h2>
+
+        <div class="options-grid">
+            <!-- Option A: Current (Enhanced) -->
+            <div class="option-card">
+                <div class="option-header a">
+                    <h3>Option A: Keep Current</h3>
+                    <div>Direct User→Company Selection</div>
+                    <span class="badge">NO DB CHANGES</span>
+                </div>
+                <div class="option-body">
+                    <div class="option-diagram">
+User ──┬──→ Company₁
+       ├──→ Company₂
+       ├──→ Company₃
+       └──→ Partner (metadata only)
+
+* Companies selected individually
+* Partner is just a label
+                    </div>
+                    <div class="option-pros">
+                        <h4><i class="fas fa-check"></i> Pros</h4>
+                        <ul>
+                            <li>No database changes needed</li>
+                            <li>Maximum flexibility</li>
+                            <li>Already implemented</li>
+                        </ul>
+                    </div>
+                    <div class="option-cons">
+                        <h4><i class="fas fa-times"></i> Cons</h4>
+                        <ul>
+                            <li>Tedious for many companies</li>
+                            <li>No inheritance from Partner</li>
+                            <li>Must update each user manually</li>
+                            <li>Doesn't scale well</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Option B: Partner Hierarchy -->
+            <div class="option-card">
+                <div class="option-header b">
+                    <h3>Option B: Partner Hierarchy</h3>
+                    <div>Partner owns Companies</div>
+                    <span class="badge">RECOMMENDED</span>
+                </div>
+                <div class="option-body">
+                    <div class="option-diagram">
+Partner (Amazon)
+    ├──→ Company₁
+    ├──→ Company₂
+    └──→ Company₃
+
+User ──→ Partner
+         └──→ Inherits all companies!
+
+* User selects Partner
+* Automatically gets Partner's companies
+                    </div>
+                    <div class="option-pros">
+                        <h4><i class="fas fa-check"></i> Pros</h4>
+                        <ul>
+                            <li>Simple user creation</li>
+                            <li>Automatic inheritance</li>
+                            <li>Add company to Partner = all users get it</li>
+                            <li>Scales perfectly</li>
+                        </ul>
+                    </div>
+                    <div class="option-cons">
+                        <h4><i class="fas fa-times"></i> Cons</h4>
+                        <ul>
+                            <li>Requires DB migration</li>
+                            <li>Must set up Partner→Company links</li>
+                            <li>Less flexible (all or nothing)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Option C: Hybrid -->
+            <div class="option-card">
+                <div class="option-header c">
+                    <h3>Option C: Hybrid</h3>
+                    <div>Partner default + Override</div>
+                    <span class="badge">MOST FLEXIBLE</span>
+                </div>
+                <div class="option-body">
+                    <div class="option-diagram">
+Partner (Amazon)
+    ├──→ Company₁ (default)
+    ├──→ Company₂ (default)
+    └──→ Company₃ (default)
+
+User ──→ Partner
+         ├──→ Inherits defaults
+         └──→ Override: [Company₁ only]
+
+* User gets Partner's companies by default
+* Can override to subset if needed
+                    </div>
+                    <div class="option-pros">
+                        <h4><i class="fas fa-check"></i> Pros</h4>
+                        <ul>
+                            <li>Best of both worlds</li>
+                            <li>Default inheritance + flexibility</li>
+                            <li>Handle edge cases</li>
+                            <li>Future-proof</li>
+                        </ul>
+                    </div>
+                    <div class="option-cons">
+                        <h4><i class="fas fa-times"></i> Cons</h4>
+                        <ul>
+                            <li>More complex logic</li>
+                            <li>Requires DB migration</li>
+                            <li>UI more complicated</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option B Mockup (Recommended) -->
+        <div class="mockup-section">
+            <div class="mockup-header">
+                <i class="fas fa-star"></i>
+                <h3>Option B Mockup: Partner-Based Company Association</h3>
+            </div>
+            <div class="mockup-body">
+                <p style="margin-bottom: 20px; color: #666;">
+                    When creating a Partner or External user, simply select the Partner. Companies are inherited automatically.
+                </p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                    <!-- Left: Form -->
+                    <div>
+                        <div class="form-group">
+                            <label class="form-label form-label--required">Role</label>
+                            <select class="form-select">
+                                <option>Partner</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label form-label--required">Partner Organization</label>
+                            <select class="form-select" style="border-color: #92C83E;">
+                                <option value="">Select partner...</option>
+                                <option value="amazon" selected>Amazon Climate Pledge Friendly</option>
+                                <option value="novi">Novi Connect</option>
+                                <option value="other">Other Partner</option>
+                            </select>
+                            <span class="form-help">User will have access to all companies associated with this partner</span>
+                        </div>
+
+                        <!-- Partner Selected - Show inherited companies -->
+                        <div class="partner-selector">
+                            <div class="partner-selector-header">
+                                <div class="partner-info">
+                                    <div class="partner-logo">A</div>
+                                    <div class="partner-details">
+                                        <h4>Amazon Climate Pledge Friendly</h4>
+                                        <span>47 associated companies</span>
+                                    </div>
+                                </div>
+                                <i class="fas fa-check-circle" style="font-size: 24px;"></i>
+                            </div>
+                            <div class="inherited-companies">
+                                <div class="inherited-header">
+                                    <h5><i class="fas fa-link"></i> Companies Included (Auto-inherited)</h5>
+                                    <span class="company-count">Showing 8 of 47</span>
+                                </div>
+                                <div class="company-tags">
+                                    <span class="company-tag">ACME Corporation</span>
+                                    <span class="company-tag">EcoWare Industries</span>
+                                    <span class="company-tag">GreenTech Solutions</span>
+                                    <span class="company-tag">Natural Packaging Ltd</span>
+                                    <span class="company-tag">Sustainable Products Inc</span>
+                                    <span class="company-tag">Zero Waste Mfg</span>
+                                    <span class="company-tag">Bio-Friendly Co</span>
+                                    <span class="company-tag">Clean Energy Systems</span>
+                                    <span class="company-tag more">+39 more</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: What happens -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                        <h4 style="margin-bottom: 16px; color: #002B76;">
+                            <i class="fas fa-info-circle"></i> What This Means
+                        </h4>
+                        <ul style="font-size: 14px; line-height: 2;">
+                            <li><strong>User sees:</strong> All certificates from 47 Amazon-affiliated companies</li>
+                            <li><strong>User sees:</strong> All products from 47 Amazon-affiliated companies</li>
+                            <li><strong>Auto-updates:</strong> If new company joins Amazon, user automatically gets access</li>
+                            <li><strong>No manual work:</strong> Admin never picks individual companies</li>
+                        </ul>
+
+                        <div style="margin-top: 20px; padding: 16px; background: #e8f5e1; border-radius: 6px;">
+                            <h5 style="color: #447638; margin-bottom: 8px;">
+                                <i class="fas fa-magic"></i> Admin Workflow
+                            </h5>
+                            <ol style="font-size: 13px; margin-left: 16px; line-height: 1.8;">
+                                <li>Create user</li>
+                                <li>Select "Partner" role</li>
+                                <li>Select "Amazon" partner</li>
+                                <li>Done! Companies inherited automatically.</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option C Mockup (Hybrid) -->
+        <div class="mockup-section">
+            <div class="mockup-header" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                <i class="fas fa-sliders-h"></i>
+                <h3>Option C Mockup: Hybrid (Partner Default + Override)</h3>
+            </div>
+            <div class="mockup-body">
+                <p style="margin-bottom: 20px; color: #666;">
+                    Inherit Partner's companies by default, but allow override for special cases.
+                </p>
+
+                <div class="partner-selector">
+                    <div class="partner-selector-header">
+                        <div class="partner-info">
+                            <div class="partner-logo">A</div>
+                            <div class="partner-details">
+                                <h4>Amazon Climate Pledge Friendly</h4>
+                                <span>47 associated companies</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="inherited-companies">
+                        <div class="inherited-header">
+                            <h5><i class="fas fa-link"></i> Default Companies (from Partner)</h5>
+                            <span class="company-count">47 companies</span>
+                        </div>
+                        <div class="company-tags">
+                            <span class="company-tag">ACME Corporation</span>
+                            <span class="company-tag">EcoWare Industries</span>
+                            <span class="company-tag">GreenTech Solutions</span>
+                            <span class="company-tag more">+44 more</span>
+                        </div>
+                    </div>
+
+                    <!-- Override Section -->
+                    <div class="override-section">
+                        <label class="override-toggle">
+                            <input type="checkbox" checked>
+                            <span><strong>Override:</strong> Limit access to specific companies only</span>
+                        </label>
+
+                        <div class="override-content">
+                            <p><i class="fas fa-exclamation-triangle"></i> <strong>Override Active:</strong> User will only see the companies selected below, not all Partner companies.</p>
+
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <span class="company-tag" style="background: #fff3cd; border-color: #ffc107;">
+                                    <i class="fas fa-check" style="color: #856404;"></i> ACME Corporation
+                                </span>
+                                <span class="company-tag" style="background: #fff3cd; border-color: #ffc107;">
+                                    <i class="fas fa-check" style="color: #856404;"></i> GreenTech Solutions
+                                </span>
+                                <span class="company-tag" style="background: #f8f9fa; border-color: #dee2e6; color: #999; text-decoration: line-through;">
+                                    EcoWare Industries
+                                </span>
+                            </div>
+                            <p style="margin-top: 12px; font-size: 11px; color: #856404;">
+                                <i class="fas fa-info-circle"></i> Use this when a user should only see a subset of Partner companies (e.g., specific brand manager)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="mockup-section">
+            <div class="mockup-header" style="background: #495057;">
+                <i class="fas fa-table"></i>
+                <h3>Comparison Matrix</h3>
+            </div>
+            <div class="mockup-body">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Criteria</th>
+                            <th>Option A (Current)</th>
+                            <th>Option B (Partner Hierarchy)</th>
+                            <th>Option C (Hybrid)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Database Changes</strong></td>
+                            <td><span class="check"><i class="fas fa-check"></i> None</span></td>
+                            <td><span class="cross"><i class="fas fa-times"></i> Add PartnerId to Company</span></td>
+                            <td><span class="cross"><i class="fas fa-times"></i> Add PartnerId + override flag</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>User Creation Speed</strong></td>
+                            <td><span class="cross"><i class="fas fa-times"></i> Slow (pick each company)</span></td>
+                            <td><span class="check"><i class="fas fa-check"></i> Fast (pick Partner only)</span></td>
+                            <td><span class="check"><i class="fas fa-check"></i> Fast (pick Partner, optional override)</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Adding New Company to Partner</strong></td>
+                            <td><span class="cross"><i class="fas fa-times"></i> Update ALL users manually</span></td>
+                            <td><span class="check"><i class="fas fa-check"></i> Automatic for all users</span></td>
+                            <td><span class="partial"><i class="fas fa-exclamation"></i> Auto unless overridden</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Flexibility</strong></td>
+                            <td><span class="check"><i class="fas fa-check"></i> Maximum</span></td>
+                            <td><span class="partial"><i class="fas fa-exclamation"></i> All or nothing</span></td>
+                            <td><span class="check"><i class="fas fa-check"></i> Maximum</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Complexity</strong></td>
+                            <td><span class="check"><i class="fas fa-check"></i> Simple</span></td>
+                            <td><span class="check"><i class="fas fa-check"></i> Simple</span></td>
+                            <td><span class="partial"><i class="fas fa-exclamation"></i> Moderate</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Scalability</strong></td>
+                            <td><span class="cross"><i class="fas fa-times"></i> Poor</span></td>
+                            <td><span class="check"><i class="fas fa-check"></i> Excellent</span></td>
+                            <td><span class="check"><i class="fas fa-check"></i> Excellent</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Best For</strong></td>
+                            <td>< 10 companies per user</td>
+                            <td>Partners with many companies</td>
+                            <td>Complex enterprise scenarios</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recommendation -->
+        <div class="recommendation">
+            <h2><i class="fas fa-thumbs-up"></i> Recommendation</h2>
+            <div class="recommendation-content">
+                <div>
+                    <p>
+                        <strong>Option B (Partner Hierarchy)</strong> is recommended for your use case because:
+                    </p>
+                    <ul>
+                        <li>Amazon, Novi are major partners with many companies</li>
+                        <li>Users from a Partner typically need access to ALL that Partner's companies</li>
+                        <li>Dramatically simplifies user creation workflow</li>
+                        <li>Auto-updates when companies are added to Partners</li>
+                        <li>Cleaner data model - Partner actually owns the relationship</li>
+                    </ul>
+                    <p style="margin-top: 16px;">
+                        <strong>Consider Option C</strong> if you have cases where Partner users need access to only SOME companies (e.g., regional managers, specific brand contacts).
+                    </p>
+                </div>
+                <div class="db-changes">
+                    <h4><i class="fas fa-database"></i> Required Database Change</h4>
+                    <pre>
+-- Add Partner→Company relationship
+ALTER TABLE Companies
+ADD PartnerId INT NULL
+    REFERENCES Partners(Id);
+
+-- Example: Associate Amazon's companies
+UPDATE Companies
+SET PartnerId = (SELECT Id FROM Partners
+                 WHERE Name = 'Amazon')
+WHERE Name IN ('ACME Corp',
+               'GreenTech', ...);
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; color: #6c757d; font-size: 12px;">
+            <p>GCC Database - User-Company Association Design Options</p>
+            <p>Last Updated: January 2026</p>
+        </div>
+    </div>
+</body>
+</html>

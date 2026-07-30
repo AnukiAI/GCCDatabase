@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Table Display Options - GCC Mockups</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --gcc-blue: #002B76;
+            --gcc-green: #92C83E;
+            --gcc-light-bg: #f8f9fa;
+            --gcc-border: #e9ecef;
+            --gcc-text: #333;
+            --gcc-text-muted: #6c757d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: var(--gcc-text);
+            line-height: 1.6;
+        }
+
+        .mockup-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .mockup-header {
+            background: linear-gradient(135deg, var(--gcc-blue), #003d99);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .mockup-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .mockup-header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .approach-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .approach-btn {
+            padding: 10px 20px;
+            border: 2px solid var(--gcc-border);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .approach-btn:hover {
+            border-color: var(--gcc-blue);
+            color: var(--gcc-blue);
+        }
+
+        .approach-btn.active {
+            background: var(--gcc-blue);
+            color: white;
+            border-color: var(--gcc-blue);
+        }
+
+        .approach-section {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .approach-section.active {
+            display: block;
+        }
+
+        .section-header {
+            background: var(--gcc-light-bg);
+            padding: 20px 25px;
+            border-bottom: 2px solid var(--gcc-border);
+        }
+
+        .section-header h2 {
+            color: var(--gcc-blue);
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .section-header .pros-cons {
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        .pros, .cons {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .pros span { color: #28a745; }
+        .cons span { color: #dc3545; }
+
+        .section-content {
+            padding: 25px;
+        }
+
+        /* ============================================
+           APPROACH 1: Horizontal Scroll with Fixed Columns
+           ============================================ */
+        .table-wrapper-scroll {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .table-scroll-container {
+            overflow-x: auto;
+            margin-left: 250px;
+        }
+
+        .fixed-column {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 250px;
+            background: white;
+            z-index: 10;
+            box-shadow: 4px 0 8px rgba(0,0,0,0.1);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--gcc-border);
+            white-space: nowrap;
+        }
+
+        .data-table th {
+            background: var(--gcc-blue);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f0f7ff;
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .data-table tbody tr:nth-child(even):hover {
+            background: #f0f7ff;
+        }
+
+        .cert-number {
+            font-family: 'Consolas', monospace;
+            color: var(--gcc-blue);
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-active { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-expired { background: #f8d7da; color: #721c24; }
+
+        /* ============================================
+           APPROACH 2: Column Toggle
+           ============================================ */
+        .column-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 15px;
+            background: var(--gcc-light-bg);
+            border-bottom: 1px solid var(--gcc-border);
+        }
+
+        .column-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid var(--gcc-border);
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .column-toggle:hover {
+            border-color: var(--gcc-blue);
+        }
+
+        .column-toggle.hidden {
+            opacity: 0.5;
+            background: #eee;
+        }
+
+        .column-toggle input {
+            accent-color: var(--gcc-green);
+        }
+
+        .preset-buttons {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .preset-btn {
+            padding: 6px 12px;
+            background: var(--gcc-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .preset-btn:hover {
+            background: #003d99;
+        }
+
+        /* ============================================
+           APPROACH 3: Expandable Rows (Master-Detail)
+           ============================================ */
+        .expandable-table tbody tr.master-row {
+            cursor: pointer;
+        }
+
+        .expandable-table tbody tr.master-row:hover {
+            background: #e8f4fd;
+        }
+
+        .expand-icon {
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gcc-light-bg);
+            border-radius: 4px;
+            margin-right: 8px;
+            transition: transform 0.2s;
+        }
+
+        .master-row.expanded .expand-icon {
+            transform: rotate(90deg);
+        }
+
+        .detail-row {
+            display: none;
+        }
+
+        .detail-row.show {
+            display: table-row;
+        }
+
+        .detail-content {
+            background: #f8fbff;
+            padding: 20px;
+            border-left: 4px solid var(--gcc-blue);
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .detail-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--gcc-border);
+        }
+
+        .detail-item label {
+            display: block;
+            font-size: 11px;
+            color: var(--gcc-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .detail-item .value {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gcc-text);
+        }
+
+        /* ============================================
+           APPROACH 4: Card/Tile View
+           ============================================ */
+        .view-toggle {
+            display: flex;
+            gap: 5px;
+            padding: 15px;
+            background: var(--gcc-light-bg);
+            border-bottom: 1px solid var(--gcc-border);
+        }
+
+        .view-toggle-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--gcc-border);
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .view-toggle-btn.active {
+            background: var(--gcc-blue);
+            color: white;
+            border-color: var(--gcc-blue);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .cert-card {
+            background: white;
+            border: 1px solid var(--gcc-border);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .cert-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--gcc-blue), #003d99);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header .cert-num {
+            font-family: 'Consolas', monospace;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 15px;
+        }
+
+        .card-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .card-row:last-child {
+            border-bottom: none;
+        }
+
+        .card-row .label {
+            color: var(--gcc-text-muted);
+            font-size: 13px;
+        }
+
+        .card-row .value {
+            font-weight: 500;
+            font-size: 13px;
+            text-align: right;
+            max-width: 60%;
+        }
+
+        .card-footer {
+            padding: 15px;
+            background: var(--gcc-light-bg);
+            display: flex;
+            gap: 10px;
+        }
+
+        .card-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .card-btn-primary {
+            background: var(--gcc-green);
+            color: white;
+        }
+
+        .card-btn-secondary {
+            background: white;
+            border: 1px solid var(--gcc-border);
+            color: var(--gcc-text);
+        }
+
+        /* ============================================
+           APPROACH 5: Responsive Stacked View
+           ============================================ */
+        .responsive-table {
+            width: 100%;
+        }
+
+        @media (max-width: 900px) {
+            .responsive-table thead {
+                display: none;
+            }
+
+            .responsive-table tbody tr {
+                display: block;
+                margin-bottom: 15px;
+                border: 1px solid var(--gcc-border);
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            .responsive-table tbody td {
+                display: flex;
+                justify-content: space-between;
+                padding: 12px 15px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            .responsive-table tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: var(--gcc-text-muted);
+                margin-right: 15px;
+            }
+
+            .responsive-table tbody td:last-child {
+                border-bottom: none;
+            }
+        }
+
+        /* ============================================
+           APPROACH 6: Priority Columns with Overflow
+           ============================================ */
+        .priority-table-container {
+            overflow: hidden;
+        }
+
+        .priority-table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .priority-table th,
+        .priority-table td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .col-priority-1 { width: 120px; }
+        .col-priority-2 { width: 150px; }
+        .col-priority-3 { width: auto; min-width: 100px; }
+
+        .more-info-cell {
+            width: 100px;
+            text-align: center;
+        }
+
+        .more-btn {
+            padding: 6px 12px;
+            background: var(--gcc-light-bg);
+            border: 1px solid var(--gcc-border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--gcc-blue);
+        }
+
+        .more-btn:hover {
+            background: var(--gcc-blue);
+            color: white;
+        }
+
+        /* Tooltip popup for more info */
+        .info-popup {
+            position: fixed;
+            background: white;
+            border: 1px solid var(--gcc-border);
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 20px;
+            min-width: 350px;
+            max-width: 500px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .info-popup.show {
+            display: block;
+        }
+
+        .info-popup h4 {
+            color: var(--gcc-blue);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gcc-green);
+        }
+
+        .info-popup-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--gcc-text-muted);
+        }
+
+        /* ============================================
+           APPROACH 7: Split Pane View
+           ============================================ */
+        .split-pane-container {
+            display: flex;
+            height: 500px;
+            border: 1px solid var(--gcc-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .list-pane {
+            width: 40%;
+            border-right: 1px solid var(--gcc-border);
+            overflow-y: auto;
+        }
+
+        .detail-pane {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--gcc-light-bg);
+        }
+
+        .list-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--gcc-border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .list-item:hover,
+        .list-item.selected {
+            background: #e8f4fd;
+        }
+
+        .list-item.selected {
+            border-left: 4px solid var(--gcc-blue);
+        }
+
+        .list-item .title {
+            font-weight: 600;
+            color: var(--gcc-blue);
+            font-family: 'Consolas', monospace;
+        }
+
+        .list-item .subtitle {
+            font-size: 13px;
+            color: var(--gcc-text-muted);
+            margin-top: 4px;
+        }
+
+        .detail-pane-content {
+            padding: 25px;
+        }
+
+        .detail-pane-content h3 {
+            color: var(--gcc-blue);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gcc-green);
+        }
+
+        .detail-section {
+            margin-bottom: 25px;
+        }
+
+        .detail-section h4 {
+            font-size: 14px;
+            color: var(--gcc-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .detail-field {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .detail-field .label {
+            width: 140px;
+            color: var(--gcc-text-muted);
+            font-size: 13px;
+        }
+
+        .detail-field .value {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        /* ============================================
+           APPROACH 8: Grouped Columns with Tabs
+           ============================================ */
+        .grouped-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--gcc-border);
+            background: var(--gcc-light-bg);
+        }
+
+        .group-tab {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gcc-text-muted);
+            position: relative;
+        }
+
+        .group-tab:hover {
+            color: var(--gcc-blue);
+        }
+
+        .group-tab.active {
+            color: var(--gcc-blue);
+        }
+
+        .group-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gcc-green);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border: 1px solid var(--gcc-border);
+        }
+
+        .comparison-table th {
+            background: var(--gcc-blue);
+            color: white;
+        }
+
+        .comparison-table td:first-child {
+            font-weight: 600;
+            background: var(--gcc-light-bg);
+        }
+
+        .check { color: #28a745; }
+        .cross { color: #dc3545; }
+        .partial { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="mockup-container">
+        <header class="mockup-header">
+            <h1>Certificate Table Display Options</h1>
+            <p>Exploring different approaches to display certificate data with many columns. Click each approach to see a working example.</p>
+        </header>
+
+        <nav class="approach-nav">
+            <button class="approach-btn active" data-approach="scroll">1. Fixed + Scroll</button>
+            <button class="approach-btn" data-approach="toggle">2. Column Toggle</button>
+            <button class="approach-btn" data-approach="expand">3. Expandable Rows</button>
+            <button class="approach-btn" data-approach="cards">4. Card View</button>
+            <button class="approach-btn" data-approach="responsive">5. Responsive Stack</button>
+            <button class="approach-btn" data-approach="priority">6. Priority Columns</button>
+            <button class="approach-btn" data-approach="split">7. Split Pane</button>
+            <button class="approach-btn" data-approach="grouped">8. Grouped Tabs</button>
+            <button class="approach-btn" data-approach="compare">Compare All</button>
+        </nav>
+
+        <!-- APPROACH 1: Horizontal Scroll with Fixed Columns -->
+        <section id="scroll" class="approach-section active">
+            <div class="section-header">
+                <h2>1. Fixed Columns + Horizontal Scroll</h2>
+                <p>Key identifier columns stay fixed while remaining columns scroll horizontally.</p>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <strong>Pros:</strong>
+                        <span>+ Always see certificate number</span>
+                        <span>+ All data accessible</span>
+                        <span>+ Familiar table layout</span>
+                    </div>
+                    <div class="cons">
+                        <strong>Cons:</strong>
+                        <span>- Requires horizontal scrolling</span>
+                        <span>- Can lose context of row</span>
+                        <span>- Not mobile-friendly</span>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content">
+                <div class="table-wrapper-scroll">
+                    <div class="fixed-column">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Certificate #</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><span class="cert-number">24-0366</span></td></tr>
+                                <tr><td><span class="cert-number">24-0365</span></td></tr>
+                                <tr><td><span class="cert-number">24-0364</span></td></tr>
+                                <tr><td><span class="cert-number">24-0363</span></td></tr>
+                                <tr><td><span class="cert-number">24-0362</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-scroll-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Company</th>
+                                    <th>Product</th>
+                                    <th>Cert Type</th>
+                                    <th>Category</th>
+                                    <th>Issue Date</th>
+                                    <th>Expiry Date</th>
+                                    <th>Partner</th>
+                                    <th>Internal Tags</th>
+                                    <th>Product IDs</th>
+                                    <th>Results</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="status-badge status-active">Active</span></td>
+                                    <td>Acme Corp</td>
+                                    <td>Eco-Friendly Cleaner</td>
+                                    <td>Made Safe</td>
+                                    <td>Household</td>
+                                    <td>2024-01-15</td>
+                                    <td>2025-01-15</td>
+                                    <td>Amazon</td>
+                                    <td>Priority, Q1</td>
+                                    <td>B08XYZ123, B08XYZ124</td>
+                                    <td>98.5%</td>
+                                    <td><button class="more-btn">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="status-badge status-pending">Pending</span></td>
+                                    <td>Green Solutions</td>
+                                    <td>Organic Soap</td>
+                                    <td>EWG Verified</td>
+                                    <td>Personal Care</td>
+                                    <td>2024-02-20</td>
+                                    <td>2025-02-20</td>
+                                    <td>Novi</td>
+                                    <td>New</td>
+                                    <td>B09ABC456</td>
+                                    <td>95.2%</td>
+                                    <td><button class="more-btn">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="status-badge status-active">Active</span></td>
+                                    <td>Nature's Best</td>
+                                    <td>Plant-Based Detergent</td>
+                                    <td>USDA Organic</td>
+                                    <td>Household</td>
+                                    <td>2024-03-10</td>
+                                    <td>2025-03-10</td>
+                                    <td>Amazon</td>
+                                    <td>Featured</td>
+                                    <td>B10DEF789, B10DEF790</td>
+                                    <td>99.1%</td>
+                                    <td><button class="more-btn">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="status-badge status-expired">Expired</span></td>
+                                    <td>EcoLife Inc</td>
+                                    <td>Natural Shampoo</td>
+                                    <td>Made Safe</td>
+                                    <td>Personal Care</td>
+                                    <td>2023-01-05</td>
+                                    <td>2024-01-05</td>
+                                    <td>None</td>
+                                    <td>Renewal Due</td>
+                                    <td>B07GHI012</td>
+                                    <td>91.8%</td>
+                                    <td><button class="more-btn">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="status-badge status-active">Active</span></td>
+                                    <td>Pure Essentials</td>
+                                    <td>Vitamin C Serum</td>
+                                    <td>EWG Verified</td>
+                                    <td>Cosmetics</td>
+                                    <td>2024-04-01</td>
+                                    <td>2025-04-01</td>
+                                    <td>Amazon</td>
+                                    <td>Top Seller</td>
+                                    <td>B11JKL345</td>
+                                    <td>97.3%</td>
+                                    <td><button class="more-btn">View</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- APPROACH 2: Column Toggle -->
+        <section id="toggle" class="approach-section">
+            <div class="section-header">
+                <h2>2. Column Toggle (Show/Hide)</h2>
+                <p>Users can choose which columns to display, with preset configurations available.</p>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <strong>Pros:</strong>
+                        <span>+ User customization</span>
+                        <span>+ Save preferences</span>
+                        <span>+ Presets for common needs</span>
+                    </div>
+                    <div class="cons">
+                        <strong>Cons:</strong>
+                        <span>- Learning curve</span>
+                        <span>- May hide needed data</span>
+                        <span>- Extra UI complexity</span>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content">
+                <div class="column-controls">
+                    <label class="column-toggle"><input type="checkbox" checked data-col="cert"> Certificate #</label>
+                    <label class="column-toggle"><input type="checkbox" checked data-col="status"> Status</label>
+                    <label class="column-toggle"><input type="checkbox" checked data-col="company"> Company</label>
+                    <label class="column-toggle"><input type="checkbox" checked data-col="product"> Product</label>
+                    <label class="column-toggle"><input type="checkbox" checked data-col="type"> Cert Type</label>
+                    <label class="column-toggle"><input type="checkbox" data-col="category"> Category</label>
+                    <label class="column-toggle"><input type="checkbox" checked data-col="issue"> Issue Date</label>
+                    <label class="column-toggle"><input type="checkbox" checked data-col="expiry"> Expiry Date</label>
+                    <label class="column-toggle"><input type="checkbox" data-col="partner"> Partner</label>
+                    <label class="column-toggle"><input type="checkbox" data-col="tags"> Internal Tags</label>
+                    <label class="column-toggle"><input type="checkbox" data-col="productids"> Product IDs</label>
+                    <label class="column-toggle"><input type="checkbox" data-col="results"> Results</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" data-preset="minimal">Minimal</button>
+                        <button class="preset-btn" data-preset="standard">Standard</button>
+                        <button class="preset-btn" data-preset="full">Full</button>
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="data-table" id="toggle-table">
+                        <thead>
+                            <tr>
+                                <th data-col="cert">Certificate #</th>
+                                <th data-col="status">Status</th>
+                                <th data-col="company">Company</th>
+                                <th data-col="product">Product</th>
+                                <th data-col="type">Cert Type</th>
+                                <th data-col="category" style="display:none;">Category</th>
+                                <th data-col="issue">Issue Date</th>
+                                <th data-col="expiry">Expiry Date</th>
+                                <th data-col="partner" style="display:none;">Partner</th>
+                                <th data-col="tags" style="display:none;">Internal Tags</th>
+                                <th data-col="productids" style="display:none;">Product IDs</th>
+                                <th data-col="results" style="display:none;">Results</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td data-col="cert"><span class="cert-number">24-0366</span></td>
+                                <td data-col="status"><span class="status-badge status-active">Active</span></td>
+                                <td data-col="company">Acme Corp</td>
+                                <td data-col="product">Eco-Friendly Cleaner</td>
+                                <td data-col="type">Made Safe</td>
+                                <td data-col="category" style="display:none;">Household</td>
+                                <td data-col="issue">2024-01-15</td>
+                                <td data-col="expiry">2025-01-15</td>
+                                <td data-col="partner" style="display:none;">Amazon</td>
+                                <td data-col="tags" style="display:none;">Priority, Q1</td>
+                                <td data-col="productids" style="display:none;">B08XYZ123</td>
+                                <td data-col="results" style="display:none;">98.5%</td>
+                            </tr>
+                            <tr>
+                                <td data-col="cert"><span class="cert-number">24-0365</span></td>
+                                <td data-col="status"><span class="status-badge status-pending">Pending</span></td>
+                                <td data-col="company">Green Solutions</td>
+                                <td data-col="product">Organic Soap</td>
+                                <td data-col="type">EWG Verified</td>
+                                <td data-col="category" style="display:none;">Personal Care</td>
+                                <td data-col="issue">2024-02-20</td>
+                                <td data-col="expiry">2025-02-20</td>
+                                <td data-col="partner" style="display:none;">Novi</td>
+                                <td data-col="tags" style="display:none;">New</td>
+                                <td data-col="productids" style="display:none;">B09ABC456</td>
+                                <td data-col="results" style="display:none;">95.2%</td>
+                            </tr>
+                            <tr>
+                                <td data-col="cert"><span class="cert-number">24-0364</span></td>
+                                <td data-col="status"><span class="status-badge status-active">Active</span></td>
+                                <td data-col="company">Nature's Best</td>
+                                <td data-col="product">Plant-Based Detergent</td>
+                                <td data-col="type">USDA Organic</td>
+                                <td data-col="category" style="display:none;">Household</td>
+                                <td data-col="issue">2024-03-10</td>
+                                <td data-col="expiry">2025-03-10</td>
+                                <td data-col="partner" style="display:none;">Amazon</td>
+                                <td data-col="tags" style="display:none;">Featured</td>
+                                <td data-col="productids" style="display:none;">B10DEF789</td>
+                                <td data-col="results" style="display:none;">99.1%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- APPROACH 3: Expandable Rows -->
+        <section id="expand" class="approach-section">
+            <div class="section-header">
+                <h2>3. Expandable Rows (Master-Detail)</h2>
+                <p>Show key columns in main view, expand rows to see full details.</p>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <strong>Pros:</strong>
+                        <span>+ Clean main view</span>
+                        <span>+ All details available</span>
+                        <span>+ Good for scanning</span>
+                    </div>
+                    <div class="cons">
+                        <strong>Cons:</strong>
+                        <span>- Requires extra click</span>
+                        <span>- Can't compare rows easily</span>
+                        <span>- Expanded state lost on scroll</span>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content">
+                <table class="data-table expandable-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"></th>
+                            <th>Certificate #</th>
+                            <th>Status</th>
+                            <th>Company</th>
+                            <th>Product</th>
+                            <th>Expiry Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="master-row" data-id="1">
+                            <td><span class="expand-icon"><i class="fas fa-chevron-right"></i></span></td>
+                            <td><span class="cert-number">24-0366</span></td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td>Acme Corp</td>
+                            <td>Eco-Friendly Cleaner</td>
+                            <td>2025-01-15</td>
+                        </tr>
+                        <tr class="detail-row" data-parent="1">
+                            <td colspan="6">
+                                <div class="detail-content">
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>Certification Type</label>
+                                            <div class="value">Made Safe</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Category</label>
+                                            <div class="value">Household Cleaners</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Issue Date</label>
+                                            <div class="value">2024-01-15</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Partner</label>
+                                            <div class="value">Amazon</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Internal Tags</label>
+                                            <div class="value">Priority, Q1 2024</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Product IDs (ASINs)</label>
+                                            <div class="value">B08XYZ123, B08XYZ124</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Certification Results</label>
+                                            <div class="value">98.5% (Exceeds Standard)</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Last Updated</label>
+                                            <div class="value">2024-01-15 09:32 AM</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="master-row" data-id="2">
+                            <td><span class="expand-icon"><i class="fas fa-chevron-right"></i></span></td>
+                            <td><span class="cert-number">24-0365</span></td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>Green Solutions</td>
+                            <td>Organic Soap</td>
+                            <td>2025-02-20</td>
+                        </tr>
+                        <tr class="detail-row" data-parent="2">
+                            <td colspan="6">
+                                <div class="detail-content">
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>Certification Type</label>
+                                            <div class="value">EWG Verified</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Category</label>
+                                            <div class="value">Personal Care</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Issue Date</label>
+                                            <div class="value">2024-02-20</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Partner</label>
+                                            <div class="value">Novi</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Internal Tags</label>
+                                            <div class="value">New Submission</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Product IDs (ASINs)</label>
+                                            <div class="value">B09ABC456</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Certification Results</label>
+                                            <div class="value">95.2%</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Last Updated</label>
+                                            <div class="value">2024-02-18 02:15 PM</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="master-row" data-id="3">
+                            <td><span class="expand-icon"><i class="fas fa-chevron-right"></i></span></td>
+                            <td><span class="cert-number">24-0364</span></td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td>Nature's Best</td>
+                            <td>Plant-Based Detergent</td>
+                            <td>2025-03-10</td>
+                        </tr>
+                        <tr class="detail-row" data-parent="3">
+                            <td colspan="6">
+                                <div class="detail-content">
+                                    <div class="detail-grid">
+                                        <div class="detail-item">
+                                            <label>Certification Type</label>
+                                            <div class="value">USDA Organic</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Category</label>
+                                            <div class="value">Household Cleaners</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Issue Date</label>
+                                            <div class="value">2024-03-10</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Partner</label>
+                                            <div class="value">Amazon</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Internal Tags</label>
+                                            <div class="value">Featured Product</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Product IDs (ASINs)</label>
+                                            <div class="value">B10DEF789, B10DEF790</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Certification Results</label>
+                                            <div class="value">99.1% (Excellent)</div>
+                                        </div>
+                                        <div class="detail-item">
+                                            <label>Last Updated</label>
+                                            <div class="value">2024-03-08 11:45 AM</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- APPROACH 4: Card/Tile View -->
+        <section id="cards" class="approach-section">
+            <div class="section-header">
+                <h2>4. Card/Tile View</h2>
+                <p>Display each certificate as a card with organized sections.</p>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <strong>Pros:</strong>
+                        <span>+ Visual hierarchy</span>
+                        <span>+ Mobile-friendly</span>
+                        <span>+ Easy to scan</span>
+                    </div>
+                    <div class="cons">
+                        <strong>Cons:</strong>
+                        <span>- Takes more space</span>
+                        <span>- Harder to compare</span>
+                        <span>- Fewer items visible</span>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content">
+                <div class="view-toggle">
+                    <button class="view-toggle-btn">Table View</button>
+                    <button class="view-toggle-btn active">Card View</button>
+                </div>
+                <div class="card-grid">
+                    <div class="cert-card">
+                        <div class="card-header">
+                            <span class="cert-num">24-0366</span>
+                            <span class="status-badge status-active">Active</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-row">
+                                <span class="label">Company</span>
+                                <span class="value">Acme Corp</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Product</span>
+                                <span class="value">Eco-Friendly Cleaner</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Certification</span>
+                                <span class="value">Made Safe</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Partner</span>
+                                <span class="value">Amazon</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Expiry</span>
+                                <span class="value">Jan 15, 2025</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Product IDs</span>
+                                <span class="value">B08XYZ123 (+1)</span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button class="card-btn card-btn-primary">Download</button>
+                            <button class="card-btn card-btn-secondary">Details</button>
+                        </div>
+                    </div>
+
+                    <div class="cert-card">
+                        <div class="card-header">
+                            <span class="cert-num">24-0365</span>
+                            <span class="status-badge status-pending">Pending</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-row">
+                                <span class="label">Company</span>
+                                <span class="value">Green Solutions</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Product</span>
+                                <span class="value">Organic Soap</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Certification</span>
+                                <span class="value">EWG Verified</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Partner</span>
+                                <span class="value">Novi</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Expiry</span>
+                                <span class="value">Feb 20, 2025</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Product IDs</span>
+                                <span class="value">B09ABC456</span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button class="card-btn card-btn-primary">Download</button>
+                            <button class="card-btn card-btn-secondary">Details</button>
+                        </div>
+                    </div>
+
+                    <div class="cert-card">
+                        <div class="card-header">
+                            <span class="cert-num">24-0364</span>
+                            <span class="status-badge status-active">Active</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-row">
+                                <span class="label">Company</span>
+                                <span class="value">Nature's Best</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Product</span>
+                                <span class="value">Plant-Based Detergent</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Certification</span>
+                                <span class="value">USDA Organic</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Partner</span>
+                                <span class="value">Amazon</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Expiry</span>
+                                <span class="value">Mar 10, 2025</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Product IDs</span>
+                                <span class="value">B10DEF789 (+1)</span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button class="card-btn card-btn-primary">Download</button>
+                            <button class="card-btn card-btn-secondary">Details</button>
+                        </div>
+                    </div>
+
+                    <div class="cert-card">
+                        <div class="card-header">
+                            <span class="cert-num">24-0363</span>
+                            <span class="status-badge status-expired">Expired</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-row">
+                                <span class="label">Company</span>
+                                <span class="value">EcoLife Inc</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Product</span>
+                                <span class="value">Natural Shampoo</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Certification</span>
+                                <span class="value">Made Safe</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Partner</span>
+                                <span class="value">None</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Expiry</span>
+                                <span class="value">Jan 5, 2024</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Product IDs</span>
+                                <span class="value">B07GHI012</span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button class="card-btn card-btn-primary">Renew</button>
+                            <button class="card-btn card-btn-secondary">Details</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- APPROACH 5: Responsive Stacked -->
+        <section id="responsive" class="approach-section">
+            <div class="section-header">
+                <h2>5. Responsive Stacked View</h2>
+                <p>Table on desktop, stacked cards on mobile. Resize window to see effect.</p>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <strong>Pros:</strong>
+                        <span>+ Best of both worlds</span>
+                        <span>+ Fully responsive</span>
+                        <span>+ No data hidden</span>
+                    </div>
+                    <div class="cons">
+                        <strong>Cons:</strong>
+                        <span>- More CSS complexity</span>
+                        <span>- Different UX per device</span>
+                        <span>- Testing overhead</span>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content">
+                <p style="margin-bottom: 15px; color: var(--gcc-text-muted);"><i class="fas fa-info-circle"></i> Resize browser window below 900px to see mobile stacked view</p>
+                <table class="data-table responsive-table">
+                    <thead>
+                        <tr>
+                            <th>Certificate #</th>
+                            <th>Status</th>
+                            <th>Company</th>
+                            <th>Product</th>
+                            <th>Cert Type</th>
+                            <th>Expiry Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td data-label="Certificate #"><span class="cert-number">24-0366</span></td>
+                            <td data-label="Status"><span class="status-badge status-active">Active</span></td>
+                            <td data-label="Company">Acme Corp</td>
+                            <td data-label="Product">Eco-Friendly Cleaner</td>
+                            <td data-label="Cert Type">Made Safe</td>
+                            <td data-label="Expiry Date">2025-01-15</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Certificate #"><span class="cert-number">24-0365</span></td>
+                            <td data-label="Status"><span class="status-badge status-pending">Pending</span></td>
+                            <td data-label="Company">Green Solutions</td>
+                            <td data-label="Product">Organic Soap</td>
+                            <td data-label="Cert Type">EWG Verified</td>
+                            <td data-label="Expiry Date">2025-02-20</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Certificate #"><span class="cert-number">24-0364</span></td>
+                            <td data-label="Status"><span class="status-badge status-active">Active</span></td>
+                            <td data-label="Company">Nature's Best</td>
+                            <td data-label="Product">Plant-Based Detergent</td>
+                            <td data-label="Cert Type">USDA Organic</td>
+                            <td data-label="Expiry Date">2025-03-10</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- APPROACH 6: Priority Columns -->
+        <section id="priority" class="approach-section">
+            <div class="section-header">
+                <h2>6. Priority Columns with "More Info" Button</h2>
+                <p>Show most important columns, with popup for additional details.</p>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <strong>Pros:</strong>
+                        <span>+ Clean, focused view</span>
+                        <span>+ All data accessible</span>
+                        <span>+ Easy row comparison</span>
+                    </div>
+                    <div class="cons">
+                        <strong>Cons:</strong>
+                        <span>- Extra click for details</span>
+                        <span>- Popup management</span>
+                        <span>- May miss important data</span>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content">
+                <div class="priority-table-container">
+                    <table class="data-table priority-table">
+                        <thead>
+                            <tr>
+                                <th class="col-priority-1">Certificate #</th>
+                                <th class="col-priority-1">Status</th>
+                                <th class="col-priority-2">Company</th>
+                                <th class="col-priority-2">Product</th>
+                                <th class="col-priority-3">Expiry</th>
+                                <th class="more-info-cell">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="cert-number">24-0366</span></td>
+                                <td><span class="status-badge status-active">Active</span></td>
+                                <td>Acme Corp</td>
+                                <td>Eco-Friendly Cleaner</td>
+                                <td>2025-01-15</td>
+                                <td class="more-info-cell">
+                                    <button class="more-btn" onclick="showMoreInfo(this, {
+                                        certType: 'Made Safe',
+                                        category: 'Household',
+                                        partner: 'Amazon',
+                                        tags: 'Priority, Q1',
+                                        productIds: 'B08XYZ123, B08XYZ124',
+                                        results: '98.5%',
+                                        issueDate: '2024-01-15'
+                                    })">More</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="cert-number">24-0365</span></td>
+                                <td><span class="status-badge status-pending">Pending</span></td>
+                                <td>Green Solutions</td>
+                                <td>Organic Soap</td>
+                                <td>2025-02-20</td>
+                                <td class="more-info-cell">
+                                    <button class="more-btn" onclick="showMoreInfo(this, {
+                                        certType: 'EWG Verified',
+                                        category: 'Personal Care',
+                                        partner: 'Novi',
+                                        tags: 'New',
+                                        productIds: 'B09ABC456',
+                                        results: '95.2%',
+                                        issueDate: '2024-02-20'
+                                    })">More</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="cert-number">24-0364</span></td>
+                                <td><span class="status-badge status-active">Active</span></td>
+                                <td>Nature's Best</td>
+                                <td>Plant-Based Detergent</td>
+                                <td>2025-03-10</td>
+                                <td class="more-info-cell">
+                                    <button class="more-btn" onclick="showMoreInfo(this, {
+                                        certType: 'USDA Organic',
+                                        category: 'Household',
+                                        partner: 'Amazon',
+                                        tags: 'Featured',
+                                        productIds: 'B10DEF789, B10DEF790',
+                                        results: '99.1%',
+                                        issueDate: '2024-03-10'
+                                    })">More</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="info-popup" class="info-popup">
+                    <button class="info-popup-close" onclick="closePopup()">&times;</button>
+                    <h4>Additional Details</h4>
+                    <div id="popup-content"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- APPROACH 7: Split Pane -->
+        <section id="split" class="approach-section">
+            <div class="section-header">
+                <h2>7. Split Pane (List + Detail)</h2>
+                <p>List on left, full details on right. Email client style.</p>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <strong>Pros:</strong>
+                        <span>+ Full details visible</span>
+                        <span>+ Quick navigation</span>
+                        <span>+ Familiar pattern</span>
+                    </div>
+                    <div class="cons">
+                        <strong>Cons:</strong>
+                        <span>- Needs screen width</span>
+                        <span>- One item at a time</span>
+                        <span>- Not mobile-friendly</span>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content">
+                <div class="split-pane-container">
+                    <div class="list-pane">
+                        <div class="list-item selected" data-id="1" onclick="selectListItem(this)">
+                            <div class="title">24-0366</div>
+                            <div class="subtitle">Acme Corp - Eco-Friendly Cleaner</div>
+                            <span class="status-badge status-active" style="margin-top: 8px;">Active</span>
+                        </div>
+                        <div class="list-item" data-id="2" onclick="selectListItem(this)">
+                            <div class="title">24-0365</div>
+                            <div class="subtitle">Green Solutions - Organic Soap</div>
+                            <span class="status-badge status-pending" style="margin-top: 8px;">Pending</span>
+                        </div>
+                        <div class="list-item" data-id="3" onclick="selectListItem(this)">
+                            <div class="title">24-0364</div>
+                            <div class="subtitle">Nature's Best - Plant-Based Detergent</div>
+                            <span class="status-badge status-active" style="margin-top: 8px;">Active</span>
+                        </div>
+                        <div class="list-item" data-id="4" onclick="selectListItem(this)">
+                            <div class="title">24-0363</div>
+                            <div class="subtitle">EcoLife Inc - Natural Shampoo</div>
+                            <span class="status-badge status-expired" style="margin-top: 8px;">Expired</span>
+                        </div>
+                        <div class="list-item" data-id="5" onclick="selectListItem(this)">
+                            <div class="title">24-0362</div>
+                            <div class="subtitle">Pure Essentials - Vitamin C Serum</div>
+                            <span class="status-badge status-active" style="margin-top: 8px;">Active</span>
+                        </div>
+                    </div>
+                    <div class="detail-pane">
+                        <div class="detail-pane-content">
+                            <h3>Certificate 24-0366</h3>
+
+                            <div class="detail-section">
+                                <h4>Basic Information</h4>
+                                <div class="detail-field">
+                                    <span class="label">Status:</span>
+                                    <span class="value"><span class="status-badge status-active">Active</span></span>
+                                </div>
+                                <div class="detail-field">
+                                    <span class="label">Company:</span>
+                                    <span class="value">Acme Corp</span>
+                                </div>
+                                <div class="detail-field">
+                                    <span class="label">Product:</span>
+                                    <span class="value">Eco-Friendly Cleaner</span>
+                                </div>
+                            </div>
+
+                            <div class="detail-section">
+                                <h4>Certification Details</h4>
+                                <div class="detail-field">
+                                    <span class="label">Type:</span>
+                                    <span class="value">Made Safe</span>
+                                </div>
+                                <div class="detail-field">
+                                    <span class="label">Category:</span>
+                                    <span class="value">Household Cleaners</span>
+                                </div>
+                                <div class="detail-field">
+                                    <span class="label">Issue Date:</span>
+                                    <span class="value">January 15, 2024</span>
+                                </div>
+                                <div class="detail-field">
+                                    <span class="label">Expiry Date:</span>
+                                    <span class="value">January 15, 2025</span>
+                                </div>
+                                <div class="detail-field">
+                                    <span class="label">Results:</span>
+                                    <span class="value">98.5% (Exceeds Standard)</span>
+                                </div>
+                            </div>
+
+                            <div class="detail-section">
+                                <h4>Partner & Tracking</h4>
+                                <div class="detail-field">
+                                    <span class="label">Partner:</span>
+                                    <span class="value">Amazon</span>
+                                </div>
+                                <div class="detail-field">
+                                    <span class="label">Internal Tags:</span>
+                                    <span class="value">Priority, Q1 2024</span>
+                                </div>
+                                <div class="detail-field">
+                                    <span class="label">Product IDs:</span>
+                                    <span class="value">B08XYZ123, B08XYZ124</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- APPROACH 8: Grouped Tabs -->
+        <section id="grouped" class="approach-section">
+            <div class="section-header">
+                <h2>8. Grouped Columns with Tabs</h2>
+                <p>Organize columns into logical groups, switchable via tabs.</p>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <strong>Pros:</strong>
+                        <span>+ Organized by context</span>
+                        <span>+ Focused data views</span>
+                        <span>+ Reduces overwhelm</span>
+                    </div>
+                    <div class="cons">
+                        <strong>Cons:</strong>
+                        <span>- Switching required</span>
+                        <span>- Learning the groups</span>
+                        <span>- May miss cross-group data</span>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content">
+                <div class="grouped-tabs">
+                    <button class="group-tab active" data-group="basic">Basic Info</button>
+                    <button class="group-tab" data-group="certification">Certification</button>
+                    <button class="group-tab" data-group="partner">Partner & Products</button>
+                    <button class="group-tab" data-group="internal">Internal</button>
+                </div>
+
+                <div id="group-basic" class="tab-content active">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Certificate #</th>
+                                <th>Status</th>
+                                <th>Company</th>
+                                <th>Product</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="cert-number">24-0366</span></td>
+                                <td><span class="status-badge status-active">Active</span></td>
+                                <td>Acme Corp</td>
+                                <td>Eco-Friendly Cleaner</td>
+                            </tr>
+                            <tr>
+                                <td><span class="cert-number">24-0365</span></td>
+                                <td><span class="status-badge status-pending">Pending</span></td>
+                                <td>Green Solutions</td>
+                                <td>Organic Soap</td>
+                            </tr>
+                            <tr>
+                                <td><span class="cert-number">24-0364</span></td>
+                                <td><span class="status-badge status-active">Active</span></td>
+                                <td>Nature's Best</td>
+                                <td>Plant-Based Detergent</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="group-certification" class="tab-content">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Certificate #</th>
+                                <th>Cert Type</th>
+                                <th>Category</th>
+                                <th>Issue Date</th>
+                                <th>Expiry Date</th>
+                                <th>Results</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="cert-number">24-0366</span></td>
+                                <td>Made Safe</td>
+                                <td>Household</td>
+                                <td>2024-01-15</td>
+                                <td>2025-01-15</td>
+                                <td>98.5%</td>
+                            </tr>
+                            <tr>
+                                <td><span class="cert-number">24-0365</span></td>
+                                <td>EWG Verified</td>
+                                <td>Personal Care</td>
+                                <td>2024-02-20</td>
+                                <td>2025-02-20</td>
+                                <td>95.2%</td>
+                            </tr>
+                            <tr>
+                                <td><span class="cert-number">24-0364</span></td>
+                                <td>USDA Organic</td>
+                                <td>Household</td>
+                                <td>2024-03-10</td>
+                                <td>2025-03-10</td>
+                                <td>99.1%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="group-partner" class="tab-content">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Certificate #</th>
+                                <th>Partner</th>
+                                <th>Product IDs (ASINs)</th>
+                                <th>ID Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="cert-number">24-0366</span></td>
+                                <td>Amazon</td>
+                                <td>B08XYZ123, B08XYZ124</td>
+                                <td>2</td>
+                            </tr>
+                            <tr>
+                                <td><span class="cert-number">24-0365</span></td>
+                                <td>Novi</td>
+                                <td>B09ABC456</td>
+                                <td>1</td>
+                            </tr>
+                            <tr>
+                                <td><span class="cert-number">24-0364</span></td>
+                                <td>Amazon</td>
+                                <td>B10DEF789, B10DEF790</td>
+                                <td>2</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="group-internal" class="tab-content">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Certificate #</th>
+                                <th>Internal Tags</th>
+                                <th>Created</th>
+                                <th>Last Modified</th>
+                                <th>Modified By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="cert-number">24-0366</span></td>
+                                <td>Priority, Q1</td>
+                                <td>2024-01-10</td>
+                                <td>2024-01-15</td>
+                                <td>Jane Analyst</td>
+                            </tr>
+                            <tr>
+                                <td><span class="cert-number">24-0365</span></td>
+                                <td>New</td>
+                                <td>2024-02-15</td>
+                                <td>2024-02-18</td>
+                                <td>Mike Chen</td>
+                            </tr>
+                            <tr>
+                                <td><span class="cert-number">24-0364</span></td>
+                                <td>Featured</td>
+                                <td>2024-03-05</td>
+                                <td>2024-03-08</td>
+                                <td>Sarah Johnson</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- COMPARISON -->
+        <section id="compare" class="approach-section">
+            <div class="section-header">
+                <h2>Comparison of All Approaches</h2>
+                <p>Quick reference to help choose the best approach for your needs.</p>
+            </div>
+            <div class="section-content">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Approach</th>
+                            <th>Best For</th>
+                            <th>Mobile</th>
+                            <th>Compare Rows</th>
+                            <th>All Data Visible</th>
+                            <th>Complexity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. Fixed + Scroll</td>
+                            <td>Desktop power users</td>
+                            <td class="cross"><i class="fas fa-times"></i></td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td>Low</td>
+                        </tr>
+                        <tr>
+                            <td>2. Column Toggle</td>
+                            <td>Customizable workflows</td>
+                            <td class="partial"><i class="fas fa-minus"></i></td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td class="partial"><i class="fas fa-minus"></i></td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td>3. Expandable Rows</td>
+                            <td>Quick scan + deep dive</td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td class="cross"><i class="fas fa-times"></i></td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td>4. Card View</td>
+                            <td>Visual browsing</td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td class="cross"><i class="fas fa-times"></i></td>
+                            <td class="partial"><i class="fas fa-minus"></i></td>
+                            <td>Low</td>
+                        </tr>
+                        <tr>
+                            <td>5. Responsive Stack</td>
+                            <td>Multi-device support</td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td class="partial"><i class="fas fa-minus"></i></td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td>6. Priority Columns</td>
+                            <td>Focus on key data</td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td>7. Split Pane</td>
+                            <td>Detail-heavy work</td>
+                            <td class="cross"><i class="fas fa-times"></i></td>
+                            <td class="cross"><i class="fas fa-times"></i></td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td>High</td>
+                        </tr>
+                        <tr>
+                            <td>8. Grouped Tabs</td>
+                            <td>Organized workflows</td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td class="check"><i class="fas fa-check"></i></td>
+                            <td class="partial"><i class="fas fa-minus"></i></td>
+                            <td>Medium</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="margin-top: 30px; color: var(--gcc-blue);">Recommendations for GCC</h3>
+                <div style="margin-top: 15px;">
+                    <p><strong>For Certificate Tile Views (External/Internal):</strong></p>
+                    <ul style="margin: 10px 0 20px 20px;">
+                        <li><strong>Option 3 (Expandable Rows)</strong> - Best balance of clean scanning + full detail access</li>
+                        <li><strong>Option 6 (Priority Columns)</strong> - Good for Admin/Analyst who need quick access to key data</li>
+                    </ul>
+
+                    <p><strong>For Admin Data Management:</strong></p>
+                    <ul style="margin: 10px 0 20px 20px;">
+                        <li><strong>Option 2 (Column Toggle)</strong> - Let admins customize their view</li>
+                        <li><strong>Option 8 (Grouped Tabs)</strong> - Organize data by context (Basic, Certification, Partner)</li>
+                    </ul>
+
+                    <p><strong>For Mobile-First Users:</strong></p>
+                    <ul style="margin: 10px 0 20px 20px;">
+                        <li><strong>Option 4 (Card View)</strong> - Most touch-friendly</li>
+                        <li><strong>Option 5 (Responsive Stack)</strong> - Automatic adaptation</li>
+                    </ul>
+
+                    <p><strong>Hybrid Approach (Recommended):</strong></p>
+                    <ul style="margin: 10px 0 20px 20px;">
+                        <li>Combine <strong>Option 2 (Column Toggle)</strong> with <strong>Option 3 (Expandable Rows)</strong></li>
+                        <li>Users choose which columns to see, can expand any row for full details</li>
+                        <li>Add <strong>Option 5 (Responsive)</strong> behavior for mobile fallback</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Navigation between approaches
+        document.querySelectorAll('.approach-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.approach-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.approach-section').forEach(s => s.classList.remove('active'));
+
+                this.classList.add('active');
+                document.getElementById(this.dataset.approach).classList.add('active');
+            });
+        });
+
+        // Column Toggle functionality
+        document.querySelectorAll('.column-toggle input').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const col = this.dataset.col;
+                const visible = this.checked;
+                const toggle = this.closest('.column-toggle');
+
+                toggle.classList.toggle('hidden', !visible);
+
+                document.querySelectorAll(`#toggle-table [data-col="${col}"]`).forEach(cell => {
+                    cell.style.display = visible ? '' : 'none';
+                });
+            });
+        });
+
+        // Column presets
+        const presets = {
+            minimal: ['cert', 'status', 'company', 'expiry'],
+            standard: ['cert', 'status', 'company', 'product', 'type', 'issue', 'expiry'],
+            full: ['cert', 'status', 'company', 'product', 'type', 'category', 'issue', 'expiry', 'partner', 'tags', 'productids', 'results']
+        };
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const preset = presets[this.dataset.preset];
+                document.querySelectorAll('.column-toggle input').forEach(checkbox => {
+                    const shouldBeVisible = preset.includes(checkbox.dataset.col);
+                    checkbox.checked = shouldBeVisible;
+                    checkbox.dispatchEvent(new Event('change'));
+                });
+            });
+        });
+
+        // Expandable rows
+        document.querySelectorAll('.master-row').forEach(row => {
+            row.addEventListener('click', function() {
+                const id = this.dataset.id;
+                const detailRow = document.querySelector(`.detail-row[data-parent="${id}"]`);
+
+                this.classList.toggle('expanded');
+                detailRow.classList.toggle('show');
+            });
+        });
+
+        // More info popup
+        function showMoreInfo(btn, data) {
+            const popup = document.getElementById('info-popup');
+            const content = document.getElementById('popup-content');
+
+            content.innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Certification Type</label>
+                        <div class="value">${data.certType}</div>
+                    </div>
+                    <div class="detail-item">
+                        <label>Category</label>
+                        <div class="value">${data.category}</div>
+                    </div>
+                    <div class="detail-item">
+                        <label>Issue Date</label>
+                        <div class="value">${data.issueDate}</div>
+                    </div>
+                    <div class="detail-item">
+                        <label>Partner</label>
+                        <div class="value">${data.partner}</div>
+                    </div>
+                    <div class="detail-item">
+                        <label>Internal Tags</label>
+                        <div class="value">${data.tags}</div>
+                    </div>
+                    <div class="detail-item">
+                        <label>Product IDs</label>
+                        <div class="value">${data.productIds}</div>
+                    </div>
+                    <div class="detail-item">
+                        <label>Results</label>
+                        <div class="value">${data.results}</div>
+                    </div>
+                </div>
+            `;
+
+            const rect = btn.getBoundingClientRect();
+            popup.style.top = (rect.bottom + 10) + 'px';
+            popup.style.left = Math.min(rect.left, window.innerWidth - 400) + 'px';
+            popup.classList.add('show');
+        }
+
+        function closePopup() {
+            document.getElementById('info-popup').classList.remove('show');
+        }
+
+        // Close popup on outside click
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.info-popup') && !e.target.classList.contains('more-btn')) {
+                closePopup();
+            }
+        });
+
+        // Split pane selection
+        const detailData = {
+            1: {
+                certNum: '24-0366',
+                status: 'Active',
+                company: 'Acme Corp',
+                product: 'Eco-Friendly Cleaner',
+                type: 'Made Safe',
+                category: 'Household Cleaners',
+                issueDate: 'January 15, 2024',
+                expiryDate: 'January 15, 2025',
+                results: '98.5% (Exceeds Standard)',
+                partner: 'Amazon',
+                tags: 'Priority, Q1 2024',
+                productIds: 'B08XYZ123, B08XYZ124'
+            },
+            2: {
+                certNum: '24-0365',
+                status: 'Pending',
+                company: 'Green Solutions',
+                product: 'Organic Soap',
+                type: 'EWG Verified',
+                category: 'Personal Care',
+                issueDate: 'February 20, 2024',
+                expiryDate: 'February 20, 2025',
+                results: '95.2%',
+                partner: 'Novi',
+                tags: 'New Submission',
+                productIds: 'B09ABC456'
+            },
+            3: {
+                certNum: '24-0364',
+                status: 'Active',
+                company: "Nature's Best",
+                product: 'Plant-Based Detergent',
+                type: 'USDA Organic',
+                category: 'Household Cleaners',
+                issueDate: 'March 10, 2024',
+                expiryDate: 'March 10, 2025',
+                results: '99.1% (Excellent)',
+                partner: 'Amazon',
+                tags: 'Featured Product',
+                productIds: 'B10DEF789, B10DEF790'
+            },
+            4: {
+                certNum: '24-0363',
+                status: 'Expired',
+                company: 'EcoLife Inc',
+                product: 'Natural Shampoo',
+                type: 'Made Safe',
+                category: 'Personal Care',
+                issueDate: 'January 5, 2023',
+                expiryDate: 'January 5, 2024',
+                results: '91.8%',
+                partner: 'None',
+                tags: 'Renewal Due',
+                productIds: 'B07GHI012'
+            },
+            5: {
+                certNum: '24-0362',
+                status: 'Active',
+                company: 'Pure Essentials',
+                product: 'Vitamin C Serum',
+                type: 'EWG Verified',
+                category: 'Cosmetics',
+                issueDate: 'April 1, 2024',
+                expiryDate: 'April 1, 2025',
+                results: '97.3%',
+                partner: 'Amazon',
+                tags: 'Top Seller',
+                productIds: 'B11JKL345'
+            }
+        };
+
+        function selectListItem(item) {
+            document.querySelectorAll('.list-item').forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+
+            const id = item.dataset.id;
+            const data = detailData[id];
+
+            const statusClass = data.status === 'Active' ? 'status-active' :
+                               data.status === 'Pending' ? 'status-pending' : 'status-expired';
+
+            document.querySelector('.detail-pane-content').innerHTML = `
+                <h3>Certificate ${data.certNum}</h3>
+
+                <div class="detail-section">
+                    <h4>Basic Information</h4>
+                    <div class="detail-field">
+                        <span class="label">Status:</span>
+                        <span class="value"><span class="status-badge ${statusClass}">${data.status}</span></span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="label">Company:</span>
+                        <span class="value">${data.company}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="label">Product:</span>
+                        <span class="value">${data.product}</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4>Certification Details</h4>
+                    <div class="detail-field">
+                        <span class="label">Type:</span>
+                        <span class="value">${data.type}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="label">Category:</span>
+                        <span class="value">${data.category}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="label">Issue Date:</span>
+                        <span class="value">${data.issueDate}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="label">Expiry Date:</span>
+                        <span class="value">${data.expiryDate}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="label">Results:</span>
+                        <span class="value">${data.results}</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4>Partner & Tracking</h4>
+                    <div class="detail-field">
+                        <span class="label">Partner:</span>
+                        <span class="value">${data.partner}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="label">Internal Tags:</span>
+                        <span class="value">${data.tags}</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="label">Product IDs:</span>
+                        <span class="value">${data.productIds}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Grouped tabs
+        document.querySelectorAll('.group-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.group-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                this.classList.add('active');
+                document.getElementById('group-' + this.dataset.group).classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

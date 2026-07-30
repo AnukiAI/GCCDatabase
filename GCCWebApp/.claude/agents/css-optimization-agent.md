@@ -925,7 +925,9 @@ exit 0
 
 ### Upstream (Feeds This Agent):
 - CLAUDE.md - 8px grid system, brand colors, Bootstrap 5 requirements
-- 0_Documentation/mockups/0_0_MasterDesignGuide.html - Visual reference
+- `../docs2/mockups/GCC_FinalDesign/docs/0_0_MasterDesignGuide_6_4.html` - Visual reference
+  (relative to the project dir; `docs2/` sits at the git repo root since 2026-07-20.
+  Path corrected 2026-07-20; the old `0_Documentation/...` reference was dead.)
 - wwwroot/css/**/*.css - Custom stylesheets
 - Views/**/*.cshtml - HTML using CSS classes
 

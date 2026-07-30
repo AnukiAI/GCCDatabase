@@ -314,24 +314,51 @@
             </div>
 
             <div class="admin-modal-body" style="background-color: white; padding: 20px; overflow-y: auto; flex: 1;">
-                <!-- Summary Stats -->
-                <div id="import-summary" class="import-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px;">
-                    <div class="import-stat" style="background: #e8f5e1; padding: 12px; border-radius: 6px; text-align: center;">
+                @* Client request (ASIN upload): the four summary boxes are now clickable
+                   filters. Click a box to show only rows of that status (e.g. Errors → just
+                   the failing rows out of a large import); click again to clear. Combines with
+                   the search box below. Purely visual — filtering never changes which rows are
+                   selected or applied. *@
+                <!-- Summary Stats (clickable filters) -->
+                <div id="import-summary" class="import-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                    <div class="import-stat" id="stat-box-new" role="button" tabindex="0" data-status="new" title="Click to show only New rows" onclick="productIdManager.toggleImportStatusFilter('new')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();productIdManager.toggleImportStatusFilter('new');}" style="background: #e8f5e1; padding: 12px; border-radius: 6px; text-align: center; cursor: pointer; border: 2px solid transparent;">
                         <div class="import-stat-value" id="stat-new" style="font-size: 24px; font-weight: 600; color: #447638;">0</div>
                         <div class="import-stat-label" style="font-size: 12px; color: #666;">New</div>
                     </div>
-                    <div class="import-stat" style="background: #e6f7ff; padding: 12px; border-radius: 6px; text-align: center;">
+                    <div class="import-stat" id="stat-box-modified" role="button" tabindex="0" data-status="modified" title="Click to show only Modified rows" onclick="productIdManager.toggleImportStatusFilter('modified')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();productIdManager.toggleImportStatusFilter('modified');}" style="background: #e6f7ff; padding: 12px; border-radius: 6px; text-align: center; cursor: pointer; border: 2px solid transparent;">
                         <div class="import-stat-value" id="stat-modified" style="font-size: 24px; font-weight: 600; color: #002B76;">0</div>
                         <div class="import-stat-label" style="font-size: 12px; color: #666;">Modified</div>
                     </div>
-                    <div class="import-stat" style="background: #f5f5f5; padding: 12px; border-radius: 6px; text-align: center;">
+                    <div class="import-stat" id="stat-box-unchanged" role="button" tabindex="0" data-status="unchanged" title="Click to show only Unchanged rows" onclick="productIdManager.toggleImportStatusFilter('unchanged')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();productIdManager.toggleImportStatusFilter('unchanged');}" style="background: #f5f5f5; padding: 12px; border-radius: 6px; text-align: center; cursor: pointer; border: 2px solid transparent;">
                         <div class="import-stat-value" id="stat-unchanged" style="font-size: 24px; font-weight: 600; color: #999;">0</div>
                         <div class="import-stat-label" style="font-size: 12px; color: #666;">Unchanged</div>
                     </div>
-                    <div class="import-stat" style="background: #ffebee; padding: 12px; border-radius: 6px; text-align: center;">
+                    <div class="import-stat" id="stat-box-errors" role="button" tabindex="0" data-status="error" title="Click to show only Error rows" onclick="productIdManager.toggleImportStatusFilter('error')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();productIdManager.toggleImportStatusFilter('error');}" style="background: #ffebee; padding: 12px; border-radius: 6px; text-align: center; cursor: pointer; border: 2px solid transparent;">
                         <div class="import-stat-value" id="stat-errors" style="font-size: 24px; font-weight: 600; color: #ff5252;">0</div>
                         <div class="import-stat-label" style="font-size: 12px; color: #666;">Errors</div>
                     </div>
+                </div>
+
+                @* Client request (ASIN upload): free-text search over the preview rows
+                   (Type / Product ID / Name / SKU / Partner / error text), plus a live
+                   "showing X of Y" count and a Clear button when any filter is active. *@
+                <!-- Preview search / active-filter bar -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <div style="position: relative; flex: 1; min-width: 220px;">
+                        <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999; font-size: 13px;"></i>
+                        @* DEF-312: aria-label — a placeholder is not an accessible name (WCAG 4.1.2)
+                           and vanishes once the user types. 16px avoids iOS Safari auto-zoom on focus. *@
+                        <input type="text" id="import-preview-search" placeholder="Search these rows (ASIN, name, SKU, error…)"
+                               aria-label="Search import preview rows"
+                               oninput="productIdManager.searchImportPreview(this.value)"
+                               style="width: 100%; padding: 10px 12px 10px 34px; border: 1px solid #ced4da; border-radius: 6px; font-size: 16px;">
+                    </div>
+                    @* aria-live so the filtered count is announced when it changes. *@
+                    <span id="import-preview-count" aria-live="polite" style="font-size: 14px; color: #666; white-space: nowrap;"></span>
+                    <button type="button" id="import-preview-clear-filter" onclick="productIdManager.clearImportPreviewFilters()"
+                            style="display: none; background: none; border: 1px solid #ced4da; border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; color: #002B76; white-space: nowrap;">
+                        <i class="fas fa-times me-1"></i> Clear filter
+                    </button>
                 </div>
 
                 <!-- Preview Table -->

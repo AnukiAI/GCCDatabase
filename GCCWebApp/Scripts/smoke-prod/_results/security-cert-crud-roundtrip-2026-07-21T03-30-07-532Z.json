@@ -1,0 +1,67 @@
+{
+  "specId": "cert-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 9,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 9,
+  "results": [
+    {
+      "id": "crud.pre",
+      "name": "clonable combo + count snapshot",
+      "status": "PASS",
+      "notes": "company=131 product=176 cat=9 type=- sub=- certType=3 | products=120 certs=54"
+    },
+    {
+      "id": "crud.C1.create-302",
+      "name": "analyst Create POST redirects on success",
+      "status": "PASS",
+      "notes": "HTTP 302, redirect=\"/Certificate/CertificateInternalView/26-1735\", number=26-1735"
+    },
+    {
+      "id": "crud.C2.create-persisted",
+      "name": "created cert exists in DB with marker",
+      "status": "PASS",
+      "notes": "db Location=\"ZZ_SmokeFixture_CRUD_2026-07-20_mru3i0uv\" expected=\"ZZ_SmokeFixture_CRUD_2026-07-20_mru3i0uv\""
+    },
+    {
+      "id": "crud.U1.edit-302",
+      "name": "analyst Edit POST redirects on success",
+      "status": "PASS",
+      "notes": "HTTP 302 (id=183)"
+    },
+    {
+      "id": "crud.U2.edit-persisted",
+      "name": "edited value persisted in DB",
+      "status": "PASS",
+      "notes": "db Location=\"ZZ_SmokeFixture_CRUD_2026-07-20_mru3i0uv_EDITED\" expected=\"ZZ_SmokeFixture_CRUD_2026-07-20_mru3i0uv_EDITED\""
+    },
+    {
+      "id": "crud.D1.delete-ok",
+      "name": "admin Delete POST accepted",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "crud.D2.delete-removed",
+      "name": "cert row removed from DB",
+      "status": "PASS",
+      "notes": "gone"
+    },
+    {
+      "id": "crud.INV.products",
+      "name": "Products count unchanged (no find-or-create pollution)",
+      "status": "PASS",
+      "notes": "before=120 after=120"
+    },
+    {
+      "id": "crud.INV.certs",
+      "name": "Certificates count net-zero after round-trip",
+      "status": "PASS",
+      "notes": "before=54 after=54"
+    }
+  ],
+  "finishedAt": "2026-07-21T03:30:07.532Z"
+}

@@ -25,7 +25,8 @@
         filterOptions: {},
         debounceTimer: null,
         currentView: 'tile', // Track current view: 'tile' or 'list'
-        initialized: false
+        initialized: false,
+        loadSeq: 0 // Monotonic token: only the latest fresh (sort/filter/search) load renders.
     };
 
     // Set on pagehide so fetches aborted by navigation don't log noise.
@@ -204,7 +205,14 @@
 
     // Load certificates from API
     async function loadCertificates(append = false) {
-        if (state.isLoading) return;
+        // A blanket `if (state.isLoading) return;` used to DROP a sort/filter/search change that
+        // arrived while a load was in flight — the Sort-By label + ?sort= URL updated but the data
+        // never reloaded, so the table could end on a different sort than the control claimed
+        // (DEF-309). Fix: only infinite-scroll *appends* must not stack; a *fresh* load supersedes
+        // whatever is in flight, and a sequence token ensures only the newest fresh result renders
+        // (so a slow earlier response can't overwrite a newer one out of order).
+        if (append && state.isLoading) return;
+        const seq = ++state.loadSeq;
 
         state.isLoading = true;
         showLoadingIndicator();
@@ -220,9 +228,14 @@
         try {
             const params = buildApiParams();
             const response = await fetch(`/api/CertificateTileExternal?${params}`);
-            
+
+            // A newer fresh load started while this one was in flight — discard this stale
+            // result so it can't overwrite the newer sort/filter the user actually wants.
+            if (seq !== state.loadSeq) return;
+
             if (response.ok) {
                 const data = await response.json();
+                if (seq !== state.loadSeq) return; // re-check after awaiting the body
 
                 // DEBUG: Log the first certificate to verify API response structure
                 if (data.certificates && data.certificates.length > 0) {
@@ -249,11 +262,16 @@
             }
         } catch (error) {
             if (pageUnloading) return; // fetch was aborted by navigation, not a real failure
+            if (seq !== state.loadSeq) return; // superseded — let the newer load own the UI/errors
             console.error('Error loading certificates:', error);
             showError('Failed to load certificates. Please try again.');
         } finally {
-            state.isLoading = false;
-            hideLoadingIndicator();
+            // Only the latest load clears the flag/spinner — a superseded load must leave them
+            // in place so the still-running newer load keeps ownership of the loading state.
+            if (seq === state.loadSeq) {
+                state.isLoading = false;
+                hideLoadingIndicator();
+            }
         }
     }
 
@@ -345,6 +363,26 @@
             }
             animateCards();
         }
+
+        // Defensive repaint nudge on a fresh (non-append) re-render. A client reported the
+        // results area going white after a sort while the rows were still in the DOM and
+        // clickable, self-healing on refresh — the classic signature of a stalled compositor
+        // paint (not reproducible in automation, incl. a real-GPU headed run). This forces a
+        // reflow + a one-frame compositor refresh so a stalled paint can't leave a blank table.
+        if (!append) {
+            nudgeRepaint(state.currentView === 'list' ? document.getElementById('gridBody') : grid);
+        }
+    }
+
+    // Force the just-rendered surface to repaint. Targets #gridBody / #certificatesGrid ONLY —
+    // never a sticky-header ancestor, since a `transform` on an ancestor of a position:sticky
+    // element silently breaks the sticky header. The transform is cleared on the next frame so
+    // no persistent compositor layer is left behind.
+    function nudgeRepaint(el) {
+        if (!el) return;
+        void el.offsetHeight;            // force synchronous layout
+        el.style.transform = 'translateZ(0)';
+        requestAnimationFrame(() => { el.style.transform = ''; });
     }
 
     // Render certificates in tile format (default)

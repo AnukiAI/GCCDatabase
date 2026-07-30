@@ -95,7 +95,7 @@ namespace GCCWebApp.Controllers
                     var csv = GenerateStatCsv(type, data);
                     var fileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
                     _logger.LogInformation("Generated CSV file: {FileName}", fileName);
-                    return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+                    return File(Extensions.CsvExportHelper.ToCsvBytesWithBom(csv), "text/csv", fileName);
                 }
             }
             catch (Exception ex)
@@ -179,7 +179,7 @@ namespace GCCWebApp.Controllers
                 {
                     var csv = GenerateCertificateReportCsv(reportTitle, certificates);
                     var fileName = $"{type}-{DateTime.UtcNow:yyyy-MM-dd}.csv";
-                    return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+                    return File(Extensions.CsvExportHelper.ToCsvBytesWithBom(csv), "text/csv", fileName);
                 }
             }
             catch (Exception ex)
@@ -222,7 +222,7 @@ namespace GCCWebApp.Controllers
                 {
                     var csv = GenerateTableCsv(type, data);
                     var fileName = $"{type}-table-{DateTime.UtcNow:yyyy-MM-dd}.csv";
-                    return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+                    return File(Extensions.CsvExportHelper.ToCsvBytesWithBom(csv), "text/csv", fileName);
                 }
             }
             catch (Exception ex)
@@ -308,7 +308,8 @@ namespace GCCWebApp.Controllers
                         CsvField(GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(c?.CertificationResults)),
                         CsvField(c?.Pathway?.Name),
                         CsvField(p.ProductIdType),
-                        CsvField(p.ProductIdValue),
+                        // Leading-zero-safe: UPC/GTIN/EAN values keep their zeros (DEF-306).
+                        CsvTextField(p.ProductIdValue),
                         CsvField(p.ProductName),
                         CsvField(p.ProductSku),
                         CsvField(p.CreatedAt.ToString("yyyy-MM-dd")),
@@ -320,7 +321,7 @@ namespace GCCWebApp.Controllers
                 }
 
                 var fileName = $"active-product-identifiers-{DateTime.UtcNow:yyyy-MM-dd}.csv";
-                return File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", fileName);
+                return File(Extensions.CsvExportHelper.ToCsvBytesWithBom(csv.ToString()), "text/csv", fileName);
             }
             catch (Exception ex)
             {
@@ -332,11 +333,55 @@ namespace GCCWebApp.Controllers
         /// <summary>
         /// Wraps a CSV field in quotes and escapes embedded quotes (RFC 4180 doubling),
         /// so values containing commas, quotes, or newlines (e.g. Product Name / Description)
-        /// don't break the column layout.
+        /// don't break the column layout. Values that would otherwise be interpreted by
+        /// Excel/Sheets as a formula (leading = + - @ or tab/CR — e.g. the "+Vantage Vinyl
+        /// Verified" certification type, which rendered as #NAME?) are emitted in Excel text
+        /// format (="value") so they display literally and cannot execute (CSV injection).
+        /// Mirrors CertificateService.CsvCell — see DEF-306.
         /// </summary>
         private static string CsvField(string? value)
         {
-            return "\"" + (value ?? string.Empty).Replace("\"", "\"\"") + "\"";
+            var raw = value ?? string.Empty;
+            var escaped = raw.Replace("\"", "\"\"");
+            if (raw.Length > 0 && "=+-@\t\r".IndexOf(raw[0]) >= 0)
+            {
+                return "=\"" + escaped + "\"";
+            }
+            return "\"" + escaped + "\"";
+        }
+
+        /// <summary>
+        /// Like <see cref="CsvField"/> but ALWAYS emits Excel text format (="value") for non-empty
+        /// values, so identifier codes (e.g. a UPC/GTIN in the Product ID/ID Value column) keep
+        /// their leading zeros instead of being coerced to a number by Excel. Empty stays "".
+        /// Mirrors CertificateService.CsvTextCell — see DEF-306.
+        /// </summary>
+        private static string CsvTextField(string? value)
+        {
+            var raw = value ?? string.Empty;
+            if (raw.Length == 0)
+            {
+                return "\"\"";
+            }
+            // DEF-315: wrap only when Excel would actually corrupt the value — a bare all-digit
+            // value with a leading zero, or one longer than 15 digits. Alphanumeric identifiers
+            // (ASINs) and multi-value cells are safe as plain quoted fields and read cleanly in
+            // non-Excel tools. When we DO wrap, the '=' must sit INSIDE the CSV quoting
+            // ("=""value""") — otherwise the field is unquoted per RFC 4180 and splits on any
+            // embedded comma, shifting every following column.
+            // See CertificateService.NeedsExcelTextProtection for the full rationale.
+            var isAllDigits = raw.Length > 0;
+            foreach (var c in raw)
+            {
+                if (c < '0' || c > '9') { isAllDigits = false; break; }
+            }
+            if (!(isAllDigits && (raw[0] == '0' || raw.Length > 15)))
+            {
+                return "\"" + raw.Replace("\"", "\"\"") + "\"";
+            }
+            var excelEscaped = raw.Replace("\"", "\"\"");
+            var csvEscaped = excelEscaped.Replace("\"", "\"\"");
+            return "\"=\"\"" + csvEscaped + "\"\"\"";
         }
 
         private async Task<object?> GetStatData(string type, Dictionary<string, int> stats)
@@ -584,7 +629,7 @@ namespace GCCWebApp.Controllers
 
             foreach (var cert in certificates)
             {
-                csv.AppendLine($"\"{cert.Number}\",\"{cert.Status}\",\"{cert.Company?.Name}\",\"{cert.Product?.Name}\",\"{cert.CertificationType?.Name}\",{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},\"{cert.Location}\",\"{cert.Country}\"");
+                csv.AppendLine($"{CsvField(cert.Number)},{CsvField(cert.Status)},{CsvField(cert.Company?.Name)},{CsvField(cert.Product?.Name)},{CsvField(cert.CertificationType?.Name)},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{CsvField(cert.Location)},{CsvField(cert.Country)}");
             }
 
             return csv.ToString();
@@ -605,7 +650,7 @@ namespace GCCWebApp.Controllers
                     {
                         foreach (var item in data)
                         {
-                            csv.AppendLine($"\"{item.Name}\",{item.Count}");
+                            csv.AppendLine($"{CsvField(item.Name)},{item.Count}");
                         }
                     }
                     break;
@@ -616,7 +661,7 @@ namespace GCCWebApp.Controllers
                     {
                         foreach (var item in data)
                         {
-                            csv.AppendLine($"\"{item.Name}\",{item.Count}");
+                            csv.AppendLine($"{CsvField(item.Name)},{item.Count}");
                         }
                     }
                     break;
@@ -924,7 +969,7 @@ namespace GCCWebApp.Controllers
 
             foreach (var cert in certificates)
             {
-                csv.AppendLine($"\"{cert.Number}\",\"{cert.Status}\",\"{cert.Company?.Name}\",\"{cert.Product?.Name}\",\"{cert.CertificationType?.Name}\",{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},\"{cert.Location}\",\"{cert.Country}\"");
+                csv.AppendLine($"{CsvField(cert.Number)},{CsvField(cert.Status)},{CsvField(cert.Company?.Name)},{CsvField(cert.Product?.Name)},{CsvField(cert.CertificationType?.Name)},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{CsvField(cert.Location)},{CsvField(cert.Country)}");
             }
 
             return csv.ToString();

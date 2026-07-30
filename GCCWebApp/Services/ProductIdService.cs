@@ -763,15 +763,100 @@ namespace GCCWebApp.Services
             // Write header
             await writer.WriteLineAsync("Type,Product ID,Status,Partner,ProductName,ProductSku,Description,CreatedAt,CreatedBy");
 
-            // Write data
+            // Write data. Every field is escaped via CsvCell (previously the values were
+            // interpolated raw — a quote or comma in ProductName/Description would corrupt the
+            // row, and a value like the "+Vantage…" type would run as an Excel formula). The
+            // Product ID value goes through CsvTextCell so identifier codes keep leading zeros
+            // (a UPC "012345678905" would otherwise open as the number 12345678905). All use the
+            // ="value" wrapper the import parser now strips (see product-id-manager.js
+            // stripExcelTextFormat), so re-import stays lossless. See DEF-306.
             foreach (var productId in productIds)
             {
-                var line = $"\"{productId.ProductIdType}\",\"{productId.ProductIdValue}\",\"{productId.Status}\",\"{productId.Partner ?? ""}\",\"{productId.ProductName ?? ""}\",\"{productId.ProductSku ?? ""}\",\"{productId.Description ?? ""}\",\"{productId.CreatedAt:yyyy-MM-dd}\",\"{productId.CreatedByUser?.Username ?? ""}\"";
+                var line = string.Join(",", new[]
+                {
+                    CsvCell(productId.ProductIdType),
+                    CsvTextCell(productId.ProductIdValue),
+                    CsvCell(productId.Status),
+                    CsvCell(productId.Partner),
+                    CsvCell(productId.ProductName),
+                    CsvCell(productId.ProductSku),
+                    CsvCell(productId.Description),
+                    $"\"{productId.CreatedAt:yyyy-MM-dd}\"",
+                    CsvCell(productId.CreatedByUser?.Username)
+                });
                 await writer.WriteLineAsync(line);
             }
 
             await writer.FlushAsync();
             return memoryStream.ToArray();
+        }
+
+        // Characters that make Excel / Google Sheets treat a cell as a formula (CSV injection /
+        // #NAME? on values like the "+Vantage Vinyl Verified" type). See DEF-306.
+        private const string CsvFormulaTriggers = "=+-@\t\r";
+
+        /// <summary>
+        /// Builds a complete, Excel-safe CSV cell (surrounding quotes included). Normal values are
+        /// RFC 4180 quoted; values that would otherwise be read as a formula (leading = + - @ or
+        /// tab/CR) are emitted in Excel text format (="value"). Mirrors CertificateService.CsvCell.
+        /// </summary>
+        private static string CsvCell(string? field)
+        {
+            var value = field ?? string.Empty;
+            var escaped = value.Replace("\"", "\"\"");
+            if (value.Length > 0 && CsvFormulaTriggers.IndexOf(value[0]) >= 0)
+            {
+                return ExcelTextCell(value);
+            }
+            return $"\"{escaped}\"";
+        }
+
+        /// <summary>
+        /// RFC 4180-valid CSV cell whose decoded content is Excel text format (="value").
+        /// DEF-315 — see CertificateService.ExcelTextCell for the full rationale: the previous
+        /// form left the '=' outside the quoting, producing an unquoted field that split on any
+        /// embedded comma and shifted every following column. Encoding-only fix; the decoded
+        /// value (and therefore the import round-trip) is unchanged.
+        /// </summary>
+        private static string ExcelTextCell(string value)
+        {
+            var excelEscaped = value.Replace("\"", "\"\"");
+            var csvEscaped = excelEscaped.Replace("\"", "\"\"");
+            return $"\"=\"\"{csvEscaped}\"\"\"";
+        }
+
+        /// <summary>
+        /// Like <see cref="CsvCell"/> but ALWAYS emits Excel text format (="value") for non-empty
+        /// values, so identifier codes (ASIN/UPC/GTIN/EAN) keep their leading zeros instead of being
+        /// coerced to a number by Excel. Empty stays an empty quoted cell.
+        /// </summary>
+        private static string CsvTextCell(string? field)
+        {
+            var value = field ?? string.Empty;
+            if (value.Length == 0)
+            {
+                return "\"\"";
+            }
+            // DEF-315: wrap only when Excel would actually corrupt the value (bare all-digit with a
+            // leading zero, or >15 digits). Alphanumeric and multi-value cells are safe as plain
+            // quoted fields and read cleanly in non-Excel tools.
+            // See CertificateService.NeedsExcelTextProtection for the full rationale.
+            return NeedsExcelTextProtection(value) ? ExcelTextCell(value) : $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+
+        /// <summary>
+        /// True when Excel would corrupt this value by parsing it as a number (bare all-digit value
+        /// with a leading zero, or longer than 15 digits). Mirrors
+        /// CertificateService.NeedsExcelTextProtection — keep the two in lock-step.
+        /// </summary>
+        private static bool NeedsExcelTextProtection(string value)
+        {
+            if (value.Length == 0) return false;
+            foreach (var c in value)
+            {
+                if (c < '0' || c > '9') return false;
+            }
+            return value[0] == '0' || value.Length > 15;
         }
 
         public async Task<byte[]> ExportToExcelAsync(int certificateId)

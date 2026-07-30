@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - External User Testing Guide</title>
+    <style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 13pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 28px; margin-bottom: 10px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 16px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 12px; margin-bottom: 5px; page-break-after: avoid; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px 0; font-size: 8.5pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 7px; font-size: 8.5pt; white-space: nowrap; }
+td { padding: 5px 7px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+ul, ol { margin: 4px 0 10px 0; padding-left: 18px; }
+li { margin-bottom: 3px; font-size: 9.5pt; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 10px 0; font-size: 9pt; border-radius: 0 4px 4px 0; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.callout-success { border-color: #2e7d32; background: #f0f8e8; }
+.callout-danger { border-color: #c62828; background: #fff5f5; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 16px; margin: 12px 0 20px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 6px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.toc a:hover { text-decoration: underline; }
+.toc .toc-sub { padding-left: 14px; font-size: 8.5pt; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.badge-yes { background: #e8f5e1; color: #2e7d32; }
+.badge-no { background: #ffebee; color: #c62828; }
+.badge-own { background: #fff3e0; color: #e65100; }
+.badge-role { background: #e3f2fd; color: #1565c0; }
+.badge-admin { background: #002B76; color: #fff; }
+.badge-analyst { background: #1565c0; color: #fff; }
+.badge-external { background: #2e7d32; color: #fff; }
+.badge-partner { background: #6a1b9a; color: #fff; }
+.badge-public { background: #78909c; color: #fff; }
+.step-box { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 14px 16px; margin: 10px 0; page-break-inside: avoid; }
+.step-box h4 { margin-top: 0; }
+.step-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #002B76; color: #fff; font-size: 8pt; font-weight: 700; margin-right: 6px; flex-shrink: 0; }
+.step-row { display: flex; align-items: flex-start; margin-bottom: 8px; }
+.step-row p { margin: 0; flex: 1; }
+.tc { font-family: 'Cascadia Code', monospace; font-size: 7.5pt; color: #002B76; font-weight: 600; }
+.result-pass { color: #2e7d32; font-weight: 600; }
+.result-fail { color: #c62828; font-weight: 600; }
+.checkbox { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #666; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.col-id { white-space: nowrap; font-weight: 600; }
+.col-status { text-align: center; width: 50px; }
+.flow-diagram { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 4px; padding: 14px; font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8pt; line-height: 1.6; overflow-x: auto; white-space: pre; margin: 10px 0; page-break-inside: avoid; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+.two-col > div { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; }
+.ui-path { background: #f0f4ff; padding: 2px 6px; border-radius: 3px; font-size: 8.5pt; color: #002B76; font-weight: 600; }
+.confidential { background: #f0f4ff; border: 2px solid #002B76; padding: 8px 14px; border-radius: 4px; font-size: 9pt; margin: 10px 0; text-align: center; font-weight: 600; color: #002B76; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+.sign-off { border: 1px solid #ccc; padding: 12px; margin: 10px 0; font-size: 9pt; page-break-inside: avoid; }
+.sign-off-line { border-bottom: 1px solid #666; min-width: 200px; display: inline-block; margin: 0 8px; }
+@media print { body { padding: 0; } .toc { break-inside: avoid; } h2 { break-after: avoid; } h3 { break-after: avoid; } table { font-size: 8pt; } }
+    </style>
+</head>
+<body>
+
+<div class="doc-header">
+    <h1>External User Testing Guide</h1>
+    <p class="subtitle">GCC Database Solution &mdash; Role-Based Access, Company &amp; Partner Data Scoping</p>
+    <div class="doc-meta">
+        <div><strong>Version:</strong> 1.0</div>
+        <div><strong>Date:</strong> March 26, 2026</div>
+        <div><strong>Audience:</strong> QA Testers, UAT Participants, Administrators</div>
+        <div><strong>Classification:</strong> Internal Use Only</div>
+        <div><strong>Application:</strong> GCC Web Application</div>
+        <div><strong>Prepared by:</strong> Anuki Consulting</div>
+    </div>
+</div>
+
+<div class="confidential">INTERNAL DOCUMENT &mdash; For authorized testing personnel only</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <a href="#overview">1. Overview &mdash; How Roles, Companies &amp; Partners Work Together</a>
+    <a href="#data-model">2. Data Model &mdash; How Users Connect to Data</a>
+    <a class="toc-sub" href="#dm-external">2.1 External Users &amp; Companies</a>
+    <a class="toc-sub" href="#dm-partner">2.2 Partner Users &amp; Partner Programs</a>
+    <a class="toc-sub" href="#dm-internal">2.3 Internal Users (Admin &amp; Analyst)</a>
+    <a class="toc-sub" href="#dm-public">2.4 Public Users</a>
+    <a href="#what-they-see">3. What Each Role Can See</a>
+    <a class="toc-sub" href="#ws-navigation">3.1 Navigation Menu</a>
+    <a class="toc-sub" href="#ws-certificates">3.2 Certificates</a>
+    <a class="toc-sub" href="#ws-products">3.3 Products</a>
+    <a class="toc-sub" href="#ws-tags">3.4 Tags</a>
+    <a class="toc-sub" href="#ws-admin">3.5 Administration</a>
+    <a class="toc-sub" href="#ws-api">3.6 API &amp; Documentation</a>
+    <a href="#what-they-cant">4. What Each Role Cannot See or Do</a>
+    <a href="#filtering-rules">5. Data Filtering Rules</a>
+    <a class="toc-sub" href="#fr-certificates">5.1 Certificate Filtering</a>
+    <a class="toc-sub" href="#fr-products">5.2 Product Filtering</a>
+    <a class="toc-sub" href="#fr-filters">5.3 Filter Options &amp; Autocomplete</a>
+    <a class="toc-sub" href="#fr-export">5.4 CSV Export Scoping</a>
+    <a class="toc-sub" href="#fr-edge">5.5 Edge Cases</a>
+    <a href="#comparison-matrix">6. Full Comparison Matrix</a>
+    <a href="#test-accounts">7. Test Accounts &amp; Setup</a>
+    <a href="#test-cases">8. Test Cases</a>
+    <a class="toc-sub" href="#tc-external">8.1 External User Test Cases</a>
+    <a class="toc-sub" href="#tc-partner">8.2 Partner User Test Cases</a>
+    <a class="toc-sub" href="#tc-cross">8.3 Cross-Role Comparison Tests</a>
+    <a class="toc-sub" href="#tc-security">8.4 Security Boundary Tests</a>
+    <a href="#scenarios">9. Real-World Test Scenarios</a>
+    <a href="#troubleshooting">10. Troubleshooting</a>
+    <a href="#signoff">11. Test Sign-Off</a>
+</div>
+
+<!-- ======================= SECTION 1 ======================= -->
+<h2 id="overview">1. Overview &mdash; How Roles, Companies &amp; Partners Work Together</h2>
+
+<p>The GCC Database uses a <strong>three-layer access control</strong> model to determine what data each user can see:</p>
+
+<div class="flow-diagram">
+Layer 1: ROLE             Layer 2: ASSOCIATION          Layer 3: DATA SCOPE
+────────────────          ──────────────────────        ──────────────────────
+
+Admin/Analyst  ─────────&gt; No association needed ──────&gt; ALL data (no filters)
+
+External       ─────────&gt; Assigned to Company(s) ────&gt; Only that company's
+                                                        certificates &amp; products
+
+Partner        ─────────&gt; Assigned to Partner(s) ────&gt; Only certificates tagged
+                                                        with that partner program
+
+Public         ─────────&gt; No association needed ──────&gt; Only publicly visible
+                                                        certificates (active status)
+</div>
+
+<div class="callout callout-danger"><strong>Critical Concept:</strong> Being authenticated is not enough. An External user with no company association sees <strong>zero data</strong>. A Partner user with no partner association sees <strong>zero data</strong>. The association is what unlocks their data scope.</div>
+
+<p>This means two External users logged into the same application can see <strong>completely different data</strong> depending on which company they are associated with.</p>
+
+<!-- ======================= SECTION 2 ======================= -->
+<h2 id="data-model">2. Data Model &mdash; How Users Connect to Data</h2>
+
+<h3 id="dm-external">2.1 External Users &amp; Companies</h3>
+
+<div class="flow-diagram">
+External User (lisa.rodriguez)
+    │
+    └──&gt; Associated with: "Amazon" (Company)
+              │
+              └──&gt; Certificates where CompanyId = Amazon's ID
+              └──&gt; Products where CompanyId = Amazon's ID
+              └──&gt; Export: Only Amazon's data in CSV
+              └──&gt; Filters: Only Amazon-relevant options shown
+
+External User (david.kim)
+    │
+    └──&gt; Associated with: "Clover Imaging Group" (Company)
+              │
+              └──&gt; Certificates where CompanyId = Clover's ID
+              └──&gt; Products where CompanyId = Clover's ID
+              └──&gt; CANNOT see Amazon's certificates or products
+</div>
+
+<p><strong>How it works in the database:</strong></p>
+<ul>
+    <li>Users have a <strong>many-to-many</strong> relationship with Companies (a user can be associated with multiple companies)</li>
+    <li>Every certificate has a required <code>CompanyId</code> field linking it to one company</li>
+    <li>Every product has an optional <code>CompanyId</code> field</li>
+    <li>When an External user loads the certificate view, the API query adds: <code>WHERE CompanyId IN (user's company IDs)</code></li>
+</ul>
+
+<h3 id="dm-partner">2.2 Partner Users &amp; Partner Programs</h3>
+
+<div class="flow-diagram">
+Partner User
+    │
+    └──&gt; Associated with: "Amazon" (Partner Program)
+              │
+              └──&gt; Certificates where Partner field = "Amazon"
+              └──&gt; This spans ALL companies that have Amazon-partnered certs
+              └──&gt; E.g., CertainTeed + Amazon cert, Kuiper + Amazon cert, etc.
+</div>
+
+<p><strong>Key difference from External:</strong></p>
+<ul>
+    <li><strong>External</strong> filtering is by <strong>Company</strong> &mdash; sees all certs for their company regardless of partner</li>
+    <li><strong>Partner</strong> filtering is by <strong>Partner program name</strong> &mdash; sees all certs tagged with their partner across all companies</li>
+</ul>
+
+<p>The three core partner programs are: <strong>Amazon</strong>, <strong>Novi</strong>, and <strong>Other</strong>.</p>
+
+<h3 id="dm-internal">2.3 Internal Users (Admin &amp; Analyst)</h3>
+<p>Admin and Analyst users have <strong>no data filtering</strong>. They see all certificates, all products, all companies, all tags, and all data regardless of company or partner association. Their access is controlled only by role-level permissions (e.g., Analyst cannot delete certificates).</p>
+
+<h3 id="dm-public">2.4 Public Users</h3>
+<p>Public users (and unauthenticated visitors on the public tile view) see only certificates with a <strong>publicly visible status</strong> (e.g., "Client Approved") that are <strong>not expired</strong>. No company or partner filtering applies &mdash; the filter is purely by certificate status.</p>
+
+<!-- ======================= SECTION 3 ======================= -->
+<h2 id="what-they-see">3. What Each Role Can See</h2>
+
+<h3 id="ws-navigation">3.1 Navigation Menu</h3>
+
+<table>
+    <thead><tr><th>Menu Item</th><th><span class="badge badge-admin">Admin</span></th><th><span class="badge badge-analyst">Analyst</span></th><th><span class="badge badge-external">External</span></th><th><span class="badge badge-partner">Partner</span></th><th><span class="badge badge-public">Public</span></th></tr></thead>
+    <tbody>
+        <tr><td>Certificates</td><td><span class="badge badge-yes">YES</span> (Internal)</td><td><span class="badge badge-yes">YES</span> (Internal)</td><td><span class="badge badge-yes">YES</span> (External)</td><td><span class="badge badge-yes">YES</span> (External)</td><td><span class="badge badge-yes">YES</span> (Public)</td></tr>
+        <tr><td>Dashboard</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Companies &amp; Products</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Product Management</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span> (scoped)</td><td><span class="badge badge-yes">YES</span> (scoped)</td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Administration menu</td><td><span class="badge badge-yes">YES</span> (full)</td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+    </tbody>
+</table>
+
+<h3 id="ws-certificates">3.2 Certificates</h3>
+
+<h4>Certificate Tile View</h4>
+<table>
+    <thead><tr><th>Feature</th><th><span class="badge badge-admin">Admin</span></th><th><span class="badge badge-analyst">Analyst</span></th><th><span class="badge badge-external">External</span></th><th><span class="badge badge-partner">Partner</span></th></tr></thead>
+    <tbody>
+        <tr><td>View URL</td><td colspan="2"><code>/Certificate/CertificateTileViewInternal</code></td><td colspan="2"><code>/Certificate/CertificateTileViewExternal</code></td></tr>
+        <tr><td>Data shown</td><td colspan="2">All certificates</td><td>Own company's certs only</td><td>Partner-tagged certs only</td></tr>
+        <tr><td>Add Certificate button</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Import button</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Export button</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span> (own data)</td><td><span class="badge badge-yes">YES</span> (own data)</td></tr>
+        <tr><td>Template button</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Tile/List toggle</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td></tr>
+        <tr><td>Infinite scroll</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td></tr>
+    </tbody>
+</table>
+
+<h4>Certificate Detail / Single View</h4>
+<table>
+    <thead><tr><th>Feature</th><th><span class="badge badge-admin">Admin</span></th><th><span class="badge badge-analyst">Analyst</span></th><th><span class="badge badge-external">External</span></th><th><span class="badge badge-partner">Partner</span></th></tr></thead>
+    <tbody>
+        <tr><td>View certificate details</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-own">OWN ONLY</span></td><td><span class="badge badge-own">OWN ONLY</span></td></tr>
+        <tr><td>Edit button</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Delete button</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Internal data fields</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">HIDDEN</span></td><td><span class="badge badge-no">HIDDEN</span></td></tr>
+        <tr><td>Workflow controls</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Download PDF</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td></tr>
+        <tr><td>Shareable URL</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td></tr>
+    </tbody>
+</table>
+
+<h3 id="ws-products">3.3 Products</h3>
+<table>
+    <thead><tr><th>Feature</th><th><span class="badge badge-admin">Admin</span></th><th><span class="badge badge-analyst">Analyst</span></th><th><span class="badge badge-external">External</span></th><th><span class="badge badge-partner">Partner</span></th></tr></thead>
+    <tbody>
+        <tr><td>Data shown</td><td colspan="2">All products</td><td>Own company's products only</td><td>Partner-associated products</td></tr>
+        <tr><td>Actions column</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">HIDDEN</span></td><td><span class="badge badge-no">HIDDEN</span></td></tr>
+        <tr><td>Add New Product</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Edit Product</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Export CSV</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span> (own data)</td><td><span class="badge badge-yes">YES</span> (own data)</td></tr>
+        <tr><td>Company filter options</td><td colspan="2">All companies</td><td>Own company only</td><td>Partner-associated companies</td></tr>
+    </tbody>
+</table>
+
+<h3 id="ws-tags">3.4 Tags</h3>
+
+<div class="callout callout-warning"><strong>External users CANNOT see internal tags.</strong> The system has two tag types: <strong>internal</strong> (for GCC staff use) and <strong>external</strong> (visible to all). When an External or Partner user views certificates, only external tags appear. Internal tags are filtered out at the database query level &mdash; not hidden with CSS.</div>
+
+<table>
+    <thead><tr><th>Tag Type</th><th>Admin / Analyst</th><th>External / Partner</th></tr></thead>
+    <tbody>
+        <tr><td>External tags</td><td><span class="badge badge-yes">Visible</span></td><td><span class="badge badge-yes">Visible</span></td></tr>
+        <tr><td>Internal tags</td><td><span class="badge badge-yes">Visible</span></td><td><span class="badge badge-no">Hidden</span> (server-side filter)</td></tr>
+        <tr><td>Tag filter sidebar</td><td>Shows both tag types</td><td>Shows only external tags</td></tr>
+    </tbody>
+</table>
+
+<h3 id="ws-admin">3.5 Administration</h3>
+<p>The entire Administration section is restricted to <strong>Admin role only</strong>. External, Partner, and Analyst users cannot access any administration page.</p>
+
+<table>
+    <thead><tr><th>Admin Page</th><th><span class="badge badge-admin">Admin</span></th><th>All Others</th></tr></thead>
+    <tbody>
+        <tr><td>User Management</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">403 Forbidden</span></td></tr>
+        <tr><td>Role Management</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">403 Forbidden</span></td></tr>
+        <tr><td>Company Management</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">403 Forbidden</span></td></tr>
+        <tr><td>Tag Management</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">403 Forbidden</span></td></tr>
+        <tr><td>Partner Management</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">403 Forbidden</span></td></tr>
+        <tr><td>Product Types</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">403 Forbidden</span></td></tr>
+        <tr><td>Certification Types</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">403 Forbidden</span></td></tr>
+        <tr><td>System Settings</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">403 Forbidden</span></td></tr>
+    </tbody>
+</table>
+
+<h3 id="ws-api">3.6 API &amp; Documentation</h3>
+<table>
+    <thead><tr><th>Resource</th><th>Access</th></tr></thead>
+    <tbody>
+        <tr><td>Swagger UI (<code>/swagger</code>)</td><td>Login required. Admin &amp; Analyst see full docs. External sees partner-data only.</td></tr>
+        <tr><td>ReDoc (<code>/api-docs</code>)</td><td>Login required for all users.</td></tr>
+        <tr><td>Partner Data API</td><td>API key or authenticated session. Data automatically scoped to user's associations.</td></tr>
+        <tr><td>Admin API (<code>/api/v1/*</code>)</td><td>Admin and Analyst only.</td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 4 ======================= -->
+<h2 id="what-they-cant">4. What Each Role Cannot See or Do</h2>
+
+<h3>External User Restrictions</h3>
+<div class="two-col">
+    <div>
+        <h4>Cannot See:</h4>
+        <ul>
+            <li>Certificates from other companies</li>
+            <li>Products from other companies</li>
+            <li>Internal tags on any certificate</li>
+            <li>Internal data fields on certificate details</li>
+            <li>Dashboard page</li>
+            <li>Administration menu or any admin page</li>
+            <li>Companies &amp; Products submenu</li>
+            <li>Other companies in filter dropdowns</li>
+        </ul>
+    </div>
+    <div>
+        <h4>Cannot Do:</h4>
+        <ul>
+            <li>Add, edit, or delete certificates</li>
+            <li>Add or edit products</li>
+            <li>Import data (CSV or any format)</li>
+            <li>Download templates</li>
+            <li>Manage workflow states</li>
+            <li>Access Swagger admin API docs</li>
+            <li>Manage users, roles, companies, tags, or partners</li>
+            <li>See the Actions column on any table</li>
+        </ul>
+    </div>
+</div>
+
+<h3>Partner User Restrictions</h3>
+<p>Same restrictions as External, except data is scoped by <strong>partner program</strong> instead of company. A Partner user can see certificates from <strong>multiple companies</strong> as long as those certificates are tagged with their partner program.</p>
+
+<!-- ======================= SECTION 5 ======================= -->
+<h2 id="filtering-rules">5. Data Filtering Rules</h2>
+
+<h3 id="fr-certificates">5.1 Certificate Filtering</h3>
+
+<p>Certificate data filtering happens at the <strong>API query level</strong> (server-side, not client-side). It cannot be bypassed by URL manipulation or browser dev tools.</p>
+
+<table>
+    <thead><tr><th>Role</th><th>SQL Filter Applied</th><th>Result</th></tr></thead>
+    <tbody>
+        <tr><td><span class="badge badge-admin">Admin</span> / <span class="badge badge-analyst">Analyst</span></td><td>None</td><td>All certificates returned</td></tr>
+        <tr><td><span class="badge badge-external">External</span></td><td><code>WHERE CompanyId IN (user's company IDs)</code></td><td>Only their company's certificates</td></tr>
+        <tr><td><span class="badge badge-partner">Partner</span></td><td><code>WHERE Partner IN (user's partner names)</code></td><td>Only partner-tagged certificates across all companies</td></tr>
+        <tr><td><span class="badge badge-public">Public</span></td><td><code>WHERE Status is publicly visible AND not expired</code></td><td>Only active, public certificates</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-danger"><strong>Zero-data case:</strong> If an External user has no company associations, or a Partner user has no partner associations, the query returns <strong>zero results</strong>. The system adds <code>WHERE false</code> to the query, guaranteeing an empty result set. This is by design.</div>
+
+<h3 id="fr-products">5.2 Product Filtering</h3>
+
+<table>
+    <thead><tr><th>Role</th><th>Filter</th></tr></thead>
+    <tbody>
+        <tr><td><span class="badge badge-external">External</span></td><td>Products where <code>CompanyId</code> matches user's company associations. Products without a company are excluded.</td></tr>
+        <tr><td><span class="badge badge-partner">Partner</span></td><td>Products from companies that have certificates tagged with the partner's program.</td></tr>
+        <tr><td><span class="badge badge-admin">Admin</span> / <span class="badge badge-analyst">Analyst</span></td><td>All products, no filter.</td></tr>
+    </tbody>
+</table>
+
+<h3 id="fr-filters">5.3 Filter Options &amp; Autocomplete</h3>
+
+<p>The sidebar filters (Certification Type, Product Category, Company, Country, Tags) and the search autocomplete are <strong>also scoped</strong> to the user's data access level.</p>
+
+<ul>
+    <li><strong>External user</strong>: Company filter only shows their own company. Certification type filter only shows types that appear in their company's certificates. Autocomplete suggestions only return matches from their data.</li>
+    <li><strong>Partner user</strong>: Filter options reflect only data within their partner scope.</li>
+    <li><strong>Admin/Analyst</strong>: All filter options from all data.</li>
+</ul>
+
+<div class="callout callout-info"><strong>Why this matters for testing:</strong> If you log in as an External user and the Certification Type filter shows only 2 options, that's correct &mdash; it means their company only has certificates of those 2 types. It's not a bug; it's scoping working correctly.</div>
+
+<h3 id="fr-export">5.4 CSV Export Scoping</h3>
+
+<p>When an External or Partner user clicks <strong>Export</strong>, the exported CSV contains <strong>only the data they can see</strong>. The same server-side filters that restrict the view also restrict the export. An External user cannot export another company's data by modifying the export URL.</p>
+
+<h3 id="fr-edge">5.5 Edge Cases</h3>
+
+<table>
+    <thead><tr><th>Scenario</th><th>Expected Behavior</th></tr></thead>
+    <tbody>
+        <tr><td>External user with 0 company associations</td><td>Sees no certificates, no products. Filter sidebar is empty.</td></tr>
+        <tr><td>External user with 2+ company associations</td><td>Sees combined data from all associated companies.</td></tr>
+        <tr><td>Partner user with 0 partner associations</td><td>Sees no certificates, no products.</td></tr>
+        <tr><td>External user tries to access <code>/Certificate/CertificateTileViewInternal</code></td><td>Redirected or 403 Forbidden (requires AnalystOrAdmin policy).</td></tr>
+        <tr><td>External user navigates directly to <code>/Admin/RoleManagement</code></td><td>Redirected or 403 Forbidden (requires AdminOnly policy).</td></tr>
+        <tr><td>External user accesses a certificate detail URL from another company</td><td>Certificate not found or access denied.</td></tr>
+        <tr><td>External user modifies API request to remove company filter</td><td>Server-side filter still applies. Cannot bypass.</td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 6 ======================= -->
+<h2 id="comparison-matrix">6. Full Comparison Matrix</h2>
+
+<p>Complete feature-by-feature comparison across all roles:</p>
+
+<table>
+    <thead><tr><th>Feature</th><th><span class="badge badge-admin">Admin</span></th><th><span class="badge badge-analyst">Analyst</span></th><th><span class="badge badge-external">External</span></th><th><span class="badge badge-partner">Partner</span></th><th><span class="badge badge-public">Public</span></th></tr></thead>
+    <tbody>
+        <tr><td><strong>Landing page</strong></td><td>Internal Tiles</td><td>Internal Tiles</td><td>External Tiles</td><td>External Tiles</td><td>Public Tiles</td></tr>
+        <tr><td><strong>Certificate data scope</strong></td><td>All</td><td>All</td><td>Own company</td><td>Own partner</td><td>Public only</td></tr>
+        <tr><td><strong>View certificates</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-own">OWN</span></td><td><span class="badge badge-own">OWN</span></td><td><span class="badge badge-own">PUBLIC</span></td></tr>
+        <tr><td><strong>Create certificates</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>Edit certificates</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>Delete certificates</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>Manage workflow</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>View products</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-own">OWN</span></td><td><span class="badge badge-own">OWN</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>Manage products</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>Export (CSV)</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-own">OWN</span></td><td><span class="badge badge-own">OWN</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>Import (CSV)</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>See internal tags</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>See internal data</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>Dashboard</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>Administration</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>Swagger (full)</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>Swagger (partner-data)</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td><strong>API docs (ReDoc)</strong></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 7 ======================= -->
+<h2 id="test-accounts">7. Test Accounts &amp; Setup</h2>
+
+<table>
+    <thead><tr><th>Username</th><th>Password</th><th>Role</th><th>Company Association</th><th>Purpose</th></tr></thead>
+    <tbody>
+        <tr><td><code>admin</code></td><td><code>TestPass123!</code></td><td><span class="badge badge-admin">Admin</span></td><td>None (sees all)</td><td>Full access baseline</td></tr>
+        <tr><td><code>analyst</code></td><td><code>TestPass123!</code></td><td><span class="badge badge-analyst">Analyst</span></td><td>None (sees all)</td><td>Internal user without admin</td></tr>
+        <tr><td><code>external</code></td><td><code>TestPass123!</code></td><td><span class="badge badge-external">External</span></td><td>Check User Management</td><td>Company-scoped access</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-info"><strong>Before testing:</strong> Log in as Admin and check <span class="ui-path">Administration &gt; User Management</span> to verify which company the <code>external</code> test user is associated with. Note the company name &mdash; this determines which certificates and products they should see.</div>
+
+<h4>Pre-Test Verification Steps</h4>
+<div class="step-box">
+    <div class="step-row"><span class="step-num">1</span><p>Log in as <strong>admin</strong>. Go to <span class="ui-path">Administration &gt; User Management</span>.</p></div>
+    <div class="step-row"><span class="step-num">2</span><p>Find the <code>external</code> user. Note which <strong>Company</strong> is assigned.</p></div>
+    <div class="step-row"><span class="step-num">3</span><p>Go to the internal certificate tile view. Count how many certificates belong to that company.</p></div>
+    <div class="step-row"><span class="step-num">4</span><p>Go to Product Management. Count how many products belong to that company.</p></div>
+    <div class="step-row"><span class="step-num">5</span><p>Record these numbers &mdash; they are your <strong>expected values</strong> for External user tests.</p></div>
+</div>
+
+<!-- ======================= SECTION 8 ======================= -->
+<h2 id="test-cases">8. Test Cases</h2>
+
+<h3 id="tc-external">8.1 External User Test Cases</h3>
+
+<table>
+    <thead><tr><th class="col-id">ID</th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-status">Pass?</th></tr></thead>
+    <tbody>
+        <tr><td class="col-id">EXT-001</td><td>Login redirects to external view</td><td>Log in as <code>external</code></td><td>Lands on <code>/Certificate/CertificateTileViewExternal</code>, NOT internal view</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-002</td><td>Only own company's certificates shown</td><td>View certificate tile view</td><td>All visible certificates belong to the assigned company. Count matches admin's count.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-003</td><td>Other companies' certificates hidden</td><td>Search for a certificate known to belong to a different company</td><td>No results found. Certificate does not appear.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-004</td><td>No Add Certificate button</td><td>Check the action bar above the certificate grid</td><td>No "Add Certificate" button visible</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-005</td><td>No Import button</td><td>Check the action bar</td><td>No "Import" button visible</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-006</td><td>No Template button</td><td>Check the action bar</td><td>No "Template" button visible</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-007</td><td>Export only exports own data</td><td>Click Export. Open CSV.</td><td>CSV contains only certificates from assigned company</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-008</td><td>Certificate detail: no edit/delete</td><td>Click on a certificate to open detail view</td><td>No Edit button, no Delete button visible</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-009</td><td>Certificate detail: no internal data</td><td>Open certificate detail view</td><td>Internal-only fields are not displayed. <code>ShowInternalData = false</code>.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-010</td><td>Internal tags hidden</td><td>View certificates that have both internal and external tags (verify via admin first)</td><td>Only external tags shown. Internal tags completely absent.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-011</td><td>Infinite scroll works</td><td>Scroll to bottom of certificate view (if enough certs)</td><td>Additional certificates load automatically. No pagination buttons.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-012</td><td>Products: only own company shown</td><td>Navigate to Product Management</td><td>Only products belonging to assigned company are listed</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-013</td><td>Products: no Actions column</td><td>View the product table</td><td>No Actions column. No Edit/Delete buttons.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-014</td><td>Products: no Add button</td><td>Check above product table</td><td>No "Add New Product" button visible</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-015</td><td>No Dashboard access</td><td>Try navigating to <code>/Home/Dashboard</code></td><td>Redirected or 403 Forbidden</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-016</td><td>No Administration menu</td><td>Check navigation bar</td><td>No "Administration" dropdown in nav bar</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-017</td><td>Filter sidebar scoped</td><td>Open filter sidebar. Check Company filter.</td><td>Only own company appears in company filter. Cert types only show types from own data.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-018</td><td>Autocomplete scoped</td><td>Type a search term in the search box</td><td>Autocomplete suggestions only return matches from own company's data</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-019</td><td>PDF download works</td><td>Click download/PDF icon on a certificate</td><td>PDF downloads successfully</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">EXT-020</td><td>Shareable URL works</td><td>Copy the certificate URL and open in same session</td><td>Certificate detail page loads for own company's cert</td><td><span class="checkbox"></span></td></tr>
+    </tbody>
+</table>
+
+<h3 id="tc-partner">8.2 Partner User Test Cases</h3>
+
+<table>
+    <thead><tr><th class="col-id">ID</th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-status">Pass?</th></tr></thead>
+    <tbody>
+        <tr><td class="col-id">PTR-001</td><td>Login redirects to external view</td><td>Log in as partner user</td><td>Lands on <code>/Certificate/CertificateTileViewExternal</code></td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">PTR-002</td><td>Only partner-tagged certificates shown</td><td>View certificate tile view</td><td>All visible certificates have the Partner field matching user's partner program (e.g., "Amazon")</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">PTR-003</td><td>Certificates span multiple companies</td><td>Check Company column in list view</td><td>Certificates may come from different companies, all tagged with partner's program</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">PTR-004</td><td>Non-partner certificates hidden</td><td>Search for a certificate with Partner = "None"</td><td>No results. Certificates without partner tag are invisible.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">PTR-005</td><td>Other partner's certificates hidden</td><td>Search for a certificate tagged with a different partner (e.g., "Novi" when user is Amazon)</td><td>No results</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">PTR-006</td><td>Same UI restrictions as External</td><td>Check for Add, Edit, Delete, Import, Template buttons</td><td>None of these buttons are visible (same as External role)</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">PTR-007</td><td>Export only partner data</td><td>Click Export. Open CSV.</td><td>CSV only contains certificates tagged with user's partner program</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">PTR-008</td><td>Products scoped to partner</td><td>Navigate to Product Management</td><td>Only products from companies that have partner-tagged certificates are shown</td><td><span class="checkbox"></span></td></tr>
+    </tbody>
+</table>
+
+<h3 id="tc-cross">8.3 Cross-Role Comparison Tests</h3>
+
+<p>These tests require logging in with different accounts and comparing results side by side.</p>
+
+<table>
+    <thead><tr><th class="col-id">ID</th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-status">Pass?</th></tr></thead>
+    <tbody>
+        <tr><td class="col-id">CMP-001</td><td>Admin sees more certs than External</td><td>1. Log in as admin, count certificates.<br>2. Log in as external, count certificates.</td><td>Admin count >= External count. External count matches admin's count for that specific company.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">CMP-002</td><td>Two External users with different companies see different data</td><td>Log in with two different external users assigned to different companies</td><td>Each sees only their own company's data. Zero overlap (unless a cert belongs to both companies).</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">CMP-003</td><td>Admin sees internal tags, External does not</td><td>1. As admin, note a cert with internal tags.<br>2. As external (same company), view same cert.</td><td>Admin sees internal + external tags. External sees only external tags.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">CMP-004</td><td>Admin has Edit button, External does not</td><td>View the same certificate detail page from both roles</td><td>Admin sees Edit + Delete. External sees neither.</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">CMP-005</td><td>Filter options differ by role</td><td>Compare sidebar filters between admin and external for the same view</td><td>Admin filter shows all companies, all cert types. External filter shows only own company, only own cert types.</td><td><span class="checkbox"></span></td></tr>
+    </tbody>
+</table>
+
+<h3 id="tc-security">8.4 Security Boundary Tests</h3>
+
+<div class="callout callout-danger"><strong>Purpose:</strong> These tests verify that access restrictions cannot be bypassed through URL manipulation, API calls, or other techniques.</div>
+
+<table>
+    <thead><tr><th class="col-id">ID</th><th>Test Case</th><th>Steps</th><th>Expected Result</th><th class="col-status">Pass?</th></tr></thead>
+    <tbody>
+        <tr><td class="col-id">SEC-001</td><td>External cannot access internal tile view</td><td>While logged in as external, navigate to <code>/Certificate/CertificateTileViewInternal</code></td><td>403 Forbidden or redirect to Access Denied page</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">SEC-002</td><td>External cannot access admin pages</td><td>Try <code>/Admin/RoleManagement</code>, <code>/Admin/UserManagement</code>, <code>/Admin/CompanyManagement</code></td><td>403 Forbidden or redirect for each URL</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">SEC-003</td><td>External cannot edit via URL</td><td>Navigate to <code>/Certificate/Edit/{id}</code> for a certificate in own company</td><td>403 Forbidden (Edit requires AnalystOrAdmin policy)</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">SEC-004</td><td>External cannot create via URL</td><td>Navigate to <code>/Certificate/Create</code></td><td>403 Forbidden</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">SEC-005</td><td>External cannot access other company's cert detail</td><td>Get a certificate number from another company (via admin). Navigate to <code>/Certificate/CertificateExternalView/{number}</code></td><td>Not found or access denied</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">SEC-006</td><td>External cannot call admin API</td><td>In browser dev tools, call <code>GET /api/certificate-tiles-internal</code></td><td>401 or 403 response</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">SEC-007</td><td>Unauthenticated cannot access Swagger</td><td>Log out. Navigate to <code>/swagger/index.html</code></td><td>Redirected to login page</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">SEC-008</td><td>Unauthenticated cannot access ReDoc</td><td>Log out. Navigate to <code>/api-docs</code></td><td>Redirected to login page</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">SEC-009</td><td>Unauthenticated cannot access API docs JSON</td><td>Log out. Navigate to <code>/api-docs/openapi.json</code></td><td>Redirected to login page</td><td><span class="checkbox"></span></td></tr>
+        <tr><td class="col-id">SEC-010</td><td>External cannot access Swagger admin docs</td><td>Log in as external. Navigate to <code>/swagger/v1/swagger.json</code></td><td>403 Forbidden or Access Denied redirect</td><td><span class="checkbox"></span></td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 9 ======================= -->
+<h2 id="scenarios">9. Real-World Test Scenarios</h2>
+
+<h3>Scenario A: Client Representative Reviews Their Certificates</h3>
+<div class="step-box">
+    <h4>User: External (assigned to "CertainTeed Insulation Group")</h4>
+    <div class="step-row"><span class="step-num">1</span><p>Log in with External account. Verify landing on External Tile View.</p></div>
+    <div class="step-row"><span class="step-num">2</span><p>Verify only CertainTeed certificates appear. Note the certificate count.</p></div>
+    <div class="step-row"><span class="step-num">3</span><p>Switch to List view. Verify the Company column shows only "CertainTeed Insulation Group".</p></div>
+    <div class="step-row"><span class="step-num">4</span><p>Use search to find a specific CertainTeed certificate number. It should appear.</p></div>
+    <div class="step-row"><span class="step-num">5</span><p>Search for a certificate belonging to another company (e.g., "Amazon"). Should return no results.</p></div>
+    <div class="step-row"><span class="step-num">6</span><p>Click a certificate tile to view details. Verify no Edit/Delete buttons.</p></div>
+    <div class="step-row"><span class="step-num">7</span><p>Download the certificate PDF. Verify it downloads successfully.</p></div>
+    <div class="step-row"><span class="step-num">8</span><p>Click Export. Open CSV. Verify all rows are CertainTeed certificates.</p></div>
+    <div class="step-row"><span class="step-num">9</span><p>Navigate to Product Management. Verify only CertainTeed products shown.</p></div>
+    <div class="step-row"><span class="step-num">10</span><p>Verify no Actions column and no Add button on Product Management.</p></div>
+</div>
+
+<h3>Scenario B: Amazon Partner Reviews Certificates Across Companies</h3>
+<div class="step-box">
+    <h4>User: Partner (assigned to "Amazon" partner program)</h4>
+    <div class="step-row"><span class="step-num">1</span><p>Log in with Partner account. Verify landing on External Tile View.</p></div>
+    <div class="step-row"><span class="step-num">2</span><p>Verify certificates shown are tagged with Partner = "Amazon".</p></div>
+    <div class="step-row"><span class="step-num">3</span><p>Switch to List view. Check the Company column &mdash; certificates may come from <strong>multiple companies</strong> (this is correct).</p></div>
+    <div class="step-row"><span class="step-num">4</span><p>Verify no certificates appear with Partner = "Novi" or Partner = "None".</p></div>
+    <div class="step-row"><span class="step-num">5</span><p>Click Export. Verify CSV only contains Amazon-partnered certificates.</p></div>
+</div>
+
+<h3>Scenario C: Admin Verifies External User's Scoping</h3>
+<div class="step-box">
+    <h4>User: Admin (verifying an External user's experience)</h4>
+    <div class="step-row"><span class="step-num">1</span><p>Log in as Admin. Go to <span class="ui-path">Administration &gt; User Management</span>.</p></div>
+    <div class="step-row"><span class="step-num">2</span><p>Find the External user. Note their assigned Company (e.g., "Amazon").</p></div>
+    <div class="step-row"><span class="step-num">3</span><p>Go to Internal Certificate Tile View. Filter by that company. Count results.</p></div>
+    <div class="step-row"><span class="step-num">4</span><p>Log out. Log in as the External user.</p></div>
+    <div class="step-row"><span class="step-num">5</span><p>Count the certificates shown. Should match the admin's filtered count for that company.</p></div>
+    <div class="step-row"><span class="step-num">6</span><p>If counts don't match, investigate whether the mismatch is due to certificate status filtering (External view may hide certain statuses).</p></div>
+</div>
+
+<!-- ======================= SECTION 10 ======================= -->
+<h2 id="troubleshooting">10. Troubleshooting</h2>
+
+<h3>External user sees zero certificates</h3>
+<table>
+    <thead><tr><th>Check</th><th>How to Verify</th></tr></thead>
+    <tbody>
+        <tr><td>User has no company association</td><td>Log in as Admin &gt; User Management &gt; check the user's Company field. If blank, assign a company.</td></tr>
+        <tr><td>Company has no certificates</td><td>Log in as Admin &gt; Internal Tile View &gt; filter by that company. If zero results, the company simply has no certificates yet.</td></tr>
+        <tr><td>All certificates are in draft/inactive status</td><td>External view may filter out non-public statuses. Check certificate statuses as Admin.</td></tr>
+    </tbody>
+</table>
+
+<h3>External user sees certificates from wrong company</h3>
+<table>
+    <thead><tr><th>Check</th><th>How to Verify</th></tr></thead>
+    <tbody>
+        <tr><td>User assigned to multiple companies</td><td>Admin &gt; User Management &gt; verify company associations. User may legitimately have multiple companies.</td></tr>
+        <tr><td>Certificate has wrong CompanyId</td><td>Admin &gt; Edit the certificate &gt; check the Company field. It may have been assigned to the wrong company.</td></tr>
+    </tbody>
+</table>
+
+<h3>Partner user sees zero certificates</h3>
+<table>
+    <thead><tr><th>Check</th><th>How to Verify</th></tr></thead>
+    <tbody>
+        <tr><td>User has no partner association</td><td>Admin &gt; User Management &gt; check the user's Partner assignment.</td></tr>
+        <tr><td>No certificates tagged with that partner</td><td>Admin &gt; Internal Tile View &gt; filter by Partner. If no certs have that partner tag, none will show.</td></tr>
+    </tbody>
+</table>
+
+<h3>Permission changes not taking effect</h3>
+<p>The user must <strong>log out and log back in</strong>. Role claims are set at login time and cached in the session. Changes to roles, permissions, or company associations do not take effect until the next login.</p>
+
+<h3>External user gets 403 error on a page they should access</h3>
+<table>
+    <thead><tr><th>Check</th><th>How to Verify</th></tr></thead>
+    <tbody>
+        <tr><td>User role is not "External"</td><td>Verify user's role in User Management. Must be exactly "External" for ExternalAccess policy.</td></tr>
+        <tr><td>Trying to access internal-only page</td><td>Check if the URL is for an internal route (e.g., <code>/Certificate/CertificateTileViewInternal</code>). External users should use the External version.</td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 11 ======================= -->
+<h2 id="signoff">11. Test Sign-Off</h2>
+
+<div class="sign-off">
+    <p><strong>External User Tests</strong></p>
+    <p>Tested by: <span class="sign-off-line">&nbsp;</span> Date: <span class="sign-off-line">&nbsp;</span></p>
+    <p>Total test cases: 20 &nbsp;&nbsp; Passed: <span class="sign-off-line">&nbsp;</span> &nbsp;&nbsp; Failed: <span class="sign-off-line">&nbsp;</span></p>
+    <p>Notes: <span class="sign-off-line" style="min-width: 400px;">&nbsp;</span></p>
+</div>
+
+<div class="sign-off">
+    <p><strong>Partner User Tests</strong></p>
+    <p>Tested by: <span class="sign-off-line">&nbsp;</span> Date: <span class="sign-off-line">&nbsp;</span></p>
+    <p>Total test cases: 8 &nbsp;&nbsp; Passed: <span class="sign-off-line">&nbsp;</span> &nbsp;&nbsp; Failed: <span class="sign-off-line">&nbsp;</span></p>
+    <p>Notes: <span class="sign-off-line" style="min-width: 400px;">&nbsp;</span></p>
+</div>
+
+<div class="sign-off">
+    <p><strong>Cross-Role Comparison Tests</strong></p>
+    <p>Tested by: <span class="sign-off-line">&nbsp;</span> Date: <span class="sign-off-line">&nbsp;</span></p>
+    <p>Total test cases: 5 &nbsp;&nbsp; Passed: <span class="sign-off-line">&nbsp;</span> &nbsp;&nbsp; Failed: <span class="sign-off-line">&nbsp;</span></p>
+    <p>Notes: <span class="sign-off-line" style="min-width: 400px;">&nbsp;</span></p>
+</div>
+
+<div class="sign-off">
+    <p><strong>Security Boundary Tests</strong></p>
+    <p>Tested by: <span class="sign-off-line">&nbsp;</span> Date: <span class="sign-off-line">&nbsp;</span></p>
+    <p>Total test cases: 10 &nbsp;&nbsp; Passed: <span class="sign-off-line">&nbsp;</span> &nbsp;&nbsp; Failed: <span class="sign-off-line">&nbsp;</span></p>
+    <p>Notes: <span class="sign-off-line" style="min-width: 400px;">&nbsp;</span></p>
+</div>
+
+<div class="sign-off" style="margin-top: 20px;">
+    <p><strong>Final Approval</strong></p>
+    <p>All tests passed: <span class="checkbox"></span> Yes &nbsp;&nbsp; <span class="checkbox"></span> No (see notes above)</p>
+    <p>Approved by: <span class="sign-off-line">&nbsp;</span> Date: <span class="sign-off-line">&nbsp;</span></p>
+    <p>Signature: <span class="sign-off-line" style="min-width: 300px;">&nbsp;</span></p>
+</div>
+
+<div class="doc-footer">
+    <p>GCC Database Solution &mdash; External User Testing Guide v1.0</p>
+    <p>Prepared by Anuki Consulting | March 26, 2026</p>
+    <p>For questions or support, contact your system administrator.</p>
+</div>
+
+</body>
+</html>

@@ -1,12 +1,21 @@
-// DEF-203 verification v2: use existing fixture cert 26-0026 (Draft) as the
-// subject. Snapshot status + history-row count at start, run valid + invalid
-// transitions, restore at end. Less invasive than seeding a new cert; uses a
-// known-good Edit page that we've verified renders the Status select.
+// CR-028 (client decision 2026-07-20): the certificate status workflow TRANSITION
+// MATRIX has been REMOVED — status is now freely selectable on Edit/Create. This
+// script (originally DEF-203, which verified the matrix BLOCKED bad transitions)
+// has been repurposed to verify the NEW behavior: (A) formerly-"valid" hops still
+// save, (B) formerly-"invalid" hops (Draft → Republished, etc.) now ALSO save
+// instead of being rejected, and (C) the audit trail still records every change.
+//
+// Uses existing fixture cert 26-0026 (Draft) as the subject. Snapshot status +
+// history-row count at start, run the hops, restore at end. Less invasive than
+// seeding a new cert; uses a known-good Edit page that renders the Status select.
 
 const { chromium } = require('playwright');
 const { execSync } = require('child_process');
 const BASE = 'http://localhost:5101';
-const TEST_CERT_NUM = '26-0026';
+// Fixture: a disposable Draft cert in the seeded dev DB. Was 26-0026 (drifted out of the
+// current dev DB — see ways-to-improve "no hardcoded fixture ids"); repointed 2026-07-20 to
+// 26-1734 (a seeded Draft). Any cert works — the script snapshots + restores its status.
+const TEST_CERT_NUM = '26-1734';
 
 function sql(query) {
     return execSync(
@@ -102,29 +111,33 @@ async function postEditStatus(adminPage, certNum, newStatus) {
             after === hop.to);
     }
 
-    // [B] Invalid transitions — reject + status unchanged
-    console.log('\n[B] Invalid transitions (matrix-forbidden) — should be REJECTED');
-    sql(`UPDATE Certificates SET Status = 'Draft' WHERE Id = ${certId};`);
-    const invalidProbes = [
+    // [B] Formerly-forbidden transitions — CR-028 removed the matrix, so these now SAVE
+    console.log('\n[B] Formerly-forbidden transitions (CR-028: matrix removed) — should now SAVE');
+    const freeProbes = [
         { from: 'Draft', to: 'Republished' },
         { from: 'Draft', to: 'Expired' },
         { from: 'Draft', to: 'Expired - No Annual Verification' }
     ];
-    for (const probe of invalidProbes) {
-        const before = getCertStatus(certId);
-        if (before !== probe.from) sql(`UPDATE Certificates SET Status = 'Draft' WHERE Id = ${certId};`);
-        const r = await postEditStatus(adminPage, TEST_CERT_NUM, probe.to);
-        const after = getCertStatus(certId);
-        note(`${probe.from.padEnd(25)} ↛ ${probe.to.padEnd(25)} (POST=${r.status}, db=${after})`,
-            after === probe.from);
+    for (const probe of freeProbes) {
+        sql(`UPDATE Certificates SET Status = '${probe.from}' WHERE Id = ${certId};`);
+        let r = await postEditStatus(adminPage, TEST_CERT_NUM, probe.to);
+        let after = getCertStatus(certId);
+        // Same first-hop flake guard as [A]: retry once if the DB didn't reflect.
+        if (after !== probe.to) {
+            await adminPage.waitForTimeout(800);
+            r = await postEditStatus(adminPage, TEST_CERT_NUM, probe.to);
+            after = getCertStatus(certId);
+        }
+        note(`${probe.from.padEnd(25)} → ${probe.to.padEnd(25)} (POST=${r.status}, db=${after})`,
+            after === probe.to);
     }
 
-    // [C] Audit history rows
+    // [C] Audit history rows — every accepted change still writes a history row
     console.log('\n[C] CertificateStatusHistory new rows');
     const endHistory = parseInt(sql(`SELECT COUNT(*) FROM CertificateStatusHistory WHERE CertificateId = ${certId};`).trim());
     const newRows = endHistory - startHistory;
     console.log(`  History rows added during test: ${newRows} (was ${startHistory}, now ${endHistory})`);
-    note(`At least 5 new history rows for the 5 valid transitions`, newRows >= 5);
+    note(`At least 5 new history rows for the accepted transitions`, newRows >= 5);
 
     // Restore original state
     console.log(`\nRestore: set cert back to '${startStatus}' and trim test-added history rows…`);

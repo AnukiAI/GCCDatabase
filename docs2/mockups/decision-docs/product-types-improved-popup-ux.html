@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Types - Improved Popup UX Mockup</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --gcc-blue: #002B76;
+            --gcc-green: #92C83E;
+            --gcc-light-bg: #f8f9fa;
+            --gcc-border: #e9ecef;
+            --gcc-text: #333;
+            --gcc-text-muted: #6c757d;
+            --gcc-danger: #dc3545;
+            --gcc-warning: #ffc107;
+            --gcc-info: #17a2b8;
+            --category-color: #002B76;
+            --type-color: #5a7bc0;
+            --subcategory-color: #92C83E;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: var(--gcc-text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .mockup-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .mockup-header {
+            background: linear-gradient(135deg, var(--gcc-blue), #003d99);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .mockup-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .mockup-header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        /* Hierarchy Explanation */
+        .hierarchy-explanation {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .hierarchy-explanation h2 {
+            color: var(--gcc-blue);
+            margin-bottom: 20px;
+        }
+
+        .hierarchy-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+        }
+
+        .hierarchy-level-box {
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 150px;
+        }
+
+        .hierarchy-level-box.category {
+            background: var(--category-color);
+            color: white;
+        }
+
+        .hierarchy-level-box.type {
+            background: var(--type-color);
+            color: white;
+        }
+
+        .hierarchy-level-box.subcategory {
+            background: var(--subcategory-color);
+            color: white;
+        }
+
+        .hierarchy-level-box .level-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .hierarchy-level-box .level-example {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .hierarchy-arrow {
+            color: var(--gcc-text-muted);
+            font-size: 24px;
+        }
+
+        /* Modal Demos Grid */
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .modal-demo-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .modal-demo-header {
+            padding: 15px 20px;
+            background: var(--gcc-light-bg);
+            border-bottom: 2px solid var(--gcc-border);
+        }
+
+        .modal-demo-header h3 {
+            color: var(--gcc-blue);
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .modal-demo-header p {
+            font-size: 13px;
+            color: var(--gcc-text-muted);
+            margin-top: 4px;
+        }
+
+        .modal-demo-content {
+            padding: 20px;
+        }
+
+        /* Modal Styles */
+        .modal-preview {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 2px solid var(--gcc-border);
+            background-color: var(--gcc-light-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            color: var(--gcc-blue);
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gcc-text-muted);
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 2px solid var(--gcc-border);
+            background-color: var(--gcc-light-bg);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Context Bar */
+        .context-bar {
+            background: #e8f4fd;
+            padding: 12px 20px;
+            border-bottom: 1px solid #bee5eb;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .context-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .context-icon.category { background: var(--category-color); }
+        .context-icon.type { background: var(--type-color); }
+        .context-icon.subcategory { background: var(--subcategory-color); }
+
+        .context-text {
+            flex: 1;
+        }
+
+        .context-text strong {
+            display: block;
+            font-size: 14px;
+            color: var(--gcc-blue);
+        }
+
+        .context-text span {
+            font-size: 12px;
+            color: var(--gcc-text-muted);
+        }
+
+        /* Info Hint */
+        .info-hint {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            background: #e8f4fd;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #0c5460;
+        }
+
+        .info-hint i {
+            color: var(--gcc-info);
+            margin-top: 2px;
+        }
+
+        /* Hierarchy Diagram */
+        .hierarchy-diagram {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .hierarchy-diagram-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gcc-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .hierarchy-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .hierarchy-box {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            color: white;
+        }
+
+        .hierarchy-box.category { background: var(--category-color); }
+        .hierarchy-box.type { background: var(--type-color); }
+        .hierarchy-box.subcategory { background: var(--subcategory-color); }
+
+        .hierarchy-box.current {
+            box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.5);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.5); }
+            50% { box-shadow: 0 0 0 6px rgba(146, 200, 62, 0.3); }
+        }
+
+        .hierarchy-label {
+            font-size: 12px;
+            color: var(--gcc-text-muted);
+        }
+
+        .hierarchy-connector {
+            margin-left: 15px;
+            color: var(--gcc-text-muted);
+            font-size: 12px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--gcc-text);
+        }
+
+        .form-label .required {
+            color: var(--gcc-danger);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--gcc-blue);
+            box-shadow: 0 0 0 3px rgba(0, 43, 118, 0.1);
+        }
+
+        .form-control::placeholder {
+            color: #adb5bd;
+        }
+
+        .form-description {
+            font-size: 13px;
+            color: var(--gcc-text-muted);
+            margin-top: 6px;
+        }
+
+        /* Examples Section */
+        .examples-section {
+            margin-top: 8px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid var(--gcc-green);
+        }
+
+        .examples-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gcc-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .examples-section ul {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 13px;
+            color: var(--gcc-text-muted);
+        }
+
+        .examples-section li {
+            margin-bottom: 2px;
+        }
+
+        /* Existing Items Warning */
+        .existing-items {
+            margin-top: 8px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 4px;
+            border-left: 3px solid var(--gcc-warning);
+        }
+
+        .existing-items-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 4px;
+        }
+
+        .existing-items-list {
+            font-size: 13px;
+            color: #856404;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--gcc-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #003d99;
+        }
+
+        .btn-secondary {
+            background: var(--gcc-green);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7db32e;
+        }
+
+        /* Breadcrumb in Modal */
+        .modal-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #f8f9fa;
+            font-size: 13px;
+            border-bottom: 1px solid var(--gcc-border);
+        }
+
+        .modal-breadcrumb span {
+            color: var(--gcc-text-muted);
+        }
+
+        .modal-breadcrumb .current {
+            color: var(--gcc-blue);
+            font-weight: 500;
+        }
+
+        .modal-breadcrumb i {
+            font-size: 10px;
+            color: #ccc;
+        }
+
+        /* Parent Display (locked) */
+        .parent-display {
+            padding: 10px 12px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .parent-display i {
+            color: var(--gcc-blue);
+        }
+
+        /* Comparison Section */
+        .comparison-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .comparison-section h2 {
+            color: var(--gcc-blue);
+            margin-bottom: 20px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid var(--gcc-border);
+        }
+
+        .comparison-table th {
+            background: var(--gcc-blue);
+            color: white;
+        }
+
+        .comparison-table td:first-child {
+            font-weight: 600;
+            background: var(--gcc-light-bg);
+        }
+
+        .level-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+        }
+
+        .level-badge.category { background: var(--category-color); }
+        .level-badge.type { background: var(--type-color); }
+        .level-badge.subcategory { background: var(--subcategory-color); }
+    </style>
+</head>
+<body>
+    <div class="mockup-container">
+        <header class="mockup-header">
+            <h1>Product Types - Improved Popup UX</h1>
+            <p>Mockup demonstrating clearer, more user-friendly modal dialogs for Product Types management with 3-level hierarchy.</p>
+        </header>
+
+        <!-- Hierarchy Explanation -->
+        <div class="hierarchy-explanation">
+            <h2>Product Types 3-Level Hierarchy</h2>
+            <p style="margin-bottom: 20px; color: var(--gcc-text-muted);">Product Types use a 3-level hierarchy structure. Each level has a specific purpose and relationship to the others.</p>
+
+            <div class="hierarchy-flow">
+                <div class="hierarchy-level-box category">
+                    <div class="level-name">Category</div>
+                    <div class="level-example">e.g., Personal Care</div>
+                </div>
+                <i class="fas fa-arrow-right hierarchy-arrow"></i>
+                <div class="hierarchy-level-box type">
+                    <div class="level-name">Type</div>
+                    <div class="level-example">e.g., Skincare</div>
+                </div>
+                <i class="fas fa-arrow-right hierarchy-arrow"></i>
+                <div class="hierarchy-level-box subcategory">
+                    <div class="level-name">Subcategory</div>
+                    <div class="level-example">e.g., Moisturizers</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-top: 4px solid var(--category-color);">
+                    <strong style="color: var(--category-color);">Level 1: Category</strong>
+                    <p style="font-size: 13px; color: var(--gcc-text-muted); margin-top: 8px;">Broad product groupings. Examples: Personal Care, Household, Food & Beverage, Baby Products</p>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-top: 4px solid var(--type-color);">
+                    <strong style="color: var(--type-color);">Level 2: Type</strong>
+                    <p style="font-size: 13px; color: var(--gcc-text-muted); margin-top: 8px;">Product types within a category. Examples: Skincare, Hair Care, Cleaning Products</p>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; border-top: 4px solid var(--subcategory-color);">
+                    <strong style="color: var(--subcategory-color);">Level 3: Subcategory</strong>
+                    <p style="font-size: 13px; color: var(--gcc-text-muted); margin-top: 8px;">Specific product subcategories. Examples: Moisturizers, Shampoos, All-Purpose Cleaners</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Demos -->
+        <div class="modal-grid">
+            <!-- Add Category Modal -->
+            <div class="modal-demo-card">
+                <div class="modal-demo-header">
+                    <h3>Add Category (Level 1)</h3>
+                    <p>Top-level product grouping - broadest classification</p>
+                </div>
+                <div class="modal-demo-content">
+                    <div class="modal-preview">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Product Category</h5>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="info-hint">
+                                <i class="fas fa-info-circle"></i>
+                                <div>
+                                    <strong>What is a Category?</strong><br>
+                                    Categories are the top level of product organization. They represent broad product groupings like "Personal Care" or "Household". Each category can contain multiple Types.
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Category Name <span class="required">*</span>
+                                </label>
+                                <input type="text" class="form-control" placeholder="e.g., Personal Care, Household, Baby Products">
+                                <div class="form-description">
+                                    Enter a broad product grouping name. This will be the top level in the product hierarchy.
+                                </div>
+                            </div>
+
+                            <div class="examples-section">
+                                <div class="examples-title">Category Examples</div>
+                                <ul>
+                                    <li><strong>Personal Care</strong> - Skincare, hair care, body care products</li>
+                                    <li><strong>Household</strong> - Cleaning supplies, home products</li>
+                                    <li><strong>Baby Products</strong> - Diapers, wipes, baby care items</li>
+                                    <li><strong>Food & Beverage</strong> - Food items and drinks</li>
+                                    <li><strong>Pet Products</strong> - Pet food, grooming, accessories</li>
+                                </ul>
+                            </div>
+
+                            <div class="form-group" style="margin-top: 20px;">
+                                <label class="form-label">Sort Order</label>
+                                <input type="number" class="form-control" value="0" style="width: 120px;">
+                                <div class="form-description">
+                                    Controls display order. Lower numbers appear first.
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Description (Optional)</label>
+                                <textarea class="form-control" rows="2" placeholder="Brief description of this category..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary">Cancel</button>
+                            <button class="btn btn-primary">Create Category</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Type Modal -->
+            <div class="modal-demo-card">
+                <div class="modal-demo-header">
+                    <h3>Add Type (Level 2)</h3>
+                    <p>Product type within a category</p>
+                </div>
+                <div class="modal-demo-content">
+                    <div class="modal-preview">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Product Type</h5>
+                            <button class="modal-close">&times;</button>
+                        </div>
+
+                        <div class="context-bar">
+                            <div class="context-icon category">
+                                <i class="fas fa-folder"></i>
+                            </div>
+                            <div class="context-text">
+                                <strong>Adding to: Personal Care</strong>
+                                <span>This type will appear under the "Personal Care" category</span>
+                            </div>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="info-hint">
+                                <i class="fas fa-info-circle"></i>
+                                <div>
+                                    <strong>What is a Type?</strong><br>
+                                    Types are the second level of product organization. They represent product types within a category (e.g., "Skincare" under "Personal Care"). Each type can contain multiple Subcategories.
+                                </div>
+                            </div>
+
+                            <div class="hierarchy-diagram">
+                                <div class="hierarchy-diagram-title">Where This Fits</div>
+                                <div class="hierarchy-item">
+                                    <div class="hierarchy-box category">Personal Care</div>
+                                    <span class="hierarchy-label">Category (Parent)</span>
+                                </div>
+                                <div class="hierarchy-item">
+                                    <i class="fas fa-arrow-right hierarchy-connector"></i>
+                                </div>
+                                <div class="hierarchy-item">
+                                    <div class="hierarchy-box type current" style="margin-left: 30px;">Your New Type</div>
+                                    <span class="hierarchy-label">You are adding this</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Parent Category</label>
+                                <div class="parent-display">
+                                    <i class="fas fa-folder"></i>
+                                    Personal Care
+                                </div>
+                                <div class="form-description" style="font-style: italic;">
+                                    This type will be created under "Personal Care"
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Type Name <span class="required">*</span>
+                                </label>
+                                <input type="text" class="form-control" placeholder="e.g., Skincare, Hair Care, Body Care">
+                                <div class="form-description">
+                                    Enter the product type name. This groups related subcategories together.
+                                </div>
+                            </div>
+
+                            <div class="existing-items">
+                                <div class="existing-items-title">Existing Types under Personal Care</div>
+                                <div class="existing-items-list">Skincare (12 products), Hair Care (8 products), Body Care (5 products)</div>
+                            </div>
+
+                            <div class="examples-section" style="margin-top: 15px;">
+                                <div class="examples-title">Type Examples for Personal Care</div>
+                                <ul>
+                                    <li>Skincare</li>
+                                    <li>Hair Care</li>
+                                    <li>Body Care</li>
+                                    <li>Oral Care</li>
+                                    <li>Cosmetics</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary">Cancel</button>
+                            <button class="btn btn-primary">Create Type</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Subcategory Modal -->
+            <div class="modal-demo-card">
+                <div class="modal-demo-header">
+                    <h3>Add Subcategory (Level 3)</h3>
+                    <p>Most specific product classification</p>
+                </div>
+                <div class="modal-demo-content">
+                    <div class="modal-preview">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Product Subcategory</h5>
+                            <button class="modal-close">&times;</button>
+                        </div>
+
+                        <div class="modal-breadcrumb">
+                            <span>Personal Care</span>
+                            <i class="fas fa-chevron-right"></i>
+                            <span>Skincare</span>
+                            <i class="fas fa-chevron-right"></i>
+                            <span class="current">New Subcategory</span>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="info-hint">
+                                <i class="fas fa-info-circle"></i>
+                                <div>
+                                    <strong>What is a Subcategory?</strong><br>
+                                    Subcategories are the most specific level of product classification. They represent specific product types (e.g., "Moisturizers" under "Skincare"). Products are assigned to subcategories.
+                                </div>
+                            </div>
+
+                            <div class="hierarchy-diagram">
+                                <div class="hierarchy-diagram-title">Complete Hierarchy Path</div>
+                                <div class="hierarchy-item">
+                                    <div class="hierarchy-box category">Personal Care</div>
+                                    <span class="hierarchy-label">Category</span>
+                                </div>
+                                <div class="hierarchy-item">
+                                    <i class="fas fa-arrow-right hierarchy-connector"></i>
+                                </div>
+                                <div class="hierarchy-item">
+                                    <div class="hierarchy-box type" style="margin-left: 30px;">Skincare</div>
+                                    <span class="hierarchy-label">Type (Parent)</span>
+                                </div>
+                                <div class="hierarchy-item">
+                                    <i class="fas fa-arrow-right hierarchy-connector" style="margin-left: 45px;"></i>
+                                </div>
+                                <div class="hierarchy-item">
+                                    <div class="hierarchy-box subcategory current" style="margin-left: 60px;">Your New Subcategory</div>
+                                    <span class="hierarchy-label">You are adding this</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Parent Type</label>
+                                <div class="parent-display">
+                                    <i class="fas fa-tags"></i>
+                                    Skincare (under Personal Care)
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Subcategory Name <span class="required">*</span>
+                                </label>
+                                <input type="text" class="form-control" placeholder="e.g., Moisturizers, Cleansers, Serums">
+                                <div class="form-description">
+                                    Enter the specific product subcategory. Products will be assigned to this level.
+                                </div>
+                            </div>
+
+                            <div class="existing-items">
+                                <div class="existing-items-title">Existing Subcategories under Skincare</div>
+                                <div class="existing-items-list">Moisturizers, Cleansers, Toners, Serums, Sunscreen</div>
+                            </div>
+
+                            <div class="examples-section" style="margin-top: 15px;">
+                                <div class="examples-title">Subcategory Examples for Skincare</div>
+                                <ul>
+                                    <li>Moisturizers</li>
+                                    <li>Cleansers</li>
+                                    <li>Toners</li>
+                                    <li>Serums</li>
+                                    <li>Eye Creams</li>
+                                    <li>Face Masks</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary">Cancel</button>
+                            <button class="btn btn-primary">Create Subcategory</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit with Context Modal -->
+            <div class="modal-demo-card">
+                <div class="modal-demo-header">
+                    <h3>Edit Type (With Impact Warning)</h3>
+                    <p>Shows affected items when editing</p>
+                </div>
+                <div class="modal-demo-content">
+                    <div class="modal-preview">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit Product Type</h5>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Impact Warning -->
+                            <div style="display: flex; gap: 12px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid var(--gcc-warning); margin-bottom: 20px;">
+                                <i class="fas fa-exclamation-triangle" style="color: #856404; font-size: 18px;"></i>
+                                <div>
+                                    <strong style="display: block; margin-bottom: 4px; color: #856404;">This change affects multiple items</strong>
+                                    <p style="margin: 0; font-size: 14px; color: #856404;">
+                                        Renaming this type will update all associated products and subcategories.
+                                    </p>
+                                    <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 4px;">
+                                        <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
+                                            <span>Subcategories</span>
+                                            <strong>5</strong>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
+                                            <span>Products</span>
+                                            <strong>42</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Current Name</label>
+                                <div style="padding: 10px 12px; background: #e9ecef; border-radius: 4px; text-decoration: line-through; color: var(--gcc-text-muted);">
+                                    Skin Care
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    New Name <span class="required">*</span>
+                                </label>
+                                <input type="text" class="form-control" value="Skincare">
+                                <div class="form-description">
+                                    Updating to match standard naming convention
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Parent Category</label>
+                                <div class="parent-display">
+                                    <i class="fas fa-folder"></i>
+                                    Personal Care
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary">Cancel</button>
+                            <button class="btn btn-primary">Update Type</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Section -->
+        <div class="comparison-section">
+            <h2>Level Comparison Quick Reference</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th><span class="level-badge category">Category</span></th>
+                        <th><span class="level-badge type">Type</span></th>
+                        <th><span class="level-badge subcategory">Subcategory</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Level</td>
+                        <td>1 (Top)</td>
+                        <td>2 (Middle)</td>
+                        <td>3 (Bottom)</td>
+                    </tr>
+                    <tr>
+                        <td>Purpose</td>
+                        <td>Broad product grouping</td>
+                        <td>Product type within category</td>
+                        <td>Specific product classification</td>
+                    </tr>
+                    <tr>
+                        <td>Parent</td>
+                        <td>None (top level)</td>
+                        <td>Category</td>
+                        <td>Type</td>
+                    </tr>
+                    <tr>
+                        <td>Children</td>
+                        <td>Types</td>
+                        <td>Subcategories</td>
+                        <td>Products (assigned here)</td>
+                    </tr>
+                    <tr>
+                        <td>Example</td>
+                        <td>Personal Care</td>
+                        <td>Skincare</td>
+                        <td>Moisturizers</td>
+                    </tr>
+                    <tr>
+                        <td>Typical Count</td>
+                        <td>5-10 categories</td>
+                        <td>3-8 types per category</td>
+                        <td>5-15 subcategories per type</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 30px; color: var(--gcc-blue);">Key UX Improvements for Product Types</h3>
+            <div style="margin-top: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <strong style="color: var(--gcc-blue);"><i class="fas fa-sitemap" style="margin-right: 8px;"></i>Visual Hierarchy</strong>
+                    <p style="font-size: 13px; color: var(--gcc-text-muted); margin-top: 8px;">Color-coded levels (blue/purple/green) with clear parent-child diagrams showing where the new item fits.</p>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <strong style="color: var(--gcc-blue);"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Context Awareness</strong>
+                    <p style="font-size: 13px; color: var(--gcc-text-muted); margin-top: 8px;">Info hints explain each level's purpose. Context bars show parent path. Breadcrumbs display full hierarchy.</p>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <strong style="color: var(--gcc-blue);"><i class="fas fa-list" style="margin-right: 8px;"></i>Existing Item Awareness</strong>
+                    <p style="font-size: 13px; color: var(--gcc-text-muted); margin-top: 8px;">Shows existing siblings to prevent duplicates and help users understand current structure.</p>
+                </div>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <strong style="color: var(--gcc-blue);"><i class="fas fa-lightbulb" style="margin-right: 8px;"></i>Contextual Examples</strong>
+                    <p style="font-size: 13px; color: var(--gcc-text-muted); margin-top: 8px;">Examples tailored to each level and parent context. Placeholder text suggests appropriate entries.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

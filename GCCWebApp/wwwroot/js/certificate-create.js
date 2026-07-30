@@ -1365,6 +1365,11 @@
     // Expose public API
     window.CertificateCreate = {
         removePdfPreview: PdfUpload.removePdfPreview,
+        // DEF: Edit.cshtml loads pre-saved tags into window.CertificateCreate.TagManager.
+        // Expose the real closure instance so those existing tags land in the SAME arrays
+        // removeTag() reads — otherwise the loader built a separate object, removeTag found
+        // index -1, and clicking the tag's "×" did nothing (pill stayed, save was a no-op).
+        TagManager: TagManager,
         removeTag: TagManager.removeTag.bind(TagManager),
         removeSubcategory: SubcategoryManager.removeSubcategory.bind(SubcategoryManager),
         SubcategoryManager: SubcategoryManager,

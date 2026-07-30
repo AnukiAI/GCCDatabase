@@ -20,6 +20,12 @@ set -e
 # positives.
 PATTERN='â„|â€|â†|â–|Â®'
 
+# Some lines quote the corrupted glyphs on purpose -- the comments on the CSV
+# BOM fix, for instance, show the mojibake to explain what the fix prevents.
+# Tag any such line with this marker to exempt that single line. Scope is the
+# line, not the file, so real corruption elsewhere in the same file still trips.
+ALLOW_MARKER='mojibake-doc'
+
 # Inspect staged .cshtml (Razor views), .cs (server code), .js (authored client
 # code). Skip build output and vendored libraries -- those are not our source
 # and may legitimately contain encoded byte sequences.
@@ -35,7 +41,7 @@ fi
 violations=0
 for f in $files; do
     # Inspect the STAGED blob, not the worktree -- they may differ.
-    matches=$(git show ":$f" 2>/dev/null | grep -nE "$PATTERN" || true)
+    matches=$(git show ":$f" 2>/dev/null | grep -nE "$PATTERN" | grep -v "$ALLOW_MARKER" || true)
     if [ -n "$matches" ]; then
         if [ "$violations" -eq 0 ]; then
             echo ""

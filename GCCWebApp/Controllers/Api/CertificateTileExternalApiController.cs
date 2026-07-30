@@ -252,7 +252,12 @@ namespace GCCWebApp.Controllers.Api
                         // Status: only PublicStatuses reach this projection (filter at line ~204),
                         // so this is always one of "Client Approved - Paid" / "Republished".
                         // Surfaced in the UI table so the Status column actually has a value.
-                        c.Status
+                        c.Status,
+                        // CR-XXX (QC #201, client 7/6/2026): Cert Results is partner-visible again.
+                        // The table column + toggle already existed in CertificateTileViewExternal
+                        // (tc-certresults) but this projection never carried the field, so the
+                        // column rendered blank on every row. Raw value here; formatted below.
+                        c.CertificationResults
                     })
                     .ToListAsync();
 
@@ -282,7 +287,11 @@ namespace GCCWebApp.Controllers.Api
                     Partner = userRole == "Partner"
                         ? string.Join(", ", c.PartnerNames.Where(n => userPartnerNames.Contains(n)))
                         : string.Join(", ", c.PartnerNames),
-                    c.Status
+                    c.Status,
+                    // QC #201: display as a percentage, matching the internal tile view and the
+                    // v1 partner API (0.17 → "17%", 100 → "100%"). Free-text non-numerics
+                    // ("Pass") pass through unchanged. Single source: DisplayFormatters.
+                    CertificationResults = DisplayFormatters.FormatCertificationResults(c.CertificationResults)
                 }).ToList();
 
                 return Ok(new

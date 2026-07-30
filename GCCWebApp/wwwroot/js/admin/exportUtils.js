@@ -42,13 +42,24 @@ class ExportUtils {
                     
                     // Escape quotes and wrap in quotes if contains comma or quote
                     value = String(value);
-                    if (value.includes('"')) {
-                        value = value.replace(/"/g, '""');
+                    // CSV formula-injection guard (DEF-306): a value starting with = + - @
+                    // (or a leading tab/CR) is interpreted by Excel/Sheets as a formula — e.g.
+                    // the "+Vantage Vinyl Verified" certification type rendered as #NAME?. Emit
+                    // such values in Excel text format (="value") so they display literally and
+                    // cannot execute. Matches the server exporters (CertificateService.CsvCell).
+                    // DEF-315: the '=' must sit INSIDE the CSV quoting. `="value"` leaves the field
+                    // unquoted per RFC 4180, so any embedded comma splits it and shifts every
+                    // following column. `"=""value"""` decodes to the same ="value" cell content,
+                    // so Excel's text treatment is unchanged — this is an encoding-only fix.
+                    const escaped = value.replace(/"/g, '""');
+                    if (value.length > 0 && '=+-@\t\r'.indexOf(value[0]) >= 0) {
+                        value = `"=""${escaped.replace(/"/g, '""')}"""`;
+                    } else if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                        value = `"${escaped}"`;
+                    } else {
+                        value = escaped;
                     }
-                    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-                        value = `"${value}"`;
-                    }
-                    
+
                     return value;
                 }).join(',');
             });

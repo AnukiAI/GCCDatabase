@@ -300,7 +300,7 @@ namespace GCCWebApp.Controllers
                     var csv = await GenerateAggregatedStatCsv(type);
                     if (csv == null) return BadRequest("Invalid stat type");
                     var fileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
-                    return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+                    return File(Extensions.CsvExportHelper.ToCsvBytesWithBom(csv), "text/csv", fileName);
                 }
 
                 var (certificates, reportTitle) = await GetCertificatesForStat(type);
@@ -313,7 +313,7 @@ namespace GCCWebApp.Controllers
                 var detailCsv = GenerateCertificateCsv(reportTitle, certificates);
                 var detailFileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
 
-                return File(Encoding.UTF8.GetBytes(detailCsv), "text/csv", detailFileName);
+                return File(Extensions.CsvExportHelper.ToCsvBytesWithBom(detailCsv), "text/csv", detailFileName);
             }
             catch (Exception ex)
             {
@@ -344,7 +344,7 @@ namespace GCCWebApp.Controllers
                 var csv = GenerateCertificateCsv(reportTitle, certificates);
                 var fileName = $"{type}-table-{DateTime.UtcNow:yyyy-MM-dd}.csv";
 
-                return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+                return File(Extensions.CsvExportHelper.ToCsvBytesWithBom(csv), "text/csv", fileName);
             }
             catch (Exception ex)
             {

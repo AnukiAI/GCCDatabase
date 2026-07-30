@@ -1,0 +1,147 @@
+{
+  "base": "http://localhost:5101",
+  "cpuThrottle": 4,
+  "when": "2026-07-17T22:40:21.428Z",
+  "totals": {
+    "pass": 21,
+    "warn": 0,
+    "fail": 0,
+    "invalid": 0
+  },
+  "anomalies": [],
+  "shotsTaken": [
+    "screenshots\\A-list-final-oldest.png",
+    "screenshots\\A-tile-final-oldest.png",
+    "screenshots\\B-list-after-deepscroll-sort.png",
+    "screenshots\\C-list-after-return.png",
+    "screenshots\\D-list-rapid-supersede.png"
+  ],
+  "findings": [
+    {
+      "scenario": "A.resort.list",
+      "id": "list#1(oldest-effective)",
+      "status": "PASS",
+      "detail": "rows=20 H=1556 centerHit=DIV.table-body-cell"
+    },
+    {
+      "scenario": "A.resort.list",
+      "id": "list#2(newest)",
+      "status": "PASS",
+      "detail": "rows=20 H=2171 centerHit=DIV.table-body-cell"
+    },
+    {
+      "scenario": "A.resort.list",
+      "id": "list#3(oldest-effective)",
+      "status": "PASS",
+      "detail": "rows=20 H=1556 centerHit=DIV.table-body-cell"
+    },
+    {
+      "scenario": "A.resort.list",
+      "id": "list#4(cert-type)",
+      "status": "PASS",
+      "detail": "rows=20 H=1413 centerHit=DIV.table-body-cell"
+    },
+    {
+      "scenario": "A.resort.list",
+      "id": "list#5(oldest-effective)",
+      "status": "PASS",
+      "detail": "rows=20 H=1556 centerHit=DIV.table-body-cell"
+    },
+    {
+      "scenario": "A.resort.list",
+      "id": "list#6(company-az)",
+      "status": "PASS",
+      "detail": "rows=20 H=1306 centerHit=DIV.table-body-cell"
+    },
+    {
+      "scenario": "A.resort.list",
+      "id": "list#7(oldest-effective)",
+      "status": "PASS",
+      "detail": "rows=20 H=1556 centerHit=DIV.table-body-cell"
+    },
+    {
+      "scenario": "A.resort.list",
+      "id": "list#8(newest)",
+      "status": "PASS",
+      "detail": "rows=20 H=2171 centerHit=DIV.table-body-cell"
+    },
+    {
+      "scenario": "A.resort.list",
+      "id": "list#9(oldest-effective)",
+      "status": "PASS",
+      "detail": "rows=20 H=1556 centerHit=DIV.table-body-cell"
+    },
+    {
+      "scenario": "A.resort.tile",
+      "id": "tile#1(oldest-effective)",
+      "status": "PASS",
+      "detail": "rows=20 H=3298 centerHit=DIV.product-name"
+    },
+    {
+      "scenario": "A.resort.tile",
+      "id": "tile#2(newest)",
+      "status": "PASS",
+      "detail": "rows=20 H=3260 centerHit=DIV.product-name"
+    },
+    {
+      "scenario": "A.resort.tile",
+      "id": "tile#3(oldest-effective)",
+      "status": "PASS",
+      "detail": "rows=20 H=3298 centerHit=DIV.product-name"
+    },
+    {
+      "scenario": "A.resort.tile",
+      "id": "tile#4(cert-type)",
+      "status": "PASS",
+      "detail": "rows=20 H=3202 centerHit=DIV.product-name"
+    },
+    {
+      "scenario": "A.resort.tile",
+      "id": "tile#5(oldest-effective)",
+      "status": "PASS",
+      "detail": "rows=20 H=3298 centerHit=DIV.product-name"
+    },
+    {
+      "scenario": "A.resort.tile",
+      "id": "tile#6(company-az)",
+      "status": "PASS",
+      "detail": "rows=20 H=3125 centerHit=DIV.card-body"
+    },
+    {
+      "scenario": "A.resort.tile",
+      "id": "tile#7(oldest-effective)",
+      "status": "PASS",
+      "detail": "rows=20 H=3298 centerHit=DIV.product-name"
+    },
+    {
+      "scenario": "A.resort.tile",
+      "id": "tile#8(newest)",
+      "status": "PASS",
+      "detail": "rows=20 H=3260 centerHit=DIV.product-name"
+    },
+    {
+      "scenario": "A.resort.tile",
+      "id": "tile#9(oldest-effective)",
+      "status": "PASS",
+      "detail": "rows=20 H=3298 centerHit=DIV.product-name"
+    },
+    {
+      "scenario": "B.deepscroll.list",
+      "id": "post-sort",
+      "status": "PASS",
+      "detail": "scrollY 4701->1750, docH 5601->2650, rows 52->20, centerHit=DIV.table-toolbar-row, shot=screenshots\\B-list-after-deepscroll-sort.png"
+    },
+    {
+      "scenario": "C.background.list",
+      "id": "visible-on-return",
+      "status": "PASS",
+      "detail": "rows=20 H=1556 centerHit=DIV.table-toolbar-row shot=screenshots\\C-list-after-return.png"
+    },
+    {
+      "scenario": "D.rapid-supersede",
+      "id": "last-sort-wins",
+      "status": "PASS",
+      "detail": "fetches=2 | expected(B)=[\"23-0358\",\"23-0753\",\"23-0925\",\"23-1048\",\"25-9303\"] rendered=[\"23-0358\",\"23-0753\",\"23-0925\",\"23-1048\",\"25-9303\"] shot=screenshots\\D-list-rapid-supersede.png"
+    }
+  ]
+}

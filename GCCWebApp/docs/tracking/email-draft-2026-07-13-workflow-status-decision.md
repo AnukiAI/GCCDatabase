@@ -36,4 +36,4 @@ Anuki Consulting
 
 ---
 
-*Attachment to include: the transition-matrix sign-off sheet — ready-to-send PDF at `docs/tracking/certificate-status-transition-matrix.pdf` (professionally formatted, client-facing; source in the matching `.html`).*
+*Attachment to include: the transition-matrix sign-off sheet — ready to send in two formats: `certificate-status-transition-matrix.pdf` (print/read) and `certificate-status-transition-matrix.docx` (client can type answers directly into the sign-off table). Both in `docs/tracking/`; source in the matching `.html`.*

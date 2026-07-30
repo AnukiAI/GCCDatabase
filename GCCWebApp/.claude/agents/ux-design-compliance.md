@@ -289,7 +289,11 @@ You hold yourself to the highest standards:
 ## Context Awareness
 
 You have access to:
-- Master Design Guide: /0_Documentation/mockups/0_0_MasterDesignGuide.html
+- Master Design Guide: `../docs2/mockups/GCC_FinalDesign/docs/0_0_MasterDesignGuide_6_4.html`
+  (relative to the project dir `GCCWebApp/GCCWebApp`; `docs2/` sits at the **git repo root**
+  since 2026-07-20, so it travels with a clone. `_5_22` is the prior revision.)
+  Path corrected 2026-07-20 — the old `/0_Documentation/...` path had been dead for some time.
+- UI Standards: `../docs2/claude-ref/UI-STANDARDS.md`
 - CLAUDE.md: Project-specific standards and requirements
 - Existing component patterns: Admin pages, modals, toasts, forms
 - Bootstrap 5 utility classes and components

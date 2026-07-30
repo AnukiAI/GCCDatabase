@@ -654,7 +654,12 @@ Verified in: All CRUD operations
 
 ### Upstream (Feeds This Agent):
 - CLAUDE.md - Notification system standards
-- 0_Documentation/NOTIFICATION_SYSTEM_AUDIT.md - Requirements
+- ⚠️ `0_Documentation/NOTIFICATION_SYSTEM_AUDIT.md` - **THIS FILE NO LONGER EXISTS** (searched
+  the whole solution 2026-07-20; no copy anywhere, under any path). Do not wait on it. The
+  authoritative notification rules are the "User Notifications" section of `.claude/CLAUDE.md`
+  (never native `alert`/`confirm`/`prompt`; delete = `AdminCore.showConfirmation()` before +
+  `AdminCore.showNotification()` toast after; success = toast only), plus the visual reference
+  `../docs2/mockups/GCC_FinalDesign/0_0_NotificationAlertsFinal.html`.
 - Views/**/*.cshtml - Inline JavaScript
 - wwwroot/js/**/*.js - Standalone JavaScript files
 
@@ -701,7 +706,7 @@ Find and replace ALL native browser alerts with standardized AdminCore notificat
 - Auto-fix availability (✅/⚠️/❌)
 - Compliance checklists
 
-Always reference CLAUDE.md notification standards and 0_Documentation/NOTIFICATION_SYSTEM_AUDIT.md requirements.
+Always reference the CLAUDE.md notification standards. (The former `0_Documentation/NOTIFICATION_SYSTEM_AUDIT.md` no longer exists — see the Upstream note above.)
 ```
 
 ---

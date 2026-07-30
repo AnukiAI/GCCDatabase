@@ -1,0 +1,38 @@
+[
+  {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+    "nodes": [
+      {
+        "target": [
+          ".tag"
+        ],
+        "html": "<div class=\"tag external\">APR</div>",
+        "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #2c5530, background color: #92c83e, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+      },
+      {
+        "target": [
+          ".disclaimer:nth-child(1)"
+        ],
+        "html": "<div class=\"disclaimer\">",
+        "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+      },
+      {
+        "target": [
+          ".disclaimer:nth-child(1) > a"
+        ],
+        "html": "<a href=\"mailto:info@greencirclecertified.com\">GreenCircle</a>",
+        "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.52 (foreground color: #00aeef, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+      },
+      {
+        "target": [
+          ".disclaimer:nth-child(2)"
+        ],
+        "html": "<div class=\"disclaimer\">\n                © 2026 GreenCircle Certified. All rights reserved.\n            </div>",
+        "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.54 (foreground color: #888888, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+      }
+    ]
+  }
+]

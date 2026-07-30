@@ -1,0 +1,20 @@
+SOURCE_CERT_TYPE,TARGET_CERT_TYPE,CERT_TYPE_ID,AMAZON_CODE,PASS_TO_AMAZON,TYPE_STATUS,ACTIVE_SAMPLE,EXPIRED_SAMPLE,NOTES
+Recycled Content,Recycled Content,15,greencircle_recycled_content,Yes,active,383,1534,Confirmed code (SQL 2026-04-22).
+Certified Energy Savings,Certified Energy Savings,4,greencircle_energy_savings,Yes,active,48,211,Confirmed code (SQL 2026-04-22).
+Sustainable Energy Practices,Sustainable Energy Practices,17,greencircle_sustainable_energy_practices,Yes,active,20,0,Confirmed code (SQL 2026-04-22). Pathway applies (Amazon CPF).
+Certified Environmental Facts,Certified Environmental Facts,,greencircle_cef,Yes,active,61,392,CODE LIVE IN CLIENT ASIN DATA (7904 rows) BUT NOT YET SET IN DB. Action: set AmazonCode on this type.
+Material Ingredient Reporting,Material Ingredient Reporting,,,No,active,167,1371,No Amazon code assigned; not passed. Renamed from 'Manufacturer Inventory Verification'.
+Certified Sustainability Facts,Certified Sustainability Facts,,,No,active,82,161,No Amazon code; not passed. CSF uses Certificate Subcategories.
+Waste Diversion from Landfill,Waste Diversion from Landfill,,,No,active,62,178,No Amazon code; not passed. WD uses Certificate Subcategories.
+Life Cycle Assessment (LCA) Optimized,Life Cycle Assessment (LCA) Optimized,,,No,active,45,142,No Amazon code; not passed.
+GreenCircle Audited,GreenCircle Audited,,,No,active,39,177,No Amazon code; not passed.
+Carbon Footprint Reduction,Carbon Footprint Reduction,,,No,active,23,0,No Amazon code; not passed.
+Closed Loop Product,Closed Loop Product,,,No,active,20,61,No Amazon code; not passed.
+Recyclable Material,Recyclable Material,,,No,active,4,27,No Amazon code; not passed.
+Certified Water Savings,Certified Water Savings,,,No,active,3,15,No Amazon code; not passed.
+Sustainable Manufacturing Practices,Sustainable Manufacturing Practices,,,No,active,1,8,No Amazon code; not passed.
+Dematerialization,Dematerialization,,,No,active,1,11,No Amazon code; not passed.
+Biodegradable,TBD,,,No,retired?,0,58,RETIRED/UNKNOWN - not in current vocab. CLIENT DECISION needed (remap or load as historical).
+Biobased,Biobased,,,No,deactivated,0,17,Deactivated in DB (UpdateCertificationTypes.sql 2026-04-13). Load as historical or remap.
+Renewable Resource Content,Renewable Resource Content,,,No,deactivated,0,8,Deactivated in DB (UpdateCertificationTypes.sql 2026-04-13). Load as historical or remap.
+Verified Health Product Declaration,TBD,,,No,retired?,0,3,RETIRED/UNKNOWN - not in current vocab. CLIENT DECISION needed.

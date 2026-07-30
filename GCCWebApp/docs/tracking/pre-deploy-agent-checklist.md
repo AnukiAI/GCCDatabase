@@ -20,7 +20,7 @@ Zip the server's `wwwroot/uploads/` before the deploy. Publish can overwrite rea
 
 **Fires when:** any `.cshtml` view or `wwwroot/js/*` / `wwwroot/css/*` changed.
 
-Verify against `/0_Documentation/mockups/0_0_MasterDesignGuide.html`:
+Verify against `../docs2/mockups/GCC_FinalDesign/docs/0_0_MasterDesignGuide_6_4.html` (relative to the project dir; `docs2/` sits at the git repo root — moved there 2026-07-20, see the CLAUDE.md reference table) and `../docs2/claude-ref/UI-STANDARDS.md`. *(Path corrected 2026-07-20 — the old `/0_Documentation/mockups/0_0_MasterDesignGuide.html` reference had been dead for some time, so this gate was auditing against a partially-missing standard. Found during the DEF-312 Gate 1 audit.)*
 
 - [ ] No native `alert()` / `confirm()` / `prompt()`. Deletes use `AdminCore.showConfirmation()` **before** and `AdminCore.showNotification()` toast **after**. Success = toast only.
 - [ ] No `<h1>` in views — title comes from `ViewData["Title"]`. No duplicate page headers.
@@ -137,6 +137,134 @@ Audit the working tree against the tracking docs:
 ## Deploy gate results log
 
 Per-bundle record of gate outcomes. Be precise: **VERIFIED** = mechanically run/checked; **N/A** = gate does not fire for this changeset (with the scope reason); **REASONED** = firing gate not run through its full agent/script, assessed by scope+diff instead (a conscious call, not a silent skip); **DEPLOY-TIME** = a manual step owed at upload, not at bundle time.
+
+### `GCCWebApp-deploy-20260720-2332.zip` — assessed 2026-07-21 (**supersedes 2204 / 2137 / 2037 / 1408 / all earlier — THIS IS THE ONE TO UPLOAD**)
+
+**Why rebuilt:** carries **DEF-315** — partner CSV export identifier-column misalignment (ASIN values landing under the UPC/GTIN headers). Client-reported as a cosmetic `=`/`"`; was actually silent data corruption in a partner deliverable.
+
+**Delta vs 2204:** DEF-315 only — `Services/CertificateService.cs`, `Services/ProductIdService.cs`, `Controllers/ExportController.cs`, `wwwroot/js/admin/exportUtils.js`. No migration change; DEF-314 and CR-029 unchanged.
+
+| Gate | Fires? | Result | Evidence / rationale |
+|------|--------|--------|----------------------|
+| 0 — Uploads backup | Yes | **DEPLOY-TIME — OWED** | Built non-interactively; server-side backup **not** done. In-zip: 0 entries under `wwwroot/uploads/` and `App_Data/uploads/`. |
+| 1 — UI / Design-Guide | Marginal (`wwwroot/js/*` changed) | **REASONED** | `exportUtils.js` change is CSV string encoding only — no markup, CSS, label, dialog, or font change; no new `alert/confirm/prompt`. |
+| 2 — Cross-role + responsive | No | **N/A** | No view or role-conditional surface changed. |
+| 3 — Data-scoping & endpoints | Yes (export service + controller) | **VERIFIED GREEN** | `deploy-gate.js` security suite exit 0, 33s. DEF-315 changes cell *encoding*, not which rows/columns a role receives — the DEF-295/CR-029 gating is untouched. |
+| 4 — Partner API contract | Yes (shared services) | **VERIFIED GREEN** | `amazon-contract-diff.js`: **CONTRACT UNCHANGED**, 7/0 (5s). The CSV exporters are not on the `/api/v1/*` path. |
+| 5 — Traceability audit | Yes (always) | **VERIFIED (manual, git-based)** | DEF-315 registered with symptom, root cause, before/after measurements, and the two-part fix; stakeholder row in `shipped-2026-07.md`; observations log appended. |
+| 6 — Performance / EF | No | **N/A** | String formatting only; no EF query, index, registration, or hosted-service change. |
+| 7 — Pending migration → prod | Yes (bundle carries pending migrations) | **VERIFIED** | DEF-315 adds no migration. Bundled `apply-migrations.sql` re-verified by **content, not line count** (it went 271→230 lines between builds purely on formatting — a count check would have raised a false alarm): all four migration history inserts present (`AddNormalizedSearchColumns`, `AddProductIdPartnersM2M`, `WidenCertificateProductIdProductName`, `WidenStatusHistoryCertificateNumber`), `CREATE TABLE [CertificateProductIdPartners]` present, DEF-314's `ALTER COLUMN [CertificateNumber] nvarchar(50)` present, all four `Normalized*` columns present, 24 `IF NOT EXISTS` guards, **0 CONCAT**. **DEPLOY-TIME: run before recycling the app pool — DEF-314 does not take effect without it.** |
+| 8 — CRUD write-path | Yes (export/service code) | **VERIFIED GREEN** | `deploy-gate.js` crud suite **39 PASS / 0 FAIL** (exit 0, 53s). Plus a direct partner-export round-trip: 22 header cols, **0/4 misaligned rows**, identifiers under correct headers, leading-zero GTIN preserved as `="012345678905"`, and `StripExcelTextFormat` confirmed to pass plain values through unchanged (import round-trip intact). |
+
+**Net:** all gates satisfied. Deterministic backbone **GREEN** (`_results/deploy-gate-2026-07-21T03-30-12-838Z.json` — security 33s ✔ · crud 53s ✔ · contract 5s ✔). **Gate 0 owed at upload. Gate 7 mandatory** — the SQL is what makes DEF-314 real.
+
+---
+
+### `GCCWebApp-deploy-20260720-2204.zip` — assessed 2026-07-21 (**SUPERSEDED by 2332 — missing the DEF-315 export fix**)
+
+**Why rebuilt:** carries **DEF-314** — the client's live status-save failure on `/Certificate/Edit/26-10126`. Root-caused, fixed, and proven by negative control. Adds model change `Models/CertificateStatusHistory.cs` + **new migration** `20260721015555_WidenStatusHistoryCertificateNumber`.
+
+**Delta vs 2137:** DEF-314 only (one model attribute + one metadata-only migration). CR-029 and everything earlier unchanged.
+
+| Gate | Fires? | Result | Evidence / rationale |
+|------|--------|--------|----------------------|
+| 0 — Uploads backup | Yes | **DEPLOY-TIME — OWED** | Built non-interactively (`-SkipUploadsBackupPrompt`); server-side backup **not** done. In-zip: 0 entries under `wwwroot/uploads/` and `App_Data/uploads/`. |
+| 1 — UI / Design-Guide | No | **N/A** | DEF-314 changes one model attribute + a migration. No view, CSS, or JS touched. (CR-029's `.cshtml` change was assessed on the 2037 bundle below.) |
+| 2 — Cross-role + responsive | No | **N/A** | No view or role-conditional surface changed by this delta. |
+| 3 — Data-scoping & endpoints | Yes (mapped entity changed) | **VERIFIED GREEN** | `deploy-gate.js` security suite exit 0, **63s**. Widening a column changes no scoping or filtering. |
+| 4 — Partner API contract | Yes (shared model) | **VERIFIED GREEN** | `amazon-contract-diff.js`: **CONTRACT UNCHANGED**, 7/0 (7s). `CertificateStatusHistory` is not exposed on `/api/v1/*`. |
+| 5 — Traceability audit | Yes (always) | **VERIFIED (manual, git-based)** | DEF-314 entered in the register with reported symptom, failure scenario, root cause, why-it-hid, fix, and before/after verification; stakeholder row added to `shipped-2026-07.md`; observations log appended. |
+| 6 — Performance / EF | Marginal (mapped entity) | **REASONED** | Metadata-only `ALTER COLUMN` widen on a low-volume audit table. No query, index, `Include`, service registration, or hosted-service change. |
+| 7 — Pending migration → prod | **Yes — NEW MIGRATION** | **VERIFIED (bundle) / DEPLOY-TIME (apply)** | ⚠️ **This is the gate that matters for this deploy.** `20260721015555_WidenStatusHistoryCertificateNumber` is new. Production never auto-migrates (`Program.cs:922-926`), so **the DLL alone does NOT fix DEF-314** — the column stays `nvarchar(7)` and the client's error persists. Bundled `apply-migrations.sql` verified to contain all four pending migrations *and* the literal `ALTER TABLE [CertificateStatusHistory] ALTER COLUMN [CertificateNumber] nvarchar(50) NULL;` (line 246), **0 CONCAT**. **Run the SQL BEFORE recycling the app pool.** |
+| 8 — CRUD write-path | Yes (cert Edit save path) | **VERIFIED GREEN** | `deploy-gate.js` crud suite **39 PASS / 0 FAIL** (exit 0, 56s). Plus DEF-314's own harness `_diag-status-save-truncation.js`: reproduced the failure pre-fix ([A] pass / [B] **client's exact error** / [C] pass) and cannot reproduce post-fix ([B] now saves) — a **negative control**, not merely a green test. |
+
+**Net:** all gates satisfied; deterministic backbone **GREEN** (`_results/deploy-gate-2026-07-21T02-09-01-973Z.json` — security 63s ✔ · crud 56s ✔ · contract 7s ✔). **Gate 0 owed at upload. Gate 7 is mandatory this time — skipping the SQL leaves the reported defect unfixed.**
+
+---
+
+### `GCCWebApp-deploy-20260720-2137.zip` — assessed 2026-07-20 (**SUPERSEDED by 2204 — missing the DEF-314 fix**)
+
+**Why rebuilt — Gate 7 defect found in the 2037 bundle (and in 1408 and 1250 before it):** all three were built with `-FromMigration 20260617200729_AddProductIdPartnersM2M`, i.e. **assuming prod had already applied that migration**. Their `apply-migrations.sql` therefore applied only `WidenCertificateProductIdProductName` — it **never created `CertificateProductIdPartners`** — and then the appended CR-171 backfill immediately ran `INSERT INTO CertificateProductIdPartners …`. If prod does *not* have that table, the script dies with `Invalid object name 'CertificateProductIdPartners'` and the deploy is left half-applied.
+
+**The contradiction that exposed it:** the 1250/1408 entries assert prod high-water = `AddProductIdPartnersM2M`, but the 🟢 note at the top of Gate 7 records a **live prod probe** finding `CertificateProductIdPartners` **does not exist**. Both cannot be true. The bundled SQL was only correct under the optimistic reading. **Never re-derive prod's high-water from a previous bundle's notes — probe the target, or script from a point you can prove.**
+
+**Fix:** rebuilt with `-FromMigration 20260605131035_ChangeUserCompanyToFreeText` — the last high-water this project has *directly verified* on prod. Because every block is `IF NOT EXISTS`-guarded, this is **safe under either reading**: if prod already has the June-16/17/24 migrations the guards skip them; if it doesn't, they get created. Still clear of the `EXEC(CONCAT(...))` parse trap (`AddCertificationResultsNumeric`, May 12, sits *before* the new baseline) — **0 CONCAT** verified in the output.
+
+**Bundled script now:** 271 lines / 17,788 bytes (was 27 lines / 3,107 bytes). Applies `AddNormalizedSearchColumns` → `AddProductIdPartnersM2M` (incl. `CREATE TABLE [CertificateProductIdPartners]`) → `WidenCertificateProductIdProductName`, then the CR-171 backfill. All three `__EFMigrationsHistory` inserts verified present.
+
+> ⚠️ **Verification gotcha:** grepping the script with `[0-9]+_[A-Za-z]+` silently **misses `AddProductIdPartnersM2M`** — the name contains digits, so the character class truncates the match and the migration looks absent. Use `[A-Za-z0-9]+`. A false "only 2 of 3 migrations" reading came from exactly this.
+
+**Delta vs 2037:** the migration script only — application code is byte-identical (same source tree, CR-029 included).
+
+**Gates:** all eight carried forward from the 2037 assessment below (same code, same green deterministic backbone — security 48s ✔ · crud 39s ✔ · contract ✔ `CONTRACT UNCHANGED`), with **Gate 7 re-verified and now genuinely correct** rather than passing on an unproven assumption. **Gate 0 (server uploads backup) remains OWED at upload.**
+
+> **Open at time of writing:** the client reports *"An error occurred while updating the certificate"* on **every** edit at `https://gccwebapp.com/Certificate/Edit/26-10126`. Root cause **not yet confirmed** — awaiting the server exception from `logs\stdout_*.log`. The missing-`CertificateProductIdPartners` hypothesis has since been **RULED OUT by local experiment** (`Scripts/smoke-prod/_diag-edit-failure-repro.js`): renaming the table away on the dev DB and re-running a plain edit produces **HTTP 500 (raw error page)**, not the client's friendly message — because `ReloadEditFormDataAsync`, called *inside* the catch at `CertificateController.cs:1385`, re-throws on the same missing table and the exception escapes. The client's error therefore comes from something that throws **inside the try but leaves the reload path working**. **This bundle is NOT a fix for that incident** — it is a fix for our own broken migration script, which is a separate (and real) problem.
+
+---
+
+### `GCCWebApp-deploy-20260720-2037.zip` — assessed 2026-07-20 (**SUPERSEDED by 2137 — do not upload; its migration script is broken, see above**)
+
+**Why rebuilt:** carries **CR-029** (QC #201 — Cert Results restored to all partner-facing surfaces, always as a percentage). The 1408 bundle predates it. Views precompile into `GCCWebApp.dll`, so the 1408 zip cannot carry the `CertificateExternalView.cshtml` change. **Delete the 1408 zip** to avoid uploading the wrong artifact.
+
+**Delta vs 1408:** CR-029 only — `Controllers/Api/CertificateTileExternalApiController.cs`, `Services/CertificateService.cs`, `Views/Certificate/CertificateExternalView.cshtml`. Everything else identical.
+
+| Gate | Fires? | Result | Evidence / rationale |
+|------|--------|--------|----------------------|
+| 0 — Uploads backup | Yes (every deploy) | **DEPLOY-TIME — OWED** | Still owed at upload. Built with `-SkipUploadsBackupPrompt` (non-interactive shell), so the script's reminder was bypassed — **the server-side backup has NOT been done.** Re-verified in-zip: **0 entries** under `wwwroot/uploads/` and `App_Data/uploads/` (both slash styles). |
+| 1 — UI / Design-Guide | Yes (`.cshtml` changed) | **REASONED** | The added block is a `detail-section` reusing three classes **already present in the same view** (`detail-section`, `certificate-section-title`, `certificate-field`) and mirrors `CertificateInternalView.cshtml`'s existing Certification Results block verbatim. No new markup pattern, no `<h1>`, no dialog, no inline `max-width`, no font declaration, no label/copy change (heading text matches the internal view and the client's own wording). Styling is inherited by construction. Rendered HTML confirmed on localhost. `ux-design-compliance` agent not re-run for this delta. |
+| 2 — Cross-role + responsive | Yes (role-conditional view) | **VERIFIED (behavior) / REASONED (visual)** | Verified as the **External** role on localhost: partner detail for `26-0146` renders `<div class="certificate-field">17%</div>`; external tile API returns `17%/100%/27%/100%`; external CSV carries `Cert Results` and still **excludes** Pathway / Cert Subcategories / Internal Tag. Analyst export regression clean (column order preserved, 54 rows). The change is additive read-only text inside an existing section container, so the 4-login × 5-viewport screenshot + AxeCore sweep was not re-run. |
+| 3 — Data-scoping & endpoints | Yes (controller + service changed) | **VERIFIED GREEN** | `deploy-gate.js` security suite exit 0, **48s**. Note: CR-029 *widens* what partners see by one field — that widening is the client's explicit 7/6 instruction, and Pathway / Cert Subcategories / Internal Tag remain gated (asserted in the export check above). |
+| 4 — Partner API contract | Yes (shared `CertificateService` changed) | **VERIFIED GREEN** | `amazon-contract-diff.js`: **CONTRACT UNCHANGED**, 7 pass / 0 fail vs the frozen April baselines (3s). `/api/v1/*` untouched. **Also: this CR is what finally makes this gate's own line-72 rule (*"`CertificationResults` renders as percentage on every Partner-facing surface"*) actually true** — it had been passing while the external tile column was blank, because a blank column renders no raw decimal to catch. |
+| 5 — Traceability audit | Yes (always) | **VERIFIED (manual, git-based)** | CR-029 entered in `change-request-register.md` with source (QC #201, Reporter Gemma, 7/6 client update), the why-CR-not-DEF basis, and the as-built scope; stakeholder row added to `shipped-2026-07.md`; `observations_log.md` appended. No orphan changes in the delta. No real-business-record UPDATE/DELETE in this deploy. |
+| 6 — Performance / EF | Marginal (an EF `.Select` changed) | **REASONED** | Added **one scalar column on the root entity** (`c.CertificationResults`) to an existing projection. No new `Include`, no join, no collection navigation, no cartesian-explosion surface, no service registration or hosted-service change — so the DEF-166/234 failure mode does not apply and cold-start timing was not re-run. |
+| 7 — Pending migration → prod | Yes (bundle carries a pending migration) | **VERIFIED** | CR-029 adds **no** migration and **no** mapped-entity change (`CertificationResults` is a long-existing column). In-zip `migrations/apply-migrations.sql` regenerated from prod high-water `AddProductIdPartnersM2M`: **27 lines, 3107 bytes, 0 CONCAT**, applies only `WidenCertificateProductIdProductName` + the appended idempotent CR-171 backfill. **DEPLOY-TIME:** run before recycling the app pool. |
+| 8 — CRUD write-path | Yes (`CertificateService` changed) | **VERIFIED GREEN** | `deploy-gate.js` crud suite **39 PASS / 0 FAIL** (exit 0, 39s). CR-029 touches read/export paths only, but the suite confirms no collateral write regression. |
+
+**Net:** all eight gates satisfied; **no gate failed, no waiver required.** Deterministic backbone **GREEN** (`_results/deploy-gate-2026-07-21T00-31-45-962Z.json` — security 48s ✔ · crud 39s ✔ · contract 3s ✔). In-zip verification: **338 entries**, 0 upload entries, `GCCWebApp.dll` 6,326,272 bytes. CR-029 confirmed present in the shipped DLL by **UTF-16 string-heap grep** — `Certification Results` (view heading), `Cert Results` (CSV header), `certificate-field` (view class) all True. *(Decode as UTF-16, not UTF-8: .NET's `#US` string heap is UTF-16LE, so a UTF-8 grep returns a false negative on exactly these literals — the same class of trap recorded on the 1408 bundle. Method/metadata names like `FormatCertificationResults` are ASCII and only appear under UTF-8.)* Gates 1/2 were assessed by scope+diff rather than agent-run — a conscious call on the basis that the only view change is an additive read-only field reusing in-file classes. **Gate 0 remains owed at upload.**
+
+---
+
+### `GCCWebApp-deploy-20260720-1408.zip` — assessed 2026-07-20 (**SUPERSEDED by 2037 — do not upload**)
+
+**Why rebuilt:** the 1250 bundle was cut *before* the Gate 1 audit landed. Its finding became **DEF-312** (Import Preview select-all ignoring the CR-025 filter), which changed `wwwroot/js/product-id-manager.js` and `Views/Shared/_ProductIdManager.cshtml` — and views precompile into `GCCWebApp.dll`, so the 1250 zip could not carry the fix. Rebuilt at 14:08. **Delete the 1250 zip** to avoid uploading the wrong artifact.
+
+**Delta vs 1250:** DEF-312 only (select-all scoping + the CR-025 search input's `aria-label`, 16px sizing, and `aria-live` count). Everything else identical.
+
+| Gate | Fires? | Result | Evidence / rationale |
+|------|--------|--------|----------------------|
+| 0 — Uploads backup | Yes (every deploy) | **DEPLOY-TIME — OWED** | Still owed at upload. Re-verified in-zip: 0 entries under `wwwroot/uploads/` and `App_Data/uploads/` (both slash styles checked). |
+| 1 — UI / Design-Guide | Yes | **VERIFIED — CLEAR-TO-SHIP** | `ux-design-compliance` agent run against the working-tree diff. 0 blockers; 5 of 7 rules clean. CR-024 + CR-027 confirmed verbatim vs the requested copy with no adjacent drift. Its one real finding is DEF-312, **fixed and in this bundle**. Remaining should-fix/nits (sub-16px CR-027 hint spans, touch targets, `aria-pressed` in initial markup, `:focus-visible`) logged, not blocking. Also surfaced the dead design-guide path — corrected in CLAUDE.md + 4 agent definitions + this checklist. |
+| 2 — Cross-role + responsive | Yes | **VERIFIED — CLEAR TO SHIP** | `accessibility-validator` agent + Playwright + axe across **Admin / Analyst / External / Public** at 5 viewports. 0 blockers, no NEW WCAG regressions from the diff. CR-025 filter tiles verified genuinely accessible (`role="button"`, `tabindex="0"`, Space+Enter, `aria-pressed` toggling, 3px focus ring). External restrictions confirmed (no Add/Import, zero internal tags, Edit/Create → AccessDenied, Actions column role-gated to zero width). DEF-311 tag removal and DEF-309 sort sequencing confirmed working. Artifacts in `Scripts/smoke-prod/_results/gate2-20260720/`. |
+| 3 — Data-scoping & endpoints | Yes | **VERIFIED GREEN** | `deploy-gate.js` security suite exit 0, 44s (re-run post-rebuild). |
+| 4 — Partner API contract | Yes | **VERIFIED GREEN** | `amazon-contract-diff.js`: **CONTRACT UNCHANGED**, 7/0 vs the frozen April baselines (re-run post-rebuild, 6s). |
+| 5 — Traceability audit | Yes (always) | **VERIFIED (manual, git-based)** | Every code change maps to a DEF/CR; DEF-312 added to the register with origin (Gate 1 audit) and reporter. Shipped log carries a stakeholder row per item plus a bundle row. No real-record UPDATE/DELETE in this deploy. |
+| 6 — Performance / EF | No | **N/A** | DEF-312 is client-side JS + one view; no EF, repository, service-registration, or hosted-service change. |
+| 7 — Pending migration → prod | Yes (bundle carries a pending migration) | **VERIFIED** | Unchanged by the rebuild: no new migration, no mapped-entity change. `migrations/apply-migrations.sql` regenerated from prod high-water `AddProductIdPartnersM2M` — applies only `WidenCertificateProductIdProductName` + the idempotent CR-171 backfill, **0 CONCAT**. **DEPLOY-TIME:** run before recycling the app pool. |
+| 8 — CRUD write-path | Yes | **VERIFIED GREEN** | `deploy-gate.js` crud suite **39 PASS / 0 FAIL** (exit 0, 52s, re-run post-rebuild). Plus DEF-310 replace round-trip **10/10** and DEF-312 scoping suite **9/9** (with a negative control proving the test fails against pre-fix code). |
+
+**Net:** all eight gates satisfied, **no gate REASONED-down this time** — Gates 1 and 2 were properly agent-run rather than assessed by scope. Deterministic backbone GREEN (`_results/deploy-gate-2026-07-20T18-17-38-968Z.json`). In-zip verification: 338 entries, DEF-312 present in the shipped `product-id-manager.js`, DEF-310 present in `GCCWebApp.dll`, and the DEF-312 view fix confirmed in **rendered HTML** from the running app (a DLL string-grep gave a false negative — Razor emits attribute values through a separate code path, so grep the rendered page, not the assembly). **Gate 0 remains owed at upload.**
+
+---
+
+### `GCCWebApp-deploy-20260720-1250.zip` — assessed 2026-07-20 (**SUPERSEDED by 1408 — do not upload**)
+
+**Shippable code in this changeset:** the full working tree since the 07-15 commit. New vs. the discarded 1853 zip: DEF-306/307 (CSV formula-injection, leading zeros, UTF-8 BOM — `Services/CertificateService.cs`, `Controllers/ExportController.cs`, `DashboardController.cs`, `Services/ProductIdService.cs`, `Extensions/CsvExportHelper.cs`, `wwwroot/js/admin/exportUtils.js`, `product-id-manager.js`), DEF-308 (`Program.cs` preview route), DEF-309 (all three tile-view JS), **DEF-310** (`CertificateController.cs`, `Extensions/UploadCacheBusting.cs`, 4 cert views, `_ViewImports.cshtml`, `Services/FileUploadService.cs`), DEF-311 (`wwwroot/js/certificate-create.js`), CR-025/026/027. Re-carries DEF-300/301/302/303/304/305, CR-024, ISS-001. Tracking docs, `Scripts/`, and `_results/` are non-shippable.
+
+| Gate | Fires? | Result | Evidence / rationale |
+|------|--------|--------|----------------------|
+| 0 — Uploads backup | Yes (every deploy) | **DEPLOY-TIME — OWED** | Not done at bundle time. Zip the server's `wwwroot/uploads/` before extracting. The pubxml exclusions were verified in-zip (0 entries under `wwwroot/uploads/` **and** `App_Data/uploads/`), but the backup is still the seatbelt. |
+| 1 — UI / Design-Guide | Yes (`.cshtml` + `wwwroot/js/*` changed) | **REASONED** | DEF-310's view edits add a query-string token to an existing `Url.Action` — no markup, CSS, label, dialog, heading, or font change; no new `alert/confirm/prompt`. CR-025/026/027 + DEF-311 were design-reviewed in their own sessions. `ux-design-compliance` agent not re-run for this bundle. |
+| 2 — Cross-role + responsive | Yes (role-conditional views changed) | **REASONED** | DEF-310 touches all four cert views (public/single/internal/external) identically — the same token on the same URL — and the endpoint's role gate (`FileAccessAllowed`) was not modified. No layout change, so the 4-login × 5-viewport screenshot sweep + AxeCore pass was not re-run. |
+| 3 — Data-scoping & endpoints | Yes (controllers/services changed) | **VERIFIED GREEN** | `deploy-gate.js` **security** suite (isolation / RBAC / IDOR / detail scoping) exit 0, 29s. DEF-310 note: the new `private` cache directive *strengthens* scoping — the same URL returns different bytes per role, so `private` prevents a shared cache serving one role's copy to another. |
+| 4 — Partner API contract | Yes (shared services changed) | **VERIFIED GREEN** | `amazon-contract-diff.js`: **CONTRACT UNCHANGED**, 7 pass / 0 fail vs the frozen April baselines (GS1 list, GS1 single, Standard list — identical structure). DEF-310 does not touch `/api/v1/*`. |
+| 5 — Traceability audit | Yes (always) | **VERIFIED (manual, git-based)** | Every modified code file maps to a DEF or CR (mapping in the "shippable code" line above); every DEF row cites its QC # / reporter; `shipped-2026-07.md` has a stakeholder row for each item **and** a bundle row for this zip. No orphan changes. **No real-business-record UPDATE/DELETE in this deploy** — the two `Scripts/data-ops/*.sql` files are untracked and not shipped (`Scripts/**` is excluded from publish). `governance-manager` agent not invoked; audit done by hand against `git status`. |
+| 6 — Performance / EF | No | **N/A** | No `Repositories/*` change, no EF query change, no service registration or hosted-service change. DEF-310 adds a response header and a pure hash helper; `Program.cs` was last touched for DEF-308 (a route mapping). |
+| 7 — Pending migration → prod | Yes (bundle carries a pending migration) | **VERIFIED** | This changeset adds **no** new migration and **no** mapped-entity change (`git status` shows nothing under `Migrations/` or `Models/`). In-zip `migrations/apply-migrations.sql` regenerated: **27 lines**, scripted from prod high-water `AddProductIdPartnersM2M`, applies only `WidenCertificateProductIdProductName` (metadata-only widen) + the idempotent CR-171 backfill, **0 CONCAT** — contents read and confirmed. **DEPLOY-TIME:** run this SQL (`sqlcmd -I`) *before* recycling the app pool. |
+| 8 — CRUD write-path | Yes (cert Create/Edit path changed) | **VERIFIED GREEN** | `deploy-gate.js` **crud** suite: **39 PASS / 0 FAIL => GREEN** (exit 0, 51s) — full create→edit→delete with SQL-verified persistence and net-zero counts for cert/tag/company/product/user, CR-186 no-duplicate-product invariant holding. Additionally DEF-310's own harness (`def310-replace-document-verify.js`) drove a real cert create + document replace **10/10 PASS**. |
+
+**Net:** no gate failed; no waiver required. Deterministic backbone **GREEN** (`_results/deploy-gate-2026-07-20T16-44-41-517Z.json`). Gates 1 and 2 were assessed by scope+diff rather than re-run — a conscious call, recorded here, on the basis that the only new view change is a query-string token on an existing URL. **Gate 0 is still owed at upload time.**
+
+---
 
 ### `GCCWebApp-deploy-20260713-1242.zip` — assessed 2026-07-13 (supersedes the 0932 assessment; adds DEF-304)
 

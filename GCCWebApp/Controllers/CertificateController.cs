@@ -998,21 +998,19 @@ namespace GCCWebApp.Controllers
                     var oldStatus = certificate.Status;
                     var requestedStatus = model.Status ?? "Draft";
 
-                    // DEF-285 (QC #188): expiry-correction auto-revert. A cert that auto-expired
-                    // (date-driven) is otherwise trapped by the Expired→{Republished,Draft} matrix —
-                    // the user can fix the expiration date but can't restore the prior status
-                    // ("a certificate cannot be changed from Expired to Client Approved - Paid").
-                    // Per Shawn (2026-06-24): when the edit moves the ExpirationDate back to today/
-                    // future on a currently-Expired cert AND the user didn't pick a valid alternative
-                    // themselves, restore the status the cert held immediately before it auto-expired
-                    // (recovered from the auto-expire history row), bypassing the transition block for
-                    // this corrective restore. Falls back to Draft if no pre-expiry status is recorded.
+                    // DEF-285 / QC #188 expiry-correction auto-restore. When a cert auto-expired
+                    // (date-driven) and the analyst edits the ExpirationDate back to today/future
+                    // but LEAVES the Status on "Expired", restore the status the cert held
+                    // immediately before it auto-expired (recovered from the auto-expire history
+                    // row), falling back to Draft. This fires ONLY when the analyst did not change
+                    // the status themselves — an explicit choice always wins now that the workflow
+                    // transition matrix has been removed (CR-028; see the CR-028 note below), so
+                    // this is purely a convenience for the "fixed the date, forgot the status" case.
                     var isExpiryRevert = false;
                     if (string.Equals(oldStatus, CertificateStatusHelper.StatusExpired, StringComparison.Ordinal)
                         && model.ExpirationDate.HasValue
                         && model.ExpirationDate.Value.Date >= CertificateStatusHelper.BusinessToday
-                        && (string.Equals(requestedStatus, oldStatus, StringComparison.Ordinal)
-                            || !CertificateStatusHelper.IsValidTransition(oldStatus, requestedStatus)))
+                        && string.Equals(requestedStatus, oldStatus, StringComparison.Ordinal))
                     {
                         var priorStatus = await _context.CertificateStatusHistory
                             .Where(h => h.CertificateId == certificate.Id
@@ -1030,38 +1028,23 @@ namespace GCCWebApp.Controllers
                         isExpiryRevert = true;
 
                         _logger.LogInformation(
-                            "QC#188 expiry-correction: cert {Number} ExpirationDate moved to {Date:yyyy-MM-dd}; reverting status 'Expired' → '{New}'",
+                            "QC#188 expiry-correction: cert {Number} ExpirationDate moved to {Date:yyyy-MM-dd}; auto-restoring status 'Expired' → '{New}' (status left unchanged by analyst)",
                             certificate.Number, model.ExpirationDate.Value, requestedStatus);
                     }
 
-                    if (!isExpiryRevert
-                        && !string.Equals(oldStatus, requestedStatus, StringComparison.Ordinal)
-                        && !CertificateStatusHelper.IsValidTransition(oldStatus, requestedStatus))
-                    {
-                        var fromDisplay = CertificateStatusHelper.GetDisplayName(oldStatus);
-                        var toDisplay = CertificateStatusHelper.GetDisplayName(requestedStatus);
-                        var allowedNext = CertificateStatusHelper.GetAllowedNextStatusDisplayNames(oldStatus);
-                        var allowedText = allowedNext.Count > 0
-                            ? $"From '{fromDisplay}' you can move to: {string.Join(", ", allowedNext)}."
-                            : $"'{fromDisplay}' is a final state with no further transitions.";
-                        _logger.LogWarning(
-                            "Invalid workflow transition rejected for cert {Number}: '{From}' → '{To}' by user {UserId}",
-                            certificate.Number, oldStatus, requestedStatus, GetCurrentUserId());
-                        // DEF-305 UX trap fix: the rejected save persists nothing, but the
-                        // Status dropdown would otherwise redisplay the invalid choice — so a
-                        // blind re-save fails again and feels like a lock-out. Snap the field
-                        // back to the certificate's true stored status before re-rendering.
-                        // The <select asp-for="Status"> tag helper binds to ModelState's
-                        // POSTED value, which would win over model.Status on re-render — so we
-                        // must clear that stale entry, then re-attach the error (with no raw
-                        // value) so the message still shows against the field.
-                        model.Status = oldStatus;
-                        ModelState.Remove(nameof(model.Status));
-                        ModelState.AddModelError(nameof(model.Status),
-                            $"Invalid status transition from '{fromDisplay}' to '{toDisplay}'. {allowedText}");
-                        await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
-                        return View(model);
-                    }
+                    // CR-028 (client decision, 2026-07-20): the certificate status workflow
+                    // TRANSITION MATRIX has been REMOVED. The client reviewed the transition
+                    // sign-off sheet (docs/tracking/email-draft-2026-07-13-workflow-status-decision.md,
+                    // "Fix #2") and decided status should be freely selectable — no allowed-path
+                    // enforcement. Any status an Analyst/Admin picks on Edit is now saved as-is
+                    // (the exact case the client hit: Draft → Republished). This intentionally
+                    // replaces the DEF-203 matrix enforcement and its DEF-305 re-render UX handling
+                    // that used to live here. Two safeguards deliberately REMAIN:
+                    //   • Role-based availability — External users still get Draft only via
+                    //     GetStatusesForRole (data isolation, not workflow; External users never
+                    //     reach Create/Edit anyway — analyst/admin only).
+                    //   • Audit trail — every status change is still written to
+                    //     CertificateStatusHistory below.
 
                     // Update basic properties
                     certificate.Number = model.Number;
@@ -1341,12 +1324,12 @@ namespace GCCWebApp.Controllers
                         _context.CertificateStatusHistory.Add(historyRow);
                     }
 
-                    // DEF-203: write audit row for user-initiated status transitions.
+                    // DEF-203 / CR-028: write audit row for user-initiated status transitions.
                     // Skipped when the auto-expire above already changed the status
                     // (it writes its own row above; avoid double-history). Also a
-                    // no-op when the user didn't actually change Status. The
-                    // validation upstream already rejected invalid jumps, so any
-                    // change reaching here is matrix-legal.
+                    // no-op when the user didn't actually change Status. Since CR-028
+                    // removed the transition matrix, any status the analyst picks is
+                    // accepted — the audit row is now the sole record of the change.
                     if (!autoExpired
                         && !string.Equals(oldStatus, certificate.Status, StringComparison.Ordinal))
                     {
@@ -2006,6 +1989,8 @@ namespace GCCWebApp.Controllers
         {
             try
             {
+                SetUploadRevalidationHeaders(); // DEF-310
+
                 var certificate = await _certificateRepository.GetByIdAsync(id);
                 if (certificate == null)
                 {
@@ -2088,6 +2073,8 @@ namespace GCCWebApp.Controllers
         {
             try
             {
+                SetUploadRevalidationHeaders(); // DEF-310
+
                 var certificate = await _certificateRepository.GetByIdAsync(id);
                 if (certificate == null) return NotFound();
 
@@ -2209,6 +2196,23 @@ namespace GCCWebApp.Controllers
 
             denyReason = string.Empty;
             return true;
+        }
+
+        /// <summary>
+        /// DEF-310 (QC #191). ViewCertificateFile / ViewCertificateImage are stable per-certificate
+        /// URLs, but the file behind them changes whenever an analyst replaces the uploaded document
+        /// on Edit. Those responses previously carried no Cache-Control at all, so a browser applied
+        /// heuristic freshness (~10% of the document's age) and served the OLD document after a
+        /// replace — for days, on a long-standing certificate. `no-cache` does not forbid caching;
+        /// it requires the cache to revalidate before reuse, and PhysicalFile already emits a
+        /// length/mtime-derived ETag + Last-Modified, so an unchanged file still costs only a 304.
+        /// `private` additionally keeps shared caches out: the same URL returns different results
+        /// per role (see FileAccessAllowed), so a shared cache could otherwise serve an Analyst's
+        /// copy to an anonymous caller.
+        /// </summary>
+        private void SetUploadRevalidationHeaders()
+        {
+            Response.Headers.CacheControl = "private, no-cache, must-revalidate";
         }
 
         /// <summary>
@@ -2537,7 +2541,13 @@ namespace GCCWebApp.Controllers
                 }
 
                 var fileName = $"certificates-{DateTime.Now:yyyy-MM-dd-HHmmss}.csv";
-                return File(exportData, "text/csv", fileName);
+                // Prepend a UTF-8 BOM so Excel on Windows decodes non-ASCII cell values (e.g. a
+                // product name containing a right single quote ' U+2019) as UTF-8 instead of
+                // Windows-1252 — otherwise ' renders as "â€™".  mojibake-doc
+                // Applied here at the MVC download site, NOT inside the shared
+                // ExportCertificatesAsync service, so the frozen /api/v1/certificates* partner
+                // export bytes stay byte-identical.
+                return File(GCCWebApp.Extensions.CsvExportHelper.WithBom(exportData), "text/csv", fileName);
             }
             catch (Exception ex)
             {

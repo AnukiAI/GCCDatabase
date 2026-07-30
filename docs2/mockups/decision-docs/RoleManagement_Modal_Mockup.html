@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Role Management Modal - Design Mockup</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .mockup-container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .mockup-title {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .mockup-title span {
+            color: #92C83E;
+        }
+
+        /* Modal Styles */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-container {
+            position: relative;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: #f8f9fa;
+            padding: 16px 24px;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            color: #002B76;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #666;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #e9ecef;
+        }
+
+        .modal-body {
+            padding: 20px 24px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            background: #f8f9fa;
+            padding: 16px 24px;
+            border-top: 2px solid #e9ecef;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Form Styles */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .form-label.required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #92C83E;
+            box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.15);
+        }
+
+        .form-textarea {
+            resize: none;
+            height: 60px;
+        }
+
+        /* Permissions Section */
+        .permissions-section {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .permissions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .permissions-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .permissions-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .permissions-actions button {
+            background: none;
+            border: 1px solid #ced4da;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .permissions-actions button:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        /* Permission Categories Grid */
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .permission-category {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .category-header {
+            background: #002B76;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .category-header i {
+            margin-right: 6px;
+            opacity: 0.8;
+        }
+
+        .category-body {
+            padding: 8px;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .permission-item:hover {
+            background: #f0f7e6;
+        }
+
+        .permission-item input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            margin-top: 2px;
+            accent-color: #92C83E;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .permission-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .permission-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+            line-height: 1.3;
+        }
+
+        .permission-desc {
+            font-size: 10px;
+            color: #888;
+            line-height: 1.3;
+            margin-top: 2px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            background: #fff;
+            border: 1px solid #ced4da;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+
+        .btn-primary {
+            background: #92C83E;
+            border: 1px solid #92C83E;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #7fb835;
+            border-color: #7fb835;
+        }
+
+        /* Warning Alert */
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px 14px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #856404;
+        }
+
+        .alert-warning i {
+            color: #ffc107;
+        }
+
+        /* Design Notes */
+        .design-notes {
+            background: #2d2d44;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            color: #ccc;
+        }
+
+        .design-notes h3 {
+            color: #92C83E;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .design-notes ul {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+
+        .design-notes code {
+            background: #1a1a2e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #92C83E;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .permissions-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .permissions-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mockup-container">
+        <h1 class="mockup-title">Role Management Modal - <span>Design Mockup</span></h1>
+
+        <!-- Modal -->
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Role</h3>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Basic Info Row -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Role Name</label>
+                        <input type="text" class="form-input" placeholder="e.g., Partner Manager">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-input" placeholder="Brief description of role">
+                    </div>
+                </div>
+
+                <!-- Permissions Section -->
+                <div class="form-group">
+                    <div class="permissions-section">
+                        <div class="permissions-header">
+                            <span class="permissions-title">Permissions</span>
+                            <div class="permissions-actions">
+                                <button onclick="selectAll()">Select All</button>
+                                <button onclick="clearAll()">Clear All</button>
+                            </div>
+                        </div>
+
+                        <div class="permissions-grid">
+                            <!-- Certificate Module -->
+                            <div class="permission-category">
+                                <div class="category-header">
+                                    <i class="fas fa-certificate"></i> Certificates
+                                </div>
+                                <div class="category-body">
+                                    <label class="permission-item">
+                                        <input type="checkbox" checked>
+                                        <div class="permission-info">
+                                            <div class="permission-name">View Certificates</div>
+                                            <div class="permission-desc">Browse certificate list</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Create Certificates</div>
+                                            <div class="permission-desc">Add new certificates</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Edit Certificates</div>
+                                            <div class="permission-desc">Modify existing certificates</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Delete Certificates</div>
+                                            <div class="permission-desc">Remove certificates</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Manage Workflow</div>
+                                            <div class="permission-desc">Approve/reject submissions</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Data Module -->
+                            <div class="permission-category">
+                                <div class="category-header">
+                                    <i class="fas fa-database"></i> Data
+                                </div>
+                                <div class="category-body">
+                                    <label class="permission-item">
+                                        <input type="checkbox" checked>
+                                        <div class="permission-info">
+                                            <div class="permission-name">Export Data</div>
+                                            <div class="permission-desc">Download CSV exports</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Import Data</div>
+                                            <div class="permission-desc">Bulk import from CSV</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">View Reports</div>
+                                            <div class="permission-desc">Access analytics reports</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">View Audit Logs</div>
+                                            <div class="permission-desc">System activity history</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Administration Module -->
+                            <div class="permission-category">
+                                <div class="category-header">
+                                    <i class="fas fa-cog"></i> Administration
+                                </div>
+                                <div class="category-body">
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Manage Users</div>
+                                            <div class="permission-desc">Create/edit user accounts</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Manage Roles</div>
+                                            <div class="permission-desc">Configure role permissions</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Manage Companies</div>
+                                            <div class="permission-desc">Partner/client companies</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Manage Tags</div>
+                                            <div class="permission-desc">Internal classification tags</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Manage Partners</div>
+                                            <div class="permission-desc">API keys & partner access</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- API Access Module -->
+                            <div class="permission-category">
+                                <div class="category-header">
+                                    <i class="fas fa-plug"></i> API Access
+                                </div>
+                                <div class="category-body">
+                                    <label class="permission-item">
+                                        <input type="checkbox" checked>
+                                        <div class="permission-info">
+                                            <div class="permission-name">API Read</div>
+                                            <div class="permission-desc">Read data via API</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">API Write</div>
+                                            <div class="permission-desc">Create/update via API</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">API Delete</div>
+                                            <div class="permission-desc">Delete via API</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Products Module -->
+                            <div class="permission-category">
+                                <div class="category-header">
+                                    <i class="fas fa-box"></i> Products
+                                </div>
+                                <div class="category-body">
+                                    <label class="permission-item">
+                                        <input type="checkbox" checked>
+                                        <div class="permission-info">
+                                            <div class="permission-name">View Products</div>
+                                            <div class="permission-desc">Browse product catalog</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Manage Products</div>
+                                            <div class="permission-desc">Add/edit products</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Manage Product Types</div>
+                                            <div class="permission-desc">Categories & types</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- System Module -->
+                            <div class="permission-category">
+                                <div class="category-header">
+                                    <i class="fas fa-shield-alt"></i> System
+                                </div>
+                                <div class="category-body">
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">System Settings</div>
+                                            <div class="permission-desc">Global configuration</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Manage Cert Types</div>
+                                            <div class="permission-desc">Certification types</div>
+                                        </div>
+                                    </label>
+                                    <label class="permission-item">
+                                        <input type="checkbox">
+                                        <div class="permission-info">
+                                            <div class="permission-name">Manage Custom Fields</div>
+                                            <div class="permission-desc">Dynamic form fields</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Role Warning (hidden by default) -->
+                        <div class="alert-warning" style="display: none;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            This is a system role. Changes may affect core functionality.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary">Cancel</button>
+                <button class="btn btn-primary"><i class="fas fa-save"></i> Save Role</button>
+            </div>
+        </div>
+
+        <!-- Design Notes -->
+        <div class="design-notes">
+            <h3><i class="fas fa-info-circle"></i> Design Notes</h3>
+            <ul>
+                <li><strong>Modal Width:</strong> <code>800px</code> - wider to fit 3-column permission grid</li>
+                <li><strong>Permission Categories:</strong> 6 categories with 3-5 permissions each (24 total)</li>
+                <li><strong>Layout:</strong> 3-column grid for permissions, responsive to 2-column and 1-column</li>
+                <li><strong>Each Permission Has:</strong> Checkbox + Name + Short description</li>
+                <li><strong>Quick Actions:</strong> "Select All" and "Clear All" buttons in header</li>
+                <li><strong>Role Name + Description:</strong> Side-by-side to save vertical space</li>
+                <li><strong>Category Headers:</strong> Color-coded with icons for quick recognition</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function selectAll() {
+            document.querySelectorAll('.permission-item input[type="checkbox"]').forEach(cb => cb.checked = true);
+        }
+
+        function clearAll() {
+            document.querySelectorAll('.permission-item input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+    </script>
+</body>
+</html>

@@ -737,8 +737,8 @@ namespace GCCWebApp.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("CertificateNumber")
-                        .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("ChangeSource")
                         .HasMaxLength(50)

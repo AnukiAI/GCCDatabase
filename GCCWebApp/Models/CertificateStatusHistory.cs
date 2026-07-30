@@ -24,7 +24,18 @@ namespace GCCWebApp.Models
         /// <summary>
         /// Certificate number (denormalized for query performance)
         /// </summary>
-        [MaxLength(7)]
+        /// <remarks>
+        /// DEF-314: was MaxLength(7) — sized for exactly "YY-NNNN" — while the source column
+        /// Certificate.Number is MaxLength(50). A denormalized copy narrower than its source is
+        /// a latent bug: any certificate number longer than 7 chars (e.g. "26-10126", 8 chars)
+        /// stores fine on Certificates but overflows here. A status change is the only path that
+        /// inserts a row (CertificateController.cs:1336), so SQL Server raised "String or binary
+        /// data would be truncated" on save, which the catch at CertificateController.cs:1385
+        /// turned into the generic "An error occurred while updating the certificate". Plain
+        /// edits were unaffected because they never write a status-history row.
+        /// Widened to 50 to match the source. Keep these two in lock-step.
+        /// </remarks>
+        [MaxLength(50)]
         public string? CertificateNumber { get; set; }
 
         /// <summary>

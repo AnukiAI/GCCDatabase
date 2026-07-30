@@ -245,7 +245,7 @@
                     <button class="btn btn-primary" id="exportAllBtn" aria-label="Export all visible certificates to CSV file">
                         <i class="fas fa-file-csv" aria-hidden="true"></i> Export All to CSV
                     </button>
-                    @if (User.IsInRole("Admin"))
+                    @if (User.IsInRole("Admin") || User.IsInRole("Analyst"))
                     {
                         <button type="button" class="btn btn-outline" id="openImportModalBtn" title="Bulk import certificates from CSV" aria-label="Bulk import certificates from CSV file">
                             <i class="fas fa-file-arrow-down" aria-hidden="true"></i> Import
@@ -404,7 +404,7 @@
     </div>
 </div>
 
-@if (User.IsInRole("Admin"))
+@if (User.IsInRole("Admin") || User.IsInRole("Analyst"))
 {
 <!-- Certificate Import Modal -->
 <div id="certificate-import-modal" class="import-modal-wrapper" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">

@@ -118,7 +118,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="ProductId">Product Name <span class="text-danger" aria-label="required">*</span></label>
+                        <label asp-for="ProductId">Product Name <span class="text-muted" style="font-size: 12px; font-weight: normal;">(list 'City, State Facility' if facility cert)</span> <span class="text-danger" aria-label="required">*</span></label>
                         <select asp-for="ProductId" class="form-control" required aria-required="true">
                             <option value="">Select a product...</option>
                             @* Products loaded dynamically based on company selection *@
@@ -289,8 +289,10 @@
                             string editImageSrc = "";
                             if (editHasValidSnapshot)
                             {
+                                // DEF-310 (QC #191): `v` changes whenever the stored file changes, so a
+                                // replaced document can't be served from a stale browser/CDN cache.
                                 editImageSrc = Model.Id > 0
-                                    ? Url.Action("ViewCertificateImage", "Certificate", new { id = Model.Id }) ?? ""
+                                    ? Url.Action("ViewCertificateImage", "Certificate", new { id = Model.Id, v = UploadCacheBusting.VersionToken(editImagePath) }) ?? ""
                                     : (editImagePath.StartsWith("/") ? editImagePath : $"/{editImagePath}");
                             }
                         }

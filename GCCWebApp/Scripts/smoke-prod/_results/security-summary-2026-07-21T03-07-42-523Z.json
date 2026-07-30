@@ -1,0 +1,40 @@
+{
+  "status": "GREEN",
+  "totals": {
+    "pass": 55,
+    "fail": 0,
+    "warn": 2,
+    "blocked": 0
+  },
+  "specs": [
+    {
+      "spec": "partner-isolation",
+      "pass": 19,
+      "fail": 0,
+      "warn": 2,
+      "blocked": 0
+    },
+    {
+      "spec": "rbac-matrix",
+      "pass": 24,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "idor-download",
+      "pass": 2,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "cert-detail-scoping",
+      "pass": 10,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    }
+  ],
+  "finishedAt": "2026-07-21T03:07:42.523Z"
+}

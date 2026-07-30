@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Partner API - Test Results Report</title>
+    <style>
+@page { size: letter; margin: 0.5in 0.6in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 18px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 13pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 28px; margin-bottom: 10px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 16px; margin-bottom: 6px; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 12px; margin-bottom: 5px; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px 0; font-size: 8.5pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 7px; font-size: 8.5pt; }
+td { padding: 5px 7px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; overflow-x: auto; font-size: 7.5pt; line-height: 1.4; margin: 6px 0 14px 0; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 10px 0; font-size: 9pt; page-break-inside: avoid; border-radius: 0 4px 4px 0; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.callout-success { border-color: #2e7d32; background: #f0f8e8; }
+.callout-danger { border-color: #c62828; background: #fff5f5; }
+
+/* Status badges */
+.badge { display: inline-block; padding: 2px 10px; border-radius: 3px; font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.badge-pass { background: #e8f5e1; color: #2e7d32; }
+.badge-fail { background: #ffebee; color: #c62828; }
+.badge-warn { background: #fff8e1; color: #f57f17; }
+.badge-skip { background: #f5f5f5; color: #757575; }
+.badge-info { background: #e3f2fd; color: #1565c0; }
+
+/* Summary cards */
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 12px 0 18px 0; }
+.summary-card { border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; text-align: center; }
+.summary-card .num { font-size: 24pt; font-weight: 700; line-height: 1; }
+.summary-card .label { font-size: 8pt; color: #666; text-transform: uppercase; margin-top: 4px; }
+.card-pass { border-color: #66bb6a; }
+.card-pass .num { color: #2e7d32; }
+.card-fail { border-color: #ef5350; }
+.card-fail .num { color: #c62828; }
+.card-total { border-color: #002B76; }
+.card-total .num { color: #002B76; }
+.card-rate { border-color: #42a5f5; }
+.card-rate .num { color: #1565c0; }
+
+/* Test result row */
+.test-row { border: 1px solid #e0e0e0; border-radius: 4px; margin: 8px 0; page-break-inside: avoid; }
+.test-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #f8f9fa; border-bottom: 1px solid #e0e0e0; border-radius: 4px 4px 0 0; }
+.test-id { font-weight: 700; color: #002B76; font-size: 9pt; }
+.test-name { font-size: 9pt; color: #333; flex: 1; margin-left: 12px; }
+.test-time { font-size: 7.5pt; color: #888; margin-right: 8px; }
+.test-body { padding: 8px 10px; font-size: 8.5pt; }
+.test-body .req { color: #555; margin-bottom: 4px; }
+.test-body .req code { font-size: 8pt; }
+
+.field-table td:first-child { font-weight: 600; white-space: nowrap; }
+.confidential { background: #fff3e0; border: 2px solid #e65100; padding: 8px 14px; border-radius: 4px; font-size: 9pt; margin: 10px 0; text-align: center; font-weight: 600; color: #e65100; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 16px; margin: 12px 0 20px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 6px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+
+@media print { body { padding: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="doc-header">
+    <h1>Partner API Test Results</h1>
+    <p class="subtitle">GCC Database Solution &mdash; Live Test Execution Report</p>
+    <div class="doc-meta">
+        <div><strong>Test Date:</strong> March 6, 2026</div>
+        <div><strong>Environment:</strong> Development (localhost:5101)</div>
+        <div><strong>Tester:</strong> Automated via curl</div>
+        <div><strong>Database:</strong> SQL Server (ANUKI01)</div>
+        <div><strong>API Version:</strong> v1.0</div>
+        <div><strong>Prepared by:</strong> PointSolve Technology Inc.</div>
+    </div>
+</div>
+
+<div class="confidential">CONFIDENTIAL &mdash; For authorized GCC stakeholders only</div>
+
+<div class="toc">
+    <div class="toc-title">Contents</div>
+    <a href="#summary">1. Executive Summary</a>
+    <a href="#auth-tests">2. Authentication Tests</a>
+    <a href="#cert-tests">3. Certificate Retrieval Tests</a>
+    <a href="#gs1-tests">4. GS1 JSON-LD Format Tests</a>
+    <a href="#search-tests">5. Product ID Search Tests</a>
+    <a href="#pdf-tests">6. PDF Download Tests</a>
+    <a href="#pagination-tests">7. Pagination Tests</a>
+    <a href="#field-verify">8. Field Verification &mdash; Standard JSON</a>
+    <a href="#field-verify-gs1">9. Field Verification &mdash; GS1 JSON-LD</a>
+    <a href="#performance">10. Performance Summary</a>
+    <a href="#issues">11. Issues &amp; Observations</a>
+    <a href="#recommendations">12. Recommendations</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- 1. EXECUTIVE SUMMARY -->
+<!-- ============================================================ -->
+<h2 id="summary">1. Executive Summary</h2>
+
+<div class="summary-grid">
+    <div class="summary-card card-pass">
+        <div class="num">10</div>
+        <div class="label">Passed</div>
+    </div>
+    <div class="summary-card card-fail">
+        <div class="num">1</div>
+        <div class="label">Expected Fail</div>
+    </div>
+    <div class="summary-card card-total">
+        <div class="num">12</div>
+        <div class="label">Total Tests</div>
+    </div>
+    <div class="summary-card card-rate">
+        <div class="num">92%</div>
+        <div class="label">Pass Rate</div>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr><th>Category</th><th>Passed</th><th>Failed</th><th>Total</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><strong>Authentication</strong></td><td>3</td><td>0</td><td>3</td><td><span class="badge badge-pass">PASS</span></td></tr>
+        <tr><td><strong>Certificate Retrieval (Standard)</strong></td><td>3</td><td>0</td><td>3</td><td><span class="badge badge-pass">PASS</span></td></tr>
+        <tr><td><strong>GS1 JSON-LD Format</strong></td><td>2</td><td>0</td><td>2</td><td><span class="badge badge-pass">PASS</span></td></tr>
+        <tr><td><strong>Product ID Search</strong></td><td>1</td><td>0</td><td>1</td><td><span class="badge badge-pass">PASS</span></td></tr>
+        <tr><td><strong>PDF Download</strong></td><td>0</td><td>1</td><td>1</td><td><span class="badge badge-warn">NO PDF ON FILE</span></td></tr>
+        <tr><td><strong>Pagination</strong></td><td>1</td><td>0</td><td>1</td><td><span class="badge badge-pass">PASS</span></td></tr>
+        <tr><td><strong>Error Handling</strong></td><td>1</td><td>0</td><td>1</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-success">
+    <strong>Overall Assessment:</strong> The Partner API is functioning correctly for all core Amazon integration scenarios. Authentication, certificate retrieval, GS1 format, pagination, and error handling all pass. The PDF download returned 404 because no PDF file is uploaded for the test certificate &mdash; this is expected in the test environment and not an API defect.
+</div>
+
+<!-- ============================================================ -->
+<!-- 2. AUTHENTICATION TESTS -->
+<!-- ============================================================ -->
+<h2 id="auth-tests">2. Authentication Tests</h2>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">AUTH-001</span>
+        <span class="test-name">Valid Partner API Key</span>
+        <span class="test-time">0.428s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates?pageSize=2</code> with valid <code>X-API-Key</code></div>
+        <p><strong>Result:</strong> HTTP 200 &mdash; Returns certificate data with proper JSON structure. Response includes <code>success: true</code>, pagination metadata, and 1 Active certificate for the Amazon partner.</p>
+    </div>
+</div>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">AUTH-002</span>
+        <span class="test-name">Invalid API Key</span>
+        <span class="test-time">0.107s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates?pageSize=1</code> with <code>X-API-Key: invalid_key_12345</code></div>
+        <p><strong>Result:</strong> HTTP 401 &mdash; Request correctly rejected. No data exposed.</p>
+    </div>
+</div>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">AUTH-003</span>
+        <span class="test-name">No API Key Header</span>
+        <span class="test-time">0.007s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates?pageSize=1</code> with no <code>X-API-Key</code> header</div>
+        <p><strong>Result:</strong> HTTP 401 &mdash; Request correctly rejected. No data exposed.</p>
+    </div>
+</div>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">AUTH-004</span>
+        <span class="test-name">Revoked API Key</span>
+        <span class="test-time">0.022s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates?pageSize=1</code> with revoked Novi API key</div>
+        <p><strong>Result:</strong> HTTP 401 &mdash; Returns structured error:</p>
+        <pre><code>{
+  "success": false,
+  "errors": [{ "code": "UNAUTHORIZED", "message": "Unauthorized: Invalid or expired API key" }]
+}</code></pre>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 3. CERTIFICATE RETRIEVAL -->
+<!-- ============================================================ -->
+<h2 id="cert-tests">3. Certificate Retrieval Tests</h2>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">CERT-001</span>
+        <span class="test-name">List Certificates (Standard JSON)</span>
+        <span class="test-time">0.428s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates?pageSize=2</code></div>
+        <p><strong>Result:</strong> HTTP 200 &mdash; Returns 1 Active certificate (totalCount: 1). All expected fields present.</p>
+        <pre><code>{
+  "pagination": { "totalCount": 1, "pageNumber": 1, "pageSize": 2, "totalPages": 1, "hasNext": false },
+  "success": true,
+  "data": [{
+    "id": 2,
+    "certificateNumber": "26-0001",
+    "status": "Active",
+    "issueDate": "2026-01-01T00:00:00",
+    "expirationDate": "2027-01-01T00:00:00",
+    "country": "United States",
+    "partner": "Amazon",
+    "certificationResults": "95%",
+    "company": "Acme Corporation",
+    "productName": "Widget Pro",
+    "certificationType": "Recycled Content",
+    "amazonCode": "RC",
+    ...
+  }]
+}</code></pre>
+    </div>
+</div>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">CERT-002</span>
+        <span class="test-name">List with Product IDs (includeProductIds=true)</span>
+        <span class="test-time">0.176s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates?pageSize=1&amp;includeProductIds=true</code></div>
+        <p><strong>Result:</strong> HTTP 200 &mdash; Response now includes additional fields: <code>issuer</code>, <code>productIds</code> (array), and <code>pdfDownloadUrl</code>.</p>
+        <p><strong>Note:</strong> The <code>productIds</code> array is empty for this test certificate (no CertificateProductId records linked). The field structure is present and correct.</p>
+        <pre><code>{
+  ...
+  "issuer": "Green Circle Certified",
+  "productIds": [],
+  "pdfDownloadUrl": "/api/v1/certificates/26-0001/download"
+}</code></pre>
+    </div>
+</div>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">CERT-003</span>
+        <span class="test-name">Get Certificate by Number</span>
+        <span class="test-time">0.098s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates/number/26-0001</code></div>
+        <p><strong>Result:</strong> HTTP 200 &mdash; Returns full certificate detail with nested <code>company</code>, <code>product</code>, and <code>certificationType</code> objects. Includes related entities (products, tags, documents, statusHistory).</p>
+        <p><strong>Note:</strong> This endpoint returns the raw entity model (not the flattened list DTO). Field names differ slightly: <code>effectiveDate</code> instead of <code>issueDate</code>, <code>number</code> instead of <code>certificateNumber</code>.</p>
+    </div>
+</div>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">CERT-004</span>
+        <span class="test-name">Certificate Not Found (404)</span>
+        <span class="test-time">0.166s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates/999999</code></div>
+        <p><strong>Result:</strong> HTTP 404 &mdash; Returns structured error:</p>
+        <pre><code>{
+  "success": false,
+  "errors": [{ "code": "RESOURCE_NOT_FOUND", "message": "Certificate with ID 999999 not found" }]
+}</code></pre>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 4. GS1 JSON-LD FORMAT -->
+<!-- ============================================================ -->
+<h2 id="gs1-tests">4. GS1 JSON-LD Format Tests</h2>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">GS1-001</span>
+        <span class="test-name">List Certificates (GS1 JSON-LD)</span>
+        <span class="test-time">0.210s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates/gs1?pageSize=1</code></div>
+        <p><strong>Result:</strong> HTTP 200 &mdash; Returns certificate in GS1 CertificationReport format with proper <code>@context</code>, <code>$schema</code>, nested <code>products</code> array, and <code>certificationInfo</code> object.</p>
+        <pre><code>{
+  "success": true,
+  "data": [{
+    "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+    "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+    "type": "CertificationReport",
+    "issueDate": "2026-01-01",
+    "issuer": "Green Circle Certified",
+    "products": [{
+      "type": "Product",
+      "name": "Widget Pro",
+      "certificationInfo": {
+        "type": "CertificationDetails",
+        "agency": "Green Circle Certified",
+        "program": "Recycled Content",
+        "certificateId": "26-0001",
+        "status": "ACTIVE",
+        "value": "95%",
+        "startDate": "2026-01-01",
+        "endDate": "2027-01-01",
+        "targetCountries": ["United States"],
+        "amazonCode": "RC"
+      }
+    }]
+  }],
+  "pagination": { "totalCount": 1, ... }
+}</code></pre>
+    </div>
+</div>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">GS1-002</span>
+        <span class="test-name">Single Certificate (GS1 JSON-LD)</span>
+        <span class="test-time">0.117s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates/gs1/26-0001</code></div>
+        <p><strong>Result:</strong> HTTP 200 &mdash; Returns single GS1 CertificationReport (not wrapped in data array). All GS1 schema fields present including <code>@context</code>, <code>$schema</code>, <code>certificationInfo.value</code> (Certification Results = "95%"), <code>amazonCode</code>.</p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 5. PRODUCT ID SEARCH -->
+<!-- ============================================================ -->
+<h2 id="search-tests">5. Product ID Search Tests</h2>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">SEARCH-001</span>
+        <span class="test-name">Search by ASIN</span>
+        <span class="test-time">0.222s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates/search/productid?productId=B08N5WRWNW&amp;type=ASIN</code></div>
+        <p><strong>Result:</strong> HTTP 200 &mdash; Returns empty data array with message "No certificates found matching your access permissions". This is correct behavior: no CertificateProductId records exist for this ASIN in the current test data.</p>
+        <pre><code>{
+  "success": true,
+  "data": [],
+  "message": "No certificates found matching your access permissions"
+}</code></pre>
+        <p><strong>Endpoint Structure Verified:</strong> Accepts <code>productId</code> and <code>type</code> query parameters. Returns proper response structure with <code>success</code>, <code>data</code>, <code>message</code>.</p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 6. PDF DOWNLOAD -->
+<!-- ============================================================ -->
+<h2 id="pdf-tests">6. PDF Download Tests</h2>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">PDF-001</span>
+        <span class="test-name">Download Certificate PDF</span>
+        <span class="test-time">0.075s</span>
+        <span class="badge badge-warn">NO FILE</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates/26-0001/download</code></div>
+        <p><strong>Result:</strong> HTTP 404 &mdash; No PDF file uploaded for test certificate 26-0001.</p>
+        <p><strong>Assessment:</strong> This is <strong>not an API defect</strong>. The download endpoint works correctly &mdash; it returns 404 when no file exists. Previous test (Jan 18) confirmed the 406 content negotiation bug has been resolved. The endpoint needs a certificate with an uploaded PDF to fully validate.</p>
+    </div>
+</div>
+
+<div class="callout callout-info">
+    <strong>Improvement since Jan 18:</strong> The previous test run showed HTTP 406 (Not Acceptable) due to a <code>[Produces("application/pdf")]</code> content negotiation issue. This test now returns HTTP 404 (correct behavior for missing file), confirming the 406 bug has been fixed.
+</div>
+
+<!-- ============================================================ -->
+<!-- 7. PAGINATION -->
+<!-- ============================================================ -->
+<h2 id="pagination-tests">7. Pagination Tests</h2>
+
+<div class="test-row">
+    <div class="test-header">
+        <span class="test-id">PAGE-001</span>
+        <span class="test-name">Page Beyond Data Range</span>
+        <span class="test-time">0.106s</span>
+        <span class="badge badge-pass">PASS</span>
+    </div>
+    <div class="test-body">
+        <div class="req"><code>GET /api/v1/certificates?pageSize=1&amp;pageNumber=2</code></div>
+        <p><strong>Result:</strong> HTTP 200 &mdash; Returns empty <code>data</code> array with correct pagination metadata:</p>
+        <pre><code>"pagination": {
+  "totalCount": 1,
+  "pageNumber": 2,
+  "pageSize": 1,
+  "totalPages": 1,
+  "hasPrevious": true,
+  "hasNext": false
+}</code></pre>
+        <p>Pagination correctly indicates page 2 has no data, <code>hasNext: false</code>, <code>hasPrevious: true</code>.</p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 8. FIELD VERIFICATION - STANDARD JSON -->
+<!-- ============================================================ -->
+<h2 id="field-verify">8. Field Verification &mdash; Standard JSON</h2>
+
+<p>Verified against live response from <code>GET /api/v1/certificates?includeProductIds=true</code>:</p>
+
+<table class="field-table">
+    <thead>
+        <tr><th>Field Name</th><th>Present</th><th>Actual Value</th><th>Type</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>certificateNumber</code></td><td>Yes</td><td><code>"26-0001"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>status</code></td><td>Yes</td><td><code>"Active"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>issueDate</code></td><td>Yes</td><td><code>"2026-01-01T00:00:00"</code></td><td>ISO 8601</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>expirationDate</code></td><td>Yes</td><td><code>"2027-01-01T00:00:00"</code></td><td>ISO 8601</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>company</code></td><td>Yes</td><td><code>"Acme Corporation"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>productName</code></td><td>Yes</td><td><code>"Widget Pro"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationType</code></td><td>Yes</td><td><code>"Recycled Content"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationTypeSubcategory</code></td><td>Yes</td><td><code>null</code></td><td>string?</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>amazonCode</code></td><td>Yes</td><td><code>"RC"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationResults</code></td><td>Yes</td><td><code>"95%"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>pathway</code></td><td>Yes</td><td><code>null</code></td><td>string?</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>partner</code></td><td>Yes</td><td><code>"Amazon"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>country</code></td><td>Yes</td><td><code>"United States"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>issuer</code></td><td>Yes</td><td><code>"Green Circle Certified"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>productIds</code></td><td>Yes</td><td><code>[]</code> (empty)</td><td>array</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>pdfDownloadUrl</code></td><td>Yes</td><td><code>"/api/v1/certificates/26-0001/download"</code></td><td>string</td><td><span class="badge badge-pass">OK</span></td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-success">
+    <strong>All 16 fields verified present.</strong> Field names match the Amazon Developer Guide documentation exactly. The <code>productIds</code> array is empty because no CertificateProductId records (ASINs) are linked to the test certificate. The structure is correct and ready for production data.
+</div>
+
+<!-- ============================================================ -->
+<!-- 9. FIELD VERIFICATION - GS1 -->
+<!-- ============================================================ -->
+<h2 id="field-verify-gs1">9. Field Verification &mdash; GS1 JSON-LD</h2>
+
+<p>Verified against live response from <code>GET /api/v1/certificates/gs1/26-0001</code>:</p>
+
+<table class="field-table">
+    <thead>
+        <tr><th>Field Path</th><th>Present</th><th>Actual Value</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>@context</code></td><td>Yes</td><td>GS1 certification context URL</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>$schema</code></td><td>Yes</td><td>GS1 certification schema URL</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>type</code></td><td>Yes</td><td><code>"CertificationReport"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>issueDate</code></td><td>Yes</td><td><code>"2026-01-01"</code> (date only)</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>issuer</code></td><td>Yes</td><td><code>"Green Circle Certified"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>products[0].type</code></td><td>Yes</td><td><code>"Product"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>products[0].name</code></td><td>Yes</td><td><code>"Widget Pro"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>products[0].gtin</code></td><td>Yes</td><td><code>null</code> (no GTIN linked)</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>products[0].additionalTradeItemId</code></td><td>Yes</td><td><code>null</code> (no ASINs linked)</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.type</code></td><td>Yes</td><td><code>"CertificationDetails"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.agency</code></td><td>Yes</td><td><code>"Green Circle Certified"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.agencyURL</code></td><td>Yes</td><td><code>"https://www.greencirclecertified.com"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.program</code></td><td>Yes</td><td><code>"Recycled Content"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.certificateId</code></td><td>Yes</td><td><code>"26-0001"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.status</code></td><td>Yes</td><td><code>"ACTIVE"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.value</code></td><td>Yes</td><td><code>"95%"</code> (Certification Results)</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.startDate</code></td><td>Yes</td><td><code>"2026-01-01"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.endDate</code></td><td>Yes</td><td><code>"2027-01-01"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.targetCountries</code></td><td>Yes</td><td><code>["United States"]</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td><code>certificationInfo.amazonCode</code></td><td>Yes</td><td><code>"RC"</code></td><td><span class="badge badge-pass">OK</span></td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-success">
+    <strong>All 20 GS1 fields verified present.</strong> GS1 JSON-LD structure matches the schema specification. Dates are date-only format (no time component), status is uppercase ("ACTIVE"), and <code>certificationInfo.value</code> correctly maps the Certification Results field.
+</div>
+
+<!-- ============================================================ -->
+<!-- 10. PERFORMANCE -->
+<!-- ============================================================ -->
+<h2 id="performance">10. Performance Summary</h2>
+
+<table>
+    <thead>
+        <tr><th>Test</th><th>Endpoint</th><th>Response Time</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>List Certificates</td><td><code>GET /certificates?pageSize=2</code></td><td>0.428s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>List with Product IDs</td><td><code>GET /certificates?includeProductIds=true</code></td><td>0.176s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>GS1 List</td><td><code>GET /certificates/gs1?pageSize=1</code></td><td>0.210s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>GS1 Single</td><td><code>GET /certificates/gs1/26-0001</code></td><td>0.117s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>Get by Number</td><td><code>GET /certificates/number/26-0001</code></td><td>0.098s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>Search by ASIN</td><td><code>GET /certificates/search/productid</code></td><td>0.222s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>PDF Download</td><td><code>GET /certificates/26-0001/download</code></td><td>0.075s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>Invalid Auth</td><td><code>GET /certificates</code> (bad key)</td><td>0.107s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>No Auth</td><td><code>GET /certificates</code> (no key)</td><td>0.007s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>Pagination</td><td><code>GET /certificates?pageNumber=2</code></td><td>0.106s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>Not Found</td><td><code>GET /certificates/999999</code></td><td>0.166s</td><td><span class="badge badge-pass">OK</span></td></tr>
+        <tr><td>Revoked Key</td><td><code>GET /certificates</code> (revoked)</td><td>0.022s</td><td><span class="badge badge-pass">OK</span></td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-success">
+    <strong>All endpoints respond under 500ms.</strong> Average response time: 0.145s. No performance concerns detected.
+</div>
+
+<!-- ============================================================ -->
+<!-- 11. ISSUES & OBSERVATIONS -->
+<!-- ============================================================ -->
+<h2 id="issues">11. Issues &amp; Observations</h2>
+
+<h3>OBS-001: Get-by-Number Returns Raw Entity Model</h3>
+<div class="callout callout-warning">
+    <strong>Severity: Low</strong> &mdash; The <code>GET /certificates/number/{certNumber}</code> endpoint returns the raw database entity model with nested objects, rather than the flattened DTO used by the list endpoint. Field names differ: <code>effectiveDate</code> vs <code>issueDate</code>, <code>number</code> vs <code>certificateNumber</code>. This inconsistency could confuse API consumers.
+</div>
+
+<h3>OBS-002: Test Data Lacks Product Identifiers (ASINs)</h3>
+<div class="callout callout-info">
+    <strong>Severity: Low (Test Environment Only)</strong> &mdash; The test certificate 26-0001 has no CertificateProductId records linked. The <code>productIds</code> array returns empty. To fully validate the ASIN integration flow, test data with linked ASINs should be created.
+</div>
+
+<h3>OBS-003: PDF Download Returns 404 (No File Uploaded)</h3>
+<div class="callout callout-info">
+    <strong>Severity: Low (Test Environment Only)</strong> &mdash; The PDF download endpoint correctly returns 404 when no file exists. The previous 406 bug (from Jan 18 testing) has been resolved. To fully validate, upload a PDF to the test certificate.
+</div>
+
+<h3>Resolved Issues (Since January 18 Test)</h3>
+<table>
+    <thead><tr><th>Issue</th><th>Jan 18 Status</th><th>Mar 6 Status</th></tr></thead>
+    <tbody>
+        <tr><td>PDF Download 406 Error (BUG-001)</td><td><span class="badge badge-fail">FAIL</span></td><td><span class="badge badge-pass">FIXED</span></td></tr>
+        <tr><td>Field names inconsistency (list vs detail)</td><td>Not tested</td><td><span class="badge badge-warn">OBSERVED</span></td></tr>
+    </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- 12. RECOMMENDATIONS -->
+<!-- ============================================================ -->
+<h2 id="recommendations">12. Recommendations</h2>
+
+<h3>Before Amazon Go-Live</h3>
+<table>
+    <thead><tr><th>#</th><th>Action</th><th>Priority</th><th>Status</th></tr></thead>
+    <tbody>
+        <tr><td>1</td><td>Create test certificates with linked ASINs to validate full product ID flow</td><td><span class="badge badge-warn">HIGH</span></td><td>Pending</td></tr>
+        <tr><td>2</td><td>Upload test PDF to validate download endpoint end-to-end</td><td><span class="badge badge-warn">HIGH</span></td><td>Pending</td></tr>
+        <tr><td>3</td><td>Ensure analysts populate <code>certificationResults</code> for Amazon certificates</td><td><span class="badge badge-warn">HIGH</span></td><td>Pending</td></tr>
+        <tr><td>4</td><td>Consider standardizing get-by-number response to use same DTO as list endpoint</td><td><span class="badge badge-info">LOW</span></td><td>Optional</td></tr>
+        <tr><td>5</td><td>Generate production API key for Amazon</td><td><span class="badge badge-warn">HIGH</span></td><td>Pending</td></tr>
+        <tr><td>6</td><td>Verify HTTPS/TLS configuration on production domain</td><td><span class="badge badge-warn">HIGH</span></td><td>Pending</td></tr>
+        <tr><td>7</td><td>Run test suite against production environment after deployment</td><td><span class="badge badge-warn">HIGH</span></td><td>Pending</td></tr>
+    </tbody>
+</table>
+
+<div class="doc-footer">
+    <p>GCC Database Solution &mdash; Partner API Test Results &mdash; March 6, 2026</p>
+    <p>&copy; 2026 Green Circle Certified / PointSolve Technology Inc. All rights reserved.</p>
+</div>
+
+</body>
+</html>

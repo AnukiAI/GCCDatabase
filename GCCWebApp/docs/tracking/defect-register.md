@@ -83,6 +83,19 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 ## Open / Recent
 
+### DEF-300 — Test env: mobile sign-in as any non-public role loops back to the login page (all mobile browsers); HTTP Basic Auth gate colliding with the app's cookie login
+
+- **Date:** 2026-07-16
+- **Severity:** **High** — access/usability on the test env. Mobile testers could not sign in as Analyst/Admin/External/Partner on gccwebapp.com in any browser (Chrome, Firefox, Safari): the sign-in POST bounced straight back to the login page and never completed. Desktop unaffected. Blocks mobile UAT.
+- **Status:** **Fixed locally — pending next deploy.** Middleware + config + `Program.cs` change; no migration (Gate 7 no-op). Reversible via `TestEnvironmentGate:Mode = "Basic"` with no code change.
+- **QC Ref:** Raised by Shawn West (relaying mobile testers), 2026-07-16 — *"When attempting to sign in under any credential other than public via Chrome, Firefox, & Safari, all reset to the login credential page and never log me in. Once in under public can log in under any other tester kind."* No client QC #.
+- **Bucket:** Bug (auth/session, test-env infra).
+- **Root cause.** The test env gate (`Middleware/TestEnvironmentGateMiddleware.cs`, enabled in `appsettings.Production.json`) challenged every browser request with **HTTP Basic Auth** (`401 WWW-Authenticate: Basic`). Basic Auth in front of the app's own cookie form-login is a known-bad combo on mobile: a non-public sign-in is a multi-step `POST → 302 → GET` chain (2FA on by default → `TwoFactorAuthentication` reads TempData; `AccountController.cs:717-722` bounces to Login if that cookie is missing), and mobile browsers inconsistently re-attach the `Authorization: Basic` header across those redirect hops. Drop it once and the app's own `401` collides with the Basic realm's `401` → back to login. Browsing **public** first (plain GETs) primes both the cached Basic credential and the session cookie, which is exactly why "public first, then any role works." Secondary weakness (not the primary driver): auth/session/antiforgery cookies used `SecurePolicy = SameAsRequest`.
+- **Fix.** Reworked the gate to a **cookie gate** (`Mode: "Cookie"`, new default; `Mode: "Basic"` preserved as a no-code rollback). Browsers with no gate cookie are **302'd to a self-contained `/__gate` password page** (inline CSS, mobile viewport, 16px fields) instead of a 401 Basic popup; a correct password sets a data-protected `GCC.TestGate` cookie — **`SameSite=Lax` + `HttpOnly` + `Secure`-when-HTTPS** — then redirects to the preserved `returnUrl`. `Lax` (not Strict) so it survives arrival from an external link and rides the app's same-site login redirect chain (the actual mobile fix). **Backward-compat:** a valid Basic header still passes, so the ~30 Playwright smoke/deploy-gate scripts using `httpCredentials: gcc/…` are untouched; `/api/*`, robots, favicon, SEO-verification exemptions unchanged. Added CSRF token (data-protected, 30-min TTL) + open-redirect guard on the gate POST. Separately hardened the app's own cookies: `Program.cs` now sets `SecurePolicy = Always` outside Development (`SameAsRequest` retained for plain-HTTP localhost) on the session, auth (`GCC.Auth`), and antiforgery cookies — retiring the three standing "change back to Always" TODOs. **`UseForwardedHeaders` deliberately NOT added** — the app is IIS `hostingModel="inprocess"` (`web.config`), which already surfaces the correct scheme; FH is a no-op here and Docker is not used (evaluated at project start, rejected). See [[project_plesk_deploy_env]].
+- **Files:** `Middleware/TestEnvironmentGateMiddleware.cs`, `appsettings.json`, `appsettings.Production.json`, `Program.cs`.
+- **Verification.** Clean build (0 errors). **Localhost:5101 curl matrix 8/8** (gate enabled, Cookie mode): no-cookie GET → `302 /__gate?returnUrl=…` (gate page, **not** 401-Basic); gate page renders with password + CSRF token + preserved returnUrl; correct password → `302` + `Set-Cookie: GCC.TestGate=…; samesite=lax; httponly`; cookie'd request → passes (`200`); wrong password → `401`, no cookie; **Basic header → `200` (script compat)**; `/api/*` → its own `401`, not a gate redirect; missing CSRF token → `400`. Browser screenshot of `/__gate` at 378px confirms clean mobile render. **Not yet verified on the real HTTPS test env** — post-deploy, do the 30-sec phone check: bounce should no longer occur; confirm the green gate page (not the grey native Basic popup) appears, and the `GCC.TestGate` + `GCC.Auth` cookies carry `Secure`.
+- **Linked memory.** [[project_test_env_access_gate]], [[feedback_prelaunch_test_env]], [[project_plesk_deploy_env]], [[feedback_no_commits]].
+
 ### DEF-299 — External table view: clicking a column header (e.g. External Tag) sorted **descending** on the first click instead of ascending
 
 - **Date:** 2026-06-26
@@ -7586,7 +7599,9 @@ Fix: `Controllers/AdminController.cs` — `ImportUsers()` now special-cases `com
 
 ### DEF-305 — Certificate Edit: a rejected workflow-status change traps the form (invalid choice stays selected → blind re-save fails again) and the error doesn't say which statuses ARE allowed
 
-**Date:** 2026-07-13 | **Status:** Fixed (`Controllers/CertificateController.cs`, `Models/CertificateStatus.cs`) — working tree, **pending next deploy bundle** | **Severity:** Medium — usability; the workflow rules are correct but a user who picks a disallowed status gets stuck and cannot tell how to proceed. | **QC Ref:** internal — client observation | **Reporter:** Shawn (2026-07-13, relaying client), while editing a cert from Draft → Republished
+> **SUPERSEDED by CR-028 (2026-07-20):** the client decided to **remove the transition matrix** entirely — status is now freely selectable, so there is no longer any rejection path to trap the user. This DEF's fix (dropdown snap-back + allowed-next-states message) is now moot; the rejection block it improved was deleted. Kept for history. See change-request register CR-028.
+
+**Date:** 2026-07-13 | **Status:** ~~Fixed~~ **Superseded by CR-028** (`Controllers/CertificateController.cs`, `Models/CertificateStatus.cs`) — the rejection path was removed, not just improved | **Severity:** Medium — usability; the workflow rules are correct but a user who picks a disallowed status gets stuck and cannot tell how to proceed. | **QC Ref:** internal — client observation | **Reporter:** Shawn (2026-07-13, relaying client), while editing a cert from Draft → Republished
 
 **Symptom.** The client set a Draft cert's Status to **Republished**, save was rejected with *"Invalid status transition from 'Draft' to 'Republished'. Check workflow rules for the allowed next states…"*, and then reported he **could not re-save or recreate**. The transition matrix (DEF-203, added 2026-05-19) is behaving correctly — Draft → Republished is genuinely disallowed — so this is a UX defect, **not** a rules defect. Explicitly scoped: the rules were left unchanged; a separate sign-off doc (`docs/tracking/certificate-status-transition-matrix.md`) captures the matrix for client verification.
 
@@ -7597,6 +7612,321 @@ Fix: `Controllers/AdminController.cs` — `ImportUsers()` now special-cases `com
 **Verification.** ✅ VERIFIED on localhost:5101 (2026-07-13) via Playwright (admin login) against seeded Draft fixture `99-9001`. **7/7 GREEN:** edit form loads with stored status Draft → pick Republished → save → (a) error banner shows *"Invalid status transition from 'Draft' to 'Republished'. From 'Draft' you can move to: Client Approved - Not Paid, Client Approved - Confidential, Client Approved - Paid, Hold."*, (b) Status dropdown **snapped back to Draft** (the trap), (c) a straight re-save then **succeeded and left the Edit page** (redirect to the internal detail view) — proving the lock-out is gone. Screenshots in `Scripts/smoke-prod/_results/def305/`. First pass caught the ModelState-binding gap above (dropdown stuck on Republished); re-verified GREEN after the `ModelState.Remove` fix + rebuild. Fixtures torn down; app stopped.
 
 **Linked memory.** DEF-203 (the transition matrix this makes usable), [[feedback_client_requested_labels_immutable]] (behavior/UX fix, copy driven by rules not invented), `docs/tracking/certificate-status-transition-matrix.md` (companion sign-off spec — rules left for client to verify).
+
+---
+
+### DEF-306 — Certificate CSV export: values starting with + = - @ (e.g. "+Vantage Vinyl Verified" cert type) render as #NAME? in Excel (CSV formula injection)
+
+**Date:** 2026-07-17 | **Status:** Fixed (`Services/CertificateService.cs`, `Controllers/ExportController.cs`, `wwwroot/js/admin/exportUtils.js`, `Services/ProductIdService.cs`, `wwwroot/js/product-id-manager.js`) — working tree, **pending next deploy bundle** | **Severity:** Medium — data-quality / cosmetic in the export, but also a latent CSV-injection vector. | **QC Ref:** internal — client observation | **Reporter:** Shawn (2026-07-17, relaying client), on the "Export database to CSV" file
+
+**Symptom.** In the exported certificate CSV, the certification type **"+Vantage Vinyl Verified"** shows in the Certification Type cell as **`#NAME?`**; opening the cell reveals Excel has treated it as the formula `=+Vantage Vinyl Verified`. Affects any cell whose value begins with a formula-trigger character (`=`, `+`, `-`, `@`).
+
+**Root cause.** `CertificateService.GenerateCsvExport` wrapped every field in quotes but `EscapeCsvField` only doubled embedded quotes — it did nothing about leading formula-trigger characters. RFC-4180 quoting does **not** stop Excel/Sheets from evaluating a quoted cell as a formula, so `+Vantage Vinyl Verified` was parsed as a formula → `#NAME?`.
+
+**Fix.** New `CsvCell()` helper builds each text cell: normal values stay RFC-4180 quoted (`"value"`); values starting with `= + - @` or a leading tab/CR are emitted in **Excel text format** (`="value"`), which displays literally, cannot execute, and is the **same wrapper the importer already unwraps** via `StripExcelTextFormat` (applied to every column in `GetFieldWithMapping`) — so an exported file re-imports losslessly. All text emissions in `GenerateCsvExport` routed through `CsvCell` (date columns left as plain quoted literals — they can't be formulas). No change to the export's columns, ordering, role-gating (DEF-295/247/198), the Amazon partner API, or any migration. C# only; build clean (0 compile errors — output-copy step was blocked only because the dev app was running).
+
+**Scope.** All three CSV export surfaces were fixed in one batch (Shawn asked to resolve the other instances too): (1) the main certificate export `CertificateService.GenerateCsvExport` (new `CsvCell` helper); (2) the dashboard/report CSV builders in `Controllers/ExportController.cs` — `CsvField` now neutralises formulas and `GenerateStatCsv` / `GenerateCertificateReportCsv` / `GenerateTableCsv` were routed through it; (3) the admin client-side exporter `wwwroot/js/admin/exportUtils.js` (`exportToCSV`). The Excel builders (ClosedXML, `GenerateStatExcel` etc.) don't need it — ClosedXML writes typed cells, not formula-parsed text.
+
+**Added hardening (same batch, Shawn 2026-07-17): leading-zero-safe identifier columns.** The ASIN/UPC/GTIN/EAN columns in the certificate export now always emit Excel text format via a new `CsvTextCell` helper (non-empty → `="value"`, empty → `""`), so Excel no longer silently converts a code like UPC `012345678905` to the number `12345678905` / strips leading zeros. Same `="value"` wrapper as the formula fix, so round-trip via `StripExcelTextFormat` stays lossless. Scoped to those four columns in `GenerateCsvExport`.
+
+**Extended to `ProductIdValue` (Shawn 2026-07-17).** Both product-ID exports now emit the identifier value in Excel text format: (a) `ExportController.DownloadActiveProductIds` — new `CsvTextField` for the "Product ID/ID Value" column; (b) `ProductIdService.ExportToCsvAsync` (the per-cert Product ID Manager export at `GET /api/productids/certificate/{id}/export`) — this method had **no escaping at all** (raw `"{value}"`, so a quote/comma in ProductName/Description could corrupt a row and a `+`-leading value ran as a formula); rewrote it to route every field through new `CsvCell`/`CsvTextCell` helpers, with `ProductIdValue` via `CsvTextCell`. **Round-trip:** the product-ID import parser (`product-id-manager.js`) does NOT go through the certificate importer's `StripExcelTextFormat`, and its `parseCSVLine` mangles `="12345"` into `=12345`; added a JS `stripExcelTextFormat` helper (handles both the intact `="…"` and the stray-leading-`=` residue) applied to the value + SKU on import, so a raw re-import of an exported file is lossless. Text format also *removes* the reason `fixScientificNotation` existed — Excel now keeps these as text, so long UPCs/GTINs no longer degrade to `1.23E+11`.
+
+**Verification.** ✅ VERIFIED live on localhost:5101 (2026-07-17), dev DB `GCCDatabase_Dev` which contains the exact cert type `+Vantage Vinyl Verified` (Id 24, used by cert `26-0175`, Client Approved - Paid). (a) Anonymous `GET /Certificate/ExportCertificates` → Certification Type cell = `="+Vantage Vinyl Verified"` (was raw `+Vantage…`); normal values (`"Client Approved - Paid"`, `"Gemma's Company Co.®"`) stay plain-quoted. (b) **Analyst-authenticated** cert export (27-col internal path, `includeInternalTags`) → same `="+Vantage Vinyl Verified"`. (c) `ExportController` — analyst `GET /Export/DownloadStat?type=product-categories-with-active-certs` → `…,="+Vantage Vinyl Verified",…` via the fixed `CsvField`. (d) `exportUtils.js` branch checked with an 8-case Node harness — all pass, incl. edge cases (leading-hyphen only triggers when first char; commas still quote; embedded quotes escape). Exported format `="value"` matches `StripExcelTextFormat` exactly, so re-import is lossless (verified by code, not re-run to avoid DB writes). `dotnet build` clean (0 errors). (e) **Leading-zero identifiers** verified live with a temporary fixture on `26-0175` (dev DB): set ASIN=`0ABCDEF123`, UPC=`012345678905`, GTIN=`00012345678905`, EAN=`0075678164125`, re-exported → all four emitted as `="…"` with leading zeros intact; **fixture fully reverted** afterwards (all four back to NULL, matching the row's original empty state — External Tag `APR` untouched). Note: `26-0175`'s pre-mutation identifier state wasn't captured before editing; restored to NULL (functionally identical to empty in-app), confirmed by re-export matching the original row byte-for-byte.
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_client_requested_labels_immutable]] (data untouched — only the Excel encoding changed, the label stays "+Vantage Vinyl Verified").
+
+---
+
+### DEF-307 — Certificate CSV export: non-ASCII characters (e.g. right single quote ' in a product name) render as mojibake "â€™" in Excel (missing UTF-8 BOM)
+
+**Date:** 2026-07-17 | **Status:** Fixed (`Extensions/CsvExportHelper.cs` [new], `Controllers/CertificateController.cs`, `Controllers/ExportController.cs`, `Controllers/DashboardController.cs`) — working tree, **pending next deploy bundle** | **Severity:** Medium — cosmetic corruption of exported text, but garbles any product/company name with a smart-quote, em dash, or accent. | **QC Ref:** internal — client observation | **Reporter:** Shawn (2026-07-17, relaying client), on the "Export database to CSV" file, cert `26-0161`
+
+**Symptom.** Exporting the certificate database to CSV, a product name containing a right single quotation mark — `Testing Very Very Long Product Name That's Over 100 Characters…` (the `'` is U+2019, not a plain ASCII apostrophe) — opens in Excel as `…That**â€™**s Over 100 Characters…`. (Sibling to DEF-306, same "Export database to CSV" file, adjacent cert.)
+
+**Root cause.** The certificate export (`CertificateService.GenerateCsvExport`) and the dashboard/report/table exports (`ExportController`, `DashboardController`) returned `Encoding.UTF8.GetBytes(csv)` — correct UTF-8 bytes but with **no byte-order mark**. Excel on Windows decodes a BOM-less CSV as its Windows-1252 default, so the three UTF-8 bytes of `'` (`E2 80 99`) are shown as the Latin-1 glyphs `â € ™`. Same class of bug already fixed for the *import template* (`CertificateImportController.DownloadTemplate`, em dash `â€"`) — that fix prepended the UTF-8 BOM; the export paths never got the same treatment. (The user's pasted "actual" text also showed some transposition — `VeVery…'ry` — which is a copy-artifact of hand-copying the garbled Excel cell; the single defect is the encoding, and the BOM resolves what renders.)
+
+**Fix.** New shared helper `Extensions/CsvExportHelper.cs` — `ToCsvBytesWithBom(string)` and `WithBom(byte[])`, both using `new UTF8Encoding(encoderShouldEmitUTF8Identifier: true)` and prepending the BOM (matching the existing `CertificateImportController` idiom). Applied at the **MVC/browser download return sites** only:
+- `CertificateController.ExportCertificates` (the reported "Export database" download) → `WithBom(exportData)`.
+- `ExportController` — all four CSV returns (`DownloadStat`, `DownloadReport`, `DownloadTable`, `DownloadActiveProductIds`).
+- `DashboardController` — all three CSV returns (`DownloadStat` aggregate + detail, `DownloadTable`).
+
+**Scope / what was deliberately NOT touched.** The BOM is added at the MVC controller, **not** inside the shared `CertificateService.ExportCertificatesAsync`/`GenerateCsvExport`, because that same method feeds the frozen **`/api/v1/certificates/export` Amazon partner API** (`CertificatesApiController`). Adding a BOM there would change the contract bytes a machine consumer parses — out of scope without partner sign-off ([[feedback_amazon_api_immutable]]). So the analyst browser download is fixed while the partner API export stays byte-identical. No column, ordering, role-gating, data, or migration change. C# only; compiles clean (the 2 build errors were the output-copy step blocked by the running dev app, not compilation).
+
+**Verification.** Code-level: helper emits `EF BB BF` preamble + UTF-8 body; partner API path (`CertificatesApiController`) confirmed to bypass the helper. Live re-export verification against dev DB pending (dev app holding the exe lock at time of fix).
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_amazon_api_immutable]], [[feedback_client_requested_labels_immutable]] (data untouched — only the file encoding changed).
+
+---
+
+### DEF-308 — Certificate Create: PDF preview shows a broken-image link before save (Edit shows it fine)
+
+**Date:** 2026-07-17 | **Status:** Fixed (`Program.cs`) — working tree, **pending next deploy bundle** | **Severity:** Medium — cosmetic-but-alarming: the pre-save thumbnail preview on the Create form never renders, so an analyst uploading a PDF sees a broken-image icon and can't confirm the correct file/page was attached until after saving. No data loss (the PDF still uploads and the thumbnail still generates and persists). | **QC Ref:** internal — client observation | **Reporter:** Shawn (2026-07-17, relaying client "CP NOTE"), on the Certificate Creation page: *"Cert preview after uploading PDF shows broken link… when you create and upload before saving that this happens. After I saved and returned to edit it did appear."*
+
+**Symptom.** On `/Certificate/Create`, after uploading a PDF the sidebar "Certificate Preview" briefly shows "Generating preview…" then renders a **broken-image icon**. The exact same certificate, reopened in Edit after save, shows the thumbnail correctly.
+
+**Root cause.** A route-parameter-name mismatch. On upload, `wwwroot/js/certificate-create.js` POSTs the PDF to `api/CertificatesApi/GenerateThumbnail`, which generates the PNG and returns `thumbnailUrl = "/Certificate/PreviewThumbnail/{fileName}"` (DEF-208 pre-save flow — the cert has no Id yet, so it can't route through `ViewCertificateImage/{id}`). The JS sets that URL as the `<img src>`. But `CertificateController.PreviewThumbnail(string fileName)` was reached only through the **default conventional route** `{controller}/{action}/{id?}`, whose trailing token is named **`id`**, not `fileName`. ASP.NET model binding is by name, so the `{fileName}` segment bound to `id` and the action's `fileName` parameter stayed **null** → the guard `string.IsNullOrEmpty(fileName)` returned `NotFound()` → broken image. Edit worked because `ViewCertificateImage(int id)` binds the `{id}` token correctly. The endpoint essentially never rendered a live preview on Create.
+
+**Fix.** Added an explicit `MapControllerRoute` in `Program.cs` — `pattern: "Certificate/PreviewThumbnail/{fileName}"` mapped to `Certificate/PreviewThumbnail`, placed **before** the default route — mirroring the app's existing convention for non-`id` route params (the `Certificate/Edit/{number}` and `Certificate/Delete/{number}` explicit routes). The `{fileName}` segment now binds to the action parameter. No controller/view/JS/service/API/migration change; the action's own traversal sanitization (`..`, `/`, `\` → `NotFound`) and `AnalystOrAdmin` gate are untouched. Build clean (0 errors).
+
+**Verification.** ✅ VERIFIED live on localhost:5101 (2026-07-17). After rebuild + restart, authenticated as analyst (`jane.analyst@anukiconsulting.com`) and requested the exact broken route against a real existing thumbnail: `GET /Certificate/PreviewThumbnail/26-0023_thumb_20260612_185805.png` → **200, PNG rendered** (Chrome reported `464×600`, the "GCC Local Thumbnail Test" thumbnail displayed). Pre-fix this same route returned the broken-image 404 (root cause confirmed by the `{id}` vs `fileName` binding above). Full browser create-upload flow was not re-driven because the session's `file_upload` no longer accepts host paths, but the failing hop was the `<img src>` GET, which this test exercises directly.
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_def_entries_note_qc_id]], [[feedback_no_chaos_rabbit_holes]] (root-caused in code before touching the browser). DEF-208 (the pre-save thumbnail flow this route serves).
+
+**Follow-up — client 2026-07-20 (zoom manifestation, RESOLVED — no separate DEF).** The client re-reported the same underlying issue from a different control, on the Certificate Creation page: *"When clicking 'zoom' on cert preview, opens a blank page with no PDF. …Maybe you have to save the cert before these things work?"* (Reporter: client via Shawn.) **Same root cause as this DEF:** the zoom modal (`openImageZoom()` in `Views/Certificate/Create.cshtml`) loads the **same** `/Certificate/PreviewThumbnail/{fileName}` image as the inline sidebar preview — so pre-save, before the DEF-308 route fix deploys, it is blank for the identical `{id}`-vs-`fileName` binding reason (and the zoom shows a full-size image snapshot, never the PDF — consistent with Edit/Detail/Tile; no PDF viewer exists in the app and Requirements.md is silent on one). **Disposition (Shawn, 2026-07-20): resolved — working as designed; the certificate preview and its zoom are available after the certificate is saved.** No new code and no new DEF number (Question bucket, not a distinct bug); the pre-save case is carried by DEF-308's routing fix in the next deploy bundle. Logged in `observations_log.md` + `shipped-2026-07.md` (2026-07-20). ⚠️ **Post-deploy note:** once DEF-308 ships, the pre-save preview/zoom *will* render on Create, so the client-facing "only works after save" wording should be retired at that point.
+
+---
+
+### DEF-309 — Certificates: rapid sort/filter changes silently dropped (data disagrees with the Sort-By label/URL)
+
+**Date:** 2026-07-17 (mirror completed 2026-07-19) | **Status:** Fixed (`wwwroot/js/certificate-tile-view-internal.js`, `certificate-tile-view-external.js`, `certificate-tile-view.js` — all three tile views) — working tree, **pending next deploy bundle** | **Severity:** Medium — the certificate list can display data sorted differently from what the Sort-By control and `?sort=` URL claim, so an analyst trusts an order that isn't applied. No data loss. | **QC Ref:** internal — client observation (white-screen intake, 2026-07-16) | **Reporter:** client via Shawn — on the Certificates page: *"Sorting by oldest effective date made screen go white but results were still there — clicked on screen and it opened one of the results. Refreshed the blank results page and the certificates showed up."*
+
+**Origin.** Surfaced while investigating the client's "white screen on Oldest Effective Date sort" report. That white-screen symptom (rows present + clickable, self-heals on refresh) is the signature of a stalled compositor paint and **could not be reproduced** in automation — headless OR a real-GPU headed run — across 20 checks at desktop width under 4× CPU throttle (see observations_log.md 2026-07-16, harness `Scripts/smoke-prod/cert-sort-whitescreen-discovery.js`). The investigation did, however, expose this separate, reproducible correctness defect.
+
+**Root cause.** `loadCertificates()` opened with a blanket `if (state.isLoading) return;`. That guard is correct for infinite-scroll *appends* (they must not stack) but it also **dropped a fresh sort/filter/search reload** that arrived while any load was in flight. The sort handler still updated the Sort-By label and pushed `?sort=` to the URL, but the data was never re-fetched — so the visible table stayed on the previous sort while the UI claimed the new one. Confirmed empirically: 4 rapid sort clicks produced only 2 API calls.
+
+**Fix.** Load-sequence token. Only appends still bail on `isLoading` (`if (append && state.isLoading) return;`); a fresh load always proceeds and takes `const seq = ++state.loadSeq`. After the fetch (and again after parsing the body), a stale `seq !== state.loadSeq` result is discarded so a slow earlier response can't overwrite a newer one out of order; the `finally` clears `isLoading`/hides the spinner **only** for the latest seq. Net effect: the most recent sort always wins; no fresh request is ever silently dropped.
+
+**Defensive companion (same change).** Added `nudgeRepaint(el)` — called after every fresh (non-append) render — which forces a reflow + a one-frame `translateZ(0)` toggle on `#gridBody` (list) / `#certificatesGrid` (tile) to defeat a stalled compositor paint (the original white-screen class). Deliberately targets the body/grid **only, never a sticky-header ancestor** — a `transform` on an ancestor of a `position:sticky` element silently breaks the sticky header; `#stickyHeaderRow` is a sibling subtree, so it is unaffected (verified: sticky header renders intact post-fix).
+
+**Scope / not touched.** Applied to all three tile-view scripts: `certificate-tile-view-internal.js` (the reported analyst view), `certificate-tile-view-external.js`, and `certificate-tile-view.js` (public) — **mirrored per Shawn's go-ahead 2026-07-19**. The public file has a distinct retry/backoff load path, so its seq-checks are placed to also skip retry/error handling for a superseded load. No server, API, data, or migration change.
+
+**Verification.** ✅ VERIFIED on localhost:5101 via `cert-sort-whitescreen-discovery.js` (desktop 1440×900, 4× CPU throttle). Scenario D: fire two different sorts back-to-back, then compare the rendered first-5 certificate numbers against a ground-truth API call for the *last* sort — **PASS, `expected === rendered`, 2 fetches** (pre-fix the 2nd was dropped). No regression: re-sort loop (list+tile), deep-scroll→sort, and background-tab→return all still PASS (21/21); post-fix screenshot confirms sticky header + table render fully with the nudge active. **Mirror (external + public) verified 2026-07-19** via `cert-sort-mirror-verify.js` — initial render, single sort, and rapid double-sort (supersede path) all render with zero page errors on both views (**10/10 PASS**).
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_def_entries_note_qc_id]], [[feedback_no_chaos_rabbit_holes]], [[feedback_playwright_screenshots]].
+
+---
+
+### DEF-310 — Edit Certificate: replacing the uploaded document saves correctly but the preview and "View" keep showing the OLD document (browser heuristic caching)
+
+**Date:** 2026-07-20 | **Status:** Fixed (`Controllers/CertificateController.cs`, `Extensions/UploadCacheBusting.cs` (new), `Views/Certificate/Edit.cshtml`, `CertificateSingleView.cshtml`, `CertificateInternalView.cshtml`, `CertificateExternalView.cshtml`, `Views/_ViewImports.cshtml`, `Services/FileUploadService.cs`) — working tree, **pending next deploy bundle** | **Severity:** Medium — no data loss (the correct document IS stored), but an analyst is shown the superseded document and can reasonably conclude the replacement failed, or approve a certificate against the wrong file. | **QC Ref:** QC #191 | **Reporter:** client analyst, corroborated by CP — *"Trying to replace the uploaded document with a new one says it works but still shows the old document in the preview and in the 'view' option further down the page. When I tried to replicate it to see if I missed anything, it worked correctly."* CP note: *"I experienced the same thing. Where it did not work right away (after saving) but when I tried a second time it worked."*
+
+**Root cause.** Not a save bug — the server side is correct. On Edit the new PDF is written under a *new* timestamped filename, the thumbnail is regenerated under a new PNG name, and both DB columns are repointed (`CertificateController.cs:1126-1138`, persisted `:1371`). Nothing is overwritten.
+
+The defect is in **delivery**. All four views render the preview from a stable, un-versioned URL — `/Certificate/ViewCertificateImage/{id}` — and `ViewCertificateImage` / `ViewCertificateFile` returned `PhysicalFile(...)` with **no `Cache-Control` header at all**. Per RFC 9111 a 200 carrying `Last-Modified` but no explicit freshness directive is subject to **heuristic freshness**, conventionally ~10% of the document's age. That is exactly the observed behaviour:
+
+- Replace a document on a certificate whose file was uploaded **weeks ago** → heuristic lifetime of *days* → the browser reuses the cached copy without revalidating. **Stale.**
+- Replace on a certificate uploaded **minutes ago** — precisely what you get when you create a test certificate to replicate the issue → heuristic lifetime of *seconds* → revalidates → correct file.
+
+That asymmetry is why the analyst hit it on a real certificate, could not reproduce it on a fresh one, and why a later retry "just worked" (the cache entry had expired by then). Also note uploads deliberately bypass static-file middleware (`Program.cs:658-671`), so the `OnPrepareResponse` cache policy at `:674-686` never applied to them — these responses fell through with no policy at all.
+
+**Why it only bites signed-in users.** Anonymous responses happen to pick up `Cache-Control: no-cache,no-store` from the cookie-authentication handler, which masks the bug for public viewers. **Authenticated** responses — i.e. the analyst on Edit — carried no `Cache-Control` whatsoever. Confirmed empirically against the unmodified `PreviewThumbnail` control endpoint (same `PhysicalFile` pattern): authenticated 200 + `Last-Modified` + **no `Cache-Control`**.
+
+**Fix.** Two independent layers, either of which closes it:
+1. `SetUploadRevalidationHeaders()` (`CertificateController.cs:2229-2233`) emits `private, no-cache, must-revalidate` from both `ViewCertificateImage` and `ViewCertificateFile`. `no-cache` does not forbid caching — it forces revalidation before reuse, and `PhysicalFile` already sends `Last-Modified`, so an unchanged file still costs only a 304. `private` additionally keeps shared caches out, which matters because the *same URL returns different bytes per role* (see `FileAccessAllowed`) — a shared cache could otherwise serve an Analyst's copy to an anonymous caller.
+2. A `?v=` cache-busting token (`Extensions/UploadCacheBusting.cs`, applied in all four views) derived from the stored upload path, so the URL itself changes whenever the file changes. This also defeats any intermediary/CDN cache that ignores request-time revalidation. The token is a truncated SHA-256 of the path rather than the filename itself — filenames are deliberately unguessable (DEF-193) and must not leak back out in a query string.
+
+**Companion fix (same change).** `Services/FileUploadService.cs:99` and `:166` built collision filenames with `{Guid.NewGuid():N}[0..8]` — the `[0..8]` sat *outside* the interpolation hole, so the literal characters `[0..8]` were written into the filename instead of truncating the GUID. Corrected to `{Guid.NewGuid().ToString("N")[0..8]}`. Cosmetic (names were still unique), but it would have produced awkward filenames on disk in the collision path.
+
+**Scope / not touched.** No change to the save path, the 8-state workflow, the upload-path resolver, the access gate, or any API contract. `/api/v1/certificates*` untouched.
+
+**Verification.** Build clean (0 errors; 56 pre-existing warnings unchanged). Verified authenticated on localhost:5101 as `jane.analyst@anukiconsulting.com`:
+- `ViewCertificateFile/49` → **200 with `Cache-Control: private, no-cache, must-revalidate`** (pre-fix: header absent).
+- Control endpoint `PreviewThumbnail` (deliberately unmodified) → 200 + `Last-Modified` + **no `Cache-Control`**, demonstrating the pre-fix condition.
+- `/Certificate/Edit/26-0174` → renders `ViewCertificateImage/88?v=47c650b1`; `/Certificate/Edit/25-8760` → `ViewCertificateImage/49?v=8b537575` — token present and distinct per stored path.
+
+**End-to-end verification — ✅ 10/10 PASS** (`Scripts/smoke-prod/def310-replace-document-verify.js`, new). Runs the complete client-reported scenario against a **real certificate with real PDFs**: creates cert `26-1733` with a generated PDF reading "DOCUMENT ALPHA", records the preview URL + a hash of the served bytes, then edits it, replaces the PDF with "DOCUMENT BRAVO", saves, and re-reads the page exactly as the analyst would.
+
+| Check | Result |
+|---|---|
+| certificate created with PDF A | `26-1733` |
+| preview rendered after create | `/Certificate/ViewCertificateImage/175?v=3313408a` |
+| PDF A thumbnail served | 200, image/png, 7985b, hash `74d5ffec9b54741d` |
+| revalidation `Cache-Control` present | `private, no-cache, must-revalidate` |
+| preview URL changed after replace | `?v=3313408a` → `?v=c789f5a6` |
+| PDF B thumbnail served | 200, 9036b, hash `0e7a3cb174603c14` |
+| **rendered document changed (the reported defect)** | **hash differs — new document shown** |
+| "View" control points at the refreshed URL | `openImageZoom('/Certificate/ViewCertificateImage/175?v=c789f5a6')` |
+| warm-cache re-fetch returns the NEW document | matches PDF B |
+
+The warm-cache row is the one that matters most: it primes the browser cache and then re-fetches with the *default* cache mode — the exact condition that produced the client's stale preview — and still gets the new document. **Visual ground truth:** the served thumbnail was saved to `Scripts/smoke-prod/_results/def310-current-thumbnail.png` and renders "DOCUMENT BRAVO", confirming the pixels changed, not just the bytes.
+
+Note the "View" control uses the same thumbnail URL as the preview (there is no PDF viewer anywhere in the app — see the 2026-07-20 zoom ruling), so both surfaces the client named are covered by the one fix.
+
+**Harness note.** Getting this to run surfaced two things worth remembering for the next Create-form automation: the `CertificationTypeId` select is `display:none` (wrapped by the `SearchableSelect` widget) so Playwright's `selectOption` refuses to drive it — set the value through the DOM and dispatch `change`; and `validateCertDateRange()` **silently** blocks the submit event if Effective and Expiration are equal, which presents as "the click did nothing" with no visible error.
+
+**Regression test.** On a certificate whose document was uploaded well in the past: replace the PDF on Edit, save, and confirm the preview *and* the "View" control both show the new document immediately — no hard refresh, no second attempt. Repeat in a browser with a warm cache for that certificate.
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_def_entries_note_qc_id]], [[feedback_testing_environment]], [[feedback_cert_preview_after_save_by_design]].
+
+---
+
+### DEF-311 — Edit Certificate: pre-saved Certificate Tags can't be removed — clicking the tag's "×" does nothing, yet Save reports "updated"
+
+**Date:** 2026-07-20 | **Status:** Fixed (`wwwroot/js/certificate-create.js`) — working tree, **pending next deploy bundle** | **Severity:** Medium — an analyst cannot remove an existing internal OR external tag on the Edit form: the pill won't clear when its "×" is clicked, and because the hidden field is never touched, Save posts the unchanged tag list but still shows the green "certificate updated" toast — so the user believes the tag was removed when it was not (silent no-op edit, data disagrees with the confirmation). No data corruption. | **QC Ref:** internal — client observation | **Reporter:** Shawn relaying client, on the Certificate Edit page: *"Editing in the Certificate Tags section (for both internal and external tags) — I selected a tag, saved, then edited to remove tag. On the edit page, the tag you're trying to remove doesn't disappear when you click the '×' on it; when you save anyway it shows the entry was updated."* (**CP NOTE: "Agreed this is issue, I encountered issue as well."**)
+
+**Symptom.** On `/Certificate/Edit/{number}`, a tag that was saved on a prior visit renders as a pill in the Certificate Tags sidebar (External or Internal). Clicking the pill's "×" does nothing — the pill stays. Saving reports success but the tag association is unchanged. Adding-then-removing a brand-new tag *within the same session* worked; only **pre-saved** tags (and, see below, tags re-rendered after a validation error) were stuck.
+
+**Root cause.** Two separate tag-tracking arrays that never synced. `wwwroot/js/certificate-create.js` defines a **private** `TagManager` closure holding the real `externalTags` / `internalTags` arrays; its `removeTag()` (exposed as `window.CertificateCreate.removeTag`) operates on *those* arrays. But `TagManager` itself was **not** on the exposed public API object (`window.CertificateCreate = { … }`, ~line 1366). `Views/Certificate/Edit.cshtml`'s existing-tag loader does `window.CertificateCreate.TagManager = window.CertificateCreate.TagManager || { externalTags: [], internalTags: [] }` — with `TagManager` unexposed this evaluated to a **brand-new plain object**, so the pre-saved tag IDs were pushed into that throwaway object while the real closure arrays stayed `[]`. Clicking "×" → `removeTag('35','internal')` → `internalTags.indexOf(35)` on the *real* (empty) array → `-1` → the whole removal block (splice + DOM `.remove()` + hidden-input rewrite) is skipped. Nothing happens; the hidden field keeps its server-rendered value, so Save re-posts the original list.
+
+**Fix.** One line: expose the real closure instance on the public API — `TagManager: TagManager,` added to `window.CertificateCreate`. Now the Edit loader's `|| {…}` resolves to the *same* object `removeTag` reads, so loaded tags land in the arrays removal checks. No view, controller, service, model, API, or migration change. Build clean (0 warnings / 0 errors).
+
+**Companion bug fixed by the same line.** `Views/Certificate/Create.cshtml`'s `restorePostedTags()` (repopulates tags after a server-side validation error re-renders the Create form) used the identical `window.CertificateCreate.TagManager || {…}` pattern and had the same defect — restored tags couldn't be removed after a failed Create POST. Exposing the real `TagManager` repairs both the Edit (pre-saved) and Create (post-validation restore) paths.
+
+**Verification.** ✅ VERIFIED live on localhost:5101 (2026-07-20), authenticated as analyst (`jane.analyst@anukiconsulting.com`), on `/Certificate/Edit/26-0175` (a cert carrying external tag id=1 "APR" + internal tag id=35 "PL/BE"). Confirmed the loaded tags now sit in the exposed `window.CertificateCreate.TagManager` arrays (`externalTags=[1]`, `internalTags=[35]`, matching the rendered pills and hidden inputs). Firing the pill's real "×" `onclick` for **both** tags: external → pill removed, `externalTags` `[1]`→`[]`, `externalTagsHidden` `[1]`→`[]`; internal → pill removed, `internalTags` `[35]`→`[]`, `internalTagsHidden` `[35]`→`[]`. Pre-fix these clicks were confirmed no-ops (root cause above). No certificate was saved during the test — the DOM-only exercise leaves 26-0175's stored data untouched (no CR needed).
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_def_entries_note_qc_id]], [[feedback_no_chaos_rabbit_holes]] (root-caused in code before touching the browser), [[feedback_playwright_screenshots]], [[feedback_say_client_not_names]].
+
+---
+
+### DEF-312 — Import Preview: "select all" ignored the new CR-025 filter and selected every hidden row
+
+**Date:** 2026-07-20 | **Status:** Fixed (`wwwroot/js/product-id-manager.js`, `Views/Shared/_ProductIdManager.cshtml`) — working tree, **pending next deploy bundle** | **Severity:** Medium-High — a plausible click sequence imports far more rows than the analyst intended, with no confirmation step. No data loss, but a wrong-import on a large batch is expensive to unwind. | **QC Ref:** none (client). **Found by:** Anuki internal — the **Gate 1 UI audit** of deploy bundle `GCCWebApp-deploy-20260720-1250.zip` (2026-07-20). | **Reporter:** internal (pre-deploy gate).
+
+**Origin.** Not a pre-existing bug in isolation — **CR-025 created it.** The header select-all had always operated on the whole batch, which was harmless while every row was visible. Adding the CR-025 status/search filter meant "all" and "what I can see" diverged for the first time, turning a benign blanket toggle into a hazard. Caught by the Gate 1 audit before the bundle shipped.
+
+**Failure scenario.** Import 1,000 ASINs, 3 of which error. Click the **Errors** tile to filter down to those 3 rows. Click the header select-all checkbox. `toggleAllImportRows` flipped `selected` on **all 997 non-error rows** — the 994 the analyst could not see included. The only cue was the Apply button's count jumping from 3 to 997; nothing else on screen changed, because the other rows were `display: none`.
+
+**Root cause.** `toggleAllImportRows()` iterated `importPreviewData` unconditionally, with no knowledge of the filter state held in `importStatusFilter` / `importSearchTerm`. The visibility predicate lived inline inside `applyImportRowVisibility()`, so there was no shared notion of "currently shown" for the toggle to consult.
+
+**Fix.** Extracted the predicate into `importRowMatchesFilter(row)` (plus an `isImportFiltered()` helper) as the single source of truth, and made both the row renderer and `toggleAllImportRows` consult it. With no filter active, behaviour is byte-for-byte unchanged (every non-error row). With a filter active, the toggle is scoped to the filtered set. Rows hidden by the filter deliberately **retain** their existing selection — the user never saw them, so we neither select nor deselect on their behalf. Any future filter dimension goes in the one predicate and both callers inherit it.
+
+**Companion accessibility fixes (same Gate 1 audit, same file).** The CR-025 search input had no accessible name (placeholder is not a name — WCAG 2.1 AA 4.1.2) and was 14px, which triggers iOS Safari auto-zoom on focus. Added `aria-label="Search import preview rows"`, raised the input to 16px with taller padding (touch target toward the 44px minimum), added `aria-live="polite"` to the "Showing X of Y" count so filter changes are announced, and raised the count to 14px.
+
+**Scope / not touched.** No server, API, data, or migration change. Import *execution* is untouched — this only governs which rows are marked selected in the preview. No copy changed.
+
+**Verification.** ✅ **9/9 PASS** — `Scripts/smoke-prod/def312-select-all-scoping.js` (new). Loads the real `product-id-manager.js` in a VM sandbox with a DOM shim and drives the actual shipped methods (not a reimplementation) against a synthetic 1,000-row batch: no-filter selects 997 (unchanged); `filter=error` selects 0; `filter=modified` selects exactly the 499 modified rows with **zero** hidden `new` rows leaked; search filter selects only the 1 match; unchecking while filtered clears visible rows while hidden rows keep their selection; clearing the filter restores full-batch behaviour. **Negative control run:** the same harness pointed at a pre-fix copy of the file (via `PIM_PATH`) **fails 5 of 9**, including `leaked=498` on the hazard assertion — proving the test genuinely detects the regression rather than passing vacuously. `node --check` clean.
+
+**Note — reference-doc drift found during this audit.** Gate 1 cites `/0_Documentation/mockups/0_0_MasterDesignGuide.html` as the design authority, but that file **does not exist anywhere in the repo**, and `UI-STANDARDS.md` lives at `docs2/claude-ref/`, not the `docs/claude-ref/` path `.claude/CLAUDE.md` points to. Gate 1 has therefore been auditing against a partially-missing standard. Not a defect in the app — logged here so it isn't lost; needs a docs fix.
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_only_requested_changes]], [[project_predeploy_agent_checklist]].
+
+---
+
+### DEF-315 — Partner CSV export: identifier columns misaligned; ASIN values appearing under the UPC and GTIN headers
+
+**Date:** 2026-07-21 | **Status:** Fixed (`Services/CertificateService.cs`, `Services/ProductIdService.cs`, `Controllers/ExportController.cs`, `wwwroot/js/admin/exportUtils.js`) — working tree, **pending next deploy bundle** | **Severity:** **High** — silent data corruption in a partner-facing deliverable. Not cosmetic: a partner reading the UPC column got ASIN values, with nothing to indicate the file was wrong. | **QC Ref:** none — direct client report. **Found by:** client, via Shawn (2026-07-20). | **Reporter:** Anuki (internal).
+
+**Reported symptom.** "The export on certificates for Partner is showing `=` for ASIN and has UPC `"`."
+
+**Failure scenario.** Export certificates as a Partner/External user. Any certificate with more than one ASIN produces a row with more fields than the header. The reported `=` and `"` were the visible edge of a full column shift.
+
+**Root cause — the `=` was outside the CSV quoting.** `CsvTextCell` / `CsvTextField` / `CsvCell` built Excel text format as `="value"`. Per RFC 4180 a field that does not *begin* with a quote is unquoted, so every parser (Excel included) splits it on embedded commas. A multi-value ASIN cell `="AMZNONLY01, B005PMYJBO, B0BRNN8BKS"` became **three** fields:
+
+| Header | Actual content before fix |
+|---|---|
+| ASIN | `="AMZNONLY01` |
+| UPC | ` B005PMYJBO` *(an ASIN)* |
+| GTIN | ` B0BRNN8BKS"` *(an ASIN)* |
+| EAN | `="NOVIONLY01"` *(the real UPC)* |
+
+Measured on the partner export: **22 header columns vs 23-24 data columns on 4 of 4 rows.**
+
+**Introduced by DEF-306**, which added the `="…"` wrapper to stop Excel stripping leading zeros. The wrapper was correct in intent and wrong in encoding, and the misalignment only manifests on multi-value cells — which is why it survived the DEF-306 verification.
+
+**Fix — two parts.**
+
+1. **Encoding.** When the wrapper is emitted it is now `"=""value"""` — the whole field quoted, inner quotes doubled. After CSV decoding the cell content is still exactly `="value"`, so Excel behaviour and the importer's `StripExcelTextFormat` round-trip are **unchanged**. Encoding-only.
+
+2. **Scope** (per Shawn, 2026-07-21: *"we can't strip leading zeros… I assume they will be using Excel, but external users or partners may not"*). CSV is typeless — there is no portable way to mark a column as text, so any protection is an Excel-specific hack that other tools render literally. It is therefore applied **only where Excel would actually corrupt the value**: a *bare all-digit* value with a leading zero, or longer than 15 digits (precision loss). New `NeedsExcelTextProtection`. Consequence:
+   - ASINs (`B0BRNN8BKS`, starts with a letter) → **plain**; Excel never coerces them.
+   - Multi-value cells (`012345, 098765`, contain a comma) → **plain**; Excel already treats them as text, so their zeros were never at risk.
+   - `012345678905` → **wrapped**, zeros preserved.
+
+   So the client's reported `=` / `"` disappear from essentially every cell, while DEF-306's guarantee holds exactly where it matters.
+
+**Verification (localhost, partner/External export).**
+- Before: `ASIN='="AMZNONLY01'`, `UPC=' B005PMYJBO'`, `GTIN=' B0BRNN8BKS"'` — 4/4 rows misaligned.
+- After encoding fix: 0/4 misaligned, values under correct headers.
+- After scoping fix, with a leading-zero GTIN seeded into dev: `ASIN='AMZNONLY01, B005PMYJBO, B0BRNN8BKS'` (plain), `UPC='NOVIONLY01'` (plain), `GTIN='="012345678905"'` (protected), **0/4 misaligned**. Seeded value restored afterwards.
+- Import round-trip re-confirmed: `StripExcelTextFormat` only fires on a `="` prefix, so plain values pass through unchanged.
+- Deploy gates GREEN after the change (security ✔ · crud 39P/0F ✔ · contract **CONTRACT UNCHANGED** ✔).
+
+**All call sites fixed** — found by grepping the construction pattern rather than the symptom: `CertificateService.CsvCell` + `CsvTextCell`, `ProductIdService.CsvCell` + `CsvTextCell`, `ExportController.CsvTextField`, `exportUtils.js`. The formula-injection guard (DEF-306's security half) is untouched: a value starting with `= + - @` is still always wrapped.
+
+**Lesson.** The client reported this as a cosmetic annoyance (`=` showing up). It was silent data corruption in a partner deliverable. Worth checking any CSV assertion that only inspects a single-value cell — this class of bug is invisible until a field contains the delimiter.
+
+### DEF-314 — Changing a certificate's status fails to save when the certificate number is longer than 7 characters
+
+**Date:** 2026-07-21 | **Status:** Fixed (`Models/CertificateStatusHistory.cs` + migration `20260721015555_WidenStatusHistoryCertificateNumber`) — working tree, **pending next deploy bundle**; **requires prod SQL (Gate 7)** | **Severity:** **High** — the certificate is un-editable for status on the live test site; the analyst gets a generic failure with no indication of the cause, and the status silently does not change. No data loss (the write is rejected whole). | **QC Ref:** none — direct client report. **Found by:** client, via Shawn, against `https://gccwebapp.com/Certificate/Edit/26-10126` (2026-07-20). | **Reporter:** Anuki (internal).
+
+**Reported symptom.** "An error occurred while updating the certificate." Client clarified: *"It errors when the status is changed and then click save, no other changes causes the error."*
+
+**Failure scenario.** Open a certificate whose number exceeds 7 characters — the client's is `26-10126` (8 chars) — change **Status**, click Save. The form returns with the generic error, the status is not persisted, and no status-history row is written. Editing any other field on the same certificate saves normally.
+
+**Root cause — a denormalized copy narrower than its source.** `CertificateStatusHistory.CertificateNumber` was declared `[MaxLength(7)]` / `nvarchar(7)` (migration `20251117211135_AddCertificateStatusHistory`, never widened since), sized for exactly `YY-NNNN`. Its source, `Certificate.Number`, is `[MaxLength(50)]` / `nvarchar(50)`. So the system happily stores an 8-character certificate number but cannot record one in its own status history. A status change is the **only** path that inserts a status-history row (`CertificateController.cs:1336`), so SQL Server raises *"String or binary data would be truncated"*, the whole `SaveChanges` transaction is rejected, and the catch-all at `CertificateController.cs:1385-1388` converts it into the generic message. Plain edits never write that row, which is exactly why they were unaffected.
+
+**Why it hid for so long.** Two masking layers. (1) The catch-all swallows the real exception — the same anti-pattern as DEF-239, where a generic auth error hid `Invalid column name` and cost a day. The true error only ever appears in the server log (`logs\stdout_*.log`, `stdoutLogEnabled="true"` in `web.config`) on the line `Error updating certificate ID: 26-10126`. (2) Every seeded dev certificate uses the 7-char `YY-NNNN` form, so no local test could hit it — the defect required real data that had outgrown the format.
+
+**Fix.** `CertificateStatusHistory.CertificateNumber` widened `[MaxLength(7)]` → `[MaxLength(50)]` to match `Certificate.Number`, with an in-code remark to keep the two in lock-step. Migration `20260721015555_WidenStatusHistoryCertificateNumber` — a metadata-only `ALTER COLUMN nvarchar(7) → nvarchar(50)`, non-destructive, no data movement. **No controller change** — the truncation was the sole cause.
+
+**Verification — reproduced, then proven fixed** (`Scripts/smoke-prod/_diag-status-save-truncation.js`, local, three-way):
+- **Before fix:** [A] 7-char number + status change → **saves** (history +1); [B] 8-char number + status change → **client's exact error**, status unchanged, history +0; [C] 8-char number + plain edit → **saves**. All three match the client's report precisely.
+- **After fix:** [B] now saves (status `Hold`, history +1); [A] and [C] unchanged. The harness reproduced the bug before the change and cannot after — a negative control, not just a green test.
+- Fixture restored (number + status) and restore verified in both runs.
+
+**⚠️ Gate 7 — prod SQL required.** Production never auto-migrates (`Program.cs:922-926` skips `Database.Migrate()` outside Development). Shipping the DLL alone does **not** widen the column and the defect will persist. The migration is carried in the deploy bundle's `migrations/apply-migrations.sql` — **run it before recycling the app pool.**
+
+**Open question (separate from this fix).** Certificate numbers are auto-assigned in `YY-NNNN` form, so `26-10126` (5-digit sequence) is anomalous — either the sequence has overflowed 4 digits or the number was set by hand/import. Widening the column is correct regardless (the copy must never be narrower than its source), but **whether an 8-character certificate number is legitimate business data is worth confirming with the client** — if it is not, there is a separate data-correction and input-validation item behind it.
+
+**Follow-up worth doing.** The catch-all at `CertificateController.cs:1385` masked a one-line schema bug into a multi-hour diagnosis for the second time (after DEF-239). Consider surfacing a correlation id in the user-facing message and logging the exception type, so a client report can be tied to a log line without server access.
+
+### DEF-313 — Product Management unreadable on mobile: cards forced to 1100px wide and every detail panel force-expanded
+
+**Date:** 2026-07-20 | **Status:** Fixed (`wwwroot/css/product-management.css`) — working tree, **pending next deploy bundle** | **Severity:** Medium-High — the page is navigable but effectively unusable on a phone; every field value sits off-screen behind a horizontal scroll. No data risk. | **QC Ref:** none. **Found by:** Shawn West, direct report against `https://gccwebapp.com/Product/Management` (2026-07-20). | **Reporter:** Anuki (internal).
+
+**Reported symptom.** "In mobile view it is not displaying data well. It is very difficult to read. Columns are showing top down."
+
+**Failure scenario.** Open `/Product/Management` on a 390px-wide phone. The table collapses to the intended one-card-per-product layout, but each card renders **1100px wide** inside `.admin-content`'s `overflow-x: auto`. The stacked field labels are visible at the left edge while their values are pushed far off the right edge, so the page reads as a meaningless column of labels and must be scrolled sideways, field by field, to read a single product. Compounding it, every product's collapsed identifier panel is force-opened, roughly doubling page length and making the ▶ toggle appear inert.
+
+**Root cause — four independent CSS cascade failures, all in the `@media (max-width: 768px)` block.** Items 1–2 caused the reported symptom and were found by reading the cascade; items 3–4 (below the fix list) only surfaced once the result was viewed on the authenticated page.
+
+1. **`min-width` never reset (the headline cause).** `#product-table { min-width: 1100px }` (line ~447) is a `1,0,0` selector. The mobile block set `display: block; width: 100%` on the same element but never reset `min-width`, and `width` does not override `min-width` — the used width is `max(width, min-width)`. Every card therefore stayed 1100px regardless of viewport.
+2. **Detail rows force-expanded.** The mobile block used a bare `#product-table tr { display: block }` (specificity `1,0,1`), which outranks the collapse rule `.detail-row { display: none }` (`0,1,0`). Every detail row was displayed as a block whether or not it carried the `.show` class that `toggleRowDetails()` toggles.
+
+**Fix (CSS only — no view, JS, controller, service, or data change).**
+- Added `min-width: 0` to the mobile `#product-table` / `tbody` rule and to the card `tr` rule.
+- Scoped the card rule to `#product-table tr:not(.detail-row)` so it can no longer outrank `.detail-row { display: none }`, and added an explicit `#product-table tr.detail-row.show { display: block }` for the expanded state.
+- Replaced the `padding-left: 40%` + `text-align: right` label pattern with label-stacked-above-value, both left-aligned with `word-break: break-word` — at 390px the old pattern left ~230px for the value, so long product names wrapped ragged against the right edge.
+- Product Name promoted to card title (18px, no label prefix) with the desktop 3-line clamp (`max-height: 3em; overflow: hidden`) cleared so names wrap in full instead of being silently truncated.
+- Expand toggle pinned to the card's top-right as a 44px tap target instead of occupying its own empty, unlabelled row (the first `<td>` carries `data-label=""`).
+- `.actions-cell:before` (`0,2,0`) never beat `#product-table td:before` (`1,0,1`), so a redundant "Actions" label rendered above the edit/delete buttons; re-scoped to `#product-table td.actions-cell:before`.
+- `.detail-cell` (a `colspan=9` cell with no `data-label`) no longer inherits the label indent or right-alignment.
+
+**Two further defects surfaced only once the fix was viewed on the authenticated page** — neither was reachable from the offline harness, because both originate in stylesheets the harness did not load.
+
+3. **Action buttons boxed at the card's left edge.** `.actions-cell` was deliberately excluded from the `display: block` conversion, leaving it `display: table-cell` inside a `display: block` `<tr>`. The browser then wraps it in an **anonymous table box** that shrink-to-fits, so the Edit/Delete pair rendered in a small bordered box floating at the card's left edge rather than spanning it. Compounded by a desktop `.actions-cell, #product-table td.actions-cell { width: 120px !important; max-width: 120px }` pin, which held the row at 120px inside a 279px card. Fixed with `display: block` + `width: 100% !important; max-width: none !important`.
+
+4. **⚠️ RBAC trap — the obvious fix would have leaked Edit/Delete to external users.** `main.css` (§19 Role-Based Visibility) forces `display: table-cell !important` on the actions cell via `.role-analyst .role-analyst-show.actions-cell` / `.role-admin …`, so the mobile override needed `!important` to win. But the natural form of that override —
+
+   ```css
+   #product-table td.actions-cell { display: block !important; }   /* 1,0,1 */
+   ```
+
+   **outranks `.role-element { display: none !important }` (`0,1,0`)**, which is the single rule that hides action controls from EXTERNAL users. Shipping it would have exposed the Edit and Delete buttons on Product Management to external accounts at mobile widths — a permissions regression invisible on desktop and invisible to a logged-in analyst. The override is therefore scoped to the same role ancestors `main.css` uses, so it simply does not match for external users:
+
+   ```css
+   .role-analyst #product-table td.actions-cell,
+   .role-admin   #product-table td.actions-cell { display: block !important; }
+   ```
+
+   Verified by flipping the role class on the live DOM: with `.role-external` the cell computes `display: none`; with `.role-analyst`, `display: block`. **Worth generalising — any `!important` display override on a `.role-element` needs a role-scoped selector, or it silently defeats the RBAC hide.**
+
+All changes are inside the existing `max-width: 768px` block, so desktop is untouched by construction.
+
+**Verification.** ✅ **VERIFIED on the real authenticated page with real data**, localhost:5101, signed in as analyst, `/Product/Management` at a true 390px viewport (2026-07-20). Superseded the earlier harness-only result.
+
+*Method, and why it isn't the obvious one.* Two tooling limits had to be worked around, both worth recording. (a) The Chrome extension's `resize_window` **reports success while doing nothing** below screen width — it returned OK while `window.innerWidth` stayed 1920, so a real mobile viewport was not obtainable by resizing. Always assert `innerWidth` rather than trusting the call. (b) The page sends `X-Frame-Options`, so it **cannot be framed directly** — a plain `<iframe src="/Product/Management">` throws a cross-origin `SecurityError`. The working approach: `fetch('/Product/Management', {credentials:'same-origin'})`, inject `<base href="http://localhost:5101/">`, and hand the HTML to a 390px-wide `srcdoc` iframe. `srcdoc` inherits the parent origin, so the page's own scripts run, hit `/Product/GetProducts` with the session cookie, and render **real data at a real mobile viewport** — 50 rows of 120 products, confirmed by the live "Showing 1-50 of 120 products" counter.
+
+*Measured on the real page (390px viewport):*
+
+| Check | Result |
+|---|---|
+| Products rendered | 50 of 120 (real data) |
+| Horizontal overflow | **none** (`scrollWidth ≤ innerWidth`) |
+| Card width | 279px inside a 390px viewport |
+| Detail panels open on load | **0 of 50** (pre-fix: all 50) |
+| Toggle behaviour | one click → exactly 1 open |
+| Actions row | `display: block`, 247px wide (pre-fix: 120px boxed) |
+| "Actions" label | hidden |
+| **External-user actions cell** | **`display: none` — RBAC intact** |
+
+*Desktop non-regression:* re-confirmed at 1024px and 1440px — `thead` visible, the 1100px table preserved, no overflow, `.actions-cell` back to `table-cell`. Every rule added sits inside the existing `max-width: 768px` block. Build clean (0 warnings / 0 errors); CSS brace balance verified programmatically.
+
+*Screenshots:* `claude-chrome-screenshots-5dEiOi/screenshot-1784579082248-3.jpg` (final) and `…-1784578748733-1.jpg` (intermediate, before the action-row fix).
+
+**Open follow-up (not a defect, deliberately not changed).** Products with no Product Type or Subcategory render an empty labelled row — a bare "Product Type" / "Subcategory" heading with nothing under it. This matches desktop, where the cell is simply blank, so it was left alone rather than changing behaviour nobody asked for. Suppressing empty fields on mobile would tighten the cards noticeably but is a **CR-shaped decision**, not a defect fix.
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_only_requested_changes]], [[feedback_no_chaos_rabbit_holes]], [[feedback_testing_environment]], [[feedback_external_user_umbrella]] (the RBAC trap in item 4), [[feedback_playwright_screenshots]].
 
 ---
 

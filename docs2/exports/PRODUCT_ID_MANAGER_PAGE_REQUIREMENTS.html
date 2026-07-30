@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Product ID Manager Page Requirements</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+    @page {
+        size: letter;
+        margin: 0.6in 0.65in;
+    }
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+        font-size: 10pt;
+        line-height: 1.45;
+        color: #1a1a1a;
+        max-width: 8.5in;
+        margin: 0 auto;
+        padding: 30px 40px;
+        background: #fff;
+    }
+    .doc-header {
+        border-bottom: 3px solid #002B76;
+        padding-bottom: 14px;
+        margin-bottom: 20px;
+    }
+    .doc-header h1 {
+        font-size: 20pt;
+        color: #002B76;
+        margin: 0 0 4px 0;
+        font-weight: 700;
+    }
+    .doc-header .subtitle {
+        font-size: 11pt;
+        color: #555;
+        margin: 0;
+    }
+    .doc-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3px 24px;
+        font-size: 9.5pt;
+        color: #444;
+        margin-top: 10px;
+    }
+    .doc-meta strong { color: #002B76; }
+    h2 {
+        font-size: 13pt;
+        color: #002B76;
+        border-bottom: 1.5px solid #ddd;
+        padding-bottom: 5px;
+        margin-top: 24px;
+        margin-bottom: 10px;
+        page-break-after: avoid;
+    }
+    h3 {
+        font-size: 11pt;
+        color: #333;
+        margin-top: 16px;
+        margin-bottom: 6px;
+        page-break-after: avoid;
+    }
+    h4 {
+        font-size: 10pt;
+        color: #002B76;
+        margin-top: 12px;
+        margin-bottom: 5px;
+        page-break-after: avoid;
+    }
+    p { margin: 0 0 8px 0; }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 6px 0 14px 0;
+        font-size: 8.5pt;
+        page-break-inside: auto;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th {
+        background: #002B76;
+        color: #fff;
+        font-weight: 600;
+        text-align: left;
+        padding: 6px 7px;
+        font-size: 8.5pt;
+        white-space: nowrap;
+    }
+    td {
+        padding: 5px 7px;
+        border-bottom: 1px solid #e0e0e0;
+        vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8f9fa; }
+    ul { margin: 4px 0 10px 0; padding-left: 18px; }
+    ol { margin: 4px 0 10px 0; padding-left: 18px; }
+    li { margin-bottom: 3px; font-size: 9.5pt; }
+    code {
+        font-family: 'Cascadia Code', 'Consolas', monospace;
+        font-size: 8.5pt;
+        background: #f0f0f0;
+        padding: 1px 4px;
+        border-radius: 2px;
+    }
+    pre {
+        background: #f5f5f5;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 10px 12px;
+        overflow-x: auto;
+        font-size: 8pt;
+        line-height: 1.4;
+        margin: 6px 0 14px 0;
+        page-break-inside: avoid;
+    }
+    pre code {
+        background: none;
+        padding: 0;
+    }
+    .callout {
+        padding: 10px 14px;
+        border-left: 4px solid;
+        margin: 10px 0;
+        font-size: 9pt;
+    }
+    .callout-info { border-color: #002B76; background: #f0f4ff; }
+    .callout-warning { border-color: #e65100; background: #fff8f0; }
+    .callout-success { border-color: #2e7d32; background: #f0f8e8; }
+    .callout strong { display: block; margin-bottom: 3px; }
+    .toc {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 12px 16px;
+        margin: 12px 0 20px 0;
+    }
+    .toc-title {
+        font-size: 10pt;
+        font-weight: 700;
+        color: #002B76;
+        margin-bottom: 6px;
+    }
+    .toc a {
+        text-decoration: none;
+        color: #002B76;
+        font-size: 9pt;
+        display: block;
+        padding: 2px 0;
+    }
+    .toc a:hover { text-decoration: underline; }
+    .doc-footer {
+        margin-top: 30px;
+        padding-top: 12px;
+        border-top: 1px solid #ddd;
+        font-size: 8pt;
+        color: #888;
+        text-align: center;
+    }
+    .mermaid { margin: 10px 0; page-break-inside: avoid; }
+    .checkbox-item { list-style: none; margin-left: -18px; padding-left: 0; }
+    .checkbox-item::before { content: none; }
+    .checkbox-unchecked::before {
+        content: "\2610";
+        margin-right: 6px;
+        font-size: 11pt;
+    }
+    .checkbox-checked::before {
+        content: "\2611";
+        margin-right: 6px;
+        font-size: 11pt;
+        color: #2e7d32;
+    }
+    @media print {
+        body { padding: 0; }
+        .toc { break-inside: avoid; }
+        .callout { break-inside: avoid; }
+        h2 { break-after: avoid; }
+        h3 { break-after: avoid; }
+        table { font-size: 8pt; }
+        .mermaid svg { max-width: 100% !important; }
+    }
+    </style>
+</head>
+<body>
+    <div class="doc-header">
+        <h1>Product ID Manager Page - Requirements Document</h1>
+        <p class="subtitle">GCC Database Solution</p>
+        <div class="doc-meta">
+            <div><strong>Project:</strong> GCC Web Application</div>
+            <div><strong>Date:</strong> February 19, 2026</div>
+            <div><strong>Document Version:</strong> 1.0</div>
+            <div><strong>Status:</strong> Requirements Gathering</div>
+            <div><strong>Created:</strong> 2025-12-23</div>
+            <div><strong>Mockup Reference:</strong> <code>5_2_Product.png</code></div>
+        </div>
+    </div>
+
+    <!-- TABLE OF CONTENTS -->
+    <div class="toc">
+        <div class="toc-title">Table of Contents</div>
+        <a href="#overview">1. Overview</a>
+        <a href="#page-layout">2. Page Layout</a>
+        <a href="#access-control">3. Access Control</a>
+        <a href="#bulk-operations">4. Bulk Operations</a>
+        <a href="#search-filtering">5. Search &amp; Filtering</a>
+        <a href="#import-export">6. Import/Export</a>
+        <a href="#api-endpoints">7. API Endpoints</a>
+        <a href="#data-model">8. Data Model</a>
+        <a href="#ui-ux-considerations">9. UI/UX Considerations</a>
+        <a href="#implementation-notes">10. Implementation Notes</a>
+        <a href="#open-questions">11. Open Questions - RESOLVED</a>
+        <a href="#acceptance-criteria">12. Acceptance Criteria</a>
+        <a href="#revision-history">Revision History</a>
+    </div>
+
+    <!-- SECTION 1: Overview -->
+    <h2 id="overview">1. Overview</h2>
+
+    <h3>1.1 Purpose</h3>
+    <p>A standalone page to view and manage all Product IDs (ASINs, UPCs, GTINs, EANs) associated with certificates across the system. This provides a centralized view for Analysts and External Partners to see product identifier data.</p>
+
+    <h3>1.2 Distinction from Existing Pages</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Page</th>
+                <th>Purpose</th>
+                <th>Data Source</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>/Product/Management</code></td>
+                <td>Manage standalone Products</td>
+                <td><code>Products</code> table</td>
+            </tr>
+            <tr>
+                <td><code>_ProductIdManager.cshtml</code></td>
+                <td>Manage Product IDs for a single certificate</td>
+                <td><code>CertificateProductIds</code> table (filtered by certificate)</td>
+            </tr>
+            <tr>
+                <td><strong>NEW: Product ID Manager Page</strong></td>
+                <td>View/manage ALL certificate Product IDs</td>
+                <td><code>CertificateProductIds</code> table (all records)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>1.3 Target Users</h3>
+    <ul>
+        <li><strong>Analysts:</strong> Full CRUD access</li>
+        <li><strong>External Partners/Clients:</strong> View-only access (filtered by their permissions)</li>
+    </ul>
+
+    <!-- SECTION 2: Page Layout -->
+    <h2 id="page-layout">2. Page Layout</h2>
+
+    <h3>2.1 Header Section</h3>
+
+    <pre><code>+--------------------------------------------------------------------------------+
+| Product ID Manager                                         [Import] [Export]   |
++--------------------------------------------------------------------------------+
+| [Search certificate types...]        [All Status v] [All Partners v] [+ Add]   |
++--------------------------------------------------------------------------------+</code></pre>
+
+    <p><strong>Elements:</strong></p>
+    <ul>
+        <li><strong>Page Title:</strong> "Product ID Manager"</li>
+        <li><strong>Search Box:</strong> Search by certificate type, product name, company, or identifier values</li>
+        <li><strong>Filter Dropdowns:</strong>
+            <ul>
+                <li>Status: All Status, Active, Inactive, Pending</li>
+                <li>Partners: All Partners, Amazon, Wayfair, Novi, Other</li>
+            </ul>
+        </li>
+        <li><strong>Action Buttons:</strong>
+            <ul>
+                <li>Import (CSV) - Analyst only</li>
+                <li>Export (CSV) - All users</li>
+                <li>+ Add Product - Analyst only</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h3>2.2 Table Columns</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Column</th>
+                <th>Width</th>
+                <th>Sortable</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>Checkbox</td>
+                <td>40px</td>
+                <td>No</td>
+                <td>Multi-select for bulk operations</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Certificate #</td>
+                <td>100px</td>
+                <td>Yes</td>
+                <td>Certificate number (e.g., 24-1605) with link</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Product Name</td>
+                <td>180px</td>
+                <td>Yes</td>
+                <td>Name of the product</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>Company</td>
+                <td>150px</td>
+                <td>Yes</td>
+                <td>Company name</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>Status</td>
+                <td>90px</td>
+                <td>Yes</td>
+                <td>Active/Inactive/Pending badge</td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>Partners</td>
+                <td>120px</td>
+                <td>Yes</td>
+                <td>Partner badges (Amazon, Wayfair, NA)</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>ASIN</td>
+                <td>120px</td>
+                <td>Yes</td>
+                <td>Amazon Standard Identification Number</td>
+            </tr>
+            <tr>
+                <td>8</td>
+                <td>EAN</td>
+                <td>120px</td>
+                <td>Yes</td>
+                <td>European Article Number</td>
+            </tr>
+            <tr>
+                <td>9</td>
+                <td>GTIN</td>
+                <td>120px</td>
+                <td>Yes</td>
+                <td>Global Trade Item Number</td>
+            </tr>
+            <tr>
+                <td>10</td>
+                <td>UPC</td>
+                <td>120px</td>
+                <td>Yes</td>
+                <td>Universal Product Code</td>
+            </tr>
+            <tr>
+                <td>11</td>
+                <td>Date Created</td>
+                <td>100px</td>
+                <td>Yes</td>
+                <td>Creation date</td>
+            </tr>
+            <tr>
+                <td>12</td>
+                <td>Created By</td>
+                <td>100px</td>
+                <td>Yes</td>
+                <td>User who created the entry</td>
+            </tr>
+            <tr>
+                <td>13</td>
+                <td>Actions</td>
+                <td>80px</td>
+                <td>No</td>
+                <td>Edit/Delete icons (Analyst only)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>2.3 Status Badges</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Color</th>
+                <th>Badge Style</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Active</td>
+                <td>Green (#92C83E)</td>
+                <td>Solid background, white text</td>
+            </tr>
+            <tr>
+                <td>Inactive</td>
+                <td>Gray (#6c757d)</td>
+                <td>Solid background, white text</td>
+            </tr>
+            <tr>
+                <td>Pending</td>
+                <td>Orange (#FFA500)</td>
+                <td>Solid background, white text</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>2.4 Partner Badges</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Partner</th>
+                <th>Color</th>
+                <th>Badge Style</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Amazon</td>
+                <td>Orange (#FF9900)</td>
+                <td>Solid background, white text</td>
+            </tr>
+            <tr>
+                <td>Wayfair</td>
+                <td>Purple (#7B2D8E)</td>
+                <td>Solid background, white text</td>
+            </tr>
+            <tr>
+                <td>Novi</td>
+                <td>Blue (#002B76)</td>
+                <td>Solid background, white text</td>
+            </tr>
+            <tr>
+                <td>NA (None)</td>
+                <td>Gray (#6c757d)</td>
+                <td>Solid background, white text</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><strong>Note:</strong> Multiple partners can be displayed per row (side by side badges).</p>
+
+    <h3>2.5 Identifier Columns Display</h3>
+
+    <p><strong>Multiple Values Format</strong> (per decision 2025-12-23):</p>
+
+    <p>When a cell has multiple values:</p>
+    <ul>
+        <li>Show first value only</li>
+        <li>Show "+X more" badge if additional values exist: <code>B08X7N9MRQ [+2 more]</code></li>
+        <li>On click: Expand to show all values in popup/dropdown</li>
+        <li>Copy button to copy all values</li>
+    </ul>
+
+    <p><strong>Example:</strong></p>
+    <pre><code>| ASIN                    |
+|-------------------------|
+| B08X7N9MRQ [+2 more]    |  &lt;- Click reveals: B08X7N9MRQ, B09ABC123, B10DEF456
+| B094H2K8LM              |  &lt;- Single value, no badge</code></pre>
+
+    <h3>2.6 Inline Add Row</h3>
+
+    <p>At the bottom of the table, show an inline add row:</p>
+
+    <pre><code>| [ ] | [24-1609] | [Product Name] | [Company] | [Select] | [x]Amazon [x]Wayfair | [ASIN] | [EAN] | [GTIN] | [UPC] | [Date] | Current User | [Save] [Cancel] |</code></pre>
+
+    <p><strong>Fields:</strong></p>
+    <ul>
+        <li>Certificate #: Auto-generated or selectable dropdown</li>
+        <li>Product Name: Text input (required)</li>
+        <li>Company Name: Text input or dropdown</li>
+        <li>Status: Dropdown (Active/Inactive/Pending)</li>
+        <li>Partners: Checkboxes (Amazon, Wayfair, Other)</li>
+        <li>ASIN, EAN, GTIN, UPC: Text inputs</li>
+        <li>Date Created: Auto-populated</li>
+        <li>Created By: Auto-populated with current user</li>
+    </ul>
+
+    <h3>2.7 Footer / Infinite Scroll</h3>
+
+    <p><strong>No traditional pagination</strong> - Use infinite scroll (consistent with Certificate Tile View):</p>
+
+    <pre><code>Showing X of Y products                                          [Loading more...]</code></pre>
+
+    <p><strong>Behavior:</strong></p>
+    <ul>
+        <li>Initial load: 25 items</li>
+        <li>Load 25 more items when user scrolls to bottom</li>
+        <li>Show "Loading..." spinner during fetch</li>
+        <li>Show "No more items" when all loaded</li>
+    </ul>
+
+    <!-- SECTION 3: Access Control -->
+    <h2 id="access-control">3. Access Control</h2>
+
+    <h3>3.1 Role-Based Permissions</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Analyst</th>
+                <th>External Partner</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>View table</td>
+                <td>Yes</td>
+                <td>Yes (filtered)</td>
+            </tr>
+            <tr>
+                <td>Search/Filter</td>
+                <td>Yes</td>
+                <td>Yes</td>
+            </tr>
+            <tr>
+                <td>Sort columns</td>
+                <td>Yes</td>
+                <td>Yes</td>
+            </tr>
+            <tr>
+                <td>Export CSV</td>
+                <td>Yes</td>
+                <td>Yes</td>
+            </tr>
+            <tr>
+                <td>Import CSV</td>
+                <td>Yes</td>
+                <td>No</td>
+            </tr>
+            <tr>
+                <td>Add Product</td>
+                <td>Yes</td>
+                <td>No</td>
+            </tr>
+            <tr>
+                <td>Edit Product</td>
+                <td>Yes</td>
+                <td>No</td>
+            </tr>
+            <tr>
+                <td>Delete Product</td>
+                <td>Yes</td>
+                <td>No</td>
+            </tr>
+            <tr>
+                <td>Bulk operations</td>
+                <td>Yes</td>
+                <td>No</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>3.2 External Partner Data Filtering</h3>
+
+    <p>External Partners see ONLY records where:</p>
+    <ul>
+        <li>Certificate belongs to a company they're associated with, OR</li>
+        <li>Certificate has a Partner value matching their partner association</li>
+    </ul>
+
+    <p><strong>Example:</strong> An Amazon partner user sees only records where Partners includes "Amazon".</p>
+
+    <h3>3.3 UI Element Visibility</h3>
+
+    <p><strong>Hidden for External Partners:</strong></p>
+    <ul>
+        <li>Import button</li>
+        <li>+ Add Product button</li>
+        <li>Actions column (Edit/Delete)</li>
+        <li>Checkbox column (no bulk operations)</li>
+        <li>Inline add row</li>
+    </ul>
+
+    <!-- SECTION 4: Bulk Operations -->
+    <h2 id="bulk-operations">4. Bulk Operations</h2>
+
+    <h3>4.1 Multi-Select</h3>
+    <ul>
+        <li>Checkbox in header row: Select/Deselect all visible rows</li>
+        <li>Individual checkboxes per row</li>
+        <li>Selected count displayed: "X items selected"</li>
+    </ul>
+
+    <h3>4.2 Bulk Actions (Analyst Only)</h3>
+
+    <p>When items are selected, show bulk action bar:</p>
+
+    <pre><code>+--------------------------------------------------------------------------------+
+| X items selected          [Change Status v] [Delete Selected] [Clear Selection]|
++--------------------------------------------------------------------------------+</code></pre>
+
+    <p><strong>Bulk Status Change:</strong></p>
+    <ul>
+        <li>Dropdown: Active, Inactive, Pending</li>
+        <li>Confirmation modal before applying</li>
+        <li>Toast notification after completion</li>
+    </ul>
+
+    <p><strong>Bulk Delete:</strong></p>
+    <ul>
+        <li>Confirmation modal: "Are you sure you want to delete X items? This cannot be undone."</li>
+        <li>Toast notification after completion</li>
+    </ul>
+
+    <!-- SECTION 5: Search & Filtering -->
+    <h2 id="search-filtering">5. Search &amp; Filtering</h2>
+
+    <h3>5.1 Search Behavior</h3>
+
+    <p>Search across these fields:</p>
+    <ul>
+        <li>Certificate Number</li>
+        <li>Product Name</li>
+        <li>Company Name</li>
+        <li>ASIN, EAN, GTIN, UPC values</li>
+    </ul>
+
+    <p><strong>Autocomplete suggestions</strong> categorized by:</p>
+    <ul>
+        <li>Certificates</li>
+        <li>Products</li>
+        <li>Companies</li>
+        <li>Identifiers</li>
+    </ul>
+
+    <h3>5.2 Filter Combinations</h3>
+
+    <p>Filters can be combined:</p>
+    <ul>
+        <li>Status AND Partners AND Search term</li>
+        <li>Clear All button resets all filters</li>
+    </ul>
+
+    <h3>5.3 URL State</h3>
+
+    <p>Filters should be reflected in URL for shareable links:</p>
+    <pre><code>/Product/ProductIdManager?status=active&amp;partner=amazon&amp;search=LED</code></pre>
+
+    <!-- SECTION 6: Import/Export -->
+    <h2 id="import-export">6. Import/Export</h2>
+
+    <h3>6.1 Export (CSV)</h3>
+
+    <p><strong>Filename:</strong> <code>product_ids_export_YYYY-MM-DD.csv</code></p>
+
+    <p><strong>Columns:</strong></p>
+    <pre><code>Certificate #,Product Name,Company,Status,Partners,ASIN,EAN,GTIN,UPC,Date Created,Created By
+24-1605,EcoSmart LED Bulb,EcoTech Solutions,Active,"Amazon,Wayfair",B08X7N9MRQ,0846378985421,00846378985421,846378985421,2025-04-23,Sarah Johnson</code></pre>
+
+    <h3>6.2 Import (CSV)</h3>
+
+    <p><strong>Template Columns:</strong></p>
+    <pre><code>Certificate #,Product Name,Company,Status,Partners,ASIN,EAN,GTIN,UPC</code></pre>
+
+    <p><strong>Import Preview Modal:</strong></p>
+    <ul>
+        <li>Show row-by-row preview</li>
+        <li>Highlight validation errors</li>
+        <li>Allow selection of rows to import</li>
+        <li>Show: New, Modified, Unchanged, Error counts</li>
+    </ul>
+
+    <!-- SECTION 7: API Endpoints -->
+    <h2 id="api-endpoints">7. API Endpoints</h2>
+
+    <h3>7.1 Required Endpoints</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Method</th>
+                <th>Purpose</th>
+                <th>Auth</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>/api/ProductIdManager/List</code></td>
+                <td>GET</td>
+                <td>Get paginated list</td>
+                <td>Analyst/External</td>
+            </tr>
+            <tr>
+                <td><code>/api/ProductIdManager/Filters</code></td>
+                <td>GET</td>
+                <td>Get filter options</td>
+                <td>Analyst/External</td>
+            </tr>
+            <tr>
+                <td><code>/api/ProductIdManager/Create</code></td>
+                <td>POST</td>
+                <td>Create new entry</td>
+                <td>Analyst</td>
+            </tr>
+            <tr>
+                <td><code>/api/ProductIdManager/Update/{id}</code></td>
+                <td>PUT</td>
+                <td>Update entry</td>
+                <td>Analyst</td>
+            </tr>
+            <tr>
+                <td><code>/api/ProductIdManager/Delete/{id}</code></td>
+                <td>DELETE</td>
+                <td>Delete entry</td>
+                <td>Analyst</td>
+            </tr>
+            <tr>
+                <td><code>/api/ProductIdManager/BulkDelete</code></td>
+                <td>POST</td>
+                <td>Delete multiple</td>
+                <td>Analyst</td>
+            </tr>
+            <tr>
+                <td><code>/api/ProductIdManager/BulkStatusChange</code></td>
+                <td>POST</td>
+                <td>Change status</td>
+                <td>Analyst</td>
+            </tr>
+            <tr>
+                <td><code>/api/ProductIdManager/Export</code></td>
+                <td>GET</td>
+                <td>Export CSV</td>
+                <td>Analyst/External</td>
+            </tr>
+            <tr>
+                <td><code>/api/ProductIdManager/Import</code></td>
+                <td>POST</td>
+                <td>Import CSV</td>
+                <td>Analyst</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>7.2 List Endpoint Parameters</h3>
+
+    <pre><code>GET /api/ProductIdManager/List
+  ?page=1
+  &amp;pageSize=25
+  &amp;search=LED
+  &amp;status=active
+  &amp;partner=amazon
+  &amp;sortBy=certificateNumber
+  &amp;sortDir=asc</code></pre>
+
+    <!-- SECTION 8: Data Model -->
+    <h2 id="data-model">8. Data Model</h2>
+
+    <h3>8.1 Existing Table: CertificateProductIds</h3>
+
+    <pre><code>CREATE TABLE CertificateProductIds (
+    Id INT PRIMARY KEY IDENTITY,
+    CertificateId INT NOT NULL FK,
+    ProductIdType VARCHAR(20) NOT NULL,  -- ASIN, UPC, GTIN, EAN, etc.
+    ProductIdValue VARCHAR(100) NOT NULL,
+    ProductName VARCHAR(255),
+    ProductSku VARCHAR(50),
+    ProductDescription TEXT,
+    Partner VARCHAR(50),  -- Amazon, Wayfair, Novi, None
+    Status VARCHAR(20) DEFAULT 'Active',
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    CreatedBy VARCHAR(100),
+    UpdatedAt DATETIME,
+    UpdatedBy VARCHAR(100)
+);</code></pre>
+
+    <h3>8.2 View Model for Display</h3>
+
+    <pre><code>public class ProductIdManagerViewModel
+{
+    public int Id { get; set; }
+    public string CertificateNumber { get; set; }
+    public int CertificateId { get; set; }
+    public string ProductName { get; set; }
+    public string CompanyName { get; set; }
+    public string Status { get; set; }
+    public List&lt;string&gt; Partners { get; set; }  // Multiple partners
+    public string Asin { get; set; }
+    public string Ean { get; set; }
+    public string Gtin { get; set; }
+    public string Upc { get; set; }
+    public DateTime DateCreated { get; set; }
+    public string CreatedBy { get; set; }
+}</code></pre>
+
+    <h3>8.3 Archive Table (per decision 2025-12-23)</h3>
+
+    <pre><code>CREATE TABLE ArchivedCertificateProductIds (
+    Id INT PRIMARY KEY IDENTITY,
+    OriginalId INT NOT NULL,
+    CertificateId INT NOT NULL,
+    ProductIdType VARCHAR(20) NOT NULL,
+    ProductIdValue VARCHAR(100) NOT NULL,
+    ProductName VARCHAR(255),
+    ProductSku VARCHAR(50),
+    ProductDescription TEXT,
+    Partner VARCHAR(50),
+    Status VARCHAR(20),
+    OriginalCreatedAt DATETIME,
+    OriginalCreatedBy VARCHAR(100),
+    ArchivedAt DATETIME DEFAULT GETDATE(),
+    ArchivedBy VARCHAR(100),
+    ArchiveReason VARCHAR(255)
+);</code></pre>
+
+    <p><strong>Filter:</strong> Users can filter by "Archived" to see archived items.</p>
+    <p><strong>Restore:</strong> Admin can restore archived items back to main table.</p>
+
+    <h3>8.4 Data Aggregation</h3>
+
+    <p>Since <code>CertificateProductIds</code> stores one type per row, the API must aggregate:</p>
+
+    <p><strong>Raw Data:</strong></p>
+    <pre><code>Id=1, CertId=100, Type=ASIN, Value=B08X7N9MRQ
+Id=2, CertId=100, Type=UPC, Value=846378985421
+Id=3, CertId=100, Type=EAN, Value=0846378985421</code></pre>
+
+    <p><strong>Aggregated for Display:</strong></p>
+    <pre><code>CertificateNumber: 24-1605
+ASIN: B08X7N9MRQ
+UPC: 846378985421
+EAN: 0846378985421</code></pre>
+
+    <!-- SECTION 9: UI/UX Considerations -->
+    <h2 id="ui-ux-considerations">9. UI/UX Considerations</h2>
+
+    <h3>9.1 Responsive Design</h3>
+    <ul>
+        <li>On mobile: Hide some columns, show expandable detail view</li>
+        <li>Minimum viewport: 768px for full table</li>
+        <li>Below 768px: Card layout instead of table</li>
+    </ul>
+
+    <h3>9.2 Loading States</h3>
+    <ul>
+        <li>Skeleton loader while fetching data</li>
+        <li>Spinner on filter/search actions</li>
+        <li>Disabled buttons during operations</li>
+    </ul>
+
+    <h3>9.3 Error Handling</h3>
+    <ul>
+        <li>Toast notifications for errors</li>
+        <li>Inline validation messages</li>
+        <li>Retry button on network errors</li>
+    </ul>
+
+    <h3>9.4 Accessibility</h3>
+    <ul>
+        <li>Keyboard navigation for table</li>
+        <li>Screen reader announcements</li>
+        <li>Focus management in modals</li>
+        <li>ARIA labels on all controls</li>
+    </ul>
+
+    <!-- SECTION 10: Implementation Notes -->
+    <h2 id="implementation-notes">10. Implementation Notes</h2>
+
+    <h3>10.1 Files to Create</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Purpose</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Views/Product/ProductIdManager.cshtml</code></td>
+                <td>Main page view</td>
+            </tr>
+            <tr>
+                <td><code>wwwroot/js/product-id-manager-page.js</code></td>
+                <td>Page JavaScript</td>
+            </tr>
+            <tr>
+                <td><code>wwwroot/css/product-id-manager-page.css</code></td>
+                <td>Page styles</td>
+            </tr>
+            <tr>
+                <td><code>Controllers/ProductIdManagerController.cs</code></td>
+                <td>MVC Controller</td>
+            </tr>
+            <tr>
+                <td><code>Controllers/Api/ProductIdManagerApiController.cs</code></td>
+                <td>API Controller</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>10.2 Reusable Components</h3>
+
+    <p>Consider reusing from existing <code>_ProductIdManager.cshtml</code>:</p>
+    <ul>
+        <li>Validation logic</li>
+        <li>Import preview modal</li>
+        <li>Export CSV generation</li>
+        <li>Partner badge styling</li>
+    </ul>
+
+    <h3>10.3 Navigation</h3>
+
+    <p>Add to application menu:</p>
+    <ul>
+        <li>Location: Under "Companies &amp; Products" section</li>
+        <li>Menu item: "Product ID Manager"</li>
+        <li>Route: <code>/Product/ProductIdManager</code></li>
+    </ul>
+
+    <!-- SECTION 11: Open Questions -->
+    <h2 id="open-questions">11. Open Questions - RESOLVED</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Question</th>
+                <th>Answer</th>
+                <th>Decision Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>Should inline add create a new Certificate if number doesn't exist?</td>
+                <td><strong>Show Error</strong> - Display error message, user must select existing certificate</td>
+                <td>2025-12-23</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>How to handle multiple values per identifier type (e.g., 3 ASINs)?</td>
+                <td><strong>First value with badge</strong> - Show first ASIN with "+2 more" badge, expandable on click</td>
+                <td>2025-12-23</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Should Partners support "Other" with custom value?</td>
+                <td><strong>Admin-Managed List</strong> - Partners managed in Admin section, dropdown shows active partners only</td>
+                <td>2025-12-23</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>Pagination: Fixed page size or user-selectable?</td>
+                <td><strong>Infinite Scroll</strong> - Load more as user scrolls (consistent with Certificate Tile View)</td>
+                <td>2025-12-23</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>Should deleted items be soft-deleted or hard-deleted?</td>
+                <td><strong>Archive</strong> - Move to archive table, visible in 'Archived' filter for recovery</td>
+                <td>2025-12-23</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- SECTION 12: Acceptance Criteria -->
+    <h2 id="acceptance-criteria">12. Acceptance Criteria</h2>
+
+    <h3>12.1 Must Have (MVP)</h3>
+    <ul>
+        <li class="checkbox-item checkbox-unchecked">Table displays all certificate product IDs</li>
+        <li class="checkbox-item checkbox-unchecked">Separate columns for ASIN, EAN, GTIN, UPC</li>
+        <li class="checkbox-item checkbox-unchecked">Status and Partner badges with colors</li>
+        <li class="checkbox-item checkbox-unchecked">Search and filter functionality</li>
+        <li class="checkbox-item checkbox-unchecked">Export to CSV</li>
+        <li class="checkbox-item checkbox-unchecked">Role-based access control</li>
+        <li class="checkbox-item checkbox-unchecked">External user data filtering</li>
+    </ul>
+
+    <h3>12.2 Should Have</h3>
+    <ul>
+        <li class="checkbox-item checkbox-unchecked">Inline add row</li>
+        <li class="checkbox-item checkbox-unchecked">Multi-select checkboxes</li>
+        <li class="checkbox-item checkbox-unchecked">Bulk status change</li>
+        <li class="checkbox-item checkbox-unchecked">Bulk delete</li>
+        <li class="checkbox-item checkbox-unchecked">Import from CSV</li>
+        <li class="checkbox-item checkbox-unchecked">Shareable filter URLs</li>
+    </ul>
+
+    <h3>12.3 Nice to Have</h3>
+    <ul>
+        <li class="checkbox-item checkbox-unchecked">Column resizing</li>
+        <li class="checkbox-item checkbox-unchecked">Column visibility toggle</li>
+        <li class="checkbox-item checkbox-unchecked">Saved filter presets</li>
+        <li class="checkbox-item checkbox-unchecked">Real-time updates</li>
+    </ul>
+
+    <!-- Revision History -->
+    <h2 id="revision-history">Revision History</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Version</th>
+                <th>Date</th>
+                <th>Author</th>
+                <th>Changes</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1.0</td>
+                <td>2025-12-23</td>
+                <td>Claude</td>
+                <td>Initial requirements document</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="doc-footer">
+        Generated: February 19, 2026 | GCC Database Solution - PointSolve Technology
+    </div>
+    <script>mermaid.initialize({startOnLoad:true, theme:'neutral', flowchart:{useMaxWidth:true}});</script>
+</body>
+</html>

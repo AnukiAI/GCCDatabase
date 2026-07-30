@@ -28,7 +28,8 @@
         // Retry mechanism
         retryCount: 0,
         maxRetries: 3,
-        retryDelay: 1000 // Start with 1 second
+        retryDelay: 1000, // Start with 1 second
+        loadSeq: 0 // Monotonic token: only the latest fresh (sort/filter/search) load renders.
     };
 
     // Set on pagehide so fetches aborted by navigation don't log noise
@@ -225,7 +226,14 @@
 
     // Load certificates from API
     async function loadCertificates(append = false) {
-        if (state.isLoading) return;
+        // A blanket `if (state.isLoading) return;` used to DROP a sort/filter/search change that
+        // arrived while a load was in flight — the Sort-By label + ?sort= URL updated but the data
+        // never reloaded, so the grid could end on a different sort than the control claimed
+        // (DEF-309). Fix: only infinite-scroll *appends* must not stack; a *fresh* load supersedes
+        // whatever is in flight, and a sequence token ensures only the newest fresh result renders.
+        // (The retry path below re-enters with a new token, so retries of the active load still win.)
+        if (append && state.isLoading) return;
+        const seq = ++state.loadSeq;
 
         state.isLoading = true;
         showLoadingIndicator();
@@ -250,9 +258,13 @@
                 signal: AbortSignal.timeout(30000) // 30 second timeout
             });
 
+            // A newer fresh load started while this one was in flight — discard this stale
+            // result so it can't overwrite the newer sort/filter the user actually wants.
+            if (seq !== state.loadSeq) return;
 
             if (response.ok) {
                 const data = await response.json();
+                if (seq !== state.loadSeq) return; // re-check after awaiting the body
 
 
                 if (append) {
@@ -288,6 +300,7 @@
             }
         } catch (error) {
             if (pageUnloading) return; // fetch was aborted by navigation, not a real failure — skip log + retry
+            if (seq !== state.loadSeq) return; // superseded by a newer load — don't retry/error a stale one
             console.error('Error loading certificates:', error);
 
             // Retry logic for network errors
@@ -313,8 +326,12 @@
                 showRetryButton(append);
             }
         } finally {
-            state.isLoading = false;
-            hideLoadingIndicator();
+            // Only the latest load clears the flag/spinner — a superseded load must leave them
+            // in place so the still-running newer load keeps ownership of the loading state.
+            if (seq === state.loadSeq) {
+                state.isLoading = false;
+                hideLoadingIndicator();
+            }
         }
     }
 
@@ -417,9 +434,30 @@
 
         // Also update table view if it's currently visible
         const tableView = document.getElementById('tableView');
-        if (tableView && tableView.style.display !== 'none') {
+        const tableVisible = tableView && tableView.style.display !== 'none';
+        if (tableVisible) {
             renderTableRows(state.certificates);
         }
+
+        // Defensive repaint nudge on a fresh (non-append) re-render. A client reported the
+        // results area going white after a sort while the rows were still in the DOM and
+        // clickable, self-healing on refresh — the classic signature of a stalled compositor
+        // paint (not reproducible in automation, incl. a real-GPU headed run). This forces a
+        // reflow + a one-frame compositor refresh so a stalled paint can't leave a blank grid.
+        if (!append) {
+            nudgeRepaint(tableVisible ? document.getElementById('gridBody') : grid);
+        }
+    }
+
+    // Force the just-rendered surface to repaint. Targets #gridBody / #certificatesGrid ONLY —
+    // never a sticky-header ancestor, since a `transform` on an ancestor of a position:sticky
+    // element silently breaks the sticky header. The transform is cleared on the next frame so
+    // no persistent compositor layer is left behind.
+    function nudgeRepaint(el) {
+        if (!el) return;
+        void el.offsetHeight;            // force synchronous layout
+        el.style.transform = 'translateZ(0)';
+        requestAnimationFrame(() => { el.style.transform = ''; });
     }
 
     // Create certificate card HTML

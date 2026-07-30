@@ -96,7 +96,9 @@ namespace GCCWebApp.Services
                 // Check if file already exists
                 if (File.Exists(filePath))
                 {
-                    fileName = $"{certificateNumber}_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}[0..8]{fileExtension}";
+                    // DEF-310: `[0..8]` used to sit outside the interpolation hole, so the literal
+                    // characters "[0..8]" landed in the filename instead of truncating the GUID.
+                    fileName = $"{certificateNumber}_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N")[0..8]}{fileExtension}";
                     filePath = Path.Combine(_certificatesPath, fileName);
                 }
 
@@ -163,7 +165,9 @@ namespace GCCWebApp.Services
                 // Check if file already exists
                 if (File.Exists(filePath))
                 {
-                    fileName = $"{identifier}_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}[0..8]{fileExtension}";
+                    // DEF-310: `[0..8]` used to sit outside the interpolation hole, so the literal
+                    // characters "[0..8]" landed in the filename instead of truncating the GUID.
+                    fileName = $"{identifier}_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N")[0..8]}{fileExtension}";
                     filePath = Path.Combine(_imagesPath, fileName);
                 }
 

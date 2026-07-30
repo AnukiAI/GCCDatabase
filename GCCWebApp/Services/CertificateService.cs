@@ -1121,16 +1121,22 @@ namespace GCCWebApp.Services
 
                 // CSV Header — all certificate fields + admin custom fields
                 // CSV header text matches the certificate tile UI column labels.
-                // DEF-295: Cert Subcategories, Pathway, and Cert Results are Admin/Analyst-only —
-                // they appear on NO partner-facing surface (external tile view, external table view,
-                // external tile API, or the v1 partner API), so they are gated behind the same
-                // internal-caller flag (`includeInternalTags`, true only for Admin/Analyst) that
-                // already hides the Internal Tag column (DEF-128) and Internal custom fields
-                // (DEF-247). Column order here MUST stay in lock-step with the data-row builder below.
+                // DEF-295: Cert Subcategories and Pathway are Admin/Analyst-only — they appear on NO
+                // partner-facing surface (external tile view, external table view, external tile API,
+                // or the v1 partner API), so they are gated behind the same internal-caller flag
+                // (`includeInternalTags`, true only for Admin/Analyst) that already hides the
+                // Internal Tag column (DEF-128) and Internal custom fields (DEF-247).
+                //
+                // QC #201 (client, 7/6/2026): "ALL views should include results, as a percentage,
+                // rather than having Results column removed" — Cert Results is explicitly EXCLUDED
+                // from the DEF-295 gate and now ships on every export tier, always formatted as a
+                // percentage via DisplayFormatters (DEF-287). Pathway + Cert Subcategories stay
+                // internal-only. Column order here MUST stay in lock-step with the data-row builder below.
                 csv.Append("\"Certificate #\",\"Certification Type\"");
                 if (includeInternalTags) csv.Append(",\"Cert Subcategories\"");
                 csv.Append(",\"Status\",\"Company\",\"Company Contact Email/URL\",\"Contact URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\"");
-                if (includeInternalTags) csv.Append(",\"Pathway\",\"Cert Results\"");
+                if (includeInternalTags) csv.Append(",\"Pathway\"");
+                csv.Append(",\"Cert Results\"");
                 csv.Append(",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\"");
                 if (includeInternalTags)
                 {
@@ -1139,34 +1145,39 @@ namespace GCCWebApp.Services
                 csv.Append(",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"");
                 foreach (var fieldName in customFieldNames)
                 {
-                    csv.Append($",\"{EscapeCsvField(fieldName)}\"");
+                    csv.Append($",{CsvCell(fieldName)}");
                 }
                 csv.AppendLine();
 
-                // CSV Data with proper escaping
+                // CSV Data with proper escaping. Every text cell is emitted via CsvCell so that
+                // values Excel/Sheets would otherwise treat as a formula (e.g. the "+Vantage Vinyl
+                // Verified" certification type, which rendered as #NAME?) are neutralised — see CsvCell.
                 foreach (var cert in certificates)
                 {
-                    csv.Append($"\"{EscapeCsvField(cert.CertificateNumber)}\",\"{EscapeCsvField(cert.CertificationType)}\"");
+                    csv.Append($"{CsvCell(cert.CertificateNumber)},{CsvCell(cert.CertificationType)}");
                     // DEF-295: Cert Subcategories — Admin/Analyst-only.
-                    if (includeInternalTags) csv.Append($",\"{EscapeCsvField(cert.CertificationSubcategories)}\"");
-                    csv.Append($",\"{EscapeCsvField(cert.Status)}\",\"{EscapeCsvField(cert.CompanyName)}\",\"{EscapeCsvField(cert.CompanyContactEmail)}\",\"{EscapeCsvField(cert.CompanyContactUrl)}\",\"{EscapeCsvField(cert.ProductName)}\",\"{EscapeCsvField(cert.ProductCategory)}\",\"{EscapeCsvField(cert.ProductType)}\",\"{EscapeCsvField(cert.ProductSubcategory)}\",\"{EscapeCsvField(cert.Partner)}\"");
-                    // DEF-295: Pathway + Cert Results — Admin/Analyst-only. (The Cert Results
-                    // percentage formatting via DisplayFormatters.FormatCertificationResults stays
-                    // — see DEF-287 — but only the internal export now carries the column.)
-                    if (includeInternalTags) csv.Append($",\"{EscapeCsvField(cert.Pathway)}\",\"{EscapeCsvField(GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(cert.CertificationResults) ?? "")}\"");
-                    csv.Append($",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",\"{EscapeCsvField(cert.Location)}\",\"{EscapeCsvField(cert.Country)}\",\"{EscapeCsvField(cert.ExternalTags)}\"");
+                    if (includeInternalTags) csv.Append($",{CsvCell(cert.CertificationSubcategories)}");
+                    csv.Append($",{CsvCell(cert.Status)},{CsvCell(cert.CompanyName)},{CsvCell(cert.CompanyContactEmail)},{CsvCell(cert.CompanyContactUrl)},{CsvCell(cert.ProductName)},{CsvCell(cert.ProductCategory)},{CsvCell(cert.ProductType)},{CsvCell(cert.ProductSubcategory)},{CsvCell(cert.Partner)}");
+                    // DEF-295: Pathway — Admin/Analyst-only.
+                    if (includeInternalTags) csv.Append($",{CsvCell(cert.Pathway)}");
+                    // QC #201: Cert Results on every tier, percentage-formatted (DEF-287).
+                    csv.Append($",{CsvCell(GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(cert.CertificationResults) ?? "")}");
+                    csv.Append($",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",{CsvCell(cert.Location)},{CsvCell(cert.Country)},{CsvCell(cert.ExternalTags)}");
                     if (includeInternalTags)
                     {
-                        csv.Append($",\"{EscapeCsvField(cert.InternalTags)}\"");
+                        csv.Append($",{CsvCell(cert.InternalTags)}");
                     }
-                    csv.Append($",\"{EscapeCsvField(cert.Asin)}\",\"{EscapeCsvField(cert.Upc)}\",\"{EscapeCsvField(cert.Gtin)}\",\"{EscapeCsvField(cert.Ean)}\"");
+                    // ASIN/UPC/GTIN/EAN are identifier codes: force Excel text format so Excel
+                    // doesn't treat them as numbers and strip leading zeros (e.g. a UPC
+                    // "012345678905" would otherwise open as 12345678905). Round-trips losslessly.
+                    csv.Append($",{CsvTextCell(cert.Asin)},{CsvTextCell(cert.Upc)},{CsvTextCell(cert.Gtin)},{CsvTextCell(cert.Ean)}");
 
                     // Append custom field values (admin-added fields)
                     customFieldValueMap.TryGetValue(cert.Id, out var certFieldValues);
                     foreach (var fieldName in customFieldNames)
                     {
                         var value = certFieldValues != null && certFieldValues.TryGetValue(fieldName, out var v) ? v : "";
-                        csv.Append($",\"{EscapeCsvField(value)}\"");
+                        csv.Append($",{CsvCell(value)}");
                     }
                     csv.AppendLine();
                 }
@@ -1187,6 +1198,104 @@ namespace GCCWebApp.Services
 
             // Escape quotes by doubling them
             return field.Replace("\"", "\"\"");
+        }
+
+        // Characters that make Excel / Google Sheets interpret a cell as a formula. A value
+        // starting with any of these is a CSV-injection vector and, for benign data like the
+        // "+Vantage Vinyl Verified" certification type, renders as #NAME? in the exported file.
+        private const string CsvFormulaTriggers = "=+-@\t\r";
+
+        /// <summary>
+        /// Builds a complete, Excel-safe CSV cell (surrounding quotes included).
+        /// Normal values are RFC 4180 quoted. Values that would otherwise be read as a formula
+        /// (leading = + - @ or tab/CR) are emitted in Excel text format (="value") so they
+        /// display literally and cannot execute. This is the same wrapper the importer already
+        /// unwraps via StripExcelTextFormat (applied to every column in GetFieldWithMapping),
+        /// so re-importing an exported file is lossless.
+        /// </summary>
+        private string CsvCell(string? field)
+        {
+            var value = field ?? string.Empty;
+            var escaped = EscapeCsvField(value);
+            if (value.Length > 0 && CsvFormulaTriggers.IndexOf(value[0]) >= 0)
+            {
+                return ExcelTextCell(value);
+            }
+            return $"\"{escaped}\"";
+        }
+
+        /// <summary>
+        /// Like <see cref="CsvCell"/> but ALWAYS emits Excel text format (="value") for non-empty
+        /// values. Use for identifier columns (ASIN/UPC/GTIN/EAN) whose leading zeros Excel would
+        /// otherwise strip by treating the cell as a number. Empty stays an empty quoted cell.
+        /// Uses the same ="value" wrapper the importer unwraps via StripExcelTextFormat, so
+        /// re-importing is lossless.
+        /// </summary>
+        private string CsvTextCell(string? field)
+        {
+            var value = field ?? string.Empty;
+            if (value.Length == 0)
+            {
+                return "\"\"";
+            }
+            // DEF-315: only wrap when Excel would actually corrupt the value. See
+            // NeedsExcelTextProtection — most identifier cells are alphanumeric or multi-value
+            // and are safe as a plain quoted field, which reads cleanly in EVERY tool
+            // (Sheets/Numbers/text editors show ="…" literally). Leading zeros are still
+            // protected where they genuinely exist, so DEF-306's guarantee is preserved.
+            return NeedsExcelTextProtection(value) ? ExcelTextCell(value) : $"\"{EscapeCsvField(value)}\"";
+        }
+
+        /// <summary>
+        /// True when Excel would corrupt this value by parsing it as a number.
+        /// </summary>
+        /// <remarks>
+        /// CSV is typeless — there is no portable way to mark a column as text, so any protection
+        /// is an Excel-specific hack that other tools render literally. The fix is therefore to
+        /// apply it as narrowly as possible.
+        ///
+        /// Excel only coerces a cell to a number when the whole cell is digits. That means:
+        ///  - Alphanumeric identifiers (ASIN "B0BRNN8BKS") are never at risk — they start with a letter.
+        ///  - Multi-value cells ("012345, 098765") are never at risk — the comma makes Excel treat
+        ///    them as text, so their leading zeros already survive.
+        ///  - A bare all-digit value IS at risk: a leading zero is dropped ("012345678905" →
+        ///    12345678905), and past 15 significant digits Excel loses precision outright.
+        /// So we protect exactly that case and leave everything else as a clean plain field.
+        /// </remarks>
+        private static bool NeedsExcelTextProtection(string value)
+        {
+            if (value.Length == 0) return false;
+            foreach (var c in value)
+            {
+                if (c < '0' || c > '9') return false; // not purely numeric → Excel leaves it alone
+            }
+            return value[0] == '0' || value.Length > 15;
+        }
+
+        /// <summary>
+        /// Builds a complete, RFC 4180-valid CSV cell whose DECODED content is Excel text format
+        /// (<c>="value"</c>).
+        /// </summary>
+        /// <remarks>
+        /// DEF-315: the previous form emitted <c>="value"</c> with the <c>=</c> sitting OUTSIDE the
+        /// quoting. A field that does not begin with a quote is unquoted per RFC 4180, so any parser
+        /// (Excel included) split it on the commas inside a multi-value identifier — e.g. an ASIN cell
+        /// "AMZNONLY01, B005PMYJBO, B0BRNN8BKS" became three fields, shifting every following column.
+        /// The partner export was silently emitting ASIN values under the UPC and GTIN headers.
+        ///
+        /// Correct form quotes the whole field and doubles the inner quotes: <c>"=""value"""</c>.
+        /// After CSV decoding the cell content is still exactly <c>="value"</c>, so Excel's text
+        /// treatment (leading-zero preservation, formula neutralisation) is unchanged and the
+        /// importer's StripExcelTextFormat round-trip still matches. This is purely an ENCODING fix —
+        /// the decoded value is byte-identical to before.
+        /// </remarks>
+        private string ExcelTextCell(string value)
+        {
+            // Two escaping levels: inner = quotes doubled for Excel's ="…" string literal;
+            // outer = those doubled again so the whole thing survives as one CSV field.
+            var excelEscaped = value.Replace("\"", "\"\"");
+            var csvEscaped = excelEscaped.Replace("\"", "\"\"");
+            return $"\"=\"\"{csvEscaped}\"\"\"";
         }
 
         /// <summary>

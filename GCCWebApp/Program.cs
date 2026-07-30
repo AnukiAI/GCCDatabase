@@ -25,15 +25,25 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Azure Key Vault and secure configuration management
 builder.Configuration.AddAzureKeyVaultIfAvailable(builder.Environment);
 
+// Cookie Secure-flag policy. Test/Prod are HTTPS-only (IIS in-process hosting +
+// the web.config HTTP→HTTPS redirect rule + HSTS), so all cookies must carry the
+// Secure attribute — Always removes any dependence on the app's perceived request
+// scheme. Development runs on plain-HTTP localhost, where Secure cookies would
+// never be sent, so relax to SameAsRequest there only. (Replaces the earlier
+// SameAsRequest-everywhere "TEMPORARY FIX" TODOs on the session/auth/antiforgery
+// cookies.)
+var cookieSecurePolicy = builder.Environment.IsDevelopment()
+    ? CookieSecurePolicy.SameAsRequest
+    : CookieSecurePolicy.Always;
+
 // ===== SESSION CONFIGURATION =====
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    // TEMPORARY FIX: Allow cookies without valid SSL certificate
-    // TODO: Install proper SSL certificate and change back to CookieSecurePolicy.Always
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    // Secure on HTTPS-only Test/Prod; relaxed only on Development (plain-HTTP localhost).
+    options.Cookie.SecurePolicy = cookieSecurePolicy;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.Name = "GCC.Session";
 });
@@ -246,9 +256,8 @@ else
             options.SlidingExpiration = true;
             options.Cookie.Name = "GCC.Auth";
             options.Cookie.HttpOnly = true;
-            // TEMPORARY FIX: Allow cookies without valid SSL certificate
-            // TODO: Install proper SSL certificate and change back to CookieSecurePolicy.Always
-            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            // Secure on HTTPS-only Test/Prod; relaxed only on Development (plain-HTTP localhost).
+            options.Cookie.SecurePolicy = cookieSecurePolicy;
 
             // Handle API requests - return JSON instead of redirecting to login page
             options.Events = new CookieAuthenticationEvents
@@ -355,8 +364,8 @@ builder.Services.AddAntiforgery(options =>
     options.HeaderName = "RequestVerificationToken";
     options.Cookie.Name = "__RequestVerificationToken";
     options.Cookie.HttpOnly = true;
-    // Use SameAsRequest for container deployments behind reverse proxy
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    // Secure on HTTPS-only Test/Prod; relaxed only on Development (plain-HTTP localhost).
+    options.Cookie.SecurePolicy = cookieSecurePolicy;
     options.Cookie.SameSite = SameSiteMode.Strict;
     options.SuppressXFrameOptionsHeader = false;
 });
@@ -821,6 +830,16 @@ app.MapControllerRoute(
     pattern: "Certificate/Delete/{number}",
     defaults: new { controller = "Certificate", action = "Delete" },
     constraints: new { number = @"^[0-9]+-[0-9A-Za-z]+$" });
+
+// Certificate pre-save thumbnail preview route (must come before default).
+// The action parameter is named {fileName}, but the default route only supplies an
+// {id} token — so without this the segment binds to id and fileName stays null, and
+// PreviewThumbnail returns NotFound (the broken-image preview on the Create page
+// before save; Edit worked because ViewCertificateImage binds {id}). DEF-208 flow.
+app.MapControllerRoute(
+    name: "certificate_preview_thumbnail",
+    pattern: "Certificate/PreviewThumbnail/{fileName}",
+    defaults: new { controller = "Certificate", action = "PreviewThumbnail" });
 
 // Dashboard route - explicit mapping for /Dashboard to Dashboard/Index
 app.MapControllerRoute(

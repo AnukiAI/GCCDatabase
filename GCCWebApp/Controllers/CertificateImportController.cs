@@ -12,9 +12,10 @@ using System.Threading.Tasks;
 namespace GCCWebApp.Controllers
 {
     /// <summary>
-    /// Admin-only controller for certificate CSV import with preview and comparison
+    /// Certificate CSV import with preview and comparison.
+    /// Opened to Analyst + Admin per client request (7/10 call): analysts need Import/Template.
     /// </summary>
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = "AnalystOrAdmin")]
     public class CertificateImportController : Controller
     {
         private readonly ICertificateImportService _importService;

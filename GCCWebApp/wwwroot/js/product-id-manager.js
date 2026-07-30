@@ -1422,6 +1422,11 @@ class ProductIdManager {
     // Import preview state
     importPreviewData = [];
     importFileName = '';
+    // Client request (ASIN upload): preview-only filters so a user can isolate
+    // (e.g.) the 2 error rows out of a 1,000-row import. Purely visual — they
+    // hide/show rendered rows and never touch selection or what gets applied.
+    importStatusFilter = null; // 'new' | 'modified' | 'unchanged' | 'error' | null
+    importSearchTerm = '';
 
     showImportModal() {
         // Open file picker directly
@@ -1471,13 +1476,14 @@ class ProductIdManager {
             const type = productId.type || '';
             let value = productId.value || productId.productid || productId['product id'] || '';
 
-            // Fix scientific notation from Excel (e.g., 1.23E+12 → 123000000000)
-            value = this.fixScientificNotation(value);
+            // Strip Excel text format (="12345") the exporter adds to preserve leading zeros
+            // (DEF-306), THEN fix scientific notation from Excel (e.g., 1.23E+12 → 123000000000).
+            value = this.fixScientificNotation(this.stripExcelTextFormat(value));
 
             if (!type && !value) continue;
 
-            // Also fix scientific notation on SKU field
-            const sku = this.fixScientificNotation(productId.productsku || productId.sku || '');
+            // Same strip + scientific-notation fix on SKU.
+            const sku = this.fixScientificNotation(this.stripExcelTextFormat(productId.productsku || productId.sku || ''));
 
             // CR-015: Status from CSV is ignored — derived from parent cert.
             // Header lookup is tolerant of both "ProductName"/"productname" and
@@ -1508,6 +1514,25 @@ class ProductIdManager {
      * Excel often converts long numeric IDs (UPCs, GTINs, SKUs) to scientific notation
      * like "1.23456E+11" when saving to CSV. This restores the original number.
      */
+    /**
+     * Strips the Excel text format (="value") that the CSV exporter wraps identifier codes in
+     * to preserve leading zeros (DEF-306). Handles both the intact form ="12345" and the residue
+     * left by parseCSVLine, which strips the surrounding quotes and leaves a stray leading "="
+     * (e.g. ="012345" -> =012345). A product ID value / SKU never legitimately begins with "=",
+     * so removing it is safe and makes a raw re-import of an exported file lossless.
+     */
+    stripExcelTextFormat(value) {
+        if (!value || typeof value !== 'string') return value;
+        let v = value.trim();
+        if (v.startsWith('="') && v.endsWith('"')) {
+            return v.slice(2, -1).replace(/""/g, '"');   // intact form ="..."
+        }
+        if (v.startsWith('=')) {
+            return v.slice(1);                            // parseCSVLine residue =...
+        }
+        return v;
+    }
+
     fixScientificNotation(value) {
         if (!value || typeof value !== 'string') return value;
         const trimmed = value.trim();
@@ -1673,6 +1698,12 @@ class ProductIdManager {
         const modal = document.getElementById('import-preview-modal');
         if (!modal) return;
 
+        // Client request (ASIN upload): every fresh import starts unfiltered.
+        this.importStatusFilter = null;
+        this.importSearchTerm = '';
+        const searchInput = document.getElementById('import-preview-search');
+        if (searchInput) searchInput.value = '';
+
         // Calculate statistics
         const stats = {
             new: this.importPreviewData.filter(r => r.status === 'new').length,
@@ -1739,9 +1770,109 @@ class ProductIdManager {
             tbody.appendChild(tr);
         });
 
+        // Client request (ASIN upload): apply any active status/search filter to
+        // the freshly-built rows and refresh the filter UI (highlight + count).
+        this.applyImportRowVisibility();
+
         // Show modal
         modal.style.display = 'block';
         this.updateApplyButtonState();
+    }
+
+    // Client request (ASIN upload): toggle a status filter from the summary boxes.
+    // Clicking the active box again clears it.
+    toggleImportStatusFilter(status) {
+        this.importStatusFilter = (this.importStatusFilter === status) ? null : status;
+        this.applyImportRowVisibility();
+    }
+
+    // Client request (ASIN upload): free-text search across the preview rows.
+    searchImportPreview(term) {
+        this.importSearchTerm = (term || '').trim().toLowerCase();
+        this.applyImportRowVisibility();
+    }
+
+    clearImportPreviewFilters() {
+        this.importStatusFilter = null;
+        this.importSearchTerm = '';
+        const searchInput = document.getElementById('import-preview-search');
+        if (searchInput) searchInput.value = '';
+        this.applyImportRowVisibility();
+    }
+
+    // Client request (ASIN upload): show/hide already-rendered rows based on the
+    // active status box + search term, then update the box highlight, the
+    // "showing X of Y" count, and the Clear-filter button. Never rebuilds rows or
+    // changes selection — apply/select-all still operate on the full data set.
+    /**
+     * DEF-312 — single source of truth for "is this row currently shown?".
+     *
+     * Extracted from applyImportRowVisibility so the row rendering and the header
+     * select-all can never disagree about what the active filter covers. Any future
+     * filter dimension goes in HERE and both callers inherit it.
+     */
+    importRowMatchesFilter(row) {
+        if (!row) return false;
+
+        const status = this.importStatusFilter;
+        if (status && row.status !== status) return false;
+
+        const term = this.importSearchTerm;
+        if (term) {
+            const haystack = [
+                row.data.productIdType,
+                row.data.productIdValue,
+                row.data.productName,
+                row.data.productSku,
+                row.data.partner,
+                (row.errors || []).join(' ')
+            ].filter(Boolean).join(' ').toLowerCase();
+            if (!haystack.includes(term)) return false;
+        }
+
+        return true;
+    }
+
+    /** Is a status or search filter currently narrowing the preview? */
+    isImportFiltered() {
+        return !!this.importStatusFilter || !!this.importSearchTerm;
+    }
+
+    applyImportRowVisibility() {
+        const tbody = document.getElementById('import-preview-body');
+        if (!tbody) return;
+
+        const status = this.importStatusFilter;
+        const total = this.importPreviewData.length;
+        let visible = 0;
+
+        Array.from(tbody.children).forEach(tr => {
+            const idx = parseInt(tr.dataset.index);
+            const row = this.importPreviewData[idx];
+            if (!row) return;
+
+            const show = this.importRowMatchesFilter(row);
+            tr.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        // Highlight the active status box (2px colored border) and reset the rest.
+        const boxStatuses = ['new', 'modified', 'unchanged', 'error'];
+        const borderColors = { new: '#447638', modified: '#002B76', unchanged: '#999', error: '#ff5252' };
+        boxStatuses.forEach(s => {
+            const box = document.getElementById(`stat-box-${s === 'error' ? 'errors' : s}`);
+            if (box) {
+                box.style.borderColor = (status === s) ? borderColors[s] : 'transparent';
+                box.setAttribute('aria-pressed', String(status === s));
+            }
+        });
+
+        // "Showing X of Y" count + Clear-filter button visibility.
+        const filtering = this.isImportFiltered();
+        const countEl = document.getElementById('import-preview-count');
+        if (countEl) countEl.textContent = filtering ? `Showing ${visible} of ${total}` : '';
+        const clearBtn = document.getElementById('import-preview-clear-filter');
+        if (clearBtn) clearBtn.style.display = filtering ? '' : 'none';
     }
 
     toggleImportRow(index, checked) {
@@ -1751,13 +1882,27 @@ class ProductIdManager {
         }
     }
 
+    /**
+     * DEF-312 — "select all" acts on the rows the user can SEE, not the whole batch.
+     *
+     * The CR-025 status/search filter made the old blanket behaviour a real hazard:
+     * filter a 1,000-row import down to the 3 error rows, click the header checkbox,
+     * and it flipped `selected` on all 997 hidden rows too — the only cue being the
+     * Apply button's count. On a large import that is a wrong-import risk, so when a
+     * filter is active the toggle is scoped to the filtered set. With no filter on,
+     * behaviour is unchanged (every non-error row).
+     *
+     * Rows hidden by the filter deliberately KEEP their existing selection — the user
+     * never saw them, so we neither select nor deselect on their behalf.
+     */
     toggleAllImportRows(checked) {
         this.importPreviewData.forEach((row, index) => {
-            if (row.status !== 'error') {
-                row.selected = checked;
-                const checkbox = document.querySelector(`.import-row-checkbox[data-index="${index}"]`);
-                if (checkbox) checkbox.checked = checked;
-            }
+            if (row.status === 'error') return;
+            if (!this.importRowMatchesFilter(row)) return;
+
+            row.selected = checked;
+            const checkbox = document.querySelector(`.import-row-checkbox[data-index="${index}"]`);
+            if (checkbox) checkbox.checked = checked;
         });
         this.updateApplyButtonState();
     }

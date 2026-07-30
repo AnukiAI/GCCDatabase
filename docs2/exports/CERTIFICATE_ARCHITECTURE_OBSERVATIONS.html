@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Certificate Architecture Observations</title>
+    <style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 13pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 24px; margin-bottom: 10px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 16px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 12px; margin-bottom: 5px; page-break-after: avoid; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px 0; font-size: 8.5pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 7px; font-size: 8.5pt; white-space: nowrap; }
+td { padding: 5px 7px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+ul, ol { margin: 4px 0 10px 0; padding-left: 18px; }
+li { margin-bottom: 3px; font-size: 9.5pt; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; overflow-x: auto; font-size: 8pt; line-height: 1.4; margin: 6px 0 14px 0; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 10px 0; font-size: 9pt; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.callout-success { border-color: #2e7d32; background: #f0f8e8; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.tag-covered { background: #e8f5e1; color: #2e7d32; }
+.tag-pending { background: #fff3e0; color: #e65100; }
+.tag-gap { background: #ffebee; color: #c62828; }
+.architecture-diagram { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8pt; line-height: 1.5; overflow-x: auto; white-space: pre; margin: 10px 0; page-break-inside: avoid; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 16px; margin: 12px 0 20px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 6px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.sign-off-table td { padding: 12px 10px; border: 1px solid #ccc; min-width: 120px; }
+.sign-off-table td:first-child { font-weight: 600; width: 160px; }
+.checkbox { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #666; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.confidential { background: #fff3e0; border: 2px solid #e65100; padding: 8px 14px; border-radius: 4px; font-size: 9pt; margin: 10px 0; text-align: center; font-weight: 600; color: #e65100; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+@media print { body { padding: 0; } .toc { break-inside: avoid; } h2 { break-after: avoid; } table { font-size: 8pt; } }
+    </style>
+</head>
+<body>
+
+<div class="doc-header">
+    <h1>Certificate Architecture Observations</h1>
+    <p class="subtitle">GCC Database Solution</p>
+    <div class="doc-meta">
+        <div><strong>Version:</strong> 2.0</div>
+        <div><strong>Date:</strong> February 19, 2026</div>
+        <div><strong>Project:</strong> GCC Web Application</div>
+        <div><strong>Classification:</strong> Internal - Technical</div>
+    </div>
+</div>
+
+<div class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <a href="#uat-review">UAT Requirements Traceability Review (Feb 19, 2026)</a>
+    <a href="#resolution">Resolution Summary (Dec 11, 2025)</a>
+    <a href="#exec-summary">Executive Summary</a>
+    <a href="#s1">1. Critical Status Mismatch</a>
+    <a href="#s2">2. Workflow Service Not Integrated with Forms</a>
+    <a href="#s3">3. Create/Edit Form Usability Issues</a>
+    <a href="#s4">4. Tile View vs Form Disconnect</a>
+    <a href="#s5">5. JavaScript Architecture Issues</a>
+    <a href="#s6">6. Data Integrity Risks</a>
+    <a href="#s7">7. Accessibility Gaps</a>
+    <a href="#s8">8. Performance Concerns</a>
+    <a href="#s9">9. Security Observations</a>
+    <a href="#s10">10. Recommended Improvements</a>
+    <a href="#s11">11. Comparison Matrix</a>
+    <a href="#s12">12. Effort Estimation</a>
+    <a href="#appendix-a">Appendix A: File References</a>
+    <a href="#appendix-b">Appendix B: Design Mockup Recommendations</a>
+    <a href="#obs-feb5">Observation: Feb 5, 2026 - Amazon API Scope Change</a>
+    <a href="#obs-feb5-phase1">Phase 1 Implementation (Feb 5, 2026)</a>
+    <a href="#obs-feb5-email">Amazon API Change Order - Email Thread (Feb 5, 2026)</a>
+    <a href="#obs-feb19-uat">Observation: Feb 19, 2026 - UAT Guide Created</a>
+    <a href="#obs-feb19-v3">UAT Guide v3.0 - Gap Fixes</a>
+    <a href="#obs-feb19-amazon">Amazon Scope Change Correction &amp; Audit Trail Discovery</a>
+</div>
+
+<!-- ==================== UAT REVIEW FEB 19 ==================== -->
+<h2 id="uat-review">Observation: UAT Requirements Traceability Review (February 19, 2026)</h2>
+<p><strong>Session:</strong> Requirements traceability to UAT test cases - comprehensive review</p>
+<p><strong>Outcome:</strong> Three deliverables generated</p>
+
+<h3>What Was Done</h3>
+<ol>
+    <li><strong>Reviewed existing COMPREHENSIVE_UAT_GUIDE.md v3.0</strong> (647 tests across 20 modules)</li>
+    <li><strong>Cross-referenced</strong> against Scope Change doc (Amazon API, Feb 5 2026), CLAUDE.md, and API-REFERENCE.md</li>
+    <li><strong>Identified 7 gaps</strong> in test coverage related to Amazon scope change items</li>
+</ol>
+
+<h3>Gaps Found &amp; Resolved</h3>
+<ul>
+    <li>Amazon Code not tested in API responses (added TC-API-016a through TC-API-016f)</li>
+    <li>Pathway dropdown not tested on certificate form (added TC-ANL-031c through TC-ANL-031f)</li>
+    <li>Certification Results not tested for visibility in tile views/exports (added TC-ANL-031a, TC-ANL-031b)</li>
+    <li>Pathway scoping and external visibility not tested (added TC-ADM-068a through TC-ADM-068c)</li>
+    <li>Import template columns not verified (updated TC-ADM-076)</li>
+</ul>
+
+<h3>Deliverables Created</h3>
+<ol>
+    <li><strong>Updated COMPREHENSIVE_UAT_GUIDE.md</strong> v3.1 - 662 tests (15 new test cases added)</li>
+    <li><strong>REQUIREMENTS_TRACEABILITY_MATRIX.md</strong> - Standalone RTM mapping 98 requirements to 693 test cases</li>
+    <li><strong>UAT_EXECUTION_CHECKLIST.md</strong> - Printable 171-test priority-ordered checklist for UAT testers</li>
+</ol>
+
+<h3>Key Finding</h3>
+<ul>
+    <li>676 of 693 test cases cover <strong>built features</strong> (fully ready to execute)</li>
+    <li>17 test cases marked <strong>Pending Feature</strong> for Amazon scope change items</li>
+    <li>4 client questions still <strong>blocking</strong> Pathway implementation (scope doc Q1-Q4)</li>
+    <li><strong>ZERO gaps</strong> found in existing feature coverage - all built features have test cases</li>
+</ul>
+
+<div class="callout callout-warning"><strong>Risk Note:</strong> The Amazon scope change items (Pathway, Amazon Code in API) are pending client approval. Test cases are written and waiting. Cost risk: if requirements change after implementation, rework needed. Per CLAUDE.md instruction: always check requirements and ask clarifying questions before building.</div>
+
+<!-- ==================== RESOLUTION SUMMARY ==================== -->
+<h2 id="resolution">Resolution Summary (December 11, 2025)</h2>
+<p><strong>Date:</strong> December 11, 2025 | <strong>Analyst:</strong> Claude Code | <strong>Scope:</strong> Certificate Create, Edit, Admin, and Tile View Pages | <strong>Status:</strong> <span class="tag tag-covered">RESOLVED</span> - Status alignment completed</p>
+
+<p>The critical status mismatch issue has been <strong>FIXED</strong>. Changes made:</p>
+<table>
+    <thead><tr><th>File</th><th>Change</th></tr></thead>
+    <tbody>
+        <tr><td><code>Models/CertificateStatus.cs</code></td><td>Replaced enum with 14 documented states from DATA_VALIDATION_RULES.md</td></tr>
+        <tr><td><code>Models/Certificate.cs</code></td><td>Changed default status from "active" to "Draft"</td></tr>
+        <tr><td><code>Views/Certificate/Create.cshtml</code></td><td>Dynamic status dropdown via ViewBag.Statuses</td></tr>
+        <tr><td><code>Views/Certificate/Edit.cshtml</code></td><td>Dynamic status dropdown via ViewBag.Statuses</td></tr>
+        <tr><td><code>Controllers/CertificateController.cs</code></td><td>Added role-based status loading</td></tr>
+        <tr><td><code>Services/CertificateWorkflowService.cs</code></td><td>Updated to PascalCase status values</td></tr>
+    </tbody>
+</table>
+<p><strong>Build Status:</strong> Succeeded (0 errors, 0 warnings)</p>
+
+<!-- ==================== EXECUTIVE SUMMARY ==================== -->
+<h2 id="exec-summary">Executive Summary</h2>
+<p>The certificate management system has significant architectural and usability gaps between different views. The <strong>Admin/Management pages</strong> (Create, Edit) are <strong>NOT aligned</strong> with:</p>
+<ol>
+    <li>The 14-state workflow system defined in <code>CertificateStatus.cs</code></li>
+    <li>The <code>CertificateWorkflowService</code> business rules</li>
+    <li>Modern UX best practices for enterprise forms</li>
+    <li>The tile view presentation patterns</li>
+</ol>
+<div class="callout callout-warning"><strong>Key Finding:</strong> Users can set ANY status value in Create/Edit forms, completely bypassing the sophisticated 14-state workflow system that was implemented. This creates data integrity issues and workflow inconsistencies.</div>
+
+<!-- ==================== SECTION 1 ==================== -->
+<h2 id="s1">1. Critical Status Mismatch</h2>
+<h3>The Problem (Severity: HIGH)</h3>
+<p><strong>Create.cshtml (Lines 126-134)</strong> and <strong>Edit.cshtml (Lines 127-136)</strong> have HARD-CODED status options:</p>
+<pre><code class="language-html">&lt;!-- What the forms show --&gt;
+&lt;option value="Draft"&gt;Draft&lt;/option&gt;
+&lt;option value="Client Approved - Not Paid"&gt;Client Approved - Not Paid&lt;/option&gt;
+&lt;option value="Client Approved - Confidential"&gt;Client Approved - Confidential&lt;/option&gt;
+&lt;option value="Client Approved - Paid"&gt;Client Approved - Paid&lt;/option&gt;
+&lt;option value="Hold"&gt;Hold&lt;/option&gt;
+&lt;option value="Active" selected&gt;Active&lt;/option&gt;</code></pre>
+
+<p><strong>CertificateStatus.cs (Lines 9-52)</strong> defines the ACTUAL workflow:</p>
+<pre><code class="language-csharp">// What the system expects (14 states)
+Draft, ApplicationSubmitted, UnderReview, TechnicalReview,
+ComplianceVerification, FinalApproval, Active, ExpiringSoon,
+RenewalInProgress, Expired, Suspended, Archived, Cancelled, ClientDeclined</code></pre>
+
+<p><strong>CertificateStatusHelper.cs (Lines 86-93)</strong> - What creation SHOULD allow:</p>
+<pre><code class="language-csharp">public static Dictionary&lt;string, string&gt; GetCreationStatuses()
+{
+    return new Dictionary&lt;string, string&gt;
+    {
+        { "draft", "Draft" },
+        { "application_submitted", "Application Submitted" }
+    };
+}</code></pre>
+
+<h3>Impact</h3>
+<table>
+    <thead><tr><th>Issue</th><th>Consequence</th></tr></thead>
+    <tbody>
+        <tr><td>Form values don't match enum</td><td>Invalid data stored in database</td></tr>
+        <tr><td>Workflow rules bypassed</td><td>Certificates skip required review steps</td></tr>
+        <tr><td>Inconsistent casing</td><td>"Draft" vs "draft" - string comparison fails</td></tr>
+        <tr><td>Missing statuses</td><td>8 workflow states not available in forms</td></tr>
+        <tr><td>Extra statuses</td><td>"Client Approved - Not Paid" doesn't exist in enum</td></tr>
+    </tbody>
+</table>
+
+<h3>Recommendation</h3>
+<p>Replace hard-coded status dropdowns with dynamic loading from <code>CertificateStatusHelper</code>:</p>
+<pre><code class="language-csharp">// Controller should pass
+ViewBag.Statuses = CertificateStatusHelper.GetStatusesForRole(User.GetUserRole());</code></pre>
+
+<!-- ==================== SECTION 2 ==================== -->
+<h2 id="s2">2. Workflow Service Not Integrated with Forms</h2>
+<h3>The Problem (Severity: HIGH)</h3>
+<p>The sophisticated <code>CertificateWorkflowService</code> (312 lines) implements:</p>
+<ul>
+    <li>Valid transition rules (line 115-138)</li>
+    <li>Role-based status restrictions (line 98-110)</li>
+    <li>Audit trail logging (line 202-253)</li>
+    <li>Business logic hooks (line 258-310)</li>
+</ul>
+<p><strong>But the Create/Edit forms do NOT call this service!</strong></p>
+<p><strong>CertificateController.cs</strong> Edit POST action:</p>
+<ul>
+    <li>Directly sets <code>certificate.Status = model.Status</code></li>
+    <li>No validation against <code>IsValidTransition()</code></li>
+    <li>No call to <code>TransitionCertificateStatusAsync()</code></li>
+    <li>No audit trail for status changes through forms</li>
+</ul>
+
+<h3>Impact</h3>
+<ol>
+    <li><strong>No Workflow Enforcement:</strong> User can change "Active" to "Draft" (violates workflow)</li>
+    <li><strong>No Audit Trail:</strong> Manual status changes not logged to <code>CertificateStatusHistory</code></li>
+    <li><strong>No Business Logic:</strong> Partner notifications, PDF generation not triggered</li>
+    <li><strong>No Role Validation:</strong> External user might set "Final Approval" if they access form</li>
+</ol>
+
+<h3>Recommendation</h3>
+<p>Modify Edit POST to use workflow service:</p>
+<pre><code class="language-csharp">if (model.Status != existingCertificate.Status)
+{
+    var result = await _workflowService.TransitionCertificateStatusAsync(
+        certificate.Id, model.Status, GetCurrentUserId());
+
+    if (!result.Success)
+    {
+        ModelState.AddModelError("Status", result.ErrorMessage);
+        return View(model);
+    }
+}</code></pre>
+
+<!-- ==================== SECTION 3 ==================== -->
+<h2 id="s3">3. Create/Edit Form Usability Issues</h2>
+
+<h3>3.1 Form Layout (Single Page Overload)</h3>
+<p><strong>Current State:</strong></p>
+<ul>
+    <li>Create: 393 lines, 15+ fields on one page</li>
+    <li>Edit: 461 lines with inline JavaScript</li>
+    <li>Sidebar cluttered with tags + preview</li>
+    <li>No clear visual hierarchy</li>
+</ul>
+
+<p><strong>Best Practice Violations:</strong></p>
+<table>
+    <thead><tr><th>Violation</th><th>Location</th><th>Issue</th></tr></thead>
+    <tbody>
+        <tr><td>No form sections</td><td>Create.cshtml:58</td><td>All fields in single grid</td></tr>
+        <tr><td>No progress indicator</td><td>Both</td><td>Users don't know completion %</td></tr>
+        <tr><td>No save drafts</td><td>Create.cshtml</td><td>Data lost on navigation</td></tr>
+        <tr><td>No inline validation</td><td>Both</td><td>Errors only on submit</td></tr>
+        <tr><td>No character counters</td><td>CertificationResults</td><td>1000 char limit invisible</td></tr>
+    </tbody>
+</table>
+
+<h3>3.2 Field Organization Issues</h3>
+<p><strong>Current Order (Create.cshtml):</strong></p>
+<ol>
+    <li>Company (line 61)</li>
+    <li>Certification # (line 76)</li>
+    <li>Certification Type (line 82)</li>
+    <li>Product Name (line 97)</li>
+    <li>Dates (line 112-122)</li>
+    <li>Status (line 124)</li>
+    <li>Partner (line 138)</li>
+    <li>Certification Results (line 149)</li>
+    <li>Location/Country (line 156-173)</li>
+</ol>
+<p><strong>Problem:</strong> Status is in the middle of basic info - users may accidentally change it.</p>
+<p><strong>Recommended Order:</strong></p>
+<ol>
+    <li><strong>Section: Identity</strong> - Company, Product, Cert #, Cert Type</li>
+    <li><strong>Section: Dates</strong> - Effective, Expiration (with validation)</li>
+    <li><strong>Section: Classification</strong> - Status, Partner</li>
+    <li><strong>Section: Details</strong> - Location, Country, Results</li>
+    <li><strong>Section: Attachments</strong> - PDF, Product IDs, Tags</li>
+</ol>
+
+<h3>3.3 Date Validation Gap</h3>
+<p><strong>Create.cshtml (Lines 113-122):</strong></p>
+<pre><code class="language-html">&lt;input asp-for="EffectiveDate" type="date" required /&gt;
+&lt;input asp-for="ExpirationDate" type="date" required /&gt;</code></pre>
+
+<p><strong>JavaScript (certificate-create.js:344-366):</strong></p>
+<pre><code class="language-javascript">// Date validation exists but...
+if (expiration &lt;= effective) {
+    expirationDate.setCustomValidity('Expiration date must be after effective date');
+}</code></pre>
+
+<p><strong>Issue:</strong></p>
+<ul>
+    <li>Uses <code>&lt;=</code> instead of <code>&lt;</code> (same date should be invalid)</li>
+    <li>No minimum date (can set dates in the past)</li>
+    <li>No maximum date range (10-year certificate?)</li>
+    <li>Server-side validation missing</li>
+</ul>
+
+<h3>3.4 Partner Conditional Fields</h3>
+<p><strong>Requirement (from CLAUDE.md):</strong></p>
+<div class="callout callout-info">Amazon talked about us passing this to ensure the cert meets their threshold</div>
+<p><strong>Current Implementation:</strong></p>
+<ul>
+    <li>Partner dropdown has: None, Amazon, Wayfair, Other</li>
+    <li>CertificationResults is always optional</li>
+    <li>No conditional requirement when Partner = Amazon</li>
+</ul>
+<p><strong>Should Be:</strong></p>
+<ul>
+    <li>When Partner = "Amazon" or "Wayfair": CertificationResults becomes REQUIRED</li>
+    <li>Show helper text explaining partner requirements</li>
+    <li>Validate minimum content length</li>
+</ul>
+
+<!-- ==================== SECTION 4 ==================== -->
+<h2 id="s4">4. Tile View vs Form Disconnect</h2>
+
+<h3>4.1 Action Button Inconsistency</h3>
+<p><strong>CertificateTileViewInternal.cshtml:</strong></p>
+<ul>
+    <li>Edit button visible for Admin/Analyst</li>
+    <li>Download button visible for all</li>
+    <li>21-column grid including Internal Tags</li>
+</ul>
+<p><strong>Create/Edit Forms:</strong></p>
+<ul>
+    <li>No visual consistency with tile view</li>
+    <li>Different color scheme (no green headers)</li>
+    <li>Different button styling</li>
+</ul>
+
+<h3>4.2 Status Display Mismatch</h3>
+<p><strong>Tile Views show:</strong></p>
+<ul>
+    <li>Status badges with colors (Active: green, Draft: yellow, Expired: red)</li>
+    <li>snake_case values: "active", "draft", "expired"</li>
+</ul>
+<p><strong>Forms show:</strong></p>
+<ul>
+    <li>Plain dropdown with Title Case: "Active", "Draft", "Expired"</li>
+    <li>No color coding in status selection</li>
+</ul>
+
+<h3>4.3 Navigation Flow Problems</h3>
+<p><strong>Current Flow:</strong></p>
+<pre><code>Tile View -> Edit -> [Save] -> Details Page -> [?] -> Tile View</code></pre>
+<p><strong>Expected Flow:</strong></p>
+<pre><code>Tile View -> Edit -> [Save] -> Back to Tile View (with success toast)</code></pre>
+<p><strong>Issue:</strong> After edit, user is dumped on Details page, must manually navigate back.</p>
+
+<!-- ==================== SECTION 5 ==================== -->
+<h2 id="s5">5. JavaScript Architecture Issues</h2>
+
+<h3>5.1 Custom Modal vs AdminCore</h3>
+<p><strong>certificate-create.js (Lines 11-69):</strong></p>
+<pre><code class="language-javascript">const ModalSystem = {
+    showConfirmation: function(options) {
+        // Custom modal implementation
+        const modalHtml = `&lt;div class="modal-overlay"&gt;...`;
+    }
+}</code></pre>
+
+<p><strong>Requirement (from CLAUDE.md):</strong></p>
+<div class="callout callout-warning">ALL feedback must use AdminCore.showConfirmation() and AdminCore.showNotification()</div>
+
+<p><strong>Violation:</strong> Custom <code>ModalSystem</code> is used instead of <code>AdminCore</code>, creating:</p>
+<ul>
+    <li>Inconsistent styling across app</li>
+    <li>Different keyboard handling</li>
+    <li>Different backdrop behavior</li>
+    <li>Maintenance burden (two modal systems)</li>
+</ul>
+
+<h3>5.2 Missing AdminCore Integration</h3>
+<p><strong>certificate-create.js Line 77-81:</strong></p>
+<pre><code class="language-javascript">showNotification: function(message, type = 'info') {
+    if (typeof AdminCore !== 'undefined' &amp;&amp; AdminCore.showNotification) {
+        AdminCore.showNotification(message, type);
+        return;
+    }
+    // Falls back to custom implementation
+}</code></pre>
+<p><strong>Issue:</strong> Conditional check is good, but <code>showConfirmation</code> does NOT check for AdminCore.</p>
+
+<!-- ==================== SECTION 6 ==================== -->
+<h2 id="s6">6. Data Integrity Risks</h2>
+
+<h3>6.1 Certificate Number Format</h3>
+<p><strong>Model expectation:</strong> <code>XX-XXXX</code> (e.g., "24-0001")</p>
+<p><strong>Form input:</strong> <code>maxlength="7"</code> only</p>
+<p><strong>Validation:</strong> NONE for format</p>
+<p><strong>Risk:</strong> Users can enter "ABCDEFG", "1234567", or any 7-char string.</p>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-javascript">// Add pattern validation
+&lt;input pattern="[0-9]{2}-[0-9]{4}" /&gt;</code></pre>
+
+<h3>6.2 Required Field Enforcement</h3>
+<p><strong>Create Form Required Fields:</strong></p>
+<ul>
+    <li>Company, Number, CertificationType, Product - OK</li>
+    <li>EffectiveDate, ExpirationDate - OK</li>
+    <li>Status - REQUIRED but wrong values</li>
+    <li>Partner - NOT required (should be?)</li>
+    <li>PDF Upload - Required on Create, Optional on Edit</li>
+</ul>
+<p><strong>Issue:</strong> PDF marked <code>required</code> in Create but model <code>CertificatePdfPath</code> is nullable.</p>
+
+<h3>6.3 Tag Handling</h3>
+<p><strong>Create.cshtml (Lines 194-235):</strong></p>
+<ul>
+    <li>Tags stored in hidden inputs as JSON arrays</li>
+    <li>No server-side validation of tag IDs</li>
+    <li>Could inject invalid tag IDs</li>
+</ul>
+
+<!-- ==================== SECTION 7 ==================== -->
+<h2 id="s7">7. Accessibility Gaps</h2>
+
+<h3>7.1 Form Accessibility</h3>
+<table>
+    <thead><tr><th>Element</th><th>Issue</th><th>Fix</th></tr></thead>
+    <tbody>
+        <tr><td>Status dropdown</td><td>No <code>aria-describedby</code></td><td>Add description</td></tr>
+        <tr><td>Date inputs</td><td>No format hint</td><td>Add "MM/DD/YYYY" placeholder</td></tr>
+        <tr><td>Tag buttons</td><td>No ARIA labels</td><td>Add <code>aria-label="Remove tag"</code></td></tr>
+        <tr><td>PDF upload zone</td><td>Good! Has keyboard handler</td><td>Keep</td></tr>
+    </tbody>
+</table>
+
+<h3>7.2 Error Messaging</h3>
+<p><strong>Current:</strong> Validation errors shown in red <code>&lt;span&gt;</code> elements</p>
+<p><strong>Missing:</strong></p>
+<ul>
+    <li>No <code>role="alert"</code> on error container</li>
+    <li>No focus management (errors don't scroll into view)</li>
+    <li>No screen reader announcement</li>
+</ul>
+
+<!-- ==================== SECTION 8 ==================== -->
+<h2 id="s8">8. Performance Concerns</h2>
+
+<h3>8.1 Form Load Time</h3>
+<p><strong>Create.cshtml loads:</strong></p>
+<ul>
+    <li>Companies dropdown (ViewBag.Companies)</li>
+    <li>Products dropdown (ViewBag.Products) - ALL products</li>
+    <li>CertificationTypes dropdown</li>
+    <li>External Tags</li>
+    <li>Internal Tags</li>
+    <li>_ProductIdManager partial</li>
+    <li>4 JavaScript files</li>
+</ul>
+<p><strong>Issue:</strong> If there are 1000+ products, dropdown becomes unusable.</p>
+<p><strong>Solution:</strong> Replace with autocomplete/search input.</p>
+
+<h3>8.2 Custom Fields Lazy Loading</h3>
+<p><strong>Good pattern (Lines 310-323):</strong></p>
+<pre><code class="language-javascript">$('#CertificationTypeId').change(function() {
+    certificateCustomFields.loadFieldsForType(typeId);
+});</code></pre>
+<p>Custom fields load on-demand - efficient.</p>
+
+<!-- ==================== SECTION 9 ==================== -->
+<h2 id="s9">9. Security Observations</h2>
+
+<h3>9.1 Authorization Gaps</h3>
+<p><strong>Create.cshtml (Line 5):</strong></p>
+<pre><code class="language-razor">ViewData["BodyClass"] = "role-admin";</code></pre>
+<p>This sets body class but doesn't enforce authorization. Controller should have:</p>
+<pre><code class="language-csharp">[Authorize(Policy = "AnalystOrAdmin")]
+public IActionResult Create() { ... }</code></pre>
+
+<h3>9.2 Delete Confirmation</h3>
+<p><strong>Edit.cshtml (Lines 299-304):</strong></p>
+<pre><code class="language-razor">@if (User.IsInRole("Admin"))
+{
+    &lt;button onclick="window.CertificateEdit.confirmDelete(@Model.Id)"&gt;Delete&lt;/button&gt;
+}</code></pre>
+<p><strong>Good:</strong> Admin-only delete</p>
+<p><strong>Risk:</strong> Client-side role check, ensure server-side validation exists</p>
+
+<!-- ==================== SECTION 10 ==================== -->
+<h2 id="s10">10. Recommended Improvements</h2>
+
+<h3>Priority 0: Critical (Do Immediately)</h3>
+<ol>
+    <li><strong>Fix Status Dropdown</strong> - Use <code>CertificateStatusHelper</code> values</li>
+    <li><strong>Integrate Workflow Service</strong> - Validate transitions, log changes</li>
+    <li><strong>Server-Side Validation</strong> - Add model validation for status transitions</li>
+    <li><strong>Fix Modal Usage</strong> - Replace custom modals with <code>AdminCore</code></li>
+</ol>
+
+<h3>Priority 1: High (This Sprint)</h3>
+<ol start="5">
+    <li><strong>Multi-Step Form Wizard</strong> - Break 15-field form into logical steps</li>
+    <li><strong>Conditional Required Fields</strong> - CertificationResults for Amazon/Wayfair</li>
+    <li><strong>Date Validation Enhancement</strong> - Add min/max dates, server validation</li>
+    <li><strong>Certificate Number Format</strong> - Add regex pattern validation</li>
+</ol>
+
+<h3>Priority 2: Medium (Next Sprint)</h3>
+<ol start="9">
+    <li><strong>Product Autocomplete</strong> - Replace dropdown with search</li>
+    <li><strong>Form Draft Saving</strong> - Auto-save to localStorage</li>
+    <li><strong>Navigation Flow</strong> - Return to tile view after save</li>
+    <li><strong>Progress Indicator</strong> - Show form completion percentage</li>
+</ol>
+
+<h3>Priority 3: Low (Backlog)</h3>
+<ol start="13">
+    <li><strong>Character Counters</strong> - Add to CertificationResults</li>
+    <li><strong>Inline Validation</strong> - Real-time field validation</li>
+    <li><strong>Status Color Picker</strong> - Match tile view badge colors</li>
+    <li><strong>Accessibility Audit</strong> - WCAG 2.1 AA compliance</li>
+</ol>
+
+<!-- ==================== SECTION 11 ==================== -->
+<h2 id="s11">11. Comparison Matrix</h2>
+<table>
+    <thead><tr><th>Feature</th><th>Create Form</th><th>Edit Form</th><th>Tile View</th><th>Workflow Service</th></tr></thead>
+    <tbody>
+        <tr><td>Status Values</td><td>6 hard-coded</td><td>7 hard-coded</td><td>14 dynamic</td><td>14 enum values</td></tr>
+        <tr><td>Status Format</td><td>Title Case</td><td>Title Case</td><td>snake_case</td><td>snake_case</td></tr>
+        <tr><td>Transition Rules</td><td>NONE</td><td>NONE</td><td>N/A</td><td>Full validation</td></tr>
+        <tr><td>Audit Logging</td><td>NONE</td><td>NONE</td><td>N/A</td><td>Full history</td></tr>
+        <tr><td>Role Filtering</td><td>NONE</td><td>Admin check for delete</td><td>Role-based columns</td><td>Full role support</td></tr>
+        <tr><td>AdminCore Usage</td><td>Partial</td><td>Partial</td><td>Full</td><td>N/A</td></tr>
+    </tbody>
+</table>
+
+<!-- ==================== SECTION 12 ==================== -->
+<h2 id="s12">12. Effort Estimation</h2>
+<table>
+    <thead><tr><th>Fix</th><th>Complexity</th><th>Impact</th><th>Estimate</th></tr></thead>
+    <tbody>
+        <tr><td>Status dropdown fix</td><td>Low</td><td>High</td><td>2-4 hours</td></tr>
+        <tr><td>Workflow integration</td><td>Medium</td><td>Critical</td><td>8-16 hours</td></tr>
+        <tr><td>Multi-step wizard</td><td>High</td><td>High</td><td>24-40 hours</td></tr>
+        <tr><td>AdminCore migration</td><td>Low</td><td>Medium</td><td>4-8 hours</td></tr>
+        <tr><td>Date validation</td><td>Low</td><td>Medium</td><td>2-4 hours</td></tr>
+        <tr><td><strong>Total P0/P1</strong></td><td>-</td><td>-</td><td><strong>40-72 hours</strong></td></tr>
+    </tbody>
+</table>
+
+<!-- ==================== APPENDIX A ==================== -->
+<h2 id="appendix-a">Appendix A: File References</h2>
+<table>
+    <thead><tr><th>File</th><th>Line Numbers</th><th>Issue</th></tr></thead>
+    <tbody>
+        <tr><td><code>Views/Certificate/Create.cshtml</code></td><td>126-134</td><td>Wrong status values</td></tr>
+        <tr><td><code>Views/Certificate/Edit.cshtml</code></td><td>127-136</td><td>Wrong status values</td></tr>
+        <tr><td><code>Models/CertificateStatus.cs</code></td><td>9-52</td><td>Correct enum</td></tr>
+        <tr><td><code>Models/CertificateStatus.cs</code></td><td>86-93</td><td>Creation statuses</td></tr>
+        <tr><td><code>Services/CertificateWorkflowService.cs</code></td><td>115-138</td><td>Transition rules</td></tr>
+        <tr><td><code>wwwroot/js/certificate-create.js</code></td><td>11-69</td><td>Custom modal</td></tr>
+        <tr><td><code>wwwroot/js/certificate-create.js</code></td><td>344-366</td><td>Date validation</td></tr>
+    </tbody>
+</table>
+
+<!-- ==================== APPENDIX B ==================== -->
+<h2 id="appendix-b">Appendix B: Design Mockup Recommendations</h2>
+<p>A modern certificate management form should have:</p>
+<ol>
+    <li><strong>Stepper Header</strong> - Shows current step (1/4, 2/4, etc.)</li>
+    <li><strong>Section Cards</strong> - Group related fields with clear headings</li>
+    <li><strong>Status Workflow Visual</strong> - Show current status in a visual pipeline</li>
+    <li><strong>Sidebar Summary</strong> - Show certificate preview as form is filled</li>
+    <li><strong>Action Bar</strong> - Fixed bottom bar with Save, Cancel, Next buttons</li>
+    <li><strong>Validation Feedback</strong> - Inline errors with icons and colors</li>
+</ol>
+
+<p style="font-size: 9pt; color: #555;"><em>Document Version: 1.0 | Generated by Claude Code Deep Analysis</em></p>
+
+<!-- ==================== FEB 5 OBSERVATION ==================== -->
+<h2 id="obs-feb5">Observation Entry: February 5, 2026</h2>
+<h3>Amazon API Expanded Requirements - Scope Change Assessment</h3>
+
+<p><strong>Context:</strong> Amazon (Kyle Bowman) requested expanded API fields to move from binary yes/no certification to analog percentage-based data. Carly Povilaitis raised concerns about complexity, especially with SEP certifications having multiple pathways.</p>
+
+<p><strong>Key Findings:</strong></p>
+<ol>
+    <li>The system already has ~70% of the foundation built (CertificationResults, GS1 endpoint, AmazonCode on CertificationType, partner filtering, product IDs)</li>
+    <li>The PRIMARY gap is a <strong>Pathway</strong> entity - a new admin-controlled dropdown that gives context to the percentage in CertificationResults</li>
+    <li>CertificationType Subcategory already works (Parent/Child hierarchy in DB)</li>
+    <li>GS1 compliance is ALREADY DONE - major differentiator</li>
+    <li>API currently returns 20 fields; Amazon needs ~21-22 (only Pathway and AmazonCode are missing from response)</li>
+</ol>
+
+<p><strong>Risks Identified:</strong></p>
+<ul>
+    <li>Scope creep from 8 simultaneous recommendations (phased approach recommended)</li>
+    <li>Carly explicitly warned against cert-type-specific fields</li>
+    <li>Validation must be soft (warnings) initially, not hard (blocking)</li>
+    <li>Existing data must not be retroactively invalidated</li>
+</ul>
+
+<p><strong>Decision Needed:</strong></p>
+<ul>
+    <li>Answers to stakeholder questions in Section 7 of scope change document</li>
+    <li>Phase approval before any development begins</li>
+</ul>
+
+<p><strong>Document Created:</strong> <code>docs/0_Documentation/docs/SCOPE_CHANGE_Amazon_API_Requirements_2026-02-05.md</code></p>
+
+<h4>Changes Requested vs. Requirements Alignment</h4>
+<table>
+    <thead><tr><th>Recommendation</th><th>Aligns with Original Requirements?</th><th>New Scope?</th></tr></thead>
+    <tbody>
+        <tr><td>Pathway field</td><td>NO - entirely new Amazon request</td><td><span class="tag tag-gap">YES</span></td></tr>
+        <tr><td>Subcategory improvements</td><td>Partially - architecture exists</td><td><span class="tag tag-pending">MINOR</span></td></tr>
+        <tr><td>Expand API to 18+ fields</td><td>YES - was planned</td><td><span class="tag tag-covered">NO</span></td></tr>
+        <tr><td>GS1 structures</td><td>YES - already built</td><td><span class="tag tag-covered">NO</span></td></tr>
+        <tr><td>UI for new fields</td><td>Partially - CertResults was planned</td><td><span class="tag tag-pending">MINOR</span></td></tr>
+        <tr><td>API filtering enhancements</td><td>YES - natural extension</td><td><span class="tag tag-pending">MINOR</span></td></tr>
+        <tr><td>Export/view updates</td><td>YES - expected evolution</td><td><span class="tag tag-pending">MINOR</span></td></tr>
+        <tr><td>Validation layer</td><td>NO - new Amazon-driven requirement</td><td><span class="tag tag-gap">YES</span></td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-success"><strong>Bottom Line:</strong> 2 items are genuinely NEW scope (Pathway + Validation). The rest is exposing/connecting what already exists. This is manageable if phased correctly.</div>
+
+<h3>Revision: February 5, 2026 (v2.0)</h3>
+<p><strong>Scope change document revised to leaner approach after critical review.</strong></p>
+<p>Key changes from v1.0 to v2.0:</p>
+<ul>
+    <li>Removed inflated REC-3 ("expand to 18+ fields") -- API already returns 20 fields, only 2 are missing</li>
+    <li>Removed REC-4 (GS1 structures) -- already fully implemented, no work needed</li>
+    <li>Removed REC-6 over-engineering ("filter by required vs optional fields") -- Amazon filters on their side</li>
+    <li>Removed REC-8 forced numeric validation -- breaks legitimate data formats like "UL 2809 Level 2"</li>
+    <li>Consolidated 8 recommendations into 3 focused priorities</li>
+    <li>Added 3 Pathway design options (A: Lookup Table, B: Free Text, C: Extend Hierarchy) with pros/cons</li>
+    <li>Added client-facing questions table to gate development decisions</li>
+    <li>Document reformatted for client delivery with approval section</li>
+</ul>
+<div class="callout callout-info"><strong>Design Recommendation:</strong> Option A (Standalone Pathway Lookup Table with optional cert-type scoping) balances flexibility with data consistency. Allows admin to manage values, scopes pathways to relevant cert types, and avoids free-text inconsistency that would degrade API quality for Amazon.</div>
+
+<!-- ==================== PHASE 1 IMPLEMENTATION ==================== -->
+<h2 id="obs-feb5-phase1">Phase 1 Implementation - Data Visibility (February 5, 2026)</h2>
+<p><strong>Phase 1 of the Amazon API scope change has been implemented.</strong> No database schema changes required. All changes are additive.</p>
+
+<h3>Changes Made</h3>
+<table>
+    <thead><tr><th>File</th><th>Change</th></tr></thead>
+    <tbody>
+        <tr><td><code>Models/CertificateViewModels.cs</code></td><td>Added <code>CertificationResults</code> and <code>CertificationTypeSubcategory</code> properties to <code>CertificateCardModel</code></td></tr>
+        <tr><td><code>Controllers/Api/CertificateTileInternalApiController.cs</code></td><td>Added <code>CertificationResults</code> and <code>CertificationTypeSubcategory</code> to raw query and formatted projections</td></tr>
+        <tr><td><code>Controllers/Api/CertificateTileExternalApiController.cs</code></td><td>Added <code>CertificationResults</code> and <code>CertificationTypeSubcategory</code> to raw query and formatted projections</td></tr>
+        <tr><td><code>Views/Certificate/CertificateTileViewInternal.cshtml</code></td><td>Added "Cert Subcategory" and "Cert Results" grid header columns after Partner</td></tr>
+        <tr><td><code>Views/Certificate/CertificateTileViewExternal.cshtml</code></td><td>Added "CSF Attributes" header (alignment fix), "Cert Subcategory" and "Cert Results" headers</td></tr>
+        <tr><td><code>wwwroot/js/certificate-tile-view-internal.js</code></td><td>Added <code>certificationResults</code> and <code>certificationTypeSubcategory</code> variables and grid-cells in <code>createTableRow()</code></td></tr>
+        <tr><td><code>wwwroot/js/certificateTileViewExternal.js</code></td><td>Added <code>certificationResults</code> and <code>certificationTypeSubcategory</code> variables and grid-cells in <code>createTableRow()</code></td></tr>
+        <tr><td><code>wwwroot/css/pages/certificate-tile-internal.css</code></td><td>Updated grid to 24 columns (was 22), min-width 2785px</td></tr>
+        <tr><td><code>wwwroot/css/pages/certificate-tile-external.css</code></td><td>Updated grid to 24 columns (was 21), min-width 2775px, fixed CSF Attributes column alignment</td></tr>
+        <tr><td><code>Services/CertificateService.cs</code></td><td>Added fields to both query projections and CSV/Excel export methods</td></tr>
+        <tr><td><code>Controllers/Api/v1/CertificatesController.cs</code></td><td>Added <code>amazonCode</code> to standard, includeProductIds, and search projections</td></tr>
+        <tr><td><code>Models/Api/GS1CertificationReport.cs</code></td><td>Added <code>AmazonCode</code> property to <code>GS1CertificationInfo</code> (null-excluded for non-Amazon certs)</td></tr>
+    </tbody>
+</table>
+
+<h3>Observations</h3>
+<ul>
+    <li><strong>Pre-existing bug found:</strong> External tile view JS (<code>certificateTileViewExternal.js</code>) had a <code>csfAttributes</code> cell in <code>createTableRow()</code> but no matching header in the CSHTML or CSS column. This caused column misalignment. Fixed by adding the missing "CSF Attributes" header and CSS column.</li>
+    <li><strong>Subcategory fallback:</strong> Both the collection (<code>CertificationTypeSubcategories</code>) and deprecated single FK (<code>CertificationTypeSubcategory</code>) are queried with fallback logic, ensuring certificates created before the multi-select feature still show their subcategory data.</li>
+    <li><strong>No breaking changes:</strong> All additions are new optional fields. Existing API consumers are unaffected.</li>
+</ul>
+
+<!-- ==================== EMAIL THREAD ANALYSIS ==================== -->
+<h2 id="obs-feb5-email">Amazon API Change Order - Email Thread Analysis (February 5, 2026)</h2>
+
+<h3>Context</h3>
+<p>Change order document created for Amazon's expanded CPF requirements. Email thread between Kyle (Amazon), Carly (GreenCircle), and Dan (internal) shaped the final scope.</p>
+
+<h3>Key Confirmations from Email Thread</h3>
+<table>
+    <thead><tr><th>Item</th><th>Source</th><th>Detail</th></tr></thead>
+    <tbody>
+        <tr><td>Amazon will use <code>certificationResults</code></td><td>Kyle (Amazon)</td><td>Two purposes: (1) customer-facing display of quantitative values, (2) internal CPF threshold filtering</td></tr>
+        <tr><td>Amazon wants energy saving % and recycled content %</td><td>Kyle (Amazon)</td><td>Moving from binary "certified = eligible" to analog "certified with X% savings"</td></tr>
+        <tr><td>Amazon filters on their side</td><td>Kyle (Amazon)</td><td>"Filtering which products are eligible for CPF on our side" -- they consume raw data and apply their own thresholds</td></tr>
+        <tr><td>Pathway field is needed</td><td>Carly (GreenCircle)</td><td>For SEP certs, same % can relate to different methodologies (Design Efficiency vs. Consumer Behavior)</td></tr>
+        <tr><td>Admin-managed dropdown for Pathway</td><td>Carly (GreenCircle)</td><td>"Pathway field with dropdowns (that Admin can control)"</td></tr>
+        <tr><td>Avoid cert-type-specific fields</td><td>Carly (GreenCircle)</td><td>"Things are always changing" -- generic approach required</td></tr>
+        <tr><td>Certs only tagged for Amazon if they meet thresholds</td><td>Carly (GreenCircle)</td><td>Non-qualifying certs never appear in Amazon's API results</td></tr>
+    </tbody>
+</table>
+
+<h3>Scope Evolution</h3>
+<ul>
+    <li><strong>Original proposal:</strong> 8 changes, including Pathway (speculative at the time)</li>
+    <li><strong>After Dan's feedback:</strong> Questioned whether CertResults was necessary -- valid concern, but Amazon confirmed need</li>
+    <li><strong>After Amazon's response:</strong> Pathway appeared unnecessary (Amazon didn't ask for it)</li>
+    <li><strong>After Carly's response:</strong> Pathway brought back -- needed for SEP methodology context</li>
+    <li><strong>Final scope:</strong> All 8 changes confirmed, with 5 pending questions for GreenCircle before Changes #5-8 can proceed</li>
+</ul>
+
+<h3>Risk Observation</h3>
+<p>The "building features Amazon does not consume" risk from the original document has been significantly reduced. Amazon explicitly confirmed how they will use <code>certificationResults</code>, and GreenCircle independently confirmed Pathway is needed for their own data quality. Both parties have aligned interests.</p>
+
+<h3>Documents Updated</h3>
+<ul>
+    <li><code>docs/0_Documentation/docs/PHASE1_IMPLEMENTATION_SUMMARY.md</code> -- Markdown change order (updated with confirmations)</li>
+    <li><code>docs/0_Documentation/docs/PROPOSED_CHANGES_Amazon_API_2026-02-05.html</code> -- HTML change order for PDF export (updated with confirmations)</li>
+</ul>
+
+<!-- ==================== FEB 19 UAT GUIDE ==================== -->
+<h2 id="obs-feb19-uat">Observation Entry: February 19, 2026</h2>
+<h3>Comprehensive UAT Guide Created - Testing Gap Analysis</h3>
+
+<p><strong>Context:</strong> User requested review of existing user guides, testing documentation, and user flow coverage across all roles. Comprehensive audit performed.</p>
+
+<p><strong>What Existed Before:</strong></p>
+<ul>
+    <li>Role Management Help Guide (good coverage of RBAC)</li>
+    <li>UAT Credentials Guide (good)</li>
+    <li>Certificate Create/Edit Flow (developer-focused, Mermaid diagrams)</li>
+    <li>Import Test Guide (20+ test cases, import-only)</li>
+    <li>API Testing Plan (100+ test IDs, partner API only)</li>
+    <li>Partner API Testing Guide (40+ tests)</li>
+    <li>Pre/Post Deployment Checklists</li>
+</ul>
+
+<p><strong>Gaps Identified:</strong></p>
+<ol>
+    <li>NO unified UAT guide covering all roles end-to-end</li>
+    <li>NO step-by-step test scripts for Admin CRUD operations (Users, Roles, Tags, Partners, etc.)</li>
+    <li>NO External user test guide (data isolation verification missing)</li>
+    <li>NO 14-state workflow transition test matrix</li>
+    <li>NO cross-role permission verification matrix</li>
+    <li>NO end-to-end business scenario tests (multi-role journeys)</li>
+    <li>NO Certificate Tile View validation guide per role</li>
+    <li>NO CSV Export test coverage across entities</li>
+    <li>NO notification pattern validation tests (alert vs. AdminCore)</li>
+    <li>NO requirements traceability matrix</li>
+</ol>
+
+<p><strong>Document Created:</strong> <code>docs/0_Documentation/docs/COMPREHENSIVE_UAT_GUIDE.md</code> (v2.0)</p>
+<ul>
+    <li><strong>Part A:</strong> 359 feature-level test cases across 10 modules (Auth, Public, External, Analyst, Admin, Workflow, API, Permissions, Export/Import, Edge Cases)</li>
+    <li><strong>Part B:</strong> 221 end-to-end scenario steps across 9 business journeys:
+        <ul>
+            <li>E2E Scenario 1: Certificate Full Lifecycle (Admin to Analyst to Public to External to API, 46 steps)</li>
+            <li>E2E Scenario 2: New Company Onboarding (26 steps)</li>
+            <li>E2E Scenario 3: Partner API Integration (18 steps)</li>
+            <li>E2E Scenario 4: Admin System Setup Day 1 (27 steps)</li>
+            <li>E2E Scenario 5: Certificate Renewal Lifecycle (14 steps)</li>
+            <li>E2E Scenario 6: Rejection &amp; Recovery Flow (14 steps)</li>
+            <li>E2E Scenario 7: Bulk Operations Workflow (24 steps)</li>
+            <li>E2E Scenario 8: User Access Lifecycle (26 steps)</li>
+            <li>E2E Scenario 9: Search &amp; Discovery Cross-Role (26 steps)</li>
+        </ul>
+    </li>
+    <li><strong>Part C:</strong> Requirements Traceability Matrix + Defect Template + Execution Summary</li>
+    <li><strong>Total:</strong> 580 test cases/steps across 19 modules</li>
+</ul>
+
+<div class="callout callout-info"><strong>Key Insight:</strong> The existing docs were developer/technical-focused. What was missing was a document a stakeholder, QA tester, or client could pick up and systematically validate the entire system. This guide fills that gap.</div>
+
+<!-- ==================== FEB 19 V3 ==================== -->
+<h2 id="obs-feb19-v3">UAT Guide v3.0 - Gap Fixes, Accessibility Module, Test Data Script</h2>
+
+<p><strong>Context:</strong> Detailed section-by-section walkthrough of the UAT guide revealed several inaccuracies and gaps. Code research confirmed the issues. Three updates applied:</p>
+
+<p><strong>Gap Fixes Applied:</strong></p>
+<ol>
+    <li><strong>Analyst Status Dropdown (TC-ANL-034, TC-WF-043):</strong> Guide incorrectly stated analysts see "Draft, Active, Expired, Pending Review". Code research of <code>CertificateStatusHelper.GetStatusesForRole()</code> confirmed analysts see <strong>12 of 14 statuses</strong> (all except Rejected and Revoked). Fixed.</li>
+    <li><strong>Certificate Import Access (TC-ANL-059-065 to TC-ADM-075-081):</strong> Guide placed Certificate Import under Analyst module. Code research showed <code>CertificateImportController</code> has <code>[Authorize(Policy = "AdminOnly")]</code> at class level. Moved entire section to Admin module. Updated TC-PERM-019 from Analyst=Allowed to Analyst=<strong>Denied</strong>.</li>
+    <li><strong>Missing Test Cases Added:</strong>
+        <ul>
+            <li>TC-PUB-013a/b/c: Draft/Archived not visible to public + database-driven filters</li>
+            <li>TC-ANL-061/62/63: Cascading company to product dropdown + filter validation</li>
+            <li>TC-ADM-085-089: Delete entity with dependencies protection</li>
+            <li>TC-ADM-090-092: Duplicate entity prevention</li>
+        </ul>
+    </li>
+    <li><strong>Section Reference Fix:</strong> "How to Use" pointed to old section numbers (15/16) instead of correct (25/26).</li>
+</ol>
+
+<p><strong>Accessibility Module Added (Module 20):</strong></p>
+<ul>
+    <li>50 test cases (TC-A11Y-001 to TC-A11Y-050) covering WCAG 2.1 Level AA</li>
+    <li>8 subsections: Keyboard Nav, Screen Reader, Color Contrast, ARIA, Forms, Modals, Responsive/Zoom, Data Tables</li>
+    <li>Based on actual codebase inspection of ARIA attributes, admin-sr-only labels, and button classes</li>
+</ul>
+
+<p><strong>Test Data Setup Script Created:</strong></p>
+<ul>
+    <li><code>docs/0_Documentation/docs/UAT_TEST_DATA_SETUP.sql</code></li>
+    <li>Creates all pre-condition data for E2E scenarios: 3 partners, 4 companies, 6 products, 8 certificates (various statuses), 7 tags, 3 cert types with 5 subcategories, 3 custom fields, product IDs, status history</li>
+    <li>Idempotent (uses IF NOT EXISTS for all inserts)</li>
+    <li>Includes verification queries</li>
+</ul>
+
+<p><strong>Updated Totals:</strong> v3.0 = <strong>647 test cases</strong> across 20 modules (Part A: 376, Part B: 221, Part B2: 50 accessibility)</p>
+
+<div class="callout callout-warning"><strong>Risk Note:</strong> The analyst status error could have led to incorrect pass/fail judgments during UAT. The Certificate Import access error would have wasted testing time (analysts would get Access Denied). Both caught through code verification before testing began - validates the importance of code-verified test cases.</div>
+
+<!-- ==================== FEB 19 AMAZON CORRECTION ==================== -->
+<h2 id="obs-feb19-amazon">Amazon Scope Change Correction &amp; Audit Trail Discovery</h2>
+
+<p><strong>Context:</strong> Client clarified that Pathways are already built and populated from the admin page. Q1/Q2 from scope change doc are NOT blockers. Triggered a re-evaluation of all Amazon scope change items.</p>
+
+<h3>Code Verification Findings</h3>
+<ol>
+    <li><strong>Amazon Code in API</strong> - <span class="tag tag-covered">BUILT &amp; DEPLOYED</span>. <code>CertificatesController.cs</code> lines 242, 292 (standard JSON) and line 1370 (GS1 JSON-LD).</li>
+    <li><strong>Pathway Admin Page</strong> - <span class="tag tag-covered">BUILT &amp; DEPLOYED</span>. <code>Views/Admin/Pathways.cshtml</code> exists with full CRUD. 3 seed values in migration.</li>
+    <li><strong>Pathway on Certificate Form</strong> - <span class="tag tag-covered">BUILT &amp; DEPLOYED</span>. Both <code>Create.cshtml</code> and <code>Edit.cshtml</code> have Pathway dropdown. Model has <code>PathwayId</code> nullable FK.</li>
+    <li><strong>Pathway in API</strong> - <span class="tag tag-covered">BUILT &amp; DEPLOYED</span>. Line 842 (standard JSON) and line 1371 (GS1 JSON-LD).</li>
+    <li><strong>Pathway Cert-Type Scoping</strong> - <span class="tag tag-gap">NOT BUILT</span>. Pathway model has no <code>CertificationTypeId</code> property. Currently a global dropdown.</li>
+    <li><strong>Soft Validation Warning</strong> - <span class="tag tag-gap">NOT BUILT</span>. No Amazon-specific warning logic found.</li>
+    <li><strong>Swagger Documentation</strong> - <span class="tag tag-covered">UPDATED</span> with deployment.</li>
+</ol>
+
+<h3>Corrected Status</h3>
+<ul>
+    <li>Changed 7 items from "Pending Feature" to "Covered" (items 1, 2, 3, 5, 7, 8, 10)</li>
+    <li>Changed 1 item to "Deferred" (item 4 - pathway scoping)</li>
+    <li>2 items remain "Pending Answer" (items 6 and 9)</li>
+    <li>Coverage updated: 689 of 702 test cases covered (98.1%)</li>
+</ul>
+
+<h3>Audit Trail Discovery</h3>
+<ul>
+    <li><strong>Backend is FULLY BUILT</strong> with two-tier system:
+        <ul>
+            <li><code>AuditHistory</code> model: EntityType, EntityId, Action, FieldName, OldValue, NewValue, ChangedBy, IpAddress, UserAgent, ChangeSource, SessionId, ImportBatchId</li>
+            <li><code>CertificateStatusHistory</code> model: PreviousStatus, NewStatus, Reason, Notes, IsAutomatedTransition, DurationInPreviousStatus</li>
+            <li><code>AuditService.cs</code>: LogEntityChangeAsync, LogAuditEventAsync, SearchAuditHistoryAsync, GetEntityHistoryAsync</li>
+        </ul>
+    </li>
+    <li><strong>NO ADMIN UI EXISTS</strong> - No views in <code>Views/Admin/</code> for viewing audit logs</li>
+    <li><strong>2 UI Gaps Identified:</strong>
+        <ol>
+            <li>TC-AUDIT-007: No status history timeline on certificate detail page</li>
+            <li>TC-AUDIT-008: No admin audit log viewer page (despite backend SearchAuditHistoryAsync being ready)</li>
+        </ol>
+    </li>
+</ul>
+
+<h3>Documents Updated</h3>
+<ul>
+    <li>REQUIREMENTS_TRACEABILITY_MATRIX.md v1.1 - Amazon corrections + Audit Trail section (12b) with 9 requirements</li>
+    <li>REQUIREMENTS_TRACEABILITY_MATRIX.html - Same updates applied</li>
+    <li>COMPREHENSIVE_UAT_GUIDE.md v3.2 - Module 10b added (9 audit test cases), Amazon markers corrected, 671 total tests</li>
+    <li>Updated totals: 107 requirements, 702 test cases, 696 covered, 2 pending answers, 2 deferred, 2 UI gaps</li>
+</ul>
+
+<div class="callout callout-success"><strong>Lesson Learned:</strong> Always verify "pending" items against the actual codebase before reporting them as unbuilt. 7 of 10 Amazon items were already deployed - reporting them as "Pending Feature" would have been misleading to stakeholders and wasted time planning work that was already done.</div>
+
+<div class="doc-footer">Generated: February 19, 2026 | GCC Database Solution - PointSolve Technology</div>
+
+</body>
+</html>

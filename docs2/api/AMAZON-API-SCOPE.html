@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon API Integration Scope - Green Circle Certified</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 1in;
+        }
+
+        @media print {
+            .no-print { display: none; }
+            .page-break { page-break-before: always; }
+        }
+
+        body {
+            font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.5in;
+            background: #fff;
+        }
+
+        h1 {
+            font-size: 24pt;
+            color: #1a5f2a;
+            border-bottom: 3px solid #1a5f2a;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        h2 {
+            font-size: 16pt;
+            color: #1a5f2a;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+
+        h3 {
+            font-size: 13pt;
+            color: #2d7a3e;
+            margin-top: 20px;
+        }
+
+        .header-info {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+        }
+
+        .header-info table {
+            width: 100%;
+            border: none;
+        }
+
+        .header-info td {
+            border: none;
+            padding: 5px 10px;
+            vertical-align: top;
+        }
+
+        .header-info .label {
+            font-weight: bold;
+            width: 150px;
+            color: #1a5f2a;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 10pt;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background: #1a5f2a;
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .highlight-row {
+            background: #e7f3e8 !important;
+        }
+
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-left: 3px solid #1a5f2a;
+            padding: 12px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 9pt;
+            line-height: 1.4;
+        }
+
+        code {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: #f4f4f4;
+            padding: 2px 6px;
+            font-size: 9pt;
+            border-radius: 3px;
+        }
+
+        .callout {
+            background: #e7f3e8;
+            border-left: 4px solid #1a5f2a;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .callout-title {
+            font-weight: bold;
+            color: #1a5f2a;
+            margin-bottom: 5px;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ff9900;
+        }
+
+        .warning .callout-title {
+            color: #856404;
+        }
+
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        .signature-section {
+            margin-top: 50px;
+            page-break-inside: avoid;
+        }
+
+        .signature-line {
+            border-bottom: 1px solid #333;
+            width: 250px;
+            display: inline-block;
+            margin-top: 30px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            font-size: 9pt;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Amazon API Integration Scope</h1>
+
+<div class="header-info">
+    <table>
+        <tr>
+            <td class="label">Document:</td>
+            <td>API Integration Scope for Amazon Climate Pledge Friendly</td>
+        </tr>
+        <tr>
+            <td class="label">Version:</td>
+            <td>1.0</td>
+        </tr>
+        <tr>
+            <td class="label">Date:</td>
+            <td>January 19, 2026</td>
+        </tr>
+        <tr>
+            <td class="label">Prepared By:</td>
+            <td>Green Circle Certified</td>
+        </tr>
+        <tr>
+            <td class="label">Prepared For:</td>
+            <td>Amazon Sustainability Team</td>
+        </tr>
+        <tr>
+            <td class="label">Classification:</td>
+            <td>Confidential - Partner Use Only</td>
+        </tr>
+    </table>
+</div>
+
+<h2>1. Executive Summary</h2>
+
+<p>This document defines the scope of the API integration between Green Circle Certified (GCC) and Amazon for the Climate Pledge Friendly program. The integration enables Amazon to retrieve certification data for products listed on the Amazon marketplace.</p>
+
+<div class="callout">
+    <div class="callout-title">Integration Model</div>
+    <p><strong>Amazon PULLS data from GCC</strong> using authenticated API requests. GCC does not push data to Amazon.</p>
+</div>
+
+<h3>1.1 Key Deliverables</h3>
+<ul>
+    <li>GS1 JSON-LD compliant API endpoint for certification data</li>
+    <li>Product identifier mapping (ASIN, UPC, GTIN)</li>
+    <li>Certificate PDF download capability</li>
+    <li>Real-time certification status verification</li>
+</ul>
+
+<h2>2. API Endpoints in Scope</h2>
+
+<table>
+    <tr>
+        <th>Endpoint</th>
+        <th>Method</th>
+        <th>Purpose</th>
+        <th>Priority</th>
+    </tr>
+    <tr class="highlight-row">
+        <td><code>/api/v1/certificates/gs1</code></td>
+        <td>GET</td>
+        <td>List certificates in GS1 JSON-LD format</td>
+        <td><strong>PRIMARY</strong></td>
+    </tr>
+    <tr class="highlight-row">
+        <td><code>/api/v1/certificates/gs1/{number}</code></td>
+        <td>GET</td>
+        <td>Single certificate in GS1 format</td>
+        <td><strong>PRIMARY</strong></td>
+    </tr>
+    <tr>
+        <td><code>/api/v1/certificates/search/productid</code></td>
+        <td>GET</td>
+        <td>Search by ASIN/UPC/GTIN</td>
+        <td>Secondary</td>
+    </tr>
+    <tr>
+        <td><code>/api/v1/certificates/{number}/download</code></td>
+        <td>GET</td>
+        <td>Download certificate PDF</td>
+        <td>Secondary</td>
+    </tr>
+</table>
+
+<h2>3. GS1 JSON-LD Format Specification</h2>
+
+<p>The primary endpoint returns data conforming to the <strong>GS1 Web Vocabulary</strong> specification for certification data exchange.</p>
+
+<h3>3.1 Response Structure</h3>
+
+<pre>{
+  "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+  "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+  "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+  "type": "CertificationReport",
+  "issueDate": "2024-01-15",
+  "issuer": "Green Circle Certified",
+  "products": [
+    {
+      "id": "https://greencirclecertified.com/database/api/v1/certificates/gs1/24-0366/product",
+      "type": "Product",
+      "gtin": null,
+      "additionalTradeItemId": [
+        { "type": "ASIN", "value": "B08XQRT456", "name": "Recycled Paper Towels - 6 Pack" }
+      ],
+      "name": "Recycled Paper Towels",
+      "description": "100% recycled paper towels",
+      "certificationInfo": {
+        "type": "CertificationDetails",
+        "agency": "Green Circle Certified",
+        "program": "UL 2809",
+        "certificateId": "24-0366",
+        "status": "ACTIVE",
+        "value": "95.5% recycled content",
+        "startDate": "2024-01-15",
+        "endDate": "2025-01-15",
+        "targetCountries": ["United States"]
+      }
+    }
+  ]
+}</pre>
+
+<h3>3.2 Field Mapping - GS1 Requirements</h3>
+
+<table>
+    <tr>
+        <th>GS1 Requirement</th>
+        <th>JSON Property</th>
+        <th>Req/Opt</th>
+        <th>GCC Implementation</th>
+    </tr>
+    <tr>
+        <td>@context</td>
+        <td><code>@context</code></td>
+        <td>Required</td>
+        <td>GS1 certification context URL</td>
+    </tr>
+    <tr>
+        <td>$schema</td>
+        <td><code>$schema</code></td>
+        <td>Required</td>
+        <td>GS1 schema URL</td>
+    </tr>
+    <tr>
+        <td>Document ID</td>
+        <td><code>id</code></td>
+        <td>Required</td>
+        <td>URI: /api/v1/certificates/gs1/{number}</td>
+    </tr>
+    <tr>
+        <td>Type</td>
+        <td><code>type</code></td>
+        <td>Required</td>
+        <td>"CertificationReport"</td>
+    </tr>
+    <tr>
+        <td>Issue Date</td>
+        <td><code>issueDate</code></td>
+        <td>Required</td>
+        <td>YYYY-MM-DD format</td>
+    </tr>
+    <tr>
+        <td>Issuer</td>
+        <td><code>issuer</code></td>
+        <td>Optional</td>
+        <td>"Green Circle Certified"</td>
+    </tr>
+    <tr>
+        <td>GTIN</td>
+        <td><code>products[].gtin</code></td>
+        <td>Required</td>
+        <td>14-digit padded UPC/GTIN/EAN</td>
+    </tr>
+    <tr>
+        <td>Additional Trade Item ID</td>
+        <td><code>products[].additionalTradeItemId</code></td>
+        <td>Optional</td>
+        <td>ASIN, SKU, MPN, ISBN</td>
+    </tr>
+    <tr>
+        <td>Product Name</td>
+        <td><code>products[].name</code></td>
+        <td>Optional</td>
+        <td>Product name from certificate</td>
+    </tr>
+    <tr>
+        <td>Certification Agency</td>
+        <td><code>certificationInfo.agency</code></td>
+        <td>Required</td>
+        <td>"Green Circle Certified"</td>
+    </tr>
+    <tr>
+        <td>Certification Program</td>
+        <td><code>certificationInfo.program</code></td>
+        <td>Required</td>
+        <td>Certification type name</td>
+    </tr>
+    <tr>
+        <td>Certificate ID</td>
+        <td><code>certificationInfo.certificateId</code></td>
+        <td>Optional</td>
+        <td>Certificate number (e.g., 24-0366)</td>
+    </tr>
+    <tr>
+        <td>Status</td>
+        <td><code>certificationInfo.status</code></td>
+        <td>Required</td>
+        <td>ACTIVE or INACTIVE</td>
+    </tr>
+    <tr>
+        <td>Certification Value/Level</td>
+        <td><code>certificationInfo.value</code></td>
+        <td>Optional</td>
+        <td>Certification results (threshold data)</td>
+    </tr>
+    <tr>
+        <td>Start Date</td>
+        <td><code>certificationInfo.startDate</code></td>
+        <td>Optional</td>
+        <td>YYYY-MM-DD format</td>
+    </tr>
+    <tr>
+        <td>End Date</td>
+        <td><code>certificationInfo.endDate</code></td>
+        <td>Optional</td>
+        <td>YYYY-MM-DD format</td>
+    </tr>
+    <tr>
+        <td>Target Countries</td>
+        <td><code>certificationInfo.targetCountries</code></td>
+        <td>Conditional</td>
+        <td>Array of country names</td>
+    </tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>4. Authentication</h2>
+
+<h3>4.1 API Key Authentication</h3>
+<p>Amazon will be issued a partner API key for authentication:</p>
+
+<pre>X-API-Key: gcc_partner_[64-character-hash]</pre>
+
+<h3>4.2 Request Example</h3>
+<pre>curl -X GET "https://[production-domain]/api/v1/certificates/gs1?pageSize=100" \
+  -H "X-API-Key: gcc_partner_b451fb3b31c645e9dd900c3c7b2f6250..." \
+  -H "Accept: application/json"</pre>
+
+<h3>4.3 Rate Limits</h3>
+<table>
+    <tr>
+        <th>Metric</th>
+        <th>Limit</th>
+    </tr>
+    <tr>
+        <td>Requests per hour</td>
+        <td>200</td>
+    </tr>
+    <tr>
+        <td>Requests per minute (burst)</td>
+        <td>~3</td>
+    </tr>
+</table>
+
+<h2>5. Data Access Scope</h2>
+
+<div class="callout warning">
+    <div class="callout-title">Automatic Data Filtering</div>
+    <p>All API responses are automatically filtered based on the API key's partner/company associations. Amazon will only see certificates associated with their partner account.</p>
+</div>
+
+<h3>5.1 Access Rules</h3>
+<table>
+    <tr>
+        <th>Association Type</th>
+        <th>Data Access</th>
+    </tr>
+    <tr>
+        <td>Partner = Amazon</td>
+        <td>All certificates where Partner field = "Amazon"</td>
+    </tr>
+    <tr>
+        <td>Company associations</td>
+        <td>All certificates for associated companies</td>
+    </tr>
+    <tr>
+        <td>Both Partner + Companies</td>
+        <td>Certificates matching EITHER (OR logic)</td>
+    </tr>
+</table>
+
+<h2>6. Out of Scope</h2>
+
+<p>The following are explicitly <strong>NOT</strong> included in this integration:</p>
+
+<ul>
+    <li>Write operations (create, update, delete certificates)</li>
+    <li>User management endpoints</li>
+    <li>Company management endpoints</li>
+    <li>Administrative functions</li>
+    <li>Real-time push notifications (Amazon pulls data)</li>
+    <li>Bulk file exports (use pagination instead)</li>
+</ul>
+
+<h2>7. API Documentation Access</h2>
+
+<table>
+    <tr>
+        <th>Resource</th>
+        <th>URL</th>
+        <th>Access</th>
+    </tr>
+    <tr>
+        <td>Interactive API Docs (ReDoc)</td>
+        <td><code>/api-docs</code></td>
+        <td>Public</td>
+    </tr>
+    <tr>
+        <td>OpenAPI Specification</td>
+        <td><code>/swagger/partner-data/swagger.json</code></td>
+        <td>Public</td>
+    </tr>
+</table>
+
+<h2>8. Support & Contacts</h2>
+
+<table>
+    <tr>
+        <th>Type</th>
+        <th>Contact</th>
+    </tr>
+    <tr>
+        <td>Technical Support</td>
+        <td>api-support@greencirclecertified.com</td>
+    </tr>
+    <tr>
+        <td>Partner Relations</td>
+        <td>partners@greencirclecertified.com</td>
+    </tr>
+    <tr>
+        <td>Documentation</td>
+        <td>https://[production-domain]/api-docs</td>
+    </tr>
+</table>
+
+<div class="signature-section">
+    <h2>9. Approval</h2>
+
+    <table style="border: none;">
+        <tr>
+            <td style="border: none; width: 50%;">
+                <p><strong>Green Circle Certified</strong></p>
+                <p class="signature-line"></p>
+                <p>Name: _______________________</p>
+                <p>Title: _______________________</p>
+                <p>Date: _______________________</p>
+            </td>
+            <td style="border: none; width: 50%;">
+                <p><strong>Amazon</strong></p>
+                <p class="signature-line"></p>
+                <p>Name: _______________________</p>
+                <p>Title: _______________________</p>
+                <p>Date: _______________________</p>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div class="footer">
+    <p><strong>CONFIDENTIAL</strong> - This document is intended for Amazon's integration team.</p>
+    <p>Green Circle Certified | www.greencirclecertified.com</p>
+    <p>Version 1.0 | January 2026</p>
+</div>
+
+</body>
+</html>

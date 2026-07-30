@@ -261,7 +261,8 @@
                         {
                             certificateImageSrc = imagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                                 ? imagePath
-                                : Url.Action("ViewCertificateImage", "Certificate", new { id = Model.Certificate.Id }) ?? "";
+                                // DEF-310 (QC #191): `v` busts a stale cache after a document replace.
+                                : Url.Action("ViewCertificateImage", "Certificate", new { id = Model.Certificate.Id, v = UploadCacheBusting.VersionToken(imagePath) }) ?? "";
                         }
                     }
                     <!-- Consistent preview container (US-016: uses CSS class instead of inline styles) -->

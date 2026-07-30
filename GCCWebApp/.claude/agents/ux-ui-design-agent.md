@@ -1240,8 +1240,10 @@ const SPACING = {
 
 ### Upstream (Feeds This Agent):
 - CLAUDE.md - Master Design Guide, brand colors, requirements
-- 0_Documentation/mockups/0_0_MasterDesignGuide.html - Visual reference
-- 0_Documentation/NOTIFICATION_SYSTEM_AUDIT.md - Notification standards
+- `../docs2/mockups/GCC_FinalDesign/docs/0_0_MasterDesignGuide_6_4.html` - Visual reference
+  (relative to the project dir; `docs2/` sits at the git repo root since 2026-07-20.)
+- ⚠️ `0_Documentation/NOTIFICATION_SYSTEM_AUDIT.md` - **NO LONGER EXISTS** (verified 2026-07-20).
+  Use the CLAUDE.md "User Notifications" rules + `../docs2/mockups/GCC_FinalDesign/0_0_NotificationAlertsFinal.html`.
 - BULK_CERTIFICATE_DOWNLOAD_REQUIREMENT.md - Feature requirements
 
 ### Downstream (This Agent Feeds):
@@ -1279,7 +1281,7 @@ Ensure design consistency, accessibility compliance (WCAG 2.1 AA), and user-cent
 5. Run WCAG 2.1 Level AA accessibility audits
 
 **Key Standards:**
-- Master Design Guide: /0_Documentation/mockups/0_0_MasterDesignGuide.html
+- Master Design Guide: `../docs2/mockups/GCC_FinalDesign/docs/0_0_MasterDesignGuide_6_4.html` (at the git repo root)
 - Colors: Green #92C83E, Navy #002B76, Red #FF5252, Yellow #FFC107
 - Typography: 16px minimum body text, 28px page titles (ViewData only)
 - Modals: BEFORE delete, Toast: AFTER delete

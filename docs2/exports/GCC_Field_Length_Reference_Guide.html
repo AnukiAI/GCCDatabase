@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Data Entry Field Reference Guide</title>
+    <style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 13pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 28px; margin-bottom: 10px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 16px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 12px; margin-bottom: 5px; page-break-after: avoid; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px 0; font-size: 8.5pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 7px; font-size: 8.5pt; white-space: nowrap; }
+td { padding: 5px 7px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+ul, ol { margin: 4px 0 10px 0; padding-left: 18px; }
+li { margin-bottom: 3px; font-size: 9.5pt; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 10px 0; font-size: 9pt; border-radius: 0 4px 4px 0; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.callout-success { border-color: #2e7d32; background: #f0f8e8; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 16px; margin: 12px 0 20px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 6px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.toc a:hover { text-decoration: underline; }
+.toc .toc-sub { padding-left: 14px; font-size: 8.5pt; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.badge-req { background: #ffebee; color: #c62828; }
+.badge-opt { background: #e8f5e9; color: #2e7d32; }
+.badge-rec { background: #fff3e0; color: #e65100; }
+.badge-auto { background: #e3f2fd; color: #1565c0; }
+.ui-path { background: #f0f4ff; padding: 2px 6px; border-radius: 3px; font-size: 8.5pt; color: #002B76; font-weight: 600; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+.field-note { font-size: 8pt; color: #666; font-style: italic; }
+.format-example { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8pt; color: #002B76; background: #f0f4ff; padding: 1px 4px; border-radius: 2px; }
+@media print { body { padding: 0; } .toc { break-inside: avoid; } h2 { break-after: avoid; } h3 { break-after: avoid; } table { font-size: 8pt; } }
+    </style>
+</head>
+<body>
+
+<div class="doc-header">
+    <h1>Data Entry Field Reference Guide</h1>
+    <p class="subtitle">GCC Database Solution &mdash; Field Lengths, Formats, and Validation Rules</p>
+    <div class="doc-meta">
+        <div><strong>Version:</strong> 1.0</div>
+        <div><strong>Date:</strong> March 27, 2026</div>
+        <div><strong>Audience:</strong> GCC Analysts, Administrators, External Users</div>
+        <div><strong>Classification:</strong> Client Reference</div>
+        <div><strong>Application:</strong> GCC Web Application</div>
+        <div><strong>Prepared by:</strong> Anuki Consulting</div>
+    </div>
+</div>
+
+<div class="callout callout-info">
+    <strong>How to use this guide:</strong> This document lists every data entry field in the GCC application, organized by screen. Use it to understand character limits, required fields, and accepted formats before entering data. Fields that exceed the listed maximum length will be rejected by the system.
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <a href="#legend">1. Legend &amp; Symbols</a>
+    <a href="#certificates">2. Certificates</a>
+    <a class="toc-sub" href="#cert-create-edit">2.1 Create / Edit Certificate</a>
+    <a class="toc-sub" href="#cert-product-ids">2.2 Product Identifiers (Product ID Manager)</a>
+    <a class="toc-sub" href="#cert-import">2.3 CSV Import Fields</a>
+    <a href="#companies">3. Companies</a>
+    <a href="#products">4. Products</a>
+    <a class="toc-sub" href="#prod-management">4.1 Product Management</a>
+    <a class="toc-sub" href="#prod-identifiers">4.2 Product Identifiers</a>
+    <a href="#admin">5. Administration</a>
+    <a class="toc-sub" href="#admin-users">5.1 User Management</a>
+    <a class="toc-sub" href="#admin-roles">5.2 Role Management</a>
+    <a class="toc-sub" href="#admin-cert-types">5.3 Certification Types</a>
+    <a class="toc-sub" href="#admin-product-types">5.4 Product Types</a>
+    <a class="toc-sub" href="#admin-tags">5.5 Tags</a>
+    <a class="toc-sub" href="#admin-partners">5.6 Partners</a>
+    <a class="toc-sub" href="#admin-pathways">5.7 Pathways</a>
+    <a class="toc-sub" href="#admin-csf">5.8 CSF Attributes</a>
+    <a href="#formats">6. Format Reference</a>
+    <a href="#tips">7. Data Entry Tips</a>
+</div>
+
+<!-- ============================================ -->
+<h2 id="legend">1. Legend &amp; Symbols</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:120px;">Symbol</th>
+            <th>Meaning</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>Field must be filled in. The form cannot be saved without it.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>Field can be left blank.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-rec">RECOMMENDED</span></td>
+            <td>Not required, but strongly recommended for proper filtering and display.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-auto">AUTO</span></td>
+            <td>System-generated value. You do not need to enter this.</td>
+        </tr>
+        <tr>
+            <td><strong>Max Length</strong></td>
+            <td>Maximum number of characters allowed. Content exceeding this will be rejected.</td>
+        </tr>
+        <tr>
+            <td><strong>Min Length</strong></td>
+            <td>Minimum number of characters required (only applies where noted).</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="certificates">2. Certificates</h2>
+
+<h3 id="cert-create-edit">2.1 Create / Edit Certificate</h3>
+<p>Screen: <span class="ui-path">Certificates &rsaquo; Create New</span> or <span class="ui-path">Certificates &rsaquo; Edit</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Certificate Number</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>7</td>
+            <td>Format: <span class="format-example">YY-NNNN</span> (e.g., <code>25-0001</code>). Two-digit year, dash, four-digit sequence.</td>
+        </tr>
+        <tr>
+            <td>Certification Type</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Select from system-defined certification types (e.g., Recycled Content, Certified Energy Savings).</td>
+        </tr>
+        <tr>
+            <td>Certification Subcategory</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Subcategory under the selected Certification Type. Options change based on parent type.</td>
+        </tr>
+        <tr>
+            <td>Company</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Select from existing companies. Use autocomplete to search.</td>
+        </tr>
+        <tr>
+            <td>Company Email</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>255</td>
+            <td>Valid email format (e.g., <code>info@company.com</code>).</td>
+        </tr>
+        <tr>
+            <td>Company URL</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>500</td>
+            <td>Full URL including <code>https://</code>.</td>
+        </tr>
+        <tr>
+            <td>Product</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Select from existing products.</td>
+        </tr>
+        <tr>
+            <td>Product Category</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Top-level product category (e.g., Plastics, Paper).</td>
+        </tr>
+        <tr>
+            <td>Product Type</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Level 1 type under the selected category.</td>
+        </tr>
+        <tr>
+            <td>Product Subcategory</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Level 2 subcategory under the selected Product Type.</td>
+        </tr>
+        <tr>
+            <td>Effective Date</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td colspan="2">Date picker</td>
+            <td>Date the certificate becomes active. Format: <span class="format-example">M/D/YYYY</span>.</td>
+        </tr>
+        <tr>
+            <td>Expiration Date</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td colspan="2">Date picker</td>
+            <td>Date the certificate expires. Must be after effective date.</td>
+        </tr>
+        <tr>
+            <td>Location</td>
+            <td><span class="badge badge-rec">RECOMMENDED</span></td>
+            <td>&mdash;</td>
+            <td>175</td>
+            <td>Manufacturing facility or certification location (e.g., <code>Horsham PA</code>).</td>
+        </tr>
+        <tr>
+            <td>Country</td>
+            <td><span class="badge badge-rec">RECOMMENDED</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>Use full country names (e.g., <code>United States</code>, not <code>USA</code>). Populates the Country filter on the public site.</td>
+        </tr>
+        <tr>
+            <td>Partner Program</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>Select partner(s): Amazon, Novi, Other, or None.</td>
+        </tr>
+        <tr>
+            <td>Pathway</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Certification pathway, if applicable.</td>
+        </tr>
+        <tr>
+            <td>Certification Results</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>1,000</td>
+            <td>Open text. Test results, scores, or metrics (e.g., <code>95% recycled content</code>). Used for partner threshold verification.</td>
+        </tr>
+        <tr>
+            <td>Certificate Image</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>500</td>
+            <td>File path generated by upload. PNG or JPG format.</td>
+        </tr>
+        <tr>
+            <td>Status</td>
+            <td><span class="badge badge-auto">AUTO</span></td>
+            <td>&mdash;</td>
+            <td>50</td>
+            <td>Managed by the 14-state workflow. Initial value: <code>Draft</code>.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="cert-product-ids">2.2 Product Identifiers (Product ID Manager)</h3>
+<p>Screen: <span class="ui-path">Certificate Edit &rsaquo; Product ID Manager</span></p>
+<p class="field-note">Supports multiple identifiers per certificate for Amazon marketplace integration.</p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>ID Type</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>10</td>
+            <td>One of: <code>ASIN</code>, <code>UPC</code>, <code>GTIN</code>, <code>EAN</code>, <code>ISBN</code>, <code>SKU</code>, <code>MPN</code>, <code>Other</code>.</td>
+        </tr>
+        <tr>
+            <td>ID Value</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>50</td>
+            <td>The identifier value. See <a href="#formats">Section 6</a> for format rules per type.</td>
+        </tr>
+        <tr>
+            <td>Status</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>20</td>
+            <td>Values: <code>Active</code>, <code>Inactive</code>, <code>Pending</code>, <code>Expired</code>. Defaults to <code>Active</code>.</td>
+        </tr>
+        <tr>
+            <td>Partner</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>50</td>
+            <td>Partner association: <code>Amazon</code>, <code>Novi</code>, <code>None</code>, <code>Other</code>.</td>
+        </tr>
+        <tr>
+            <td>Product Name</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>200</td>
+            <td>Optional product name specific to this identifier.</td>
+        </tr>
+        <tr>
+            <td>Product SKU</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>Optional SKU associated with this identifier.</td>
+        </tr>
+        <tr>
+            <td>Description</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>500</td>
+            <td>Notes or additional context for this identifier.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="cert-import">2.3 CSV Import Fields</h3>
+<p>Screen: <span class="ui-path">Certificates &rsaquo; Import</span></p>
+<p class="field-note">When importing certificates via CSV, the same field limits apply. See the separate <em>Certificate Import Instructions</em> document for full CSV formatting details.</p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:220px;">CSV Column</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Max</th>
+            <th>Format</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td>CERTIFICATE_NUMBER</td><td><span class="badge badge-req">REQUIRED</span></td><td>7</td><td><span class="format-example">YY-NNNN</span></td></tr>
+        <tr><td>CERTIFICATION_TYPE</td><td><span class="badge badge-req">REQUIRED</span></td><td>&mdash;</td><td>Must match an existing type exactly</td></tr>
+        <tr><td>EFFECTIVE_DATE</td><td><span class="badge badge-req">REQUIRED</span></td><td>&mdash;</td><td><span class="format-example">M/D/YYYY</span></td></tr>
+        <tr><td>EXPIRATION_DATE</td><td><span class="badge badge-rec">RECOMMENDED</span></td><td>&mdash;</td><td><span class="format-example">M/D/YYYY</span></td></tr>
+        <tr><td>COMPANY_NAME</td><td><span class="badge badge-req">REQUIRED</span></td><td>255</td><td>Exact legal name, consistent across rows</td></tr>
+        <tr><td>COMPANY_LOCATION</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>175</td><td>City, State (e.g., <code>Horsham PA</code>)</td></tr>
+        <tr><td>COMPANY_COUNTRY</td><td><span class="badge badge-rec">RECOMMENDED</span></td><td>100</td><td>Full country name (e.g., <code>United States</code>)</td></tr>
+        <tr><td>COMPANY_EMAIL</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>255</td><td>Valid email address</td></tr>
+        <tr><td>COMPANY_WEBSITE</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>500</td><td>Include <code>https://</code></td></tr>
+        <tr><td>PRODUCT_NAME</td><td><span class="badge badge-rec">RECOMMENDED</span></td><td>255</td><td>Use <code>Not Specified</code> if unknown</td></tr>
+        <tr><td>PRODUCT_TYPE</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>255</td><td>Product category/type</td></tr>
+        <tr><td>CERTIFICATE_LOCATION</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>175</td><td>Manufacturing facility location</td></tr>
+        <tr><td>CERTIFICATE_COUNTRY</td><td><span class="badge badge-rec">RECOMMENDED</span></td><td>100</td><td>Full country name &mdash; populates public filter</td></tr>
+        <tr><td>PARTNER</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>100</td><td><code>Amazon</code>, <code>Novi</code>, <code>None</code>, or blank</td></tr>
+        <tr><td>CERTIFICATION_RESULTS</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>1,000</td><td>Open text for scores/metrics</td></tr>
+        <tr><td>TAGS</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>&mdash;</td><td>Comma-separated (e.g., <code>APR, LEED</code>)</td></tr>
+        <tr><td>ASIN</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>10</td><td>Starts with <code>B0</code> (e.g., <code>B08XYZ1234</code>)</td></tr>
+        <tr><td>UPC</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>12</td><td>12 digits only</td></tr>
+        <tr><td>GTIN</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>14</td><td>14 digits only</td></tr>
+        <tr><td>EAN</td><td><span class="badge badge-opt">OPTIONAL</span></td><td>13</td><td>13 digits only</td></tr>
+    </tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="companies">3. Companies</h2>
+<p>Screen: <span class="ui-path">Companies &amp; Products &rsaquo; Company Management</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Company Name</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>255</td>
+            <td>Legal company name. Must be unique and consistent across all certificates.</td>
+        </tr>
+        <tr>
+            <td>Contact Info</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>255</td>
+            <td>Primary contact name, phone, or other contact details.</td>
+        </tr>
+        <tr>
+            <td>Email</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>255</td>
+            <td>Valid email format (e.g., <code>contact@company.com</code>).</td>
+        </tr>
+        <tr>
+            <td>Website</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>500</td>
+            <td>Full URL including <code>https://</code>. Validated as URL format.</td>
+        </tr>
+        <tr>
+            <td>Location</td>
+            <td><span class="badge badge-rec">RECOMMENDED</span></td>
+            <td>&mdash;</td>
+            <td>175</td>
+            <td>City, State or City, Country (e.g., <code>Minneapolis MN</code>).</td>
+        </tr>
+        <tr>
+            <td>Country</td>
+            <td><span class="badge badge-rec">RECOMMENDED</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>Full country name. Use consistent spelling (see <a href="#formats">Section 6</a>).</td>
+        </tr>
+        <tr>
+            <td>Partner</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Partner program association for reporting.</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="products">4. Products</h2>
+
+<h3 id="prod-management">4.1 Product Management</h3>
+<p>Screen: <span class="ui-path">Companies &amp; Products &rsaquo; Product Management</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Product Name</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>255</td>
+            <td>Descriptive product name. Use <code>Not Specified</code> if unknown.</td>
+        </tr>
+        <tr>
+            <td>Description</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>No limit</td>
+            <td>Free-text product description.</td>
+        </tr>
+        <tr>
+            <td>Company</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Company that owns this product.</td>
+        </tr>
+        <tr>
+            <td>Product Category</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Top-level category. Filters available Product Types.</td>
+        </tr>
+        <tr>
+            <td>Product Type</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Cascading dropdown &mdash; options depend on selected Category.</td>
+        </tr>
+        <tr>
+            <td>Product Subcategory</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Cascading dropdown &mdash; options depend on selected Product Type.</td>
+        </tr>
+        <tr>
+            <td>Model</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>Product model number or name.</td>
+        </tr>
+        <tr>
+            <td>SKU</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>50</td>
+            <td>Stock Keeping Unit identifier.</td>
+        </tr>
+        <tr>
+            <td>UPC</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>50</td>
+            <td>Universal Product Code (barcode). Typically 12 digits.</td>
+        </tr>
+        <tr>
+            <td>ASIN</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>50</td>
+            <td>Amazon Standard Identification Number. 10 characters, starts with <code>B0</code>.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="prod-identifiers">4.2 Product Identifiers</h3>
+<p>Screen: <span class="ui-path">Product Management &rsaquo; Identifiers</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Identifier Type</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>20</td>
+            <td>Type code (e.g., <code>ASIN</code>, <code>UPC</code>, <code>GTIN</code>).</td>
+        </tr>
+        <tr>
+            <td>Identifier Value</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>50</td>
+            <td>The actual identifier value.</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="admin">5. Administration</h2>
+<p class="field-note">Administration screens are accessible to users with the Administrator role only.</p>
+
+<h3 id="admin-users">5.1 User Management</h3>
+<p>Screen: <span class="ui-path">Administration &rsaquo; User Management</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Name</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>User's display name (first and/or last name).</td>
+        </tr>
+        <tr>
+            <td>Email</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>255</td>
+            <td>Valid email format. <strong>Must be unique</strong> &mdash; no two users can share an email address.</td>
+        </tr>
+        <tr>
+            <td>Role</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Select one: Administrator, Analyst, External, or a custom role.</td>
+        </tr>
+        <tr>
+            <td>Password</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>8</td>
+            <td>100</td>
+            <td>Minimum 8 characters. Used for initial login; user may be required to change on first login.</td>
+        </tr>
+        <tr>
+            <td>Company</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Required for External users. Associates user with a company for data visibility.</td>
+        </tr>
+        <tr>
+            <td>Partner</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>Partner program association, if applicable.</td>
+        </tr>
+        <tr>
+            <td>Require Password Reset</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Checkbox</td>
+            <td>When checked, user must change password on next login. Default: checked for new users.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="admin-roles">5.2 Role Management</h3>
+<p>Screen: <span class="ui-path">Administration &rsaquo; Role Management</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Role Name</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>50</td>
+            <td>Unique role name. System roles (Admin, Analyst, External) cannot be renamed.</td>
+        </tr>
+        <tr>
+            <td>Description</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>255</td>
+            <td>Brief description of the role's purpose.</td>
+        </tr>
+        <tr>
+            <td>Permissions</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td colspan="2">Checkboxes</td>
+            <td>Select one or more permissions from the available list.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="admin-cert-types">5.3 Certification Types</h3>
+<p>Screen: <span class="ui-path">Administration &rsaquo; Data Management &rsaquo; Certification Types</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Type Name</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>Name of the certification type (e.g., <code>Recycled Content</code>).</td>
+        </tr>
+        <tr>
+            <td>Description</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>500</td>
+            <td>Explanation of what this certification type covers.</td>
+        </tr>
+        <tr>
+            <td>Parent Type</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>For subcategories only &mdash; select the parent certification type.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="admin-product-types">5.4 Product Types</h3>
+<p>Screen: <span class="ui-path">Administration &rsaquo; Data Management &rsaquo; Product Types</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Name</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>Product type name. Three hierarchy levels: Category &rarr; Type &rarr; Subcategory.</td>
+        </tr>
+        <tr>
+            <td>Parent</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td colspan="2">Dropdown</td>
+            <td>For child types only. Leave empty for root-level categories.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="admin-tags">5.5 Tags</h3>
+<p>Screen: <span class="ui-path">Administration &rsaquo; Data Management &rsaquo; Tags</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Tag Name</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>50</td>
+            <td>Short, descriptive tag (e.g., <code>APR</code>, <code>LEED</code>, <code>Energy Star</code>).</td>
+        </tr>
+        <tr>
+            <td>Tag Type</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td colspan="2">Dropdown</td>
+            <td><code>Internal</code> (admin/analyst only) or <code>External</code> (visible to external users).</td>
+        </tr>
+        <tr>
+            <td>Description</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>500</td>
+            <td>Explanation of what this tag represents.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="admin-partners">5.6 Partners</h3>
+<p>Screen: <span class="ui-path">Administration &rsaquo; Data Management &rsaquo; Partners</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Partner Name</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>Partner organization name (e.g., <code>Amazon</code>, <code>Novi</code>).</td>
+        </tr>
+        <tr>
+            <td>Description</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>500</td>
+            <td>Description of the partner program.</td>
+        </tr>
+        <tr>
+            <td>Website</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>255</td>
+            <td>Partner website URL.</td>
+        </tr>
+        <tr>
+            <td>Contact Email</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>Valid email format.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="admin-pathways">5.7 Pathways</h3>
+<p>Screen: <span class="ui-path">Administration &rsaquo; Data Management &rsaquo; Pathways</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Pathway Name</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>200</td>
+            <td>Name of the certification pathway.</td>
+        </tr>
+        <tr>
+            <td>Description</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>500</td>
+            <td>Description of the pathway and its purpose.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 id="admin-csf">5.8 CSF Attributes</h3>
+<p>Screen: <span class="ui-path">Administration &rsaquo; Data Management &rsaquo; CSF Attributes</span></p>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:180px;">Field</th>
+            <th style="width:70px;">Status</th>
+            <th style="width:60px;">Min</th>
+            <th style="width:60px;">Max</th>
+            <th>Format / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Attribute Name</td>
+            <td><span class="badge badge-req">REQUIRED</span></td>
+            <td>&mdash;</td>
+            <td>100</td>
+            <td>Name of the CSF attribute.</td>
+        </tr>
+        <tr>
+            <td>Description</td>
+            <td><span class="badge badge-opt">OPTIONAL</span></td>
+            <td>&mdash;</td>
+            <td>500</td>
+            <td>Explanation of this attribute.</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="formats">6. Format Reference</h2>
+
+<h3>Date Formats</h3>
+<table>
+    <thead>
+        <tr><th style="width:180px;">Context</th><th>Format</th><th>Example</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>UI Date Picker</td><td>Handled by the date picker control</td><td>Select from calendar</td></tr>
+        <tr><td>CSV Import</td><td><span class="format-example">M/D/YYYY</span></td><td><code>6/1/2023</code>, <code>12/15/2024</code></td></tr>
+    </tbody>
+</table>
+
+<h3>Product Identifier Formats</h3>
+<table>
+    <thead>
+        <tr><th style="width:100px;">Type</th><th style="width:80px;">Length</th><th>Format Rules</th><th>Example</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><strong>ASIN</strong></td><td>10 chars</td><td>Alphanumeric, starts with <code>B0</code></td><td><code>B08XYZ1234</code></td></tr>
+        <tr><td><strong>UPC</strong></td><td>12 digits</td><td>Numeric only</td><td><code>012345678901</code></td></tr>
+        <tr><td><strong>GTIN</strong></td><td>14 digits</td><td>Numeric only</td><td><code>00012345678905</code></td></tr>
+        <tr><td><strong>EAN</strong></td><td>13 digits</td><td>Numeric only</td><td><code>5012345678900</code></td></tr>
+        <tr><td><strong>ISBN</strong></td><td>10 or 13</td><td>10-digit (legacy) or 13-digit (ISBN-13)</td><td><code>9780123456789</code></td></tr>
+        <tr><td><strong>SKU</strong></td><td>Varies</td><td>Alphanumeric, company-specific format</td><td><code>ABC-12345</code></td></tr>
+        <tr><td><strong>MPN</strong></td><td>Varies</td><td>Manufacturer-specific format</td><td><code>MFG-00123-A</code></td></tr>
+    </tbody>
+</table>
+
+<h3>Country Names</h3>
+<div class="callout callout-warning">
+    <strong>Important:</strong> Always use full country names for proper filtering. Abbreviated country codes (USA, UK, CA) will not work correctly with the public-facing country filter.
+</div>
+<table>
+    <thead>
+        <tr><th style="width:180px;">Correct Value</th><th>Do NOT Use</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>United States</code></td><td>USA, US, U.S., America</td></tr>
+        <tr><td><code>Canada</code></td><td>CA, CAN</td></tr>
+        <tr><td><code>United Kingdom</code></td><td>UK, U.K., Britain, England</td></tr>
+        <tr><td><code>Mexico</code></td><td>MX, MEX</td></tr>
+        <tr><td><code>Germany</code></td><td>DE, DEU</td></tr>
+    </tbody>
+</table>
+
+<h3>Certificate Number Format</h3>
+<table>
+    <thead>
+        <tr><th style="width:120px;">Component</th><th>Rule</th><th>Example</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Year</td><td>2-digit year</td><td><code>25</code> for 2025</td></tr>
+        <tr><td>Separator</td><td>Single dash</td><td><code>-</code></td></tr>
+        <tr><td>Sequence</td><td>4-digit zero-padded number</td><td><code>0001</code></td></tr>
+        <tr><td><strong>Full Format</strong></td><td><span class="format-example">YY-NNNN</span></td><td><code>25-0001</code>, <code>23-0358</code></td></tr>
+        <tr><td><strong>Max Length</strong></td><td colspan="2">7 characters total</td></tr>
+    </tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="tips">7. Data Entry Tips</h2>
+
+<div class="callout callout-success">
+    <strong>Best Practices for Clean Data</strong>
+    <ul>
+        <li><strong>Company Names:</strong> Use the exact same spelling every time. &ldquo;Sofidel America Corp.&rdquo; and &ldquo;Sofidel America&rdquo; will create two separate company records.</li>
+        <li><strong>Country Fields:</strong> Always fill in country fields. This drives the public-facing Country filter and partner reporting.</li>
+        <li><strong>Certification Results:</strong> Include specific metrics when available (e.g., &ldquo;95% recycled content&rdquo; rather than &ldquo;pass&rdquo;). This data may be shared with partners like Amazon.</li>
+        <li><strong>Tags:</strong> Use existing tags whenever possible. Check the Tags admin page before creating new ones to avoid duplicates.</li>
+        <li><strong>Blank vs. Filler:</strong> Leave optional fields blank rather than entering &ldquo;N/A&rdquo;, &ldquo;None&rdquo;, or &ldquo;-&rdquo;. The system handles blanks correctly.</li>
+        <li><strong>Product Identifiers:</strong> For Amazon integration, ensure ASIN values are accurate. Incorrect ASINs will cause sync failures.</li>
+    </ul>
+</div>
+
+<div class="callout callout-warning">
+    <strong>Common Mistakes to Avoid</strong>
+    <ul>
+        <li>Exceeding the character limit &mdash; the system will reject the entry with no partial save.</li>
+        <li>Using country abbreviations instead of full names.</li>
+        <li>Entering dates in the wrong format during CSV import (<code>YYYY-MM-DD</code> instead of <code>M/D/YYYY</code>).</li>
+        <li>Creating duplicate company records with slightly different spellings.</li>
+        <li>Leaving the Certificate Number field blank or using an incorrect format.</li>
+    </ul>
+</div>
+
+<div class="callout callout-info">
+    <strong>Quick Reference: Largest Fields</strong>
+    <ul>
+        <li><strong>1,000 characters:</strong> Certification Results</li>
+        <li><strong>500 characters:</strong> Website URLs, Descriptions, Certificate Image Path, Validation Rules</li>
+        <li><strong>255 characters:</strong> Company Name, Product Name, Email, Username, Default Values</li>
+        <li><strong>175 characters:</strong> Location fields</li>
+        <li><strong>100 characters:</strong> Country, Partner Name, User Name, Contact Email, Model, Type Names</li>
+        <li><strong>50 characters:</strong> Role Name, Tag Name, SKU, UPC, ASIN, Product ID Value</li>
+        <li><strong>7 characters:</strong> Certificate Number (YY-NNNN format)</li>
+    </ul>
+</div>
+
+<!-- FOOTER -->
+<div class="doc-footer">
+    <p>GCC Database Solution &mdash; Data Entry Field Reference Guide v1.0</p>
+    <p>Prepared by Anuki Consulting &bull; March 27, 2026</p>
+    <p>For questions or corrections, contact the GCC administration team.</p>
+</div>
+
+</body>
+</html>

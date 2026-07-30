@@ -8,14 +8,27 @@ dotnet restore && dotnet build && dotnet run --urls "http://localhost:5101"
 ```
 
 ## Reference Docs (Read when working on specific areas)
+
+> 📁 `docs2/` now lives **inside the git repo**, at the repo root — moved there 2026-07-20
+> (412 files, 18.8 MB) because it previously sat one level above the repo in OneDrive only, so a
+> fresh clone got none of it. It is deliberately placed at the **repo root, not inside the
+> ASP.NET project folder**, so it can never be swept into a `dotnet publish`.
+>
+> Paths below are relative to this project directory (`GCCWebApp/GCCWebApp`, the normal working
+> dir), hence the single `../`. All paths verified to resolve 2026-07-20.
+
 | Area | File | When to Read |
 |------|------|--------------|
-| Database | `docs/claude-ref/DATABASE.md` | DB connections, schema, migrations, troubleshooting |
-| UI Standards | `docs/claude-ref/UI-STANDARDS.md` | Modals, buttons, notifications, colors, containers |
-| View Patterns | `docs/claude-ref/VIEW-PATTERNS.md` | Admin pages, templates, tile views, forms |
-| API | `docs/claude-ref/API-REFERENCE.md` | REST endpoints, Novi integration, authentication |
-| Testing | `docs/claude-ref/TESTING.md` | Credentials, coverage, running tests |
-| Deployment | `docs/claude-ref/DEPLOYMENT.md` | Production, web.config, troubleshooting |
+| Database | `../docs2/claude-ref/DATABASE.md` | DB connections, schema, migrations, troubleshooting |
+| UI Standards | `../docs2/claude-ref/UI-STANDARDS.md` | Modals, buttons, notifications, colors, containers |
+| View Patterns | `../docs2/claude-ref/VIEW-PATTERNS.md` | Admin pages, templates, tile views, forms |
+| API | `../docs2/claude-ref/API-REFERENCE.md` | REST endpoints, Novi integration, authentication |
+| Testing | `../docs2/claude-ref/TESTING.md` | Credentials, coverage, running tests |
+| Deployment | `../docs2/claude-ref/DEPLOYMENT.md` | Production, web.config, troubleshooting |
+| UI Audit | `../docs2/claude-ref/UI-CONSISTENCY-AUDIT.md` | Prior UI consistency findings |
+
+**In-repo docs** (these DO travel with the code): `docs/tracking/` (defect + CR registers,
+shipped log, pre-deploy checklist), `docs/qa/`, `docs/governance/`.
 
 ## Critical Rules (Always Apply)
 
@@ -51,8 +64,8 @@ dotnet restore && dotnet build && dotnet run --urls "http://localhost:5101"
 | Workflow | `CertificateWorkflowService.cs` (8 states — see `Models/CertificateStatus.cs`) |
 | Product IDs | `ProductIdService.cs`, `CertificateProductId.cs` |
 | Tile APIs | `CertificateTilesApiController.cs`, `CertificateTileExternalApiController.cs` |
-| Design Guide | `/0_Documentation/mockups/0_0_MasterDesignGuide.html` |
-| Requirements | `0_Documentation/docs/Requirements.md` |
+| Design Guide | `../docs2/mockups/GCC_FinalDesign/docs/0_0_MasterDesignGuide_6_4.html` (newest; `_5_22` is the prior rev) |
+| Requirements | `docs/Final Req Docs/` + `docs/Final Req Docs/archive/` (PDFs/notes — there is no `Requirements.md`) |
 
 ## Routes Quick Reference
 | Route | Access |

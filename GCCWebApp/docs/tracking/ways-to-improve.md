@@ -119,3 +119,28 @@ requests (`change-request-register.md`).
 1. **If a view is expected to reach a module's internal state, that state must be an explicit, single export — never something a `|| {}` fallback can fabricate.** The `x = x || {}` idiom turns a missing export into a plausible-but-wrong empty object instead of a loud failure. Prefer an exposed method (`TagManager.loadExisting(ids)`) over letting the view poke arrays directly.
 2. **The bug only bit *pre-populated* state (Edit's saved tags, Create's re-rendered-after-error tags), never the happy path (add-then-remove in one session).** Same shape as the pre-save-preview gap (DEF-308) and the validation-restore state-loss (DEF-246): our tests drive fresh interaction, not "state that was rehydrated from the server." Any field that can be loaded/restored needs a remove/clear test on the *loaded* instance, not just a freshly-added one.
 3. **"Save says success but nothing changed" is a class, not a one-off.** A hidden input that is only written by a JS handler will silently post its stale server value if that handler no-ops. When a control edits a hidden field, a test should assert the hidden field's value actually changed — not just that the visible pill/row updated.
+
+## 2026-07-31 — Partner onboarding is a repeatable process, not a per-partner build
+
+Surfaced while reviewing Novi's data-exchange guidance against the Amazon integration.
+
+1. **Keep partner docs generic by default, specialize at the cover page.** The Amazon guide had
+   Amazon-specific content woven through ~a third of the body, so the second partner meant a rewrite
+   rather than a reprint. `docs2/exports/PARTNER_API_INTEGRATION_GUIDE.html` is now the reusable
+   template; partner-specific facts are confined to highlighted placeholders. Next partner should be
+   a fill-in-the-blanks exercise.
+2. **Never put a live credential in a document.** The Amazon guide shipped with a production key on
+   page 2. The generic template states explicitly that keys are delivered by secure channel only, and
+   carries an internal pre-send block reminding the author. Worth making this a standing rule for any
+   partner-facing collateral.
+3. **Documentation drifts from the contract — verify docs against code, not memory.** Two errors were
+   carried in the Amazon guide: the error envelope shape and the rate limit (200/hr documented vs
+   2000/hr default in code). A short doc-vs-code check should be part of any partner guide revision,
+   the same way the Amazon contract diff is a pre-deploy gate.
+4. **Partner tagging is the real onboarding lead time, not the key.** Issuing a key takes seconds;
+   deciding and applying which certificates a partner may see is a business decision that gates the
+   entire integration. Raise it at the first partner conversation, not at go-live.
+5. **The active-only status filter is an Amazon assumption baked into a shared contract.** Badging
+   partners want active-only; validation partners need Expired/Revoked to refute a false claim. If a
+   second partner needs the expanded set, prefer a per-key or per-partner behavior flag over forking
+   the endpoint — and treat any change as a CR, since the Amazon contract is frozen.

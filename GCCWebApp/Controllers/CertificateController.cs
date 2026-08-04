@@ -698,7 +698,10 @@ namespace GCCWebApp.Controllers
                     // Handle "Save & Add Another" action
                     if (action == "saveAndAddAnother")
                     {
-                        TempData["SuccessMessage"] = $"Certificate {certificate.Number} created successfully!";
+                        // DEF-318 (QC #193): dedicated key, not the shared "SuccessMessage". The
+                        // Create view is the only reader, and this is the only writer, so no other
+                        // flow's leftover message can surface on a blank Create form again.
+                        TempData["CreateSuccessMessage"] = $"Certificate {certificate.Number} created successfully!";
                         return RedirectToAction(nameof(Create));
                     }
 
@@ -871,6 +874,21 @@ namespace GCCWebApp.Controllers
                 var userRole = GetUserRole();
                 ViewBag.Statuses = CertificateStatusHelper.GetStatusesForRole(userRole);
 
+                // CR-031 (QC #188, client 2026-07-31) — drives the pre-save confirmation modal in
+                // Edit.cshtml. The trigger is the STORED status as the form was opened, never the
+                // status currently selected in the dropdown: the client asked for the alert "only if
+                // it is originally expired," explicitly NOT when a user sets a live certificate TO
+                // Expired during this edit. Server-side because the dropdown value is mutable and
+                // would otherwise flip the trigger mid-edit.
+                //
+                // BOTH expired states count (Shawn, 2026-08-03). CurrentlyExpiredStatuses is the
+                // app's existing definition of "expired" — reusing it rather than testing
+                // StatusExpired alone keeps this alert consistent with the expiration reporting
+                // (DEF-220) instead of introducing a second, narrower definition. The client's one
+                // sentence covers both states; there is deliberately no second variant of the copy.
+                ViewBag.OriginalStatusWasExpired =
+                    CertificateStatusHelper.CurrentlyExpiredStatuses.Contains(certificate.Status);
+
                 // Load all tags filtered by type for the dropdown
                 var allTags = await _unitOfWork.Tags.GetAllAsync();
                 ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
@@ -998,39 +1016,31 @@ namespace GCCWebApp.Controllers
                     var oldStatus = certificate.Status;
                     var requestedStatus = model.Status ?? "Draft";
 
-                    // DEF-285 / QC #188 expiry-correction auto-restore. When a cert auto-expired
-                    // (date-driven) and the analyst edits the ExpirationDate back to today/future
-                    // but LEAVES the Status on "Expired", restore the status the cert held
-                    // immediately before it auto-expired (recovered from the auto-expire history
-                    // row), falling back to Draft. This fires ONLY when the analyst did not change
-                    // the status themselves — an explicit choice always wins now that the workflow
-                    // transition matrix has been removed (CR-028; see the CR-028 note below), so
-                    // this is purely a convenience for the "fixed the date, forgot the status" case.
-                    var isExpiryRevert = false;
-                    if (string.Equals(oldStatus, CertificateStatusHelper.StatusExpired, StringComparison.Ordinal)
-                        && model.ExpirationDate.HasValue
-                        && model.ExpirationDate.Value.Date >= CertificateStatusHelper.BusinessToday
-                        && string.Equals(requestedStatus, oldStatus, StringComparison.Ordinal))
-                    {
-                        var priorStatus = await _context.CertificateStatusHistory
-                            .Where(h => h.CertificateId == certificate.Id
-                                && h.IsAutomatedTransition
-                                && h.NewStatus == CertificateStatusHelper.StatusExpired
-                                && h.PreviousStatus != CertificateStatusHelper.StatusExpired
-                                && h.PreviousStatus != CertificateStatusHelper.StatusExpiredNoAnnualVerification)
-                            .OrderByDescending(h => h.ChangedAt)
-                            .Select(h => h.PreviousStatus)
-                            .FirstOrDefaultAsync();
-
-                        requestedStatus = !string.IsNullOrEmpty(priorStatus)
-                            ? priorStatus
-                            : CertificateStatusHelper.StatusDraft;
-                        isExpiryRevert = true;
-
-                        _logger.LogInformation(
-                            "QC#188 expiry-correction: cert {Number} ExpirationDate moved to {Date:yyyy-MM-dd}; auto-restoring status 'Expired' → '{New}' (status left unchanged by analyst)",
-                            certificate.Number, model.ExpirationDate.Value, requestedStatus);
-                    }
+                    // CR-030 / QC #188 — client decision 2026-07-30. This REVERSES the DEF-285
+                    // behavior that shipped here.
+                    //
+                    // What used to happen: when a cert had auto-expired (date-driven) and the
+                    // analyst corrected ExpirationDate back to today/future while LEAVING Status
+                    // on "Expired", we silently restored the status the cert held immediately
+                    // before it auto-expired (recovered from the auto-expire history row, falling
+                    // back to Draft). We asked the client on 6/23 which of three behaviors they
+                    // wanted and they picked that one.
+                    //
+                    // On 7/30 they reversed it, verbatim:
+                    //     "Either way if the date changes DO NOT update the status. Leave it
+                    //      Expired. It will be on the user to revise as needed."
+                    //
+                    // So the status is now saved exactly as submitted — no inference. That core rule
+                    // is unchanged and is the whole of CR-030's server-side behavior.
+                    //
+                    // CR-031 (client 2026-07-31) then WIDENED the alert and MOVED it. CR-030 raised a
+                    // post-save toast, fired only on a past→future date correction. The client asked
+                    // instead for a pre-save confirmation on ANY edit to a certificate that was
+                    // already Expired when the form was opened ("only if it is originally expired"),
+                    // so the analyst can still fix something when they see it. That is a client-side
+                    // gate in Edit.cshtml driven by ViewBag.OriginalStatusWasExpired — there is no
+                    // server-side detection flag here any more, and the CR-030 TempData write below
+                    // is gone with it. Nothing here infers or overrides a status.
 
                     // CR-028 (client decision, 2026-07-20): the certificate status workflow
                     // TRANSITION MATRIX has been REMOVED. The client reviewed the transition
@@ -1339,15 +1349,16 @@ namespace GCCWebApp.Controllers
                             CertificateNumber = certificate.Number,
                             PreviousStatus = oldStatus,
                             NewStatus = certificate.Status,
-                            Reason = isExpiryRevert
-                                ? "Expiry corrected: status restored to its pre-expiry value (QC #188)"
-                                : "User-initiated transition via Edit form",
+                            // CR-030: the "Expiry corrected: status restored…" reason is gone with
+                            // the auto-restore it described. A status change reaching here is now
+                            // always the analyst's own explicit choice.
+                            Reason = "User-initiated transition via Edit form",
                             ChangedBy = actingUserId ?? 1,
                             ChangedByUsername = actingUsername,
                             ChangedAt = DateTime.UtcNow,
                             ChangeSource = AuditChangeSource.WebUI,
                             IsAutomatedTransition = false,
-                            WorkflowStep = isExpiryRevert ? "Expiry-Correction-Revert" : "Edit-POST"
+                            WorkflowStep = "Edit-POST"
                         });
                     }
 
@@ -1374,7 +1385,25 @@ namespace GCCWebApp.Controllers
 
                     _logger.LogInformation("Certificate {Number} updated by user {UserId}", certificate.Number, GetCurrentUserId());
 
-                    TempData["SuccessMessage"] = $"Certificate {certificate.Number} updated successfully!";
+                    // CR-031 (QC #188, client 2026-07-31): the CR-030 TempData["ExpiryCorrectionAlert"]
+                    // write lived here. It is deliberately gone, not merely disabled — the alert is
+                    // now a PRE-save confirmation in Edit.cshtml, so by the time execution reaches
+                    // this point the analyst has already acknowledged it. Leaving both would have
+                    // shown two alerts for one save. The matching reader in
+                    // CertificateInternalView.cshtml was removed in the same change; per DEF-318,
+                    // a TempData key must never keep a writer without its reader.
+
+                    // DEF-318 (QC #193): do NOT stash a success message here. The redirect target
+                    // (CertificateInternalView) reads no TempData at all, so this entry was never
+                    // rendered — and an *unread* TempData entry is not discarded, it is re-saved on
+                    // every subsequent request until something finally reads it. The next page that
+                    // did was Views/Certificate/Create.cshtml, which is why editing a cert then
+                    // clicking "Add Certificate" produced a stale "successfully!" toast on a blank
+                    // form, and why it survived a logout/login cycle. Removing the orphaned write is
+                    // the root fix; it also closes the same leak into TwoFactorPreferences.cshtml,
+                    // the other view bound to this key. Edit already lands the user on the saved
+                    // certificate, which is its own confirmation — adding a toast here would be new
+                    // UI the client did not ask for.
                     return RedirectToAction(nameof(CertificateInternalView), new { id = certificate.Number });
                 }
 
@@ -1500,6 +1529,14 @@ namespace GCCWebApp.Controllers
             var userRole = GetUserRole();
             ViewBag.Statuses = CertificateStatusHelper.GetStatusesForRole(userRole);
 
+            // CR-031: same flag the Edit GET sets, re-established here so a validation re-render
+            // does not silently drop the pre-save confirmation. Read from the DB, not from the
+            // posted model — the posted Status is what the analyst is proposing, not what the
+            // certificate was when they opened it. Both expired states count; see the Edit GET.
+            var storedCert = await _certificateRepository.GetByIdAsync(certificateId);
+            ViewBag.OriginalStatusWasExpired = storedCert != null
+                && CertificateStatusHelper.CurrentlyExpiredStatuses.Contains(storedCert.Status);
+
             var allTags = await _unitOfWork.Tags.GetAllAsync();
             ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
             ViewBag.InternalTags = allTags.Where(t => t.TagType == "internal" && t.IsActive).ToList();
@@ -1530,11 +1567,11 @@ namespace GCCWebApp.Controllers
             }
             else
             {
-                // Load existing tags for the certificate (DB state — non-repost callers)
-                var certificate = await _certificateRepository.GetByIdAsync(certificateId);
-                if (certificate != null)
+                // Load existing tags for the certificate (DB state — non-repost callers).
+                // Reuses the fetch done above for the CR-031 flag rather than hitting the DB twice.
+                if (storedCert != null)
                 {
-                    var existingTags = certificate.Tags?.ToList() ?? new List<Tag>();
+                    var existingTags = storedCert.Tags?.ToList() ?? new List<Tag>();
                     ViewBag.ExistingExternalTags = existingTags.Where(t => t.TagType == "external").Select(t => new { t.Id, t.Name }).ToList();
                     ViewBag.ExistingInternalTags = existingTags.Where(t => t.TagType == "internal").Select(t => new { t.Id, t.Name }).ToList();
                 }
@@ -2324,6 +2361,16 @@ namespace GCCWebApp.Controllers
                 var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss");
                 var zipFileName = $"certificates_{timestamp}.zip";
 
+                // DEF-336: load every requested certificate in one batch instead of calling
+                // GetByIdAsync per ID inside the loop. That loop was ~N sequential round-trip sets
+                // — and because GetByIdAsync uses AsSplitQuery, each certificate costs ~6 queries,
+                // so a 60-cert selection ran ~360 sequential queries and blew past a 30s client
+                // timeout (the P0 IDOR gate could not complete). Loading is batched; the per-row
+                // FileAccessAllowed authorization below is deliberately NOT — it stays per
+                // certificate exactly as DEF-236 left it.
+                var certificatesById = (await _certificateRepository.GetByIdsAsync(certificateIds))
+                    .ToDictionary(c => c.Id);
+
                 using var memoryStream = new MemoryStream();
                 using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
                 {
@@ -2334,8 +2381,7 @@ namespace GCCWebApp.Controllers
                     {
                         try
                         {
-                            var certificate = await _certificateRepository.GetByIdAsync(certId);
-                            if (certificate == null)
+                            if (!certificatesById.TryGetValue(certId, out var certificate))
                             {
                                 _logger.LogWarning("Certificate with ID {CertId} not found, skipping", certId);
                                 failureCount++;

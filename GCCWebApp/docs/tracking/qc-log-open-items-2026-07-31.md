@@ -2,7 +2,10 @@
 
 **Source:** `Database QC Log_7.30.26.xlsx`, sheet **GCC DB QC Log2** (header row 5, 247 data rows)
 **Prepared:** 2026-07-31 | **Prepared by:** Anuki Consulting
-**Status:** Triage only — **no code changes made.** Numbers below are reserved, not built.
+**Status:** Triage complete. **Batch 1 (DEF-316 / 317 / 318 / 319) is now BUILT and validated on
+localhost** — working tree, pending the next deploy bundle. Two further defects were found while
+doing it: **DEF-320** (fixed, same batch) and **DEF-321** (logged, not fixed — see §4a). Everything
+else below remains triage.
 
 ---
 
@@ -86,6 +89,40 @@ confirmed by us, it is marked **(client-reported, unverified)**.
 - **Interaction to confirm before building:** CR-028 removed the status transition matrix, so the user *can* now freely set status away from Expired. That is what makes "leave it Expired, user fixes it" workable. Confirm the client understands they are accepting a manual step on every date correction.
 - **Effort:** **4–6 h** including the background expiration service interaction check.
 - **Risk:** Medium. Touches certificate status behavior. Also note: the **background expiration service** re-evaluates certs every 24h — confirm it will not immediately re-flip a corrected cert, and confirm the reverse case (a future-dated cert that should *not* be auto-expired).
+
+**RESOLVED — built 2026-07-31, then widened by CR-031 on 2026-08-03. QC #188 is closed.**
+
+- **Background-service risk above: checked and clear.** `CertificateExpirationService.cs:137` selects only `ExpirationDate < today`, and `TryApplySaveTimeAutoExpire` bails when the date is future *or* the status is already expired. The service only ever moves certificates **into** Expired — it never un-expires and never re-flips a corrected certificate. Nothing to do.
+- **The client then changed the requirement a third time (7/31).** They widened the alert from "date moved past→future" to **any edit of a certificate that was already Expired**, and moved it from a post-save toast to a **pre-save confirmation**, with new copy: *"ALERT: You are updating a previously Expired certificate. Please confirm all fields are accurate including status, etc."* They also scoped it explicitly: *"only if it is originally expired"* — so setting a live certificate **to** Expired during an edit does not fire it.
+- Built and browser-validated 2026-08-03. Full as-built detail, the two decisions confirmed before building, and two open questions back to the client are in **CR-031** in `change-request-register.md`.
+- **Requirements-churn note for the client conversation:** QC #188 has now been specified three different ways (6/23, 7/30, 7/31) and built twice. CR-030 never reached a deploy before being superseded. Worth naming in the next client review — this is the pattern the effort log tracks, not a one-off.
+
+---
+
+## 4a. Found while building Batch 1
+
+Two defects surfaced during the work that were not in the QC log. Both are recorded in
+`defect-register.md`.
+
+**DEF-320 — fixed, shipped with Batch 1.** The arrow-key highlight in the search suggestion list had
+**never** been visible in any of the three tile views: the stylesheet colours `.autocomplete-item.highlighted`,
+but the JavaScript has always written `.selected`, and nothing writes `.highlighted`. Only the mouse
+`:hover` state was ever visible — which is plausibly *why* hover-as-selection looked acceptable when
+DEF-280 was written. This had to be fixed in the same batch, because DEF-319 makes the arrow keys the
+only keyboard route to a suggestion; without it the fix would have read as "keyboard nav is broken."
+
+**DEF-321 — logged, NOT fixed.** Measured while verifying DEF-316: a certificate imported with
+`Partner = "Amazon, Novi"` links both partners correctly (tile API returns `"Amazon, Novi"`), but the
+**CSV export reports `Partner = "Amazon"` only**. `CertificateService.cs:588` projects the
+denormalized primary `c.Partner` instead of the `Partners` collection.
+
+Left unfixed deliberately — it is outside the agreed Batch 1 scope, and the export path is
+partner-scoped (DEF-198 hardened it against cross-partner leakage), so changing what that column
+emits needs its own scoping review. **There is also an open product question:** showing co-partners
+in an Amazon-scoped export would contradict the partner-isolation rule, so the answer is probably
+per-role — Admin/Analyst see every partner, a partner sees only itself — and may need client
+sign-off. **This one is worth telling the client about**, since it undercuts the multi-partner
+capability (CR-171) they signed off on.
 
 ---
 

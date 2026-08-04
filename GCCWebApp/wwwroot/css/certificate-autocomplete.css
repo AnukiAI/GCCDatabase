@@ -59,7 +59,18 @@
     white-space: nowrap;
 }
 
-.autocomplete-item.selected {\n    background-color: #e8f5e9;\n}\n\n/* Search bar container for proper positioning */
+/* DEF-320: this rule previously sat on a single line with literal backslash-n sequences instead of
+   real newlines ('.autocomplete-item.selected {\n    background-color: ...'). CSS treats '\n' as an
+   escape for the letter 'n', so the declaration parsed as the invalid property 'n    background-color'
+   and was dropped, taking the '.search-bar' rule that had been folded onto the same line with it.
+   NOTE: no view currently links this stylesheet — the three tile views all load certificatetileview.css
+   — so this repair is hygiene, not a user-visible fix. The user-visible half of DEF-320 is the
+   '.autocomplete-item.selected' rule added to certificatetileview.css. */
+.autocomplete-item.selected {
+    background-color: #e8f5e9;
+}
+
+/* Search bar container for proper positioning */
 .search-bar {
     position: relative;
 }

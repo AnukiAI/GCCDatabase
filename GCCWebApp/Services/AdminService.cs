@@ -330,15 +330,24 @@ namespace GCCWebApp.Services
                         continue;
                     }
 
+                    // DEF-327: IsActive was hardcoded true while Status honored the spreadsheet, so
+                    // a CSV row saying "inactive" produced Status="inactive" + IsActive=true — an
+                    // account that displayed as Active in admin (status is rendered from IsActive),
+                    // could not log in (login also checks Status), and could not be fixed from the
+                    // UI. Normalize once and derive both columns from it.
+                    var normalizedStatus = string.IsNullOrWhiteSpace(item.Status)
+                        ? "active"
+                        : item.Status.Trim().ToLowerInvariant();
+
                     var user = new User
                     {
                         Username = email,
                         Email = email,
                         FullName = item.Name.Trim(),
                         PasswordHash = BCrypt.Net.BCrypt.HashPassword(item.Password),
-                        Status = string.IsNullOrWhiteSpace(item.Status) ? "active" : item.Status.Trim().ToLowerInvariant(),
+                        Status = normalizedStatus,
                         TwoFactorMethod = "Email",
-                        IsActive = true,
+                        IsActive = normalizedStatus == "active",
                         RequirePasswordReset = item.RequirePasswordReset,
                         CreatedAt = DateTime.UtcNow
                     };
@@ -446,7 +455,7 @@ namespace GCCWebApp.Services
             return result;
         }
 
-        public async Task<bool> UpdateUserAsync(int id, UserViewModel model, int userId, string username)
+        public async Task<UserUpdateResult> UpdateUserAsync(int id, UserViewModel model, int userId, string username)
         {
             try
             {
@@ -456,7 +465,7 @@ namespace GCCWebApp.Services
                     .Include(u => u.Roles)
                     .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
-                if (user == null) return false;
+                if (user == null) return UserUpdateResult.NotFound;
 
                 // Capture old state for audit (detached from context)
                 var oldUser = await _context.Users
@@ -471,7 +480,27 @@ namespace GCCWebApp.Services
 
                 user.FullName = model.Name;
                 user.Email = model.Email;
-                user.IsActive = model.Status == "active";
+                // DEF-326. Case/whitespace-insensitive: an ordinal "active" match silently deactivated the
+                // user for any caller that sent "Active" — the admin UI happens to post lowercase
+                // (UserManagement.cshtml option values, plus .toLowerCase() in both userManagement
+                // JS files), so the UI path worked and the bug only surfaced off the UI: the CRUD
+                // smoke suite sends "Active", and CSV-import-driven updates forward whatever case
+                // the spreadsheet had. Normalization matches what BulkImportUsersAsync already
+                // does to this same field (Trim().ToLowerInvariant(), see above).
+                //
+                // Unrecognized values still fall through to inactive — that is pre-existing
+                // behavior and the User entity documents the set as active/inactive/locked.
+                user.IsActive = string.Equals(model.Status?.Trim(), "active", StringComparison.OrdinalIgnoreCase);
+
+                // DEF-327: User carries TWO status columns — IsActive (bool) and Status (string) —
+                // and login gates on BOTH (AccountController.LoginApi / the diagnostic path).
+                // This method only ever wrote IsActive, so a row whose Status said "inactive"
+                // could never be repaired from the admin UI: the list renders status from
+                // IsActive alone (GetUsersAsync / GetUserByIdAsync below), so the account showed
+                // as Active, still failed login, and toggling the dropdown changed nothing the
+                // login check reads. Keep the two in step on every write.
+                user.Status = user.IsActive ? "active" : "inactive";
+
                 user.UpdatedAt = DateTime.UtcNow;
                 // CR-020 (free text): user's own company/employer (optional; blank clears it)
                 user.UserCompany = string.IsNullOrWhiteSpace(model.UserCompanyName) ? null : model.UserCompanyName.Trim();
@@ -575,12 +604,12 @@ namespace GCCWebApp.Services
                     _logger.LogError(auditEx, "Failed to log audit history for user update");
                 }
 
-                return true;
+                return UserUpdateResult.Success;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to update user with ID {UserId}", id);
-                return false;
+                return UserUpdateResult.Failed;
             }
         }
 
@@ -786,11 +815,20 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> DeleteRoleAsync(int id)
+        // DEF-337 (completion): userId/username optional — audit service falls back to the
+        // signed-in user's claims.
+        public async Task<bool> DeleteRoleAsync(int id, int userId = 0, string? username = null)
         {
             try
             {
-                var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == id);
+                // DEF-337 (completion): load the M2M associations before the delete. UserRoles
+                // and the role/permission join both cascade, so deleting a role silently erases
+                // which users held it and what it granted — the two facts you would need to
+                // undo the delete or answer "why did this user lose access?".
+                var role = await _context.Roles
+                    .Include(r => r.Users)
+                    .Include(r => r.Permissions)
+                    .FirstOrDefaultAsync(r => r.Id == id);
                 if (role == null) return false;
 
                 // Prevent deletion of system roles
@@ -799,6 +837,21 @@ namespace GCCWebApp.Services
                     _logger.LogWarning("Attempted to delete system role: {RoleName}", role.Name);
                     return false;
                 }
+
+                var children = new List<AuditChildSnapshot>();
+                children.AddRange(AuditJoinRowCollector.Collect(
+                    _context, typeof(Role), nameof(Role.Users), id.ToString(),
+                    role.Users, u => u.Id.ToString(), u => u.Email));
+                children.AddRange(AuditJoinRowCollector.Collect(
+                    _context, typeof(Role), nameof(Role.Permissions), id.ToString(),
+                    role.Permissions, p => p.Id.ToString(), p => p.Name));
+
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), role.Name, role, children,
+                    userId, username ?? string.Empty,
+                    reason: $"Role deleted ({role.Users.Count} user assignment(s), " +
+                            $"{role.Permissions.Count} permission(s) removed)",
+                    changeSource: AuditChangeSource.WebUI);
 
                 _context.Roles.Remove(role);
                 await _context.SaveChangesAsync();
@@ -874,6 +927,16 @@ namespace GCCWebApp.Services
                 .GroupBy(r => r.ProductSubcategoryId!.Value)
                 .ToDictionary(g => g.Key, g => g.Select(r => r.Id).ToHashSet());
 
+            // DEF-323 (QC #242): products can also be attached DIRECTLY to a category via
+            // Products.CategoryId, with no ProductType in between. That FK was never collected
+            // here, so a category's Products count only ever reflected products reached through
+            // its child types — see the fuller note at the category node below.
+            var productIdsByCategory = (await _context.Products
+                    .Select(p => new { p.Id, p.CategoryId })
+                    .ToListAsync())
+                .GroupBy(r => r.CategoryId)
+                .ToDictionary(g => g.Key, g => g.Select(r => r.Id).ToHashSet());
+
             // Products can be linked to a Level-2 ProductType via the dedicated
             // ProductSubcategoryId FK in addition to ProductTypeId — collect IDs (not
             // counts) so the subcat-level set unions cleanly with the type-level set.
@@ -907,7 +970,24 @@ namespace GCCWebApp.Services
                 var catCertIds = certIdsByCategory.TryGetValue(category.Id, out var catDirectCerts)
                     ? new HashSet<int>(catDirectCerts)
                     : new HashSet<int>();
-                var catProductIds = new HashSet<int>(); // categories have no direct products
+                // DEF-323 (QC #242). This used to be seeded empty on the assertion that
+                // "categories have no direct products" — which is false: Products.CategoryId is a
+                // real FK and a product can sit directly under a category with no ProductType.
+                //
+                // The consequence the client hit: category "Carly Test" holds 0 types, 1 directly
+                // assigned product and 2 certificates. The Usage column therefore reported
+                // Products = 0, while DeleteProductCategoryAsync — which checks category.Products
+                // — refused the delete with "1 product(s) are assigned to this category." The one
+                // number on screen that is supposed to explain the block said there was nothing
+                // there, so they went looking for records the UI insisted did not exist.
+                //
+                // Same failure family as DEF-196/197, which corrected the CERTIFICATE rollups at
+                // every node but left this product path untouched. Display and delete pre-check now
+                // read the same FKs. HashSet union, so a product reached both directly and through
+                // a child type is still counted once.
+                var catProductIds = productIdsByCategory.TryGetValue(category.Id, out var catDirectProducts)
+                    ? new HashSet<int>(catDirectProducts)
+                    : new HashSet<int>();
 
                 var categoryVm = new ProductTypeViewModel
                 {
@@ -1308,7 +1388,8 @@ namespace GCCWebApp.Services
             return descendants;
         }
 
-        public async Task<(bool Success, string Message)> DeleteProductTypeAsync(int id)
+        // DEF-337: userId/username optional — audit service falls back to the signed-in user's claims.
+        public async Task<(bool Success, string Message)> DeleteProductTypeAsync(int id, int userId = 0, string? username = null)
         {
             try
             {
@@ -1350,6 +1431,16 @@ namespace GCCWebApp.Services
                     return (false, $"Cannot delete: {certCount} certificate(s) use this {label}. Edit those certificates to use a different {label} first, then try again.");
                 }
 
+                // DEF-337: this delete previously wrote NO audit row. On 2026-08-04 that meant the
+                // audit log could neither confirm nor deny whether a product type had been deleted
+                // — only row counts could settle it. Every guard above has passed by this point, so
+                // there are no children to cascade; the entity snapshot alone is a complete record.
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), productType.Name, productType,
+                    Array.Empty<AuditChildSnapshot>(),
+                    userId, username ?? string.Empty,
+                    reason: "Product type deleted", changeSource: AuditChangeSource.WebUI);
+
                 _context.ProductTypes.Remove(productType);
                 await _context.SaveChangesAsync();
                 return (true, "Product type deleted successfully");
@@ -1370,7 +1461,8 @@ namespace GCCWebApp.Services
         /// <summary>
         /// QC #117: Delete a root-level ProductCategory (not a ProductType)
         /// </summary>
-        public async Task<(bool Success, string Message)> DeleteProductCategoryAsync(int id)
+        // DEF-337: userId/username optional — audit service falls back to the signed-in user's claims.
+        public async Task<(bool Success, string Message)> DeleteProductCategoryAsync(int id, int userId = 0, string? username = null)
         {
             try
             {
@@ -1402,6 +1494,14 @@ namespace GCCWebApp.Services
                 {
                     return (false, $"Cannot delete: {certCount} certificate(s) use this category. Edit those certificates to use a different category first, then try again.");
                 }
+
+                // DEF-337: previously unaudited. All guards above have passed, so the category has
+                // no child types and no products/certificates pointing at it — nothing cascades.
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), category.Name, category,
+                    Array.Empty<AuditChildSnapshot>(),
+                    userId, username ?? string.Empty,
+                    reason: "Product category deleted", changeSource: AuditChangeSource.WebUI);
 
                 _context.ProductCategories.Remove(category);
                 await _context.SaveChangesAsync();
@@ -1601,7 +1701,8 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> DeleteCertificateTypeAsync(int id)
+        // DEF-337: userId/username optional — audit service falls back to the signed-in user's claims.
+        public async Task<bool> DeleteCertificateTypeAsync(int id, int userId = 0, string? username = null)
         {
             try
             {
@@ -1612,6 +1713,15 @@ namespace GCCWebApp.Services
                 var hasCertificates = await _context.Certificates.AnyAsync(c => c.CertificationTypeId == id);
                 if (hasCertificates)
                     throw new InvalidOperationException("Cannot delete a certificate type that has certificates assigned to it.");
+
+                // DEF-337: previously unaudited. Note CertificationTypes is hierarchical
+                // (see [[feedback_certtypes_hierarchy]]) — the snapshot carries Level and ParentId,
+                // so a restore can put the row back at the right place in the tree.
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), certType.Name, certType,
+                    Array.Empty<AuditChildSnapshot>(),
+                    userId, username ?? string.Empty,
+                    reason: "Certificate type deleted", changeSource: AuditChangeSource.WebUI);
 
                 _context.CertificationTypes.Remove(certType);
                 await _context.SaveChangesAsync();
@@ -1751,19 +1861,45 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> DeleteCertificateFieldAsync(int id)
+        // DEF-337 (completion): userId/username optional — audit service falls back to claims.
+        public async Task<bool> DeleteCertificateFieldAsync(int id, int userId = 0, string? username = null)
         {
             try
             {
                 var field = await _context.CustomFields.FirstOrDefaultAsync(cf => cf.Id == id);
                 if (field == null) return false;
 
+                // DEF-337 (completion): this is the most damaging unaudited delete in the admin
+                // area. CustomFieldValues cascade off CustomFields, so removing a field
+                // definition destroys the value that every certificate had recorded for it —
+                // real certificate data, not configuration. Capture each value row so the field
+                // and its data can be reconstructed together.
+                var values = await _context.CustomFieldValues
+                    .AsNoTracking()
+                    .Where(v => v.FieldId == id)
+                    .ToListAsync();
+
+                var children = values.Select(v => new AuditChildSnapshot
+                {
+                    EntityType = nameof(CustomFieldValue),
+                    EntityId = v.Id.ToString(),
+                    EntityName = field.Name,
+                    Entity = v
+                }).ToList();
+
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), field.Name, field, children,
+                    userId, username ?? string.Empty,
+                    reason: $"Certificate field deleted ({children.Count} recorded value(s) destroyed)",
+                    changeSource: AuditChangeSource.WebUI);
+
                 _context.CustomFields.Remove(field);
                 await _context.SaveChangesAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error deleting certificate field {Id}", id);
                 return false;
             }
         }
@@ -1849,22 +1985,26 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> DeleteCSFAttributeAsync(int id)
+        // DEF-337 (completion): userId/username optional — audit service falls back to claims.
+        public async Task<bool> DeleteCSFAttributeAsync(int id, int userId = 0, string? username = null)
         {
             try
             {
-                var attribute = await _context.Tags
-                    .Where(t => t.TagType == "csf")
-                    .FirstOrDefaultAsync(t => t.Id == id);
+                // DEF-337 (completion): CSF attributes live in the Tags table, so this deleted
+                // the same rows as DeleteTagAsync but wrote no audit and captured none of the
+                // CertificateTag / ProductTag associations. Rather than duplicate that capture
+                // logic here (where it would drift), confirm the row really is a CSF attribute
+                // and then delete through the audited tag path.
+                var isCsfAttribute = await _context.Tags
+                    .AnyAsync(t => t.Id == id && t.TagType == "csf");
 
-                if (attribute == null) return false;
+                if (!isCsfAttribute) return false;
 
-                _context.Tags.Remove(attribute);
-                await _context.SaveChangesAsync();
-                return true;
+                return await DeleteTagAsync(id, userId, username);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error deleting CSF attribute {Id}", id);
                 return false;
             }
         }
@@ -2071,19 +2211,56 @@ namespace GCCWebApp.Services
             return result;
         }
 
-        public async Task<bool> DeleteTagAsync(int id)
+        // DEF-337: userId/username optional — audit service falls back to the signed-in user's claims.
+        public async Task<bool> DeleteTagAsync(int id, int userId = 0, string? username = null)
         {
             try
             {
-                var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Id == id);
+                // DEF-337: load the M2M associations too. Unlike categories/types, a tag delete is
+                // NOT guarded against existing links — the CertificateTag / ProductTag join rows
+                // cascade away silently, losing which certificates and products carried this tag.
+                // That is unrecoverable without capturing it here first.
+                var tag = await _context.Tags
+                    .Include(t => t.Certificates)
+                    .Include(t => t.Products)
+                    .FirstOrDefaultAsync(t => t.Id == id);
                 if (tag == null) return false;
+
+                var children = new List<AuditChildSnapshot>();
+                foreach (var cert in tag.Certificates)
+                {
+                    children.Add(new AuditChildSnapshot
+                    {
+                        EntityType = "CertificateTag",
+                        EntityId = $"{cert.Id}:{id}",
+                        EntityName = cert.Number,
+                        Entity = new { CertificateId = cert.Id, CertificateNumber = cert.Number, TagId = id, TagName = tag.Name }
+                    });
+                }
+                foreach (var product in tag.Products)
+                {
+                    children.Add(new AuditChildSnapshot
+                    {
+                        EntityType = "ProductTag",
+                        EntityId = $"{product.Id}:{id}",
+                        EntityName = product.Name,
+                        Entity = new { ProductId = product.Id, ProductName = product.Name, TagId = id, TagName = tag.Name }
+                    });
+                }
+
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), tag.Name, tag, children,
+                    userId, username ?? string.Empty,
+                    reason: $"Tag deleted ({children.Count} association(s) removed)",
+                    changeSource: AuditChangeSource.WebUI);
 
                 _context.Tags.Remove(tag);
                 await _context.SaveChangesAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error deleting tag {Id}", id);
                 return false;
             }
         }
@@ -2181,7 +2358,8 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> DeletePartnerAsync(int id)
+        // DEF-337 (completion): userId/username optional — audit service falls back to claims.
+        public async Task<bool> DeletePartnerAsync(int id, int userId = 0, string? username = null)
         {
             try
             {
@@ -2190,6 +2368,17 @@ namespace GCCWebApp.Services
                     .FirstOrDefaultAsync();
 
                 if (partner == null) return false;
+
+                // DEF-337 (completion): the row survives (soft delete), so this is not a
+                // recoverability gap — but with no audit row nothing recorded WHO removed a
+                // partner or when, and partner membership governs who can see which
+                // certificates. Audited as DELETE because that is the user-visible action.
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), partner.Name, partner,
+                    Array.Empty<AuditChildSnapshot>(),
+                    userId, username ?? string.Empty,
+                    reason: "Partner soft-deleted (IsDeleted = true; row retained)",
+                    changeSource: AuditChangeSource.WebUI);
 
                 // Soft delete
                 partner.IsDeleted = true;
@@ -2295,7 +2484,8 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> DeletePathwayAsync(int id)
+        // DEF-337 (completion): userId/username optional — audit service falls back to claims.
+        public async Task<bool> DeletePathwayAsync(int id, int userId = 0, string? username = null)
         {
             try
             {
@@ -2304,6 +2494,15 @@ namespace GCCWebApp.Services
                     .FirstOrDefaultAsync();
 
                 if (pathway == null) return false;
+
+                // DEF-337 (completion): soft delete, so the row is recoverable — but the delete
+                // itself was invisible to the audit log.
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), pathway.Name, pathway,
+                    Array.Empty<AuditChildSnapshot>(),
+                    userId, username ?? string.Empty,
+                    reason: "Pathway soft-deleted (IsDeleted = true; row retained)",
+                    changeSource: AuditChangeSource.WebUI);
 
                 // Soft delete
                 pathway.IsDeleted = true;
@@ -2657,7 +2856,8 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> DeleteProductAsync(int id)
+        // DEF-337 (completion): userId/username optional — audit service falls back to claims.
+        public async Task<bool> DeleteProductAsync(int id, int userId = 0, string? username = null)
         {
             try
             {
@@ -2666,6 +2866,16 @@ namespace GCCWebApp.Services
 
                 if (product == null) return false;
 
+                // DEF-337 (completion): soft delete here (unlike ProductController's hard
+                // delete, which is what destroyed products 100/101 on 2026-08-04), so the row
+                // survives — but the action was unaudited.
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), product.Name, product,
+                    Array.Empty<AuditChildSnapshot>(),
+                    userId, username ?? string.Empty,
+                    reason: "Product soft-deleted (IsDeleted = true; row retained)",
+                    changeSource: AuditChangeSource.WebUI);
+
                 // Soft delete
                 product.IsDeleted = true;
                 product.UpdatedAt = DateTime.UtcNow;
@@ -2673,9 +2883,9 @@ namespace GCCWebApp.Services
                 await _context.SaveChangesAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                // Log error here in production
+                _logger.LogError(ex, "Error deleting product {Id}", id);
                 return false;
             }
         }

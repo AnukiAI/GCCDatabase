@@ -515,33 +515,29 @@ namespace GCCWebApp.Controllers
                     });
                 }
 
+                // DEF-337 (completion): audit BEFORE the delete, and capture the cascade children.
+                // Previously this logged only the product row, and logged it AFTER SaveChanges —
+                // by which point ProductIdentifiers and the product/tag join rows had already
+                // been destroyed by SQL Server and could no longer be read. This is the exact
+                // path that deleted products 100/101 on 2026-08-04.
+                var children = await ProductDeleteAudit.CollectChildrenAsync(_context, id);
+
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(),
+                    productName,
+                    product,
+                    children,
+                    GetCurrentUserId(),
+                    GetCurrentUsername(),
+                    reason: $"Hard delete - Product has no certificates " +
+                            $"({children.Count} cascade child row(s) captured)",
+                    changeSource: AuditChangeSource.WebUI
+                );
+
                 // Hard delete — no certificates reference this product
                 _context.Products.Remove(product);
 
                 await _context.SaveChangesAsync();
-
-                // Log audit history
-                try
-                {
-                    var userId = GetCurrentUserId();
-                    var username = GetCurrentUsername();
-
-                    await _auditService.LogEntityChangeAsync(
-                        id.ToString(),
-                        productName,
-                        "DELETE",
-                        oldProduct,
-                        null,
-                        userId,
-                        username,
-                        "Hard delete - Product has no certificates",
-                        "Web UI"
-                    );
-                }
-                catch (Exception auditEx)
-                {
-                    Console.WriteLine($"Failed to log audit history: {auditEx.Message}");
-                }
 
                 return Json(new ApiResponse<object> { Success = true, Message = $"\"{productName}\" has been deleted successfully." });
             }

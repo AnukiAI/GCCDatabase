@@ -1,0 +1,652 @@
+{
+  "viewId": "cert-create",
+  "url": "/Certificate/Create",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-08-04T14:52:37.368Z",
+  "finishedAt": "2026-08-04T14:53:27.643Z",
+  "pass": 80,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-create.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-create.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-create.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-create.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-create.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-create.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCreate"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.form",
+      "name": "Create form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.sections",
+      "name": "Form section headers render (>=3)",
+      "status": "PASS",
+      "notes": "sections=4"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#CompanyId",
+      "name": "Company dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#CertificationTypeId",
+      "name": "Certification Type dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#partnerSelect",
+      "name": "Partner(s) [CR-171 multi-select] dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#PathwayId",
+      "name": "Pathway dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-create.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.form",
+      "name": "Create form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.sections",
+      "name": "Form section headers render (>=3)",
+      "status": "PASS",
+      "notes": "sections=4"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.dropdown#CompanyId",
+      "name": "Company dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.dropdown#CertificationTypeId",
+      "name": "Certification Type dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.dropdown#partnerSelect",
+      "name": "Partner(s) [CR-171 multi-select] dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.dropdown#PathwayId",
+      "name": "Pathway dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-create.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.form",
+      "name": "Create form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.sections",
+      "name": "Form section headers render (>=3)",
+      "status": "PASS",
+      "notes": "sections=4"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.dropdown#CompanyId",
+      "name": "Company dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.dropdown#CertificationTypeId",
+      "name": "Certification Type dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.dropdown#partnerSelect",
+      "name": "Partner(s) [CR-171 multi-select] dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.dropdown#PathwayId",
+      "name": "Pathway dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-create.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.form",
+      "name": "Create form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.sections",
+      "name": "Form section headers render (>=3)",
+      "status": "PASS",
+      "notes": "sections=4"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#CompanyId",
+      "name": "Company dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#CertificationTypeId",
+      "name": "Certification Type dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#partnerSelect",
+      "name": "Partner(s) [CR-171 multi-select] dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.dropdown#PathwayId",
+      "name": "Pathway dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-create.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.form",
+      "name": "Create form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.sections",
+      "name": "Form section headers render (>=3)",
+      "status": "PASS",
+      "notes": "sections=4"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.dropdown#CompanyId",
+      "name": "Company dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.dropdown#CertificationTypeId",
+      "name": "Certification Type dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.dropdown#partnerSelect",
+      "name": "Partner(s) [CR-171 multi-select] dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.dropdown#PathwayId",
+      "name": "Pathway dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-create.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.form",
+      "name": "Create form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.sections",
+      "name": "Form section headers render (>=3)",
+      "status": "PASS",
+      "notes": "sections=4"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.dropdown#CompanyId",
+      "name": "Company dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.dropdown#CertificationTypeId",
+      "name": "Certification Type dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.dropdown#partnerSelect",
+      "name": "Partner(s) [CR-171 multi-select] dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.dropdown#PathwayId",
+      "name": "Pathway dropdown present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-create.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    }
+  ]
+}

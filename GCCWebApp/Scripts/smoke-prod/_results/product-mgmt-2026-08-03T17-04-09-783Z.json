@@ -1,0 +1,120 @@
+{
+  "viewId": "product-mgmt",
+  "url": "/Product/Management",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-08-03T17:04:09.783Z",
+  "finishedAt": "2026-08-03T17:05:39.017Z",
+  "pass": 0,
+  "fail": 12,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Product/Management\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Product/Management\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-public-desktop-fail-2026-08-03T17-04-29-516Z.png"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Product/Management\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Product/Management\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-public-tablet-fail-2026-08-03T17-04-33-573Z.png"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Product/Management\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Product/Management\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-public-mobile-fail-2026-08-03T17-04-38-484Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-external-desktop-fail-2026-08-03T17-04-42-360Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-external-tablet-fail-2026-08-03T17-04-46-590Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-external-mobile-fail-2026-08-03T17-04-52-764Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-analyst-desktop-fail-2026-08-03T17-04-57-816Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-analyst-tablet-fail-2026-08-03T17-05-01-305Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-analyst-mobile-fail-2026-08-03T17-05-05-642Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-admin-desktop-fail-2026-08-03T17-05-09-480Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-admin-tablet-fail-2026-08-03T17-05-14-584Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\product-mgmt-admin-mobile-fail-2026-08-03T17-05-17-381Z.png"
+    }
+  ]
+}

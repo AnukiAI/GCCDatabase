@@ -219,7 +219,12 @@ namespace GCCWebApp.Controllers
                     TempData["2FARole"] = userRole;
                     TempData["ReturnUrl"] = returnUrl;
                     TempData["RememberMe"] = model.RememberMe;
-                    TempData["2FAMethod"] = preferences.PreferredMethod.ToString();
+                    // DEF-334: "2FAMethod" write removed - it had ZERO readers anywhere (no view, no
+                    // controller). Its siblings above ARE consumed by Verify2FA; this one never was,
+                    // so it sat unread in the TempData cookie and was re-saved on every subsequent
+                    // request, indefinitely. Same mechanism as DEF-318/DEF-330. If the sign-in screen
+                    // should say which method the code went to, that is a UI change - reinstate the
+                    // write together with the reader, never on its own.
 
                     _logger.LogInformation($"2FA code sent to {canonicalEmail} via {preferences.PreferredMethod}");
                     return RedirectToAction("TwoFactorAuthentication");
@@ -686,7 +691,12 @@ namespace GCCWebApp.Controllers
                     TempData["2FARole"] = role;
                     TempData["ReturnUrl"] = returnUrl;
                     TempData["RememberMe"] = rememberMe;
-                    TempData["2FAMethod"] = preferences.PreferredMethod.ToString();
+                    // DEF-334: "2FAMethod" write removed - it had ZERO readers anywhere (no view, no
+                    // controller). Its siblings above ARE consumed by Verify2FA; this one never was,
+                    // so it sat unread in the TempData cookie and was re-saved on every subsequent
+                    // request, indefinitely. Same mechanism as DEF-318/DEF-330. If the sign-in screen
+                    // should say which method the code went to, that is a UI change - reinstate the
+                    // write together with the reader, never on its own.
 
                     return RedirectToAction("TwoFactorAuthentication");
                 }
@@ -1072,8 +1082,13 @@ namespace GCCWebApp.Controllers
                     return (string.Empty, string.Empty, GenericLoginError);
                 }
 
-                // Check if user is active
-                if (!user.IsActive || user.IsDeleted || user.Status != "active")
+                // Check if user is active.
+                // DEF-326: the Status comparison was ordinal, so a row stored as "Active" (any
+                // casing other than all-lower) locked the account out of login while the admin
+                // screen showed it as Active — the app writes this column lowercase, but imports
+                // and direct SQL do not have to.
+                if (!user.IsActive || user.IsDeleted ||
+                    !string.Equals(user.Status?.Trim(), "active", StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogWarning("Login attempt failed: User {Email} is not active (IsActive={IsActive}, IsDeleted={IsDeleted}, Status={Status})",
                         email, user.IsActive, user.IsDeleted, user.Status);
@@ -1599,7 +1614,10 @@ namespace GCCWebApp.Controllers
             var userFound = true;
 
             // Step 3: Check if active
-            var isActive = user.IsActive && !user.IsDeleted && user.Status == "active";
+            // DEF-326: case-insensitive, matching the real login check above — this diagnostic
+            // path must not report "active" differently from the gate it is meant to mirror.
+            var isActive = user.IsActive && !user.IsDeleted &&
+                string.Equals(user.Status?.Trim(), "active", StringComparison.OrdinalIgnoreCase);
 
             // Step 4: Verify password
             bool passwordVerified = false;

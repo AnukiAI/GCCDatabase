@@ -2,6 +2,26 @@ using System.ComponentModel.DataAnnotations;
 
 namespace GCCWebApp.Models
 {
+    /// <summary>
+    /// Outcome of AdminService.UpdateUserAsync.
+    ///
+    /// Previously the method returned bool, which collapsed "no such user" and "the save threw"
+    /// into a single false. AdminController then Json()'d every outcome as HTTP 200, so a failed
+    /// update was indistinguishable from a successful one to any status-code-based caller — the
+    /// CRUD smoke suite recorded PASS on the 200 and only caught the problem one step later when
+    /// the row had not changed. Callers need the distinction to pick a status code.
+    /// </summary>
+    public enum UserUpdateResult
+    {
+        Success,
+
+        /// <summary>No non-deleted user with that id. Maps to 404.</summary>
+        NotFound,
+
+        /// <summary>The update threw; details are in the server log. Maps to 500.</summary>
+        Failed
+    }
+
     // User Management Models
     public class UserViewModel
     {

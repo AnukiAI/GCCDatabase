@@ -24,11 +24,16 @@ namespace GCCWebApp.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<PartnerApiKeyService> _logger;
+        private readonly GCCWebApp.Services.Audit.IAuditService _auditService;
 
-        public PartnerApiKeyService(ApplicationDbContext context, ILogger<PartnerApiKeyService> logger)
+        public PartnerApiKeyService(
+            ApplicationDbContext context,
+            ILogger<PartnerApiKeyService> logger,
+            GCCWebApp.Services.Audit.IAuditService auditService)
         {
             _context = context;
             _logger = logger;
+            _auditService = auditService;
         }
 
         public async Task<List<PartnerApiKey>> GetAllApiKeysAsync()
@@ -182,6 +187,17 @@ namespace GCCWebApp.Services
                 {
                     return (false, "Cannot delete an active API key. Revoke it first.");
                 }
+
+                // DEF-337 (completion): API-key lifecycle is security-relevant and this delete
+                // was unaudited — nothing recorded that a partner's key had been removed.
+                // The key VALUE is deliberately excluded from the snapshot (AuditSkipFields),
+                // so this records that the key existed and was deleted, not the secret itself.
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), apiKey.Description, apiKey,
+                    Array.Empty<GCCWebApp.Services.Audit.AuditChildSnapshot>(),
+                    userId: 0, username: string.Empty,
+                    reason: $"Revoked partner API key deleted (partner {apiKey.PartnerId})",
+                    changeSource: Models.AuditChangeSource.WebUI);
 
                 _context.PartnerApiKeys.Remove(apiKey);
                 await _context.SaveChangesAsync();

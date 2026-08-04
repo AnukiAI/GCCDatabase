@@ -4,6 +4,7 @@ using GCCWebApp.Models;
 using GCCWebApp.Data;
 using GCCWebApp.Repositories;
 using GCCWebApp.Search;
+using GCCWebApp.Services.Audit;
 using GreenCircleCertified.ViewModels;
 using System.Text;
 using QuestPDF.Fluent;
@@ -17,15 +18,18 @@ namespace GCCWebApp.Services
         private readonly ILogger<CertificateService> _logger;
         private readonly ApplicationDbContext _context;
         private readonly IProductIdService _productIdService;
+        private readonly IAuditService _auditService;   // DEF-337
 
         public CertificateService(
             ILogger<CertificateService> logger,
             ApplicationDbContext context,
-            IProductIdService productIdService)
+            IProductIdService productIdService,
+            IAuditService auditService)
         {
             _logger = logger;
             _context = context;
             _productIdService = productIdService;
+            _auditService = auditService;
         }
 
         public async Task<CertificateListResponse> GetCertificatesAsync(CertificateListRequest request)
@@ -689,15 +693,40 @@ namespace GCCWebApp.Services
                 switch (request.Action.ToLower())
                 {
                     case "delete":
-                        var certificatesToDelete = await _context.Certificates
+                        // DEF-337 (completion): this used to RemoveRange the whole set in one
+                        // shot, which wrote no audit at all and destroyed every cascade child
+                        // silently — the same core-entity hole DEF-337 closed for single
+                        // deletes, still open on the bulk path.
+                        //
+                        // Rather than duplicate the capture logic (which would drift), each id
+                        // now goes through DeleteCertificateAsync, so bulk and single deletes
+                        // are audited identically by construction. Slower per certificate;
+                        // correct, and bulk delete is not a hot path.
+                        var deleted = 0;
+                        var failedDeletes = new List<int>();
+
+                        // Ids that do not exist are not failures — deleting nothing is a no-op,
+                        // which is the behaviour the previous RemoveRange had and what callers
+                        // rely on. Only a genuine delete failure is reported.
+                        var existingIds = await _context.Certificates
                             .Where(c => request.CertificateIds.Contains(c.Id))
+                            .Select(c => c.Id)
                             .ToListAsync();
-                        
-                        _context.Certificates.RemoveRange(certificatesToDelete);
-                        await _context.SaveChangesAsync();
-                        
-                        result.AffectedCount = certificatesToDelete.Count;
-                        result.Message = $"Successfully deleted {result.AffectedCount} certificates";
+
+                        foreach (var certificateId in existingIds)
+                        {
+                            if (await DeleteCertificateAsync(certificateId, request.UserRole))
+                                deleted++;
+                            else
+                                failedDeletes.Add(certificateId);
+                        }
+
+                        result.AffectedCount = deleted;
+                        result.Success = failedDeletes.Count == 0;
+                        result.Message = failedDeletes.Count == 0
+                            ? $"Successfully deleted {deleted} certificates"
+                            : $"Deleted {deleted} certificate(s); {failedDeletes.Count} could not be " +
+                              $"deleted (IDs: {string.Join(", ", failedDeletes)})";
                         break;
 
                     case "update_status":
@@ -931,12 +960,107 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> DeleteCertificateAsync(int id, string userRole)
+        /// <summary>
+        /// DEF-337: certificate delete is audited, including the seven tables SQL Server
+        /// cascades away. Before this, deleting a certificate wrote NO audit row at all —
+        /// the core entity of the system was the least recoverable thing in it.
+        /// </summary>
+        public async Task<bool> DeleteCertificateAsync(int id, string userRole, int userId = 0, string? username = null)
         {
             try
             {
                 var certificate = await _context.Certificates.FindAsync(id);
                 if (certificate == null) return false;
+
+                // DEF-337: every FK pointing at Certificates is ON DELETE CASCADE, so these rows
+                // are destroyed by the database with no application code ever seeing them.
+                // Capture them BEFORE the delete. Loaded as separate no-tracking queries rather
+                // than Includes so the snapshot is a flat scalar set (entity serialization strips
+                // navigation collections, so Includes would not have survived into the blob).
+                var children = new List<AuditChildSnapshot>();
+
+                async Task CollectAsync<TChild>(IQueryable<TChild> query, Func<TChild, string> idSelector,
+                                                Func<TChild, string?>? nameSelector = null) where TChild : class
+                {
+                    foreach (var row in await query.AsNoTracking().ToListAsync())
+                    {
+                        children.Add(new AuditChildSnapshot
+                        {
+                            EntityType = typeof(TChild).Name,
+                            EntityId = idSelector(row),
+                            EntityName = nameSelector?.Invoke(row),
+                            Entity = row
+                        });
+                    }
+                }
+
+                await CollectAsync(_context.CertificateProductIds.Where(x => x.CertificateId == id),
+                                   x => x.Id.ToString(), x => x.ProductIdValue);
+                await CollectAsync(_context.CertificateStatusHistory.Where(x => x.CertificateId == id),
+                                   x => x.Id.ToString());
+                await CollectAsync(_context.CertificateDocuments.Where(x => x.CertificateId == id),
+                                   x => x.Id.ToString());
+                await CollectAsync(_context.CustomFieldValues.Where(x => x.CertificateId == id),
+                                   x => x.Id.ToString());
+
+                // DEF-337 (completion): the four collections above are FK children with a real
+                // CertificateId column. A certificate ALSO sits in three many-to-many join
+                // tables, which cascade away just as silently but have no CLR entity type to
+                // query. Capture the link rows themselves — the Tag/Partner/subcategory records
+                // are not being deleted, only the associations to them.
+                //
+                // CertificatePartners is the consequential one: restoring a certificate without
+                // its partner links quietly changes who can see it.
+                var associations = await _context.Certificates
+                    .AsNoTracking()
+                    .Include(c => c.Tags)
+                    .Include(c => c.Partners)
+                    .Include(c => c.CertificationTypeSubcategories)
+                    .AsSplitQuery()
+                    .FirstOrDefaultAsync(c => c.Id == id);
+
+                if (associations != null)
+                {
+                    children.AddRange(AuditJoinRowCollector.Collect(
+                        _context, typeof(Certificate), nameof(Certificate.Tags), id.ToString(),
+                        associations.Tags, t => t.Id.ToString(), t => t.Name));
+
+                    children.AddRange(AuditJoinRowCollector.Collect(
+                        _context, typeof(Certificate), nameof(Certificate.Partners), id.ToString(),
+                        associations.Partners, p => p.Id.ToString(), p => p.Name));
+
+                    children.AddRange(AuditJoinRowCollector.Collect(
+                        _context, typeof(Certificate), nameof(Certificate.CertificationTypeSubcategories),
+                        id.ToString(), associations.CertificationTypeSubcategories,
+                        s => s.Id.ToString(), s => s.Name));
+                }
+
+                // CR-171 Phase 2 added per-product-ID partner sharing. Those link rows hang off
+                // CertificateProductIds, so they cascade one level deeper than the loop above
+                // reaches — captured here so a restored certificate keeps its per-product
+                // partner visibility, not just its certificate-level partners.
+                var productIdPartners = await _context.CertificateProductIds
+                    .AsNoTracking()
+                    .Include(pid => pid.Partners)
+                    .Where(pid => pid.CertificateId == id)
+                    .ToListAsync();
+
+                foreach (var pid in productIdPartners)
+                {
+                    children.AddRange(AuditJoinRowCollector.Collect(
+                        _context, typeof(CertificateProductId), nameof(CertificateProductId.Partners),
+                        pid.Id.ToString(), pid.Partners, p => p.Id.ToString(), p => p.Name));
+                }
+
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(),
+                    certificate.Number,
+                    certificate,
+                    children,
+                    userId,
+                    username ?? string.Empty,
+                    reason: $"Certificate deleted (role: {userRole})",
+                    changeSource: AuditChangeSource.WebUI);
 
                 _context.Certificates.Remove(certificate);
                 await _context.SaveChangesAsync();

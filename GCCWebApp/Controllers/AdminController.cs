@@ -150,17 +150,32 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        // DEF-325. Failure responses here carry a real HTTP status, not 200 with Success=false. Every
+        // failure path used to return 200, so any status-code-based caller read a rejected
+        // update as accepted — the CRUD smoke suite recorded PASS on the 200 and only noticed
+        // one assertion later that the row had not actually changed.
+        //
+        // Status choice is constrained by UseStatusCodePages in Program.cs: it redirects
+        // 400/401/403 to /Account/Login?error=session_expired for any non-/api request that
+        // does not send X-Requested-With. The admin JS uses a bare fetch(), so a 400 here would
+        // arrive as the login page and blow up response.json(). 422/404/500 pass through
+        // untouched, which is why validation returns 422 rather than the usual 400.
+        //
+        // The JS consumers (wwwroot/js/userManagement.js, wwwroot/js/admin/userManagement.js)
+        // branch on the parsed body's `success` flag and never inspect response.ok, so they
+        // keep working unchanged and now surface the real reason.
         [HttpPut]
         public async Task<IActionResult> UpdateUser(int id, [FromBody] UserViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                return Json(new ApiResponse<object>
+                return new JsonResult(new ApiResponse<object>
                 {
                     Success = false,
                     Message = "Invalid data provided",
                     Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
-                });
+                })
+                { StatusCode = StatusCodes.Status422UnprocessableEntity };
             }
 
             // DEF-187: when the admin types a new password, enforce the same 8-char
@@ -169,30 +184,53 @@ namespace GCCWebApp.Controllers
             // PasswordHash untouched.
             if (!string.IsNullOrWhiteSpace(model.Password) && model.Password.Length < 8)
             {
-                return Json(new ApiResponse<object>
+                return new JsonResult(new ApiResponse<object>
                 {
                     Success = false,
                     Message = "Password must be at least 8 characters"
-                });
+                })
+                { StatusCode = StatusCodes.Status422UnprocessableEntity };
             }
 
             try
             {
                 var currentUserId = GetCurrentUserId() ?? 0;
                 var currentUsername = User.Identity?.Name ?? "System";
-                var success = await _adminService.UpdateUserAsync(id, model, currentUserId, currentUsername);
-                if (success)
+                var result = await _adminService.UpdateUserAsync(id, model, currentUserId, currentUsername);
+
+                return result switch
                 {
-                    return Json(new ApiResponse<object> { Success = true, Message = "User updated successfully" });
-                }
-                else
-                {
-                    return Json(new ApiResponse<object> { Success = false, Message = "User not found or update failed" });
-                }
+                    UserUpdateResult.Success => Json(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "User updated successfully"
+                    }),
+
+                    UserUpdateResult.NotFound => new JsonResult(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = $"User {id} not found"
+                    })
+                    { StatusCode = StatusCodes.Status404NotFound },
+
+                    // UserUpdateResult.Failed — the service logged the exception; don't leak it.
+                    _ => new JsonResult(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Update failed. See the server log for details."
+                    })
+                    { StatusCode = StatusCodes.Status500InternalServerError }
+                };
             }
             catch (Exception ex)
             {
-                return Json(new ApiResponse<object> { Success = false, Message = "Error updating user: " + ex.Message });
+                _logger.LogError(ex, "Unhandled error updating user with ID {UserId}", id);
+                return new JsonResult(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error updating user: " + ex.Message
+                })
+                { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 

@@ -1,0 +1,360 @@
+{
+  "status": "RED-FAIL",
+  "totals": {
+    "pass": 19,
+    "fail": 5,
+    "warn": 19,
+    "info": 3
+  },
+  "checks": [
+    {
+      "spec": "tempdata-pairing",
+      "pass": 18,
+      "fail": 1,
+      "warn": 10,
+      "info": 1,
+      "findings": [
+        {
+          "level": "FAIL",
+          "msg": "\"2FAMethod\" is written 2x but NEVER read - the entry is re-saved into the cookie on every request, forever",
+          "key": "2FAMethod",
+          "at": "Controllers/AccountController.cs:222, Controllers/AccountController.cs:689",
+          "fix": "delete the write, or redirect to something that reads the key"
+        },
+        {
+          "level": "WARN",
+          "msg": "\"Message\" is read but never written - dead render path (half-finished removal?)",
+          "key": "Message",
+          "at": "Views/Account/ForgotPassword.cshtml:60, Views/Account/ForgotPassword.cshtml:64, Views/Account/Login.cshtml:43, Views/Account/Login.cshtml:47, Views/Account/ResetPassword.cshtml:60, Views/Account/ResetPassword.cshtml:64"
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:219 writes \"2FARole\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"2FARole\", but AccountController.Verify2FA does",
+          "key": "2FARole",
+          "at": "Controllers/AccountController.cs:219",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:220 writes \"ReturnUrl\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"ReturnUrl\", but AccountController.Verify2FA does",
+          "key": "ReturnUrl",
+          "at": "Controllers/AccountController.cs:220",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:221 writes \"RememberMe\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"RememberMe\", but AccountController.Verify2FA does",
+          "key": "RememberMe",
+          "at": "Controllers/AccountController.cs:221",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:686 writes \"2FARole\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"2FARole\", but AccountController.Verify2FA does",
+          "key": "2FARole",
+          "at": "Controllers/AccountController.cs:686",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:687 writes \"ReturnUrl\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"ReturnUrl\", but AccountController.Verify2FA does",
+          "key": "ReturnUrl",
+          "at": "Controllers/AccountController.cs:687",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:688 writes \"RememberMe\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"RememberMe\", but AccountController.Verify2FA does",
+          "key": "RememberMe",
+          "at": "Controllers/AccountController.cs:688",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:1376 writes \"ErrorMessage\" - redirect target Account/SetupTotp (Views/Account/SetupTotp.cshtml) does not read \"ErrorMessage\", but Views/Account/TwoFactorPreferences.cshtml does",
+          "key": "ErrorMessage",
+          "at": "Controllers/AccountController.cs:1376",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:1407 writes \"ErrorMessage\" - redirect target Account/SetupTotp (Views/Account/SetupTotp.cshtml) does not read \"ErrorMessage\", but Views/Account/TwoFactorPreferences.cshtml does",
+          "key": "ErrorMessage",
+          "at": "Controllers/AccountController.cs:1407",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:1414 writes \"ErrorMessage\" - redirect target Account/SetupTotp (Views/Account/SetupTotp.cshtml) does not read \"ErrorMessage\", but Views/Account/TwoFactorPreferences.cshtml does",
+          "key": "ErrorMessage",
+          "at": "Controllers/AccountController.cs:1414",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "INFO",
+          "msg": "18 write(s) had a destination this check could not resolve statically - not a finding, just uncovered"
+        }
+      ]
+    },
+    {
+      "spec": "redirect-targets",
+      "pass": 0,
+      "fail": 3,
+      "warn": 0,
+      "info": 0,
+      "findings": [
+        {
+          "level": "FAIL",
+          "msg": "route target \"Certificate/Details\" does not exist - no action \"Details\" on CertificateController",
+          "target": "Certificate/Details",
+          "at": "Controllers/DocumentController.cs:96 (RedirectToAction)",
+          "fix": "point it at a real action, or delete the dead path - a user reaching this gets a 404 after a successful operation"
+        },
+        {
+          "level": "FAIL",
+          "msg": "route target \"Account/Register\" does not exist - no action \"Register\" on AccountController",
+          "target": "Account/Register",
+          "at": "Views/Account/SignUp.cshtml:59 (asp-action)",
+          "fix": "point it at a real action, or delete the dead path - a user reaching this gets a 404 after a successful operation"
+        },
+        {
+          "level": "FAIL",
+          "msg": "Account/VerifyPhone renders view \"VerifyPhone\" - no file at Views/Account/VerifyPhone.cshtml or Views/Shared/VerifyPhone.cshtml",
+          "at": "Controllers/AccountController.cs:903",
+          "fix": "add the view file or change the action to render an existing one - this throws InvalidOperationException (HTTP 500) when reached"
+        }
+      ]
+    },
+    {
+      "spec": "orphan-views",
+      "pass": 1,
+      "fail": 0,
+      "warn": 7,
+      "info": 0,
+      "findings": [
+        {
+          "level": "WARN",
+          "msg": "partial Views/Shared/_CertificateDocuments.cshtml is rendered by nothing",
+          "at": "Views/Shared/_CertificateDocuments.cshtml",
+          "fix": "remove it, or wire it in - if it is the only entry point to a controller, that controller is UI-dead too"
+        },
+        {
+          "level": "WARN",
+          "msg": "partial Views/Shared/_ReviewInstructions.cshtml is rendered by nothing",
+          "at": "Views/Shared/_ReviewInstructions.cshtml",
+          "fix": "remove it, or wire it in - if it is the only entry point to a controller, that controller is UI-dead too"
+        },
+        {
+          "level": "WARN",
+          "msg": "view Views/Account/AccountLocked.cshtml has no matching controller action and nothing renders it by name",
+          "at": "Views/Account/AccountLocked.cshtml"
+        },
+        {
+          "level": "WARN",
+          "msg": "view Views/Account/SignUp.cshtml has no matching controller action and nothing renders it by name",
+          "at": "Views/Account/SignUp.cshtml"
+        },
+        {
+          "level": "WARN",
+          "msg": "view Views/Account/VerifyEmail.cshtml has no matching controller action and nothing renders it by name",
+          "at": "Views/Account/VerifyEmail.cshtml"
+        },
+        {
+          "level": "WARN",
+          "msg": "view Views/Account/WelcomeRedirect.cshtml has no matching controller action and nothing renders it by name",
+          "at": "Views/Account/WelcomeRedirect.cshtml"
+        },
+        {
+          "level": "WARN",
+          "msg": "view Views/Company/Create.cshtml has no matching controller action and nothing renders it by name",
+          "at": "Views/Company/Create.cshtml"
+        }
+      ]
+    },
+    {
+      "spec": "unshipped-fixes",
+      "pass": 0,
+      "fail": 1,
+      "warn": 2,
+      "info": 2,
+      "findings": [
+        {
+          "level": "FAIL",
+          "msg": "DEF-113 names 1 repo path(s) that do not exist: Views/Admin/Index.cshtml",
+          "id": "DEF-113",
+          "at": "docs/tracking/defect-register.md:6664",
+          "fix": "the register describes a change against a path that is not there - correct the entry or restore the file"
+        },
+        {
+          "level": "WARN",
+          "msg": "19 defect(s) say \"pending deploy\" and appear in no deploy row, yet none of their files differ from HEAD - most likely shipped with stale Status text: DEF-298, DEF-287, DEF-284, DEF-283, DEF-282, DEF-279, DEF-276, DEF-275, DEF-269, DEF-258, DEF-179, DEF-175, DEF-169, DEF-168, DEF-106, DEF-299, DEF-315, DEF-314, DEF-313",
+          "ids": [
+            "DEF-298",
+            "DEF-287",
+            "DEF-284",
+            "DEF-283",
+            "DEF-282",
+            "DEF-279",
+            "DEF-276",
+            "DEF-275",
+            "DEF-269",
+            "DEF-258",
+            "DEF-179",
+            "DEF-175",
+            "DEF-169",
+            "DEF-168",
+            "DEF-106",
+            "DEF-299",
+            "DEF-315",
+            "DEF-314",
+            "DEF-313"
+          ],
+          "fix": "for each: either it is committed-but-undeployed (say so in the Status), or it shipped and the Status needs updating. Cheap to clear, and it is what makes the MODIFIED list above trustworthy."
+        },
+        {
+          "level": "WARN",
+          "msg": "26 defect(s) exist ONLY in the working tree - publish the bundle from THIS tree, not from a clean checkout of HEAD",
+          "ids": [
+            "DEF-299",
+            "DEF-294",
+            "DEF-291",
+            "DEF-286",
+            "DEF-285",
+            "DEF-280",
+            "DEF-278",
+            "DEF-274",
+            "DEF-265",
+            "DEF-256",
+            "DEF-160",
+            "DEF-133",
+            "DEF-326",
+            "DEF-323",
+            "DEF-329",
+            "DEF-328",
+            "DEF-327",
+            "DEF-326",
+            "DEF-325",
+            "DEF-322",
+            "DEF-316",
+            "DEF-317",
+            "DEF-318",
+            "DEF-319",
+            "DEF-320",
+            "DEF-330"
+          ],
+          "fix": "commit them, or confirm the publish source - a clean clone silently drops every one of these"
+        },
+        {
+          "level": "INFO",
+          "msg": "96 register Status line(s) still say \"pending deploy\" for defects that appear in a shipped log - stale text, not a deploy risk (DEF-300, DEF-295, DEF-293, DEF-292, DEF-281, DEF-273, …)",
+          "ids": [
+            "DEF-300",
+            "DEF-295",
+            "DEF-293",
+            "DEF-292",
+            "DEF-281",
+            "DEF-273",
+            "DEF-272",
+            "DEF-271",
+            "DEF-267",
+            "DEF-266",
+            "DEF-264",
+            "DEF-259",
+            "DEF-250",
+            "DEF-249",
+            "DEF-248",
+            "DEF-247",
+            "DEF-246",
+            "DEF-238",
+            "DEF-237",
+            "DEF-236",
+            "DEF-236",
+            "DEF-234",
+            "DEF-233",
+            "DEF-232",
+            "DEF-231",
+            "DEF-230",
+            "DEF-229",
+            "DEF-227",
+            "DEF-226",
+            "DEF-221",
+            "DEF-220",
+            "DEF-219",
+            "DEF-218",
+            "DEF-216",
+            "DEF-215",
+            "DEF-203",
+            "DEF-197",
+            "DEF-193",
+            "DEF-192",
+            "DEF-190",
+            "DEF-181",
+            "DEF-178",
+            "DEF-174",
+            "DEF-171",
+            "DEF-167",
+            "DEF-161",
+            "DEF-159",
+            "DEF-158",
+            "DEF-157",
+            "DEF-156",
+            "DEF-155",
+            "DEF-143",
+            "DEF-142",
+            "DEF-141",
+            "DEF-140",
+            "DEF-139",
+            "DEF-138",
+            "DEF-137",
+            "DEF-136",
+            "DEF-135",
+            "DEF-134",
+            "DEF-132",
+            "DEF-131",
+            "DEF-129",
+            "DEF-128",
+            "DEF-126",
+            "DEF-124",
+            "DEF-123",
+            "DEF-122",
+            "DEF-121",
+            "DEF-120",
+            "DEF-119",
+            "DEF-118",
+            "DEF-117",
+            "DEF-116",
+            "DEF-115",
+            "DEF-114",
+            "DEF-108",
+            "DEF-107",
+            "DEF-098",
+            "DEF-100",
+            "DEF-099",
+            "DEF-103",
+            "DEF-235",
+            "DEF-300",
+            "DEF-301",
+            "DEF-302",
+            "DEF-303",
+            "DEF-304",
+            "DEF-306",
+            "DEF-307",
+            "DEF-308",
+            "DEF-309",
+            "DEF-310",
+            "DEF-311",
+            "DEF-312"
+          ]
+        },
+        {
+          "level": "INFO",
+          "msg": "1 genuinely-pending entr(ies) name no repo-rooted file path, so their code state cannot be verified",
+          "ids": [
+            "DEF-170"
+          ]
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-08-04T03:16:56.162Z"
+}

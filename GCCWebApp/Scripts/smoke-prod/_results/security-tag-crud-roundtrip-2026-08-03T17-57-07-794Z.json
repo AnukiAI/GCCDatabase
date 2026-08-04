@@ -1,0 +1,19 @@
+{
+  "specId": "tag-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 0,
+  "fail": 1,
+  "warn": 0,
+  "blocked": 0,
+  "total": 1,
+  "results": [
+    {
+      "id": "tag.error",
+      "name": "spec ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Admin/Tags\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Admin/Tags\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    }
+  ],
+  "finishedAt": "2026-08-03T17:57:07.810Z"
+}

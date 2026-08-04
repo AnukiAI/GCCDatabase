@@ -1,0 +1,55 @@
+{
+  "specId": "company-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 7,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 7,
+  "results": [
+    {
+      "id": "co.C1.create",
+      "name": "POST /Company/SaveCompany (create) accepted",
+      "status": "PASS",
+      "notes": "HTTP 200 {\"success\":true,\"message\":\"Company created successfully\",\"data\":{\"id\":318,\"name\":\"ZZ_SmokeFixture_Company_msexeve3\",\"ema"
+    },
+    {
+      "id": "co.C2.create-persisted",
+      "name": "company row exists in DB",
+      "status": "PASS",
+      "notes": "id=318"
+    },
+    {
+      "id": "co.U1.update",
+      "name": "POST /Company/SaveCompany (update) accepted",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "co.U2.update-persisted",
+      "name": "edited name persisted",
+      "status": "PASS",
+      "notes": "db Name=\"ZZ_SmokeFixture_Company_msexeve3_ed\" expected=\"ZZ_SmokeFixture_Company_msexeve3_ed\""
+    },
+    {
+      "id": "co.D1.delete",
+      "name": "DELETE /Company/DeleteCompany accepted",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "co.D2.delete-softdeleted",
+      "name": "company soft-deleted (IsDeleted=1)",
+      "status": "PASS",
+      "notes": "IsDeleted=1"
+    },
+    {
+      "id": "co.INV",
+      "name": "Companies count net-zero after round-trip",
+      "status": "PASS",
+      "notes": "before=166 after=166"
+    }
+  ],
+  "finishedAt": "2026-08-04T17:23:19.489Z"
+}

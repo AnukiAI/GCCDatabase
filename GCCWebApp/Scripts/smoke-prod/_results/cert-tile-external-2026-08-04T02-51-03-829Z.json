@@ -1,0 +1,120 @@
+{
+  "viewId": "cert-tile-external",
+  "url": "/Certificate/CertificateTileViewExternal",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-08-04T02:51:03.829Z",
+  "finishedAt": "2026-08-04T02:52:16.711Z",
+  "pass": 0,
+  "fail": 12,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Certificate/CertificateTileViewExternal\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Certificate/CertificateTileViewExternal\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-public-desktop-fail-2026-08-04T02-51-13-537Z.png"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Certificate/CertificateTileViewExternal\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Certificate/CertificateTileViewExternal\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-public-tablet-fail-2026-08-04T02-51-15-859Z.png"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Certificate/CertificateTileViewExternal\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Certificate/CertificateTileViewExternal\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-public-mobile-fail-2026-08-04T02-51-21-829Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-external-desktop-fail-2026-08-04T02-51-26-443Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-external-tablet-fail-2026-08-04T02-51-31-439Z.png"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-external-mobile-fail-2026-08-04T02-51-34-997Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-analyst-desktop-fail-2026-08-04T02-51-38-413Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-analyst-tablet-fail-2026-08-04T02-51-44-990Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-analyst-mobile-fail-2026-08-04T02-51-49-673Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-admin-desktop-fail-2026-08-04T02-51-53-392Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-admin-tablet-fail-2026-08-04T02-51-56-711Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-external-admin-mobile-fail-2026-08-04T02-52-01-493Z.png"
+    }
+  ]
+}

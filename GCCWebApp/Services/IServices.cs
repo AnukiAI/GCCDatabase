@@ -19,7 +19,10 @@ namespace GCCWebApp.Services
         Task<CertificateValidationResult> ValidateCertificateAsync(string certificateNumber);
         Task<int> CreateCertificateAsync(CertificateEditViewModel certificate, string userRole, int? userId = null);
         Task<bool> UpdateCertificateAsync(int id, CertificateEditViewModel certificate, string userRole, int? userId = null);
-        Task<bool> DeleteCertificateAsync(int id, string userRole);
+        // DEF-337: userId/username are optional so existing callers keep compiling; when omitted
+        // the audit service falls back to the signed-in user's claims. An API-key caller with no
+        // user context cannot be audited (ChangedBy is NOT NULL + FK) and is logged as a gap.
+        Task<bool> DeleteCertificateAsync(int id, string userRole, int userId = 0, string? username = null);
         Task<CertificateDetailsViewModel?> GetCertificateByCertificateNumberAsync(string certificateNumber, string userRole);
         
         // Advanced Search Methods

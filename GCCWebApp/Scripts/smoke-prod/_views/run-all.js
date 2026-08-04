@@ -1,4 +1,5 @@
-// Tier 1 roll-up runner — runs all 10 critical-view smokes and writes a compact summary
+// View roll-up runner — runs all 11 Tier 1 critical-view smokes plus the Tier 2
+// cert-state-matrix (12 total) and writes a compact summary
 // JSON to Scripts/smoke-prod/_results/summary-{timestamp}.json.
 //
 // Per the E2E Smoke Plan acceptance criteria:
@@ -8,7 +9,7 @@
 //   - The roll-up summary is <=30 lines.
 //
 // Two modes:
-//   1. DEFAULT (single run) — you start the dev server; this just runs all 10 views
+//   1. DEFAULT (single run) — you start the dev server; this just runs all 12 views
 //      back-to-back with a warm-up, inter-view cooldown, and a single retry of any RED
 //      view. Simple, but the local dev server can exhaust itself near the tail of a
 //      sustained ~6-min run (it exits / refuses connections — environmental, not a view
@@ -28,7 +29,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 
-// Order matches Tier 1 #1..#10 in docs/tracking/e2e-smoke-plan.md.
+// Order matches Tier 1 #1..#11 in docs/tracking/e2e-smoke-plan.md, then Tier 2 last.
 const VIEWS = [
   'home',
   'login',
@@ -41,6 +42,11 @@ const VIEWS = [
   'admin-user-mgmt',
   'admin-tags',
   'product-mgmt',
+  // Tier 2 — seeds + tears down its own DB fixtures. Last on purpose so that seed/teardown
+  // can't perturb the fixture-free Tier 1 views above. Added 2026-08-03: leaving it out meant
+  // a routine roll-up skipped all 27 workflow-state visibility cells (Draft/Confidential/Hold
+  // must not reach the public view) — the P0 control most worth never forgetting.
+  'cert-state-matrix',
 ];
 
 const RESULTS_DIR = path.join(__dirname, '..', '_results');

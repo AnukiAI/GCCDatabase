@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Controllers.Api;
@@ -37,14 +37,19 @@ namespace GCCWebApp.Controllers.Api.v1
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CertificatesController> _logger;
         private readonly IWebHostEnvironment _hostingEnvironment;
+        private readonly GCCWebApp.Services.ICertificateService _certificateService;
 
         public CertificatesController(
             ApplicationDbContext context,
             ILogger<CertificatesController> logger,
-            IWebHostEnvironment hostingEnvironment)
+            IWebHostEnvironment hostingEnvironment,
+            GCCWebApp.Services.ICertificateService certificateService)
         {
             _context = context;
             _logger = logger;
+            // DEF-337 (completion): deletes route through the service so the API cannot bypass
+            // the audit + cascade-capture the UI path performs.
+            _certificateService = certificateService;
             // DEF-208: needed to resolve cert files against ContentRootPath/App_Data
             // instead of wwwroot/. Static-file serving for /uploads/ was removed; all
             // partner-API downloads now read from the App_Data location.
@@ -567,8 +572,17 @@ namespace GCCWebApp.Controllers.Api.v1
                 if (certificate == null)
                     return NotFoundResponse($"Certificate with ID {id} not found");
 
-                _context.Certificates.Remove(certificate);
-                await _context.SaveChangesAsync();
+                // DEF-337 (completion): this removed the certificate directly from the context,
+                // so it wrote no audit row and destroyed all seven cascade child sets silently —
+                // the same hole DEF-337 closed on the UI path, still open on the API. Delegating
+                // to the service means both paths audit identically and cannot drift.
+                if (!await _certificateService.DeleteCertificateAsync(
+                        id, userRole: "API", userId: 0, username: null))
+                {
+                    return HandleError(
+                        new InvalidOperationException($"Delete failed for certificate {id}"),
+                        $"Failed to delete certificate {id}");
+                }
 
                 return NoContent();
             }

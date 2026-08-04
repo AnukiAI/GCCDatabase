@@ -1,0 +1,73 @@
+{
+  "specId": "cert-detail-scoping",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 10,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 10,
+  "results": [
+    {
+      "id": "detail.discover",
+      "name": "fixtures discovered (adminSet, extSet)",
+      "status": "PASS",
+      "notes": "adminSet=55 extSet=4 extCompanies=[KAO]"
+    },
+    {
+      "id": "detail.A1.ext-own-200",
+      "name": "external -> ExternalView(26-0146)",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect 200)"
+    },
+    {
+      "id": "detail.A2.ext-no-internal-tags",
+      "name": "external detail hides internal tags",
+      "status": "PASS",
+      "notes": ".tag.internal count=0 (expect 0)"
+    },
+    {
+      "id": "detail.A3.ext-foreign-404",
+      "name": "external -> ExternalView(28-0002) [other company]",
+      "status": "PASS",
+      "notes": "HTTP 404 (expect 404)"
+    },
+    {
+      "id": "detail.A4.anon-public-200",
+      "name": "anon -> SingleView(26-0146)",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect 200)"
+    },
+    {
+      "id": "detail.A5.anon-no-internal-tags",
+      "name": "public single view hides internal tags",
+      "status": "PASS",
+      "notes": ".tag.internal count=0 (expect 0)"
+    },
+    {
+      "id": "detail.A6.anon-nonpublic-404",
+      "name": "anon -> SingleView(26-01730) [non-public status]",
+      "status": "PASS",
+      "notes": "HTTP 404 (expect 404)"
+    },
+    {
+      "id": "detail.A7.ext-internal-denied",
+      "name": "external -> InternalView(26-0146)",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect 302/401/403)"
+    },
+    {
+      "id": "detail.A8.anon-internal-denied",
+      "name": "anon -> InternalView(26-0146)",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect 302/401/403)"
+    },
+    {
+      "id": "detail.P1.admin-internal-200",
+      "name": "admin -> InternalView(26-0146)",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect 200)"
+    }
+  ],
+  "finishedAt": "2026-08-03T17:52:49.876Z"
+}

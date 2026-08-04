@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -19,6 +19,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
         private readonly ApplicationDbContext _context;
         private readonly Mock<ILogger<CertificatesController>> _loggerMock;
         private readonly Mock<IWebHostEnvironment> _envMock;
+        private readonly Mock<GCCWebApp.Services.ICertificateService> _certificateServiceMock;
         private readonly CertificatesController _controller;
 
         public CertificatesControllerTests()
@@ -30,7 +31,15 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             // stub with a temp ContentRootPath is sufficient.
             _envMock = new Mock<IWebHostEnvironment>();
             _envMock.SetupGet(e => e.ContentRootPath).Returns(System.IO.Path.GetTempPath());
-            _controller = new CertificatesController(_context, _loggerMock.Object, _envMock.Object);
+            // DEF-337 (completion): the API delete now delegates to ICertificateService so it
+            // is audited and captures cascade children, instead of removing from the context.
+            _certificateServiceMock = new Mock<GCCWebApp.Services.ICertificateService>();
+            _certificateServiceMock
+                .Setup(s => s.DeleteCertificateAsync(It.IsAny<int>(), It.IsAny<string>(),
+                                                     It.IsAny<int>(), It.IsAny<string?>()))
+                .ReturnsAsync(true);
+            _controller = new CertificatesController(_context, _loggerMock.Object, _envMock.Object,
+                _certificateServiceMock.Object);
 
             // Set up HttpContext for the controller
             var httpContext = new DefaultHttpContext();
@@ -276,9 +285,13 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             // Assert
             result.Should().BeOfType<NoContentResult>();
 
-            // Verify certificate was deleted
-            var deletedCertificate = await _context.Certificates.FindAsync(certificateId);
-            deletedCertificate.Should().BeNull();
+            // DEF-337 (completion): the deletion itself is the service's job now — this asserts
+            // the endpoint routes through the audited path rather than removing the row itself.
+            // A regression to a direct _context.Certificates.Remove would fail here.
+            _certificateServiceMock.Verify(
+                s => s.DeleteCertificateAsync(certificateId, It.IsAny<string>(),
+                                              It.IsAny<int>(), It.IsAny<string?>()),
+                Times.Once);
         }
 
         [Fact]

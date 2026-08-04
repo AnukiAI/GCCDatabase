@@ -12,6 +12,11 @@
         /**
          * Show custom modal confirmation dialog
          * @param {Object} options - Modal configuration
+         * @param {string|null} [options.title] - Heading. Omit for the "Confirm" default;
+         *        pass EXPLICIT null to render no heading at all (CR-031: the client's alert
+         *        copy carries its own "ALERT:" prefix, so a heading would duplicate it).
+         *        Only an explicit null suppresses it — undefined still gets "Confirm", so
+         *        every existing caller is unaffected.
          * @returns {Promise<boolean>} - User's choice
          */
         showConfirmation: function(options) {
@@ -19,7 +24,7 @@
                 const modalHtml = `
                     <div class="custom-modal-overlay" id="customConfirmModal">
                         <div class="custom-modal-dialog">
-                            <h2 class="modal-title">${options.title || 'Confirm'}</h2>
+                            ${options.title === null ? '' : `<h2 class="modal-title">${options.title || 'Confirm'}</h2>`}
                             <p class="modal-message">${options.message}</p>
                             <div class="modal-actions">
                                 <button class="modal-btn modal-btn--danger" id="modalConfirmBtn">${options.confirmText || 'Confirm'}</button>

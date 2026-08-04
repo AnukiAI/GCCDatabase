@@ -5,8 +5,13 @@
 // Internal view markup (certificate-tile-view-internal.js):
 //   - "Add Certificate" button IS present (.btn-add).
 //   - Internal Tag column IS present ([data-col="tc-inttag"]).
-//   - The bulk Import button (#openImportModalBtn) is ADMIN-ONLY — present for admin,
-//     absent for analyst (gated by @if User.IsInRole("Admin") in the view).
+//   - The bulk Import button (#openImportModalBtn) is ANALYST-OR-ADMIN — present for both
+//     (gated by @if User.IsInRole("Admin") || User.IsInRole("Analyst") in the view, on both
+//     the button ~L248 and the import modal ~L404).
+//     Widened from admin-only in commit 5a94078 (2026-07-30) so the UI matches
+//     CertificateImportController's long-standing [Authorize(Policy = "AnalystOrAdmin")],
+//     which always permitted analysts server-side. This smoke asserted the pre-7/30 rule
+//     until 2026-08-03; see observations_log.md 2026-08-03 regression run.
 //
 // Run:  node Scripts/smoke-prod/_views/cert-tile-internal.js
 
@@ -42,13 +47,14 @@ async function run() {
       record('cert-tile-internal.internal-tag', 'Internal Tag column shown',
         intTag > 0 ? 'PASS' : 'FAIL', `internal-tag elements=${intTag}`);
 
-      // Import button is admin-only.
+      // Import button is analyst-or-admin (matches the AnalystOrAdmin policy on
+      // CertificateImportController). Anyone else must not see it.
       const importBtn = await page.locator('#openImportModalBtn').count();
-      if (role === 'admin') {
-        record('cert-tile-internal.import-admin', 'Admin sees bulk Import button',
+      if (role === 'admin' || role === 'analyst') {
+        record('cert-tile-internal.import-visible', `${role} sees bulk Import button`,
           importBtn > 0 ? 'PASS' : 'FAIL', `import button=${importBtn}`);
       } else {
-        record('cert-tile-internal.import-hidden', 'Non-admin does NOT see Import button',
+        record('cert-tile-internal.import-hidden', 'Non-analyst/admin does NOT see Import button',
           importBtn === 0 ? 'PASS' : 'FAIL', `import button=${importBtn}`);
       }
 

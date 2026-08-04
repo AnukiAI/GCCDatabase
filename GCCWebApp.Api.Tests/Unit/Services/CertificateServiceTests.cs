@@ -21,7 +21,10 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _context = TestDbContextFactory.CreateInMemoryContext();
             _loggerMock = new Mock<ILogger<CertificateService>>();
             var productIdServiceMock = new Mock<IProductIdService>();
-            _service = new CertificateService(_loggerMock.Object, _context, productIdServiceMock.Object);
+            // DEF-337: CertificateService now audits deletes (including cascade children).
+            var auditServiceMock = new Mock<GCCWebApp.Services.Audit.IAuditService>();
+            _service = new CertificateService(
+                _loggerMock.Object, _context, productIdServiceMock.Object, auditServiceMock.Object);
 
             SeedTestData();
         }

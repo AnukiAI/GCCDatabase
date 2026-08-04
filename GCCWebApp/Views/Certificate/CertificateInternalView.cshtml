@@ -30,6 +30,14 @@
     }
 }
 
+@* CR-031 (QC #188, client 2026-07-31): the CR-030 post-save "ExpiryCorrectionAlert" reader that
+   lived here has been REMOVED. The client replaced that toast with a pre-save confirmation on the
+   Edit form (Views/Certificate/Edit.cshtml), because "please confirm all fields are accurate" only
+   means something while the analyst can still change them. Its writer in CertificateController's
+   Edit POST was removed in the same change — per DEF-318, a TempData key must never be left with
+   a writer and no reader (an unread entry is re-saved indefinitely and surfaces on some unrelated
+   later page). Do not reintroduce a reader here without a writer, or vice versa. *@
+
 <!-- Certificate Details -->
 <div class="certificate-single-container" data-id="@certificateId">
     <!-- Certificate Card styled like tile view -->

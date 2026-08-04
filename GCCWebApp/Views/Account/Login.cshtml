@@ -40,13 +40,11 @@
                 </div>
             }
 
-            @if (TempData["Message"] != null)
-            {
-                <div class="alert-error">
-                    <i class="fas fa-info-circle"></i>
-                    @TempData["Message"]
-                </div>
-            }
+            @* DEF-334: a TempData["Message"] block lived here and was removed. Nothing in the
+               application has ever written that key, so this block could never render - dead UI, and
+               the reader half of the DEF-318 pattern (a reader with no writer). Messages on this page
+               come through ViewBag.Error above and the ModelState summary below. If a new message is
+               needed, add the writer and the reader together. *@
 
             @if (!ViewData.ModelState.IsValid)
             {

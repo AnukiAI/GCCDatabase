@@ -16,6 +16,14 @@ namespace GCCWebApp.Repositories
         Task<IEnumerable<Certificate>> GetCertificatesByProductAsync(int productId);
         Task<IEnumerable<Certificate>> GetCertificatesByTypeAsync(int certificateTypeId);
         Task<Certificate?> GetCertificateByNumberAsync(string certificateNumber);
+        /// <summary>
+        /// DEF-336: batched equivalent of <see cref="IRepository{T}.GetByIdAsync"/> for callers that
+        /// need many certificates at once. Same Includes, one round-trip set instead of N.
+        /// Calling GetByIdAsync in a loop is what timed out bulk ZIP download — with AsSplitQuery
+        /// each certificate costs ~6 queries, so 60 certs was ~360 sequential round-trips.
+        /// Missing IDs are simply absent from the result; callers must handle that.
+        /// </summary>
+        Task<IEnumerable<Certificate>> GetByIdsAsync(IEnumerable<int> ids);
         Task<IEnumerable<Certificate>> SearchCertificatesAsync(string searchTerm);
         Task<(IEnumerable<Certificate> certificates, int totalCount)> GetPagedCertificatesAsync(
             int page, int pageSize, string? searchTerm = null, int? companyId = null, int? productId = null, string? partner = null);
@@ -43,8 +51,9 @@ namespace GCCWebApp.Repositories
         Task<IEnumerable<string>> GetDistinctCountriesAsync();
         new Task<IEnumerable<Certificate>> FindAsync(System.Linq.Expressions.Expression<Func<Certificate, bool>> predicate);
 
-        // Certificate number generation
-        Task<string> GenerateNextCertificateNumberAsync();
+        // Certificate number generation.
+        // asOf is a test-only clock seam (QC #218 year-rollover proof); production passes null.
+        Task<string> GenerateNextCertificateNumberAsync(DateTime? asOf = null);
 
         // DEF-193: atomic generate-and-save with retry on unique-index conflict
         // so concurrent Create-form saves don't collide on Certificates.Number.

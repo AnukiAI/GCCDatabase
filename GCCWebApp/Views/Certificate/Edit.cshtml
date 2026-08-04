@@ -216,9 +216,10 @@
 
                     <div class="form-group">
                         <label asp-for="CertificationResults">Certification Results <span class="text-muted" style="font-size: 12px;">(Required for Amazon CPF)</span></label>
-                        <textarea asp-for="CertificationResults" rows="3" maxlength="1000" placeholder="Enter test results or scores if required by partner (e.g., threshold values for Amazon)"></textarea>
+@* DEF-317 (QC #240): client-supplied copy goes INSIDE the box as the placeholder, not under it.
+   Mirrors Create.cshtml — keep the two in lock-step. Wording is client-fixed; relocate only. *@
+                        <textarea asp-for="CertificationResults" rows="3" maxlength="1000" placeholder="Enter numeric certification results (e.g., 65%, 100%)"></textarea>
                         <span asp-validation-for="CertificationResults" class="text-danger" role="alert"></span>
-                        <small class="form-text text-muted">Enter numeric certification results (e.g., 65%, 100%)</small>
                     </div>
 
                     <div class="form-group">
@@ -843,6 +844,22 @@
             // Intercept form submission to handle custom fields
             const form = document.getElementById('certificateEditForm');
 
+            // CR-031 (QC #188, client 2026-07-31) — pre-save confirmation on any edit to a
+            // certificate that was ALREADY Expired when this form was opened.
+            //
+            // Supersedes the CR-030 post-save toast, which fired only on a past→future date
+            // correction. The client widened it to every field ("anytime... once the system has an
+            // expired ticket") and moved it before the save, because "please confirm all fields are
+            // accurate" is only actionable while the analyst can still change them.
+            //
+            // The trigger is ViewBag.OriginalStatusWasExpired — the STORED status, computed
+            // server-side. Deliberately NOT the Status dropdown's current value: the client asked
+            // for this "only if it is originally expired", so setting a live certificate TO Expired
+            // in this edit must not fire it. Reading the dropdown would also let the trigger flip
+            // mid-edit as the analyst changes their mind.
+            const originalStatusWasExpired = @(ViewBag.OriginalStatusWasExpired == true ? "true" : "false");
+            let expiredEditConfirmed = false;
+
             // Cross-field rule: Expiration Date must be after Effective Date.
             // type="date" values are yyyy-MM-dd, so a string compare is chronological.
             // Validates LIVE on either date's change (fires regardless of other required
@@ -953,6 +970,54 @@
                                 form.appendChild(hiddenInput);
                             });
                         });
+                    }
+
+                    // CR-031 gate. Runs LAST, after every client-side validation above has
+                    // passed — asking the analyst to confirm and then bouncing them back with a
+                    // validation error would make the confirmation meaningless.
+                    //
+                    // The submit event is synchronous and the modal is a Promise, so the only way
+                    // to gate on it is: cancel this submit, await the answer, then re-submit with
+                    // `expiredEditConfirmed` latched so the second pass falls straight through.
+                    // requestSubmit() re-fires this handler (and preserves the submit button as
+                    // the submitter); form.submit() is the fallback for anything that lacks it and
+                    // bypasses the handler entirely — safe here, since by that point every gate
+                    // above has already run and written its hidden inputs.
+                    if (originalStatusWasExpired && !expiredEditConfirmed) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const saveBtn = document.getElementById('saveButton');
+                        if (saveBtn) saveBtn.disabled = true;
+
+                        // Client's wording, VERBATIM including the leading "ALERT:" — do not
+                        // reword, re-case, or split it (Shawn, 2026-08-03). `title: null`
+                        // suppresses the modal heading so this sentence is the only copy shown;
+                        // a heading would repeat the word "ALERT". This is the single message for
+                        // BOTH expired states — it deliberately never names the specific status,
+                        // so it reads correctly for "Expired" and "Expired - No Annual
+                        // Verification" alike. Do not add a status-specific variant.
+                        window.CertificateCreate.showConfirmation({
+                            title: null,
+                            message: 'ALERT: You are updating a previously Expired certificate. Please confirm all fields are accurate including status, etc.',
+                            confirmText: 'Confirm',
+                            type: 'warning'
+                        }).then(function (confirmed) {
+                            if (saveBtn) saveBtn.disabled = false;
+                            if (!confirmed) return;   // Cancel → stay on the form, nothing saved
+                            expiredEditConfirmed = true;
+                            if (typeof form.requestSubmit === 'function') {
+                                form.requestSubmit(saveBtn || undefined);
+                            } else {
+                                form.submit();
+                            }
+                        }).catch(function (err) {
+                            // Never strand the analyst on a disabled Save if the modal itself fails.
+                            console.error('CR-031 expired-edit confirmation failed:', err);
+                            if (saveBtn) saveBtn.disabled = false;
+                        });
+
+                        return false;
                     }
 
                     return true;

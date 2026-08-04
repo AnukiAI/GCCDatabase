@@ -24,10 +24,18 @@ namespace GCCWebApp.Controllers.Api.v1
         private readonly ApplicationDbContext _context;
         private readonly ILogger<BulkCertificatesController> _logger;
 
-        public BulkCertificatesController(ApplicationDbContext context, ILogger<BulkCertificatesController> logger)
+        // DEF-337 (completion): bulk deletes route through the certificate service so they are
+        // audited and capture cascade children exactly as single deletes do.
+        private readonly GCCWebApp.Services.ICertificateService _certificateService;
+
+        public BulkCertificatesController(
+            ApplicationDbContext context,
+            ILogger<BulkCertificatesController> logger,
+            GCCWebApp.Services.ICertificateService certificateService)
         {
             _context = context;
             _logger = logger;
+            _certificateService = certificateService;
         }
 
         [HttpPost("create")]
@@ -269,11 +277,28 @@ namespace GCCWebApp.Controllers.Api.v1
                     continue;
                 }
 
-                _context.Certificates.Remove(cert);
-                result.Successful.Add(cert.Number);
+                // DEF-337 (completion): was a direct Remove — no audit, and every cascade child
+                // destroyed silently, 100 certificates at a time. Deleting through the service
+                // captures the snapshot and children per certificate.
+                if (await _certificateService.DeleteCertificateAsync(
+                        certId, userRole: "API", userId: 0, username: null))
+                {
+                    result.Successful.Add(cert.Number);
+                }
+                else
+                {
+                    result.Failed.Add(new BulkOperationFailure
+                    {
+                        Index = request.Ids.IndexOf(certId),
+                        Identifier = certId.ToString(),
+                        Errors = new List<ApiError>
+                        {
+                            new ApiError(ApiErrorCodes.InternalError,
+                                $"Failed to delete certificate with ID {certId}")
+                        }
+                    });
+                }
             }
-
-            await _context.SaveChangesAsync();
 
             result.TotalProcessed = request.Ids.Count;
             result.SuccessCount = result.Successful.Count;

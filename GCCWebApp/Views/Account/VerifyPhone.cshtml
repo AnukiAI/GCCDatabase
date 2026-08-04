@@ -1,0 +1,153 @@
+@*
+    DEF-333 — this view was MISSING. AccountController.VerifyPhone (GET :924 / POST :942) has always
+    existed and always ended in `return View()`, but there was no VerifyPhone.cshtml and no Shared
+    fallback, so MVC threw InvalidOperationException — an HTTP 500 — on a live authentication path.
+    Reached in two steps by any authenticated user: save a phone number on 2FA settings (which makes
+    the SMS option appear), then select SMS and save. No controller logic was changed to fix this;
+    only this file was added, which cannot alter any existing code path.
+
+    TempData: read ONLY via Peek() here. The POST action consumes TempData["TempPhoneNumber"] and
+    ["TempPreferredMethod"] on the next request; a plain TempData["..."] read in this view would mark
+    them for deletion and break verification. Peek does not consume. Do not change these to indexer
+    reads. See DEF-318/DEF-330 for what unpaired TempData access costs.
+*@
+@{
+    ViewData["Title"] = "Verify Phone Number";
+    ViewData["BodyClass"] = "login-page";
+    Layout = null;
+
+    var pendingPhone = TempData.Peek("TempPhoneNumber") as string;
+    var maskedPhone = string.IsNullOrWhiteSpace(pendingPhone) || pendingPhone.Length < 4
+        ? null
+        : "•••• " + pendingPhone.Substring(pendingPhone.Length - 4);
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GreenCircle Certified Database</title>
+    <link href="~/css/main.css" rel="stylesheet" />
+    <link href="~/css/auth.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@@fortawesome/fontawesome-free@@6.5.1/css/all.min.css" rel="stylesheet" />
+</head>
+<body class="login-page">
+    <main class="auth-container" role="main">
+        <a href="@Url.Action("TwoFactorPreferences", "Account")" class="back-link">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            Back to two-factor settings
+        </a>
+
+        <div class="auth-header">
+            <div class="auth-icon">
+                <i class="fas fa-mobile-alt" aria-hidden="true"></i>
+            </div>
+            <h2>Verify Your Phone Number</h2>
+            <p id="verify-instructions">
+                @if (maskedPhone != null)
+                {
+                    <text>Enter the 6-digit code we sent to @maskedPhone</text>
+                }
+                else
+                {
+                    <text>Enter the 6-digit code sent to your phone</text>
+                }
+            </p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(ViewBag.Error))
+        {
+            <div class="alert-error" role="alert">
+                <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+                @ViewBag.Error
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(ViewBag.Message))
+        {
+            <div class="alert-success" role="status">
+                <i class="fas fa-check-circle" aria-hidden="true"></i>
+                @ViewBag.Message
+            </div>
+        }
+
+        @* Posts to AccountController.VerifyPhone(string verificationCode). The hidden field name
+           must stay "verificationCode" — it is the action's parameter name. The tag helpers add the
+           antiforgery token the [ValidateAntiForgeryToken] attribute requires. *@
+        <form asp-controller="Account" asp-action="VerifyPhone" method="post" id="verifyPhoneForm">
+            <div class="form-group">
+                <label class="sr-only" id="code-label">Enter 6-digit verification code</label>
+                <div class="code-input-group" role="group" aria-labelledby="code-label" aria-describedby="verify-instructions">
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 1 of 6" inputmode="numeric" autocomplete="one-time-code" />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 2 of 6" inputmode="numeric" />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 3 of 6" inputmode="numeric" />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 4 of 6" inputmode="numeric" />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 5 of 6" inputmode="numeric" />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 6 of 6" inputmode="numeric" />
+                </div>
+                <input type="hidden" id="verificationCode" name="verificationCode" />
+            </div>
+
+            <button type="submit" class="btn-lime" aria-label="Verify phone number">
+                <i class="fas fa-mobile-alt" aria-hidden="true"></i>
+                Verify Phone Number
+            </button>
+        </form>
+
+        <div class="resend-section">
+            <p>Didn't receive a code?</p>
+            <a href="@Url.Action("TwoFactorPreferences", "Account")" class="resend-link">
+                Return to settings and re-send
+            </a>
+        </div>
+    </main>
+
+    <script>
+        // Same auto-advance behaviour as the sign-in 2FA page, so the two code entries feel identical.
+        document.addEventListener('DOMContentLoaded', function () {
+            var codeInputs = document.querySelectorAll('.code-input');
+            var codeField = document.getElementById('verificationCode');
+            if (!codeInputs.length || !codeField) return;
+
+            function updateCode() {
+                var code = '';
+                codeInputs.forEach(function (input) { code += input.value; });
+                codeField.value = code;
+            }
+
+            codeInputs[0].focus();
+
+            codeInputs.forEach(function (input, index) {
+                input.addEventListener('input', function () {
+                    if (this.value.length === 1 && index < codeInputs.length - 1) {
+                        codeInputs[index + 1].focus();
+                    }
+                    updateCode();
+                });
+
+                input.addEventListener('keydown', function (e) {
+                    if (e.key === 'Backspace' && this.value === '' && index > 0) {
+                        codeInputs[index - 1].focus();
+                    }
+                });
+
+                input.addEventListener('paste', function (e) {
+                    e.preventDefault();
+                    var pasted = (e.clipboardData || window.clipboardData).getData('text').slice(0, 6);
+                    pasted.split('').forEach(function (digit, i) {
+                        if (i < codeInputs.length && /[0-9]/.test(digit)) {
+                            codeInputs[i].value = digit;
+                        }
+                    });
+                    updateCode();
+                });
+            });
+
+            // Belt and braces: rebuild the hidden field on submit, so an autofilled value that never
+            // raised an input event still reaches the server.
+            document.getElementById('verifyPhoneForm').addEventListener('submit', updateCode);
+        });
+    </script>
+</body>
+</html>

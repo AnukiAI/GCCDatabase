@@ -1,0 +1,224 @@
+{
+  "base": "http://localhost:5101",
+  "pass": 22,
+  "fail": 5,
+  "total": 27,
+  "records": [
+    {
+      "view": "Public",
+      "number": "99-9001",
+      "state": "Draft",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "Public",
+      "number": "99-9002",
+      "state": "Client Approved - Not Paid",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "Public",
+      "number": "99-9003",
+      "state": "Client Approved - Confidential",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "Public",
+      "number": "99-9004",
+      "state": "Client Approved - Paid",
+      "expected": true,
+      "actual": true,
+      "status": "PASS"
+    },
+    {
+      "view": "Public",
+      "number": "99-9005",
+      "state": "Hold",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "Public",
+      "number": "99-9006",
+      "state": "Expired",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "Public",
+      "number": "99-9007",
+      "state": "Republished",
+      "expected": true,
+      "actual": true,
+      "status": "PASS"
+    },
+    {
+      "view": "Public",
+      "number": "99-9008",
+      "state": "Expired - No Annual Verification",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "Public",
+      "number": "99-9009",
+      "state": "Client Approved - Paid (OTHER co)",
+      "expected": true,
+      "actual": true,
+      "status": "PASS"
+    },
+    {
+      "view": "External",
+      "number": "99-9001",
+      "state": "Draft",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "External",
+      "number": "99-9002",
+      "state": "Client Approved - Not Paid",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "External",
+      "number": "99-9003",
+      "state": "Client Approved - Confidential",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "External",
+      "number": "99-9004",
+      "state": "Client Approved - Paid",
+      "expected": true,
+      "actual": true,
+      "status": "PASS"
+    },
+    {
+      "view": "External",
+      "number": "99-9005",
+      "state": "Hold",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "External",
+      "number": "99-9006",
+      "state": "Expired",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "External",
+      "number": "99-9007",
+      "state": "Republished",
+      "expected": true,
+      "actual": true,
+      "status": "PASS"
+    },
+    {
+      "view": "External",
+      "number": "99-9008",
+      "state": "Expired - No Annual Verification",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "External",
+      "number": "99-9009",
+      "state": "Client Approved - Paid (OTHER co)",
+      "expected": false,
+      "actual": false,
+      "status": "PASS"
+    },
+    {
+      "view": "Internal",
+      "number": "99-9001",
+      "state": "Draft",
+      "expected": true,
+      "actual": true,
+      "status": "PASS"
+    },
+    {
+      "view": "Internal",
+      "number": "99-9002",
+      "state": "Client Approved - Not Paid",
+      "expected": true,
+      "actual": true,
+      "status": "PASS"
+    },
+    {
+      "view": "Internal",
+      "number": "99-9003",
+      "state": "Client Approved - Confidential",
+      "expected": true,
+      "actual": false,
+      "status": "FAIL"
+    },
+    {
+      "view": "Internal",
+      "number": "99-9004",
+      "state": "Client Approved - Paid",
+      "expected": true,
+      "actual": false,
+      "status": "FAIL"
+    },
+    {
+      "view": "Internal",
+      "number": "99-9005",
+      "state": "Hold",
+      "expected": true,
+      "actual": false,
+      "status": "FAIL"
+    },
+    {
+      "view": "Internal",
+      "number": "99-9006",
+      "state": "Expired",
+      "expected": true,
+      "actual": true,
+      "status": "PASS"
+    },
+    {
+      "view": "Internal",
+      "number": "99-9007",
+      "state": "Republished",
+      "expected": true,
+      "actual": false,
+      "status": "FAIL"
+    },
+    {
+      "view": "Internal",
+      "number": "99-9008",
+      "state": "Expired - No Annual Verification",
+      "expected": true,
+      "actual": false,
+      "status": "FAIL"
+    },
+    {
+      "view": "Internal",
+      "number": "99-9009",
+      "state": "Client Approved - Paid (OTHER co)",
+      "expected": true,
+      "actual": true,
+      "status": "PASS"
+    }
+  ]
+}

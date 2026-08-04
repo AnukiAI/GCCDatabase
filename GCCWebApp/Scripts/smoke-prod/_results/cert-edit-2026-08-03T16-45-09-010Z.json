@@ -1,0 +1,495 @@
+{
+  "viewId": "cert-edit",
+  "url": "/Certificate/Edit/28-0002",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-08-03T16:45:09.010Z",
+  "finishedAt": "2026-08-03T16:47:15.812Z",
+  "pass": 57,
+  "fail": 2,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FEdit%2F28-0002"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-08-03T16-46-08-081Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-08-03T16-46-08-081Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\"",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-08-03T16-46-08-081Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\"",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-08-03T16-46-08-081Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-08-03T16-46-08-081Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-08-03T16-46-08-081Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-08-03T16-46-08-081Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Failed to load resource: net::ERR_NETWORK_CHANGED",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-08-03T16-46-08-081Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-08-03T16-46-08-081Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-edit-analyst-desktop-fail-2026-08-03T16-46-08-081Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-edit.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Certificate/Edit/28-0002\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Certificate/Edit/28-0002\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-edit-admin-desktop-fail-2026-08-03T16-46-38-395Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.form",
+      "name": "Edit form present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.number-populated",
+      "name": "Certificate # pre-populated",
+      "status": "PASS",
+      "notes": "number=\"28-0002\""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.company-populated",
+      "name": "Company pre-selected",
+      "status": "PASS",
+      "notes": "companyId=\"264\""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.product-populated",
+      "name": "Product Name shows saved value (DEF-225)",
+      "status": "PASS",
+      "notes": "productId=\"140\" matches saved"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.cert-results",
+      "name": "Certification Results field present (CR-001)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.product-id-manager",
+      "name": "Product ID Manager renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-edit.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    }
+  ]
+}

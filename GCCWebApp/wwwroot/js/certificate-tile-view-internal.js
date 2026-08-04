@@ -964,7 +964,8 @@
         // QC #197 / DEF-280: do NOT auto-select the first suggestion. Auto-highlighting item 0
         // meant pressing Enter replaced the user's typed text with the top suggestion (typed
         // "test" → became "carly test") with no way to override. With nothing pre-selected, Enter
-        // keeps the typed value; ArrowDown/hover still explicitly pick a suggestion.
+        // keeps the typed value; ArrowDown or a click explicitly picks a suggestion.
+        // DEF-319 (QC #197, 7/30): hover is NOT a pick. See the click handler below.
         container.innerHTML = suggestions.map((s) => `
             <div class="autocomplete-item" data-value="${escapeHtml(s.value)}">
                 <span class="autocomplete-label">${escapeHtml(s.label)}</span>
@@ -984,11 +985,15 @@
                 loadInitialCertificates();
                 updateUrl();
             });
-            
-            item.addEventListener('mouseenter', () => {
-                container.querySelectorAll('.autocomplete-item').forEach(i => i.classList.remove('selected'));
-                item.classList.add('selected');
-            });
+
+            // DEF-319 (QC #197): the mouseenter handler that used to live here added the
+            // 'selected' class — the SAME class the Enter branch of the keydown handler reads to
+            // decide what to commit. So merely moving the mouse across the list silently armed a
+            // suggestion, and Enter then committed the hovered item instead of the typed text.
+            // Hover must highlight, never select. The highlight is pure presentation and is
+            // already handled by the '.autocomplete-item:hover' rule in certificate-autocomplete.css,
+            // so no JS is needed here at all. 'selected' is now written only by ArrowUp/ArrowDown;
+            // committing a suggestion by mouse goes through the click handler above.
         });
     }
 

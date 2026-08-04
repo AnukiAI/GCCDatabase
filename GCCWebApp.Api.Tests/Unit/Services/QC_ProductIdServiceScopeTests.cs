@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using FluentAssertions;
@@ -25,7 +25,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         {
             _context = TestDbContextFactory.CreateInMemoryContext();
             _loggerMock = new Mock<ILogger<ProductIdService>>();
-            _service = new ProductIdService(_context, _loggerMock.Object);
+            _service = new ProductIdService(_context, _loggerMock.Object,
+                new Mock<GCCWebApp.Services.Audit.IAuditService>().Object);
 
             SeedTestData();
         }

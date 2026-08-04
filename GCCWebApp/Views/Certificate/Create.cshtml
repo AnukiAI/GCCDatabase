@@ -42,7 +42,10 @@
     </header>
 
     @* Success message will be shown as toast notification via JavaScript *@
-    @if (TempData["SuccessMessage"] is string successMsg)
+    @* DEF-318 (QC #193): reads "CreateSuccessMessage", NOT the shared "SuccessMessage" key. This
+       view is the only reader of that key and Create's "Save & Add Another" is its only writer, so
+       another flow's unconsumed message can no longer surface here. *@
+    @if (TempData["CreateSuccessMessage"] is string successMsg)
     {
         @* QC #193 / DEF-291: show the "created successfully" toast exactly once per server
            render. The guard is keyed on a per-render nonce (NOT the message text) so that
@@ -60,9 +63,24 @@
                         if (sessionStorage.getItem(seenKey)) return;
                         sessionStorage.setItem(seenKey, '1');
                     } catch (e) { /* sessionStorage unavailable — fall through and show once */ }
-                    if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
-                        AdminCore.showNotification(msg, 'success');
-                    }
+                    if (typeof AdminCore === 'undefined' || !AdminCore.showToastNotification) return;
+                    // DEF-338 (Shawn, 2026-08-04): a real toast, NOT AdminCore.showNotification() —
+                    // that helper routes every type to a centered blocking modal
+                    // (admin-core.js:121), which is what this view used to get despite the comment
+                    // above having always said "toast". Matches the import confirmation.
+                    //
+                    // initializeNotifications() must run first: showToastNotification appends into
+                    // AdminCore.notifications.container and never creates it, and AdminCore.init()
+                    // creates it from its own DOMContentLoaded handler registered at
+                    // admin-core.js:975. This script is in the view body, so it registers its
+                    // listener BEFORE admin-core.js (loaded at the end of _Layout) registers its
+                    // own — listeners fire in registration order, so on a fresh load we run first
+                    // and the append would throw on null. Idempotent (admin-core.js:112 guards on
+                    // an existing container), so it is a no-op once init() has run.
+                    AdminCore.initializeNotifications();
+                    // Default 5s duration here, unlike the import toast's 8s — this message is one
+                    // short line with no filename to read.
+                    AdminCore.showToastNotification(msg, 'success');
                 }
                 // bfcache restore (Back button) re-fires pageshow with persisted=true but NOT
                 // DOMContentLoaded; the seen-nonce check below blocks the stale re-show either way.
@@ -242,9 +260,11 @@
 
                     <div class="form-group">
                         <label asp-for="CertificationResults">Certification Results <span class="text-muted" style="font-size: 12px;">(Required for Amazon CPF)</span></label>
-                        <textarea asp-for="CertificationResults" rows="3" maxlength="1000" placeholder="Enter test results or scores if required by partner (e.g., threshold values for Amazon)"></textarea>
+@* DEF-317 (QC #171/#240): the client-supplied copy belongs INSIDE the box as the placeholder, not
+   under it. It previously sat in a <small> below while the placeholder carried different wording.
+   Client wording is fixed — relocate only, do not reword. Keep Create and Edit identical. *@
+                        <textarea asp-for="CertificationResults" rows="3" maxlength="1000" placeholder="Enter numeric certification results (e.g., 65%, 100%)"></textarea>
                         <span asp-validation-for="CertificationResults" class="text-danger" role="alert"></span>
-                        <small class="form-text text-muted">Enter numeric certification results (e.g., 65%, 100%)</small>
                     </div>
 
                     <div class="form-group">

@@ -1,0 +1,25 @@
+{
+  "specId": "idor-download",
+  "base": "http://localhost:5101",
+  "url": "/Certificate/DownloadSelectedZip",
+  "pass": 1,
+  "fail": 1,
+  "warn": 0,
+  "blocked": 0,
+  "total": 2,
+  "results": [
+    {
+      "id": "idor.login",
+      "name": "external login",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "idor.error",
+      "name": "spec ran without throwing",
+      "status": "FAIL",
+      "notes": "apiRequestContext.post: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - → POST http://localhost:5101/Certificate/DownloadSelectedZip\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - Content-Type: application/json\u001b[22m\n\u001b[2m    - content-length: 172\u001b[22m\n\u001b[2m    - cookie: __RequestVerificationToken=CfDJ8LNNT8DGfcNDt_2Iyir4gv9CWtBks8KY_kCJAxLrPt_ZP9PQzUTJQK4nYRQbgdST-0rSzQVriS_4L_-msb3eAyDJ-rRKzhCIkSURMl6aby5L_cxBJkB2LwdXUlBWWMZZujljRWYxEO4rGcCDRIgu9xA; GCC.Session=CfDJ8LNNT8DGfcNDt%2F2Iyir4gv%2F05e0OYvX5QPCa3bI2%2BMWbGIDDUbSSowiS3FjPQzTyOOVJED8wtSTRxPTdU1MjWBcrqCuoan%2BsMB97LSUa%2F8JNaj4fh%2F4VxEwdDzma%2FDsGXFuetNn2bIMRgf85FNlkFXjpLaQK9X7ES2cGuOy%2FNnaK; GCC.Auth=CfDJ8LNNT8DGfcNDt_2Iyir4gv8aNmU1XpbA6ZLNip4BILFnXwuurx3yF8e5FsQelD_5Q1n1tTWZP87fSzn1nxrLLcn5CzzQt35wpo-M3Mf7Fv9qFuLOwcFpLRE1PJM1hMMCjWhX1LNE5BpVyx5NJDkTlRXnHVanmPfB9uu8ydY-2lsDzkeNkAqYgTwbRrF4cQO-8AyELwniWy15QJjIM-IrHF1xD4uKosKQLcs-st2ycvbsIqAKcFgi73zwoS50_2GFvMIMB8-p_oAwGMxBV7mL2hyH4_FjR2HGSR4QxmTHPKl556Br8D297JYKWLnDchCrXwo51sNtCYQaxNGuA3JW9UCGtgl6A8R5U-MeXeopQVQwKN4XjB_z8AtY76Tsq6HPGcu_AIxzXRcU5Y59bLl5FGPvH8e53PjHQsdZWVnLjYPzBzyMC60R-zmkw4HM7BFtxLTwwtPABS9gp57i4Pa8ZOCcHJaTyse1-Jqx6zhUNXvF3GlMuTUz8kWquAh7Ss7DdH8Wngy89qcSyN65RlPPjB_jbb09s8zIyo6DqbC-gjhDp4XDwmXifZ7DT3LwZPAqT5RqRdq0DeINPwwnDYYuh27mP5fIFHz27nGInmE07HwyrsBiD2JZnSTojoZPyq4WULfe7Uo4KjCpz1wtIggjqTpS6J3a6W2l1JDe14TOFOfiZRKi5KBJaQmNgftsLp-TAidXkSxgLa6MZGet8nnF13-OpLsFz-rKSU7iVb3wzHH80uIOeA8oPxbYDFTwHz6eyiFP0RqmhvhJDQT0x-v9xYKvf9IzLuJTUs_sKjFkaveGb-k1V4y4Kukjwf-f5_w8hA; _ga_16J12CPD8S=GS2.1.s1785854284$o1$g0$t1785854284$j60$l0$h1307403616; _ga=GA1.1.1161309935.1785854285\u001b[22m\n"
+    }
+  ],
+  "finishedAt": "2026-08-04T14:38:36.236Z"
+}

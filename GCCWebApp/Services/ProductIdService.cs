@@ -1,5 +1,6 @@
-using GCCWebApp.Data;
+﻿using GCCWebApp.Data;
 using GCCWebApp.Models;
+using GCCWebApp.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
@@ -87,6 +88,7 @@ namespace GCCWebApp.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<ProductIdService> _logger;
+        private readonly GCCWebApp.Services.Audit.IAuditService _auditService;
 
         // Product ID validation patterns
         private readonly Dictionary<string, string> _validationPatterns = new()
@@ -100,10 +102,14 @@ namespace GCCWebApp.Services
             { "MPN", @"^[A-Z0-9\-_.]{1,50}$" }
         };
 
-        public ProductIdService(ApplicationDbContext context, ILogger<ProductIdService> logger)
+        public ProductIdService(
+            ApplicationDbContext context,
+            ILogger<ProductIdService> logger,
+            GCCWebApp.Services.Audit.IAuditService auditService)
         {
             _context = context;
             _logger = logger;
+            _auditService = auditService;
         }
 
         public async Task<List<CertificateProductId>> GetProductIdsByCertificateAsync(int certificateId)
@@ -365,11 +371,28 @@ namespace GCCWebApp.Services
         {
             try
             {
-                var productId = await _context.CertificateProductIds.FindAsync(id);
+                var productId = await _context.CertificateProductIds
+                    .Include(p => p.Partners)
+                    .FirstOrDefaultAsync(p => p.Id == id);
                 if (productId == null)
                 {
                     return false;
                 }
+
+                // DEF-337 (completion): product identifiers are what partners look certificates
+                // up by (ASIN, GTIN, SKU), and this delete wrote no audit at all — a removed
+                // identifier simply stopped resolving with no record of what it had been.
+                // CR-171 Phase 2 also hangs per-identifier partner sharing off this row via a
+                // cascading join table, so the visibility grants go with it.
+                var children = AuditJoinRowCollector.Collect(
+                    _context, typeof(CertificateProductId), nameof(CertificateProductId.Partners),
+                    id.ToString(), productId.Partners, p => p.Id.ToString(), p => p.Name);
+
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), productId.ProductIdValue, productId, children,
+                    userId: 0, username: string.Empty,
+                    reason: $"Product identifier deleted from certificate {productId.CertificateId}",
+                    changeSource: AuditChangeSource.WebUI);
 
                 _context.CertificateProductIds.Remove(productId);
                 await _context.SaveChangesAsync();
@@ -422,6 +445,26 @@ namespace GCCWebApp.Services
                             (p.ProductName != null && EF.Functions.Like(p.ProductName, $"%{s}%")) ||
                             (p.ProductSku != null && EF.Functions.Like(p.ProductSku, $"%{s}%")));
                     }
+                }
+
+                // DEF-337 (completion): ExecuteDeleteAsync issues a set-based DELETE straight to
+                // SQL — the rows never enter the change tracker, so nothing can be captured
+                // after this line. Snapshot them first. This path can wipe every identifier on
+                // a certificate in one call ("deleteAll" mode), which made it the largest
+                // unaudited destructive operation left in the system.
+                var doomed = await q.AsNoTracking().Include(p => p.Partners).ToListAsync();
+
+                foreach (var row in doomed)
+                {
+                    await _auditService.LogEntityDeleteWithChildrenAsync(
+                        row.Id.ToString(), row.ProductIdValue, row,
+                        AuditJoinRowCollector.Collect(
+                            _context, typeof(CertificateProductId), nameof(CertificateProductId.Partners),
+                            row.Id.ToString(), row.Partners, p => p.Id.ToString(), p => p.Name),
+                        userId: 0, username: string.Empty,
+                        reason: $"Bulk delete of product identifiers on certificate {certificateId} " +
+                                $"(mode: {(ids == null ? "deleteAll" : "ids")}, {doomed.Count} row(s))",
+                        changeSource: AuditChangeSource.WebUI);
                 }
 
                 var deleted = await q.ExecuteDeleteAsync();

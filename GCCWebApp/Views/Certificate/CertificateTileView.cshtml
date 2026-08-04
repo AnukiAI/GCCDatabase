@@ -4,6 +4,55 @@
 }
 <link rel="stylesheet" href="~/css/certificatetileview.css" asp-append-version="true" />
 
+@* DEF-338 (QC #193 follow-up): confirmation shown after a successful CSV import.
+   This view is the ONLY reader of "ImportSuccessMessage", and CertificateImportController's
+   Apply is its only writer — and Apply redirects HERE, so the entry is consumed on the very
+   next request and can never resurface out of context on an unrelated page (that was DEF-330).
+   Not a banner, and deliberately NOT AdminCore.showNotification() — that helper routes every
+   type to a centered blocking MODAL (admin-core.js:121), which is what the Create flow
+   still uses. Client asked for a real toast here (2026-08-04), so this calls
+   showToastNotification directly: non-blocking, auto-dismissing, top-right stack.
+   Do not repoint Apply's redirect without moving this reader with it. *@
+@if (TempData["ImportSuccessMessage"] is string importSuccessMsg)
+{
+    @* Nonce-guarded so a bfcache/Back restore — which replays this same inline script with the
+       old message — cannot re-fire it. Keyed on a per-render nonce, NOT the message text, so two
+       genuine imports with identical counts still each get their confirmation. Mirrors the
+       DEF-291 guard in Create.cshtml. *@
+    <script>
+        (function () {
+            var nonce = '@(Guid.NewGuid().ToString("N"))';
+            var msg = '@Html.Raw(importSuccessMsg.Replace("\\", "\\\\").Replace("'", "\\'"))';
+            var seenKey = 'importSuccessMsgShown:' + nonce;
+            function showOnce() {
+                try {
+                    if (sessionStorage.getItem(seenKey)) return;
+                    sessionStorage.setItem(seenKey, '1');
+                } catch (e) { /* sessionStorage unavailable — fall through and show once */ }
+                if (typeof AdminCore === 'undefined' || !AdminCore.showToastNotification) return;
+                // initializeNotifications() creates the fixed-position stack that
+                // showToastNotification appends into; without it that append throws on null.
+                // AdminCore.init() normally does this, but it cannot be relied on here: this
+                // script is in the view body and registers its DOMContentLoaded listener BEFORE
+                // admin-core.js (loaded at the end of _Layout) registers its own, and listeners
+                // fire in registration order — so on a fresh load we run first. The call is
+                // idempotent (admin-core.js:112 guards on an existing container), so calling it
+                // when init() has already run is a no-op.
+                AdminCore.initializeNotifications();
+                // 8s, not the 5s default: the message can carry the CR-023 R5 backup filename,
+                // which takes longer to read than "N created, M updated".
+                AdminCore.showToastNotification(msg, 'success', { duration: 8000 });
+            }
+            window.addEventListener('pageshow', function (e) { if (e.persisted) showOnce(); });
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', showOnce);
+            } else {
+                showOnce();
+            }
+        })();
+    </script>
+}
+
 <!-- Main Container -->
 <div class="main-container">
     <!-- Show Filters button (visible when sidebar collapsed) -->

@@ -310,8 +310,16 @@ function initializeMobileSubmenus() {
 function initializeSearchFunctionality() {
     const searchInput = document.querySelector('.search-bar input');
 
-    // Skip on Certificate tile view pages - they have their own search handling
-    const isTileViewPage = window.location.pathname.toLowerCase().includes('/certificate/certificatetileview');
+    // Skip on Certificate tile view pages - they have their own search handling.
+    // Detect the PAGE, not the URL: the public tile view is served at the site root "/"
+    // (default route, Program.cs — {controller=Certificate}/{action=CertificateTileView}),
+    // so a pathname test alone misses it for every visitor who arrives at the homepage.
+    // When it missed, the Enter handler below hard-navigated to
+    // /Certificate/CertificateTileView?search=<term>, discarding every active filter
+    // (cert type, category, company, country, tags) and the sort. #certificatesGrid is
+    // present on all three tile views (public/external/internal) and nowhere else.
+    const isTileViewPage = window.location.pathname.toLowerCase().includes('/certificate/certificatetileview')
+        || document.getElementById('certificatesGrid') !== null;
     if (isTileViewPage) {
         return;
     }

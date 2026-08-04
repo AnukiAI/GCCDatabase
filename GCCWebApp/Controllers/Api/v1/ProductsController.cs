@@ -1,10 +1,11 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Controllers.Api;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Models.Api;
+using GCCWebApp.Services.Audit;
 using Asp.Versioning;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
@@ -35,10 +36,16 @@ namespace GCCWebApp.Controllers.Api.v1
         private readonly ApplicationDbContext _context;
         private readonly ILogger<ProductsController> _logger;
 
-        public ProductsController(ApplicationDbContext context, ILogger<ProductsController> logger)
+        private readonly GCCWebApp.Services.Audit.IAuditService _auditService;
+
+        public ProductsController(
+            ApplicationDbContext context,
+            ILogger<ProductsController> logger,
+            GCCWebApp.Services.Audit.IAuditService auditService)
         {
             _context = context;
             _logger = logger;
+            _auditService = auditService;
         }
 
         /// <summary>
@@ -299,6 +306,17 @@ namespace GCCWebApp.Controllers.Api.v1
                 var product = await _context.Products.FindAsync(id);
                 if (product == null)
                     return NotFoundResponse($"Product with ID {id} not found");
+
+                // DEF-337 (completion): unaudited hard delete — the API could destroy a product
+                // and its ProductIdentifiers (the ASINs/GTINs partners look products up by) with
+                // no record of either. Same capture the admin UI path performs.
+                var children = await ProductDeleteAudit.CollectChildrenAsync(_context, id);
+
+                await _auditService.LogEntityDeleteWithChildrenAsync(
+                    id.ToString(), product.Name, product, children,
+                    userId: 0, username: string.Empty,
+                    reason: $"Product deleted via v1 API ({children.Count} cascade child row(s) captured)",
+                    changeSource: AuditChangeSource.API);
 
                 _context.Products.Remove(product);
                 await _context.SaveChangesAsync();

@@ -7792,6 +7792,514 @@ Note the "View" control uses the same thumbnail URL as the preview (there is no 
 
 ---
 
+### DEF-337 — Delete recoverability: cascade children are destroyed unaudited, and the system's core entity (Certificate) has no delete audit at all
+
+**Date:** 2026-08-04 | **Status:** **Logged only — not fixed.** | **Severity:** **Major (data-loss / recoverability).** | **QC Ref:** none — found by Anuki while restoring a mistaken delete during QC #242 follow-up. **Found by:** Anuki. | **Reporter:** Anuki (internal).
+
+> **CORRECTION 2026-08-04 — this entry's original claim was WRONG and is retracted.**
+> It asserted the audit snapshot "captures only 8 of 16 columns" and that `ProductTypeId` was
+> unrecoverable. **Not true.** `AuditService.BuildEntitySerializerOptions` sets
+> `DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull` (`Services/Audit/AuditService.cs:491`),
+> so **NULL fields are omitted by design — an absent key means NULL, not "not captured."**
+> The blob for products 100/101 was therefore *complete*: those products genuinely had
+> `ProductTypeId`, `Sku`, `Upc`, `Asin`, `Description`, `Model` all NULL. The restore was
+> **faithful, not lossy**. Scalar-field capture on delete is sound; the real gaps are below.
+
+**How it surfaced.** Two products (`Id 100`, `101`, both `Test Carly`, company 29 `TEST`) were deleted from the admin UI on 2026-08-04 by mistake, then restored from the audit snapshot.
+
+**What is genuinely broken.**
+
+**1. Cascade children are destroyed with no audit record — truly unrecoverable.** `ProductIdentifiers.ProductId` and `ProductTag.ProductsId` are both `ON DELETE CASCADE`. When a product is deleted, those rows vanish at the SQL layer, and the audit writes nothing for them. Compounding it, `BuildEntitySerializerOptions` deliberately strips navigation **collections** from the blob (`AuditService.cs:521-525`), so the parent's snapshot does not carry them either. Nothing anywhere records what the child rows were. (In this incident there were none — verified — so nothing was lost. The exposure is general.)
+
+**2. `Certificate` — the system's core entity — has no delete audit whatsoever.** `Services/CertificateService.cs` never references `_auditService`. A deleted certificate leaves no snapshot to restore from, and its `CertificateProductIds`, `CertificatePartners` and status history go with it. This is the single largest recoverability hole in the system, and it is far more serious than the product case that exposed it.
+
+**3. Delete-audit coverage is inconsistent across entities.** Only four paths write a DELETE record: `ProductController.cs:532`, `AdminService.cs:659` (User — and that one is a *soft* delete, so it is genuinely recoverable), `CompanyService.cs:174`, and `CertificateImportService.cs:1004` (import undo). **ProductCategories, ProductTypes, CertificationTypes and Tags write no audit row on delete at all** — which is why, earlier the same day, the audit log could neither confirm nor deny whether a category had been deleted; only row counts could settle it.
+
+**4. Products are hard-deleted despite having an `IsDeleted` column.** `Products.IsDeleted` exists and is `NOT NULL`, but the delete path physically removes the row. Same recoverable-delete gap as [[DEF-288]] (certificates), on a table already carrying the column to avoid it. Users already do this correctly (soft delete) — the pattern exists in the codebase and simply is not applied here.
+
+**5. `UpdatedAt` is excluded from every snapshot** via `AuditSkipFields` (`AuditService.cs:414`). Minor and arguably intentional, but it means a restore cannot reproduce the original modification timestamp.
+
+**Suggested direction (not built).** Extend delete-audit coverage to every deletable entity; capture cascade children before the parent goes (or make the deletes soft so nothing cascades); and prefer soft delete wherever an `IsDeleted` column already exists. Decide alongside [[DEF-288]] — same decision, several tables. Full options and trade-offs: `docs/tracking/audit-restore-improvement-proposal.md`.
+
+**Related.** `Scripts/data-ops/2026-08-04-restore-products-100-101.sql` — restore committed 2026-08-04 (test env), both rows back, faithful to the snapshot.
+
+**Linked memory.** [[feedback_data_changes_require_cr]], [[reference_testenv_sql_delete_gotchas]].
+
+---
+
+### DEF-326 — Partner-isolation tests passed vacuously: absence assertions were satisfied by an empty result set
+
+**Date:** 2026-07-31 | **Status:** Fixed (`GCCWebApp.Api.Tests/Integration/PartnerApiScopingTests.cs`) — working tree, test-only change | **Severity:** **High (assurance defect).** No product code is wrong, but the control guarding partner data isolation was reporting green while proving nothing. | **QC Ref:** none — found by Anuki during the 2026-07-31 test-suite triage. | **Reporter:** Anuki (internal).
+
+**What was wrong.** Most isolation assertions in `PartnerApiScopingTests` take the form *"enumerate the returned certificates and prove none belong to another partner"*. Over an **empty** array that loop body never runs, so the test passes without testing anything.
+
+The fixture stopped returning data at some point (cause still unidentified — see `docs/tracking/test-suite-triage-2026-07-31.md`). The suite split cleanly along that fault line:
+
+- **Every test asserting data IS returned → failed.** `ReturnsTwoCertificates`, `IncludesProductIdentifiers`, `AmazonCodeFieldPopulated`, …
+- **Every test asserting data is ABSENT → passed.** `DoesNotReturnNoviOrOtherCertificates`, `NeverReturnsNonePartner`, `AllReturnedCertsMatchPartner`, `ReturnsEmptyDueToScoping`, …
+
+`AllReturnedCertsMatchPartner` is the clearest case: it iterates the returned certificates and checks each one's `partner` field. Over zero rows that is a no-op that reports success.
+
+**Why it matters more than the red tests.** These are the tests that guarantee [[feedback_partner_data_isolation]] — that Amazon never sees Novi's certificates and vice versa, the property DEF-103 and DEF-198 were built to enforce. **They would have kept passing if partner isolation broke completely.** The suite failed closed (nothing was over-shared, so there is no evidence of a live leak) but it was providing false assurance on the most sensitive behavior in the product.
+
+**Fix — make emptiness a failure wherever it would make an assertion meaningless.**
+- Added `RequireNonEmptyData(doc, because)`: asserts the response carries a `data` array and that the array is non-empty, with a message naming the vacuity risk. Used in place of a bare `GetProperty("data")` in every absence-asserting test.
+- **Positive controls** for the two tests that legitimately expect an empty result (`Amazon_SearchByNoviSku_ReturnsEmptyDueToScoping`, `Novi_SearchByAmazonAsin_ReturnsEmptyDueToScoping`). These cannot use a non-empty guard — empty *is* the expected answer — so each now first proves the endpoint returns data for the caller's **own** product ID. Only then does the empty cross-partner result distinguish "correctly scoped out" from "this endpoint returns nothing to anyone".
+- **`GetCertificateFieldNames`** returned an empty list when the array was empty, which made `AllPartners_StandardResponse_HaveSameFieldSet` compare three empty lists and pass — the most misleading green in the suite, since it claims to verify every partner receives an identical response shape. Empty is now a failure.
+- **Two GS1 tests** (`GtinPaddedTo14Digits`, `StatusMappedCorrectly`) looped over an empty array. Guarded; the GTIN test additionally counts the GTINs it actually examined, because its inner `if` could skip every row even with data present.
+
+**Result — the failure count went UP, and that is the point.**
+
+| | Before | After |
+|---|---:|---:|
+| Suite total | 709 | 709 |
+| Passing | 647 | **633** |
+| Failing | 62 | **76** |
+| `PartnerApiScopingTests` failures | 26 | **40** |
+
+**14 tests moved from vacuous-pass to honest-fail.** Every other test class is unchanged (verified by class-level diff), so nothing else was disturbed. The suite now tells the truth: partner isolation is currently **unverified**, rather than falsely verified.
+
+**Deliberately left passing.** Six tests in the class still pass and should: `NoApiKey_…_ReturnsUnauthorized`, `InvalidPartnerApiKey_…_ReturnsUnauthorized`, `SearchByProductId_InvalidType_ReturnsBadRequest` (all genuinely data-independent) and `Amazon_GetCertificates_PaginationMetadataPresent`, which checks the response envelope carries pagination metadata — legitimately true of an empty page, so forcing data there would change what the test means.
+
+**Not fixed here:** why the fixture returns nothing. That is the separate open thread in the triage document. This change does not make the suite green — it makes it honest, which is the precondition for fixing the rest.
+
+**Other suites checked, no change needed.** `CertificateTileExternalApiControllerTests` already pairs `Should().Contain(...)` with `Should().NotContain(...)`, so it cannot pass on an empty set; `MultiPartnerApiIntegrationTests` asserts `NotBeEmpty` on content. The vacuity was specific to `PartnerApiScopingTests`.
+
+**Linked memory.** [[feedback_partner_data_isolation]], [[project_security_regression_suite]].
+
+---
+
+### DEF-323 — Product Category usage column reported 0 products while the delete refused for exactly those products
+
+**Date:** 2026-07-31 (**evidence corrected 2026-08-03** — original figures were taken from the dev DB, not the client's environment; see the ground-truth table) | **Status:** Fixed (`Services/AdminService.cs`) — working tree, **pending next deploy bundle**. Covers the misreported count only; the **"see what is associated"** half of QC #242 is **still open — logged as CR-032** (see Second correction). | **Severity:** Major — the screen actively misdirects the user; the one number meant to explain a blocked delete says the blocker does not exist | **QC Ref:** **#242** (Reporter: client, opened **2026-07-30**, log status *New*). Image 107. **Found by:** client. | **Reporter:** Anuki (internal).
+
+**Client report (7/30, verbatim).** *"I cannot delete Carly Test even though I updated all certs that are using it... The table is saying there are 2 Test Type but I can't find them to remove to then be able to remove this test item."*
+
+**First correction: "Carly Test" is a Product CATEGORY, not a Product Type.** It is `ProductCategories.Id = 9` on both dev and the test environment, and it has **zero** product types under it.
+
+**Measured ground truth — CORRECTED 2026-08-03 to the TEST ENVIRONMENT** (`gccwebapp.com` → `gccwebap_certificates`), which is the environment the client was actually using. The original entry cited **dev DB** figures (1 product / 2 certificates); those were never the client's numbers.
+
+| Reference | Test env (client's) | Dev DB (originally cited) |
+|---|---|---|
+| Child ProductTypes | **0** | 0 |
+| Products attached directly (`Products.CategoryId = 9`) | **2** | 1 |
+| Certificates attached (`Certificates.ProductCategoryId = 9`) | **0** | 2 |
+
+**The two products are the entire blocker, and both are fully orphaned** — 0 certificates (`Certificates.ProductId`), 0 `ProductIdentifiers`:
+
+| Product Id | Name | Placement |
+|---|---|---|
+| **389** | `Carly Test` | `CategoryId = 9`, no ProductType |
+| **392** | `Test` | `CategoryId = 9`, no ProductType |
+
+**This vindicates the client's own account.** They wrote *"even though I updated all certs that are using it"* — the certificate count on their environment is genuinely **0**. They had finished the cert reassignment; only the two products remained, and those are exactly what the Usage column was reporting as 0.
+
+**Root cause.** `GetProductTypesAsync` seeded each category node's product set as empty on an explicit — and false — assertion in the code: `var catProductIds = new HashSet<int>(); // categories have no direct products`. `Products.CategoryId` is a real FK; a product can sit directly under a category with no ProductType in between. The category's Products figure therefore only ever counted products reached *through its child types*. With zero child types, "Carly Test" reported **Products = 0**.
+
+Meanwhile `DeleteProductCategoryAsync` checks `category.Products` — the direct FK — and refused with *"Cannot delete: N product(s) are assigned to this category."* (**N = 2** on the client's test environment; the originally-quoted *"1 product(s)"* was the dev DB's message.)
+
+So the two halves disagreed by construction: **the display read one set of FKs and the delete pre-check read another.** The client saw Products = 0, was told products were blocking the delete, and had no on-screen number anywhere that pointed at the two rows actually holding it.
+
+**Second correction (2026-08-03): the "2 Test Type" is a real, separate record — the original entry wrongly dismissed it as nonexistent.** There is a Product **Type** named `Test Type`, `ProductTypes.Id = 86`, sitting under category **Chemicals and Raw Materials** (`CategoryId = 1`) — *not* under Carly Test. It holds exactly **2 products**, and that is the "2" the client was reading:
+
+| Product Id | Name |
+|---|---|
+| **140** | `Best Product Ever v2` |
+| **141** | `Best Product Ever v3™` |
+
+Both are likewise orphaned (0 certificates, 0 identifiers). **This case is untouched by the fix below** — products linked via `ProductTypeId` were always counted correctly, so `Test Type` displayed an accurate 2 the whole time. The client still could not act on it, because neither product name reveals it is test data and the screen shows a count with no way to reach the rows behind it. That is the residual **"or see what is associated"** half of QC #242 — logged as **CR-032** (proposed 2026-08-04). Note CR-032 was **narrowed the same day**: the root cause is data (4 live test products), not code, and the "override" idea was an internal triage note rather than a client ask. The immediate block clears via CR-019 data cleanup with no code change.
+
+**Same failure family as DEF-196/197**, which corrected the *certificate* rollups at every node but left this product path untouched. Third time in this subsystem that a count and a guard have been sourced from different queries — see [[feedback_scoping_check_adjacent_endpoints]].
+
+**Fix.** Collect `Products.CategoryId` into a `productIdsByCategory` lookup and seed each category node from it, then union the child-type sets on top as before. `HashSet<int>` union, so a product reachable both directly and through a child type is still counted once. Display and delete pre-check now read the same FKs.
+
+**Expected post-deploy result on the TEST ENV** (from the 2026-08-03 read-only re-check, not yet observed in the UI because the fix has not shipped): the "Carly Test" row should read **`productCount: 2, certificateCount: 0`** — was `0 / 0`, i.e. a category the screen described as completely empty while refusing to delete it. Those 2 products are #389 and #392 above.
+
+**Validation (localhost:5101 against the DEV DB, 2026-07-31, authed as Admin).** `/Admin/GetProductTypes` for "Carly Test" returns `productCount: 1, certificateCount: 2` (was `0 / 2`) — dev's row shape differs from the client's, but it exercises the same corrected code path. Cross-checked **all 9 active categories** against SQL ground truth (`DISTINCT` products via direct `CategoryId` ∪ `ProductTypeId` ∪ `ProductSubcategoryId`): API vs SQL — Carly Test 1/1, Chemicals 72/72, Clothing 6/6, Construction 0/0, Consumer 24/24, Electronics 8/8, Food 10/10, Healthcare 0/0, Packaging 0/0. **Exact match on every node — no inflation**, which was the specific regression DEF-197 had to fix previously.
+
+**Linked memory.** [[feedback_scoping_check_adjacent_endpoints]], [[feedback_column_exists_but_never_projected]].
+
+---
+
+### DEF-329 — Header search on the homepage discarded every active filter, because the "am I on a tile view?" test checked the URL instead of the page
+
+**Date:** 2026-08-03 | **Status:** Fixed (`wwwroot/js/main.js` — `initializeSearchFunctionality`) — working tree, **pending next deploy bundle** | **Severity:** Major — silent loss of the user's filter state on the most-used entry point | **QC Ref:** none recorded. **Found by:** unknown — see provenance note. | **Reporter:** Anuki (internal).
+
+> ⚠️ **Provenance / how this entry was written.** This change was found **already present in the working tree** during the Gate 5 traceability audit for the next deploy bundle (2026-08-03), with **no DEF or CR covering it** — the only orphan in a 24-file changeset. It was produced by a parallel work stream, not by the session that wrote this entry. The description below is **reconstructed from the diff and its own inline comment**, and the behaviour has **not** been independently re-verified here. Logged so the change is traceable rather than shipping undocumented (per the Gate 5 "no orphan changes" rule). **Whoever made the change should confirm or correct this entry, and add its QC ref if one exists.**
+
+**Symptom (as described by the code's own comment).** Typing in the header search bar and pressing Enter on the **public tile view served at the site root `/`** hard-navigated to `/Certificate/CertificateTileView?search=<term>`, discarding every active filter — certificate type, category, company, country, tags — and the sort along with them.
+
+**Root cause.** `initializeSearchFunctionality` decides whether to bind its own Enter handler by asking whether the tile view is *already* handling search. That test was a **URL string check**:
+
+```js
+const isTileViewPage = window.location.pathname.toLowerCase().includes('/certificate/certificatetileview');
+```
+
+The public tile view is the **default route** (`Program.cs` — `{controller=Certificate}/{action=CertificateTileView}`), so a visitor who arrives at the homepage is on that view at pathname `/`. The string test returns `false` there, `main.js` binds its generic Enter handler on top of the page's own search handling, and that handler navigates rather than filtering in place — throwing away the filter state the tile view was holding.
+
+**Fix.** Detect the **page**, not the URL — test for a DOM element that exists on the tile views and nowhere else:
+
+```js
+const isTileViewPage = window.location.pathname.toLowerCase().includes('/certificate/certificatetileview')
+    || document.getElementById('certificatesGrid') !== null;
+```
+
+`#certificatesGrid` is present on all three tile views (public / external / internal), so the same guard now covers the root-served case. The original URL check is retained, so nothing that worked before changes.
+
+**Why this class of bug recurs here.** Route defaults mean one view has **two** valid URLs, and any behaviour keyed on the pathname silently covers only one of them. Same shape as [[feedback_scoping_check_adjacent_endpoints]] — the obvious path gets handled, the alias does not.
+
+**Owed before this is closed:** confirm the QC ref (if any) and re-verify on the live homepage at 5 viewports per the standing Playwright rule — neither was done in the audit session that logged it.
+
+---
+
+### DEF-328 — Public certificate tile view hangs ~25s per API call: EF's `OPENJSON` translation of the status filter is plan-unstable, and stale statistics cached the bad plan
+
+**Date:** 2026-08-03 | **Status:** Fixed (`Repositories/CertificateRepository.cs` — `GetAdvancedFilteredCertificatesAsync`, all 9 collection filters) — working tree, **pending next deploy bundle**. Prod also needs the one-time `UPDATE STATISTICS` below to clear the currently-cached bad plan ahead of the deploy. | **Severity:** Major — the public landing view is unusable; it spins ~50s before any tile renders | **QC Ref:** none — found internally while starting the app on `localhost:5101`. **Found by:** Anuki. | **Reporter:** Anuki (internal).
+
+**Symptom.** `/Certificate/CertificateTileView` sits on "Loading certificates…" with an empty sidebar. Nothing is broken client-side — no console errors, the JS loads and its fetches fire correctly. Both calls the page makes simply take ~25s each (`/api/certificate-tiles` and `/api/certificate-tiles/filters`), so the page needs ~50s to paint and users abandon first.
+
+**What it was not.** Worth recording, because four plausible causes were measured and cleared:
+
+| Hypothesis | Measurement | Verdict |
+|---|---|---|
+| Slow query / cartesian explosion | server-side execution 34–83ms; 55 certs, 121 products total | not the data volume |
+| Thread-pool starvation | CPU ~0%, ThreadPool queue length 0 for the whole 25s (`dotnet-counters`) | process is idle-waiting |
+| App-side work (PDF/thumbnail/materialization) | reproduces with the app **stopped**, via plain ADO.NET | not app code |
+| Transport (MARS, async, TCP vs shared memory) | 25s in all four combinations, and over `lpc:` too | not the transport |
+
+**Root cause.** `CertificateRepository.GetAdvancedFilteredCertificatesAsync:248-249` filters `filter.Statuses.Contains(c.Status)`. EF Core 8 translates a parameterized collection to `OPENJSON(@param)`. `OPENJSON` carries a fixed cardinality guess, so on the 10-join tile query the optimizer built a bad plan and cached it. Isolated by changing exactly one clause on EF's own emitted SQL:
+
+| Variant | Time |
+|---|---|
+| EF's exact SQL, `OPENJSON(@param)` | **25.9 s** |
+| Identical query, literal `IN (N'…', N'…')` | **0.26 s** |
+| `OPENJSON` + `OPTION (RECOMPILE)` | **0.22 s** |
+| `OPENJSON` after `UPDATE STATISTICS … WITH FULLSCAN` | **0.14 s** |
+
+`RECOMPILE` fixing it proves the plan, not the query, was the problem.
+
+**Why it surfaced now ("recently broke") despite no code change.** Nothing in this path has changed since 2026-06-18 and EF 8.0.11 landed 2025-09-28 — neither is recent. Auto-update statistics is ON, but on tables this small (55 rows) the modification threshold is large relative to the row count, so stats sat stale through data churn and never refreshed. Once a bad plan was cached it was served to every request. This is a **plan/data issue, not a code regression** — logged as a defect at Shawn's direction because the user-visible failure is total.
+
+**Note on the prior DEF-234 fix.** The comment at `CertificateRepository.cs:350-356` records "measured: 23.1s first hit" and attributes it to cartesian explosion across the `Tags`/`Partners` includes, fixed with `AsSplitQuery()`. That is the *same* 25s stall. `AsSplitQuery()` did not fix it and the real cause was missed then — only the first split query is slow, and it is slow because of `OPENJSON`, not the collection joins. Leave `AsSplitQuery()` in place (it is correct on its own merits) but do not treat DEF-234 as having addressed this.
+
+**Fix.** Two layers:
+1. **Production, immediate, no deploy:** run `UPDATE STATISTICS` on `Certificates`, `Products`, `Companies`, `ProductTypes`, `ProductCategories`, `CertificationTypes`. This clears the live symptom in seconds, ahead of the deploy.
+2. **Durable, code — APPLIED 2026-08-03:** `EF.Constant(...)` wrapped around every parameterized-collection filter in `GetAdvancedFilteredCertificatesAsync` — all **9**: `Statuses`, `TagIds`, `Tags`, `AdditionalFilters`, `CertificationTypeNames`, `Countries`, `CompanyIds`, `CompanyNames`, `ProductCategories` (that last one is referenced 9 times inside a single predicate, so 17 `EF.Constant` call sites total). Fixing only `Statuses` would have prevented this specific outage — the default unfiltered view passes only `Statuses` — but left the other 8 exposed the moment a sidebar filter is used.
+
+Because `EF.Constant` changes the SQL text, the deploy produces a new query hash and a fresh plan, so it also supersedes the cached bad plan on its own. Item 1 is the fast unblock, not a prerequisite.
+
+**Deliberately left alone.** `CertificateExpirationService` still emits one `OPENJSON` (`Status NOT IN (…)`) on its 60s sweep. It is a single-table query with no joins, measured 48–301ms, and is not on the tile request path — the optimizer has little room to go wrong there. Out of scope for this fix; noted so it is not mistaken for a missed site.
+
+**Rejected: global `UseCompatibilityLevel(120)`.** It disables `OPENJSON` translation app-wide, but tells EF to emit SQL as if targeting SQL Server 2014 across every query in the app — far more surface than the affected path, requiring a full regression pass through the security suite and prod smokes. Item 2 covers the tile path at a fraction of the risk.
+
+**Environment.** SQL Server 2022 (16.0.1190.2, Developer), DB compat level 150, auto-update stats ON. EF Core **8.0.11** — note `.claude/CLAUDE.md` claims EF Core 9.0, which is wrong and should be corrected.
+
+**Data impact.** None. `UPDATE STATISTICS` is a maintenance operation — it reads and rewrites optimizer metadata only, no business records touched. No CR required per [[feedback_data_changes_require_cr]]. Run against dev (`GCCDatabase_Dev`) and against the test env (below).
+
+**Test-env stats refresh applied 2026-08-03 (`gccwebap_certificates` @ `tcp:68.71.129.120,1533`), at Shawn's direction, ahead of the code deploy.**
+
+The tile view on gccwebapp.com was **not** exhibiting the stall when checked (0.43s warm, 66 certs) — the env happened to hold a good cached plan. But its statistics were badly stale, i.e. exactly one plan-cache eviction away from the same outage, plausibly mid-client-test:
+
+| Table | Stats last updated | Rows *recorded* | Mods since | Actual rows |
+|---|---|---|---:|---:|
+| `ProductTypes` | 2025-11-19 (one stat **NEVER**) | 19 | 499 | 51 |
+| `Companies` | 2025-11-19 | 28 | 417 | ~170 |
+| `CertificationTypes` | 2025-11-17 | 5 | 324 | ~35 |
+| `Products` | 2026-01-14 | 43 | 591 | ~313 |
+
+`UPDATE STATISTICS … WITH FULLSCAN` on all six tables — all succeeded, 65–256ms each. Post-run: every stat dated 2026-08-03, modification counters at 0, row counts accurate. Live API after: **0.21–0.24s warm** (from 0.43s), `/filters` 0.33s.
+
+This does **not** substitute for the deploy — the undeployed code still emits `OPENJSON`, so the env remains plan-sensitive until the fix ships. It removes the stale-stats trigger in the meantime.
+
+**Validation (localhost:5101, 2026-08-03).**
+
+- **Generated SQL:** the status predicate now renders `[c].[Status] IN (N'Client Approved - Paid', N'Republished')`. Zero `OPENJSON` in any tile-path query (the only two remaining in the log are the expiration sweep noted above). Slowest single `DbCommand` across the whole tile path is now **105ms**, down from **25,140ms**.
+- **Timings:** tile API 25.4s → **0.29–1.47s warm**; `/filters` → 0.73s; rendered page 0.22s; every sidebar path exercised (company, certType, country, productCategory, search) all sub-3s.
+- **Cold start, stated honestly:** the *first* tile request against a freshly started process is **~5–6s** (measured 4.99s and 6.35s on two clean restarts). That is Debug-build JIT + EF model building + first query compilation, not the defect — it was ~2s on the same path before this change and is unrelated to the plan problem. One 22.5s outlier was recorded immediately after two back-to-back full test-suite runs had churned the server; it did not reproduce on either clean restart. Release builds and a warm production process do not pay this.
+- **Correctness against SQL ground truth** — API `totalCount` vs direct `sqlcmd` counts: base **24/24**, `company=3M` **1/1**, `certType=Recycled Content` **4/4**, `country=United States` **13/13**. Exact match on every path, so the translation change did not alter result sets.
+- **Rendered page:** "Showing 24 of 24 certificates", 24 tiles, sidebar populated (11 cert types, 9 product categories, 20 companies).
+- **Regression suite:** `GCCWebApp.Api.Tests` run twice with the app stopped (it locks the binary and silently turns a run into a build failure). Baseline with this change stashed = **78 failed / 631 passed**; with the change = **76 failed / 633 passed**. Name-level diff of the failing sets: **zero newly failing tests**. The 2-test delta is the DEF-322 numbering tests, which the stash also reverted — not an effect of this change.
+
+**Unrelated observation, not from this work.** The 7/31 triage (`test-suite-triage-2026-07-31.md`) recorded **62** pre-existing failures; the suite now sits at **76** with the full working tree applied. Stashing only this fix left 78, so the +14 drift came from other uncommitted working-tree changes made after that triage, not from DEF-328. Worth a look before the next deploy bundle.
+
+**Linked memory.** [[feedback_ef_includes_with_projection]], [[feedback_no_chaos_rabbit_holes]].
+
+---
+
+### DEF-327 — `User` carries two status columns that drift apart; a CSV-imported inactive user shows as Active, cannot log in, and cannot be repaired from the admin UI
+
+**Date:** 2026-07-31 | **Status:** Fixed (`Services/AdminService.cs` — `UpdateUserAsync` + `BulkImportUsersAsync`) — working tree, **pending next deploy bundle** | **Severity:** Major — produces accounts that are locked out with no UI remedy | **QC Ref:** none — found internally while fixing [[DEF-325]]. **Found by:** Anuki. | **Reporter:** Anuki (internal).
+
+**The shape of it.** `Models/User.cs` has both `Status` (string, commented `active/inactive/locked`, line 42) and `IsActive` (bool, line 44). Three code paths each treated a different one as the truth:
+
+| Path | wrote `Status` | wrote `IsActive` |
+|---|---|---|
+| `CreateUserAsync` (`AdminService.cs:160,162`) | `"active"` | `true` |
+| `BulkImportUsersAsync` (`AdminService.cs:339,341`) | from the spreadsheet — **can be `"inactive"`** | **hardcoded `true`** |
+| `UpdateUserAsync` (`AdminService.cs:474`) | **never written** | derived from the posted status |
+
+Login gates on **both** columns (`AccountController.cs:1076`, and the diagnostic mirror at `:1602`). The admin list renders status from **`IsActive` alone** (`AdminService.cs:87,116`).
+
+**The trap that follows.** Import a user with status `inactive` → the row is `Status="inactive"`, `IsActive=true`. The admin screen reports the account **Active**. Login refuses it, because login also reads `Status`. An admin trying to fix it toggles the dropdown, but `UpdateUserAsync` never wrote `Status`, so nothing the login check reads ever changes. The account is unreachable from the UI and the one number on screen that should explain it says the opposite. Same failure family as [[DEF-323]] — display and the enforcing check reading different columns.
+
+**Fix.** `UpdateUserAsync` now writes `user.Status = user.IsActive ? "active" : "inactive"` alongside `IsActive`, so the two stay in step on every write and the admin UI can repair a stuck row. `BulkImportUsersAsync` normalizes the incoming status once into a local and derives **both** columns from it, so the import can no longer manufacture a divergent row.
+
+**Data impact (dev, `GCCDatabase_Dev`, read-only check 2026-07-31).** 2 of 78 live users already sit divergent — `cara.admin@example.com` (Id 42) and `hank.badstatus@example.com` (Id 47), both `Status='active'` with `IsActive=0`. Both are in the harmless direction (display and login agree on *inactive*; only the columns disagree) and the second is plainly a deliberate test fixture. **No data-ops migration raised** — we are pre-production, these are dev fixtures, and the next edit through the admin UI self-heals each row. Re-check before the first production import.
+
+**Not changed.** An unrecognized status value (neither `active` nor `inactive`) still resolves to inactive rather than being rejected. Pre-existing behavior, left alone deliberately; the entity comment documents a third value `locked` that no write path currently produces.
+
+**Linked memory.** [[feedback_scoping_check_adjacent_endpoints]], [[feedback_denormalized_copy_width_mismatch]].
+
+---
+
+### DEF-326 — User status compared case-sensitively at three sites: silently deactivates the user on save, and locks a correctly-flagged account out of login
+
+**Date:** 2026-07-31 | **Status:** Fixed (`Services/AdminService.cs`, `Controllers/AccountController.cs` ×2) — working tree, **pending next deploy bundle** | **Severity:** Major — silent data corruption on one path, silent lockout on the other | **QC Ref:** none — surfaced by the `regression-ci` CRUD gate. **Found by:** Anuki. | **Reporter:** Anuki (internal).
+
+**Root cause.** Three ordinal comparisons against the literal `"active"`:
+
+- `AdminService.UpdateUserAsync:474` — `user.IsActive = model.Status == "active"`. Any other casing evaluates false, so the save **deactivates the user** with no error and no warning.
+- `AccountController.cs:1076` — `user.Status != "active"` in the real login gate.
+- `AccountController.cs:1602` — the same test in the diagnostic path that is supposed to mirror the gate.
+
+**Why it stayed hidden.** The admin UI happens to post lowercase — `UserManagement.cshtml` option values are `active`/`inactive`, and both `wwwroot/js/userManagement.js:1003` and `wwwroot/js/admin/userManagement.js:23` call `.toLowerCase()`. So the interactive path was correct and the bug only bites callers that are not the UI: the CRUD smoke suite posts `"Active"` (`Scripts/smoke-prod/_crud/user-crud-roundtrip.js:60`), and CSV-import-driven updates forward whatever casing the spreadsheet had.
+
+**Evidence in dev.** `kao.external@test.com` (Id 28) is stored `Status='Active'`, `IsActive=1`. Under the old comparison that account displayed as **Active** in admin and was **refused at login** — the exact lockout, already present in `GCCDatabase_Dev`. The code fix repairs it with no data change.
+
+**Fix.** All three sites now use `string.Equals(..., StringComparison.OrdinalIgnoreCase)` on a trimmed value. This matches the normalization `BulkImportUsersAsync` already applied to the same field (`Trim().ToLowerInvariant()`) and the `OrdinalIgnoreCase` precedent at `Api/v1/CertificatesController.cs:1589`.
+
+**Linked memory.** [[feedback_search_normalizer_single_source]] — same principle, one normalization rule per field rather than per call site.
+
+---
+
+### DEF-325 — `PUT /Admin/UpdateUser` returned HTTP 200 on every failure path, so a rejected update read as accepted
+
+**Date:** 2026-07-31 | **Status:** Fixed (`Controllers/AdminController.cs`, `Services/AdminService.cs`, `Services/IAdminService.cs`, `Models/AdminModels.cs`) — working tree, **pending next deploy bundle** | **Severity:** Major — masks failed writes from every non-UI caller | **QC Ref:** none — surfaced by the `regression-ci` deploy-gate CRUD suite (run 30572613682, assertion `user.U2.update-persisted`). **Found by:** Anuki. | **Reporter:** Anuki (internal).
+
+**Symptom from CI.** The CRUD gate recorded `[PASS] user.U1.update PUT /Admin/UpdateUser accepted - HTTP 200 {"success":false,"message":"User not found or update failed"}` — a PASS on a response whose own body says it failed — and only caught the problem one assertion later when the row had not changed. A 200 carrying `success:false` is invisible to any status-code-based caller.
+
+**Root cause.** `AdminService.UpdateUserAsync` returned `bool`, collapsing "no such user" and "the save threw" into a single `false`. `AdminController.UpdateUser` then `Json()`d every outcome — invalid model, short password, not found, exception — as HTTP 200.
+
+**Fix.** New `UserUpdateResult` enum (`Success` / `NotFound` / `Failed`) replaces the bool so the controller has something to map:
+
+| Outcome | Before | After |
+|---|---|---|
+| Success | 200 | 200 |
+| User not found | 200 | **404** |
+| Update threw | 200 | **500** |
+| Invalid model / short password | 200 | **422** |
+
+**Why 422 and not 400.** `UseStatusCodePages` (`Program.cs:615`) redirects **400/401/403** to `/Account/Login?error=session_expired` for any non-`/api` request that does not send `X-Requested-With`. The admin JS uses a bare `fetch()`, so returning 400 here would have arrived as the login page and broken `response.json()` — a validation error would have looked like a session expiry. 404/422/500 pass through untouched.
+
+**No client change needed.** Both consumers (`wwwroot/js/userManagement.js:748`, `wwwroot/js/admin/userManagement.js:794`) parse the body and branch on `result.success` without inspecting `response.ok`, so they work unchanged and now surface the real reason instead of "User not found or update failed".
+
+**Still open — the underlying CI red.** The gate's failure was `NotFound`, not an exception (the uploaded `app.log` has no `Failed to update user with ID` line). Why a just-created user did not resolve is unresolved; the next gate run will now report `404` outright instead of an ambiguous 200. Tracked separately — the same run is also blocked on missing CR-171 partner fixtures (`partner-isolation` 0P/0F/0W/**5B**).
+
+**Not changed.** `CreateUser` and `DeleteUser` in the same controller share the 200-on-failure pattern. Left alone deliberately to keep this change scoped; worth a follow-up.
+
+**Linked memory.** [[feedback_scoping_check_adjacent_endpoints]].
+
+---
+
+### DEF-324 — QC #243 "Product Types with no Product Category": NOT REPRODUCIBLE — test environment verified clean, both hypotheses refuted
+
+**Date:** 2026-07-31 (**independently re-verified 2026-08-03** — every figure below re-run read-only against the same test environment; **all identical, no drift in 4 days**) | **Status:** **No defect found. Recommend closing QC #243 pending one client confirmation.** | **Severity:** n/a | **QC Ref:** **#243** (Reporter: client, opened **2026-07-30**, log status *New*). Image 108. | **Reporter:** Anuki (internal).
+
+**Client report (7/30, verbatim).** *"When I was going in to remove some of the product cat test options I found several that had Prod Types but not Prod Category. Not sure how this would be possible given you need the category to then define the associated types. See image 108 **from before I changed it**. Also need to make sure that info is not clearing out again like prior issue."*
+
+**The phrase that reframes the whole item: "from before I changed it."** The client had already corrected the records themselves before filing. So there was never a standing data problem for us to find — which is exactly what the evidence below shows. Their actual remaining ask is the second sentence: **regression protection**, not cleanup.
+
+**Diagnostic run against the live test environment** (`gccwebapp.com` → `gccwebap_certificates`) on 2026-07-31, read-only, via `docs/tracking/sql-fixes/qc243-orphan-product-type-diagnostic.sql`:
+
+| Check | Result (7/31) | Re-run 8/3 |
+|---|---|---|
+| `ProductTypes.CategoryId` nullable? | **NO** — schema forbids a type without a category | **NO** — unchanged |
+| Types whose `CategoryId` does not resolve to a real category | **0** | **0** |
+| Active types whose category is **inactive** (the leading hypothesis) | **0** | **0** |
+| Inactive product types (invisible to the admin screen but still FK-referenced) | **0** | **0** |
+| Category/type hierarchy shape | Level 0: 20, Level 1: 28, Level 2: 7 — all consistent, none inactive | identical — 55 types total |
+| Product categories | all 9 active | **9**, all active |
+| Products with a Type set but Category blank/unresolvable | not run | **0** |
+
+**Both of my hypotheses were wrong, and the data says so plainly.**
+1. *Active type under a deactivated category* — the mechanism is real in code (`GetProductTypesAsync` iterates only `IsActive` categories, so such a type would silently vanish from the screen), but **zero rows** are in that state and no category is inactive. It is a latent trap, not what happened here.
+2. *Certificate-level reading* — that "Prod Types but not Prod Category" described certificates rather than the type table. Also **zero**: no certificate and no product anywhere has a Product Type set with the Product Category blank, and no certificate's category disagrees with its type's owning category.
+
+**Context worth keeping** (all three figures re-verified unchanged 2026-08-03). Of **226** certificates on the test environment, **158 have no Product Category and 196 have no Product Type** — blank taxonomy is normal and expected here, and deliberately so since **QC #195** stopped blank categories defaulting to "Chemicals and Raw Materials". The meaningful invariant is the *combination*, and it holds: **wherever a type is set, a category is set.**
+
+**Stated precisely — the 7/31 wording "0 exceptions in 226 rows" overstated the evidence.** The invariant is only *exercised* by rows that actually have a type set, which is **30** of the 226. All 30 carry a category, and none disagrees with its type's owning category. So the correct claim is **0 exceptions in the 30 rows where the rule can be violated at all** — the other 196 are silent on the question, not confirmations of it.
+
+**On the client's regression ask.** For **Product Types** the concern is structurally answered: `CategoryId` is `NOT NULL`, so no code path can ever store a type without a category — this cannot recur by construction. For **certificates**, a blank category is a legitimate state (see above), so the prior "clearing out" defect they are referring to (the QC #186 / #91 product-field-clearing family) is a separate, already-closed matter.
+
+**One open question before closing.** We cannot tell from the log text alone which screen image 108 was showing. Worth asking the client to confirm what they were looking at — if it was the Product Types management screen, the evidence says it is resolved; if it was something else, that is a different item.
+
+**Latent finding kept on the record (not a QC item) — re-confirmed 2026-08-03.** `ProductTypes.Level` carries two conventions in *both* dev and the test environment: Level 0 and Level 1 each mean "top-level, no parent" (20 and 28 rows respectively on the test env, re-measured identical on 8/3 — **0 of those 48 rows has a parent**), and only Level 2 rows have parents (all 7 do). Harmless today because the tree builder groups by `ParentId` and ignores `Level` — but `DeleteProductTypeAsync` selects its error wording from `Level == 2` and carries a comment claiming *"Level: 1 = top-level type, 2 = subcategory"*, which the data contradicts. Worth tidying before anyone writes new logic against `Level`.
+
+---
+
+### DEF-322 — Certificate numbers stuck at 5 digits: one imported out-of-band number poisoned the whole year's sequence
+
+**Date:** 2026-07-31 (rollover proof added 2026-08-04) | **Status:** Fixed (`Repositories/CertificateRepository.cs`) + 16 unit tests — working tree, **pending next deploy bundle** | **Severity:** Major — every certificate created after the outlier carries a malformed number, and certificate numbers are the client's primary business identifier | **QC Ref:** **#218** (Reporter: client, opened 2026-07-08; re-flagged **7/30**, log status *"Discuss, seems wrong"*). **Found by:** client. | **Reporter:** Anuki (internal).
+
+**Client report (7/30, verbatim).** *"When adding new certs it's still 7 digits total. Why? I don't think we ran out of numbers with 6 digits (while keeping the current year)... I am ok for it to be 7 digits IF WE RUN OUT OF numbers for the current year (so after 9999 certs). Anuki please confirm you have tested that when we hit a new calendar year it changes the first 2 numbers (e.g., 2027 should have 27-XXXX)."*
+
+**Our 6/23 answer was wrong.** We told the client *"nothing is broken in the code — it's behaving as designed (YY- + auto-increment, minimum 4 digits)"* and attributed `26-10095` to imported test data. The data half was right; the conclusion was not. The import did not merely *contain* a bad number — it **permanently changed the behavior of the allocator for the rest of the year.**
+
+**Root cause.** `GenerateNextCertificateNumberAsync` computed `sequences.Max() + 1` across **every** number sharing the current year prefix. `D4` is a *minimum* width, not a cap. So a single out-of-band record — `26-10095`, arriving through a CSV import or the legacy ETL — made `Max()` 10095, the next certificate 10096, and **every subsequent certificate that year 5 digits wide**. Self-perpetuating: each new number re-seeds the next. That is precisely the client's symptom on a database holding ~265 certificates.
+
+Confirmed in live data: the dev database contains **`26-01730`** — a 5-digit sequence sitting among 4-digit peers, the same shape of contaminant.
+
+**Fix.** Restrict the max calculation to sequences `<= 9999` (`MaxFourDigitSequence`) — allocate inside the standard 4-digit space, and only widen when that space is genuinely exhausted. This implements the client's stated rule exactly, and notably **does not commit them to a hard cap**: at 9,999 certificates in a year the number still widens to `26-10000`. Out-of-band numbers remain valid and collision-safe — they sit outside the 4-digit space, and the UNIQUE index plus the retry loop in `AddWithGeneratedNumberAsync` is the real guard regardless.
+
+**Year rollover — the client asked us to prove it, so it is now a test, not an assertion.** `currentYear % 100` builds the prefix and the search is scoped to `"<prefix>-"`, so on 2027-01-01 the query matches nothing, the sequence falls back to 1, and the first certificate is `27-0001`. `26-9999` cannot become `26-10000` in 2027.
+
+**2026-08-04 — the first rollover evidence was weaker than the client's question deserved.** `PriorYearNumbers_AreIgnored_SoANewYearRestartsAtOne` seeds *prior-year* rows and asserts the next number is current-year `0001`. That proves prior-year numbers are ignored — but because the allocator read `DateTime.Now` directly, **no test could actually advance the calendar**, so nothing demonstrated the prefix itself changing to `27-`. We were inferring the answer to the exact thing the client asked us to demonstrate.
+
+**Clock seam added.** `GenerateNextCertificateNumberAsync(DateTime? asOf = null)` — production passes nothing and still gets `DateTime.Now`; only tests supply a date. Optional parameter, so **both existing call sites (`CertificateController.cs:306`, `:367`) and the `ICertificateRepository` contract are source-compatible** — no production behavior change whatsoever, the seam exists solely to make the rollover falsifiable.
+
+**Tests.** `GCCWebApp.Api.Tests/Unit/Repositories/QC218_CertificateNumberGenerationTests.cs` — **16 tests, all passing** (7 original + 9 rollover). Original: empty DB starts at 0001; normal increment; **the regression** (outlier present → still allocates 0266, not 10096); only-out-of-band-numbers-exist; 9999 exhausted → widens to 10000; prior-year numbers ignored; prefix always the current 2-digit year. Added 2026-08-04, driving the clock directly:
+- `NewCalendarYear_ChangesTheTwoDigitPrefix` — 5 cases: 2026→`26-`, **2027→`27-`** (the client's own example), 2028→`28-`, 2030→`30-`, 2099→`99-`.
+- `CrossingIntoNewYear_WithPriorYearFull_RestartsAtOhOhOhOne` — **the direct answer**: 2026 seeded with `26-0001`, `26-9999` *and* the contaminant `26-10095`, clock moved to 2027-01-01 → `27-0001`. Not `26-10000`, not `27-10096`.
+- `RolloverHappensAtMidnightOnJanuaryFirst` — 2026-12-31 23:59:59 → `26-0501`; 2027-01-01 00:00:00 → `27-0001`. The switch is the calendar boundary itself.
+- `EachYearCountsIndependently` — 2026 and 2027 counters do not influence each other; an unused year starts fresh.
+- `Year2100_RendersAsZeroZero_DocumentedEdgeCase` — documents (does not endorse) that `year % 100` renders 2100 as `00-`. Recorded for the record; 74 years out, no action.
+
+**Regression check (2026-08-04).** Unit suite: **595 passed / 27 failed**. All 27 pre-existing and unrelated — they are search/filter tests (`CertificateServiceTests` search, `CertificateTileExternalApiControllerTests`, `ProductIdServiceTests`) that query the **CR-187 persisted computed `Normalized*` columns, which EF InMemory never populates**, so they match 0 rows regardless of this change. None touch certificate numbering. Nothing broken by this change; the search-normalization test-harness gap is a separate pre-existing problem worth its own triage.
+
+**Build note.** The test build fails with a file-lock error (`MSB3026`, `GCCWebApp.exe` in use) if the local dev server is running. Build to a scratch output dir or stop the app first — otherwise a lock is easily misread as a compile failure.
+
+**Data side — NOT addressed here, and it needs a decision.** This fix governs *new* numbers only. Existing out-of-band rows (`26-01730` in dev; `26-10095` as reported on the test environment) keep their numbers. Renumbering live certificates would rewrite the client's primary business identifier, so it is a **data-ops change requiring a CR**, not something to fold into a defect fix. On the pre-launch test environment they can simply be deleted.
+
+---
+
+### DEF-316 — Certificate import template: Partner column header gave no separator guidance (and named the wrong one)
+
+**Date:** 2026-07-31 | **Status:** Fixed (`Controllers/CertificateImportController.cs`) — working tree, **pending next deploy bundle** | **Severity:** Minor (client-visible copy) | **QC Ref:** **#171** (Reporter: client, opened 2026-05-05; re-flagged **7/30** — *"This is still not fixed"*). Image 105. **Found by:** client. | **Reporter:** Anuki (internal).
+
+**Client ask (7/30, verbatim).** *"In Excel Template please add in Partner column heading (separate by comma). I want the info in () added so its clear when multiple."*
+
+**Why this is a defect and not an enhancement.** The request arrived 7/10 and we **marked it complete**. It was not done. The defect is against our own completion claim.
+
+**What was actually there.** `Partner (one or more — separate multiple with | e.g. Amazon|Novi)` — the template did carry a separator hint, but it advertised the **pipe**, not the comma the client wanted. So this was never a pure "add missing text" change; it changes the advertised separator, which is why it needed the parser check below rather than a blind string swap.
+
+**Fix.** Header → `Partner (separate by comma)`. Client-specified wording; not reworded ([[feedback_client_requested_labels_immutable]]). The stale comment above the template string was corrected — it claimed Partner was "intentionally left plain".
+
+**Two things verified before changing it, because a label that lies is worse than a label that is terse:**
+1. **The parser already accepts commas.** `Services/Import/CertificateImportService.cs` `SyncCertificatePartnersAsync` splits on `new[] { ',', '|' }` — so existing pipe-delimited files keep importing. No parser change, no migration.
+2. **The parenthetical does not break column matching.** `GetFieldWithMapping` falls back to a `StartsWith("Partner ")` header scan (`CertificateImportService.cs:129-157`, added by DEF-202 for the same reason on `Status`). Confirmed by reading, then by round-trip.
+
+**Validation (localhost:5101, 2026-07-31, authed as analyst).** Downloaded `/CertificateImport/DownloadTemplate` → header contains `"Partner (separate by comma)"`. Built a one-row CSV from that exact template with the cell `"Amazon, Novi"` → `/api/CertificateImport/Preview` returned **1 row, 1 valid, 0 invalid**; applied it → **1 certificate created**; the internal tile API for the new cert `26-9001` returns **`partner: "Amazon, Novi"`** — *both* partners resolved through the M2M collection. End-to-end, not just the string.
+
+**Note — a real bug found while validating, logged separately as DEF-321:** the CSV **export** for that same certificate shows `Partner = Amazon` only, because `GenerateCsvExport` projects the denormalized primary `c.Partner` instead of the `Partners` collection. Not caused by this change; it predates it.
+
+**Linked memory.** [[feedback_client_requested_labels_immutable]], [[feedback_only_requested_changes]].
+
+---
+
+### DEF-317 — "Certification Results": client-supplied instruction copy rendered below the field instead of inside it
+
+**Date:** 2026-07-31 | **Status:** Fixed (`Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`) — working tree, **pending next deploy bundle** | **Severity:** Minor (client-visible copy) | **QC Ref:** **#240** (Reporter: client; re-flagged **7/30**). Image 109. **Found by:** client. | **Reporter:** Anuki (internal).
+
+**Client ask (7/30, verbatim).** *"The grey instruction copy in open text field is not accurate language. I wanted the copy provided added there not under box."*
+
+**Why this is a defect.** We shipped the copy and reported it resolved — but put it in a `<small class="form-text text-muted">` **below** the control, while the `placeholder` **inside** the control kept different, older wording (`"Enter test results or scores if required by partner (e.g., threshold values for Amazon)"`). The client saw grey text in the box that was not the text they wrote. Placement, not wording.
+
+**Fix.** `placeholder` → `Enter numeric certification results (e.g., 65%, 100%)`; the duplicate `<small>` removed so the copy exists once, where the client asked for it. Label `(Required for Amazon CPF)` untouched. Applied identically to **both** Create and Edit — they had drifted apart before and the client tests both.
+
+**Field provenance.** This is the optional Certification Results field carried as a standing requirement in the project `CLAUDE.md` (Amazon threshold pass-through). Wording is client-owned — relocate only, never reword ([[feedback_client_requested_labels_immutable]]).
+
+**Validation (localhost:5101, 2026-07-31).** `/Certificate/Create` DOM: `<textarea ... placeholder="Enter numeric certification results (e.g., 65%, 100%)" id="CertificationResults">`, and the old helper `<small>` is **absent** from the rendered form.
+
+---
+
+### DEF-318 — Stale "certificate created successfully" toast fires on a blank Create form after an unrelated edit
+
+**Date:** 2026-07-31 | **Status:** Fixed (`Controllers/CertificateController.cs`, `Views/Certificate/Create.cshtml`) — working tree, **pending next deploy bundle** | **Severity:** Minor UX, but it corrodes trust in every save confirmation | **QC Ref:** **#193** (Reporter: client, opened 2026-06-11; re-flagged **7/30**). Image 106. **Found by:** client. | **Reporter:** Anuki (internal).
+
+**Client repro (7/30, verbatim).** *"Go to existing cert, Edit and change status (or any other field), Save, navigate to Certificates in header, click Add Certificate button. Then box appears about successful add — this is out of context."*
+
+**Why the 6/23 "Resolved" was wrong.** That pass (DEF-291) fixed a *different* mechanism — bfcache/Back restoring a page whose inline script still carried the prior message — and was verified against the **create → save & add another** path. The client's path is **edit → save → navigate → add**, which was never exercised. The 7/2 variant surviving a full logout/login was the tell that this was server state, not a cached page.
+
+**Root cause — an orphaned TempData write, not a JS bug.**
+- `Edit` (POST) set `TempData["SuccessMessage"]` then redirected to `CertificateInternalView`.
+- **`CertificateInternalView.cshtml` reads no TempData at all** — so nothing ever consumed that entry.
+- ASP.NET Core does not discard an *unread* TempData entry; it re-saves it on each subsequent request until something reads it. It therefore sat in the cookie indefinitely, across logout/login.
+- The next view that reads that key is `Views/Certificate/Create.cshtml` — so opening **Add Certificate**, at any later point, popped the edit's message onto an empty form.
+
+The DEF-291 comment in `Create.cshtml` asserted *"TempData is read-once, so a genuine fresh Add Certificate GET renders no script at all."* That assumption is exactly what was false: read-once only applies **after** something reads it.
+
+**Fix — two parts.**
+1. **Root:** removed the orphaned `TempData["SuccessMessage"]` write from the Edit path. Nothing rendered it, so nothing user-visible is lost; Edit already lands the user on the saved certificate, which is its own confirmation. Deliberately did **not** add a toast to the internal view — that would be new UI the client did not ask for ([[feedback_only_requested_changes]]).
+2. **Structural:** the Create flow now uses a dedicated `TempData["CreateSuccessMessage"]`. One writer (Create's *Save & Add Another*), one reader (`Create.cshtml`). Another flow's leftover message can no longer surface there **by construction**.
+
+Part 1 also closes the same leak into `Views/Account/TwoFactorPreferences.cshtml`, the other view bound to the shared `SuccessMessage` key — a certificate edit could have popped "Certificate 26-xxxx updated successfully!" onto the 2FA settings page.
+
+**Validation (2026-07-31).** Invariant confirmed statically: `TempData["SuccessMessage"]` has **zero** writers left in `CertificateController.cs`; `CreateSuccessMessage` has exactly one writer (`:704`) and one reader (`Create.cshtml:48`). `dotnet build` clean.
+
+**Linked memory.** [[feedback_only_requested_changes]], [[feedback_scoping_check_adjacent_endpoints]].
+
+---
+
+### DEF-319 — Search autocomplete: hovering a suggestion made Enter commit the hovered item instead of the typed text
+
+**Date:** 2026-07-31 | **Status:** Fixed (`wwwroot/js/certificate-tile-view.js`, `-internal.js`, `-external.js`) — working tree, **pending next deploy bundle** | **Severity:** Major — silently substitutes a search term the user did not choose | **QC Ref:** **#197** (Reporter: client, opened 2026-06-15; re-flagged **7/30**), logged in the QC sheet as **row #88 "Cert search view"** — status still "Open / Ready for UAT / Not fixed" there because the fix has not reached the client's environment (see Status). **Found by:** client. | **Reporter:** Anuki (internal).
+
+**Client report (7/30, verbatim).** *"It is still randomly choosing an option after typing and entering as soon as the mouse hovers over something in dropdown. If you just type word and hit enter right away without exploring dropdown items seems to be ok. But not when your mouse goes over options."*
+
+**Third pass on this item.** DEF-280 (6/23) stopped the dropdown auto-selecting item 0; a later pass fixed type-then-Enter. Both treated symptoms. The **hover** path was never addressed — and the DEF-280 comment shows why: it recorded *"ArrowDown/hover still explicitly pick a suggestion,"* i.e. hover-as-selection was believed correct.
+
+**Root cause — one class doing two jobs.** Each suggestion had a `mouseenter` handler that cleared `.selected` from its siblings and added `.selected` to itself. `.selected` is the **same class the Enter branch of the keydown handler reads** (`selectedIndex = items.findIndex(i => i.classList.contains('selected'))`). Moving the mouse across the list silently armed a suggestion, and Enter committed it over what the user typed. Hover — a passive, often accidental gesture — was indistinguishable from an explicit choice.
+
+**Fix.** Deleted the `mouseenter` handlers in all three tile views. Hover is presentation and is already handled by the `.autocomplete-item:hover` CSS rule, so no JS is needed there. `.selected` is now written **only** by ArrowUp/ArrowDown; committing by mouse goes through the existing `click` handler. Hover highlights, arrows select, click commits — three gestures, three distinct meanings.
+
+**Validation (2026-07-31).** No `mouseenter` handler remains in any of the three files; `classList.add('selected')` survives only at the two arrow-key branches. `dotnet build` clean. Not exercised in a browser at that time.
+
+**Browser validation (2026-08-04) — `Scripts/smoke-prod/def319-hover-enter-verify.js`.** Playwright, real mouse move (not a synthetic event) onto suggestion #0, then Enter. Run against **both** environments in the same pass:
+
+| | Local dev (working tree) | Test env (gccwebapp.com) |
+|---|---|---|
+| `addEventListener('mouseenter')` in served `certificate-tile-view{,-internal,-external}.js` | **0 / 0 / 0** | **1 / 1 / 1** |
+| `DEF-319` comment present in served JS | yes | **no** |
+| `.selected` after hovering, before Enter | `[]` | `["Company Symbol Test é™®ä"]` |
+| Typed `test`, hovered suggestion, pressed Enter → committed | **`test`** | **`Company Symbol Test é™®ä`** |
+| Verdict | **PASS** | **FAIL — reproduces** |
+
+**The fix works, and the test environment does not have it.** The test env is still serving the pre-fix asset — measured, not inferred: 63,572 bytes with the `mouseenter` handler intact vs 63,756 bytes with the DEF-319 comment locally. Fetched through a fresh Playwright context, so this is the server's copy, not a browser cache.
+
+**Why the client (and Shawn, 2026-08-04) could not reproduce it in test.** The bug needs the pointer to actually **enter a suggestion element**. Typing and pressing Enter immediately — even with the dropdown open — passes, because nothing ever fires `mouseenter`. That is exactly the boundary the client described on 7/30 (*"If you just type word and hit enter right away without exploring dropdown items seems to be ok"*). A non-repro therefore does **not** indicate the fix landed; only the served-asset check does. See [[feedback_verify_deployed_asset_not_symptom]].
+
+**Deploy status.** Already inside the zip built 2026-08-03 (`pre-deploy-agent-checklist.md` MD5-verified all three JS files plus the DEF-320 CSS against the working tree). **That zip has not been deployed** — which is the entire reason QC #88 still reads "Not fixed."
+
+**Linked memory.** [[feedback_no_chaos_rabbit_holes]].
+
+---
+
+### DEF-320 — Keyboard-selected autocomplete suggestion had no visual highlight (two separate CSS faults)
+
+**Date:** 2026-07-31 | **Status:** Fixed (`wwwroot/css/certificatetileview.css`, `wwwroot/css/certificate-autocomplete.css`) — working tree, **pending next deploy bundle** | **Severity:** Minor alone; **blocking for DEF-319** | **QC Ref:** none — found by Anuki while fixing DEF-319. | **Reporter:** Anuki (internal).
+
+**Why it surfaced now.** DEF-319 makes the arrow keys the *only* way to select a suggestion by keyboard. If `.selected` has no visual, that fix reads as "keyboard navigation is broken." So this had to be repaired in the same batch.
+
+**Fault 1 — wrong class name (user-visible).** All three tile views load `certificatetileview.css`, which styled `.autocomplete-item:hover, .autocomplete-item.highlighted`. The JS has always written **`.selected`**; **nothing writes `.highlighted`**. Keyboard navigation had therefore *never* shown a highlight in any tile view — only the mouse `:hover` state was ever visible, which is plausibly part of why hover-as-selection looked acceptable when DEF-280 was written. Added `.autocomplete-item.selected` to the rule; kept `.highlighted` for any markup still expecting it.
+
+**Fault 2 — literal `\n` in the stylesheet (hygiene).** In `certificate-autocomplete.css` the rule sat on one physical line with literal backslash-n sequences instead of newlines: `.autocomplete-item.selected {\n    background-color: #e8f5e9;\n}\n\n/* Search bar ... */`. CSS reads `\n` as an escape for the letter `n`, so the declaration parsed as the invalid property `n    background-color` and was dropped — taking the `.search-bar` rule folded onto the same line with it. Rewritten as real CSS. **No view currently links this stylesheet**, so this half is hygiene, not a user-visible fix — recorded so the next person does not re-derive it.
+
+---
+
+### DEF-321 — CSV export shows only the primary partner on a multi-partner certificate (NOT FIXED — logged only)
+
+**Date:** 2026-07-31 | **Status:** **Open — not fixed.** Found while validating DEF-316. | **Severity:** Major — under-reports partner associations in a client-facing deliverable | **QC Ref:** none — found by Anuki. Adjacent to QC #171 / CR-171. | **Reporter:** Anuki (internal).
+
+**Symptom (measured, localhost 2026-07-31).** Certificate `26-9001` imported with `Partner = "Amazon, Novi"`. The internal tile API returns **`partner: "Amazon, Novi"`** (correct — reads the `Partners` M2M collection). `/Certificate/ExportCertificates` returns **`Partner = "Amazon"`** for the same certificate.
+
+**Cause.** `Services/CertificateService.cs:588` projects `Partner = c.Partner ?? "None"` — the **denormalized primary**, which `SyncCertificatePartnersAsync` sets to the *first matched name*. The `Partners` collection is never consulted. Same family as [[feedback_denormalized_copy_width_mismatch]] and [[feedback_column_exists_but_never_projected]]: the M2M is correct, but a denormalized copy is what gets read.
+
+**Why it matters.** CR-171 exists precisely so a certificate can carry several partners, and QC #171 is the client asking for the *template* to make multi-partner entry clear. An export that then reports one partner contradicts the feature they signed off on.
+
+**Deliberately not fixed in this batch.** Outside the agreed Batch 1 scope, and the export path is partner-scoped — DEF-198 hardened it against cross-partner leakage, so changing what the Partner column emits needs its own scoping review. **Also unresolved: what a partner-scoped caller should see.** Showing co-partners in an Amazon-scoped export would contradict [[feedback_partner_data_isolation]], so this likely needs a per-role answer (Admin/Analyst see every partner; a partner sees only itself) and possibly client sign-off. Needs its own triage.
+
+---
+
 ### DEF-315 — Partner CSV export: identifier columns misaligned; ASIN values appearing under the UPC and GTIN headers
 
 **Date:** 2026-07-21 | **Status:** Fixed (`Services/CertificateService.cs`, `Services/ProductIdService.cs`, `Controllers/ExportController.cs`, `wwwroot/js/admin/exportUtils.js`) — working tree, **pending next deploy bundle** | **Severity:** **High** — silent data corruption in a partner-facing deliverable. Not cosmetic: a partner reading the UPC column got ASIN values, with nothing to indicate the file was wrong. | **QC Ref:** none — direct client report. **Found by:** client, via Shawn (2026-07-20). | **Reporter:** Anuki (internal).
@@ -7927,6 +8435,263 @@ All changes are inside the existing `max-width: 768px` block, so desktop is unto
 **Open follow-up (not a defect, deliberately not changed).** Products with no Product Type or Subcategory render an empty labelled row — a bare "Product Type" / "Subcategory" heading with nothing under it. This matches desktop, where the cell is simply blank, so it was left alone rather than changing behaviour nobody asked for. Suppressing empty fields on mobile would tighten the cards noticeably but is a **CR-shaped decision**, not a defect fix.
 
 **Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_only_requested_changes]], [[feedback_no_chaos_rabbit_holes]], [[feedback_testing_environment]], [[feedback_external_user_umbrella]] (the RBAC trap in item 4), [[feedback_playwright_screenshots]].
+
+---
+
+### DEF-330 — Three more orphaned `TempData` writes of the DEF-318 class (import, document upload, import error detail)
+
+**Date:** 2026-08-03 | **Status:** Fixed (`Controllers/CertificateImportController.cs`) — working tree, **pending next deploy bundle**. *Its second file, DocumentController.cs (path deliberately not backticked — it no longer exists, and backticked paths in a Status line are read by the Gate 9 reconciliation as "files this fix touched, which must resolve"), was **deleted outright on 2026-08-04 by DEF-331**, which supersedes this fix for that file — the orphan write went with the whole controller.* | **Severity:** Minor UX (same trust-corroding "out of context confirmation" as DEF-318), plus one cookie-growth risk | **QC Ref:** none directly — found while re-investigating **QC #193 / Image 106** at Shawn's request. | **Reporter:** Anuki (internal).
+
+**Why this exists.** DEF-318 fixed the *reported* path (edit → save → navigate → Add Certificate) and established the rule: **write `TempData` only when the redirect target itself reads that key.** It did not sweep the rest of the codebase for the same shape. A full writer/reader audit of every `TempData` key found three more violations. This is the [[feedback_scoping_check_adjacent_endpoints]] pattern again — the reported endpoint got fixed, the siblings did not.
+
+**Audit method (reproducible).** Enumerate every `TempData["X"] =` write across `Controllers/`, enumerate every non-assignment `TempData["X"]` reference across `Controllers/` + `Views/`, and flag any key whose read-count is 0 or whose redirect target is not a reader. Result after this fix: **every remaining key is paired**, and the 3 surviving `SuccessMessage` writers (all `AccountController`) each redirect to `TwoFactorPreferences`, which reads it.
+
+| # | Writer | Redirect target | Reader on target? | Where it actually surfaced |
+|---|---|---|---|---|
+| 1 | `CertificateImportController.cs:174` — `TempData["Success"] = "Import completed successfully! N created, M updated."` | `Certificate/CertificateTileView` | **No** | Later, on Import Index / Preview / History — an out-of-context *"N certificates created"* banner |
+| 2 | `DocumentController.cs:87` — `TempData["SuccessMessage"] = "Document uploaded successfully."` | `Certificate/Details` (**does not exist** — see DEF-331) | **No** | Later, on **Views/Account/TwoFactorPreferences.cshtml** — a document message on the 2FA settings page |
+| 3 | `CertificateImportController.cs:187` — `TempData["ErrorDetails"] = string.Join("\n", result.Errors)` | *(same-request `View("Preview")`)* | **No reader anywhere** — 0 across all views and controllers | Never displayed at all; parked a multi-KB string in the TempData cookie indefinitely on a large failed import |
+
+**Fix — all three writes removed, no UI added.** Client direction 2026-08-03 was explicit: **no banner at the top.** So the like-for-like fix is deletion, not relocation:
+1. **Import success (#1).** Write removed; redirect unchanged. Nothing user-visible is lost — the message was *never* rendered on the tile view in the first place. See "Known gap" below.
+2. **Document upload (#2).** Write removed; redirect left as-is and logged separately as DEF-331 (changing the destination is a behaviour change, not a leak fix).
+3. **Import error detail (#3).** Write removed. **Nothing is lost:** the same per-row errors are already rendered on that very page from `Model.ErrorRows` (`Views/CertificateImport/Preview.cshtml:216-226`). This one had no visible symptom but was the most likely to cause a hard failure — an unread multi-KB TempData entry is re-saved into the cookie on every subsequent request, and a large enough cookie is a 400 Bad Request.
+
+Each deletion carries an inline comment naming DEF-330 and restating the writer/reader invariant, matching the convention DEF-318 set in `CertificateInternalView.cshtml`.
+
+**Known gap this makes permanent (not introduced by this fix).** An analyst who runs an import now gets **no on-screen confirmation**. That was already true — the message never reached the tile view — but removing the write means it will not be fixed by accident. Closing it means either redirecting to `CertificateImport/History` (which already renders the banner) or adding a reader; both are UI/behaviour changes and the client has declined a banner. **Flagged for Shawn's decision, not built.**
+
+**Validation (2026-08-03).** `dotnet msbuild -t:Compile`: **0 errors** (2 warnings, both file-copy locks from the running app on :5101 — not compile diagnostics). Static invariant re-confirmed post-fix: `ErrorDetails` has 0 writers and 0 readers; `Success` 1 writer / 6 reads; `SuccessMessage` 3 writers (all → `TwoFactorPreferences`) / 1 read; `CreateSuccessMessage` 1 writer / 1 read. **Not exercised in a browser** — the symptom needs a multi-request session to reproduce, so it warrants a manual pass on the deployed build.
+
+**Linked memory.** [[feedback_scoping_check_adjacent_endpoints]], [[feedback_only_requested_changes]], [[feedback_track_every_fix_in_defect_register]].
+
+---
+
+### DEF-331 — Successful document upload redirects to `Certificate/Details`, which does not exist (404 after a successful save)
+
+**Date:** 2026-08-03 | **Status:** **Fixed 2026-08-04 by removal** — dead controller, its view and the orphan partial deleted on Shawn's sign-off. Working tree, **pending next deploy bundle**. | **Severity:** Major if the path is reachable (a successful upload lands the user on a 404); **confirmed UI-unreachable** | **QC Ref:** none — found by Anuki. | **Reporter:** Anuki (internal).
+
+**Finding.** `DocumentController.cs:88` returns `RedirectToAction("Details", "Certificate", new { id = model.CertificateId })`. There is **no `Details` action on `CertificateController`** and **no `Views/Certificate/Details.cshtml`** (the view folder holds `CertificateExternalView`, `CertificateInternalView`, `CertificateSingleView`, the three tile views, `Create`, `Edit`, `Import` — no `Details`). So on success this redirect 404s.
+
+**Why it was not fixed in the DEF-330 pass.** Picking the replacement destination is a behaviour decision, not a leak repair. The obvious candidate is `CertificateInternalView` with `id = certificate.Number` (note: that action keys on **Number**, not **Id** — so this is not a one-word substitution and needs a lookup). Fixing it silently would also have been the wrong call under [[feedback_only_requested_changes]].
+
+**Reachability — ANSWERED 2026-08-03: the whole controller is dead from the UI.**
+- The only UI entry point to `Document/Upload`, `Document/GetDocuments` and `Document/Delete` is the partial `Views/Shared/_CertificateDocuments.cshtml`.
+- That partial is **rendered by nothing** — zero `Html.Partial` / `Html.RenderPartial` / `<partial>` / `@await Html.PartialAsync` references across `Views/` and `Controllers/`.
+- `CertificateDocument` rows are therefore **only ever created by `DocumentController.Upload`**, which no page links to. `UploadCertificateDocumentAsync` has exactly one caller (that action). `CertificateImportService` touches `CertificateDocuments` only to **cascade-delete** on import-undo (`:992-993`) — it never writes rows. Certificate PDFs come through the Create/Edit upload flow and a different storage path (`IUploadPathResolver`), not this table.
+- **So the 404 redirect has almost certainly never been hit in production**, which downgrades the severity — but see the live-route surface below, which does not go away just because no page links to it.
+
+**Live route surface despite no UI (the reason this is not simply "ignore it").** The routes still answer:
+
+| Route | Guard | Exposure |
+|---|---|---|
+| `GET /Document/Upload/{certificateId}` | `AnalystOrAdmin` | Renders `Views/Document/Upload.cshtml` to any analyst who types the URL |
+| `POST /Document/Upload` | `AnalystOrAdmin` | Writes a `CertificateDocument` row + a file |
+| `GET /Document/Download/{id}` | **controller-level `[Authorize]` only** | Any authenticated user; `IsPublic` documents bypass `CanUserAccessDocument` entirely — **no company/partner scoping** ([[feedback_partner_data_isolation]]) |
+| `GET /Document/Preview/{id}` | **controller-level `[Authorize]` only** | Same as above |
+| `POST /Document/Delete/{id}` | `AdminOnly` | Soft-delete + physical file delete |
+
+**Two further faults inside the same controller, found in the same pass (not fixed).**
+1. `GetCurrentUserId()` **always returns `null`**, with the comment *"we don't have user authentication fully set up"* — long stale. Any document uploaded through this path records **no uploader**, so there is no audit trail on it.
+2. `CanUserAccessDocument()` reads `HttpContext.Session.GetString("UserRole")` — a **different auth mechanism than the rest of the app**, which uses policies/claims. It also checks role only, never whether the requester's company owns the certificate.
+
+**Recommendation — remove, don't repair.** Deleting the controller, its view and the orphan partial retires the 404, the unscoped `Download`/`Preview` routes, the null-uploader audit hole and the session-based auth outlier in one move, and removes code no user can reach. Repairing it instead means fixing all four faults on a feature nothing links to.
+
+---
+
+### Resolution — removed 2026-08-04 (Shawn's sign-off)
+
+**Deleted (3 files):** `Controllers/DocumentController.cs`, `Views/Document/Upload.cshtml`, `Views/Shared/_CertificateDocuments.cshtml`. The now-empty `Views/Document/` folder went with them.
+
+**Deliberately NOT deleted — and this is the important half.** The data model is untouched, so **there is no migration, no schema change and no data loss**:
+
+| Kept | Why it must stay |
+|---|---|
+| `CertificateDocument` entity + `DbSet` (`ApplicationDbContext.cs:25, :364`) | `CertificateImportService.cs:992-993` reads it to cascade-delete documents on **import undo**. Removing it breaks CR-023. |
+| `Certificate.Documents` navigation (`Models/Certificate.cs:140`) | Part of the certificate aggregate. |
+| `FileUploadService.UploadCertificateDocumentAsync` + the `CertificateDocument` write path | Service-layer code on a shared service. Now uncalled, but removing it widens the blast radius for no gain during hardening. Left as a deliberate, recorded loose end. |
+| `CertificateDocumentUploadViewModel` (`Models/FileUploadModels.cs:8`) | Same reasoning — harmless, and `FileUploadModels.cs` is shared. |
+| The `CertificateDocuments` **table and any rows in it** | Untouched. Nothing is destroyed by this change. |
+
+**Safety evidence gathered before deleting anything:**
+- **No inbound references.** A repo-wide sweep for `DocumentController`, `_CertificateDocuments`, `/Document/` and `CertificateDocumentUploadViewModel` across `.cs`, `.cshtml`, `.js`, `.json` and `.md` returned hits only *inside the deleted files themselves*, plus one historical audit doc (`audit/role-management-audit-2026-05-08.md`) and stale `bin/` build artifacts. Nothing live pointed at it.
+- **Dev row count: `SELECT COUNT(*) FROM CertificateDocuments` = 0.** Consistent with the reachability finding — the only writer was an action no page linked to.
+- **Compile:** `dotnet msbuild -t:Compile` — **0 errors** after removal.
+- **Gate 9:** check 2 went to **1P / 0F**; the `Certificate/Details` FAIL is gone because the reference that produced it no longer exists. Check 3's orphan-partial warning cleared at the same time. Whole gate reached **0 FAILs**.
+
+**One verification still owed at deploy time.** The **production** `CertificateDocuments` row count has not been checked — no access from here. It does **not** gate the removal (no data is touched either way), but if prod holds rows, then somebody did reach the upload at some point and this change removes their ability to *download* those files. Expected 0.
+**Deploy-step check:** `SELECT COUNT(*) FROM CertificateDocuments;` — if non-zero, stop and report before the bundle goes up; the rows themselves remain safe in the table.
+
+**Security surface retired by this, which was the real reason to prefer removal:** `GET /Document/Download/{id}` and `/Document/Preview/{id}` answered for **any authenticated user** with only a controller-level `[Authorize]`, and `IsPublic` documents bypassed the access check entirely with **no company/partner scoping** ([[feedback_partner_data_isolation]]). Those routes no longer exist.
+
+**Linked memory.** [[feedback_only_requested_changes]], [[feedback_partner_data_isolation]], [[feedback_data_changes_require_cr]] (no business data touched — deletion is code-only).
+
+**Effort:** removal ~0.5 h + prod row-count check. Repair-in-place ~3-4 h (redirect target, uploader id, auth model, route scoping).
+
+---
+
+### DEF-332 — Sign-up form posts to `Account/Register`, an action that does not exist
+
+**Date:** 2026-08-03 | **Status:** **NOT A DEFECT — reclassified 2026-08-04 as deferred Phase 2 scope**, on Shawn's decision: *"they may want to enable this in the future so we are designing even though it is not used during phase 1."* No code change. Waived in the Gate 9 allowlist with an explicit re-check trigger. | **Severity:** n/a — unbuilt, not broken | **QC Ref:** none — found by the Gate 9 static check on its first run. | **Reporter:** Anuki (internal).
+
+**Finding.** `Views/Account/SignUp.cshtml:59` is `<form asp-controller="Account" asp-action="Register" method="post">`. There is **no `Register` action** on `AccountController` (nor any `[ActionName("Register")]` anywhere). Submitting the form 404s.
+
+**Context that lowers the urgency but does not close it.** Gate 9's check 3 independently reports `Views/Account/SignUp.cshtml` as having **no matching controller action** — i.e. there is no `SignUp` action either, so the page cannot currently be reached through normal navigation. The same sweep flags `AccountLocked.cshtml`, `VerifyEmail.cshtml` and `WelcomeRedirect.cshtml`. Read together these look like **one abandoned self-registration feature**, not four unrelated faults.
+
+**Why it is logged rather than fixed.** Deciding between *build the missing `Register`/`SignUp` actions* and *delete the whole dead flow* is a product decision, and self-registration touches authentication. Not something to guess at during hardening.
+
+**Question for the client/Shawn:** is self-service sign-up a feature of this product at all? If no, the four views should be removed (they are a live-looking surface that does nothing). If yes, it is unbuilt, not broken.
+
+---
+
+### Resolution — ANSWERED 2026-08-04: keep. Phase 2 by design.
+
+**Shawn's decision, verbatim:** *"they may want to enable this in the future so we are designing even though it is not used during phase 1."*
+
+So the reading in the finding above was right — **one coherent, deliberately-unwired feature, not four faults** — and the correct action is the opposite of DEF-331's. `SignUp`, `AccountLocked`, `VerifyEmail` and `WelcomeRedirect` are **design assets for Phase 2**. They stay exactly as they are. Nothing was changed.
+
+**What was done instead — make the intent survive.** Unexplained dead-looking files are precisely what a future tidy-up sweep deletes, and the next person would have had the same evidence I did (four unreachable views, a form posting to a non-existent action) and reached the opposite, reasonable conclusion. So the intent is now recorded where the tooling will surface it:
+
+- `Scripts/smoke-prod/_static/allowlist.json` → `routes: ["Account/Register"]`, with a `_routes_why` entry stating this is deferred Phase 2 scope and **carrying an explicit re-check trigger: when `Register` is built, delete the waiver so the gate resumes guarding the route.**
+- The same file's `deadcode` section names all four views individually with *"Phase 2 … Keep. Do not 'clean up'."*
+
+**Why waive rather than leave it failing.** A permanent FAIL on a known-and-accepted future feature would block every deploy until someone silenced it — and the thing people silence is the whole gate, not the one finding. A waiver with a stated reason and a re-check trigger keeps the gate green and honest at the same time. That is the case the allowlist exists for.
+
+**Standing caveat for Phase 2 kick-off.** The sign-up form is *presently live-looking markup posting to nothing*. It is unreachable today (no `SignUp` action), which is what makes it safe. **If any future work adds a `SignUp` action without also adding `Register`, the form becomes reachable and a real user gets a 404 mid-registration.** Build both, or neither.
+
+---
+
+### DEF-333 — 2FA phone verification redirects to `VerifyPhone`, whose view file does not exist (HTTP 500)
+
+**Date:** 2026-08-03 | **Status:** **Fixed** (`Views/Account/VerifyPhone.cshtml` — **new file, no controller change**) — working tree, **pending next deploy bundle** | **Severity:** Major — a 500, not a 404, on a live authentication path | **QC Ref:** none — found by the Gate 9 static check. | **Reporter:** Anuki (internal).
+
+**Finding.** `AccountController.cs:903` does `return RedirectToAction("VerifyPhone")`. The action exists (`:924` GET, `:942` POST) and ends in `return View()`, but there was **no `Views/Account/VerifyPhone.cshtml`** and no `Views/Shared/VerifyPhone.cshtml`. MVC throws `InvalidOperationException` when it cannot resolve a view, so this yielded an **HTTP 500** — worse than DEF-331's 404, because the 500 lands mid-way through changing a security setting.
+
+**Reachability — CONFIRMED live, and it does not depend on the `Enable2FA` switch.** The initial triage asked whether phone 2FA was even enabled. It turns out that question was the wrong one:
+
+- `Enable2FA` is `false` in `appsettings.Production.json` and `appsettings.Development.json` — but that flag is only read in the **Login** path (`AccountController.cs:202`) to decide whether to challenge for a code.
+- `TwoFactorPreferences` (GET `:863`, POST `:881`) and `VerifyPhone` carry **`[Authorize]` and nothing else**. No `Enable2FA` gate. So the settings page is reachable by any authenticated user in any environment.
+
+The two-step chain, all in normal UI:
+
+1. On 2FA settings, enter a phone number. The **SMS radio is not yet rendered** — `TwoFactorPreferences.cshtml:594` gates it behind `!string.IsNullOrEmpty(Model.PhoneNumber)` — so the branch at `:894` is not taken and the number is simply **saved** (`IsPhoneVerified` still false).
+2. Reload: the SMS option now appears. Select **SMS** (or **Both**) and save → `:894` matches, `!model.IsPhoneVerified` is true → `RedirectToAction("VerifyPhone")` → **500**.
+
+So any user who tried to set up SMS two-factor hit a server error on the second save. `SmsSettings:Provider` is `"mock"`, so no real message was ever sent either — but the 500 came first regardless.
+
+**Fix — one new file, zero controller changes.** The controller side was already complete and correct: the GET guards on `TempData["PhoneVerificationSent"]`, calls `TempData.Keep()`, and sets `ViewBag.Message`; the POST validates a 6-digit code, verifies, saves preferences and redirects back with a success message the settings view already reads. **Only the view was missing.** Adding a file cannot alter any existing code path, which is the lowest-risk fix available and the right shape for hardening.
+
+The new view mirrors `Views/Account/2FAAuthenticate.cshtml` exactly — same `auth-container` shell, same six `.code-input` boxes with auto-advance/backspace/paste, same alert markup — so the two code-entry screens are consistent. It renders `ViewBag.Error` and `ViewBag.Message`, and posts `verificationCode` (the action's parameter name) with the antiforgery token the `[ValidateAntiForgeryToken]` attribute requires.
+
+**One trap deliberately avoided, and commented in the file.** The view shows which number the code went to, and reads it with **`TempData.Peek("TempPhoneNumber")`** — *not* the indexer. A plain `TempData["TempPhoneNumber"]` read in the view would mark the entry consumed, and the **POST** needs it on the next request (`:945-946`) to complete verification. An indexer read there would have broken phone verification in a way that looks like "the code is wrong". Directly the DEF-318 family of mistake, caught because the gate work made the semantics front-of-mind.
+
+**Validation (2026-08-03).** `dotnet msbuild -t:Compile` — **0 errors** (warnings all pre-existing; Razor is compiled by the source generator inside `CoreCompile`, so a view syntax error would fail this). Gate 9 check 2 **no longer reports** `Account/VerifyPhone`; that FAIL is gone and the remaining two are DEF-331 and DEF-332. **Not exercised in a browser** — reaching it needs a logged-in user to complete the two-step SMS setup against the mock SMS provider, so it warrants a manual pass on the deployed build.
+
+**Linked memory.** [[feedback_only_requested_changes]], [[feedback_scoping_check_adjacent_endpoints]].
+
+---
+
+### DEF-334 — Two TempData hygiene faults found by Gate 9 (orphan `2FAMethod` write; `Message` rendered by three views but never set)
+
+**Date:** 2026-08-03 | **Status:** **Fixed 2026-08-04** (`Controllers/AccountController.cs`, `Views/Account/ForgotPassword.cshtml`, `Views/Account/Login.cshtml`, `Views/Account/ResetPassword.cshtml`) — working tree, **pending next deploy bundle** | **Severity:** Minor — one cookie leak with no visible symptom, one permanently-dead render path | **QC Ref:** none — found by the Gate 9 static check. | **Reporter:** Anuki (internal).
+
+**Fault 1 — `TempData["2FAMethod"]` is written twice and read nowhere.** `AccountController.cs:222` and `:689` set it alongside `2FAEmail` and `2FARole`, which **are** consumed by `Verify2FA` (`:738-739`). `2FAMethod` is not consumed by anything. Same mechanism as DEF-330 #3: an unread entry is re-saved into the TempData cookie on every subsequent request, indefinitely. No visible symptom; it is pure cookie weight on every authenticated request.
+
+**Fault 2 — `TempData["Message"]` is read by three views and written by nobody.** `Views/Account/ForgotPassword.cshtml:60,64`, `Login.cshtml:43,47` and `ResetPassword.cshtml:60,64` all render it. Nothing anywhere sets it. So a message block that three authentication pages are prepared to display can never display anything — the other half of DEF-318's "writer without a reader" (here: readers without a writer), and a plausible reason a user-facing message someone expected has never appeared.
+
+**Fix (2026-08-04) — both deletions, behaviour-neutral by construction.**
+
+1. **Fault 1:** the two `TempData["2FAMethod"]` writes removed. Its siblings on the same lines (`2FAEmail`, `2FARole`, `ReturnUrl`, `RememberMe`) are all consumed by `Verify2FA` and are untouched — only the unread key went. Nothing could observe this key, so nothing can observe its absence.
+2. **Fault 2:** the three `TempData["Message"]` render blocks removed. **Verified repo-wide before deleting any UI:** zero writers exist in any `.cs` or `.cshtml` (excluding `obj/`), so the block could never render under any code path. Each of the three views already carries a working `ViewBag.Success` / `ViewBag.Error` block — and on Login, the ModelState summary as well — so no message surface is lost. The removals leave a comment in place naming DEF-334 and stating the invariant, so the next person does not re-add a reader without a writer.
+
+**Why this was worth doing rather than waiving.** Fault 2 is the exact inverse of DEF-318 — that was a writer with no reader, this is a reader with no writer — and the two halves cause opposite failures. DEF-318's spare writer surfaced someone else's message at the wrong time. A spare reader is quieter and arguably worse: it is a message surface a developer will reasonably assume works, and any future code that sets `TempData["Message"]` would have lit up on **three authentication pages at once**, at whatever moment the user happened to reach one.
+
+**Validation (2026-08-04).** `dotnet msbuild -t:Compile` — **0 errors** (Razor included; a view syntax error fails this). Gate 9 check 1 went **1 FAIL / 10 WARN → 0 FAIL / 9 WARN**: the `2FAMethod` orphan and the `Message` reader-without-writer are both gone, and no new finding appeared. Whole-gate FAILs now 2, both route targets (DEF-331, DEF-332). **Not exercised in a browser** — the change removes a block that provably never rendered and a write nothing read, so there is no user-visible behaviour to exercise.
+
+**Linked memory.** [[feedback_only_requested_changes]], [[feedback_track_every_fix_in_defect_register]].
+
+---
+
+### DEF-335 — Register entry DEF-113 cites `Views/Admin/Index.cshtml`, which does not exist
+
+**Date:** 2026-08-03 | **Status:** **Open — documentation defect, not a code defect.** | **Severity:** Trivial | **QC Ref:** none — found by the Gate 9 check-4 reconciliation. | **Reporter:** Anuki (internal).
+
+**Finding.** DEF-113's Status line names `Views/Admin/Index.cshtml`. `Views/Admin/` contains no `Index.cshtml` (the folder holds `UserManagement`, `RoleManagement`, `Tags`, `Partners`, `Pathways`, `ProductTypes`, `ProductManagement`, `CertificateTypes`, `CertificateFields`, `CSFAttributes`, `GCCAPI`, `PartnerAPI`, `GoogleAnalytics`, `CreateUser`). Either the view was renamed after the entry was written, or the path was wrong when written.
+
+**Status in the gate — downgraded 2026-08-04, deliberately.** This originally surfaced as a check-4 FAIL. It no longer does, and that is a correction to the check rather than to this entry. Check 4 now treats the **`**Status:**` line** as the authoritative statement of which files a fix touched, and body prose only as a fallback that can never FAIL. The reason: an entry's body legitimately names paths that do **not** exist — DEF-333's body says *"there was no `Views/Shared/VerifyPhone.cshtml`"*, describing the absence that **was** the bug. Failing on that is the check misreading a correct entry. DEF-113's stale path sits in body prose, so it now passes silently.
+
+**Still worth fixing** (trivial): correct the path in DEF-113's text so the entry's evidence resolves. Left as-is for now because it changes nothing about the code and the hardening queue has live defects in it.
+
+---
+
+### DEF-336 — `DownloadSelectedZip` times out past 30s (60 sequential `GetByIdAsync` loads, 13 `Include`s each) — blocks the P0 IDOR gate from verifying
+
+**Date:** 2026-08-04 | **Status:** **Fixed locally — pending next deploy.** Batched the load in `Controllers/CertificateController.cs` + new `CertificateRepository.GetByIdsAsync`. | **Severity:** High — a P0 security gate cannot complete, and bulk download is unusable at realistic selection sizes | **QC Ref:** none — surfaced by the maintained P0 security gate (`Scripts/smoke-prod/_security/idor-download.js`) during the 2026-08-04 full regression run. | **Reporter:** Anuki (internal).
+
+**Symptom.** `POST /Certificate/DownloadSelectedZip` with 60 certificate IDs does not respond within 30s. The security spec's request times out, the spec throws, and the suite records `idor.error — spec ran without throwing` as a **FAIL**, taking the whole gate to `RED-FAIL (54P / 1F / 2W)`.
+
+**This is not a leak, and the FAIL is the correct behavior.** The isolation assertion (`idor.bulk-zip`) never executes, so the IDOR control is **unverified, not breached**. The runner refusing to score an unrun assertion as PASS is exactly right — the alternative would be the vacuous-pass trap DEF-326 fixed in the partner suite. But it does mean the DEF-236 per-row authorization guard currently has **no passing regression evidence** on this endpoint.
+
+**Root cause.** `Controllers/CertificateController.cs:2370` loops over every posted ID and issues one repository load per iteration at `:2374`:
+
+```
+foreach (var certId in certificateIds)          // 2370
+    var certificate = await _certificateRepository.GetByIdAsync(certId);   // 2374
+```
+
+`CertificateRepository.GetByIdAsync` (`Repositories/CertificateRepository.cs:181`) is not a light lookup — it carries **13 `Include`s** (`Company`, `Product`, `CertificationType`, `CertificationTypeSubcategories`, `ProductCategory`, `ProductType`, `ProductSubcategory`, `Tags`, `Partners`, `CustomFieldValues.ThenInclude(Field)`, `CreatedByUser`, `UpdatedByUser`, `ProductIds.ThenInclude(Partners)`) **and `.AsSplitQuery()`** (correct there, per DEF-253 — it stops five collection Includes cross-multiplying into a cartesian).
+
+**Correction to the first draft of this entry:** it claimed `GetByIdAsync` lacked `AsSplitQuery`. It does not — it has it. That makes the loop *worse*, not better: split-query deliberately issues one query per collection, so each certificate costs roughly **6 round-trips**, and a 60-cert selection ran on the order of **360 sequential queries**. The defect is the call site looping, never the repository method. Same class as [[feedback_ef_includes_with_projection]] (DEF-166 / DEF-234).
+
+**It is load-sensitive, which is why it looked intermittent.** The same spec returned `HTTP 400` promptly on 2026-08-03 (logged `2P / 0F`) and timed out on **two consecutive** runs on 2026-08-04. Nothing in the endpoint changed between them — it sits at line 2352, and the working tree's `CertificateController.cs` diff hunks stop at ~1574, so **this is pre-existing and not a regression from the current tester-fix batch**.
+
+**Ruled out during triage** (all measured, not assumed): SQL Server was healthy at failure time (3/3 `sqlcmd` probes 130–210ms; `/` and the public tile view served in 8–116ms); no leftover `99-90xx` state-matrix fixtures were polluting the selection (teardown verified clean); and the endpoint is outside every modified hunk in the working tree.
+
+**Fix.** Two files, no behavior change to authorization:
+
+1. **`Repositories/CertificateRepository.cs` — new `GetByIdsAsync(IEnumerable<int> ids)`** (+ signature in `ICertificateRepository.cs`). Identical `Include` set to `GetByIdAsync`, `Where(c => idList.Contains(c.Id))`, `.AsSplitQuery()`, and `.OrderBy(c => c.Id)` — the ordering matters here in a way it did not for the single-entity fetch, because split queries across multiple root rows need a deterministic order to stitch correctly (DEF-166/234; `Id` is unique so it is a total order on its own). Empty/null input short-circuits to an empty list rather than emitting `IN ()`.
+2. **`Controllers/CertificateController.cs:2364`** — the requested IDs are loaded once into a dictionary before the loop; the loop now does `TryGetValue` instead of a DB call. **The `FileAccessAllowed` per-row check is untouched and still runs per certificate** — only *loading* was batched. The not-found path (`failureCount++` + warning log) behaves exactly as before, since a missing ID is simply absent from the dictionary.
+
+`Include`s were **not** dropped to gain speed, per [[feedback_ef_includes_with_projection]].
+
+**Verification (localhost:5101, 2026-08-04).** `dotnet build` → **0 errors / 0 warnings**. `idor-download` spec: **2 PASS / 0 FAIL** — and critically `idor.bulk-zip` now *executes* rather than timing out, returning the expected `HTTP 400 — none of [1..60] downloadable for this user (closed state)`, i.e. the DEF-236 scoping guard is confirmed working, which is the assertion the timeout had been suppressing. Full P0 gate back to **55P / 0F / 2W GREEN** (partner-isolation 19P, rbac-matrix 24P, idor-download 2P, cert-detail-scoping 10P).
+
+---
+
+### DEF-338 — Successful CSV import gives the analyst no confirmation at all (DEF-330 removed the leak and the message with it)
+
+**Date:** 2026-08-04 | **Status:** **Fixed locally — pending next deploy.** `Controllers/CertificateImportController.cs` (writer restored under a private key) + `Views/Certificate/CertificateTileView.cshtml` (the reader) + `Views/Certificate/Create.cshtml` (switched to the same real toast). | **Severity:** Minor UX, but on a destructive operation — an import can create *and overwrite* live certificates, and the analyst was getting silence either way | **QC Ref:** **QC #193** (client, 2026-08-04: *"the user should still get the confirmation"*) — the follow-on decision from the DEF-318 / DEF-330 review. | **Reporter:** Client, via Shawn.
+
+**What happened.** DEF-330 found that the import's `TempData["Success"]` write was orphaned — the redirect target (`Certificate/CertificateTileView`) read no TempData, so the message was never rendered there, and an *unread* TempData entry is re-saved on every subsequent request until some view reads that key. Its only readers were the CertificateImport views, so it resurfaced later as an out-of-context *"N certificates created"* banner on Import Index/Preview/History — the exact shape the client reported in QC #193.
+
+The DEF-330 fix was to **delete the write**. That closed the leak correctly, but it also removed the analyst's only confirmation, and the register logged that as a decision left open for Shawn. He has now made it: **the confirmation should exist.**
+
+**Why the message was deleted rather than relocated at the time.** The standing direction on 2026-08-03 was *"I don't want a banner at the top"*, and the only readers of that key rendered banners. Deleting was the conservative like-for-like fix under [[feedback_only_requested_changes]]. The missing option was a **private key with its reader on the redirect target** — which is what DEF-318 had already done for the Create flow, and what should have been mirrored here.
+
+**Fix — the DEF-318 shape, applied to import.**
+
+1. **Writer** (`CertificateImportController.cs`, `Apply`, success branch): `TempData["ImportSuccessMessage"]`, a key private to this flow. Not the shared `"Success"`.
+2. **Reader** (`Views/Certificate/CertificateTileView.cshtml`): the redirect target itself, so the entry is consumed on the very next request and **cannot** ride the cookie into an unrelated page. The invariant holds by construction: **1 writer, 1 reader, and the writer's redirect target is that reader.**
+3. **`backupNote` restored.** DEF-330 had deleted the write *and* the `backupNote` local that fed it. That string is the CR-023 R5 disclosure naming the automatic backup file taken when an import overwrites existing certificates — worth keeping, and arguably the most important half of the message.
+4. Render guard mirrors DEF-291's: a **per-render nonce** in `sessionStorage`, not the message text, so a bfcache/Back restore replaying the inline script cannot re-fire it, while two genuine imports with identical counts each still get their confirmation.
+
+**It is a real toast, and getting there exposed a live bug in the obvious implementation.** The first cut called `AdminCore.showNotification(msg,'success')` — the call the Create flow uses. That is **not** a toast: it routes every type to a centered blocking **modal** (`wwwroot/js/admin/admin-core.js:121` — *"Route ALL notifications to centered modals for consistency"*), despite the project standard saying success = toast. Shawn asked for a genuine toast, so this now calls `showToastNotification` directly.
+
+**The swap is not a one-word change, and a naive swap would have shipped broken.** `showToastNotification` appends into `AdminCore.notifications.container` (`:157`) and **never creates it** — `initializeNotifications()` does, and only `AdminCore.init()` calls that, from its own `DOMContentLoaded` handler registered at `:975`. This view's inline script sits in the **body**, so it registers *its* `DOMContentLoaded` listener **before** `admin-core.js` (loaded at the end of `_Layout.cshtml:343`) registers its own. Listeners fire in registration order, so on a fresh page load **ours runs first**, `container` is still `null`, and the append throws `TypeError` — no toast, silently. Fixed by calling `AdminCore.initializeNotifications()` first; it is idempotent (`:112` guards on an existing container), so it is a no-op when `init()` has already run. `showNotification` did not have this problem, which is exactly why the hazard was invisible until the swap.
+
+Duration set to **8s** rather than the 5s default (`:147`) because the message can carry the CR-023 R5 backup filename, which takes longer to read than "N created, M updated".
+
+**The Create flow was moved to the toast too** (Shawn, same day, after it was flagged). Identical treatment: `showToastNotification` + the same idempotent `initializeNotifications()` guard, since `Create.cshtml`'s script is in the view body and has exactly the same ordering hazard. Left at the default 5s duration rather than the import's 8s — its message is one short line with no filename to read. Note this view's comment had claimed *"Success message will be shown as toast notification via JavaScript"* since it was written; it is finally true.
+
+**Scope check — this inconsistency is much larger than these two views.** `AdminCore.showNotification(..., 'success')` is called at **63 sites across ~20 files** (admin JS for user/role/tag/company/product/cert-type management, the API key pages, the cert detail views). **Every one of them renders a centered blocking modal**, while `.claude/CLAUDE.md` states *"Success: Toast notification only"*. So the documented standard and the implementation have disagreed app-wide, not just here. **Deliberately not swept** — that is a visible behaviour change across the entire admin surface and needs to be its own scoped piece of work, not a side effect of a QC #193 fix. Logged for triage; the mechanical change is identical at every site (`showNotification` → `initializeNotifications()` + `showToastNotification`), but the *decision* is whether modal-after-delete should stay modal.
+
+**Not a contradiction of the client's complaint.** QC #193 was never *"stop showing me confirmations"* — it was *"stop showing me a confirmation for something I didn't just do."* This confirmation fires on the request the analyst initiated, and is consumed immediately.
+
+**Validation (2026-08-04).** `dotnet build GCCWebApp.csproj` → **Build succeeded, 0 Errors.** Razor is compiled by the source generator inside the build, so a syntax error in the new view block would fail it. Writer/reader pairing verified repo-wide: `ImportSuccessMessage` has exactly **1 writer** (`CertificateImportController.cs`) and **1 reader** (`CertificateTileView.cshtml`); `CreateSuccessMessage` likewise 1 and 1. The toast's CSS (`.admin-notification-stack` — `position:fixed; top:20px; right:20px; z-index:var(--admin-z-toast)`) lives in `wwwroot/css/admin/admin-modals.css`, which `_Layout.cshtml:53` loads on **every** page, so it is present on the public tile view.
+
+**NOT verified in a browser — and the attempt failed for environment reasons, not code reasons.** The app was started on :5101 and served the page correctly (`curl` → HTTP 200, 18,477 bytes; the request is logged in the app's own output), and it was confirmed listening on both `::1` and `127.0.0.1`. But Chrome could not reach it — every navigation rendered the "site can't be reached" error page, on both `localhost` and `127.0.0.1`, to the point that even a screenshot failed with *"Frame with ID 0 is showing error page"*. Chased to a reasonable limit and abandoned rather than rabbit-holed. **Two things therefore remain unproven and should be checked on the deployed build:** (1) the toast actually appears above the tile grid's stacking context, and (2) the end-to-end TempData round trip — apply a real CSV import and confirm the toast fires once on the tile view and does **not** reappear on any later page.
+
+**Open, for Shawn — the redirect destination itself.** `Apply` sends the analyst to `Certificate/CertificateTileView`, the **public** tile view, not `CertificateTileViewInternal`. That is pre-existing and was left alone as a behaviour change out of scope here, but it is a strange landing spot after an internal bulk operation. If it should point at the internal view, the reader block moves with it — see the invariant comment in the view.
 
 ---
 

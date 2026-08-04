@@ -168,19 +168,40 @@ namespace GCCWebApp.Controllers
 
                 if (result.Success)
                 {
+                    // CR-023 R5: when the import overwrote existing certificates a safety backup was
+                    // taken automatically — tell the analyst it exists and name the file.
                     var backupNote = result.BackupCertificateCount > 0
                         ? $" A backup of {result.BackupCertificateCount} overwritten certificate(s) was saved ({result.BackupFileName})."
                         : string.Empty;
-                    TempData["Success"] = $"Import completed successfully! {result.CertificatesCreated} created, {result.CertificatesUpdated} updated.{backupNote}";
+
+                    // DEF-338 (QC #193 follow-up, client 2026-08-04): the analyst DOES get a
+                    // confirmation after a successful import — rendered as a non-blocking toast
+                    // by the reader view, not as a page banner and not as a blocking modal.
+                    //
+                    // History: this used to write the shared TempData["Success"], whose only readers
+                    // are the CertificateImport views. The redirect target read nothing, and an
+                    // *unread* TempData entry is not discarded — it is re-saved on every subsequent
+                    // request until some view reads that key — so the message resurfaced later as an
+                    // out-of-context "N certificates created" banner on Import Index/Preview/History
+                    // (DEF-330). The fix then was to delete the write, which removed the leak but
+                    // also left the analyst with no confirmation at all.
+                    //
+                    // Correct shape: a PRIVATE key whose one and only reader is the redirect target
+                    // itself, so it is consumed on the very next request and can never surface
+                    // anywhere else. Reader: Views/Certificate/CertificateTileView.cshtml.
+                    // Invariant: never a writer without a reader on the redirect target.
+                    TempData["ImportSuccessMessage"] = $"Import completed successfully! {result.CertificatesCreated} created, {result.CertificatesUpdated} updated.{backupNote}";
                     return RedirectToAction("CertificateTileView", "Certificate");
                 }
                 else
                 {
+                    // DEF-330: "ErrorDetails" had a writer and NO reader anywhere (no view, no
+                    // controller) — so it was never displayed, yet an unread TempData entry is
+                    // re-saved on every later request. On a large failed import that parks a
+                    // multi-KB string in the TempData cookie indefinitely. The same per-row errors
+                    // are already rendered on this very page from Model.ErrorRows
+                    // (Views/CertificateImport/Preview.cshtml:216-226), so nothing is lost.
                     TempData["Error"] = result.Message;
-                    if (result.Errors.Any())
-                    {
-                        TempData["ErrorDetails"] = string.Join("\n", result.Errors);
-                    }
                     return View("Preview", preview);
                 }
             }
@@ -429,13 +450,20 @@ namespace GCCWebApp.Controllers
             // DEF-202 (QC #148): enum-typed columns now carry their allowed values inline so analysts
             // don't have to flip back to the app to look them up. Same pattern as the User Mgmt
             // template (`Status (Active/Inactive)`, `Role (Admin/Analyst/External)`) and the Tags
-            // template (`TagType (Internal, External)`). Partner / Pathway / Country / cert taxonomy
+            // template (`TagType (Internal, External)`). Pathway / Country / cert taxonomy
             // are intentionally left plain because their value sets are admin-configurable per
             // tenant — listing them here would go stale immediately.
+            // DEF-316 (QC #171): Partner carries a *separator* hint rather than a value list, for the
+            // same reason — the partner set is tenant-configurable, but multi-partner certs (CR-171)
+            // made the delimiter the thing analysts actually get wrong. Client asked for this exact
+            // wording, so don't reword it. SyncCertificatePartnersAsync splits on both ',' and '|',
+            // so the previous pipe-based files keep importing; only the guidance changed. The
+            // parenthetical is safe for header matching — GetFieldWithMapping falls back to a
+            // "Partner " prefix match (see CertificateImportService.cs:129-157).
             var statusHint = "Status (Draft / Client Approved - Not Paid / Client Approved - Confidential / Client Approved - Paid / Hold / Expired / Republished / Expired - No Annual Verification — defaults to Draft if blank)";
             var templateCsv = "\"Certificate #\",\"Certification Type\",\"Cert Subcategories\"," +
                               $"\"{statusHint}\"," +
-                              "\"Company\",\"Company Email\",\"Company URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner (one or more — separate multiple with | e.g. Amazon|Novi)\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"";
+                              "\"Company\",\"Company Email\",\"Company URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner (separate by comma)\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"";
 
             // Prepend a UTF-8 BOM so Excel on Windows decodes the file as UTF-8 instead of
             // its default Windows-1252. Without the BOM, the em dash in the Status hint

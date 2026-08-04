@@ -204,6 +204,42 @@ namespace GCCWebApp.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        /// <summary>
+        /// DEF-336: batched GetByIdAsync. Identical Includes; loads the whole set in one pass.
+        /// </summary>
+        public async Task<IEnumerable<Certificate>> GetByIdsAsync(IEnumerable<int> ids)
+        {
+            var idList = ids?.Distinct().ToList() ?? new List<int>();
+            if (idList.Count == 0)
+            {
+                return new List<Certificate>();
+            }
+
+            return await _dbSet
+                .Where(c => idList.Contains(c.Id))
+                .Include(c => c.Company)
+                .Include(c => c.Product)
+                .Include(c => c.CertificationType)
+                .Include(c => c.CertificationTypeSubcategories)
+                .Include(c => c.ProductCategory)
+                .Include(c => c.ProductType)
+                .Include(c => c.ProductSubcategory)
+                .Include(c => c.Tags)
+                .Include(c => c.Partners)
+                .Include(c => c.CustomFieldValues)
+                    .ThenInclude(cfv => cfv.Field)
+                .Include(c => c.CreatedByUser)
+                .Include(c => c.UpdatedByUser)
+                .Include(c => c.ProductIds)
+                    .ThenInclude(pi => pi.Partners) // CR-171: keep per-product partners in step
+                // Same cartesian reasoning as GetByIdAsync (DEF-253). Multiple root rows here, so
+                // the split queries need a deterministic order to stitch correctly — see
+                // DEF-166/234; Id is unique so it is a total order on its own.
+                .AsSplitQuery()
+                .OrderBy(c => c.Id)
+                .ToListAsync();
+        }
+
         public async Task<(IEnumerable<Certificate> certificates, int totalCount)> GetAdvancedFilteredCertificatesAsync(
             CertificateSearchFilter filter)
         {
@@ -245,8 +281,33 @@ namespace GCCWebApp.Repositories
             if (!string.IsNullOrEmpty(filter.Status))
                 query = query.Where(c => c.Status == filter.Status);
 
+            // DEF-328: every `Contains` over a parameterized collection in this method is wrapped in
+            // EF.Constant. EF Core 8 translates a parameterized collection to OPENJSON(@param), which
+            // carries a fixed cardinality guess — the optimizer has no idea how many values are in the
+            // JSON. On this 10-join query that guess produced a plan that ran 25s against a 55-row
+            // table, and stale statistics kept it cached, so the public tile view spun ~50s and users
+            // saw "Loading certificates…" forever.
+            //
+            // Measured on EF's own emitted SQL, changing only this clause:
+            //   OPENJSON(@param)                          25.9s
+            //   literal IN (N'…', N'…')                    0.26s   <- same run, stats still stale
+            //   OPENJSON + OPTION (RECOMPILE)              0.22s   <- proves it was the plan
+            //   OPENJSON after UPDATE STATISTICS           0.14s
+            //
+            // The literal form was fast *while statistics were still stale*, which is the point: it
+            // removes the dependency on stats maintenance rather than papering over it. A literal IN
+            // list lets the optimizer do histogram lookups on the real values, so it degrades
+            // gracefully instead of falling off a cliff.
+            //
+            // Trade-off accepted: constants are not parameterized, so each distinct filter combination
+            // compiles its own plan. Lists here are small (statuses ≤ 8, sidebar selections), so the
+            // extra plan-cache entries are negligible against a 25s stall.
+            //
+            // NOTE: this is unrelated to the AsSplitQuery() at the bottom of the method. The DEF-234
+            // comment there attributes the same 23s measurement to cartesian explosion; that was a
+            // misattribution. Keep AsSplitQuery (correct on its own merits), but it never fixed this.
             if (filter.Statuses != null && filter.Statuses.Any())
-                query = query.Where(c => filter.Statuses.Contains(c.Status));
+                query = query.Where(c => EF.Constant(filter.Statuses).Contains(c.Status));
 
             if (filter.ExcludeExpiredByDate)
             {
@@ -272,30 +333,31 @@ namespace GCCWebApp.Repositories
             if (filter.ExpirationDateTo.HasValue)
                 query = query.Where(c => c.ExpirationDate <= filter.ExpirationDateTo.Value);
 
+            // EF.Constant per DEF-328 (see the note on the Statuses filter above).
             if (filter.TagIds != null && filter.TagIds.Any())
-                query = query.Where(c => c.Tags.Any(t => filter.TagIds.Contains(t.Id)));
+                query = query.Where(c => c.Tags.Any(t => EF.Constant(filter.TagIds).Contains(t.Id)));
 
             // Filter by tag names (used by tile view APIs)
             if (filter.Tags != null && filter.Tags.Any())
-                query = query.Where(c => c.Tags.Any(t => filter.Tags.Contains(t.Name)));
+                query = query.Where(c => c.Tags.Any(t => EF.Constant(filter.Tags).Contains(t.Name)));
 
             // Filter by additional filters (APR/LEED tags from tile view checkboxes)
             if (filter.AdditionalFilters != null && filter.AdditionalFilters.Any())
-                query = query.Where(c => c.Tags.Any(t => filter.AdditionalFilters.Contains(t.Name)));
+                query = query.Where(c => c.Tags.Any(t => EF.Constant(filter.AdditionalFilters).Contains(t.Name)));
 
             // New filter properties for API
             if (filter.CertificationTypeNames != null && filter.CertificationTypeNames.Any())
-                query = query.Where(c => c.CertificationType != null && filter.CertificationTypeNames.Contains(c.CertificationType.Name));
+                query = query.Where(c => c.CertificationType != null && EF.Constant(filter.CertificationTypeNames).Contains(c.CertificationType.Name));
 
             if (filter.Countries != null && filter.Countries.Any())
-                query = query.Where(c => c.Country != null && filter.Countries.Contains(c.Country));
+                query = query.Where(c => c.Country != null && EF.Constant(filter.Countries).Contains(c.Country));
 
             if (filter.CompanyIds != null && filter.CompanyIds.Any())
-                query = query.Where(c => filter.CompanyIds.Contains(c.CompanyId));
+                query = query.Where(c => EF.Constant(filter.CompanyIds).Contains(c.CompanyId));
 
             // QC #124: public sidebar passes company names (not IDs) via CompanyNames.
             if (filter.CompanyNames != null && filter.CompanyNames.Any())
-                query = query.Where(c => c.Company != null && filter.CompanyNames.Contains(c.Company.Name));
+                query = query.Where(c => c.Company != null && EF.Constant(filter.CompanyNames).Contains(c.Company.Name));
 
             // DEF-192: Match the EFFECTIVE displayed category/type/subcategory at each level
             // (cert-level override if set, otherwise Product-derived). Previous implementation
@@ -306,22 +368,25 @@ namespace GCCWebApp.Repositories
             // Hierarchy: Level 1 = ProductCategory, Level 2 = ProductType (root), Level 3 = ProductType (child).
             // Parent cascade preserved so a Level-2 sidebar pick still surfaces certs tagged at
             // the matching Level-3 child, using the same effective-value rule.
+            // EF.Constant per DEF-328 (see the note on the Statuses filter above). This predicate
+            // references the collection 9 times, so it emitted 9 OPENJSON calls in a single WHERE —
+            // the worst offender of the set.
             if (filter.ProductCategories != null && filter.ProductCategories.Any())
                 query = query.Where(c =>
                     // Effective Level-1 category
-                    (c.ProductCategory != null && filter.ProductCategories.Contains(c.ProductCategory.Name)) ||
-                    (c.ProductCategory == null && c.Product != null && filter.ProductCategories.Contains(c.Product.Category.Name)) ||
+                    (c.ProductCategory != null && EF.Constant(filter.ProductCategories).Contains(c.ProductCategory.Name)) ||
+                    (c.ProductCategory == null && c.Product != null && EF.Constant(filter.ProductCategories).Contains(c.Product.Category.Name)) ||
                     // Effective Level-2/3 ProductType (cert.ProductType is L2 root; cert.ProductSubcategory is L3 child)
-                    (c.ProductType != null && filter.ProductCategories.Contains(c.ProductType.Name)) ||
-                    (c.ProductType == null && c.Product != null && c.Product.ProductType != null && filter.ProductCategories.Contains(c.Product.ProductType.Name)) ||
+                    (c.ProductType != null && EF.Constant(filter.ProductCategories).Contains(c.ProductType.Name)) ||
+                    (c.ProductType == null && c.Product != null && c.Product.ProductType != null && EF.Constant(filter.ProductCategories).Contains(c.Product.ProductType.Name)) ||
                     // Parent of effective L2/L3 ProductType — lets a Level-2 sidebar pick surface its children
-                    (c.ProductType != null && c.ProductType.Parent != null && filter.ProductCategories.Contains(c.ProductType.Parent.Name)) ||
-                    (c.ProductType == null && c.Product != null && c.Product.ProductType != null && c.Product.ProductType.Parent != null && filter.ProductCategories.Contains(c.Product.ProductType.Parent.Name)) ||
+                    (c.ProductType != null && c.ProductType.Parent != null && EF.Constant(filter.ProductCategories).Contains(c.ProductType.Parent.Name)) ||
+                    (c.ProductType == null && c.Product != null && c.Product.ProductType != null && c.Product.ProductType.Parent != null && EF.Constant(filter.ProductCategories).Contains(c.Product.ProductType.Parent.Name)) ||
                     // Effective Level-3 subcategory (cert.ProductSubcategory side and Product.ProductSubcategory side reference different tables)
-                    (c.ProductSubcategory != null && filter.ProductCategories.Contains(c.ProductSubcategory.Name)) ||
-                    (c.ProductSubcategory == null && c.Product != null && c.Product.ProductSubcategory != null && filter.ProductCategories.Contains(c.Product.ProductSubcategory.Name)) ||
+                    (c.ProductSubcategory != null && EF.Constant(filter.ProductCategories).Contains(c.ProductSubcategory.Name)) ||
+                    (c.ProductSubcategory == null && c.Product != null && c.Product.ProductSubcategory != null && EF.Constant(filter.ProductCategories).Contains(c.Product.ProductSubcategory.Name)) ||
                     // Parent of effective cert-side L3 subcategory
-                    (c.ProductSubcategory != null && c.ProductSubcategory.Parent != null && filter.ProductCategories.Contains(c.ProductSubcategory.Parent.Name)));
+                    (c.ProductSubcategory != null && c.ProductSubcategory.Parent != null && EF.Constant(filter.ProductCategories).Contains(c.ProductSubcategory.Parent.Name)));
 
             var totalCount = await query.CountAsync();
 
@@ -776,9 +841,23 @@ namespace GCCWebApp.Repositories
         /// <summary>
         /// Generates the next certificate number in format YY-XXXX (e.g., "26-0001")
         /// </summary>
-        public async Task<string> GenerateNextCertificateNumberAsync()
+        // DEF-322 (QC #218): the largest sequence that still fits the standard YY-XXXX shape.
+        // Above this the number necessarily widens to 5 digits — which the client accepts, but
+        // only once a year's 9,999 numbers are genuinely used up.
+        private const int MaxFourDigitSequence = 9999;
+
+        /// <param name="asOf">
+        /// Clock seam. Production always leaves this null and gets DateTime.Now. It exists so the
+        /// year-rollover tests can advance the calendar to 2027/2030/2100 and assert the prefix
+        /// actually changes — the client asked for that proof specifically (QC #218, 7/30/26).
+        /// </param>
+        public async Task<string> GenerateNextCertificateNumberAsync(DateTime? asOf = null)
         {
-            var currentYear = DateTime.Now.Year;
+            // Year rollover (client asked us to confirm this on 7/30): currentYear % 100 gives the
+            // 2-digit prefix, and the search is scoped to "<prefix>-", so on 2027-01-01 the query
+            // matches no rows, nextSequence falls back to 1, and the first cert of the year is
+            // "27-0001". Nothing carries over from 2026. Covered by unit tests.
+            var currentYear = (asOf ?? DateTime.Now).Year;
             var yearPrefix = (currentYear % 100).ToString("D2"); // "25", "26", etc.
             var pattern = $"{yearPrefix}-"; // e.g., "26-"
 
@@ -802,9 +881,29 @@ namespace GCCWebApp.Repositories
                     })
                     .Where(s => s > 0);
 
-                if (sequences.Any())
+                // DEF-322 (QC #218): only consider sequences inside the standard 4-digit space when
+                // picking the next number.
+                //
+                // The bug: this used sequences.Max() + 1 over EVERY number for the year. A single
+                // out-of-band record — e.g. "26-10095" arriving through a CSV import or the legacy
+                // ETL — permanently poisoned the rest of the year: max became 10095, so the next
+                // cert was 26-10096, and every cert after it stayed 5 digits. That is exactly the
+                // client's 7/30 report ("when adding new certs it's still 7 digits total") on a
+                // database holding only ~265 certificates.
+                //
+                // The client's rule, verbatim: "I am ok for it to be 7 digits IF WE RUN OUT OF
+                // numbers for the current year (so after 9999 certs)." So: allocate within
+                // 1..9999 and only widen when that space is genuinely exhausted.
+                //
+                // Numbers above 9999 are ignored for MAX purposes but remain valid and are still
+                // protected from collision — they live outside the 4-digit space, and the UNIQUE
+                // index plus the retry loop in AddWithGeneratedNumberAsync is the real guard either
+                // way. If 1..9999 are all taken, max is 9999 and this correctly returns 10000,
+                // which D4 renders unpadded as "26-10000".
+                var inBandSequences = sequences.Where(s => s <= MaxFourDigitSequence).ToList();
+                if (inBandSequences.Any())
                 {
-                    nextSequence = sequences.Max() + 1;
+                    nextSequence = inBandSequences.Max() + 1;
                 }
             }
 

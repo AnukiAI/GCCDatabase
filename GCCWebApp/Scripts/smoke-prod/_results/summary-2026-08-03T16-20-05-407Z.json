@@ -1,0 +1,46 @@
+{
+  "startedAt": "2026-08-03T16:20:05.407Z",
+  "finishedAt": "2026-08-03T17:05:43.292Z",
+  "base": "http://localhost:5101",
+  "mode": "batch-restart(5)",
+  "viewsRun": 11,
+  "totals": {
+    "pass": 678,
+    "fail": 26,
+    "warn": 0
+  },
+  "green": false,
+  "failingViews": [
+    "home (2)",
+    "cert-tile-public (2)",
+    "cert-tile-external (2)",
+    "cert-tile-internal (5)",
+    "cert-create (1)",
+    "admin-tags (2)",
+    "product-mgmt (12)"
+  ],
+  "perView": [
+    "home: 102P/2F/0W (retried)",
+    "login: 28P/0F/0W",
+    "cert-tile-public: 122P/2F/0W (retried)",
+    "cert-tile-external: 94P/2F/0W (retried)",
+    "cert-tile-internal: 49P/5F/0W (retried)",
+    "cert-create: 79P/1F/0W (retried)",
+    "cert-edit: 68P/0F/0W (retried)",
+    "dashboard: 58P/0F/0W (retried)",
+    "admin-user-mgmt: 40P/0F/0W",
+    "admin-tags: 38P/2F/0W (retried)",
+    "product-mgmt: 0P/12F/0W (retried)"
+  ],
+  "retriedViews": [
+    "home",
+    "cert-tile-public",
+    "cert-tile-external",
+    "cert-tile-internal",
+    "cert-create",
+    "cert-edit",
+    "dashboard",
+    "admin-tags",
+    "product-mgmt"
+  ]
+}

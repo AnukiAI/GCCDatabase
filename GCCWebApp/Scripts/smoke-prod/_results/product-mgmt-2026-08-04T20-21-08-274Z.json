@@ -1,0 +1,676 @@
+{
+  "viewId": "product-mgmt",
+  "url": "/Product/Management",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-08-04T20:21:08.274Z",
+  "finishedAt": "2026-08-04T20:24:08.527Z",
+  "pass": 83,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FProduct%2FManagement"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FProduct%2FManagement"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FProduct%2FManagement"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.table",
+      "name": "Product table renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.rows",
+      "name": "Product rows query returned without error",
+      "status": "PASS",
+      "notes": "rows=12 (external is company-scoped)"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.modal",
+      "name": "Product Add/Edit modal present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.add-hidden",
+      "name": "Add Product button hidden (external)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.actions-hidden",
+      "name": "Actions column hidden (external)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.table",
+      "name": "Product table renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.rows",
+      "name": "Product rows query returned without error",
+      "status": "PASS",
+      "notes": "rows=12 (external is company-scoped)"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.modal",
+      "name": "Product Add/Edit modal present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.add-hidden",
+      "name": "Add Product button hidden (external)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.actions-hidden",
+      "name": "Actions column hidden (external)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "product-mgmt.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.table",
+      "name": "Product table renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.rows",
+      "name": "Product rows query returned without error",
+      "status": "PASS",
+      "notes": "rows=12 (external is company-scoped)"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.modal",
+      "name": "Product Add/Edit modal present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.add-hidden",
+      "name": "Add Product button hidden (external)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.actions-hidden",
+      "name": "Actions column hidden (external)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.table",
+      "name": "Product table renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.rows",
+      "name": "Product rows load (>0)",
+      "status": "PASS",
+      "notes": "rows=100"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.modal",
+      "name": "Product Add/Edit modal present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.add-visible",
+      "name": "Add Product button visible (analyst/admin)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.actions-visible",
+      "name": "Actions column visible (analyst/admin, desktop)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "product-mgmt.table",
+      "name": "Product table renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "product-mgmt.rows",
+      "name": "Product rows load (>0)",
+      "status": "PASS",
+      "notes": "rows=100"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "product-mgmt.modal",
+      "name": "Product Add/Edit modal present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "product-mgmt.add-visible",
+      "name": "Add Product button visible (analyst/admin)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "product-mgmt.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "product-mgmt.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "product-mgmt.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.table",
+      "name": "Product table renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.rows",
+      "name": "Product rows load (>0)",
+      "status": "PASS",
+      "notes": "rows=100"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.modal",
+      "name": "Product Add/Edit modal present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.add-visible",
+      "name": "Add Product button visible (analyst/admin)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.table",
+      "name": "Product table renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.rows",
+      "name": "Product rows load (>0)",
+      "status": "PASS",
+      "notes": "rows=100"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.modal",
+      "name": "Product Add/Edit modal present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.add-visible",
+      "name": "Add Product button visible (analyst/admin)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.actions-visible",
+      "name": "Actions column visible (analyst/admin, desktop)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "product-mgmt.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "product-mgmt.table",
+      "name": "Product table renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "product-mgmt.rows",
+      "name": "Product rows load (>0)",
+      "status": "PASS",
+      "notes": "rows=100"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "product-mgmt.modal",
+      "name": "Product Add/Edit modal present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "product-mgmt.add-visible",
+      "name": "Add Product button visible (analyst/admin)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "product-mgmt.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "product-mgmt.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "product-mgmt.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.table",
+      "name": "Product table renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.rows",
+      "name": "Product rows load (>0)",
+      "status": "PASS",
+      "notes": "rows=100"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.modal",
+      "name": "Product Add/Edit modal present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.add-visible",
+      "name": "Add Product button visible (analyst/admin)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "product-mgmt.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    }
+  ]
+}

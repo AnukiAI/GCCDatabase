@@ -1,0 +1,844 @@
+{
+  "viewId": "home",
+  "url": "/Home/Index",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-08-04T14:49:04.656Z",
+  "finishedAt": "2026-08-04T14:49:31.241Z",
+  "pass": 104,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.redirect",
+      "name": "Role redirect lands on / OR /Certificate/CertificateTileView",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.public-login-link",
+      "name": "Public users see a login affordance",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.redirect",
+      "name": "Role redirect lands on / OR /Certificate/CertificateTileView",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.public-login-link",
+      "name": "Public users see a login affordance",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.redirect",
+      "name": "Role redirect lands on / OR /Certificate/CertificateTileView",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.mobile-toggle",
+      "name": "Mobile nav toggle present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.public-login-link",
+      "name": "Public users see a login affordance",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.mobile-toggle",
+      "name": "Mobile nav toggle present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.mobile-toggle",
+      "name": "Mobile nav toggle present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.redirect",
+      "name": "Role redirect lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.logo",
+      "name": "Logo / brand renders",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.nav",
+      "name": "Main navigation present in DOM",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.mobile-toggle",
+      "name": "Mobile nav toggle present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.auth-logout",
+      "name": "Authenticated user has logout form",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "home.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    }
+  ]
+}

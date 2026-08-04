@@ -830,12 +830,12 @@
                 updateUrl(); // Update URL before loading to preserve state
                 loadInitialCertificates();
             });
-            
-            // Add hover handlers for better UX
-            item.addEventListener('mouseenter', () => {
-                container.querySelectorAll('.autocomplete-item').forEach(i => i.classList.remove('selected'));
-                item.classList.add('selected');
-            });
+
+            // DEF-319 (QC #197): removed the mouseenter handler that added the 'selected' class.
+            // That class is what the Enter branch of the keydown handler reads, so hovering a
+            // suggestion silently armed it and Enter committed the hovered item instead of the
+            // typed text. Hover highlights via CSS ('.autocomplete-item:hover'); 'selected' is
+            // written only by the arrow keys. Mirrors certificate-tile-view-internal.js.
         });
     }
 

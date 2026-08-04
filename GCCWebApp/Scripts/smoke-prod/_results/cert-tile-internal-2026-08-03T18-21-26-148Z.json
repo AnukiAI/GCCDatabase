@@ -1,0 +1,186 @@
+{
+  "viewId": "cert-tile-internal",
+  "url": "/Certificate/CertificateTileViewInternal",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-08-03T18:21:26.148Z",
+  "finishedAt": "2026-08-03T18:24:39.966Z",
+  "pass": 13,
+  "fail": 6,
+  "warn": 1,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-internal.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-internal.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-internal.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-internal.access",
+      "name": "Access check (expected 403, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/AccessDenied?ReturnUrl=%2FCertificate%2FCertificateTileViewInternal"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-internal.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Certificate/CertificateTileViewInternal\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Certificate/CertificateTileViewInternal\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-desktop-fail-2026-08-03T18-22-18-247Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-tablet-fail-2026-08-03T18-23-16-454Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-tablet-fail-2026-08-03T18-23-16-454Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.add-button",
+      "name": "Add Certificate button present",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-tablet-fail-2026-08-03T18-23-16-454Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.internal-tag",
+      "name": "Internal Tag column shown",
+      "status": "PASS",
+      "notes": "internal-tag elements=2",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-tablet-fail-2026-08-03T18-23-16-454Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.import-visible",
+      "name": "analyst sees bulk Import button",
+      "status": "PASS",
+      "notes": "import button=1",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-tablet-fail-2026-08-03T18-23-16-454Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.tiles-load",
+      "name": "Tiles load (all states visible)",
+      "status": "WARN",
+      "notes": "cards=0",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-tablet-fail-2026-08-03T18-23-16-454Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.no-console-errors",
+      "name": "No console errors",
+      "status": "FAIL",
+      "notes": "Failed to load resource: net::ERR_NETWORK_CHANGED | Failed to load resource: net::ERR_NETWORK_CHANGED | Failed to load resource: net::ERR_NETWORK_CHANGED",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-tablet-fail-2026-08-03T18-23-16-454Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-tablet-fail-2026-08-03T18-23-16-454Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": "",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-tablet-fail-2026-08-03T18-23-16-454Z.png"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-internal.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-analyst-mobile-fail-2026-08-03T18-23-21-860Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-internal.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-admin-desktop-fail-2026-08-03T18-23-26-700Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-internal.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_NETWORK_CHANGED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-admin-tablet-fail-2026-08-03T18-23-28-890Z.png"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-internal.fatal",
+      "name": "Smoke ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5101/Account/Login\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Account/Login\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "_results\\screenshots\\cert-tile-internal-admin-mobile-fail-2026-08-03T18-23-35-787Z.png"
+    }
+  ]
+}

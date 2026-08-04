@@ -45,6 +45,34 @@ namespace GCCWebApp.Api.Tests.Integration
             return client;
         }
 
+        /// <summary>
+        /// DEF-326 — anti-vacuity guard.
+        ///
+        /// Most of the isolation assertions in this class are of the form "enumerate the returned
+        /// certificates and prove none of them belong to another partner". Over an EMPTY array that
+        /// loop body never executes, so the test passes without testing anything. When the fixture
+        /// stopped returning data (see docs/tracking/test-suite-triage-2026-07-31.md) that is exactly
+        /// what happened: every test asserting data IS returned went red, while every test asserting
+        /// data is ABSENT stayed green — and the suite would have kept reporting green if partner
+        /// isolation had broken outright.
+        ///
+        /// Call this instead of reading "data" directly whenever emptiness would make the assertion
+        /// meaningless. An absence claim is only evidence when there was something present to filter.
+        /// </summary>
+        private static JsonElement RequireNonEmptyData(JsonDocument doc, string because)
+        {
+            doc.RootElement.TryGetProperty("data", out var data)
+                .Should().BeTrue("the partner API response must carry a 'data' array");
+
+            data.ValueKind.Should().Be(JsonValueKind.Array, "'data' must be an array");
+
+            data.GetArrayLength().Should().BeGreaterThan(0,
+                $"{because} — an empty result set would make this scoping assertion vacuous, " +
+                "so emptiness is treated as a failure rather than a pass");
+
+            return data;
+        }
+
         #region Amazon Partner Scoping
 
         [Fact]
@@ -90,7 +118,7 @@ namespace GCCWebApp.Api.Tests.Integration
 
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
-            var data = doc.RootElement.GetProperty("data");
+            var data = RequireNonEmptyData(doc, "Amazon must actually receive its own certificates");
 
             foreach (var cert in data.EnumerateArray())
             {
@@ -407,7 +435,7 @@ namespace GCCWebApp.Api.Tests.Integration
 
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
-            var data = doc.RootElement.GetProperty("data");
+            var data = RequireNonEmptyData(doc, "Amazon must receive GS1 reports to check status mapping");
 
             foreach (var report in data.EnumerateArray())
             {
@@ -465,16 +493,23 @@ namespace GCCWebApp.Api.Tests.Integration
 
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
-            var data = doc.RootElement.GetProperty("data");
+            var data = RequireNonEmptyData(doc, "Amazon must receive GS1 reports to check GTIN padding");
 
+            // DEF-326: the inner `if` means a run can still assert nothing if no report carries a
+            // GTIN, so count the ones actually examined and require at least one.
+            var gtinsChecked = 0;
             foreach (var report in data.EnumerateArray())
             {
                 var product = report.GetProperty("products")[0];
                 if (product.TryGetProperty("gtin", out var gtin) && gtin.ValueKind == JsonValueKind.String)
                 {
                     gtin.GetString()!.Length.Should().Be(14, "GTIN should be padded to 14 digits");
+                    gtinsChecked++;
                 }
             }
+
+            gtinsChecked.Should().BeGreaterThan(0,
+                "at least one GS1 report must carry a GTIN, otherwise this test asserts nothing");
         }
 
         [Fact]
@@ -606,7 +641,7 @@ namespace GCCWebApp.Api.Tests.Integration
             // Assert
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
-            var data = doc.RootElement.GetProperty("data");
+            var data = RequireNonEmptyData(doc, "Novi must actually receive its own certificates");
 
             foreach (var cert in data.EnumerateArray())
             {
@@ -752,7 +787,7 @@ namespace GCCWebApp.Api.Tests.Integration
             // Assert
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
-            var data = doc.RootElement.GetProperty("data");
+            var data = RequireNonEmptyData(doc, "Other must actually receive its own certificates");
 
             foreach (var cert in data.EnumerateArray())
             {
@@ -878,6 +913,18 @@ namespace GCCWebApp.Api.Tests.Integration
             // Arrange — SKU NOVI-ECS-001 belongs to Novi cert, Amazon should NOT see it
             using var client = CreateClientWithApiKey(AmazonApiKey);
 
+            // DEF-326 positive control. This test asserts an EMPTY result, so on its own it cannot
+            // distinguish "correctly scoped out" from "product ID search is returning nothing to
+            // anyone". Prove the endpoint works for this caller first, using Amazon's OWN ASIN —
+            // only then does the empty cross-partner result carry any information.
+            var controlResponse = await client.GetAsync("/api/v1/certificates/search/productid?productId=B08XQRT456&type=ASIN");
+            controlResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            using (var controlDoc = JsonDocument.Parse(await controlResponse.Content.ReadAsStringAsync()))
+            {
+                RequireNonEmptyData(controlDoc,
+                    "Amazon must be able to find its OWN ASIN before an empty Novi-SKU result proves scoping");
+            }
+
             // Act
             var response = await client.GetAsync("/api/v1/certificates/search/productid?productId=NOVI-ECS-001&type=SKU");
 
@@ -897,6 +944,17 @@ namespace GCCWebApp.Api.Tests.Integration
         {
             // Arrange — ASIN B08XQRT456 belongs to Amazon cert, Novi should NOT see it
             using var client = CreateClientWithApiKey(NoviApiKey);
+
+            // DEF-326 positive control — see the sibling Amazon test. Prove Novi can find its OWN
+            // SKU first, so the empty Amazon-ASIN result below means "scoped out" rather than
+            // "this endpoint returns nothing to anybody".
+            var controlResponse = await client.GetAsync("/api/v1/certificates/search/productid?productId=NOVI-ECS-001&type=SKU");
+            controlResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            using (var controlDoc = JsonDocument.Parse(await controlResponse.Content.ReadAsStringAsync()))
+            {
+                RequireNonEmptyData(controlDoc,
+                    "Novi must be able to find its OWN SKU before an empty Amazon-ASIN result proves scoping");
+            }
 
             // Act
             var response = await client.GetAsync("/api/v1/certificates/search/productid?productId=B08XQRT456&type=ASIN");
@@ -1022,7 +1080,7 @@ namespace GCCWebApp.Api.Tests.Integration
             // Assert
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
-            var data = doc.RootElement.GetProperty("data");
+            var data = RequireNonEmptyData(doc, $"{partnerName} must actually receive certificates");
 
             foreach (var cert in data.EnumerateArray())
             {
@@ -1053,7 +1111,8 @@ namespace GCCWebApp.Api.Tests.Integration
             // Assert
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
-            var data = doc.RootElement.GetProperty("data");
+            var data = RequireNonEmptyData(doc,
+                $"{partnerName} must actually receive certificates for the Partner=None exclusion to mean anything");
 
             foreach (var cert in data.EnumerateArray())
             {
@@ -1100,10 +1159,13 @@ namespace GCCWebApp.Api.Tests.Integration
         {
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
-            var data = doc.RootElement.GetProperty("data");
 
-            if (data.GetArrayLength() == 0)
-                return new List<string>();
+            // DEF-326: this used to `return new List<string>()` when the array was empty, which made
+            // AllPartners_StandardResponse_HaveSameFieldSet compare three empty lists and pass — the
+            // most misleading green in the suite, since it claims to verify that every partner
+            // receives an identical response shape. Empty is now a failure, not an empty answer.
+            var data = RequireNonEmptyData(doc,
+                "a partner must return at least one certificate for its response field set to be comparable");
 
             return data[0].EnumerateObject().Select(p => p.Name).OrderBy(n => n).ToList();
         }

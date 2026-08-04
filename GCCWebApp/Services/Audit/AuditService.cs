@@ -2,6 +2,7 @@ using GCCWebApp.Data;
 using GCCWebApp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -21,15 +22,22 @@ namespace GCCWebApp.Services.Audit
         private readonly ApplicationDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<AuditService> _logger;
+        private readonly IConfiguration _configuration;
+
+        // Resolved at most once per scoped instance (i.e. per request) — see ResolveSystemUser.
+        private bool _systemUserResolved;
+        private (int UserId, string Username)? _systemUser;
 
         public AuditService(
             ApplicationDbContext context,
             IHttpContextAccessor httpContextAccessor,
-            ILogger<AuditService> logger)
+            ILogger<AuditService> logger,
+            IConfiguration configuration)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -50,6 +58,23 @@ namespace GCCWebApp.Services.Audit
         {
             try
             {
+                // DEF-337 (completion): resolve the acting user the same way the delete path
+                // does. Previously an unresolvable userId (0) was written straight through and
+                // blew up on FK_AuditHistory_Users_ChangedBy inside SaveChanges, where the catch
+                // below swallowed it — the audit row was lost with only a generic error logged.
+                // Several newly-audited callers cannot supply a userId, so refuse explicitly.
+                var (resolvedUserId, resolvedUsername) = ResolveActingUser(userId, username);
+                if (resolvedUserId <= 0)
+                {
+                    _logger.LogError(
+                        "AUDIT GAP: {Action} of {EntityType} {EntityId} was NOT audited — no " +
+                        "resolvable user (userId={UserId}).", action, typeof(T).Name, entityId, userId);
+                    return 0;
+                }
+
+                userId = resolvedUserId;
+                username = resolvedUsername;
+
                 var entityType = typeof(T).Name;
                 var auditRecords = new List<AuditHistory>();
 
@@ -123,6 +148,195 @@ namespace GCCWebApp.Services.Audit
         }
 
         /// <summary>
+        /// DEF-337: DELETE audit for an entity plus every row SQL Server will cascade away.
+        /// See IAuditService for the rationale. Parent + children are written in ONE batch.
+        /// </summary>
+        public async Task<int> LogEntityDeleteWithChildrenAsync<T>(
+            string entityId,
+            string? entityName,
+            T entity,
+            IReadOnlyList<AuditChildSnapshot> children,
+            int userId,
+            string username,
+            string? reason = null,
+            string? changeSource = null
+        ) where T : class
+        {
+            try
+            {
+                var (resolvedUserId, resolvedUsername) = ResolveActingUser(userId, username);
+                if (resolvedUserId <= 0)
+                {
+                    // ChangedBy is NOT NULL with FK_AuditHistory_Users_ChangedBy. Writing an
+                    // unresolvable id throws inside SaveChanges and the catch below swallows it,
+                    // which is exactly how DEF-187's audit rows were lost silently. Refuse
+                    // loudly instead of writing a row that cannot persist.
+                    _logger.LogError(
+                        "AUDIT GAP: delete of {EntityType} {EntityId} was NOT audited — no resolvable " +
+                        "user (userId={UserId}). The record and {ChildCount} cascade child row(s) are " +
+                        "being destroyed with no audit trail.",
+                        typeof(T).Name, entityId, userId, children?.Count ?? 0);
+                    return 0;
+                }
+
+                var parentType = typeof(T).Name;
+                var records = new List<AuditHistory>
+                {
+                    CreateAuditRecord(
+                        parentType, entityId, entityName, AuditAction.Delete,
+                        null, SerializeEntity(entity), null,
+                        resolvedUserId, resolvedUsername, reason, changeSource)
+                };
+
+                if (children != null)
+                {
+                    foreach (var child in children)
+                    {
+                        records.Add(CreateAuditRecord(
+                            child.EntityType,
+                            child.EntityId,
+                            child.EntityName,
+                            AuditAction.Delete,
+                            null,
+                            // Runtime-typed: serializing as `object` would emit "{}".
+                            SerializeEntityByRuntimeType(child.Entity),
+                            null,
+                            resolvedUserId,
+                            resolvedUsername,
+                            // Tag the parentage so a restore knows what these belonged to.
+                            $"Cascade delete with {parentType} {entityId}" +
+                                (string.IsNullOrWhiteSpace(reason) ? "" : $" — {reason}"),
+                            changeSource));
+                    }
+                }
+
+                await _context.AuditHistory.AddRangeAsync(records);
+                await _context.SaveChangesAsync();
+                return records.Count;
+            }
+            catch (Exception ex)
+            {
+                // Deliberately not rethrown (audit must not break business operations), but this
+                // is logged at Error, not swallowed silently — a missing delete audit is data loss.
+                _logger.LogError(ex,
+                    "AUDIT GAP: failed to log delete of {EntityType} {EntityId} with {ChildCount} children",
+                    typeof(T).Name, entityId, children?.Count ?? 0);
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// DEF-337: falls back to the signed-in user's claims when a caller cannot supply the
+        /// acting user. Mirrors the claim order established by DEF-187
+        /// (NameIdentifier -> sub -> UserId); an explicit non-zero userId always wins.
+        /// Returns userId 0 when nothing can be resolved, which callers must treat as "do not write".
+        /// </summary>
+        private (int UserId, string Username) ResolveActingUser(int userId, string? username)
+        {
+            if (userId > 0)
+                return (userId, string.IsNullOrWhiteSpace(username) ? "unknown" : username);
+
+            var principal = _httpContextAccessor.HttpContext?.User;
+            if (principal?.Identity?.IsAuthenticated == true)
+            {
+                var claim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+                            ?? principal.FindFirst("sub")
+                            ?? principal.FindFirst("UserId");
+
+                if (claim != null && int.TryParse(claim.Value, out var claimUserId) && claimUserId > 0)
+                {
+                    var name = username;
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        name = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                               ?? principal.Identity.Name
+                               ?? "unknown";
+                    }
+                    return (claimUserId, name);
+                }
+            }
+
+            // DEF-337 (completion): API-key callers have no user behind them. The v1 API
+            // authenticates with an ApiKey/PartnerApiKey, neither of which carries a Users row,
+            // so nothing above can resolve — yet those endpoints delete certificates and
+            // products. AuditHistory.ChangedBy is NOT NULL with an FK to Users, so the row
+            // physically cannot be written without SOME user id.
+            //
+            // Rather than make the column nullable (schema change, and it would weaken every
+            // other audit row) or hard-code an id, fall back to a designated service account
+            // named in configuration. Unset = unchanged behaviour: refuse and log the gap.
+            var systemUser = ResolveSystemUser();
+            if (systemUser.HasValue)
+                return systemUser.Value;
+
+            return (0, username ?? "unknown");
+        }
+
+        /// <summary>
+        /// DEF-337 (completion): looks up the configured audit service account
+        /// (<c>Audit:SystemUserEmail</c>) so machine-initiated changes can be attributed.
+        /// Cached per scoped instance so a bulk operation does not re-query per row.
+        /// Returns null when unconfigured or when the configured account does not exist.
+        /// </summary>
+        private (int UserId, string Username)? ResolveSystemUser()
+        {
+            if (_systemUserResolved)
+                return _systemUser;
+
+            _systemUserResolved = true;
+
+            try
+            {
+                var email = _configuration["Audit:SystemUserEmail"];
+                if (string.IsNullOrWhiteSpace(email))
+                    return _systemUser = null;
+
+                var user = _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Email == email)
+                    .Select(u => new { u.Id, u.Email })
+                    .FirstOrDefault();
+
+                if (user == null)
+                {
+                    _logger.LogWarning(
+                        "Audit:SystemUserEmail is set to '{Email}' but no such user exists — " +
+                        "machine-initiated changes will not be audited.", email);
+                    return _systemUser = null;
+                }
+
+                return _systemUser = (user.Id, user.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to resolve the configured audit system user");
+                return _systemUser = null;
+            }
+        }
+
+        /// <summary>
+        /// DEF-337: serializes by RUNTIME type. JsonSerializer.Serialize(obj, options) with a
+        /// static type of object emits "{}" — it reflects over System.Object, not the instance.
+        /// Cascade children arrive as object (several distinct types per delete), so they must
+        /// go through this rather than SerializeEntity&lt;T&gt;.
+        /// </summary>
+        private string? SerializeEntityByRuntimeType(object? entity)
+        {
+            if (entity == null)
+                return null;
+
+            try
+            {
+                return JsonSerializer.Serialize(entity, entity.GetType(), EntitySerializerOptions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to serialize cascade child {EntityType}", entity.GetType().Name);
+                return $"[Serialization failed: {entity.GetType().Name}]";
+            }
+        }
+
+        /// <summary>
         /// Logs a simple audit event without field-level tracking
         /// </summary>
         public async Task LogAuditEventAsync(
@@ -139,6 +353,16 @@ namespace GCCWebApp.Services.Audit
         {
             try
             {
+                // DEF-337 (completion): same acting-user resolution as the other write paths.
+                var (resolvedUserId, resolvedUsername) = ResolveActingUser(userId, username);
+                if (resolvedUserId <= 0)
+                {
+                    _logger.LogError(
+                        "AUDIT GAP: {Action} event for {EntityType} {EntityId} was NOT audited — " +
+                        "no resolvable user (userId={UserId}).", action, entityType, entityId, userId);
+                    return;
+                }
+
                 var record = CreateAuditRecord(
                     entityType,
                     entityId,
@@ -147,8 +371,8 @@ namespace GCCWebApp.Services.Audit
                     null,
                     null,
                     details,
-                    userId,
-                    username,
+                    resolvedUserId,
+                    resolvedUsername,
                     reason,
                     changeSource
                 );
@@ -410,8 +634,14 @@ namespace GCCWebApp.Services.Audit
         // can't drift. PasswordHash is defense-in-depth here — the User model also marks it
         // [JsonIgnore] (DEF-121) — but keeping it in this list means any future credential
         // field added without [JsonIgnore] is still excluded from audit blobs.
+        // DEF-337 (completion): "ApiKey", "Key" and "KeyHash" added when API-key deletes became
+        // audited. PartnerApiKey.ApiKey holds the key in plaintext, and an audit blob is a
+        // long-lived, widely-readable copy — exactly the wrong place for live credentials. The
+        // consequence is intentional: a deleted key cannot be reconstructed from the audit
+        // trail. A revoked key should never be restored anyway; issue a new one.
         private static readonly string[] AuditSkipFields =
-            { "UpdatedAt", "UpdatedBy", "UpdatedByUser", "CreatedByUser", "User", "PasswordHash" };
+            { "UpdatedAt", "UpdatedBy", "UpdatedByUser", "CreatedByUser", "User", "PasswordHash",
+              "ApiKey", "Key", "KeyHash" };
 
         /// <summary>
         /// Determines if a property should be skipped during change detection

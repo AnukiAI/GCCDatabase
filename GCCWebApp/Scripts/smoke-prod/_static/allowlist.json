@@ -1,0 +1,31 @@
+{
+  "_README": [
+    "Accepted exceptions for the static gate (Gate 9). EVERY entry must carry a reason.",
+    "A waiver without a stated reason is a lie told to the next person who reads the report.",
+    "Waivers are for 'we looked, and this is correct as-is' - never for 'this is noisy'.",
+    "Prefer fixing. If a finding recurs and is genuinely fine, waive it HERE with the why."
+  ],
+
+  "tempdata": {
+    "_shape": "\"KeyName\": \"why this key is exempt\""
+  },
+
+  "routes": [
+    "Account/Register"
+  ],
+  "_routes_why": {
+    "Account/Register": "DEF-332, waived 2026-08-04 on Shawn's decision. Self-service sign-up is a DESIGNED PHASE 2 FEATURE, deliberately not wired up for Phase 1. Views/Account/SignUp.cshtml posts to an Account/Register action that does not exist yet - that is unbuilt, not broken. Waived so a known-future feature does not block every deploy. RE-CHECK AT PHASE 2 KICK-OFF: when Register is built, DELETE this waiver so the gate resumes guarding the route. See also the deadcode waivers for the four sign-up views."
+  },
+  "_routes_shape": "[\"Controller/Action\", ...] - route targets known-missing and accepted (e.g. a deliberately unbuilt future feature)",
+
+  "deadcode": {
+    "Views/Account/SignUp.cshtml": "DEF-332 - Phase 2 self-service sign-up, designed but not wired up for Phase 1. Keep. Do not 'clean up'.",
+    "Views/Account/AccountLocked.cshtml": "DEF-332 - part of the same Phase 2 self-service sign-up/account-lifecycle set. Keep.",
+    "Views/Account/VerifyEmail.cshtml": "DEF-332 - part of the same Phase 2 self-service sign-up/account-lifecycle set. Keep.",
+    "Views/Account/WelcomeRedirect.cshtml": "DEF-332 - part of the same Phase 2 self-service sign-up/account-lifecycle set. Keep.",
+    "_shape": "\"Views/Path/File.cshtml\": \"why this unreferenced file is kept\""
+  },
+
+  "unshipped": [],
+  "_unshipped_shape": "[\"DEF-123\", ...] - register entries whose pending/undeployed state is known and accepted"
+}

@@ -38,6 +38,50 @@
    a writer and no reader (an unread entry is re-saved indefinitely and surfaces on some unrelated
    later page). Do not reintroduce a reader here without a writer, or vice versa. *@
 
+@* DEF-339 (client, 2026-08-04): "I don't see the toast notification." Saving a certificate — the
+   single most common action in the app — had no confirmation on either the Create "Save" path or
+   the Edit save path. Only "Save & Add Another" and CSV import ever confirmed anything, because
+   DEF-318 deleted the orphaned Edit write rather than pairing it with a reader.
+
+   This is that reader. Two writers (Create's plain-Save path and Edit's save path in
+   CertificateController), both of which redirect HERE, so the entry is consumed on the very next
+   request — the DEF-330 leak is not reintroduced. Multiple writers to one reader is fine and
+   already the pattern for AccountController's three writes into TwoFactorPreferences; what must
+   never happen is a writer whose redirect target does not read the key. *@
+@if (TempData["SaveSuccessMessage"] is string saveSuccessMsg)
+{
+    @* Same nonce guard as Create.cshtml/CertificateTileView.cshtml: keyed on a per-render nonce
+       rather than the message text, so a bfcache/Back restore replaying this inline script cannot
+       re-fire it, while two genuine saves of the same certificate each still confirm. *@
+    <script>
+        (function () {
+            var nonce = '@(Guid.NewGuid().ToString("N"))';
+            var msg = '@Html.Raw(saveSuccessMsg.Replace("\\", "\\\\").Replace("'", "\\'"))';
+            var seenKey = 'saveSuccessMsgShown:' + nonce;
+            function showOnce() {
+                try {
+                    if (sessionStorage.getItem(seenKey)) return;
+                    sessionStorage.setItem(seenKey, '1');
+                } catch (e) { /* sessionStorage unavailable — fall through and show once */ }
+                if (typeof AdminCore === 'undefined' || !AdminCore.showToastNotification) return;
+                // Must run before showToastNotification: it appends into a container that only
+                // initializeNotifications() creates, and AdminCore.init() does that from its own
+                // DOMContentLoaded handler (admin-core.js:975) registered AFTER this one, since
+                // this script is in the view body and admin-core.js loads at the end of _Layout.
+                // Idempotent — admin-core.js:112 guards on an existing container.
+                AdminCore.initializeNotifications();
+                AdminCore.showToastNotification(msg, 'success');
+            }
+            window.addEventListener('pageshow', function (e) { if (e.persisted) showOnce(); });
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', showOnce);
+            } else {
+                showOnce();
+            }
+        })();
+    </script>
+}
+
 <!-- Certificate Details -->
 <div class="certificate-single-container" data-id="@certificateId">
     <!-- Certificate Card styled like tile view -->

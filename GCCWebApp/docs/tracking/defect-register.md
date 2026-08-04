@@ -7794,7 +7794,7 @@ Note the "View" control uses the same thumbnail URL as the preview (there is no 
 
 ### DEF-337 — Delete recoverability: cascade children are destroyed unaudited, and the system's core entity (Certificate) has no delete audit at all
 
-**Date:** 2026-08-04 | **Status:** **Logged only — not fixed.** | **Severity:** **Major (data-loss / recoverability).** | **QC Ref:** none — found by Anuki while restoring a mistaken delete during QC #242 follow-up. **Found by:** Anuki. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-04 | **Status:** **FIXED 2026-08-04 — working tree, pending next deploy bundle.** (This entry was originally logged as "not fixed"; the fix landed the same day in two passes — see *Fix* at the end.) | **Severity:** **Major (data-loss / recoverability).** | **QC Ref:** none — found by Anuki while restoring a mistaken delete during QC #242 follow-up. **Found by:** Anuki. | **Reporter:** Anuki (internal).
 
 > **CORRECTION 2026-08-04 — this entry's original claim was WRONG and is retracted.**
 > It asserted the audit snapshot "captures only 8 of 16 columns" and that `ProductTypeId` was
@@ -7819,7 +7819,35 @@ Note the "View" control uses the same thumbnail URL as the preview (there is no 
 
 **5. `UpdatedAt` is excluded from every snapshot** via `AuditSkipFields` (`AuditService.cs:414`). Minor and arguably intentional, but it means a restore cannot reproduce the original modification timestamp.
 
-**Suggested direction (not built).** Extend delete-audit coverage to every deletable entity; capture cascade children before the parent goes (or make the deletes soft so nothing cascades); and prefer soft delete wherever an `IsDeleted` column already exists. Decide alongside [[DEF-288]] — same decision, several tables. Full options and trade-offs: `docs/tracking/audit-restore-improvement-proposal.md`.
+**Suggested direction.** Extend delete-audit coverage to every deletable entity; capture cascade children before the parent goes (or make the deletes soft so nothing cascades); and prefer soft delete wherever an `IsDeleted` column already exists. Decide alongside [[DEF-288]] — same decision, several tables. Full options and trade-offs: `docs/tracking/audit-restore-improvement-proposal.md`.
+
+---
+
+## Fix (2026-08-04, two passes)
+
+**Pass 1 — cascade children and the certificate hole.** Added `IAuditService.LogEntityDeleteWithChildrenAsync`, which writes the parent DELETE plus one row per cascade child in a single `SaveChanges`. Wired into `CertificateService.DeleteCertificateAsync` (four FK child tables) and four `AdminService` taxonomy deletes. Also fixed the failure mode that hid the original problem: an unresolvable `ChangedBy` now refuses loudly instead of throwing inside `SaveChanges` and being swallowed.
+
+**Pass 2 — the gaps pass 1 left, found by a follow-up review on Shawn's instruction to "ensure there is coverage if the client needs to revert a record".**
+
+1. **Join tables were still uncaptured.** Pass 1 captured FK children (rows with a real `CertificateId` column) but not the many-to-many join tables, which are EF skip navigations with shadow join entities — no CLR type to query, nothing to serialize, and they cascade just the same. For a certificate that silently lost `CertificateTags`, `CertificatePartners` and `CertificateCertificationTypeSubcategories`. **The partner one is the consequential one: restoring a certificate without its partner links silently changes who can see it** rather than failing visibly. New `AuditJoinRowCollector` captures each association as an `AuditLinkRow` carrying the physical join table and *both column names*, read from the EF model rather than hard-coded, so the audit trail stays correct if the mapping changes and a restore script can actually be written from it. Also covers `CertificateProductIdPartners` (CR-171 Phase 2), which cascades one level deeper.
+2. **Bulk certificate delete was entirely unaudited** — `PerformBulkActionAsync("delete")` did a raw `RemoveRange`. Now deletes through `DeleteCertificateAsync` per id, so bulk and single deletes audit identically by construction rather than by duplicated code. Non-existent ids remain a no-op, not a failure.
+3. **The whole v1 API deleted unaudited** — `CertificatesController`, `BulkCertificatesController` and `ProductsController` never referenced `IAuditService`. Certificate deletes now delegate to the service; product deletes capture and audit in place.
+4. **Nine more unaudited delete paths closed:** `AdminService` — `DeleteRoleAsync` (now captures which users held the role and what it granted), `DeleteCertificateFieldAsync` (**captures the `CustomFieldValues` it cascades — real certificate data, not configuration; this was the most damaging one**), `DeleteCSFAttributeAsync` (routed through the audited tag path), `DeletePartnerAsync`, `DeletePathwayAsync`, `DeleteProductAsync`; plus `ProductIdService.DeleteProductIdAsync`, `ProductIdService.BulkDeleteProductIdsAsync` (used `ExecuteDeleteAsync`, a set-based SQL DELETE — rows never enter the change tracker, so they had to be snapshotted *before* the call), and `PartnerApiKeyService.DeleteApiKeyAsync`.
+5. **Product hard-delete now captures its cascade children** (`ProductIdentifiers` + tag links) via shared `ProductDeleteAudit`, and audits **before** `SaveChanges` instead of after — the previous ordering meant the children were already destroyed by the time the audit ran and could no longer be read. This is the exact path that deleted products 100/101.
+6. **Credential fields excluded from snapshots.** `ApiKey`, `Key`, `KeyHash` added to `AuditSkipFields` alongside `PasswordHash` when API-key deletes became audited — `PartnerApiKey.ApiKey` holds the key in plaintext and an audit blob is a long-lived, widely-readable copy. Consequence is intentional: a deleted key cannot be reconstructed from the audit trail. A revoked key should never be restored anyway.
+7. **`LogEntityChangeAsync` / `LogAuditEventAsync` now resolve the acting user** the same way the delete path does, instead of writing `userId = 0` straight through to an FK violation swallowed by the catch.
+
+**Deliberately NOT audited:** `FileUploadService` line ~368 removes a `CertificateDocument` it created moments earlier when a virus scan fails. That is a compensating rollback inside a single upload, not a user-visible delete — auditing it would add noise with nothing to restore.
+
+**API-key callers — resolved via a configured service account.** `AuditHistory.ChangedBy` is `NOT NULL` with an FK to `Users`, and an API key has no user behind it, so v1 API deletes cannot be attributed without *some* user id. Rather than make the column nullable (which would weaken every other audit row) or hard-code an id, `AuditService` falls back to a service account named in configuration as **`Audit:SystemUserEmail`**.
+
+**Set 2026-08-04 (Shawn) to the admin account: `swest@anukiconsulting.com`** in `appsettings.json` (base config, so it applies to every environment). Verified present and `active` as `Users.Id = 1`, `Username = 'admin'`, on **both** the dev DB (`GCCDatabase_Dev`) and the deployed test/prod DB (`gccwebap_certificates`) — so one base value is correct everywhere and no per-environment override is needed. API-initiated deletes are now audited and attributed to that account; an explicit signed-in user always takes precedence, so this never masks a real actor.
+
+> **Operational note.** This makes the audit trail depend on a config value. If that account is ever renamed, deleted or its email changed, resolution fails **closed** — a warning is logged and the delete proceeds *unaudited*. Worth including in the account-hygiene checks before production cutover. `DEF337_AuditSystemUserFallbackTests` pins all four behaviours (resolves / unset / missing account / explicit user wins).
+
+**Verification.** `GCCWebApp.Api.Tests/Unit/Services/DEF337_DeleteAuditCoverageTests.cs` (11) + `DEF337_AuditSystemUserFallbackTests.cs` (4) — **15 tests, all passing**, asserting the *contract* (a delete must leave a restorable record) rather than the implementation, so a future entity whose delete path forgets to audit fails here. Pass 2 added five: partner/tag link capture, link rows carrying join table + column names, bulk delete auditing every certificate, custom-field values captured, role user/permission links captured. Full suite **653 passed / 76 failed / 729 total** — the 76 are the pre-existing DEF-326 fixture failures, unchanged, none in a delete or audit path.
+
+**Still open — the client cannot act on any of this.** There is no audit history screen and no restore action; every revert remains a hand-written SQL script. Logged as **CR-034**, because it is new functionality rather than a defect.
 
 **Related.** `Scripts/data-ops/2026-08-04-restore-products-100-101.sql` — restore committed 2026-08-04 (test env), both rows back, faithful to the snapshot.
 
@@ -8689,9 +8717,38 @@ Duration set to **8s** rather than the 5s default (`:147`) because the message c
 
 **Validation (2026-08-04).** `dotnet build GCCWebApp.csproj` → **Build succeeded, 0 Errors.** Razor is compiled by the source generator inside the build, so a syntax error in the new view block would fail it. Writer/reader pairing verified repo-wide: `ImportSuccessMessage` has exactly **1 writer** (`CertificateImportController.cs`) and **1 reader** (`CertificateTileView.cshtml`); `CreateSuccessMessage` likewise 1 and 1. The toast's CSS (`.admin-notification-stack` — `position:fixed; top:20px; right:20px; z-index:var(--admin-z-toast)`) lives in `wwwroot/css/admin/admin-modals.css`, which `_Layout.cshtml:53` loads on **every** page, so it is present on the public tile view.
 
-**NOT verified in a browser — and the attempt failed for environment reasons, not code reasons.** The app was started on :5101 and served the page correctly (`curl` → HTTP 200, 18,477 bytes; the request is logged in the app's own output), and it was confirmed listening on both `::1` and `127.0.0.1`. But Chrome could not reach it — every navigation rendered the "site can't be reached" error page, on both `localhost` and `127.0.0.1`, to the point that even a screenshot failed with *"Frame with ID 0 is showing error page"*. Chased to a reasonable limit and abandoned rather than rabbit-holed. **Two things therefore remain unproven and should be checked on the deployed build:** (1) the toast actually appears above the tile grid's stacking context, and (2) the end-to-end TempData round trip — apply a real CSV import and confirm the toast fires once on the tile view and does **not** reappear on any later page.
+**UPDATE 2026-08-04 — the shared mechanism is now proven.** The client confirmed the toast rendering on the DEF-339 save path (*"I see the toast now"*), which exercises the identical toast call, ordering guard, CSS and stacking context this entry relies on. What remains unexercised for *this* entry is narrower than it was: only the **import-specific TempData round trip** (apply a real CSV, confirm the toast fires once on the tile view and does not reappear later). The rendering half is no longer in doubt. Original note follows.
+
+**NOT verified in a browser by Anuki — the attempt failed for environment reasons, not code reasons.** The app was started on :5101 and served the page correctly (`curl` → HTTP 200, 18,477 bytes; the request is logged in the app's own output), and it was confirmed listening on both `::1` and `127.0.0.1`. But Chrome could not reach it — every navigation rendered the "site can't be reached" error page, on both `localhost` and `127.0.0.1`, to the point that even a screenshot failed with *"Frame with ID 0 is showing error page"*. Chased to a reasonable limit and abandoned rather than rabbit-holed. **Two things therefore remain unproven and should be checked on the deployed build:** (1) the toast actually appears above the tile grid's stacking context, and (2) the end-to-end TempData round trip — apply a real CSV import and confirm the toast fires once on the tile view and does **not** reappear on any later page.
 
 **Open, for Shawn — the redirect destination itself.** `Apply` sends the analyst to `Certificate/CertificateTileView`, the **public** tile view, not `CertificateTileViewInternal`. That is pre-existing and was left alone as a behaviour change out of scope here, but it is a strange landing spot after an internal bulk operation. If it should point at the internal view, the reader block moves with it — see the invariant comment in the view.
+
+---
+
+### DEF-339 — Saving a certificate gave no confirmation at all (Create "Save" and Edit "Save" both silent)
+
+**Date:** 2026-08-04 | **Status:** **Fixed locally — pending next deploy.** `Controllers/CertificateController.cs` (2 writers) + `Views/Certificate/CertificateInternalView.cshtml` (the reader). | **Severity:** Medium UX — it is the most-used action in the app, and it was the *only* one of the confirmed flows the client actually tried | **QC Ref:** **QC #193** (client, 2026-08-04: *"I don't see the toast notification and we changed it to not redirect?"*) | **Reporter:** Client, via Shawn.
+
+**The redirect was never changed** — both save paths still `RedirectToAction(CertificateInternalView)` exactly as before. What was missing was the confirmation, and the client reasonably read "no toast where I expected one" as "the redirect changed."
+
+**Root cause — DEF-338 fixed the two flows nobody was testing.** After DEF-318 and DEF-338 the confirmation matrix was:
+
+| Flow | Redirect target | Confirmation before DEF-339 |
+|---|---|---|
+| Create → **Save & Add Another** | `Create` | ✅ toast (`CreateSuccessMessage`) |
+| CSV import → **Apply** | `CertificateTileView` | ✅ toast (`ImportSuccessMessage`) |
+| Create → **Save** | `CertificateInternalView` | ❌ **nothing** |
+| Edit → **Save** | `CertificateInternalView` | ❌ **nothing** |
+
+The two silent rows are the common paths. DEF-318 had deleted the Edit write (correctly — it was orphaned and leaking) and explicitly declined to add a reader, on the reasoning recorded in the code: *"Edit already lands the user on the saved certificate, which is its own confirmation — adding a toast here would be new UI the client did not ask for."* That judgement is now falsified: the client landed on the saved certificate and reported seeing no confirmation. **Landing on the record is not read as confirmation.**
+
+**Fix.** A private `SaveSuccessMessage` key: **2 writers** (Create's plain-Save path, Edit's save path) → **1 reader** (`CertificateInternalView.cshtml`), and *both writers redirect to that reader*, so each entry is consumed on the very next request. The DEF-330 leak is not reintroduced. Multiple writers into one reader is fine and is already the shape of `AccountController`'s three writes into `TwoFactorPreferences`; the invariant that matters is that **no writer may redirect somewhere that does not read its key**. Same real toast (`showToastNotification` + the idempotent `initializeNotifications()` ordering guard) as the other two.
+
+**Standing note for the next person:** the DEF-318 comment block in the Edit path has been amended rather than deleted, so the reasoning *and* its reversal both survive. Deleting an orphaned write is only half a fix — the other half is asking whether the message should have had a reader all along.
+
+**Validation (2026-08-04).** `dotnet build GCCWebApp.csproj` → **Build succeeded, 0 Errors** (Razor included). Pairing after the change: `CreateSuccessMessage` 1w/1r, `SaveSuccessMessage` 2w/1r, `ImportSuccessMessage` 1w/1r — no key has a writer without a reader. App rebuilt and restarted on :5101 for the client to exercise.
+
+**CONFIRMED BY THE CLIENT (2026-08-04): *"I see the toast now."*** Exercised on the Edit → Save path on localhost:5101 — the exact flow that was silent. This is the first end-to-end proof of the whole mechanism and it clears the open questions DEF-338 could not close: the TempData round trip fires, `showToastNotification` renders, the `initializeNotifications()` ordering guard works on a real page load, and **the toast is visible above the page's stacking context** (the one property that could not be checked statically). Verified by the client, not by Anuki — Chrome still cannot reach the dev server from this session.
 
 ---
 

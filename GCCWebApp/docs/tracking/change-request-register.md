@@ -348,6 +348,24 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 - **Detail doc:** `docs/tracking/CR-023-import-batch-undo.md`
 - **Status:** **Built + UI-validated locally — pending deploy.** Pre-prod; client approval still advisable before it's presented as a delivered feature.
 
+### CR-034 (proposed 2026-08-04) — Audit History screen + one-click record restore
+
+- **Source:** Shawn, 2026-08-04 — *"review the Audit history table and ensure there is coverage if the client needs to revert a record."* Raised while resuming the DEF-337 delete-audit work.
+- **Why CR, not a defect:** the audit **data** is a defect concern and is now fixed under DEF-337 — every delete captures a restorable snapshot including cascade children and join rows. What does not exist, and never did, is any way for a user to **see or act on** that data. There is no audit view in `Views/`, no controller exposes `IAuditService`, and `AuditAction.Restore` is written only by the CR-023 import-undo flow. The requirements baseline specifies audit *tracking*; it does not specify an audit *screen* or a restore feature. Building either is new functionality.
+- **What the client can do today:** nothing self-service. Every restore is a hand-written SQL script produced by Anuki against the audit JSON — e.g. `Scripts/data-ops/2026-08-04-restore-products-100-101.sql`, written to undo two products deleted by mistake. That works, but it needs a developer, it is slow, and it is not something the client can do during a working day.
+- **Proposed scope (indicative, not built):**
+  1. **Admin → Audit History screen.** Filter by entity type, entity, user, action and date range; paged. `IAuditService.SearchAuditHistoryAsync` already returns exactly this shape and the table is already indexed for it (five single-column indexes plus a composite on EntityType/EntityId/ChangedAt), so the read side is largely done.
+  2. **Per-record history.** A "History" affordance on certificate/product/company detail pages calling `GetEntityHistoryAsync`, showing the field-level change list already captured on UPDATE.
+  3. **Restore action on DELETE rows.** Re-create the entity from the snapshot plus its captured children and join rows, writing a `RESTORE` audit row. Needs the decisions below.
+  4. **CSV export** of a filtered audit view, per the project's CSV-only export rule.
+- **Decisions required before this can be estimated — each materially changes the cost:**
+  1. **Who may restore?** Admin only, or Analyst too? Restore re-creates business records and should probably be Admin-only.
+  2. **Same ID, or new ID?** Restoring to the original key needs `IDENTITY_INSERT` and can collide if the key was reused. A new ID is safer but breaks every external reference — including, for certificates, anything a partner already resolved.
+  3. **How far does a restore reach?** Parent only, or parent + captured children + join rows? Children are captured now, so a full restore is possible — but re-creating a certificate's partner links silently restores visibility, which the client should decide explicitly rather than inherit.
+  4. **Which entities?** Certificates only (the entity that actually gets deleted by mistake), or every audited entity?
+- **Known limits the screen inherits, worth stating up front:** `UpdatedAt`/`UpdatedBy` are excluded from snapshots by design, so a restore cannot reproduce the original modification timestamp; date values in field-level rows are stored formatted (`yyyy-MM-dd HH:mm:ss`), losing Kind and sub-second precision; and credential fields (`PasswordHash`, `ApiKey`, `Key`, `KeyHash`) are deliberately never captured, so users and API keys can be *reported on* but not fully reconstructed.
+- **Status:** **Proposed — not built, awaiting client decisions on the four points above.** The data-capture prerequisite (DEF-337) is complete and in the working tree, so this can be scoped independently whenever the client wants it.
+
 ### CR-033 (proposed 2026-08-04) — Duo two-factor authentication, and enabling 2FA before production cutover
 - **Source:** client requirement relayed by Shawn, 2026-08-04: *"we need 2fa enabled prior to production cutover, they also want DUO."* Follow-up the same day: the client **already has email and a Duo tenant**, and the work is to be **tested on a subdomain of existing production before cutover** to reduce go-live risk and delay.
 - **Why CR, not a defect:** Duo is a **new third-party authentication integration** that appears nowhere in the requirements baseline. The built-in 2FA (email / SMS / TOTP / recovery codes) is already built and already enabled in Staging and Test — turning it on in production is a **cutover activity**, not new scope. Duo is the scope change.

@@ -18,9 +18,11 @@
 |---|---|---|
 | Defect Register | [defect-register.md](defect-register.md) | DEF-XXX — canonical defect log (current high-water in file header) |
 | Change Request Register | [change-request-register.md](change-request-register.md) | CR-XXX — scope/data-op change requests (incl. CR-021 migration CEF code) |
+| Issue Register | [issue-register.md](issue-register.md) | ISS-XXX — infrastructure / tooling / test-harness issues that are neither product defects nor scoped changes |
 
-*(The framework's original `issue-register.md`, `progress-log.md`, and `effort-log.md` were consolidated
-away in earlier cleanups; issue/effort context now lives in the QA and delivery docs below.)*
+*(`progress-log.md` and `effort-log.md` were consolidated away in earlier cleanups; effort context now
+lives in the QA and delivery docs below. `issue-register.md` was **revived 2026-07-13** with ISS-001 and is
+current — the note that previously listed it as consolidated away was stale.)*
 
 ### Per-CR plan & correspondence docs
 

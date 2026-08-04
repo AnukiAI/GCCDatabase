@@ -705,6 +705,11 @@ namespace GCCWebApp.Controllers
                         return RedirectToAction(nameof(Create));
                     }
 
+                    // DEF-339: plain "Save" (as opposed to "Save & Add Another" above) had no
+                    // confirmation at all — the only two confirmed flows were Save & Add Another
+                    // and CSV import. Same private key as the Edit path, same reader, which is the
+                    // redirect target here too.
+                    TempData["SaveSuccessMessage"] = $"Certificate {certificate.Number} created successfully!";
                     return RedirectToAction(nameof(CertificateInternalView), new { id = certificate.Number });
                 }
 
@@ -1401,9 +1406,18 @@ namespace GCCWebApp.Controllers
                     // clicking "Add Certificate" produced a stale "successfully!" toast on a blank
                     // form, and why it survived a logout/login cycle. Removing the orphaned write is
                     // the root fix; it also closes the same leak into TwoFactorPreferences.cshtml,
-                    // the other view bound to this key. Edit already lands the user on the saved
-                    // certificate, which is its own confirmation — adding a toast here would be new
-                    // UI the client did not ask for.
+                    // the other view bound to this key.
+                    //
+                    // DEF-339 (client, 2026-08-04): the paragraph above used to end "Edit already
+                    // lands the user on the saved certificate, which is its own confirmation —
+                    // adding a toast here would be new UI the client did not ask for." The client
+                    // has now asked for it: landing on the record was NOT read as confirmation.
+                    // So the message is back — but under a PRIVATE key whose one reader is the
+                    // redirect target itself (CertificateInternalView.cshtml), which is what
+                    // DEF-318 should have done instead of deleting outright. The leak is not
+                    // reintroduced: consumed on the very next request, it cannot ride the cookie
+                    // into an unrelated page.
+                    TempData["SaveSuccessMessage"] = $"Certificate {certificate.Number} updated successfully!";
                     return RedirectToAction(nameof(CertificateInternalView), new { id = certificate.Number });
                 }
 

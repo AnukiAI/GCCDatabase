@@ -6,7 +6,7 @@
 
 **One-command deterministic gate:** with the app on `localhost:5101` and `sqlcmd` on PATH, run **`node Scripts/smoke-prod/deploy-gate.js`**. It runs the three deterministic script suites in sequence — **security** (`_security/run-all.js`: isolation/RBAC/IDOR/detail scoping), **crud** (`_crud/run-all.js`: cert/tag/company/product/user write paths), and **contract** (`amazon-contract-diff.js`) — and exits `0` only if all pass (`2` = app/sqlcmd not ready, `1` = a gate failed). This is the mechanical backbone of Gates 3, 4, and 8 in one shot (and the intended CI entrypoint). The agent-driven gates below still cover what a script can't (visual/design, WCAG, traceability, EF perf, migrations).
 
-**Scope trigger:** run the full list before any `dotnet publish` to gccwebapp.com / greencirclecertified.com. For a hotfix touching one surface, run only the gates whose "Fires when" matches — but Gate 5 always runs.
+**Scope trigger:** run the full list before any `dotnet publish` to gccwebapp.com / greencirclecertified.com. For a hotfix touching one surface, run only the gates whose "Fires when" matches — but Gates 5, 9 and 10 always run.
 
 ---
 
@@ -159,6 +159,34 @@ Audit the working tree against the tracking docs:
 **The selftest is fatal — do not skip it.** Both of these happened while the gate was being built, in one sitting: an argument parser swallowed a closing paren so all 58 TempData writes reported "unresolved"; and the register parser used `(.*)$` on a CRLF file (in JavaScript `\r` **is** a line terminator, so `.` never matches it and `$` never anchors) and matched **0 of 247** entries. **Both produced a clean, all-clear report.** A broken check and a healthy codebase are indistinguishable unless something asserts the check still detects known-bad fixtures. That is the selftest's whole job.
 
 > Justifies this gate: Gates 1–8 all assess a **bundle** — how it renders, scopes, performs and writes. None of them assess (a) the defect classes the C# compiler structurally cannot see, because they are magic strings and string-keyed dictionaries, or (b) the gap between *"the register says we fixed it"* and *"the client can actually see it"*. DEF-318 was fixed on 2026-07-31, sat uncommitted, and was re-reported by the client on 2026-08-03. Every gate was green the whole time. This one would have printed `DEF-318(MODIFIED)` on day one.
+
+---
+
+## Gate 10 — Config that points at data still resolves  ·  manual + DB (`sqlcmd`)
+
+**Fires when:** **always.** It is two SQL queries and it guards a control that fails **silently and closed**.
+
+Some settings are not values — they are *references to a database row*. The DLL ships, the config ships, the app starts clean, and the reference is dangling. Nothing surfaces until the behaviour it controls is needed, and by then the evidence is what was lost.
+
+**The one that exists today — `Audit:SystemUserEmail`.**
+
+`AuditHistory.ChangedBy` is `NOT NULL` with `FK_AuditHistory_Users_ChangedBy`, but v1 API callers authenticate with an API key and have **no `Users` row**. `AuditService` therefore resolves a service account named by `Audit:SystemUserEmail` (currently `swest@anukiconsulting.com`, the `admin` account) so machine-initiated deletes can be attributed. If that account is renamed, deactivated, deleted, or has its email changed on the target DB, resolution fails, a warning goes to the log, and **the delete proceeds unaudited**. No error, no user-visible symptom, no failed request — just no audit row for a destroyed record.
+
+- [ ] Read the value the bundle will actually run with: `Audit:SystemUserEmail` in the **in-zip** `appsettings.json` (base config; confirm no environment file overrides it — `appsettings.Production.json` currently does not).
+- [ ] Assert the account exists and is usable **on the target DB, not dev** — per the [[feedback_diagnose_on_clients_environment]] rule:
+  ```
+  sqlcmd -S "tcp:68.71.129.120,1533" -d gccwebap_certificates -U <user> -P <pw> -I -h -1 -W ^
+    -Q "SET NOCOUNT ON; SELECT Id, Username, Email, Status FROM Users WHERE Email = '<configured-email>';"
+  ```
+  **Must return exactly one row, `Status = 'active'`.** Zero rows = deploy block: either fix the config or fix the account before shipping. More than one row means duplicate emails, which the app forbids elsewhere — investigate rather than assume the first wins.
+  > **Baseline — verified 2026-08-04 against `gccwebap_certificates`:** returns exactly `1 | admin | swest@anukiconsulting.com | active`. Same row on the dev DB (`GCCDatabase_Dev`), which is why the value sits in base `appsettings.json` with no per-environment override. Note the decoy: `admin@greencirclecertified.com` also exists on both DBs (`admin.uat`, Id 22, Admin role) and is *not* the account the app treats as admin.
+- [ ] If the value was changed in this bundle, also confirm the **old** account is not the one referenced by any in-flight data-ops script.
+
+**Do not "fix" this by pointing at whatever admin account happens to exist on the target.** The reference is deliberate: the account is the attribution shown against every machine-initiated change. Changing it silently re-attributes future audit rows to a different person.
+
+> **Watch for new members of this class.** Any future setting whose value is a *lookup key* into the database belongs in this gate — not just a credential or a URL, but anything the app resolves to a row at runtime. The tell is a config read followed by a `Where(x => x.Something == configuredValue)`.
+
+> Justifies this gate: DEF-337. The delete-audit coverage work closed thirteen unaudited delete paths and made the audit trail the system's only recoverability story — then made part of that trail depend on a config value resolving to a row. Gates 1–9 cannot see this: there is no UI diff, no view, no schema change, no failing write, and the app is *healthier* by every other measure. The failure mode is identical in shape to the one DEF-187 and DEF-337 were both raised for — an audit row that was never written, noticed only when someone goes looking for it after a mistaken delete. `DEF337_AuditSystemUserFallbackTests` proves the code fails closed; only this gate proves the *deployed configuration* actually resolves.
 
 ---
 

@@ -8221,3 +8221,211 @@ Deliberately **not** swept. Changing 63 confirmations across the whole admin sur
 change, not a side effect of a QC #193 fix, and it needs a real decision first: the standard also
 prescribes Modal→Delete→Toast, so "success after a destructive delete" may genuinely want to stay a modal
 even once the rest become toasts. The mechanical edit is identical everywhere; the judgement isn't.
+
+
+## 2026-08-04 (cont.) — Audit history reviewed for revert coverage; DEF-337 finished, CR-034 raised
+
+Shawn, after a reboot interrupted the audit-history testing: **"review the Audit history table and
+ensure there is coverage if the client needs to revert a record."** Reviewed first, then fixed on the
+go-ahead.
+
+**The review split into two questions, and they had different answers.** Is the *data* there to revert
+from — mostly, with real holes. Can the client *actually revert* — no, not at all, and that turned out
+to be the more important finding.
+
+**Holes in the data, now closed (DEF-337 pass 2).** The pass-1 fix captured FK children but not the
+many-to-many join tables, because those are EF skip navigations with shadow join entities: no CLR type
+to query, nothing to serialize, and they cascade away exactly the same. The one that matters is
+`CertificatePartners` — restoring a certificate without its partner links **silently changes who can
+see it** instead of failing visibly, which is the worst shape a data-loss bug can take. Beyond that:
+bulk certificate delete was a raw `RemoveRange` with no audit at all, the entire v1 API deleted
+unaudited, and nine more delete paths wrote nothing. The nastiest single one was
+`DeleteCertificateFieldAsync`, which cascades `CustomFieldValues` — that is certificate *data*, not
+configuration.
+
+**Two things I would not have predicted before looking.** `ProductIdService.BulkDeleteProductIdsAsync`
+uses `ExecuteDeleteAsync`, a set-based SQL DELETE — the rows never enter the change tracker, so there
+is no "after" in which to capture them; the snapshot has to happen before the call or not at all. And
+the product hard-delete path was auditing *after* `SaveChanges`, which reads fine until you notice the
+cascade children it wanted to record were already destroyed by then. Ordering was the bug, not absence.
+
+**A small design decision worth remembering.** The join-row capture reads the physical table and both
+column names out of the EF model instead of hard-coding them. It would have been quicker to write
+`"CertificatePartners"` as a string. Reading it from the model means the audit trail follows the
+mapping if it ever changes, and — more practically — the captured row actually tells whoever writes the
+restore script which columns to INSERT into. A link row that records only "cert 500 was linked to
+partner 3" is not restorable without going back to the source to find out how.
+
+**The finding worth the most.** All of that is plumbing the client never sees. There is no audit
+history screen anywhere in the app — no view, no controller touching `IAuditService`, and `RESTORE` is
+written only by the CR-023 import-undo. Every revert to date has been a hand-written SQL script by us;
+the products 100/101 restore earlier today is the example. So the honest answer to "is there coverage
+if the client needs to revert a record" is: **the data is now good enough to revert from, and the
+client still cannot do it.** Raised as **CR-034** rather than folded into the defect, because a screen
+and a restore action are new functionality, not a fix — and it carries four decisions the client owns
+(who may restore, same ID or new, how deep the restore reaches, which entities).
+
+**One config item needs Shawn.** API-key callers have no `Users` row, and `AuditHistory.ChangedBy` is
+`NOT NULL` with an FK. Rather than widen the column, the service now falls back to a configured service
+account, `Audit:SystemUserEmail` — **currently unset, so API deletes are still refused and logged as
+AUDIT GAP.** Deliberately left that way: pointing it at a real account is a decision about attribution,
+not something to guess.
+
+**Also excluded on purpose:** credential fields (`ApiKey`, `Key`, `KeyHash`) now join `PasswordHash` in
+the audit skip list. An audit blob is a long-lived, widely-readable copy, and `PartnerApiKey.ApiKey` is
+plaintext. The cost is that a deleted key cannot be rebuilt from audit — which is correct; a revoked
+key should be reissued, not restored.
+
+**Process note.** The first pass of this fix (earlier today) looked complete and had passing tests. The
+second pass found roughly as much again. The difference was asking a *user-facing* question — "could
+the client actually revert this record?" — rather than a code-facing one. The code-facing question
+("does this delete write an audit row?") had already been answered yes for the paths someone thought to
+check.
+
+---
+
+## 2026-08-04 (cont.) — DEF-339: "I don't see the toast" — because saving a cert never had one
+
+Shawn, testing: **"I don't see the toast notification and we changed it to not redirect?"**
+
+**Two answers.** The redirect was never touched — both save paths still redirect to the certificate
+detail view exactly as before; I verified the lines are unchanged. And the toast was genuinely absent,
+because **I fixed the two flows nobody was going to test first.**
+
+After DEF-318 + DEF-338 the matrix was: *Save & Add Another* ✅, *CSV import* ✅, **Create → Save ❌,
+Edit → Save ❌**. The two silent ones are the common paths — the ones you'd hit within ten seconds of
+opening the app. DEF-318 had deleted the orphaned Edit write and explicitly declined to add a reader,
+with this reasoning left in the code: *"Edit already lands the user on the saved certificate, which is
+its own confirmation."* That's now falsified by the client doing exactly that and reporting no
+confirmation. **Landing on the record is not read as confirmation.**
+
+**The pattern I should have caught two turns earlier:** when the fix for "a message leaked" is "delete
+the message," the follow-up question is not *"is the leak closed?"* but *"which flows just went silent,
+and were any of them the main one?"* I answered the first question three times (DEF-318, DEF-330,
+DEF-338) and never the second. Restoring import confirmation was the client asking me the second
+question; I still only answered it for import.
+
+**Fix:** private `SaveSuccessMessage`, 2 writers (Create plain-Save, Edit save) → 1 reader
+(`CertificateInternalView.cshtml`), both writers redirecting to that reader, so it's consumed next
+request and can't leak. Same real toast as the others. Amended the DEF-318 comment rather than deleting
+it, so the original reasoning and its reversal both survive for the next person.
+
+**All four flows now confirm.** Build clean; pairings 1w/1r, 2w/1r, 1w/1r — no orphans. App rebuilt and
+restarted detached on :5101 (PID 36268) for Shawn to exercise; I still can't drive Chrome to it.
+
+---
+
+## 2026-08-04 — CONFIRMED: client sees the toast
+
+Shawn, on the Edit → Save path: **"I see the toast now."**
+
+First end-to-end proof of the whole mechanism, and it retires every open rendering question at once: the
+TempData round trip fires, `showToastNotification` renders, the `initializeNotifications()` ordering guard
+holds on a real page load, and the toast sits **above the page's stacking context** — the one property
+that could not be checked statically and that I'd flagged twice as unverified.
+
+**Confirmation now exists on all four flows** (Create → Save, Create → Save & Add Another, Edit → Save,
+CSV import → Apply), each on a private key whose reader is its own redirect target. Closes QC #193:
+DEF-318 + DEF-330 + DEF-338 + DEF-339, all in the working tree, all pending the same deploy bundle.
+
+**Narrower gap remaining:** the import-specific round trip hasn't been exercised with a real CSV (fires
+once on the tile view, doesn't reappear later). The rendering half is no longer in doubt — only that
+flow's TempData path. Worth one manual pass on the deployed build.
+
+**Worth keeping from this thread:** the fix that finally worked was the one DEF-318 had already invented
+and then failed to apply to its neighbours. Three rounds of "delete the orphaned write" preceded one round
+of "give it a reader on the redirect target." Deleting is the right move only when the message was
+worthless; otherwise the private-key-plus-local-reader shape is the fix, and it was sitting in the repo
+the whole time.
+
+
+## 2026-08-04 (cont.) — `Audit:SystemUserEmail` set to the admin account
+
+Shawn: **"set Audit:SystemUserEmail to the admin account."** Done — `swest@anukiconsulting.com` in
+`appsettings.json` (base config, not per-environment).
+
+**Checked before writing it, and the check mattered.** The `admin` account (`Users.Id = 1`) resolves to
+the same email — `swest@anukiconsulting.com`, `active` — on **both** the dev DB (`GCCDatabase_Dev`) and
+the deployed test/prod DB (`gccwebap_certificates`). That is why one value in base config is correct
+rather than three per-environment overrides. Worth noting the near-miss: `admin@greencirclecertified.com`
+also exists on both DBs as `admin.uat` (Id 22) and looks like the obvious "admin account" if you go by
+the name in the UAT seed scripts. It is not the one the app treats as admin.
+
+**Added four tests instead of trusting the config.** A setting that silently stops resolving would put
+us straight back to unaudited API deletes with only a log line to notice — which is the same failure
+shape as DEF-187. `DEF337_AuditSystemUserFallbackTests` pins: resolves to a real account, unset writes
+nothing, configured-but-missing account writes nothing, and an explicit signed-in user always wins over
+the service account. That last one matters most — the fallback must never mask a real actor and make a
+person's delete look machine-initiated.
+
+**Flagged for cutover.** The audit trail now depends on a config value, and it fails **closed**: rename
+or deactivate that account and deletes proceed *unaudited* with a warning. Added to the DEF-337 entry as
+an operational note — it belongs in the account-hygiene checks before production, not in code.
+
+
+## 2026-08-04 (cont.) — Gate 10 added to the pre-deploy checklist: config that points at data
+
+Shawn: **"add the audit account check to the pre-deploy checklist."** Added as **Gate 10 — Config that
+points at data still resolves**, and framed it as a *class* rather than one setting, because the class
+is what the checklist was missing.
+
+**The distinction that made it worth a gate of its own.** Most settings are values — a port, a
+threshold, a feature flag. A few are **references to a database row**. `Audit:SystemUserEmail` is one:
+the app resolves it with a `Where(u => u.Email == configuredValue)` at runtime. Ship the DLL, ship the
+config, start the app clean — and the reference can still be dangling. Nothing errors. The only symptom
+is that machine-initiated deletes stop being audited, which nobody notices until someone goes looking
+for the record of a delete that already happened.
+
+**Why none of Gates 1–9 would catch it.** No UI diff, no view, no schema change, no failing write, and
+`deploy-gate.js` stays green. By every signal the checklist already collects, the app is *healthier*
+than before — the DEF-337 work closed thirteen unaudited delete paths on the way in. The regression
+would be invisible precisely because it fails closed and quietly.
+
+**Made it mechanical, one `sqlcmd` query, run against the TARGET DB.** Two rules the checklist already
+learned the hard way apply here: check the client's environment, not dev (DEF-323 cost three
+corrections for exactly this), and make the assertion falsifiable — *exactly one row, Status = active*,
+not "an admin exists". Verified today: `1 | admin | swest@anukiconsulting.com | active` on
+`gccwebap_certificates`.
+
+**Recorded the decoy in the gate itself.** `admin@greencirclecertified.com` exists on both DBs as
+`admin.uat` (Id 22, Admin role) and is the address in the UAT seed scripts — it is the obvious wrong
+answer for anyone re-deriving this value later. Better in the doc than rediscovered.
+
+**One instruction I put in deliberately: do NOT "fix" a zero-row result by repointing at whatever admin
+account exists.** That value is the attribution shown against every machine-initiated change; swapping
+it silently re-attributes future audit rows to a different person. Fix the account or fix the config —
+consciously, not reflexively.
+
+---
+
+## 2026-08-04 — Full regression pass + ISS-002 logged (post-deploy)
+
+**Browser suites — all green.** Views **810 PASS / 0 FAIL** (12 views x 4 roles x 3 viewports, incl. the
+Tier 2 state matrix 27/27). Security **57 PASS / 0 FAIL** (partner-isolation 21, RBAC 24, IDOR 2,
+detail-scoping 10). CRUD **39 PASS / 0 FAIL**. Both roll-ups exited 0.
+
+**.NET suite:** `729 tests / 653 passed / 76 failed`.
+
+**Why partner-scoping failures moved 26 -> 40 — asked, investigated, answered.** Not a regression. Commit
+`b727c10` (DEF-326) added the `RequireNonEmptyData` anti-vacuity guard to 9 test methods — 10 call sites,
+2 positive controls, 1 counter guard — which expand to **13 test cases** via `[InlineData]`. No tests were
+added (`[Fact]/[Theory]` 38 -> 38, `[InlineData]` 9 -> 9) and no product code changed. Those 9 methods are
+exactly the ones the 7/31 triage listed as *"PASSING — every test that asserts data is ABSENT"*: they
+enumerated the returned certificates asserting none belonged to another partner, and over an empty array
+the loop body never ran. They now fail honestly instead of passing vacuously.
+
+**Method note on myself.** I first spotted that previously-passing tests were now failing, then wrongly
+retracted it as a grep misalignment. The original observation was correct and was the key to the whole
+delta. The retraction cost a round trip — when a `grep -A` mapping looks suspect, re-derive it properly
+rather than discarding the finding.
+
+**Logged as ISS-002 (OPEN, deferred post-deploy at Shawn's direction).** The underlying fixture problem is
+untouched: the partner API integration fixture returns `data: []` to every caller, which accounts for
+**49 of the 76** failures (PartnerApiScoping 40 + MultiPartner 8 + ApiIntegration 1). The other **27 are
+unit-test classes** that do not go through the web fixture — explicitly out of ISS-002's scope so they
+don't get assumed-fixed alongside it. Partner isolation itself remains verified green by the browser
+security suite. Recorded a "do not" in the entry: never relax the DEF-326 guards to force green.
+
+**Also fixed while there:** `TRACKING-DASHBOARD.md` listed `issue-register.md` as "consolidated away",
+which was stale — it was revived 2026-07-13 with ISS-001. A TODO filed in a register the index denies
+exists is a TODO nobody finds.

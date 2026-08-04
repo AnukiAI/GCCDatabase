@@ -4,6 +4,37 @@ Running log of **infrastructure / tooling / process** issues that are not produc
 
 ---
 
+### ISS-002 — Partner API integration fixture returns an empty result set to every caller, so 49 integration tests cannot pass
+
+**Date:** 2026-08-04 | **Status:** **OPEN — deferred to after the current deploy** (Shawn, 2026-08-04). Test-infrastructure only; no product code implicated. | **Severity:** Medium-High (assurance) — the product is fine, but the automated proof of partner data isolation is unavailable in the .NET suite. | **Reporter:** Anuki (internal), during the 2026-08-04 full regression pass.
+
+**Symptom.** Every partner-scoped API call made through the integration-test fixture returns `data: []`. Representative failure:
+
+> `Expected data.GetArrayLength() to be 1 because Seed data contains exactly 1 Other certificate, but found 0 (difference of -1).`
+
+**Scope — 49 of the 76 current failures**, measured 2026-08-04 (`729 tests / 653 passed / 76 failed`):
+
+| Class | Failing cases |
+|---|---:|
+| `Integration.PartnerApiScopingTests` | 40 |
+| `Integration.MultiPartnerApiIntegrationTests` | 8 |
+| `Integration.ApiIntegrationTests` | 1 |
+| **Fixture-attributable subtotal** | **49** |
+
+The **other 27** failures are unit-test classes (`CertificateTileExternalApiControllerTests` 10, `ProductIdServiceTests` 5, `CertificateServiceTests` 5, `AdminServiceTests` 3, `QC_CertificateRepositoryTests` 2, `CertificatesControllerTests` 1, `CertificateTilesApiControllerTests` 1). Those do **not** go through the web fixture and are **not** covered by this issue — they need their own triage and should not be assumed fixed when this one is.
+
+**History — why the count moved 62 → 76 and why that is not a regression.** The 2026-07-31 triage (`test-suite-triage-2026-07-31.md`) recorded 62 failures and identified the root cause. It also found that ~34 isolation tests were passing **vacuously**: they enumerate the returned certificates asserting none belong to another partner, and over an empty array that loop body never executes. DEF-326 (committed `b727c10`, 2026-08-04) added the `RequireNonEmptyData` guard plus two positive controls to 9 of those methods — which expand to **13 test cases** via `[InlineData]`. Those 13 moved from false-green to correctly-red. **No tests were added** (`[Fact]/[Theory]` 38 → 38, `[InlineData]` 9 → 9) and no product code changed. The suite got honest, not worse.
+
+**What is NOT broken.** Partner isolation itself is verified and green by other means — the browser security suite (`Scripts/smoke-prod/_security/partner-isolation.js`) ran **21 PASS / 0 FAIL** against real seeded data in the same 2026-08-04 pass, as did RBAC (24), IDOR (2) and detail-scoping (10). That is the control actually guarding [[feedback_partner_data_isolation]] today. This issue is about restoring the *second*, faster proof in the .NET suite.
+
+**Where to start (not yet investigated).** The fixture is a `WebApplicationFactory`-based integration host; the tests expect specific seed rows (2 Amazon certs, 1 Novi, 1 Other, ASIN `B08XQRT456`, SKU `NOVI-ECS-001`). Likely candidates: the test host's seeding no longer runs, seeds into a different provider/database than the one the request pipeline reads, or the API-key → partner resolution finds no matching partner in the test host and correctly scopes everything out. Confirm which before changing assertions — the tests are now written to fail rather than paper over emptiness, and that property must be preserved.
+
+**Do not.** Relax the DEF-326 guards to make the suite green. Emptiness is treated as failure by design; reverting that re-creates the assurance defect.
+
+**Notes.** Sequenced after the pending deploy at Shawn's direction — nothing here blocks shipping, and the bundle in flight (DEF-319/320 et al.) is unaffected. Related: DEF-326 (assurance fix), `docs/tracking/test-suite-triage-2026-07-31.md`, [[project_security_regression_suite]], [[feedback_partner_data_isolation]].
+
+---
+
 ### ISS-001 — Fresh-database seeding is broken: `SeedData.cs` and `seed-e2e.sql` reference seed scripts that no longer exist in the repo, and the in-code seeder is orphaned
 
 **Date:** 2026-07-13 | **Status:** Fix drafted + verified (working tree, `Data/SeedData.cs` + `Program.cs`), **pending next deploy bundle** — see **Fix** below | **Severity:** Medium — does not affect the running product or any existing database; blocks standing up a **brand-new** dev/CI database from scratch. Surfaced during DEF-303 validation (see [[feedback_testing_environment]]). | **Reporter:** Shawn (2026-07-13)

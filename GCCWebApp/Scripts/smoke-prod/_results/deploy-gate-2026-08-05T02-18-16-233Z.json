@@ -1,0 +1,29 @@
+{
+  "base": "http://localhost:5101",
+  "includeViews": false,
+  "overall": "GREEN",
+  "gates": [
+    {
+      "name": "security",
+      "script": "_security\\run-all.js",
+      "exit": 0,
+      "pass": true,
+      "seconds": 52
+    },
+    {
+      "name": "crud",
+      "script": "_crud\\run-all.js",
+      "exit": 0,
+      "pass": true,
+      "seconds": 66
+    },
+    {
+      "name": "contract",
+      "script": "amazon-contract-diff.js",
+      "exit": 0,
+      "pass": true,
+      "seconds": 33
+    }
+  ],
+  "finishedAt": "2026-08-05T02:18:16.236Z"
+}

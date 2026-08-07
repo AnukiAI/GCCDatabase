@@ -906,7 +906,7 @@ Out-of-scope follow-up: the Internal-tag / External-tag / UPC `FirstOrDefault()`
 
 ---
 
-## DEF-179 — Dashboard "Active Certs Published" exports now match the count cards (no more Draft/Hold/Expired leaking into the CSV) (QC #156 5/1/26 follow-up) (2026-05-11, in working tree pending deploy)
+## DEF-179 — Dashboard "Active Certs Published" exports now match the count cards (no more Draft/Hold/Expired leaking into the CSV) (QC #156 5/1/26 follow-up) (2026-05-11, delivered in the 2026-08-04 build)
 
 QC #156's original 4/7 ask was a label rename — change "# Certs Published Last Month / Year / This Year" to "# Active Certs Published…" so the title matches what the count actually represents. That part shipped cleanly and was verified PASS on 5/1. On 5/1 the client added a follow-up on the same QC row: *"When I export now it has Expired, etc. Just not right."* That second comment was a different defect — the renamed labels said "Active" but the download buttons next to those count cards were emitting CSVs containing every status, including Expired, Draft, Hold, and Republished. The card said one thing; the file said another.
 
@@ -1062,7 +1062,7 @@ Files: `Views/Shared/_Layout.cshtml`, `docs/tracking/defect-register.md` (DEF-16
 
 ---
 
-## DEF-160 — Login now lands users on their role-appropriate certificates page (2026-05-07, fix in working tree pending deploy)
+## DEF-160 — Login now lands users on their role-appropriate certificates page (2026-05-07, delivered in the 2026-08-04 build)
 
 Shawn reported that every successful login dropped users on the same generic certificates page regardless of role. The intent has always been role-based landing: External and Partner users should land on the External certificates tile view (the public-by-partner view they have access to), Analyst and Admin users should land on the Internal certificates tile view (the workflow-bearing view with full lifecycle data). What was actually shipped was inconsistent: External did route correctly, Partner had no entry in the role switch and silently fell through to the public Certificate tile view, and Analyst/Admin landed on the legacy Dashboard page instead of the Internal cert view. Net effect: only one of the four authenticated roles was hitting its intended landing page.
 

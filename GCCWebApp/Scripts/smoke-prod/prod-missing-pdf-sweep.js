@@ -6,9 +6,13 @@
 // the GET action but suppresses the body, so present PDFs are NOT transferred.
 //
 // Run: node Scripts/smoke-prod/prod-missing-pdf-sweep.js
-const { chromium } = require('playwright');
+const { chromium, request } = require('playwright');
 const fs = require('fs');
 const path = require('path');
+// The site is behind a COOKIE gate, not Basic Auth (DEF-341). httpCredentials alone lands every
+// request on a ~2.5KB gate page with HTTP 200 — the login form never appears, `#Email` is not
+// found, and the sweep dies (or worse, "succeeds" against placeholders). Shared handling:
+const { enterSite } = require('./_lib/test-env-gate');
 
 const BASE = process.env.BASE_URL || 'https://gccwebapp.com';
 const GATE = { username: 'gcc', password: 'Cert-Test-Access-2026!' };
@@ -18,8 +22,16 @@ const CONCURRENCY = parseInt(process.env.CONCURRENCY || '8', 10);
 const pick = (o, keys) => { for (const k of keys) if (o[k] != null && o[k] !== '') return o[k]; return null; };
 
 (async () => {
+  const gate = await enterSite(request, BASE, { password: GATE.password });
+  console.log(`gate: mode=${gate.mode} ${gate.ok ? 'OK' : 'FAILED'} — ${gate.detail}`);
+  if (!gate.ok) { console.log('cannot pass the test-env gate — aborting rather than sweeping gate pages'); process.exit(2); }
+
   const browser = await chromium.launch({ headless: true });
-  const ctx = await browser.newContext({ httpCredentials: GATE, viewport: { width: 1440, height: 900 } });
+  const ctx = await browser.newContext({
+    httpCredentials: GATE,           // harmless in cookie mode; keeps Basic mode working
+    storageState: gate.state,        // the GCC.TestGate cookie
+    viewport: { width: 1440, height: 900 },
+  });
   const page = await ctx.newPage();
 
   await page.goto(BASE + '/Account/Login', { waitUntil: 'domcontentloaded' });

@@ -1,0 +1,61 @@
+{
+  "specId": "product-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 8,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 8,
+  "results": [
+    {
+      "id": "prod.pre",
+      "name": "FK discovery + snapshot",
+      "status": "PASS",
+      "notes": "company=3 category=4 products=125"
+    },
+    {
+      "id": "prod.C1.create",
+      "name": "POST /Product/SaveProduct (create) accepted",
+      "status": "PASS",
+      "notes": "HTTP 200 {\"success\":true,\"message\":\"Product created successfully\",\"data\":{\"id\":233,\"name\":\"ZZ_SmokeFixture_Product_msfas714\",\"des"
+    },
+    {
+      "id": "prod.C2.create-persisted",
+      "name": "product row exists in DB",
+      "status": "PASS",
+      "notes": "id=233"
+    },
+    {
+      "id": "prod.U1.update",
+      "name": "POST /Product/SaveProduct (update) accepted",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "prod.U2.update-persisted",
+      "name": "edited name persisted",
+      "status": "PASS",
+      "notes": "db Name=\"ZZ_SmokeFixture_Product_msfas714_ed\" expected=\"ZZ_SmokeFixture_Product_msfas714_ed\""
+    },
+    {
+      "id": "prod.D1.delete",
+      "name": "DELETE /Product/DeleteProduct accepted",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "prod.D2.delete-removed",
+      "name": "product row removed (hard delete)",
+      "status": "PASS",
+      "notes": "gone"
+    },
+    {
+      "id": "prod.INV",
+      "name": "Products count net-zero after round-trip",
+      "status": "PASS",
+      "notes": "before=125 after=125"
+    }
+  ],
+  "finishedAt": "2026-08-04T23:37:05.202Z"
+}

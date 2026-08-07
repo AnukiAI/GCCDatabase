@@ -16,7 +16,8 @@
 // goes live, pass --base or set BASE_URL env var.
 //
 // Sections:
-//   [1] Gate behavior — Basic Auth challenge + bypass for static/api routes
+//   [1] Gate behavior — test-env gate challenges (Cookie or Basic, auto-detected)
+//                       + bypass for static/api routes
 //   [2] UI surfaces  — pages render behind the gate, cards visible, no 500s
 //   [3] DEF-195      — multi-viewport visual: cert-id pill flush with first line
 //                      of multi-line categories (regression: client QC #174)
@@ -79,10 +80,43 @@ function gateCreds() {
   return { username: CFG.gateUser, password: CFG.gatePass };
 }
 
+// ---- Test-environment gate ------------------------------------------------
+//
+// `TestEnvironmentGate.Mode` is "Cookie" in appsettings.Production.json, not Basic Auth (Basic in
+// front of the app's own cookie login broke that login). Every path 302s to /__gate, which renders
+// a form and sets a data-protected GCC.TestGate cookie.
+//
+// WHY THIS BLOCK EXISTS — this smoke was silently blind for the whole life of that change. It sent
+// httpCredentials, followed the redirect, got HTTP 200 and a ~2,519-byte gate page for EVERY url,
+// and graded that page as the application. It reported main.css "missing its DEF-195 fix, size=2519B"
+// and certificatetileview.css "size=2534B" — two identically-tiny CSS files are not a CSS bug, they
+// are the same HTML served twice. Worst of all it reported a FALSE security regression:
+// "/uploads/certificates/* served, status=200" when the deployed answer is 404, because the 200 was
+// the gate redirect being followed. A smoke that cries "your upload paths are public" when they are
+// not is the alarm you learn to ignore.
+//
+// So: detect the mode rather than assume it, authenticate for real, and reuse that state everywhere.
+// Gate detection + cookie auth live in _lib/test-env-gate.js so `smoke.js`, the PDF sweep and any
+// future prod-facing script share ONE definition. They all had the same blindness; a private copy
+// per script would drift from the middleware exactly as the old Basic-Auth assumption did.
+const { GATE_PATH, detectGateMode, passGate } = require('./_lib/test-env-gate');
+
+// Storage state carrying the gate cookie, shared by every API + browser context below.
+// Undefined until passGate() runs (and stays undefined in Basic/open mode, which is harmless).
+let GATE_STATE;
+
+// How the deployed site is gated right now, as detected at startup. Set before any check runs.
+let GATE = { mode: 'unknown', detail: 'not probed' };
+
+/** API context that is already through the gate. Every authenticated check must use this. */
+function gatedRequestContext(extra = {}) {
+  return request.newContext({ httpCredentials: gateCreds(), storageState: GATE_STATE, ...extra });
+}
+
 async function withPage(viewport, fn) {
   const browser = await chromium.launch();
   try {
-    const ctx = await browser.newContext({ viewport, httpCredentials: gateCreds() });
+    const ctx = await browser.newContext({ viewport, httpCredentials: gateCreds(), storageState: GATE_STATE });
     const page = await ctx.newPage();
     return await fn(page, ctx);
   } finally {
@@ -96,6 +130,22 @@ async function withPage(viewport, fn) {
   console.log(`\nPost-deploy smoke against ${CFG.base}`);
   console.log('='.repeat(72));
 
+  // Establish how the site is gated and get through it BEFORE any other check runs. Everything
+  // from section 2 on is meaningless otherwise — it would be grading the gate page.
+  GATE = await detectGateMode(request, CFG.base);
+  console.log(`Gate mode: ${GATE.mode}  (${GATE.detail})`);
+  if (GATE.mode === 'cookie') {
+    const g = await passGate(request, CFG.base, { password: CFG.gatePass });
+    GATE_STATE = g.state;
+    console.log(`Gate auth: ${g.ok ? 'OK' : 'FAILED'} — ${g.detail}`);
+    if (!g.ok) {
+      console.error('\n\x1b[31mCannot pass the test-env gate — aborting rather than reporting on gate pages.\x1b[0m');
+      console.error('  Every downstream check would "pass" or "fail" against a 2.5KB placeholder.');
+      console.error('  Set GATE_PASS (or --pass) to the TestEnvironmentGate:Password value.');
+      process.exit(2);
+    }
+  }
+
   // ===== [1] GATE BEHAVIOR (anonymous) =====================================
   section(1, 'Gate behavior — anonymous requests');
   const anon = await request.newContext();
@@ -106,17 +156,19 @@ async function withPage(viewport, fn) {
     r.status() === 200 && /Disallow:\s*\//i.test(robotsText),
     `status=${r.status()}, body="${robotsText.slice(0, 60).replace(/\s+/g, ' ')}"`);
 
-  r = await anon.get(`${CFG.base}/favicon.ico`);
+  r = await anon.get(`${CFG.base}/favicon.ico`, { maxRedirects: 0, failOnStatusCode: false });
   const favAuth = r.headers()['www-authenticate'] || '';
-  record(1, 'favicon.ico bypasses gate (no Basic challenge regardless of file existence)',
-    r.status() !== 401 || !/basic/i.test(favAuth),
-    `status=${r.status()}, www-authenticate="${favAuth || 'none'}"`);
+  const favLoc = r.headers()['location'] || '';
+  record(1, 'favicon.ico bypasses gate (no challenge, no gate redirect)',
+    r.status() !== 401 && !favLoc.startsWith(GATE_PATH),
+    `status=${r.status()}, www-authenticate="${favAuth || 'none'}", location="${favLoc || 'none'}"`);
 
-  r = await anon.get(`${CFG.base}/`);
-  const rootAuth = r.headers()['www-authenticate'] || '';
-  record(1, 'Root requires Basic Auth challenge',
-    r.status() === 401 && /basic/i.test(rootAuth),
-    `status=${r.status()}, www-authenticate="${rootAuth}"`);
+  // Mode-aware, and it does NOT follow redirects. The previous version asserted a Basic 401
+  // specifically; when the gate moved to Cookie mode that assertion failed forever while the site
+  // was in fact correctly gated. What actually matters is that a stranger cannot browse the test
+  // env — either challenge form satisfies that, and an un-gated 200 is the real finding.
+  record(1, `Site is gated against anonymous browsing (mode=${GATE.mode})`,
+    GATE.mode === 'basic' || GATE.mode === 'cookie', GATE.detail);
 
   r = await anon.get(`${CFG.base}/api/v1/certificates`);
   const apiAuth = r.headers()['www-authenticate'] || '';
@@ -132,7 +184,7 @@ async function withPage(viewport, fn) {
   await anon.dispose();
 
   // ===== [2] UI SURFACES (behind gate) =====================================
-  section(2, 'UI surfaces — behind Basic Auth gate');
+  section(2, `UI surfaces — through the test-env gate (${GATE.mode})`);
   let renderedCertNum = null;
 
   await withPage(VIEWPORTS.desktop, async (page, ctx) => {
@@ -227,7 +279,7 @@ async function withPage(viewport, fn) {
 
   // ===== [4] CSS SANITY — content + freshness ==============================
   section(4, 'CSS sanity — deployed content + freshness');
-  const ctxForCss = await request.newContext({ httpCredentials: gateCreds() });
+  const ctxForCss = await gatedRequestContext();
 
   const cssChecks = [
     {
@@ -249,27 +301,36 @@ async function withPage(viewport, fn) {
     const body = await resp.text();
     record(4, check.label, check.pattern.test(body), `size=${body.length}B`);
 
-    // Freshness check — Last-Modified must be within 14 days of now.
-    // Catches the "deploy didn't carry" class of failure that bit us on
-    // DEF-195's first attempt. If you genuinely haven't touched a CSS file
-    // in over 2 weeks this will false-alarm; bump the window if it becomes
-    // noisy on real long-stable files.
-    const lm = resp.headers()['last-modified'];
-    if (lm) {
-      const lmDate = new Date(lm);
-      const ageDays = (Date.now() - lmDate.getTime()) / (1000 * 60 * 60 * 24);
-      record(4, `${check.url} Last-Modified within last 14 days (catches "deploy didn't carry")`,
-        ageDays <= 14, `Last-Modified=${lm}, age=${ageDays.toFixed(1)}d`);
+    // "Did the deploy carry this file?" — answered by comparing the DEPLOYED bytes against the
+    // repo's copy, not by asking how old the file is.
+    //
+    // This replaces a 14-day Last-Modified window that was structurally unable to work. The server
+    // serves each file with its SOURCE mtime, not the deploy time: main.css last changed in June,
+    // its local mtime is 2026-07-08 16:07, and the server reports exactly that instant
+    // (22:07:54 GMT). So a correctly-deployed file that nobody has edited recently always failed,
+    // while a genuinely stale file that HAD been edited recently would pass the moment someone
+    // touched it locally. The original comment conceded the flaw ("this will false-alarm") and
+    // suggested widening the window — but no window fixes it, because the signal is wrong.
+    // Byte-comparison answers the actual question and cannot drift.
+    const localPath = path.join(__dirname, '..', '..', 'wwwroot', check.url.replace(/^\//, ''));
+    if (fs.existsSync(localPath)) {
+      const local = fs.readFileSync(localPath, 'utf8').replace(/\r\n/g, '\n').trim();
+      const deployed = body.replace(/\r\n/g, '\n').trim();
+      record(4, `${check.url} deployed copy matches the repo copy (proves the deploy carried it)`,
+        local === deployed,
+        local === deployed ? `${deployed.length}B identical`
+          : `local=${local.length}B vs deployed=${deployed.length}B — server is serving a DIFFERENT build of this file`);
     } else {
-      record(4, `${check.url} Last-Modified header present`, false, 'header missing');
+      record(4, `${check.url} local copy found for comparison`, false, `not found at ${localPath}`);
     }
+    if (CFG.verbose) console.log(`      \x1b[90mLast-Modified=${resp.headers()['last-modified'] || 'none'} (source mtime, not deploy time — informational)\x1b[0m`);
   }
 
   await ctxForCss.dispose();
 
   // ===== [5] ROLE-GATED PAGES — no 500s ====================================
   section(5, 'Role-gated pages reachable (302 to login expected, 500 = bad)');
-  const ctxRoles = await request.newContext({ httpCredentials: gateCreds() });
+  const ctxRoles = await gatedRequestContext();
 
   const protectedPaths = [
     '/Admin/UserManagement',
@@ -290,17 +351,31 @@ async function withPage(viewport, fn) {
 
   // ===== [6] DEF-208 regression guard ======================================
   section(6, 'DEF-208 — /uploads/* path stays blocked');
-  // Anonymous request to /uploads/* must return 404 (or 401 if Basic gate is in
-  // front). NOT 200. If a future engineer re-enables broad UseStaticFiles, this
-  // check fires before the leak escapes.
+  // /uploads/* must never be served as a static file. If a future engineer re-enables broad
+  // UseStaticFiles, this fires before the leak escapes.
+  //
+  // TWO passes, and `maxRedirects: 0` on both — this check previously reported a FALSE regression
+  // ("served, status=200") because it followed the gate redirect and scored the 200 on the gate
+  // page. An anonymous probe alone also cannot prove the fix: in cookie mode EVERY path 302s, so a
+  // broadly-served uploads directory would look identically "blocked". The gated pass is the one
+  // that actually proves DEF-208, because it reaches the app's own routing.
+  const UPLOAD_PROBES = ['/uploads/certificates/anyfile.pdf', '/uploads/images/anything.png'];
+
   const def208Anon = await request.newContext();
-  let r208 = await def208Anon.get(`${CFG.base}/uploads/certificates/anyfile.pdf`);
-  record(6, '/uploads/certificates/* anon → not served (DEF-208 fix in place)',
-    r208.status() !== 200, `status=${r208.status()}`);
-  r208 = await def208Anon.get(`${CFG.base}/uploads/images/anything.png`);
-  record(6, '/uploads/images/* anon → not served (DEF-208 fix in place)',
-    r208.status() !== 200, `status=${r208.status()}`);
+  for (const p of UPLOAD_PROBES) {
+    const r208 = await def208Anon.get(`${CFG.base}${p}`, { maxRedirects: 0, failOnStatusCode: false });
+    record(6, `${p} anon → not served`, r208.status() !== 200,
+      `status=${r208.status()}${r208.headers()['location'] ? ` -> ${r208.headers()['location']}` : ''}`);
+  }
   await def208Anon.dispose();
+
+  const def208Gated = await gatedRequestContext();
+  for (const p of UPLOAD_PROBES) {
+    const r208 = await def208Gated.get(`${CFG.base}${p}`, { maxRedirects: 0, failOnStatusCode: false });
+    record(6, `${p} THROUGH the gate → not served (the assertion that proves DEF-208)`,
+      r208.status() !== 200, `status=${r208.status()}`);
+  }
+  await def208Gated.dispose();
 
   // ===== SUMMARY ===========================================================
   console.log('\n' + '='.repeat(72));

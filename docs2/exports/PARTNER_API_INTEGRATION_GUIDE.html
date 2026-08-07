@@ -68,7 +68,8 @@ pre code { background: none; padding: 0; }
     <span class="tbd-label">Internal &mdash; remove before sending</span>
     This is the generic partner template. Before issuing to a partner: (1) fill every
     <span class="fill">[HIGHLIGHTED PLACEHOLDER]</span>, (2) resolve or delete every red TBD block,
-    (3) confirm the rate limit in &sect;2 and the status behavior in &sect;4/&sect;8 against the key actually issued.
+    (3) confirm the status behavior in &sect;4/&sect;8 against the key actually issued. The rate limit in &sect;2
+    is settled at 200/hour, but is <strong>blocked on DEF-338</strong> &mdash; the server does not honour it yet.
     <strong>Never paste a live API key into this document</strong> &mdash; keys are delivered separately
     by secure channel (see &sect;2).
 </div>
@@ -135,11 +136,38 @@ download links.</p>
     </tbody>
 </table>
 
+<h3>Rate Limit</h3>
+
+<p>Partner API keys are limited to <strong>200 requests per hour</strong>. Each request returns up to
+100 certificates, so a full pull of the certificate database costs one request per 100 records.</p>
+
+<p>Every response carries the current state of your allowance:</p>
+
+<table>
+    <thead>
+        <tr><th>Header</th><th>Meaning</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>X-RateLimit-Limit</code></td><td>Your ceiling for the current window (200)</td></tr>
+        <tr><td><code>X-RateLimit-Remaining</code></td><td>Requests left in the current window</td></tr>
+        <tr><td><code>X-RateLimit-Reset</code></td><td>Unix timestamp when the window resets</td></tr>
+    </tbody>
+</table>
+
+<p>The window is a fixed clock hour (UTC), not a rolling window &mdash; the allowance resets on the hour
+rather than 60 minutes after your first call. Exceeding the limit returns <code>429</code> with a
+<code>Retry-After</code> header. Read <code>X-RateLimit-Remaining</code> and pace accordingly rather than
+retrying into the limit.</p>
+
 <div class="tbd">
-    <span class="tbd-label">TBD &mdash; confirm before sending</span>
-    <strong>Rate limit.</strong> The platform default for partner keys is <strong>2,000 requests/hour</strong>,
-    and the limit is configurable per key. Confirm the value provisioned for this partner and state it
-    explicitly here and in &sect;6 and &sect;8. Each request returns up to 100 certificates.
+    <span class="tbd-label">BLOCKED &mdash; do not send this guide yet</span>
+    <strong>The server does not yet honour 200/hour.</strong> Rate limiting currently runs before
+    authentication, so partner keys are throttled as anonymous traffic at <strong>100 requests/hour,
+    bucketed by IP address</strong> rather than by key &mdash; and that is what
+    <code>X-RateLimit-Limit</code> actually returns today. The 200/hour figure above is the agreed target
+    (Shawn, 2026-08-06), not current behaviour. Tracked as <strong>DEF-338</strong>; publishing this
+    section before that fix ships hands a partner a number we do not honour. Delete this block once
+    DEF-338 is verified.
 </div>
 
 <h2 id="endpoints">3. API Endpoints</h2>
@@ -487,7 +515,7 @@ GET /api/v1/certificates?pageNumber=2&amp;pageSize=100</code></pre>
         <tr><td>Authentication</td><td>API key via <code>X-API-Key</code> header</td></tr>
         <tr><td>Data Isolation</td><td>Your key returns only certificates associated with your partner account. Data belonging to other partners is not accessible, including on certificates shared across multiple partners &mdash; co-partner names and their product identifiers are removed from your responses.</td></tr>
         <tr><td>Status Filter</td><td>See the status TBD in &sect;4 &mdash; to be confirmed for this partner</td></tr>
-        <tr><td>Rate Limiting</td><td>Configurable per key; see &sect;2</td></tr>
+        <tr><td>Rate Limiting</td><td>200 requests/hour per partner key; see &sect;2</td></tr>
         <tr><td>Key Management</td><td>Keys are issued, rotated, and revoked by GCC administrators. Keys may be issued with an expiration date.</td></tr>
     </tbody>
 </table>
@@ -562,7 +590,7 @@ GET /api/v1/certificates?pageNumber=2&amp;pageSize=100</code></pre>
     <thead><tr><th style="width:8%">Step</th><th style="width:46%">Action</th><th>Owner</th></tr></thead>
     <tbody>
         <tr><td>1</td><td>Confirm which certificates are in scope for this partner and tag them to the partner account in the GCC Database</td><td>GCC</td></tr>
-        <tr><td>2</td><td>Confirm certificate status behavior (&sect;4 TBD) and rate limit (&sect;2 TBD)</td><td>GCC</td></tr>
+        <tr><td>2</td><td>Confirm certificate status behavior (&sect;4 TBD). Rate limit is settled at 200/hour &mdash; but verify <strong>DEF-338</strong> has shipped before issuing this guide, or the server will not honour it</td><td>GCC</td></tr>
         <tr><td>3</td><td>Issue a test API key against the GCC test environment, with representative test data</td><td>GCC</td></tr>
         <tr><td>4</td><td>Validate the integration end to end against test data &mdash; pull, paginate, parse, download PDFs</td><td>Partner</td></tr>
         <tr><td>5</td><td>Confirm field mapping and any gaps against your internal data model</td><td>Partner</td></tr>

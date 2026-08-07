@@ -1299,7 +1299,19 @@ namespace GCCWebApp.Controllers
             ViewBag.TotpSecret = secret;
             ViewBag.QrCodeUri = qrCodeUri;
             ViewBag.UserEmail = userEmail;
-            
+
+            // DEF-340: the three EnableTotp failure paths write TempData["ErrorMessage"] and redirect
+            // HERE, but SetupTotp.cshtml only ever read ViewBag.ErrorMessage — and ViewBag does not
+            // survive a redirect. So the user got a silently re-rendered setup page, and the unread
+            // TempData entry rode the cookie until TwoFactorPreferences.cshtml displayed it out of
+            // context. Hydrating ViewBag from TempData here fixes both halves at once: the indexer
+            // read marks the entry consumed, so it cannot leak forward. Do not swap this for
+            // TempData.Peek() — Peek leaves the entry in the cookie and restores the leak.
+            if (TempData["ErrorMessage"] is string totpSetupError && !string.IsNullOrEmpty(totpSetupError))
+            {
+                ViewBag.ErrorMessage = totpSetupError;
+            }
+
             return View();
         }
         catch (Exception ex)

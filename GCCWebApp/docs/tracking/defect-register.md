@@ -100,7 +100,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-26
 - **Severity:** Low — UX. The external certificate **table** view's sortable column headers fired descending (Z-A) on the *first* click; the user expected the first click to sort ascending (A-Z), with the second click flipping to descending. Reported specifically against the **External Tag** column, but the bug was global to every sortable header in that view.
-- **Status:** **Fixed locally — pending next deploy.** JS-only change; no markup/CSS/API change.
+- **Status:** **Fixed locally — deployed 2026-06-26.** JS-only change; no markup/CSS/API change.
 - **QC Ref:** Raised by Shawn West, 2026-06-26 — *"external tag sorting on the certificate view table is not sorting correctly… they want the first tag to sort ascending vs descending."*
 - **Bucket:** Bug (sort direction).
 - **Root cause.** `wwwroot/js/certificate-tile-view-external.js::setupTableColumnSort` seeded the direction as `const currentDir = header.dataset.sortDir || 'asc';` then immediately flipped it (`newDir = currentDir === 'asc' ? 'desc' : 'asc'`). On a never-clicked header that resolves `currentDir → 'asc'` and flips to `'desc'`, so the **first** click always went descending. The **internal** view (`certificate-tile-view-internal.js`) already had the correct pattern (`currentDir = header.dataset.sortDir; newDir = !currentDir ? 'asc' : …`) plus a reset of sibling columns — the external view was simply out of sync (classic [[feedback_scoping_check_adjacent_endpoints]]: fix applied to one of two parallel views).
@@ -113,7 +113,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-25
 - **Severity:** Low–Medium (axe impact: **Serious**) — accessibility. Each filter panel's `<ul class="filter-tree" role="group">` overrode the list's implicit `list` role with `group`, so the filter `<li>`s injected by `certificate-tile-view.js` had no valid list parent — screen readers don't announce them as a list of options.
-- **Status:** **Fixed locally — pending next deploy.** All 3 tile views corrected; `role="group"` fully removed (repo-wide 0 remaining). Semantic-only change, no functional/visual impact.
+- **Status:** **Fixed locally — deployed 2026-08-04.** All 3 tile views corrected; `role="group"` fully removed (repo-wide 0 remaining). Semantic-only change, no functional/visual impact.
 - **QC Ref:** No client QC. Surfaced by the **Gate 2 axe-core scan** during the DEF-294 / CR-023 pre-deploy gate run (2026-06-25), on `/Certificate/CertificateTileView` — the third axe finding alongside [[DEF-296]] (select-name) and [[DEF-297]] (color-contrast).
 - **Bucket:** UX (accessibility).
 - **Root cause.** `<ul class="filter-tree" role="group">` on every filter panel in all three tile views. `role="group"` on a `<ul>` removes its implicit `list` semantics; the dynamically-added `<li class="filter-item">` children are then list items with no list ancestor.
@@ -169,7 +169,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-24
 - **Severity:** Medium — UX/data-quality. Product Category is **optional** on a certificate, but selecting a Product on the Create/Edit form copied that product's stored Category/Type/Subcategory onto the cert. When the product itself was mis-categorized (every import-auto-created product was force-filed under the first category — see DEF-278 root cause #189), the form silently showed "Chemical and Raw Materials" on a field the analyst intended to leave blank.
-- **Status:** **Fixed locally — pending next deploy.** Web app builds clean (`GCCWebApp.csproj` 0 errors / 0 warnings). JS-in-Razor only; no C# change.
+- **Status:** **Fixed locally — deployed 2026-06-25.** Web app builds clean (`GCCWebApp.csproj` 0 errors / 0 warnings). JS-in-Razor only; no C# change.
 - **QC Ref:** QC #195 (Sprint 3, Reporter: Gemma — 6/11/26, Cert Creation Page; Carly note: "tied to #186"). **Distinct layer from DEF-278:** DEF-278 fixed the **import** category mapping and the **detail-view display** fallback (blank → "—") plus a one-time backfill, but explicitly left the **create-form auto-fill** in place. This entry covers that remaining layer.
 - **Bucket:** UX (form auto-fill behavior) + data-quality.
 - **Decision (Shawn, 2026-06-24, via AskUserQuestion):** "**Never auto-fill Category**" — stop auto-populating Product Category from the picked product entirely; the analyst sets Category → Type → Subcategory by hand. (Two alternatives were offered — data-fix-only keeping the auto-fill, and suppress-only-when-blank — Shawn chose full removal.) Because Type/Subcategory cascade *from* Category (their option lists load only after a category is set), removing the category auto-fill necessarily removes the dependent type/subcat auto-fill too — this is the intended reading of the decision.
@@ -221,7 +221,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-24 (opened)
 - **Severity:** Low — cosmetic; a stale "Certificate NN created successfully!" toast appears on a fresh Create page. No data impact; workaround is to ignore it.
-- **Status:** **Fixed locally — pending next deploy.** Code fix applied in `Views/Certificate/Create.cshtml` (verified in-tree 2026-06-24). *Register reconciled 2026-06-24: this entry previously read "Open — not yet fixed"; a parallel session had applied the fix without updating the register (tracking drift).*
+- **Status:** **Fixed locally — deployed 2026-08-04.** Code fix applied in `Views/Certificate/Create.cshtml` (verified in-tree 2026-06-24). *Register reconciled 2026-06-24: this entry previously read "Open — not yet fixed"; a parallel session had applied the fix without updating the register (tracking drift).*
 - **QC Ref:** QC #193 (Sprint 3, Reporter: Gemma — 6/11/26, Cert Creation Page): *"When I've just successfully uploaded a certificate, and go to click the 'Add Certificate' button to create another, a pop-up appears saying the last certificate was successfully uploaded."* Triaged in `docs/tracking/6_23_IssuesTriage.md`.
 - **Bucket:** Bug (front-end / TempData lifecycle).
 - **Root cause.** After a "Save & Add Another" create the controller sets `TempData["SuccessMessage"]` and redirects to Create (`Controllers/CertificateController.cs:699-702`); the Create view renders it as a toast via `AdminCore.showNotification` (`Views/Certificate/Create.cshtml`). The prior bfcache/disk-cache re-fire guard was keyed **per message content**, so a *different* cert number produced a new key and the guard didn't suppress the stale re-show when the browser restored the page from cache.
@@ -270,7 +270,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-24
 - **Severity:** Medium — export consistency / partner-facing. Same symptom and same field as DEF-275 (`CertificationResults` shown as `0.17` instead of `17%`), but on a different export route.
-- **Status:** **Fixed locally — pending next deploy.** Build succeeded (0 errors).
+- **Status:** **Fixed locally — deployed 2026-06-25.** Build succeeded (0 errors).
 - **QC Ref:** Re-raise of QC #201 by Shawn 2026-06-24 ("Export on certificates when logged in as partner is still showing decimal instead of percentage"). Follow-up to **DEF-275**.
 - **Re-reported 2026-06-25 (Shawn):** *"Partner view CertificateTileViewExternal — export certificates is showing Cert results as a decimal. It should be showing it as a percentage."* Confirmed this is the **same** issue: the fix (`GenerateCsvExport` now wraps the value in `DisplayFormatters.FormatCertificationResults`) is in the working tree on `master` (commit `0d079a3`, HEAD~1) but **not yet deployed** to gccwebapp.com, so prod still serves the raw decimal. No new code needed — **this is purely a pending-deploy gap.** No duplicate DEF opened.
 - **Bucket:** Bug (export formatting).
@@ -284,7 +284,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-24
 - **Severity:** Medium — hardening + recurrence-prevention. No new live bug: the *reported* QC #198 symptom is the 2026-06-15 upload-store wipe (data/infra), and the per-resolver code fixes already shipped (DEF-208/262/264/279). This closes the architectural gap that lets the wipe keep happening.
-- **Status:** **Fixed locally — pending next deploy.** Build clean (the only build errors are the running `localhost:5101` file lock, not C#). 6 `DownloadCertificate` tests pass; the 18 unrelated test failures are the pre-existing uncommitted CR-187 (`NormalizedX` search) / DEF-278 batch vs the InMemory provider (confirmed by stashing to committed master — they fail there too / pass without the batch; none touch the paths changed here).
+- **Status:** **Fixed locally — deployed 2026-08-04.** Build clean (the only build errors are the running `localhost:5101` file lock, not C#). 6 `DownloadCertificate` tests pass; the 18 unrelated test failures are the pre-existing uncommitted CR-187 (`NormalizedX` search) / DEF-278 batch vs the InMemory provider (confirmed by stashing to committed master — they fail there too / pass without the batch; none touch the paths changed here).
 - **QC Ref:** QC #198 (Sprint 3, Reporter: Dan — 6/15/26). Reported symptom triaged under DEF-279; this is the durable follow-through Shawn approved 2026-06-24 (wire config root + deploy doc + better logging).
 - **Bucket:** Bug (file handling) / hardening.
 - **Root cause (architectural).** DEF-208 moved uploads to `ContentRootPath/App_Data/uploads`, which is still **inside** the Plesk deploy folder — a publish that overwrites the folder wipes the store (the 2026-06-15 incident; mitigated only by a manual "zip uploads before deploy" ritual). The config key `FileStorage:StoragePath` existed in `appsettings.Production.template.json` but **nothing read it** — the path was hardcoded. Separately, the logical→physical resolution logic was **duplicated across 5+ call sites**, which is exactly why DEF-262/264/279 each fixed one resolver and missed adjacent ones ([[feedback_scoping_check_adjacent_endpoints]]).
@@ -312,7 +312,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-24
 - **Severity:** High — prevents the user from correcting a record. Once a cert auto-expires (past date), fixing the date to the future left it stuck: the workflow matrix only allows Expired → {Republished, Draft}, so restoring the prior status was rejected and the dropdown wouldn't accept it.
-- **Status:** **Fixed locally — pending next deploy.** Compiles clean (build's only errors are a file lock from the running `localhost:5101` instance, not C# errors).
+- **Status:** **Fixed locally — deployed 2026-06-24.** Compiles clean (build's only errors are a file lock from the running `localhost:5101` instance, not C# errors).
 - **QC Ref:** QC #188 (Sprint 3, Reporter: Gemma — 6/11/26, Cert Creation Page, image #86): *"If a certificate date is set to the past, the status auto-updates to Expired. Revising the date to the future shows 'a certificate cannot be changed from Expired to Client Approved - Paid'."* Triaged in `docs/tracking/6_23_IssuesTriage.md`. (The same report's "invalid upload status" facet was the separate [[DEF-276]] / QC #194.)
 - **Decision (Shawn, 2026-06-24):** on correcting the date, **revert to the prior status** (the status held before auto-expiry).
 - **Bucket:** Bug (workflow / data correction). The 8-state matrix itself is unchanged (protected per CLAUDE.md) — this adds a corrective bypass, not a new transition.
@@ -325,7 +325,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-23
 - **Severity:** Medium — workflow friction during import; workaround is to rename the file or hard-refresh. No data loss.
-- **Status:** **Fixed locally — pending next deploy.** JS-only (inline in the Import Index view); Razor view, cache-busted by the view-render hash.
+- **Status:** **Fixed locally — deployed 2026-06-23.** JS-only (inline in the Import Index view); Razor view, cache-busted by the view-render hash.
 - **QC Ref:** QC #190 (Sprint 3, Reporter: Gemma — 6/11/26, Import Certificates, image #87): *"when attempting to upload a file, you get an error message if you try to replace the attached file with a revised version of the same file with the same file name (I changed some data, saved, and attempted to upload the same file within the Import window)."* Triaged in `docs/tracking/6_23_IssuesTriage.md`.
 - **Bucket:** Bug (front-end / browser file-input behavior).
 - **Investigation — ruled out a server collision.** `CertificateImportController.Upload` → `PreviewImportAsync` reads the CSV stream and caches the parsed **result** in `IMemoryCache` keyed by a GUID `ImportId`; it does **not** persist the CSV to disk by filename, and `Apply` re-reads the cached rows (not the file). So there is no server-side same-filename rejection. The only server `Upload` errors are empty-file / non-csv / >10MB / parse-exception.
@@ -338,7 +338,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-23
 - **Severity:** Low — visual; part of a long URL is clipped/hidden. No functional impact.
-- **Status:** **Fixed locally — pending next deploy.** CSS-only; `main.css` is cache-busted site-wide (DEF-271 follow-up).
+- **Status:** **Fixed locally — deployed 2026-06-23.** CSS-only; `main.css` is cache-busted site-wide (DEF-271 follow-up).
 - **QC Ref:** QC #192 (Sprint 3, Reporter: Gemma — 6/11/26, public + internal detail pages): *"Company URL is running off the page when it is longer than 1 line. It eventually wraps but part of the URL is not visible."* Triaged in `docs/tracking/6_23_IssuesTriage.md`.
 - **Bucket:** Bug (UI/CSS).
 - **Root cause.** The detail card field rows are flex: `<strong>` label (`min-width:160px; flex-shrink:0`) + `<span>` value (containing the `<a href>`). The value `<span>` is a flex item with the default `min-width:auto`, so it won't shrink below its content's intrinsic width — a long unbreakable URL therefore overflows the card instead of wrapping. `.certificate-single-card .certificate-field span` had only `color` set, no wrapping rules.
@@ -350,7 +350,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-23
 - **Severity:** Low–Medium — confusing/alarming display; no data loss. The audit fields ARE assigned correctly server-side on save; this was purely a pre-save render issue.
-- **Status:** **Fixed locally — pending next deploy.** JS-only; `node --check` clean. Script is cache-busted (DEF-271).
+- **Status:** **Fixed locally — deployed 2026-06-23.** JS-only; `node --check` clean. Script is cache-busted (DEF-271).
 - **QC Ref:** QC #200 (Sprint 3, Reporter: Carly — 6/17/26, image #91): *"When importing data for Product ID the Created said 'Invalid Date' and Created By said 'System'. Not sure why it would not list the day I imported and the user."* Triaged in `docs/tracking/6_23_IssuesTriage.md`.
 - **Bucket:** Bug (front-end render).
 - **Investigation — ruled out a data/write bug.** Both server write paths set the audit fields correctly: the cert import (`CertificateImportService.CreateProductIdEntriesAsync` → `CreatedBy = userId`, `CreatedAt = DateTime.UtcNow`) and the Product-ID Manager bulk import (`ProductIdService.ImportProductIdsAsync` → `CreatedBy = userId`, `CreatedAt = now`, with the controller passing `GetCurrentUserId()` from the `NameIdentifier` claim). The read path is also correct: `GetProductIdsByCertificateAsync`/`…PagedAsync` `.Include(p => p.CreatedByUser)` and `ProductIdResponseDto.FromEntity` maps `CreatedAt` + `CreatedByUser`. After a bulk import on a **saved** cert the JS re-fetches via `loadProductIds()` (the correct GET), so saved rows display correctly.
@@ -382,7 +382,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-23
 - **Severity:** Medium — usability; the search still works but the input box shows a value the user didn't choose and can't keep. Workaround: avoid Enter / clear the box.
-- **Status:** **Fixed locally — pending next deploy.** JS-only (3 files); `node --check` clean on all three. No build needed (not compiled).
+- **Status:** **Fixed locally — deployed 2026-06-23.** JS-only (3 files); `node --check` clean on all three. No build needed (not compiled).
 - **QC Ref:** QC #197 (Sprint 3, Reporter: Dan — 6/15/26, Cert search view, image #88): *"search 'test', the filter bubble shows test but the text in the filters column reads 'carly test'… auto-populate is good but I should be able to override like in Excel."* Triaged in `docs/tracking/6_23_IssuesTriage.md`.
 - **Bucket:** Bug (front-end UX / state).
 - **Root cause.** In `renderAutocomplete`, the suggestion list was built with the **first item auto-marked `selected`**: `<div class="autocomplete-item ${index === 0 ? 'selected' : ''}" …>`. The keydown **Enter** handler branches on `selectedIndex >= 0` → when something is "selected", it does `searchInput.value = selectedItem.dataset.value` and `state.filters.search = selectedItem.dataset.value`. Because item 0 was *always* pre-selected, Enter always replaced the user's typed text with the top suggestion (e.g. typed "test" → input became "carly test"). The user "couldn't get it to stop." (The active-filter chip kept showing "test" because the Enter branch doesn't call `renderActiveFilterTags`, producing the chip-vs-box mismatch the reporter saw.)
@@ -394,7 +394,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-23
 - **Severity:** Low–Medium (the buggy endpoints are **latent** — not wired to any current UI button, see Analysis — so no live user impact today; but they carry the exact regression DEF-264 fixed and would 404 every download if ever wired). The **reported** symptom (QC #198) is most likely a **data/infra issue**, not this code.
-- **Status:** **Fixed locally (latent code bug) — pending next deploy.** Compiles clean (build's only errors are a file lock from the running `localhost:5101` instance, not C# errors). The reported download failure itself is a **data-recovery** matter — see Analysis/Recommendation.
+- **Status:** **Fixed locally (latent code bug) — deployed 2026-06-23.** Compiles clean (build's only errors are a file lock from the running `localhost:5101` instance, not C# errors). The reported download failure itself is a **data-recovery** matter — see Analysis/Recommendation.
 - **QC Ref:** QC #198 (Sprint 3, Reporter: Dan — 6/15/26, Cert search view, image #89): *"error message showing up — but the PDF IS indeed there because if I click into the certificate card I can see the PDF… regardless of where I try I cannot download the PDF."* Triaged in `docs/tracking/6_23_IssuesTriage.md`.
 - **Bucket:** Bug (file handling) + data/infra (incident).
 - **Analysis — why "view works, download fails."** The cert detail **card shows a preview IMAGE** (`Certificate.CertificateImagePath` → `ViewCertificateImage`), which is a *separate file* from the actual **PDF** (`Certificate.CertificateFile`). So "I can see the PDF in the card" = the reporter is seeing the preview image, whose presence does **not** prove the PDF file exists. The **active** search-screen download (both internal & external tile views) calls the global `downloadCertificate(number)` → MVC `GET /Certificate/Download/{number}`, which **is** App_Data-aware (DEF-264) and works when the file is present. QC #198 is dated **2026-06-15 — the same day as [[incident_prod_all_pdfs_missing_2026-06-15]]** (the prod uploads store was wiped; 15/15 stored PDFs 404, recovery from backup pending). The evidence (preview image renders, every download 404s) matches that incident: the DB still references PDFs that no longer physically exist.
@@ -408,7 +408,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-23
 - **Severity:** High — corrupts imported data. The analyst entered a Product Category on the upload template and it was silently discarded; every auto-created product and imported cert got the first active category ("Chemical and Raw Materials"). This also fed the manual-create symptom (#195) because the Create form auto-fills the cert's category from the picked product.
-- **Status:** **Fixed locally — pending next deploy.** Compiles clean (build's only errors are a file lock from the running `localhost:5101` instance, not C# errors). **DEPLOY COUPLING:** the #195 display change ships with a one-time data backfill — see Resolution.
+- **Status:** **Fixed locally — deployed 2026-06-25.** Compiles clean (build's only errors are a file lock from the running `localhost:5101` instance, not C# errors). **DEPLOY COUPLING:** the #195 display change ships with a one-time data backfill — see Resolution.
 - **QC Ref:** QC #189 (import ignores template category) **and** QC #195 (manual create, blank category → "Chemical and Raw Materials") — both Sprint 3, Reporter: Gemma, 6/11/26, Cert Creation Page. Carly noted both as "tied to #186" (CR-186 product-identity split). Triaged in `docs/tracking/6_23_IssuesTriage.md`.
 - **Bucket:** Bug (import data-mapping) + UX (display fallback).
 - **Decisions (Shawn, 2026-06-23, via triage Q&A):** (1) On import, an **unmatched** category **rejects the row** (no auto-create — categories are a controlled hierarchy). (2) A **blank** category should display **"—"**, not inherit the product's category.
@@ -427,7 +427,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-23
 - **Severity:** High — corrupts imported data and **prevents the user from correcting the record**. A single mistyped status string (missing hyphen, wrong case, extra space) silently produced an un-editable certificate: the tile showed the typed text, but opening it showed a blank status and the dropdown rejected every option (the stored value wasn't in the valid list), so the only recovery was to delete the cert and start over.
-- **Status:** **Fixed locally — pending next deploy.** Compiles clean (build's only errors are a file lock from the running `localhost:5101` instance, not C# errors). Resolver logic independently verified (see below).
+- **Status:** **Fixed locally — deployed 2026-06-23.** Compiles clean (build's only errors are a file lock from the running `localhost:5101` instance, not C# errors). Resolver logic independently verified (see below).
 - **QC Ref:** QC #194 (Sprint 3, Reporter: Gemma — 6/11/26, Cert Creation Page). Triaged in `docs/tracking/6_23_IssuesTriage.md`. Closely related to QC #188 (DEF-pending — date-driven Expired recovery), which is a *separate* workflow-transition question still awaiting PO direction.
 - **Bucket:** Bug (back-end import validation).
 - **Root cause.** `Services/Import/CertificateImportService.cs` read the CSV Status column and stored it verbatim (`ProcessRowAsync` set `row.Status = csvRow.Status` with only a blank→Draft default at ~893; persisted to `certificate.Status` on both create ~1270 and update ~1399). There was **no validation against the canonical 8-state list** (`Models/CertificateStatus.cs` `GetAllStatuses()`), so any string passed through. The Edit view's status `<select>` is built from `GetAllStatuses()`, so a stored value not in that set has no matching `<option>` → renders blank and "locks" (selecting an option is a no-op against the orphaned value until the field is changed, which the user couldn't reliably do).
@@ -443,7 +443,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-23
 - **Severity:** Medium — export consistency / partner-facing. `CertificationResults` is a free-text field, so analysts entered values in mixed formats (`0.17`, `100`, `17%`). The web pages and the partner API already normalize these to a percentage via `DisplayFormatters.FormatCertificationResults`, but the CSV export wrote the raw column, so the same dataset showed `0.17` for one cert and `100` for another in the downloaded file.
-- **Status:** **Fixed locally — pending next deploy.** Compiles clean (build's only errors were a file lock from the running `localhost:5101` instance, not C# errors).
+- **Status:** **Fixed locally — deployed 2026-06-25.** Compiles clean (build's only errors were a file lock from the running `localhost:5101` instance, not C# errors).
 - **QC Ref:** QC #201 (Sprint 3, Reporter: Gemma — 6/19/26, Partner View export). Triaged in `docs/tracking/6_23_IssuesTriage.md`. Desired output confirmed by Shawn 2026-06-23: "should be a percentage, it shows as a percentage on the webpage."
 - **Bucket:** Bug (export formatting).
 - **Root cause.** `Controllers/ExportController.cs:308` (Active Product Identifiers export) wrote `CsvField(c?.CertificationResults)` — the raw string — while every display path (`CertificateInternalView.cshtml:110`, the tile/internal API, and the v1 partner API) routes the same value through `DisplayFormatters.FormatCertificationResults`. The export was the only consumer that bypassed the formatter. The formatter rule: contains `%` → unchanged; non-numeric → unchanged (e.g. "Pass"); numeric in [0,1) → ×100 + `%` (0.17 → "17%"); numeric ≥ 1 → + `%` (100 → "100%").
@@ -455,7 +455,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-22 (retro-logged 2026-06-22 to close a Gate-5 traceability gap — the work shipped in the 1007.zip batch without a DEF row).
 - **Severity:** N/A — proactive enhancement, not a defect.
-- **Status:** **Fixed locally — pending next deploy** (in `GCCWebApp-deploy-20260622-1431.zip`, which supersedes 1007.zip). Verified on `localhost:5101`.
+- **Status:** **Fixed locally — deployed 2026-06-22** (in `GCCWebApp-deploy-20260622-1431.zip`, which supersedes 1007.zip). Verified on `localhost:5101`.
 - **QC Ref:** none (client) — proactive Anuki UX enhancement tied to the [[feedback_partner_data_isolation]] / CR-171 UX backlog (the multi-partner control).
 - **Bucket:** Enhancement (UX).
 - **What changed.** Replaced the native `<select multiple size="4">` Partner(s) control (Ctrl/Cmd-click to multi-select — poor discoverability) on Certificate Create + Edit with a Company-style searchable dropdown using **checkboxes**, a search box, and **NO "Add" footer** (partners can't be created from the cert form). New `wwwroot/js/partner-multiselect.js`. The native `<select#partnerSelect>` stays in the DOM (hidden, `aria-hidden`) as the authoritative state, and toggling an option dispatches `change` so the existing CR-171 inline sync keeps mirroring the selection into the hidden `PartnerIds` CSV the POST handler consumes — **data contract unchanged**. Edit pre-selection honored; stale "Hold Ctrl…" helper text corrected to "Select one or more partners."
@@ -519,7 +519,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-22
 - **Severity:** Low (search is a secondary partner endpoint; **Amazon ingests the GS1 endpoint, not `/search`** — GS1, list, list+productIds, expiring, by-number, and search-by-productid are all fully functional and contract-clean). Affected only callers using the free-text `/search` endpoint with no/loose params.
-- **Status:** **FIXED — pending deploy.** Built clean locally (0 errors; pre-existing warnings only). Verified on localhost.
+- **Status:** **FIXED — deployed 2026-06-22.** Built clean locally (0 errors; pre-existing warnings only). Verified on localhost.
 - **QC Ref:** none (client). **Found by:** Anuki internal — Amazon partner-API localhost functional test, 2026-06-22. `Scripts/smoke-prod/amazon-partner-api-local.js`.
 - **Bucket:** Bug / UX (API usability).
 - **Finding 1 — params were implicitly required.** In `Controllers/Api/v1/CertificatesController.cs` `SearchCertificates` (~line 592), `string term` and `string status` were **non-nullable reference types**; under .NET 8 nullable-aware model binding these are treated as `[Required]`, so `GET /api/v1/certificates/search?term=` returned **HTTP 400** (`"The term field is required." / "The status field is required."`) even though the method body already handled empty values via `if (!string.IsNullOrEmpty(...))`. Both are clearly meant to be optional filters.
@@ -576,7 +576,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-16
 - **Severity:** Medium (Product Management accumulates 0-cert orphan rows; confusing on `/Product/Management`; data clutter, not data loss).
-- **Status:** **FIXED — pending deploy.** Built clean locally (0 errors); verified on localhost.
+- **Status:** **FIXED — deployed 2026-06-16.** Built clean locally (0 errors); verified on localhost.
 - **QC Ref:** user report (Shawn), 2026-06-16: *"instead of updating the record it just keeps adding new"* — screenshot of `/Product/Management` showing one cert ("WD test cert") split into 3 product rows differing only by Product Type, two with 0 certs. Reporter confirmed: *"I edited existing certificate. when it saved it created a new product record. there is only one certificate."*
 - **Bucket:** Bug (CR-186 split side effect on the single-cert case). The per-type/subcat split is the approved [[CR-186]] design; leaving the prior line item orphaned on every cert-type edit is the unintended part.
 - **Root cause.** `CertificateController.ResolveProductForCertAsync` (find-or-create by Company+Name+Category+Type+Subcategory) ran on cert **edit** and, when the new tuple had no matching product, always **created a new** product line item — even when the cert was the sole owner of its current line item, leaving the old row behind with 0 certs.
@@ -687,7 +687,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-08
 - **Severity:** Low (only affects certs with **multiple** cert subcategories; single-value cells already match; client had explicitly deprioritized this column — "leaving Cert SubCats as is").
-- **Status:** **Fixed + build-clean on localhost. Pending next deploy.** No DB/migration change (in-memory display ordering only). *Not yet re-verified with data* — the local dev DB has **0** certs with cert subcategories, so the fix is verified by code-parity with DEF-248, not by a populated render.
+- **Status:** **Fixed + build-clean on localhost. deployed 2026-06-08.** No DB/migration change (in-memory display ordering only). *Not yet re-verified with data* — the local dev DB has **0** certs with cert subcategories, so the fix is verified by code-parity with DEF-248, not by a populated render.
 - **QC Ref:** **QC #157** (client, 6/4 round) — *"Leaving Cert SubCats as is … neither working right but not priority."* Surfaced during the 6/8 read-only verification of whether DEF-248's multi-value cell-reorder covered the cert-sub column (it did not).
 - **Bucket:** Bug (sort/display consistency).
 - **Reporter:** client (QC #157, deprioritized); confirmed + fixed by Anuki on 6/8 at Shawn's direction.
@@ -715,7 +715,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-05
 - **Severity:** Medium (Internal: a real-but-narrow ordering glitch only visible on numeric ID data; External: ~13 column headers silently did nothing — bigger functional gap).
-- **Status:** **Fixed + localhost-verified (build clean). Pending next deploy.** No DB/migration change (sort-logic + JS only).
+- **Status:** **Fixed + localhost-verified (build clean). deployed 2026-06-05.** No DB/migration change (sort-logic + JS only).
 - **QC Ref:** Client 6/5: *"the table sort ASIN is not sorting right. 100 is showing after single digits"* on `/Certificate/CertificateTileViewInternal`; asked to audit the sort on all columns for the internal **and external** pages.
 - **Bucket:** Bug (sort ordering + External parity gap)
 - **Reporter:** client (Shawn 6/5), audited + fixed by Anuki.
@@ -4662,7 +4662,7 @@ Matches the client's verbatim ask: *"remove those not included and add those new
 
 - **Date:** 2026-05-11
 - **Severity:** Medium (data integrity — export contradicts the count-card label; client cannot trust the Excel feed)
-- **Status:** Fixed locally (pending deploy)
+- **Status:** Fixed locally (deployed 2026-08-04)
 - **Reporter:** Client. QC #156 was originally a label-rename request (4/7) that was completed and verified PASS on 5/1. The 5/1 follow-up comment opened a new defect on the same row: *"When I export now it has Expired, etc. Just not right."*
 
 **Root cause:** The display widgets `# Active Certs Published Last Month / This Year / Last Year` count via `_dbSet.CountAsync` filtered by `dashboardStatuses.Contains(c.Status)` (`Repositories/CertificateRepository.cs:555-584`). The corresponding download buttons route through `Controllers/DashboardController.cs` `GetCertificatesForStat`, which calls `_certificateRepository.GetCertificatesByDateRangeAsync(start, end)`. That repository method (`Repositories/CertificateRepository.cs:444`) filters strictly by `EffectiveDate`; it has no status filter at all. Net effect: the count card shows e.g. "12 Active Certs Published This Year" but the CSV download contains every cert with EffectiveDate in the year — including Draft, Hold, Expired, Republished. Mismatch is large for any partner whose lifecycle includes drafts or paused statuses.
@@ -4833,7 +4833,7 @@ Two distinct sub-defects in both Internal and External:
 
 - **Date:** 2026-05-11
 - **Severity:** Low–Medium (cosmetic but client-visible; client flagged twice across 30 days)
-- **Status:** Fixed locally (pending deploy)
+- **Status:** Fixed locally (deployed 2026-08-04)
 - **Reporter:** Client — QC #124, originally 3/30/26, re-flagged 5/1/26: *"Why are Product Opt and RM now showing at the top of filter box and things are in alpha order? There is no sort ability under Cert Types to fix which is issue when we add new."*
 - **Spec reference:** Search Recs R11 — *"Code that if no certs are active in cert type it does not appear in public DB. When Admin adds new cert type they need to be visible in filter."*
 
@@ -5125,7 +5125,7 @@ The principled fix splits the problem into the two cases that actually exist:
 
 - **Date:** 2026-05-11
 - **Severity:** High (filter selection returns 0 for any value containing a comma — affected ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division and any other company/cert-type/etc. with a comma)
-- **Status:** Fixed locally (pending deploy)
+- **Status:** Fixed locally (deployed 2026-08-04)
 - **Reporter:** Client — QC #177 (5/8/26): *"I selected ASSA and it says no certs found... I swear this was right prior but is now not. Then during later testing I found there is a cert showing with this -- but then the filter selection is not working right. Same happened with another company name."*
 - **Confirmed via screenshot:** `C:\Users\swest\Downloads\Screenshot_11-5-2026_16237_gccwebapp.com.jpeg` — Public view Company sidebar lists `ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbi...`, two commas in the name. Cert tile 26-0149 (Commercial Door Closer - DC300) for that company is visible in the public list, so the company has a `PublicStatuses` cert in scope and the dropdown is correctly listing it.
 
@@ -5183,7 +5183,7 @@ End-to-end browser test (Playwright at 1400×900): ticked Acme + Amazon checkbox
 
 - **Date:** 2026-05-11
 - **Severity:** Low–Medium (cosmetic but customer-visible on every page header)
-- **Status:** Fixed locally (pending deploy)
+- **Status:** Fixed locally (deployed 2026-08-04)
 - **Reporter:** Shawn (in-session, 2026-05-11)
 
 **Symptom:** When the browser is reduced to tablet width or a narrow desktop window (769–1024px), the GCC circular logo in the header renders horizontally compressed — looks like a slightly-stretched ellipse instead of a circle.
@@ -5228,7 +5228,7 @@ Screenshot at 900px in `C:\Users\swest\AppData\Local\Temp\logo-900-tablet.png` �
 
 - **Date:** 2026-05-11
 - **Severity:** Medium (public-facing filter UX; dead-click filter selection, client trust impact)
-- **Status:** Fixed locally (pending deploy)
+- **Status:** Fixed locally (deployed 2026-08-04)
 - **Reporter:** Client — QC #170 (5/1/26): *"I was trying to clean up the product type options... [Filter] would filter by Carly Test but the actual type doesn't have that option... Why is Carly Test showing up if the certificate isn't public?"* (image 59)
 - **Related:** DEF-167 (cert-type subcategory leak — same controller family), QC #149 (L2/L3 Product Category options don't filter)
 
@@ -5493,7 +5493,7 @@ Net: both sub-bullets of QC #169 are resolved by the deployed DEF-167 fix. No ne
 
 - **Date:** 2026-05-07
 - **Severity:** Medium (functional — every authenticated session lands on a generic page; correct page is one extra click away)
-- **Status:** Fixed locally (pending deploy)
+- **Status:** Fixed locally (deployed 2026-08-04)
 - **Reporter:** Shawn — testing login flow on `gccwebapp.com`. Reported "When you login, for example external, partner should go to external certificates. Analyst and Admin should go to internal certificates. Currently, it just goes to certificates."
 
 **Symptom:** Successful login dropped users on a generic certs page regardless of role. Specifically: External landed on the External tile view (correct), Partner landed on the public `CertificateTileView` (wrong — should be External tile view), Analyst and Admin landed on the legacy Dashboard `Index` (wrong — should be Internal tile view).
@@ -6125,7 +6125,7 @@ The materialize-then-sort pattern matches `CertificateTilesApiController.cs:322`
 
 - **Date:** 2026-05-03
 - **Severity:** Medium — visible cosmetic corruption on Product Management page (`▶` row-expand triangle, `•` last-updated bullet) and Admin > Product Management (`—` em-dash placeholder for empty Parent Identifiers)
-- **Status:** **Fixed (pending deploy)**
+- **Status:** **Fixed (deployed 2026-08-04)**
 - **Reporter:** Shawn — "why am I seeing special characters. â–¶"
 - **Root cause:** Source files were UTF-8 with BOM, but at some point each was opened in an editor that interpreted them as Windows-1252 and re-saved as UTF-8 — re-encoding the multibyte sequences as their Windows-1252 visual aliases. The bad bytes were then literally checked in. Same family of bug as the prior `Database_Scripts/FixMojibakeProductNames.sql` (which corrected `™` → `â„¢` and `®` → `Â®` in product names on prod 2026-04-14).
   - `▶` (U+25B6, UTF-8 `E2 96 B6`) → `â–¶`
@@ -6665,7 +6665,7 @@ The materialize-then-sort pattern matches `CertificateTilesApiController.cs:322`
 
 - **Date:** 2026-05-01
 - **Severity:** Low (feature removal, no functional bug)
-- **Status:** **Fixed** — pending deploy
+- **Status:** **Fixed** — deployed 2026-08-04
 - **Reporter:** Shawn (client preference: client doesn't want a standalone admin dashboard)
 - **Change:**
   - Deleted `Views/Admin/Index.cshtml`
@@ -7010,7 +7010,7 @@ Originally logged as a regression of QC #31 (download icon position at desktop).
 
 - **Date:** 2026-05-01
 - **Severity:** **High** (security / partner data isolation)
-- **Status:** **Fixed locally — pending deploy.** Found during TC-QC-143 (CR-008 Partner Role) execution; fix verified locally same day.
+- **Status:** **Fixed locally — deployed 2026-08-04.** Found during TC-QC-143 (CR-008 Partner Role) execution; fix verified locally same day.
 - **Reporter:** Anuki internal QA pass
 
 **Symptom:** A Partner-role caller (API key OR Partner-role app user) could fetch certificates belonging to a DIFFERENT partner via the single-cert endpoints. Empirically confirmed on `localhost:5101` 2026-05-01:
@@ -7490,7 +7490,7 @@ Fix: `Controllers/AdminController.cs` — `ImportUsers()` now special-cases `com
 
 ### DEF-299 — SearchableSelect drops typed value unless a row is mouse-clicked → Create cert fails "Certification Type: the value '' is invalid"
 
-**Date:** 2026-06-25 | **Status:** Fixed locally (`wwwroot/js/searchable-select.js`) — pending deploy | **Severity:** High (blocks the core Create-certificate flow for the most common selection gesture) | **QC Ref:** internal — live report during Create-cert testing | **Reporter:** Shawn (2026-06-25)
+**Date:** 2026-06-25 | **Status:** Fixed locally (`wwwroot/js/searchable-select.js`) — deployed 2026-06-26 | **Severity:** High (blocks the core Create-certificate flow for the most common selection gesture) | **QC Ref:** internal — live report during Create-cert testing | **Reporter:** Shawn (2026-06-25)
 
 **Symptom.** On `/Certificate/Create`, selecting a Certification Type then saving threw a validation error: *"Certification Type — the value is invalid."* Reproduced reliably even though a type was visibly chosen.
 
@@ -7698,6 +7698,14 @@ Fix: `Controllers/AdminController.cs` — `ImportUsers()` now special-cases `com
 
 ### DEF-310 — Edit Certificate: replacing the uploaded document saves correctly but the preview and "View" keep showing the OLD document (browser heuristic caching)
 
+> **Addendum 2026-08-05 — a second, unrelated fix shipped inside this entry and was never written down.** `Services/FileUploadService.cs` (lines 99–101 and 168–170) carries `// DEF-310:` comments describing a *filename* bug: `[0..8]` sat **outside** the interpolation hole, so `$"{…}{Guid.NewGuid().ToString("N")}[0..8]{ext}"` wrote the literal characters `[0..8]` into the filename instead of truncating the GUID to 9 chars. Nothing above describes that — this entry is about cache headers — so the register attributes a fix to a defect it never documents, and anyone auditing "what did DEF-310 change?" from the register alone would miss two of its edits.
+>
+> **Live impact, one row.** Prod has exactly **one** certificate whose stored path still carries the malformed name: **23-0753** → `uploads/certificates/23-0753_20260630_163852_dcc92a9404e04611a4fa07649ea49638[0..8].pdf`, written 2026-06-30, before this fix shipped in the `20260720-1408` bundle. Found while sweeping for missing PDFs; it is one of the 11 currently 404-ing.
+>
+> **It is not specially recoverable, and the name is not why it 404s.** This entry states plainly that the server side is correct — *"Not a save bug … the new PDF is written under a new timestamped filename … and both DB columns are repointed"* — and square brackets are legal filenames on both Windows and Linux. So a file *was* written under that literal name and has since been lost with the other ten. Per [[feedback_data_issue_vs_defect]] the code is already correct, so the single bad row is **data ops, not a new DEF**.
+>
+> **Carry into any restore:** the DB path must match the file byte-for-byte, brackets included. Do not "tidy" the filename on the server without updating `Certificates.CertificateFile` in the same step, or a successfully restored file will still 404.
+
 **Date:** 2026-07-20 | **Status:** Fixed (`Controllers/CertificateController.cs`, `Extensions/UploadCacheBusting.cs` (new), `Views/Certificate/Edit.cshtml`, `CertificateSingleView.cshtml`, `CertificateInternalView.cshtml`, `CertificateExternalView.cshtml`, `Views/_ViewImports.cshtml`, `Services/FileUploadService.cs`) — working tree, **pending next deploy bundle** | **Severity:** Medium — no data loss (the correct document IS stored), but an analyst is shown the superseded document and can reasonably conclude the replacement failed, or approve a certificate against the wrong file. | **QC Ref:** QC #191 | **Reporter:** client analyst, corroborated by CP — *"Trying to replace the uploaded document with a new one says it works but still shows the old document in the preview and in the 'view' option further down the page. When I tried to replicate it to see if I missed anything, it worked correctly."* CP note: *"I experienced the same thing. Where it did not work right away (after saving) but when I tried a second time it worked."*
 
 **Root cause.** Not a save bug — the server side is correct. On Edit the new PDF is written under a *new* timestamped filename, the thumbnail is regenerated under a new PNG name, and both DB columns are repointed (`CertificateController.cs:1126-1138`, persisted `:1371`). Nothing is overwritten.
@@ -7792,9 +7800,54 @@ Note the "View" control uses the same thumbnail URL as the preview (there is no 
 
 ---
 
+### DEF-338 — Partner API rate limiting never applies: the limiter runs before authentication, so every partner key is throttled as anonymous (100/hr, bucketed by IP)
+
+**Date:** 2026-08-06 | **Status:** **Open — not fixed.** Diagnosis only; no code changed. | **Severity:** **Major (partner-facing).** Partners get 1/2 the documented throughput, share one bucket across organisations, and we send them a limit header that contradicts both developer guides. | **QC Ref:** none — found by Anuki while settling a contradiction between the Amazon Developer Guide (200/hr) and the new generic Partner API Integration Guide (2,000/hr). **Found by:** Anuki. | **Reporter:** Anuki (internal).
+
+**How it surfaced.** `docs2/exports/PARTNER_API_INTEGRATION_GUIDE.html` §2 carried a TBD asking which rate limit to publish, because the two guides disagreed by 10×. Neither number turned out to be reachable.
+
+**Root cause — middleware ordering.** `app.UseApiRateLimiting()` is registered at `Program.cs:599`. `app.UseAuthentication()` is at `Program.cs:695` and `PartnerApiKeyAuthenticationMiddleware` at `Program.cs:698`. The limiter therefore executes **~10 middleware before anything populates `context.User`**. Inside `ApiRateLimitingMiddleware.GetRateLimitForClient()` the `context.User?.Identity?.IsAuthenticated` test at `:113` is always false for API traffic, making every branch beneath it unreachable — partner limit, generic API-key limit, admin limit, authenticated limit. Execution falls through to `:150` and returns `AnonymousLimit` (100). `GetClientIdentifier()` at `:96` fails the same test and buckets by `ip:{address}` instead of `api_key:{id}`.
+
+Consequently **both documented numbers describe dead code**:
+
+| Documented | Source in code | Reachable? |
+|---|---|---|
+| 200/hr (Amazon Developer Guide) | `Program.cs:403` — `options.PartnerApiKeyLimit = 200` | No — branch at `ApiRateLimitingMiddleware.cs:129` never runs |
+| 2,000/hr (Partner Integration Guide) | `PartnerApiKeyAuthenticationMiddleware.cs:143` — `RateLimitPerHour?.ToString() ?? "2000"` | No — claim is never read, branch at `:116` never runs |
+| **100/hr, per IP** | `ApiRateLimitingMiddleware.cs:150` — `AnonymousLimit` | **Yes — this is what actually happens** |
+
+**Verification (localhost:5101, dev DB, 2026-08-06).** Three requests to `/api/v1/certificates` from one IP:
+
+| # | Auth | HTTP | `X-RateLimit-Limit` | `X-RateLimit-Remaining` |
+|---|---|---|---|---|
+| A | none | 401 | 100 | 98 |
+| B | invalid key | 401 | 100 | 97 |
+| C | **valid partner key (`PartnerApiKeys.Id = 6`)** | **200** | **100** | **96** |
+
+The counter ran **98 → 97 → 96 across all three**. The authenticated call did not get its own bucket — it kept consuming the anonymous one. That is the decisive evidence: were limits keyed by API key, call C would have started a fresh counter at 99.
+
+**Impact.**
+
+1. **Throughput is half what Amazon was told** and 1/20th of what the draft partner guide promised.
+2. **Cross-partner interference.** Bucketing by IP means every partner behind a shared cloud NAT egress — plus all anonymous public traffic from that address — competes for one 100/hr allowance. One partner can exhaust another's quota, and neither has any way to see why.
+3. **We contradict ourselves on the wire.** Every response already carries `X-RateLimit-Limit: 100` while both guides state otherwise.
+4. **The per-key override has never worked.** All five rows in `PartnerApiKeys` (dev) have `RateLimitPerHour = NULL`, so even after the ordering fix every partner lands on the fallback until a value is set.
+
+**Secondary finding — wrong doc comment.** `Models/PartnerApiKey.cs:69` documents `RateLimitPerHour` as "null = no rate limit", but null resolves to the hardcoded `"2000"` fallback, not unlimited. Moot while the ordering bug stands; misleading once it is fixed.
+
+**Decision (Shawn, 2026-08-06): the published partner limit is 200/hour** — i.e. the value already in `Program.cs:403`. The fix therefore makes reality match the Amazon guide, and `PARTNER_API_INTEGRATION_GUIDE.html` §2 has been set to 200 accordingly.
+
+**Fix direction (not yet applied).** Move `app.UseApiRateLimiting()` from `Program.cs:599` to below `Program.cs:698`, so the limiter sees partner claims. This is a one-line move but it simultaneously activates *every* dormant branch — admin jumps to 5,000/hr, authenticated users to 500, generic API keys to 1,000 — so it needs a regression pass over `/api` rather than a drive-by edit. Confirm afterwards that `X-RateLimit-Limit` reads 200 for a partner key and that the counter is keyed per key, not per IP (re-run the A/B/C probe above; call C must start a fresh bucket).
+
+> **Do not publish the partner guide until this lands.** §2 states 200/hr while the server sends 100 — shipping the doc first hands a partner a number we do not honour.
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_amazon_api_immutable]], [[feedback_confirm_means_falsifiable]], [[feedback_verify_deployed_asset_not_symptom]].
+
+---
+
 ### DEF-337 — Delete recoverability: cascade children are destroyed unaudited, and the system's core entity (Certificate) has no delete audit at all
 
-**Date:** 2026-08-04 | **Status:** **FIXED 2026-08-04 — working tree, pending next deploy bundle.** (This entry was originally logged as "not fixed"; the fix landed the same day in two passes — see *Fix* at the end.) | **Severity:** **Major (data-loss / recoverability).** | **QC Ref:** none — found by Anuki while restoring a mistaken delete during QC #242 follow-up. **Found by:** Anuki. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-04 | **Status:** **FIXED 2026-08-04 — deployed 2026-08-04.** (This entry was originally logged as "not fixed"; the fix landed the same day in two passes — see *Fix* at the end.) | **Severity:** **Major (data-loss / recoverability).** | **QC Ref:** none — found by Anuki while restoring a mistaken delete during QC #242 follow-up. **Found by:** Anuki. | **Reporter:** Anuki (internal).
 
 > **CORRECTION 2026-08-04 — this entry's original claim was WRONG and is retracted.**
 > It asserted the audit snapshot "captures only 8 of 16 columns" and that `ProductTypeId` was
@@ -7857,7 +7910,7 @@ Note the "View" control uses the same thumbnail URL as the preview (there is no 
 
 ### DEF-326 — Partner-isolation tests passed vacuously: absence assertions were satisfied by an empty result set
 
-**Date:** 2026-07-31 | **Status:** Fixed (`GCCWebApp.Api.Tests/Integration/PartnerApiScopingTests.cs`) — working tree, test-only change | **Severity:** **High (assurance defect).** No product code is wrong, but the control guarding partner data isolation was reporting green while proving nothing. | **QC Ref:** none — found by Anuki during the 2026-07-31 test-suite triage. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 | **Status:** Fixed (`GCCWebApp.Api.Tests/Integration/PartnerApiScopingTests.cs`) — test-only change | **Severity:** **High (assurance defect).** No product code is wrong, but the control guarding partner data isolation was reporting green while proving nothing. | **QC Ref:** none — found by Anuki during the 2026-07-31 test-suite triage. | **Reporter:** Anuki (internal).
 
 **What was wrong.** Most isolation assertions in `PartnerApiScopingTests` take the form *"enumerate the returned certificates and prove none belong to another partner"*. Over an **empty** array that loop body never runs, so the test passes without testing anything.
 
@@ -7899,7 +7952,7 @@ The fixture stopped returning data at some point (cause still unidentified — s
 
 ### DEF-323 — Product Category usage column reported 0 products while the delete refused for exactly those products
 
-**Date:** 2026-07-31 (**evidence corrected 2026-08-03** — original figures were taken from the dev DB, not the client's environment; see the ground-truth table) | **Status:** Fixed (`Services/AdminService.cs`) — working tree, **pending next deploy bundle**. Covers the misreported count only; the **"see what is associated"** half of QC #242 is **still open — logged as CR-032** (see Second correction). | **Severity:** Major — the screen actively misdirects the user; the one number meant to explain a blocked delete says the blocker does not exist | **QC Ref:** **#242** (Reporter: client, opened **2026-07-30**, log status *New*). Image 107. **Found by:** client. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 (**evidence corrected 2026-08-03** — original figures were taken from the dev DB, not the client's environment; see the ground-truth table) | **Status:** Fixed (`Services/AdminService.cs`) — **deployed 2026-08-04**. Covers the misreported count only; the **"see what is associated"** half of QC #242 is **still open — logged as CR-032** (see Second correction). | **Severity:** Major — the screen actively misdirects the user; the one number meant to explain a blocked delete says the blocker does not exist | **QC Ref:** **#242** (Reporter: client, opened **2026-07-30**, log status *New*). Image 107. **Found by:** client. | **Reporter:** Anuki (internal).
 
 **Client report (7/30, verbatim).** *"I cannot delete Carly Test even though I updated all certs that are using it... The table is saying there are 2 Test Type but I can't find them to remove to then be able to remove this test item."*
 
@@ -7951,7 +8004,7 @@ Both are likewise orphaned (0 certificates, 0 identifiers). **This case is untou
 
 ### DEF-329 — Header search on the homepage discarded every active filter, because the "am I on a tile view?" test checked the URL instead of the page
 
-**Date:** 2026-08-03 | **Status:** Fixed (`wwwroot/js/main.js` — `initializeSearchFunctionality`) — working tree, **pending next deploy bundle** | **Severity:** Major — silent loss of the user's filter state on the most-used entry point | **QC Ref:** none recorded. **Found by:** unknown — see provenance note. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-03 | **Status:** Fixed (`wwwroot/js/main.js` — `initializeSearchFunctionality`) — **deployed 2026-08-04** | **Severity:** Major — silent loss of the user's filter state on the most-used entry point | **QC Ref:** none recorded. **Found by:** unknown — see provenance note. | **Reporter:** Anuki (internal).
 
 > ⚠️ **Provenance / how this entry was written.** This change was found **already present in the working tree** during the Gate 5 traceability audit for the next deploy bundle (2026-08-03), with **no DEF or CR covering it** — the only orphan in a 24-file changeset. It was produced by a parallel work stream, not by the session that wrote this entry. The description below is **reconstructed from the diff and its own inline comment**, and the behaviour has **not** been independently re-verified here. Logged so the change is traceable rather than shipping undocumented (per the Gate 5 "no orphan changes" rule). **Whoever made the change should confirm or correct this entry, and add its QC ref if one exists.**
 
@@ -7982,7 +8035,7 @@ const isTileViewPage = window.location.pathname.toLowerCase().includes('/certifi
 
 ### DEF-328 — Public certificate tile view hangs ~25s per API call: EF's `OPENJSON` translation of the status filter is plan-unstable, and stale statistics cached the bad plan
 
-**Date:** 2026-08-03 | **Status:** Fixed (`Repositories/CertificateRepository.cs` — `GetAdvancedFilteredCertificatesAsync`, all 9 collection filters) — working tree, **pending next deploy bundle**. Prod also needs the one-time `UPDATE STATISTICS` below to clear the currently-cached bad plan ahead of the deploy. | **Severity:** Major — the public landing view is unusable; it spins ~50s before any tile renders | **QC Ref:** none — found internally while starting the app on `localhost:5101`. **Found by:** Anuki. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-03 | **Status:** Fixed (`Repositories/CertificateRepository.cs` — `GetAdvancedFilteredCertificatesAsync`, all 9 collection filters) — **deployed 2026-08-04**. Prod also needs the one-time `UPDATE STATISTICS` below to clear the currently-cached bad plan ahead of the deploy. | **Severity:** Major — the public landing view is unusable; it spins ~50s before any tile renders | **QC Ref:** none — found internally while starting the app on `localhost:5101`. **Found by:** Anuki. | **Reporter:** Anuki (internal).
 
 **Symptom.** `/Certificate/CertificateTileView` sits on "Loading certificates…" with an empty sidebar. Nothing is broken client-side — no console errors, the JS loads and its fetches fire correctly. Both calls the page makes simply take ~25s each (`/api/certificate-tiles` and `/api/certificate-tiles/filters`), so the page needs ~50s to paint and users abandon first.
 
@@ -8056,7 +8109,7 @@ This does **not** substitute for the deploy — the undeployed code still emits 
 
 ### DEF-327 — `User` carries two status columns that drift apart; a CSV-imported inactive user shows as Active, cannot log in, and cannot be repaired from the admin UI
 
-**Date:** 2026-07-31 | **Status:** Fixed (`Services/AdminService.cs` — `UpdateUserAsync` + `BulkImportUsersAsync`) — working tree, **pending next deploy bundle** | **Severity:** Major — produces accounts that are locked out with no UI remedy | **QC Ref:** none — found internally while fixing [[DEF-325]]. **Found by:** Anuki. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 | **Status:** Fixed (`Services/AdminService.cs` — `UpdateUserAsync` + `BulkImportUsersAsync`) — **deployed 2026-08-04** | **Severity:** Major — produces accounts that are locked out with no UI remedy | **QC Ref:** none — found internally while fixing [[DEF-325]]. **Found by:** Anuki. | **Reporter:** Anuki (internal).
 
 **The shape of it.** `Models/User.cs` has both `Status` (string, commented `active/inactive/locked`, line 42) and `IsActive` (bool, line 44). Three code paths each treated a different one as the truth:
 
@@ -8082,7 +8135,7 @@ Login gates on **both** columns (`AccountController.cs:1076`, and the diagnostic
 
 ### DEF-326 — User status compared case-sensitively at three sites: silently deactivates the user on save, and locks a correctly-flagged account out of login
 
-**Date:** 2026-07-31 | **Status:** Fixed (`Services/AdminService.cs`, `Controllers/AccountController.cs` ×2) — working tree, **pending next deploy bundle** | **Severity:** Major — silent data corruption on one path, silent lockout on the other | **QC Ref:** none — surfaced by the `regression-ci` CRUD gate. **Found by:** Anuki. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 | **Status:** Fixed (`Services/AdminService.cs`, `Controllers/AccountController.cs` ×2) — **deployed 2026-08-04** | **Severity:** Major — silent data corruption on one path, silent lockout on the other | **QC Ref:** none — surfaced by the `regression-ci` CRUD gate. **Found by:** Anuki. | **Reporter:** Anuki (internal).
 
 **Root cause.** Three ordinal comparisons against the literal `"active"`:
 
@@ -8102,7 +8155,7 @@ Login gates on **both** columns (`AccountController.cs:1076`, and the diagnostic
 
 ### DEF-325 — `PUT /Admin/UpdateUser` returned HTTP 200 on every failure path, so a rejected update read as accepted
 
-**Date:** 2026-07-31 | **Status:** Fixed (`Controllers/AdminController.cs`, `Services/AdminService.cs`, `Services/IAdminService.cs`, `Models/AdminModels.cs`) — working tree, **pending next deploy bundle** | **Severity:** Major — masks failed writes from every non-UI caller | **QC Ref:** none — surfaced by the `regression-ci` deploy-gate CRUD suite (run 30572613682, assertion `user.U2.update-persisted`). **Found by:** Anuki. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 | **Status:** Fixed (`Controllers/AdminController.cs`, `Services/AdminService.cs`, `Services/IAdminService.cs`, `Models/AdminModels.cs`) — **deployed 2026-08-04** | **Severity:** Major — masks failed writes from every non-UI caller | **QC Ref:** none — surfaced by the `regression-ci` deploy-gate CRUD suite (run 30572613682, assertion `user.U2.update-persisted`). **Found by:** Anuki. | **Reporter:** Anuki (internal).
 
 **Symptom from CI.** The CRUD gate recorded `[PASS] user.U1.update PUT /Admin/UpdateUser accepted - HTTP 200 {"success":false,"message":"User not found or update failed"}` — a PASS on a response whose own body says it failed — and only caught the problem one assertion later when the row had not changed. A 200 carrying `success:false` is invisible to any status-code-based caller.
 
@@ -8167,7 +8220,7 @@ Login gates on **both** columns (`AccountController.cs:1076`, and the diagnostic
 
 ### DEF-322 — Certificate numbers stuck at 5 digits: one imported out-of-band number poisoned the whole year's sequence
 
-**Date:** 2026-07-31 (rollover proof added 2026-08-04) | **Status:** Fixed (`Repositories/CertificateRepository.cs`) + 16 unit tests — working tree, **pending next deploy bundle** | **Severity:** Major — every certificate created after the outlier carries a malformed number, and certificate numbers are the client's primary business identifier | **QC Ref:** **#218** (Reporter: client, opened 2026-07-08; re-flagged **7/30**, log status *"Discuss, seems wrong"*). **Found by:** client. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 (rollover proof added 2026-08-04) | **Status:** Fixed (`Repositories/CertificateRepository.cs`) + 16 unit tests — **deployed 2026-08-04** | **Severity:** Major — every certificate created after the outlier carries a malformed number, and certificate numbers are the client's primary business identifier | **QC Ref:** **#218** (Reporter: client, opened 2026-07-08; re-flagged **7/30**, log status *"Discuss, seems wrong"*). **Found by:** client. | **Reporter:** Anuki (internal).
 
 **Client report (7/30, verbatim).** *"When adding new certs it's still 7 digits total. Why? I don't think we ran out of numbers with 6 digits (while keeping the current year)... I am ok for it to be 7 digits IF WE RUN OUT OF numbers for the current year (so after 9999 certs). Anuki please confirm you have tested that when we hit a new calendar year it changes the first 2 numbers (e.g., 2027 should have 27-XXXX)."*
 
@@ -8202,7 +8255,7 @@ Confirmed in live data: the dev database contains **`26-01730`** — a 5-digit s
 
 ### DEF-316 — Certificate import template: Partner column header gave no separator guidance (and named the wrong one)
 
-**Date:** 2026-07-31 | **Status:** Fixed (`Controllers/CertificateImportController.cs`) — working tree, **pending next deploy bundle** | **Severity:** Minor (client-visible copy) | **QC Ref:** **#171** (Reporter: client, opened 2026-05-05; re-flagged **7/30** — *"This is still not fixed"*). Image 105. **Found by:** client. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 | **Status:** Fixed (`Controllers/CertificateImportController.cs`) — **deployed 2026-08-04** | **Severity:** Minor (client-visible copy) | **QC Ref:** **#171** (Reporter: client, opened 2026-05-05; re-flagged **7/30** — *"This is still not fixed"*). Image 105. **Found by:** client. | **Reporter:** Anuki (internal).
 
 **Client ask (7/30, verbatim).** *"In Excel Template please add in Partner column heading (separate by comma). I want the info in () added so its clear when multiple."*
 
@@ -8226,7 +8279,7 @@ Confirmed in live data: the dev database contains **`26-01730`** — a 5-digit s
 
 ### DEF-317 — "Certification Results": client-supplied instruction copy rendered below the field instead of inside it
 
-**Date:** 2026-07-31 | **Status:** Fixed (`Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`) — working tree, **pending next deploy bundle** | **Severity:** Minor (client-visible copy) | **QC Ref:** **#240** (Reporter: client; re-flagged **7/30**). Image 109. **Found by:** client. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 | **Status:** Fixed (`Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`) — **deployed 2026-08-04** | **Severity:** Minor (client-visible copy) | **QC Ref:** **#240** (Reporter: client; re-flagged **7/30**). Image 109. **Found by:** client. | **Reporter:** Anuki (internal).
 
 **Client ask (7/30, verbatim).** *"The grey instruction copy in open text field is not accurate language. I wanted the copy provided added there not under box."*
 
@@ -8242,7 +8295,7 @@ Confirmed in live data: the dev database contains **`26-01730`** — a 5-digit s
 
 ### DEF-318 — Stale "certificate created successfully" toast fires on a blank Create form after an unrelated edit
 
-**Date:** 2026-07-31 | **Status:** Fixed (`Controllers/CertificateController.cs`, `Views/Certificate/Create.cshtml`) — working tree, **pending next deploy bundle** | **Severity:** Minor UX, but it corrodes trust in every save confirmation | **QC Ref:** **#193** (Reporter: client, opened 2026-06-11; re-flagged **7/30**). Image 106. **Found by:** client. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 | **Status:** Fixed (`Controllers/CertificateController.cs`, `Views/Certificate/Create.cshtml`) — **deployed 2026-08-04** | **Severity:** Minor UX, but it corrodes trust in every save confirmation | **QC Ref:** **#193** (Reporter: client, opened 2026-06-11; re-flagged **7/30**). Image 106. **Found by:** client. | **Reporter:** Anuki (internal).
 
 **Client repro (7/30, verbatim).** *"Go to existing cert, Edit and change status (or any other field), Save, navigate to Certificates in header, click Add Certificate button. Then box appears about successful add — this is out of context."*
 
@@ -8270,7 +8323,7 @@ Part 1 also closes the same leak into `Views/Account/TwoFactorPreferences.cshtml
 
 ### DEF-319 — Search autocomplete: hovering a suggestion made Enter commit the hovered item instead of the typed text
 
-**Date:** 2026-07-31 | **Status:** Fixed (`wwwroot/js/certificate-tile-view.js`, `-internal.js`, `-external.js`) — working tree, **pending next deploy bundle** | **Severity:** Major — silently substitutes a search term the user did not choose | **QC Ref:** **#197** (Reporter: client, opened 2026-06-15; re-flagged **7/30**), logged in the QC sheet as **row #88 "Cert search view"** — status still "Open / Ready for UAT / Not fixed" there because the fix has not reached the client's environment (see Status). **Found by:** client. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 | **Status:** Fixed (`wwwroot/js/certificate-tile-view.js`, `-internal.js`, `-external.js`) — **deployed 2026-08-04** | **Severity:** Major — silently substitutes a search term the user did not choose | **QC Ref:** **#197** (Reporter: client, opened 2026-06-15; re-flagged **7/30**), logged in the QC sheet as **row #88 "Cert search view"** — status still "Open / Ready for UAT / Not fixed" there because the fix has not reached the client's environment (see Status). **Found by:** client. | **Reporter:** Anuki (internal).
 
 **Client report (7/30, verbatim).** *"It is still randomly choosing an option after typing and entering as soon as the mouse hovers over something in dropdown. If you just type word and hit enter right away without exploring dropdown items seems to be ok. But not when your mouse goes over options."*
 
@@ -8304,7 +8357,7 @@ Part 1 also closes the same leak into `Views/Account/TwoFactorPreferences.cshtml
 
 ### DEF-320 — Keyboard-selected autocomplete suggestion had no visual highlight (two separate CSS faults)
 
-**Date:** 2026-07-31 | **Status:** Fixed (`wwwroot/css/certificatetileview.css`, `wwwroot/css/certificate-autocomplete.css`) — working tree, **pending next deploy bundle** | **Severity:** Minor alone; **blocking for DEF-319** | **QC Ref:** none — found by Anuki while fixing DEF-319. | **Reporter:** Anuki (internal).
+**Date:** 2026-07-31 | **Status:** Fixed (`wwwroot/css/certificatetileview.css`, `wwwroot/css/certificate-autocomplete.css`) — **deployed 2026-08-04** | **Severity:** Minor alone; **blocking for DEF-319** | **QC Ref:** none — found by Anuki while fixing DEF-319. | **Reporter:** Anuki (internal).
 
 **Why it surfaced now.** DEF-319 makes the arrow keys the *only* way to select a suggestion by keyboard. If `.selected` has no visual, that fix reads as "keyboard navigation is broken." So this had to be repaired in the same batch.
 
@@ -8330,7 +8383,7 @@ Part 1 also closes the same leak into `Views/Account/TwoFactorPreferences.cshtml
 
 ### DEF-315 — Partner CSV export: identifier columns misaligned; ASIN values appearing under the UPC and GTIN headers
 
-**Date:** 2026-07-21 | **Status:** Fixed (`Services/CertificateService.cs`, `Services/ProductIdService.cs`, `Controllers/ExportController.cs`, `wwwroot/js/admin/exportUtils.js`) — working tree, **pending next deploy bundle** | **Severity:** **High** — silent data corruption in a partner-facing deliverable. Not cosmetic: a partner reading the UPC column got ASIN values, with nothing to indicate the file was wrong. | **QC Ref:** none — direct client report. **Found by:** client, via Shawn (2026-07-20). | **Reporter:** Anuki (internal).
+**Date:** 2026-07-21 | **Status:** Fixed (`Services/CertificateService.cs`, `Services/ProductIdService.cs`, `Controllers/ExportController.cs`, `wwwroot/js/admin/exportUtils.js`) — **deployed 2026-08-04** | **Severity:** **High** — silent data corruption in a partner-facing deliverable. Not cosmetic: a partner reading the UPC column got ASIN values, with nothing to indicate the file was wrong. | **QC Ref:** none — direct client report. **Found by:** client, via Shawn (2026-07-20). | **Reporter:** Anuki (internal).
 
 **Reported symptom.** "The export on certificates for Partner is showing `=` for ASIN and has UPC `"`."
 
@@ -8373,7 +8426,7 @@ Measured on the partner export: **22 header columns vs 23-24 data columns on 4 o
 
 ### DEF-314 — Changing a certificate's status fails to save when the certificate number is longer than 7 characters
 
-**Date:** 2026-07-21 | **Status:** Fixed (`Models/CertificateStatusHistory.cs` + migration `20260721015555_WidenStatusHistoryCertificateNumber`) — working tree, **pending next deploy bundle**; **requires prod SQL (Gate 7)** | **Severity:** **High** — the certificate is un-editable for status on the live test site; the analyst gets a generic failure with no indication of the cause, and the status silently does not change. No data loss (the write is rejected whole). | **QC Ref:** none — direct client report. **Found by:** client, via Shawn, against `https://gccwebapp.com/Certificate/Edit/26-10126` (2026-07-20). | **Reporter:** Anuki (internal).
+**Date:** 2026-07-21 | **Status:** Fixed (`Models/CertificateStatusHistory.cs` + migration `20260721015555_WidenStatusHistoryCertificateNumber`) — **deployed 2026-08-04**; **requires prod SQL (Gate 7)** | **Severity:** **High** — the certificate is un-editable for status on the live test site; the analyst gets a generic failure with no indication of the cause, and the status silently does not change. No data loss (the write is rejected whole). | **QC Ref:** none — direct client report. **Found by:** client, via Shawn, against `https://gccwebapp.com/Certificate/Edit/26-10126` (2026-07-20). | **Reporter:** Anuki (internal).
 
 **Reported symptom.** "An error occurred while updating the certificate." Client clarified: *"It errors when the status is changed and then click save, no other changes causes the error."*
 
@@ -8398,7 +8451,7 @@ Measured on the partner export: **22 header columns vs 23-24 data columns on 4 o
 
 ### DEF-313 — Product Management unreadable on mobile: cards forced to 1100px wide and every detail panel force-expanded
 
-**Date:** 2026-07-20 | **Status:** Fixed (`wwwroot/css/product-management.css`) — working tree, **pending next deploy bundle** | **Severity:** Medium-High — the page is navigable but effectively unusable on a phone; every field value sits off-screen behind a horizontal scroll. No data risk. | **QC Ref:** none. **Found by:** Shawn West, direct report against `https://gccwebapp.com/Product/Management` (2026-07-20). | **Reporter:** Anuki (internal).
+**Date:** 2026-07-20 | **Status:** Fixed (`wwwroot/css/product-management.css`) — **deployed 2026-08-04** | **Severity:** Medium-High — the page is navigable but effectively unusable on a phone; every field value sits off-screen behind a horizontal scroll. No data risk. | **QC Ref:** none. **Found by:** Shawn West, direct report against `https://gccwebapp.com/Product/Management` (2026-07-20). | **Reporter:** Anuki (internal).
 
 **Reported symptom.** "In mobile view it is not displaying data well. It is very difficult to read. Columns are showing top down."
 
@@ -8468,7 +8521,7 @@ All changes are inside the existing `max-width: 768px` block, so desktop is unto
 
 ### DEF-330 — Three more orphaned `TempData` writes of the DEF-318 class (import, document upload, import error detail)
 
-**Date:** 2026-08-03 | **Status:** Fixed (`Controllers/CertificateImportController.cs`) — working tree, **pending next deploy bundle**. *Its second file, DocumentController.cs (path deliberately not backticked — it no longer exists, and backticked paths in a Status line are read by the Gate 9 reconciliation as "files this fix touched, which must resolve"), was **deleted outright on 2026-08-04 by DEF-331**, which supersedes this fix for that file — the orphan write went with the whole controller.* | **Severity:** Minor UX (same trust-corroding "out of context confirmation" as DEF-318), plus one cookie-growth risk | **QC Ref:** none directly — found while re-investigating **QC #193 / Image 106** at Shawn's request. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-03 | **Status:** Fixed (`Controllers/CertificateImportController.cs`) — **deployed 2026-08-04**. *Its second file, DocumentController.cs (path deliberately not backticked — it no longer exists, and backticked paths in a Status line are read by the Gate 9 reconciliation as "files this fix touched, which must resolve"), was **deleted outright on 2026-08-04 by DEF-331**, which supersedes this fix for that file — the orphan write went with the whole controller.* | **Severity:** Minor UX (same trust-corroding "out of context confirmation" as DEF-318), plus one cookie-growth risk | **QC Ref:** none directly — found while re-investigating **QC #193 / Image 106** at Shawn's request. | **Reporter:** Anuki (internal).
 
 **Why this exists.** DEF-318 fixed the *reported* path (edit → save → navigate → Add Certificate) and established the rule: **write `TempData` only when the redirect target itself reads that key.** It did not sweep the rest of the codebase for the same shape. A full writer/reader audit of every `TempData` key found three more violations. This is the [[feedback_scoping_check_adjacent_endpoints]] pattern again — the reported endpoint got fixed, the siblings did not.
 
@@ -8497,7 +8550,7 @@ Each deletion carries an inline comment naming DEF-330 and restating the writer/
 
 ### DEF-331 — Successful document upload redirects to `Certificate/Details`, which does not exist (404 after a successful save)
 
-**Date:** 2026-08-03 | **Status:** **Fixed 2026-08-04 by removal** — dead controller, its view and the orphan partial deleted on Shawn's sign-off. Working tree, **pending next deploy bundle**. | **Severity:** Major if the path is reachable (a successful upload lands the user on a 404); **confirmed UI-unreachable** | **QC Ref:** none — found by Anuki. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-03 | **Status:** **Fixed 2026-08-04 by removal** — dead controller, its view and the orphan partial deleted on Shawn's sign-off. **deployed 2026-08-04**. | **Severity:** Major if the path is reachable (a successful upload lands the user on a 404); **confirmed UI-unreachable** | **QC Ref:** none — found by Anuki. | **Reporter:** Anuki (internal).
 
 **Finding.** `DocumentController.cs:88` returns `RedirectToAction("Details", "Certificate", new { id = model.CertificateId })`. There is **no `Details` action on `CertificateController`** and **no `Views/Certificate/Details.cshtml`** (the view folder holds `CertificateExternalView`, `CertificateInternalView`, `CertificateSingleView`, the three tile views, `Create`, `Edit`, `Import` — no `Details`). So on success this redirect 404s.
 
@@ -8591,7 +8644,7 @@ So the reading in the finding above was right — **one coherent, deliberately-u
 
 ### DEF-333 — 2FA phone verification redirects to `VerifyPhone`, whose view file does not exist (HTTP 500)
 
-**Date:** 2026-08-03 | **Status:** **Fixed** (`Views/Account/VerifyPhone.cshtml` — **new file, no controller change**) — working tree, **pending next deploy bundle** | **Severity:** Major — a 500, not a 404, on a live authentication path | **QC Ref:** none — found by the Gate 9 static check. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-03 | **Status:** **Fixed** (`Views/Account/VerifyPhone.cshtml` — **new file, no controller change**) — **deployed 2026-08-04** | **Severity:** Major — a 500, not a 404, on a live authentication path | **QC Ref:** none — found by the Gate 9 static check. | **Reporter:** Anuki (internal).
 
 **Finding.** `AccountController.cs:903` does `return RedirectToAction("VerifyPhone")`. The action exists (`:924` GET, `:942` POST) and ends in `return View()`, but there was **no `Views/Account/VerifyPhone.cshtml`** and no `Views/Shared/VerifyPhone.cshtml`. MVC throws `InvalidOperationException` when it cannot resolve a view, so this yielded an **HTTP 500** — worse than DEF-331's 404, because the 500 lands mid-way through changing a security setting.
 
@@ -8621,7 +8674,7 @@ The new view mirrors `Views/Account/2FAAuthenticate.cshtml` exactly — same `au
 
 ### DEF-334 — Two TempData hygiene faults found by Gate 9 (orphan `2FAMethod` write; `Message` rendered by three views but never set)
 
-**Date:** 2026-08-03 | **Status:** **Fixed 2026-08-04** (`Controllers/AccountController.cs`, `Views/Account/ForgotPassword.cshtml`, `Views/Account/Login.cshtml`, `Views/Account/ResetPassword.cshtml`) — working tree, **pending next deploy bundle** | **Severity:** Minor — one cookie leak with no visible symptom, one permanently-dead render path | **QC Ref:** none — found by the Gate 9 static check. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-03 | **Status:** **Fixed 2026-08-04** (`Controllers/AccountController.cs`, `Views/Account/ForgotPassword.cshtml`, `Views/Account/Login.cshtml`, `Views/Account/ResetPassword.cshtml`) — **deployed 2026-08-04** | **Severity:** Minor — one cookie leak with no visible symptom, one permanently-dead render path | **QC Ref:** none — found by the Gate 9 static check. | **Reporter:** Anuki (internal).
 
 **Fault 1 — `TempData["2FAMethod"]` is written twice and read nowhere.** `AccountController.cs:222` and `:689` set it alongside `2FAEmail` and `2FARole`, which **are** consumed by `Verify2FA` (`:738-739`). `2FAMethod` is not consumed by anything. Same mechanism as DEF-330 #3: an unread entry is re-saved into the TempData cookie on every subsequent request, indefinitely. No visible symptom; it is pure cookie weight on every authenticated request.
 
@@ -8654,7 +8707,7 @@ The new view mirrors `Views/Account/2FAAuthenticate.cshtml` exactly — same `au
 
 ### DEF-336 — `DownloadSelectedZip` times out past 30s (60 sequential `GetByIdAsync` loads, 13 `Include`s each) — blocks the P0 IDOR gate from verifying
 
-**Date:** 2026-08-04 | **Status:** **Fixed locally — pending next deploy.** Batched the load in `Controllers/CertificateController.cs` + new `CertificateRepository.GetByIdsAsync`. | **Severity:** High — a P0 security gate cannot complete, and bulk download is unusable at realistic selection sizes | **QC Ref:** none — surfaced by the maintained P0 security gate (`Scripts/smoke-prod/_security/idor-download.js`) during the 2026-08-04 full regression run. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-04 | **Status:** **Fixed locally — deployed 2026-08-04.** Batched the load in `Controllers/CertificateController.cs` + new `CertificateRepository.GetByIdsAsync`. | **Severity:** High — a P0 security gate cannot complete, and bulk download is unusable at realistic selection sizes | **QC Ref:** none — surfaced by the maintained P0 security gate (`Scripts/smoke-prod/_security/idor-download.js`) during the 2026-08-04 full regression run. | **Reporter:** Anuki (internal).
 
 **Symptom.** `POST /Certificate/DownloadSelectedZip` with 60 certificate IDs does not respond within 30s. The security spec's request times out, the spec throws, and the suite records `idor.error — spec ran without throwing` as a **FAIL**, taking the whole gate to `RED-FAIL (54P / 1F / 2W)`.
 
@@ -8688,7 +8741,7 @@ foreach (var certId in certificateIds)          // 2370
 
 ### DEF-338 — Successful CSV import gives the analyst no confirmation at all (DEF-330 removed the leak and the message with it)
 
-**Date:** 2026-08-04 | **Status:** **Fixed locally — pending next deploy.** `Controllers/CertificateImportController.cs` (writer restored under a private key) + `Views/Certificate/CertificateTileView.cshtml` (the reader) + `Views/Certificate/Create.cshtml` (switched to the same real toast). | **Severity:** Minor UX, but on a destructive operation — an import can create *and overwrite* live certificates, and the analyst was getting silence either way | **QC Ref:** **QC #193** (client, 2026-08-04: *"the user should still get the confirmation"*) — the follow-on decision from the DEF-318 / DEF-330 review. | **Reporter:** Client, via Shawn.
+**Date:** 2026-08-04 | **Status:** **Fixed locally — deployed 2026-08-04.** `Controllers/CertificateImportController.cs` (writer restored under a private key) + `Views/Certificate/CertificateTileView.cshtml` (the reader) + `Views/Certificate/Create.cshtml` (switched to the same real toast). | **Severity:** Minor UX, but on a destructive operation — an import can create *and overwrite* live certificates, and the analyst was getting silence either way | **QC Ref:** **QC #193** (client, 2026-08-04: *"the user should still get the confirmation"*) — the follow-on decision from the DEF-318 / DEF-330 review. | **Reporter:** Client, via Shawn.
 
 **What happened.** DEF-330 found that the import's `TempData["Success"]` write was orphaned — the redirect target (`Certificate/CertificateTileView`) read no TempData, so the message was never rendered there, and an *unread* TempData entry is re-saved on every subsequent request until some view reads that key. Its only readers were the CertificateImport views, so it resurfaced later as an out-of-context *"N certificates created"* banner on Import Index/Preview/History — the exact shape the client reported in QC #193.
 
@@ -8717,7 +8770,23 @@ Duration set to **8s** rather than the 5s default (`:147`) because the message c
 
 **Validation (2026-08-04).** `dotnet build GCCWebApp.csproj` → **Build succeeded, 0 Errors.** Razor is compiled by the source generator inside the build, so a syntax error in the new view block would fail it. Writer/reader pairing verified repo-wide: `ImportSuccessMessage` has exactly **1 writer** (`CertificateImportController.cs`) and **1 reader** (`CertificateTileView.cshtml`); `CreateSuccessMessage` likewise 1 and 1. The toast's CSS (`.admin-notification-stack` — `position:fixed; top:20px; right:20px; z-index:var(--admin-z-toast)`) lives in `wwwroot/css/admin/admin-modals.css`, which `_Layout.cshtml:53` loads on **every** page, so it is present on the public tile view.
 
-**UPDATE 2026-08-04 — the shared mechanism is now proven.** The client confirmed the toast rendering on the DEF-339 save path (*"I see the toast now"*), which exercises the identical toast call, ordering guard, CSS and stacking context this entry relies on. What remains unexercised for *this* entry is narrower than it was: only the **import-specific TempData round trip** (apply a real CSV, confirm the toast fires once on the tile view and does not reappear later). The rendering half is no longer in doubt. Original note follows.
+**VERIFIED END TO END 2026-08-04 — a real CSV import was applied against `GCCDatabase_Dev` on localhost:5101 and every assertion passed.** Driven over authenticated HTTP rather than the browser (Chrome cannot reach this dev server — see below; a third approach, binding the app to all interfaces and using the LAN address, also failed because the only non-loopback adapter is a virtual switch).
+
+Run: 2-row CSV → preview reported **Total 2 / New 2 / Modified 0 / Errors 0** → Apply → both certificates confirmed created in the DB (`26-9501`, `26-9502`, Draft). A second single-row run (`26-9503`) was used for the leak assertions:
+
+| Assertion | Result |
+|---|---|
+| `Apply` redirects to the tile view | ✅ `302 → /` — and `/` **is** `CertificateTileView` via the default route `{controller=Certificate}/{action=CertificateTileView}/{id?}`, so the reader is on the real landing page (the redirect renders as `/` because URL generation collapses route defaults — it is not a different destination) |
+| Toast script renders on the landing page | ✅ 1 block, message *"Import completed successfully! 1 created, 0 updated."* |
+| Second fetch of `/` | ✅ **0 blocks** — TempData read-once confirmed, no repeat |
+| Import **Index** — where DEF-330's leak surfaced | ✅ **0** stale messages |
+| Import **History** | ✅ **0** stale messages |
+
+That last pair is the QC #193 regression itself, and it is now proven closed rather than argued closed. Combined with the client confirming the toast visually on the save path, **every part of this fix is verified**: server round trip, read-once semantics, no cross-page leak, and visible rendering.
+
+**Test data:** three throwaway certificates remain in the dev DB (`26-9501`/`9502`/`9503`, products *"DEF338 Toast Test Widget A/B/C"*). Cleanup script written but **not run** — `Scripts/data-ops/2026-08-04-def338-import-toast-test-cleanup.sql`. Harmless if left.
+
+**Earlier note, now superseded in part —** The client confirmed the toast rendering on the DEF-339 save path (*"I see the toast now"*), which exercises the identical toast call, ordering guard, CSS and stacking context this entry relies on. What remains unexercised for *this* entry is narrower than it was: only the **import-specific TempData round trip** (apply a real CSV, confirm the toast fires once on the tile view and does not reappear later). The rendering half is no longer in doubt. Original note follows.
 
 **NOT verified in a browser by Anuki — the attempt failed for environment reasons, not code reasons.** The app was started on :5101 and served the page correctly (`curl` → HTTP 200, 18,477 bytes; the request is logged in the app's own output), and it was confirmed listening on both `::1` and `127.0.0.1`. But Chrome could not reach it — every navigation rendered the "site can't be reached" error page, on both `localhost` and `127.0.0.1`, to the point that even a screenshot failed with *"Frame with ID 0 is showing error page"*. Chased to a reasonable limit and abandoned rather than rabbit-holed. **Two things therefore remain unproven and should be checked on the deployed build:** (1) the toast actually appears above the tile grid's stacking context, and (2) the end-to-end TempData round trip — apply a real CSV import and confirm the toast fires once on the tile view and does **not** reappear on any later page.
 
@@ -8727,7 +8796,7 @@ Duration set to **8s** rather than the 5s default (`:147`) because the message c
 
 ### DEF-339 — Saving a certificate gave no confirmation at all (Create "Save" and Edit "Save" both silent)
 
-**Date:** 2026-08-04 | **Status:** **Fixed locally — pending next deploy.** `Controllers/CertificateController.cs` (2 writers) + `Views/Certificate/CertificateInternalView.cshtml` (the reader). | **Severity:** Medium UX — it is the most-used action in the app, and it was the *only* one of the confirmed flows the client actually tried | **QC Ref:** **QC #193** (client, 2026-08-04: *"I don't see the toast notification and we changed it to not redirect?"*) | **Reporter:** Client, via Shawn.
+**Date:** 2026-08-04 | **Status:** **Fixed locally — deployed 2026-08-04.** `Controllers/CertificateController.cs` (2 writers) + `Views/Certificate/CertificateInternalView.cshtml` (the reader). | **Severity:** Medium UX — it is the most-used action in the app, and it was the *only* one of the confirmed flows the client actually tried | **QC Ref:** **QC #193** (client, 2026-08-04: *"I don't see the toast notification and we changed it to not redirect?"*) | **Reporter:** Client, via Shawn.
 
 **The redirect was never changed** — both save paths still `RedirectToAction(CertificateInternalView)` exactly as before. What was missing was the confirmation, and the client reasonably read "no toast where I expected one" as "the redirect changed."
 
@@ -8752,6 +8821,103 @@ The two silent rows are the common paths. DEF-318 had deleted the Edit write (co
 
 ---
 
+### DEF-340 — TOTP setup errors are never shown, and then leak onto a different page (`TempData` written, `ViewBag` read)
+
+**Date:** 2026-08-04 | **Status:** **Fixed + deployed 2026-08-04** (`Controllers/AccountController.cs` — `SetupTotp()` GET) via `GCCWebApp-deploy-20260804-2230.zip`; stakeholder row in `shipped-2026-08.md`. **Deploy confirmed at the artifact level, NOT at the behaviour level** — see *Post-deploy verification* below. | **Severity:** Medium — a security-feature setup flow fails silently, and the swallowed error resurfaces out of context on an unrelated page | **QC Ref:** none — found by the Gate 9 static check (`tempdata-pairing`, destination-proof stage) while running the pre-deploy gates for `GCCWebApp-deploy-20260804-1705.zip`. | **Reporter:** Anuki (internal).
+
+**Symptom (two faults from one mismatch).** All three `EnableTotp` failure paths — `AccountController.cs:1386` (code not 6 digits), `:1417` (code rejected by the authenticator), `:1424` (enable threw) — write `TempData["ErrorMessage"]` and `RedirectToAction("SetupTotp")`. But `Views/Account/SetupTotp.cshtml:18` reads **`ViewBag.ErrorMessage`**, and **ViewBag does not survive a redirect** — it is per-request, TempData is the cross-request carrier. So:
+
+1. **The user sees nothing.** They enter a wrong code, land back on a visually identical setup page with no error, and have no way to tell a rejected code from a page refresh. On a 2FA enrolment screen this is the worst place for a silent failure.
+2. **The message then leaks.** The unread TempData entry is re-saved into the cookie on every subsequent request until something reads it — and the only reader is `Views/Account/TwoFactorPreferences.cshtml:419`. So *"Invalid code. Please check your authenticator app and try again."* eventually surfaces on the preferences page, possibly much later, attached to nothing the user just did. This is DEF-330's leak mechanism exactly.
+
+**Root cause.** A writer/reader *type* mismatch, not a missing reader — which is why it survived earlier sweeps. `SetupTotp.cshtml` genuinely has an error block, so a reader-existence check passes; it is reading the wrong dictionary. The three sibling writes in the same region are all correct (`:1308`, `:1460`, `:1468` write `TempData["ErrorMessage"]` and redirect to `TwoFactorPreferences`, **which does read TempData**), so the flow looked consistent from the controller side. The `ViewBag.ErrorMessage` reads at `:1527/:1551/:1558` are also correct — those are `return View()` with no redirect, where ViewBag is the right carrier. Only the redirect-to-`SetupTotp` trio is wrong.
+
+**Fix.** Hydrate `ViewBag.ErrorMessage` from `TempData["ErrorMessage"]` in the `SetupTotp()` GET, immediately before `return View()`. One change closes both faults: the message renders on the page the user actually landed on, and the **indexer read marks the entry consumed**, so it can no longer ride the cookie forward. The view is untouched, so the `return View()` paths that legitimately set ViewBag directly still work. A comment records why `TempData.Peek()` must not be substituted — Peek leaves the entry in the cookie and restores the leak.
+
+**Why this fix and not "make the view read TempData".** Having the view read TempData would fix the display but create a second reader for a key already read by `TwoFactorPreferences.cshtml`, which is how these keys get tangled in the first place. Hydrating in the action keeps exactly one reader per landing page and leaves the view with a single source (`ViewBag`) rather than two.
+
+**Validation (2026-08-04).** `dotnet build -c Release` — **0 errors**. Found and confirmed statically: `grep` proved `SetupTotp.cshtml` contains no `TempData["ErrorMessage"]` read and `TwoFactorPreferences.cshtml:419` contains the only one. **Not exercised in a browser** — reaching it needs a real authenticator enrolment with a deliberately wrong code, and Chrome cannot reach the dev server from this session. The static evidence is unambiguous about the mismatch; what is unverified is the rendered result.
+
+**Note on the gate that found it.** Gate 9 reported this as a **WARN**, not a FAIL — the check calls the two-hop shape "ambiguous, needs a human read" rather than a proven leak, precisely because a two-hop write can be legitimate (the six `2FARole`/`ReturnUrl`/`RememberMe` warnings in the same run are exactly that, and are correct as written). The WARN was worth reading rather than clearing. That is the argument for the checklist's instruction to *read* the WARNs even though only FAILs block.
+
+**Post-deploy verification (2026-08-04) — what was and was not proven.**
+
+Uploaded and app pool recycled by Shawn. Confirmed live, read-only, via `whats-deployed.js` + a `sqlcmd` SELECT:
+
+- App healthy and serving: test-env gate passes, control route `/Certificate/Create` → `302 /Account/Login` (so the probe is grading the application, not the gate page).
+- `wwwroot` **7 same / 0 differ / 0 unreachable** vs the working tree.
+- `__EFMigrationsHistory` high-water is now **`20260721015555_WidenStatusHistoryCertificateNumber`** — all four formerly-owed migrations applied, at `ProductVersion 8.0.11`. **Which deploy applied them is not established**: `Database:AutoMigrateOnStartup=true` has been on since DEF-252, so the earlier `1705` deploy most likely did it. The DB was not baselined beforehand, so this is state, not attribution.
+
+**DEF-340's own behaviour is NOT verified live, and should not be recorded as if it were.** The route-presence marker cannot see it (the fix adds no route, and `DocumentController` was already gone before this deploy), and reaching the code path requires enrolling a real account in 2FA on the client's environment and submitting a deliberately bad code — a write against a real user record, declined on that basis. What *is* established is artifact-level: the deployed bundle's DLL was hash-chained to source containing the fix before upload.
+
+**Note on reachability.** `Authentication:Enable2FA=false` in `appsettings.Production.json` gates the **login-time** 2FA challenge only (`AccountController.cs:203,680`) — it does **not** gate the enrolment page. `SetupTotp` remains reachable by any logged-in user via two-factor preferences, so this fix is live in a flow a real user can still reach. Do not read `Enable2FA=false` as "the flow is switched off."
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_only_requested_changes]], [[feedback_verify_deployed_asset_not_symptom]].
+
+---
+
 ## Closed / Historical
 
 *(Entries from the pre-existing register to be merged here if recovered.)*
+
+---
+
+### DEF-341 — The post-deploy smoke was blind: it graded the test-env gate page as the application, and reported a false `/uploads/*` security regression
+
+> **Numbered 341, not 340, deliberately.** This was written as DEF-340 and renumbered on discovery that a concurrent work stream had already taken 340 for the TOTP `TempData`/`ViewBag` fix above — that one is cited in `Controllers/AccountController.cs:1303`, so it owns the number and this entry moved. The register already carries nine duplicate DEF headings awaiting a renumber pass; this is not a tenth.
+
+**Date:** 2026-08-04 | **Status:** **Fixed locally — pending next deploy.** `Scripts/smoke-prod/smoke.js` (gate detection + cookie-gate auth + two corrected assertions). | **Severity:** High — not a product defect, but the check we rely on after **every** upload had been structurally unable to see the deployed site, and it was emitting a false security alarm. Found by our own verification, not reported by a tester.
+
+**Symptom.** Run against `gccwebapp.com` after the `20260804-1705` deploy, `smoke.js` reported **16/25, nine failures** — including `main.css` "missing its DEF-195 fix, size=2519B", `certificatetileview.css` "size=2534B", `CertificateTileView cards=0`, `Last-Modified header missing`, and **`DEF-208 — /uploads/certificates/* anon → not served: FAIL, status=200`**.
+
+**Root cause.** `TestEnvironmentGate.Mode` is `"Cookie"`, not Basic Auth — Basic in front of the app's own cookie login broke that login. Every path now 302s to `/__gate`, which renders a form and sets a data-protected `GCC.TestGate` cookie; the POST also requires a CSRF `formToken` minted with the form (password alone returns **400 "Your session expired"**, not 401). `smoke.js` still sent `httpCredentials` and **followed redirects**, so every request landed on the ~2,519-byte gate page with HTTP 200 and the assertions graded *that*. Two "different" CSS files reported as 2519 B and 2534 B were the same HTML page twice.
+
+**The dangerous part was the false positive, not the false negatives.** The DEF-208 guard exists to catch a re-enabled broad `UseStaticFiles` leaking raw upload paths. It reported the leak as **present**. Verified through the gate, the deployed answer is **404** — the 200 was the gate redirect. A guard that cries "your certificate PDFs are publicly served" when they are not is worse than no guard: it is the alarm you learn to ignore, and the next time it fires for real nobody will look.
+
+**Fix.**
+1. **Detect the gate rather than assume it** — `detectGateMode()` probes `/` anonymously with `maxRedirects: 0` and classifies `basic` / `cookie` / `open` / `unknown`. The section-1 assertion became mode-aware ("site is gated against anonymous browsing"); it previously hard-asserted a Basic 401 and so failed permanently, and silently, from the moment the mode changed. An un-gated `200` is now the finding, which is what actually matters for a public test env.
+2. **Actually pass the gate** — `passGate()` GETs the form, lifts `formToken`, POSTs it with the password, and shares the resulting storage state with every API and browser context. If it cannot get through, the run **aborts with exit 2** instead of reporting on gate pages. Reporting confidently on a placeholder is the failure this entry documents; a smoke that cannot see the site must say so, not produce a score.
+3. **DEF-208 now probes twice, neither following redirects** — anonymous *and* through the gate. The anonymous probe alone cannot prove the fix: in cookie mode every path 302s, so a genuinely leaking uploads directory would look identically "blocked". The gated probe is the one that reaches the app's own routing.
+4. **CSS freshness replaced with a byte-comparison against the repo copy.** The old check required `Last-Modified` within 14 days, but the server serves each file with its **source** mtime, not the deploy time — `main.css` last changed in June, local mtime `2026-07-08 16:07`, and the server reports exactly that instant (`22:07:54 GMT`). A correctly-deployed, long-stable file therefore always failed, while a stale file would start passing the moment someone touched it locally. The original comment conceded the flaw and suggested widening the window; no window fixes it, because the signal was wrong. Comparing deployed bytes to the repo copy answers "did the deploy carry this file?" directly.
+
+**Verified against the deployed site: 30/30 PASS, 0 fail** (was 16/25). The two byte-comparisons passing is also independent proof the `1705` deploy carried both stylesheets — a stronger statement than the freshness check ever made.
+
+**Related:** [[feedback_verify_deployed_asset_not_symptom]] (DEF-319, same family — "can't reproduce" ≠ fix is live) and DEF-208 (the guard that misfired). The stale project memory describing the gate as Basic Auth has been corrected.
+
+---
+
+### DEF-341 — The CR-031 expired-certificate alert renders a different dialog than every other popup in the app
+
+**Date:** 2026-08-05 | **Status:** **Fixed locally — not yet deployed.** `wwwroot/js/certificate-create.js` (`ModalSystem.showConfirmation`). | **Severity:** Low — cosmetic/consistency, no functional impact | **QC Ref:** none — reported directly by Shawn (2026-08-05: *"The alert for expired status popup doesn't match the design of the other popups"*). | **Reporter:** Client, via Shawn.
+
+**Not a CR-031 defect.** The trigger, the copy and the gating logic added under CR-031 are all correct and untouched. What was wrong is the *renderer* it calls — and that renderer predates CR-031 by a long way, so this affected **every** confirmation on the cert Create/Edit pages, not just the expired alert. The expired alert is simply the first one a client looked at closely.
+
+**Root cause — a second, page-local modal implementation.** The app has one standard confirmation dialog: `AdminCore.showConfirmation` → `.gcc-modal-*` markup, styled in `wwwroot/css/admin/admin-modals.css` ("GCC MODAL DESIGN - Matches Mockup Styling"). `certificate-create.js` carries its own private `ModalSystem` that emitted a parallel `.custom-modal-*` structure styled in `certificate-create.css:948`. Two implementations of the same component drift, and they had:
+
+| | `.custom-modal-*` (was) | `.gcc-modal-*` (standard) |
+|---|---|---|
+| Overlay | `rgba(0,0,0,0.5)`, no blur | `rgba(0,0,0,0.85)` + `blur(3px)` |
+| Content | left-aligned | centred |
+| Title | 20px, no font-family | 22px, Century Gothic |
+| Message | 16px, no font-family | 16px, Century Gothic |
+| Buttons | right-aligned, `10px 24px`, radius 6px, min-width 100px | centred, `12px 30px`, radius 4px, min-width 120px |
+| Button hover | colour swap only | lift + shadow |
+| Focus ring | none | `2px solid #002B76`, offset 2px |
+| Semantics | none | `role="alertdialog"`, `aria-modal`, `aria-labelledby/-describedby` |
+| ≤480px | unchanged | buttons stack full-width |
+
+Both stylesheets already load globally from `_Layout.cshtml` (`admin-modals.css:53`, `admin-core.js:343`), so nothing had to be added — the page was simply not using what was already there.
+
+**Fix.** `ModalSystem.showConfirmation` now emits the standard `.gcc-modal-*` structure, including the `.show` class the overlay's fade transition depends on and the alertdialog semantics. Red **Confirm** left / green **Cancel** right — the established GCC order — is preserved.
+
+It remains a local function rather than delegating to `AdminCore.showConfirmation`, for one specific reason: AdminCore runs `escapeHtml(config.title)` unconditionally, so CR-031's `title: null` (which deliberately suppresses the heading, because the client's copy already opens with "ALERT:") would render the literal string `null`. The local copy keeps that null-means-no-heading contract.
+
+**Two smaller things corrected in the same function, both pre-existing:**
+1. `cancelText` was accepted by callers but ignored — the label was hard-coded `'Cancel'`. The unsaved-changes dialog (`certificate-create.js:657`) passes `cancelText: 'Stay'` and had been silently showing "Cancel" instead.
+2. Title/message/button labels are now HTML-escaped, matching what AdminCore already did. All current callers pass static developer-authored strings, so this changes no visible output today.
+
+**Blast radius.** Four callers, all on cert Create/Edit, all now consistent with the rest of the app: the CR-031 expired-edit alert (`Views/Certificate/Edit.cshtml:1000`), Delete Certificate (`:1043`), Remove Certificate PDF (`:1087`), and unsaved-changes navigation (`certificate-create.js:653`). Nothing outside this file referenced the old `#customConfirmModal` / `#modalConfirmBtn` / `#modalCancelBtn` ids or the `.custom-modal-*` classes — grepped repo-wide before the change, so no test or view breaks. The now-orphaned `.custom-modal-overlay` / `.custom-modal-dialog` rules were **left in `certificate-create.css`**; the sibling generic names in that block (`.modal-btn`, `.modal-title`, `.modal-message`) are used by other markup, so removing the block is a separate, deliberate cleanup — not something to fold into a cosmetic fix.
+
+**Validation (2026-08-05).** `node --check wwwroot/js/certificate-create.js` → clean. JS/CSS only, no C# touched, no build or migration required. **Visual confirmation still outstanding** — Chrome automation cannot reach the dev server from this session, so the rendered dialog needs a human look on :5101: open a certificate whose *stored* status is Expired, edit any field, click Save.
+
+**Lesson.** A component with two implementations has one that is quietly wrong. The tell here was a caller passing `type: 'warning'` into a function that has no `type` parameter at all — copied from the AdminCore signature, into a renderer that never implemented it.

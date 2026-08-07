@@ -8429,3 +8429,580 @@ security suite. Recorded a "do not" in the entry: never relax the DEF-326 guards
 **Also fixed while there:** `TRACKING-DASHBOARD.md` listed `issue-register.md` as "consolidated away",
 which was stale — it was revived 2026-07-13 with ISS-001. A TODO filed in a register the index denies
 exists is a TODO nobody finds.
+
+---
+
+## 2026-08-04 — DEF-338 import toast VERIFIED end to end with a real CSV
+
+Shawn asked for the import path to be tested with a real CSV via Claude Chrome. **Chrome still could not
+reach the dev server** — I tried a third approach this time (rebinding the app to `0.0.0.0` and using the
+LAN address) and it failed too, because the only non-loopback adapter on this box is a virtual switch.
+Reverted the binding back to localhost-only afterwards. So I drove the **real import over authenticated
+HTTP** instead: same controller, same TempData, same rendered view — everything except the pixels, which
+Shawn had already confirmed on the save toast.
+
+**Every assertion passed.** 2-row CSV → preview *Total 2 / New 2 / Modified 0 / Errors 0* → Apply → both
+certs created in `GCCDatabase_Dev`. Then a single-row run for the leak checks:
+
+| Assertion | Result |
+|---|---|
+| Apply redirects to tile view | ✅ `302 → /` (and `/` **is** CertificateTileView via the default route — collapsed defaults, not a different page) |
+| Toast renders on landing page | ✅ *"Import completed successfully! 1 created, 0 updated."* |
+| Second fetch of `/` | ✅ 0 — read-once holds |
+| Import Index (DEF-330's leak site) | ✅ 0 stale |
+| Import History | ✅ 0 stale |
+
+The last two are the QC #193 regression itself. **Proven closed, not argued closed.**
+
+**Two process notes worth keeping.** (1) Getting the CSV to validate took three tries — bad Product
+Category, and the login field is `Email` not `Username`. Both were my assumptions, both cost a round trip;
+querying the DB for real values first would have been faster than guessing. (2) The dev server died twice
+mid-run even when detached — worth a health check before a multi-step HTTP flow, not just at the start.
+
+**Test data left in place:** `26-9501`/`9502`/`9503` + products "DEF338 Toast Test Widget A/B/C". Cleanup
+script written but deliberately NOT run, per the standing habit of not issuing DELETEs unprompted:
+`Scripts/data-ops/2026-08-04-def338-import-toast-test-cleanup.sql`.
+
+---
+
+## 2026-08-04 — Deploy bundle `GCCWebApp-deploy-20260804-1705.zip` built + content-verified
+
+**Request:** *"lets build and zip for deployment."*
+
+Built via the canonical `Scripts/deploy.ps1 -SkipUploadsBackupPrompt -FromMigration
+20260605131035_ChangeUserCompanyToFreeText` (Release, PleskTestEnvironment). 60.5 MB, 338 entries,
+`GCCWebApp.dll` 6.36 MB. Release build clean — **0 errors**, 61 warnings, all pre-existing.
+
+**What's in it that the 08-03 bundle didn't have:** the DEF-337 delete-audit coverage batch (13
+unaudited delete paths, `LogEntityDeleteWithChildrenAsync` + join-row capture + the
+`Audit:SystemUserEmail` service-account config), the DocumentController removal, DEF-338 (CSV-import
+confirmation) and DEF-339 (save confirmation on both silent save paths).
+
+**Two things worth keeping from the verification.**
+
+*(1) The concurrency warning in Gate 5 fired for real.* The zip was built at 17:05 from a tree with
+DEF-339 still uncommitted. At 18:35 another terminal committed `7da8bd1` — which turned out to be
+exactly that tree. I checked rather than assumed: diffed the commit's stat against what was built,
+confirmed **no app-code delta**, so the bundle is current with `HEAD`. Had that commit carried
+anything extra, the zip would have been stale within ninety minutes of being built. Reading git once,
+at build time, would have been wrong here for the third bundle running.
+
+*(2) DEF-339 was verified on both halves on purpose.* The fix is two `TempData` writers plus one
+reader in the view. Asserting only the controller-side literals would look identical for a bundle that
+shipped the writers without the view — which is the DEF-318/DEF-330 orphan-key bug re-created, not a
+healthy build. So `saveSuccessMsgShown:` (the view's nonce guard) was asserted alongside the two
+messages. All present. Control strings were asserted first, at both UTF-16 alignments, so a negative
+result would have meant something.
+
+**Where this bundle is weaker than the last one, and it should be said plainly:** the deterministic
+backbone was **not** run — Gates 3, 4, 8 and 9 are all owed. That gap matters more than usual, because
+DEF-337 rewrote thirteen delete paths and touched `Api/v1/*`; Gate 8 is the only mechanical proof a
+Delete still deletes, and Gate 4 is the only proof the Amazon contract didn't move. Content
+verification proves the bundle *carries* the changes; it says nothing about whether they *work*. Run
+`node Scripts/smoke-prod/deploy-gate.js` and `_static/run-all.js` against localhost:5101 before
+uploading.
+
+**Owed at upload regardless:** Gate 0 (zip the server's `wwwroot/uploads/` first) and Gate 7 (run
+`migrations/apply-migrations.sql` with `sqlcmd -I` **before** recycling the app pool — four migrations
+are still owed on prod).
+
+---
+
+## 2026-08-04 — Full regression run (localhost:5101) — the owed deterministic backbone, now run
+
+The previous entry closed by saying the bundle's weak spot was that the deterministic gates were
+never run: *"Gates 3, 4, 8 and 9 are all owed... Run `node Scripts/smoke-prod/deploy-gate.js` and
+`_static/run-all.js` against localhost:5101 before uploading."* That is what this run is. All four
+tiers were executed against the local dev server on the `ci-regression` tree.
+
+| Tier | Suite | Result |
+|---|---|---|
+| Security (P0) | `_security/run-all.js` — isolation / RBAC / IDOR / detail-scoping | **57P / 0F / 0W** GREEN |
+| CRUD write-path | `_crud/run-all.js` — tag, company, product, user, cert round-trips | **39P / 0F / 0W** GREEN |
+| Amazon contract | `amazon-contract-diff.js` vs frozen April baselines | **7P / 0F** — CONTRACT UNCHANGED |
+| Static | `_static/run-all.js` — TempData pairing, routes, orphan views, register | **22P / 0F / 12W** GREEN-with-warnings |
+| Views (Tier 1+2) | `_views/run-all.js`, `SMOKE_BATCH_RESTART=1` | **810P / 0F / 0W** GREEN |
+| Unit (.NET) | `GCCWebApp.Tests` (blocking gate) | **24 / 24 PASS** |
+| Integration (.NET) | `GCCWebApp.Api.Tests` (non-blocking) | **656 / 733** — 77 FAIL |
+
+**Everything that gates a deploy is green.** Gate 8's question — *does a Delete still delete after
+DEF-337 rewrote thirteen delete paths* — is now answered mechanically rather than by inspection: all
+five CRUD round-trips assert delete-then-verify-gone (hard delete for tag/product/cert, `IsDeleted=1`
+for company/user) plus a net-zero row-count invariant on each entity. Gate 4's question — *did the
+Amazon contract move* — is answered by the diff printing CONTRACT UNCHANGED against all three frozen
+baselines. Those were the two the last entry called out by name.
+
+**The one number that is not green, and what it is not.** `Api.Tests` fails 77 of 733. The CI
+workflow already carries this step as `continue-on-error: true` with the note that it had **61
+pre-existing failures out of 702 (641 pass) as of 2026-07-08**. Today: 656 pass out of 733. Passing
+tests went *up* by 15 and the suite grew by 31, so the failure delta tracks suite growth rather than
+new breakage — but that is an inference from counts, not a proof, and nobody should record it as one
+until someone diffs the failing-test *names* against the July baseline.
+
+What the failures actually look like matters more than the count. Grouped by message, they are
+dominated by empty result sets (`Expected data.GetArrayLength() to be greater than 0, but found 0`,
+`Expected certNumbers {empty} to contain "25-0001"`, `result.Certificates ... found 0: {empty}`) and
+by `401 Unauthorized` on partner endpoints. That is the signature of **fixtures that never seeded**,
+not of scoping logic that broke. The same behaviour, exercised for real, is green in this very run:
+`PartnerApiScopingTests` fails 30-odd assertions in-memory while `_security/partner-isolation.js` and
+`cr171` isolation pass against a live app and a live database, and the GS1 shape the in-memory tests
+call empty is byte-identical to the April baseline under `amazon-contract-diff`. Two harnesses
+disagreeing, with the live one green, points at the harness. **This is a test-infrastructure defect,
+not a product defect** — and it should not be filed as a DEF against product behaviour on the strength
+of these counts.
+
+That distinction is worth holding onto because it cuts the other way too: an InMemory suite that
+returns empty for everything cannot *detect* a scoping regression either. It is not a safety net right
+now; it is 77 assertions that would fail identically whether the code were correct or catastrophically
+broken. Until the fixtures are fixed, the partner-isolation signal comes from `_security/` and the
+contract diff — which is exactly the arrangement the regression strategy §8 item 2 was written to
+replace, and the reason that item is still open.
+
+**Carried forward from the static gate, unresolved and not new:** the unshipped-fixes check reports
+**54 fixed defects that are not yet in the client's hands** (53 CLEAN + DEF-170 UNVERIFIABLE), and
+separately 96 register Status lines that still read "pending deploy" for defects already appearing in
+a shipped log. The second group is stale text. The first is a real delivery backlog and is the single
+largest item this run surfaced that is not a test result. The remaining 12 static warnings are the
+known ones: 9 two-hop `TempData` writes in `AccountController`'s 2FA flows and 2 orphan views
+(`Views/Shared/_ReviewInstructions.cshtml`, `Views/Company/Create.cshtml`).
+
+**Still owed at upload, unchanged by this run:** Gate 0 (zip the server's `wwwroot/uploads/` before
+publishing) and Gate 7 (`migrations/apply-migrations.sql` with `sqlcmd -I` **before** recycling the
+app pool — four migrations still owed on prod). Neither is testable from localhost; both are
+deploy-time actions.
+
+---
+
+## 2026-08-04 — Gate 11: post-deploy close-out built, and run against the 1705 deploy
+
+The full regression run above surfaced **54 fixed defects "NOT yet in the client's hands"** — every one
+of them `CLEAN`, meaning committed and identical to HEAD. Shawn's reaction was the right one: *"I'm
+confused, we just did a deployment."*
+
+**The deployment was fine. The process had no way to record it.** `pre-deploy-agent-checklist.md`
+ran Gates 0–10 and every one of them fires *before* the upload. Nothing fired after. So "Pending
+deploy" was a state the process could enter and never leave: every row in `shipped-2026-07.md` — all
+~50 — still read "Pending deploy" months after shipping, and `shipped-2026-08.md` contained no
+shipped rows at all. Check 4 reads the register's `**Status:**` text and the ids in `shipped-*.md`;
+it never touches the server. Nothing had gone wrong at deploy time. The cost landed on the client
+instead: the shipped log is used as delivery receipts, and it was **understating** delivery by fifty
+items.
+
+**Built:** `Scripts/deploy/close-out.js` + **Gate 11** in the checklist — the first step in that
+document that runs after the upload. Dry-run by default; `--apply` writes.
+
+**Two traps, both found by the tool's own dry runs rather than by reasoning about it in advance.**
+
+*(1) Flipping the visible words is not enough.* A row carries **two** pending signals —
+`**Pending deploy 2026-07-31**` and `**NOT yet in a built zip — folds into the next rebuild**`.
+Rewrite only the first and the row still matches check 4's `ROW_NOT_SHIPPED_RE`, so the roll-up never
+moves and the close-out reports success having changed nothing — a silent no-op wearing a green
+result. The script therefore does not trust its own edit: every rewrite is re-tested against the
+regexes **imported from** `_static/unshipped-fixes.js` (not re-implemented — two private copies of
+that definition drifting apart is how the register reached this state) and refused if it would still
+read as pending.
+
+*(2) The first `--all-pending` dry run tried to corrupt the history it was meant to repair.* It
+proposed rewriting `**Pending deploy 2026-06-05** (GCCWebApp-deploy-20260605-1641.zip)` to
+**"Deployed 2026-08-04"** — a June row, naming its own June zip, restamped two months later. That is
+worse than the staleness it replaces: "pending" is visibly unfinished, whereas a confident wrong date
+reads as fact and nobody re-checks it. Close-out and backfill are now different operations. `--date`
+stamps one date, correct only for the bundle just uploaded; any row whose own date is more than 21
+days older is **refused**, and history is backfilled with `--keep-row-date` from each row's own
+evidence.
+
+Consistency is enforced across the two documents: an id whose shipped-log row is refused is left
+pending in the register too, rather than being marked delivered in one place and not the other. And
+register lines stamped with no corroborating row are listed explicitly — those dates rest on the
+operator's assertion and nothing else, which should be visible rather than buried in a total.
+
+**Verified before it was pointed at anything real.** A tool that rewrites the client-facing record
+should not have "we only ever dry-ran it" as its test evidence, so `CLOSEOUT_TRACKING_DIR` allows
+`--apply` against a throwaway copy of the docs. Against that copy: applied cleanly, **54 → 21**,
+a second run rewrote **0** (idempotent), CRLF preserved on both CRLF files, bold markup balanced, and
+`--keep-row-date` correctly preserved each June row's own date.
+
+**Then run for real** on Shawn's confirmation that `GCCWebApp-deploy-20260804-1705.zip` went up on
+2026-08-04: 16 shipped-log rows and 33 register Status lines rewritten, 42 refused by the staleness
+guard. Independently re-verified with Gate 9 rather than trusting the script's own roll-up:
+**`54 genuinely undeployed → 21`**.
+
+**What is left, and why it was not guessed at.** The remaining 21 are all June-or-earlier
+(DEF-106/160/179/256/258/265/269/274/275/276/278/279/280/282/283/284/285/287/294/299). Their code is
+`CLEAN`, so it was physically in the 1705 publish and is certainly in the client's hands now — but
+whether their *first* delivery was one of the June zips (`20260605-1641`, `20260608-1543`,
+`20260609-1146`, `20260616-1124`, `20260618-1027`, `20260622-1431`) or 2026-08-04 is a fact the
+documents cannot answer, because the flag was never flipped. That is precisely the question the
+guard exists to stop a script from answering on its own. Awaiting Shawn's June upload history.
+
+**Not done on purpose:** the 96 "stale text" register lines were left alone. `--include-stale` would
+stamp them 2026-08-04, but their ids already appear in shipped logs from earlier months — the flag is
+stale, the delivery is not. Clearing them needs each entry's real ship date, not today's.
+
+**Addendum, same day — backfill closed.** Shawn confirmed the June bundles *were* uploaded in June,
+so the remaining 21 were backfilled with `--keep-row-date`, each row keeping its own stated date
+rather than taking today's: **21 → 4**. One of the four was a format variant the tool had skipped —
+`**Pending deploy 2026-06-22 — NEXT batch**`, an annotated bold span that the exact
+`Pending deploy YYYY-MM-DD` pattern silently passed over as "no pending clause matched". Loosened to
+read the date from anywhere inside that span (still *only* that span — dates elsewhere in a row are
+fix dates, zip timestamps and client-report dates, none of which are deploy dates): **4 → 3**.
+
+**The final three are left pending deliberately.** DEF-106, DEF-160 and DEF-179 are not table rows at
+all — they are `## DEF-XXX — title (…, 2026-05-07, fix in working tree pending deploy)` headings in
+the April/May logs, and the only date they carry is the **fix** date. Teaching the script to lift
+that date and call it a deploy date would manufacture exactly the false precision the staleness guard
+exists to prevent, and building a heading parser for three legacy-format entries is poor value
+besides. They need one human decision about a date, then a hand edit.
+
+**Net: the 54 that opened this thread now stand at 3**, and Gate 9 stays GREEN (22P / 0F / 12W —
+the 12 warnings unchanged and unrelated).
+
+---
+
+## 2026-08-04 — "are we good?" — verifying the DEPLOYED site, and a blind post-deploy smoke
+
+Everything above was run against **localhost**. That proves the code is healthy; it says nothing
+about what the client can see. So the deployed test env was checked directly.
+
+**`smoke.js` reported 16/25 — nine failures — and every one of them was an artifact.** The site now
+302s every path to `/__gate`, and the smoke follows redirects, so it was grading a **2,519-byte gate
+page** as though it were the application. That explains the whole failure list at a glance: `main.css`
+"missing its DEF-195 fix, size=2519B", `certificatetileview.css` "size=2534B", tiles "cards=0",
+`Last-Modified` "header missing". Two identically-tiny CSS files are not a CSS bug; they are the same
+HTML page served twice.
+
+**The worst of it was a false security regression.** The smoke reported
+*"DEF-208 — `/uploads/certificates/*` anon → not served"* as **FAIL, status=200**. Checked through
+the gate, the deployed answer is **404**. The 200 was the gate redirect being followed. A post-deploy
+smoke that cries "your raw upload paths are publicly served" when they are not is worse than no smoke
+— that is the alarm you eventually learn to ignore.
+
+**Root cause: the gate changed and the smoke did not.** `TestEnvironmentGate.Mode` is now `"Cookie"`,
+not Basic Auth (Basic Auth in front of the app's own cookie login broke that login). Every request
+redirects to `/__gate`, which renders a form and sets a data-protected `GCC.TestGate` cookie, and the
+POST requires a **`formToken`** CSRF field minted with the form — password alone returns 400, not 401.
+`smoke.js` still asserts a Basic Auth challenge on line one. **Every post-deploy smoke run since that
+switch has been noise**, which is its own finding: the check we rely on after each upload has been
+structurally unable to see the site. Needs a DEF and a fix (pass the gate, then assert).
+
+**Through the gate, the 1705 deploy is healthy** — verified rather than assumed:
+
+| Check | Result |
+|---|---|
+| `/` | 200, 18,857 B (real page, not the 2,519 B gate) |
+| `/css/main.css` | 200, **135,227 B** — real stylesheet |
+| `/Certificate/CertificateTileView` | 200 |
+| `/api/certificate-tiles` | 200, `success: true`, real rows (`29-0001`, real company) |
+| `/uploads/certificates/`, `/uploads/images/` | **404** — DEF-208 holding |
+
+**Also confirmed, after briefly suspecting otherwise:** DEF-336 is legitimately in the bundle. Its
+shipped-log row read "NOT yet in a built zip", which made the close-out look like it had written a
+false receipt — but the fix (`GetByIdsAsync`) landed in `b727c10` at **16:27** and the zip was built
+at **17:05**. The row was simply written earlier that day and was stale by build time. The stamp is
+correct.
+
+**Still genuinely open — deploy-time, not code:**
+1. **Gate 7 — four migrations owed on prod.** The bundle carries `migrations/apply-migrations.sql`
+   (303 lines, 24 `IF NOT EXISTS` guards). Prod **never auto-migrates**. Whether it was run with
+   `sqlcmd -I` before the app-pool recycle is unknown here and only Shawn can say. The site serving
+   traffic does not settle it — a missing column surfaces on the one screen that touches it, e.g.
+   DEF-314's widened status-history cert number.
+2. **Gate 0 — uploads backup was skipped** (`-SkipUploadsBackupPrompt`). Given the 2026-06-15 incident
+   where all 15 prod cert PDFs vanished, `prod-missing-pdf-sweep.js` is worth a run.
+
+**Smoke fixed — 16/25 → 30/30 (DEF-341).** `smoke.js` now probes how the site is gated instead of
+assuming Basic Auth, passes the cookie gate for real (GET the form, lift the CSRF `formToken`, POST
+it, share the storage state with every API and browser context), and **aborts with exit 2 if it
+cannot get through** rather than scoring gate pages. Two assertions were wrong independently of the
+gate and were rewritten:
+
+- **DEF-208 now probes twice, neither following redirects** — anonymous *and* through the gate. The
+  anonymous probe alone cannot prove anything in cookie mode, where every path 302s: a genuinely
+  leaking uploads directory would look identically "blocked".
+- **CSS freshness replaced with a byte-comparison against the repo copy.** The 14-day
+  `Last-Modified` window could never work — the server serves each file with its *source* mtime, not
+  the deploy time (`main.css` local mtime `2026-07-08 16:07`, server `22:07:54 GMT`, the same
+  instant), so a correctly-deployed file nobody had edited failed forever while a stale file would
+  pass the moment someone touched it locally. Comparing bytes answers the real question, and both
+  files matching is independent proof the 1705 deploy carried them.
+
+Gate 7 (four migrations owed on prod) and Gate 0 (uploads backup) remain open — neither is testable
+from here.
+
+---
+
+## 2026-08-04 (later) — Gates run, DEF-340 found and fixed, bundle rebuilt as `20260804-2230.zip`
+
+**Request:** *"run the gates and delete the old zips"*, then *"log it as a DEF and fix it."*
+
+**Gates — all four GREEN, 0 FAIL anywhere.** Security 57P/0F (52s) · CRUD 39P/0F (66s) · Amazon contract
+`CONTRACT UNCHANGED` 7/0 (33s) · Static 22P/0F. Roll-up `=> GREEN — safe to deploy`. The CRUD gate was
+the one that mattered: DEF-337 rewrote thirteen delete paths, and it is the only mechanical proof a
+Delete still deletes. Both net-zero invariants held.
+
+**Zips:** nine total deleted (eight superseded ones up front, then the 17:05 bundle once it went stale —
+see below). Exactly one artifact remains, which is the point.
+
+### The WARN that was worth reading — DEF-340
+
+Gate 9 reported twelve warnings and zero failures. Three of them said `AccountController` writes
+`TempData["ErrorMessage"]` and redirects to `SetupTotp`, whose view doesn't read that key. The gate
+deliberately calls this shape "ambiguous, needs a human read" rather than a failure — and it is right to,
+because six *other* warnings in the same run are the same shape and are correct as written.
+
+Reading it turned up a real defect. `SetupTotp.cshtml:18` reads **`ViewBag.ErrorMessage`**; the controller
+writes **`TempData["ErrorMessage"]`**. ViewBag doesn't survive a redirect. So a user entering a wrong code
+during 2FA enrolment sees *nothing* — no error, just the same page — and the unread TempData entry then
+rides the cookie until it surfaces on the preferences page later, attached to nothing they did. Silent
+failure plus a delayed leak, from one type mismatch, in a security-feature setup flow.
+
+Fixed by hydrating ViewBag from TempData in the `SetupTotp()` GET: one change, both halves — it displays,
+and the indexer read consumes the entry so it can't leak forward. Gate 9 re-run confirmed it: check-1
+WARNs 9 → 6, key now `"ErrorMessage" paired (6 write / 2 read)`.
+
+### Two process lessons, both worth keeping
+
+**(1) A fix found by the gates makes the bundle you just gated obsolete.** The 17:05 zip was built, *then*
+gated, and the gate produced a code change — so the artifact was stale the moment the fix landed. The
+static gate said so outright: `DEF-340(MODIFIED)` in the check-4 roll-up, meaning the fix exists only in
+the working tree. That is precisely the failure this check was added for, firing on our own workflow
+rather than on history. Rebuilt as `20260804-2230.zip`; deleted the 17:05 one so it can't be uploaded.
+
+**(2) I initially "verified" DEF-340 with evidence that proved nothing, and caught it.** The standard
+method here is to grep the DLL for a new string literal. I asserted the two TOTP error messages and got
+PASS — but those strings are the *writers*, which were never broken, and they were already in the old
+DLL. Both DLLs are even the same size. A fix that only moves or consumes an existing value **introduces
+no literal**, so the literal-grep is structurally blind to it and returns a confident PASS on the wrong
+evidence. Replaced it with a hash chain: publish-output DLL `sha256` == in-zip DLL `sha256`, source
+carries the fix, and the gate re-run observes the behaviour change. Written into the checklist as a
+general rule, because the next such fix will look exactly the same.
+
+**Still owed at upload:** Gate 0 (back up server `wwwroot/uploads/`) and Gate 7 (run
+`apply-migrations.sql` with `sqlcmd -I` **before** the app-pool recycle — four migrations owed on prod).
+Gates 1, 2 and 6 remain REASONED, not run; Gate 6 is the weakest link since `CertificateRepository.cs`
+changed. DEF-340 itself is unexercised in a browser — it needs a real authenticator enrolment with a
+deliberately wrong code.
+
+**Gate 7 resolved by checking, not remembering (2026-08-05).** Shawn didn't know whether the four
+owed migrations had been run. The database records the answer, so it was queried read-only rather
+than left open. Prod `__EFMigrationsHistory` high-water is now
+**`20260721015555_WidenStatusHistoryCertificateNumber`**, and its applied list matches the repo's
+`Migrations/` tail exactly — all four are in. **Confirmed at the schema level, not just by history
+rows**, because a history row proves a script *ran*, not that it *worked*:
+`CertificateStatusHistory.CertificateNumber` = `nvarchar(50)` (DEF-314's widening),
+8 `Normalized*` columns (CR-187), `CertificateProductIdPartners` present,
+`CertificateProductIds.ProductName` = `nvarchar(1000)`. **Gate 7 is satisfied; nothing owed.**
+
+One probe misfired on the way and is worth recording, because it is the same mistake the smoke was
+just fixed for: `SELECT ... WHERE name='ProductIdPartners'` returned **0** and looked like a missing
+table, when the migration `AddProductIdPartnersM2M` actually creates **`CertificateProductIdPartners`**.
+The name was checked against the migration source before raising it. Guessing an object name and
+reporting its absence as a finding is exactly the false alarm that makes a check untrustworthy.
+
+**Still genuinely open: Gate 0** — the uploads backup was skipped at build (`-SkipUploadsBackupPrompt`).
+Given the 2026-06-15 incident that wiped all 15 prod cert PDFs, a `prod-missing-pdf-sweep.js` run is
+still worth doing; note it will need the same cookie-gate handling that DEF-341 added to `smoke.js`.
+
+**Concurrency, again:** `Controllers/AccountController.cs` and `pre-deploy-agent-checklist.md` were
+both modified by another terminal mid-session, and that stream had already claimed **DEF-340** (TOTP
+`TempData`/`ViewBag`) — cited in `AccountController.cs:1303`. The smoke fix was renumbered to
+**DEF-341** rather than becoming a tenth duplicate heading in the register.
+
+---
+
+## 2026-08-05 — PDF sweep on prod: 11 of 23 stored PDFs are missing, and 3 of them are NEW
+
+Gate 0's residual risk was the last open item. `prod-missing-pdf-sweep.js` had the same cookie-gate
+blindness as `smoke.js` — `httpCredentials` only, so `page.goto('/Account/Login')` landed on the gate
+page, `#Email` never appeared and the sweep could not run at all. Rather than paste the gate logic a
+second time, it was extracted to **`Scripts/smoke-prod/_lib/test-env-gate.js`** and both scripts now
+share one definition. A private copy per script would drift from the middleware exactly the way the
+original Basic-Auth assumption did — that is the whole lesson of DEF-341.
+
+**Result: 226 certs, 23 with a stored PDF path, 12 present, 11 returning 404.**
+
+Diffed against the 2026-06-16 incident record, and the diff is the finding:
+
+1. **All 8 files still missing after June's partial restore are still missing today.** The two backup
+   windows that entry called for were never restored. Chris's `26-0173` — the download that started
+   the whole incident — is still gone, seven weeks later.
+2. **Three certificates that were never part of the June incident are now missing too:** `23-0753`,
+   `26-0169`, `26-0177`. None appear in the June 15 affected list, and all three were last touched
+   *after* the June 16 recovery (06-27, 06-30, 07-01). **So this is not a static backlog. Files have
+   been lost since**, or uploads are failing silently and leaving a DB path pointing at nothing.
+
+**What this is not:** it is not the 2026-08-04 deploy. That bundle was content-verified to carry
+**0** `wwwroot/uploads/` and `App_Data/uploads/` entries, so the publish had nothing to overwrite
+with. The 07-13 and 07-20 deploys are the unexamined candidates. And `UpdatedAt` cannot settle it
+either way — it records a row edit, not a file upload, so a cert edited on 07-30 tells us nothing
+about when its PDF vanished. Establishing *which* event lost them needs server-side evidence
+(uploads-directory listing + Plesk publish history), not more database queries.
+
+**Client-visible impact, stated plainly:** eleven certificates currently show a download that 404s.
+Consistent with [[feedback_data_issue_vs_defect]] this stays data-ops/incident recovery rather than a
+new DEF — the code correctly 404s a file that is not there. But the June incident should stop being
+described as "recovery pending" and start being treated as an open, *active* data-loss problem.
+
+---
+
+## 2026-08-04 (later still) — "I have no idea what was deployed" → measured it instead of guessing
+
+Shawn: *"I have no idea what was deployed, the client validated the last build."* Fair — and the
+registers were asserting **"deployed 2026-08-04"** on four defects with nothing behind the claim. That
+is the kind of statement that quietly becomes load-bearing: the next person reads it as fact, and the
+shipped log built on top of it goes to the client as a receipt.
+
+So I built a read-only probe — `Scripts/smoke-prod/whats-deployed.js` — and asked the server.
+
+**Answer: the live build is the `20260804-1705` tree.** Both signals agree.
+
+- **DLL:** all three `/Document/*` routes return **404**, so the DocumentController removal (the DEF-337
+  batch) is live. Routing runs *before* authorization, so a deleted `[Authorize]` route gives 404 while
+  a surviving one gives 302-to-login — a clean discriminator needing no app login at all.
+- **wwwroot:** all 7 tracked JS/CSS assets md5-match the working tree exactly.
+
+**This retroactively confirms the claims rather than overturning them.** DEF-334/336/338/339 really
+were deployed on 2026-08-04. They were accurate; they were just unverified, which is a different thing
+and worth being able to tell apart. The one real consequence: **DEF-340 is the only fix in
+`20260804-2230.zip` that is not already live**, which makes the pending upload a much smaller risk
+than it looked an hour ago.
+
+**Three things I'd keep from building it.**
+
+**(1) The control route is the whole design, not a nicety.** The probe checks a route that exists in
+*both* builds first, and aborts everything if it doesn't behave like a live authorized route. Without
+that, the DEF-341 failure mode applies directly: the test-env gate answers **200 with a gate page for
+every URL**, so a naive probe grades the gate as the application and reports whatever it likes with
+total confidence. A probe that cannot fail is not evidence.
+
+**(2) Report the two signals separately.** A deploy that extracts the DLL but not `wwwroot` (or the
+reverse) is a real half-applied state this project has the shape to produce. Averaging them into one
+"is it deployed" number is precisely how that would stay hidden.
+
+**(3) It has a shelf life, and the code says so.** The route marker works only while
+`DocumentController`'s absence is the newest DLL-level landmark. After the next deploy it must be
+re-keyed or it silently answers a stale question — worse than not running it. Noted in the script and
+in the checklist.
+
+**Process note:** first run failed with `request.newContext is not a function` — the shared gate helper
+takes Playwright's `request` **module**, not an already-created context. Its own usage comment says so;
+I skimmed past it. Reading the six-line usage block would have been faster than the round trip.
+
+---
+
+## 2026-08-04 — `20260804-2230.zip` uploaded + recycled; post-deploy verification
+
+Shawn uploaded and recycled. Verified read-only from here.
+
+**Confirmed live:**
+- App healthy — test-env gate passes, control route `/Certificate/Create` → `302 /Account/Login`, so the
+  probe was grading the application and not the gate page.
+- `wwwroot`: **7 same / 0 differ / 0 unreachable** against the working tree.
+- **All four owed migrations are applied.** `__EFMigrationsHistory` high-water is now
+  `20260721015555_WidenStatusHistoryCertificateNumber` at ProductVersion 8.0.11. That closes the item
+  the Gate 7 notes had been carrying forward across four bundles.
+
+**Not confirmed, and worth stating rather than glossing:** DEF-340's actual behaviour. The route probe
+is blind to it (no route change, and DocumentController was already gone before this deploy), and
+reaching the code path means enrolling a real account in 2FA on the client's environment and
+submitting a bad code deliberately. That is a write against a real user record, so I didn't. What is
+established is artifact-level — the deployed DLL was hash-chained to source containing the fix before
+upload. Artifact-verified is a weaker claim than behaviour-verified and the register now says so
+explicitly.
+
+**Two corrections that came out of the upload prep, both to documents that would have misled someone.**
+
+**(1) Gate 7's founding premise was stale, and it was stated forcefully.** The checklist said
+*"Production never auto-migrates"* and, on DEF-314, *"the DLL alone does NOT fix this."* Both false
+now: `Program.cs:958-982` auto-applies pending migrations, gated by `Database:AutoMigrateOnStartup`,
+which `appsettings.Production.json` sets to **true** — added for DEF-252 after two login outages caused
+by exactly the manual step the gate was insisting on. The automatic path is also the *safer* one here,
+because EF migrates with `QUOTED_IDENTIFIER ON` and the hand-run SQL hits Msg 1934 without `-I`.
+Corrected in place rather than deleted: the gate still governs the real production cutover and still
+covers the CR-171 data backfill, which EF will never run.
+
+**(2) I nearly mis-stated the 2FA config.** `Authentication:Enable2FA=false` reads like "2FA is off, so
+DEF-340 is unreachable" — I had started to write that. It gates only the **login-time challenge**
+(`AccountController.cs:203,680`), not the enrolment page. `SetupTotp` is still reachable by any
+logged-in user through two-factor preferences, so the fix matters in a flow a real user can hit.
+Checked before asserting; a config key's name is not its scope.
+
+**Attribution honesty:** the DB wasn't baselined before the upload, and auto-migrate has been on since
+DEF-252, so the earlier `1705` deploy most likely applied those migrations. "They are applied" is
+established; "this deploy applied them" is not, and the register says so.
+
+**23-0753's filename explained (2026-08-05).** The `[0..8]` in
+`23-0753_20260630_163852_dcc92a9404e04611a4fa07649ea49638[0..8].pdf` is a C# string-interpolation
+bug: `[0..8]` sat **outside** the interpolation hole, so `$"{…}{Guid.NewGuid().ToString("N")}[0..8]{ext}"`
+emitted the full 32-char GUID followed by the literal characters `[0..8]`, instead of truncating the
+GUID to nine. Already fixed — `Services/FileUploadService.cs:99-101` and `:168-170`.
+
+Two things worth keeping from the hunt.
+
+*(1) The fix is attributed to DEF-310, but DEF-310's register entry is about browser cache headers
+and never mentions filenames.* Two edits shipped inside that entry with no written trace. Anyone
+auditing "what did DEF-310 change?" from the register would miss them, and anyone meeting this
+filename in the wild would find no defect describing it. Addendum added to the entry.
+
+*(2) The malformed name is not why the file 404s, and it is tempting to conclude otherwise.*
+Square brackets are legal filenames on Windows and Linux, and DEF-310 itself states the server side
+is correct — *"Not a save bug … the new PDF is written under a new timestamped filename … both DB
+columns are repointed"*. So a file **was** written under that literal name on 2026-06-30 and has
+since been lost with the other ten. It is not separately recoverable, and "fix the name" is not a
+recovery plan.
+
+Exactly **one** prod row carries the malformed path (`WHERE CertificateFile LIKE '%[[]0..8]%'`), so
+the exposure window was narrow: uploads between the bug's introduction and the `20260720-1408`
+bundle. Code is correct now, so the single row is data ops, not a new DEF.
+
+**Carry into any restore:** the file must land at the path the DB already holds, brackets included.
+Renaming it on the server without updating `Certificates.CertificateFile` in the same step leaves a
+restored file still 404-ing.
+
+---
+
+## 2026-08-05 — DEF-341: the expired-status alert used a second, page-local modal
+
+**Shawn:** *"The alert for expired status popup doesn't match the design of the other popups."*
+
+Correct, and the cause is not in CR-031. The expired-edit alert calls
+`window.CertificateCreate.showConfirmation`, which is a **private modal implementation living
+inside `certificate-create.js`** — separate from `AdminCore.showConfirmation`, which every other
+popup in the app uses. It emitted `.custom-modal-*` markup styled in `certificate-create.css`;
+the standard is `.gcc-modal-*` in `css/admin/admin-modals.css`. Different overlay opacity (50% vs
+85%, no blur vs 3px), left-aligned copy vs centred, right-aligned buttons vs centred, smaller
+title, no Century Gothic, no focus ring, no `role="alertdialog"`, no mobile stacking.
+
+Both stylesheets already load globally from `_Layout` — the page just wasn't using what was there.
+
+**Fixed** by making the local helper emit the standard `.gcc-modal-*` structure. It stays local
+rather than delegating to AdminCore because AdminCore escapes its title unconditionally, so
+CR-031's deliberate `title: null` (no heading — the client's copy already opens with "ALERT:")
+would print the literal word `null`.
+
+CR-031's trigger, gating and client-verbatim copy are **untouched**.
+
+**Two pre-existing bugs in the same function, fixed while in there:** `cancelText` was accepted but
+ignored (the unsaved-changes dialog asks for "Stay" and was showing "Cancel"), and nothing was
+HTML-escaped. Four callers on cert Create/Edit are now consistent with the rest of the app.
+
+**Outstanding:** visual confirmation on :5101 — Chrome still can't reach the dev server from this
+session. Open a cert whose *stored* status is Expired, edit a field, Save.
+
+**The tell, for next time.** The CR-031 call passes `type: 'warning'` — and the function it calls
+has no `type` parameter at all. That argument was copied from the AdminCore signature into a
+renderer that never implemented it. **An option that a function silently ignores is a signal that
+the caller thinks it's talking to a different implementation than it is.** Where a component has
+two implementations, one of them is quietly wrong.
+
+---
+
+- 2026-08-06 — **Located the parked generic partner API guide, then settled the rate-limit contradiction inside it: neither documented number was reachable. Logged DEF-338; published limit set to 200/hour on Shawn's call.** Shawn asked to pick up "the generic API reference guide" started alongside the Novi Data Exchange Guidance PDF. Nothing was in the repo working tree, no scratchpad, no published artifact — the file was `GCCWebApp/docs2/exports/PARTNER_API_INTEGRATION_GUIDE.html`, saved 2026-07-31 09:10 (~90 min after the Novi PDF) and **already committed clean in `9629016`**. It is a partner-agnostic template carrying its own internal red banner of pre-send instructions, and it had gone past the Amazon guide in two Novi-driven places: §5.4 *Validate a Brand-Provided Certificate Number* (Novi's "certificate ledger" model, where they check a brand's claim against our ledger) and §10 *Onboarding Checklist*. 20 TBD markers collapsed to three real decisions: certificate status semantics, rate limit, and supplier/parent-company disclosure.
+
+  **The rate-limit TBD had no correct answer to fill in.** The Amazon guide says 200/hr, the new template says 2,000/hr — and *both describe dead code*. `app.UseApiRateLimiting()` is registered at `Program.cs:599`; `UseAuthentication()` at `:695` and `PartnerApiKeyAuthenticationMiddleware` at `:698`. The limiter runs ~10 middleware **before anything populates `context.User`**, so the `IsAuthenticated` test at `ApiRateLimitingMiddleware.cs:113` is always false and every branch below it — partner, API-key, admin, authenticated — is unreachable. Execution falls to `:150`, `AnonymousLimit` = 100, and `GetClientIdentifier()` buckets by `ip:` instead of `api_key:`. The 200 lives at `Program.cs:403`; the 2,000 is a `?? "2000"` fallback at `PartnerApiKeyAuthenticationMiddleware.cs:143`. Neither executes.
+
+  **How I made it falsifiable rather than a code-reading argument.** Started the dev server detached and sent three requests from one IP: no key → 401, `X-RateLimit-Limit: 100`, remaining **98**; invalid key → 401, remaining **97**; **valid partner key (`PartnerApiKeys.Id = 6`) → 200 OK, limit still 100, remaining 96**. The counter ran 98→97→96 **across all three** — the authenticated call never got its own bucket. Had limits been keyed per API key, call C would have restarted at 99. That single number is the whole proof. Also found all five dev `PartnerApiKeys` rows have `RateLimitPerHour = NULL`, so the per-key override has never been exercised, and `Models/PartnerApiKey.cs:69` documents null as "no rate limit" when it actually resolves to 2,000.
+
+  **Consequences worth remembering.** Per-IP bucketing means Amazon and Novi behind shared cloud NAT would compete for one 100/hr allowance, with public anonymous traffic from the same address eating it too — and neither partner could see why. We were also already sending `X-RateLimit-Limit: 100` on every response while both guides claimed otherwise. Shawn chose **200/hour** (matching `Program.cs:403`, so the fix makes reality match the Amazon guide rather than breaking it). Wrote DEF-338 as **Open — diagnosis only, no code changed**: the fix is a one-line move of `:599` below `:698`, but it simultaneously activates every dormant branch (admin → 5,000, authenticated → 500, API key → 1,000), so it needs a regression pass over `/api`, not a drive-by. Guide §2 now states 200/hr with the real `X-RateLimit-*` header semantics, and carries a red **BLOCKED — do not send** block until DEF-338 verifies; §8, §10 and the top banner updated to match.
+
+  **The tell, for next time.** Two documents disagreeing about a constant is worth more than picking the more credible number — **both can be wrong, and the disagreement is the symptom, not the bug.** Each figure traced to a real, plausible, *unreachable* line of code. A configured value that no test asserts and no caller observes will drift from behaviour silently; the way to settle it is to ask the running server what it sends, not to ask the source what it intends.

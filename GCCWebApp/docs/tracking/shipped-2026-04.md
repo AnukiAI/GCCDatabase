@@ -98,7 +98,7 @@ Live observation by Shawn on `/Company/Index`: the **Import** button used an UP 
 
 ---
 
-## DEF-106 — Partner API single-cert endpoints now scope by partner (security: cross-tenant leak fixed, 2026-05-01, fixed locally — pending deploy)
+## DEF-106 — Partner API single-cert endpoints now scope by partner (security: cross-tenant leak fixed, 2026-05-01, delivered in the 2026-08-04 build)
 
 Found during TC-QC-143 (CR-008 Partner Role) execution. The Partner API LIST endpoint had correctly filtered `userPartnerNames.Contains(c.Partner)` since 2026-04-21, but the **four single-cert endpoints (`GET /api/v1/certificates/{id}`, `/number/{n}`, `/gs1/{n}`, `/{id}/download`) had no such check** — they only enforced role + `PublicStatuses`, never matched the cert's partner against the caller's. Empirically confirmed: the Amazon Partner API key successfully fetched Novi cert `EXT-NOVI-001` via all three read endpoints — full payloads with `"partner": "Novi"` returned to Amazon. Cross-partner data exposure. Fix: added `userPartnerNames.Contains(cert.Partner ?? "None")` check in each of the four endpoints, after the existing PublicStatuses check; generic 404 on fail (no enumeration leak). Verified locally: 3 positive (Amazon→Amazon) + 4 negative (Amazon→Novi all 404) + 1 regression check (LIST still returns 4 Amazon certs). Same fix covers Partner-role app users on cookie auth — they share the `GetCurrentUserPartnerNamesAsync()` and `GetCurrentUserRole() == "Partner"` paths. **Coordinate deploy with DEF-103** — touches the same four endpoints. **High severity** — partner data isolation is a contract expectation. Heads-up to the client recommended before deploy.
 

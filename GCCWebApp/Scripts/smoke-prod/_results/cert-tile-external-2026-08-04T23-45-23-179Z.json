@@ -1,0 +1,780 @@
+{
+  "viewId": "cert-tile-external",
+  "url": "/Certificate/CertificateTileViewExternal",
+  "base": "http://localhost:5101",
+  "startedAt": "2026-08-04T23:45:23.179Z",
+  "finishedAt": "2026-08-04T23:45:43.908Z",
+  "pass": 96,
+  "fail": 0,
+  "warn": 0,
+  "results": [
+    {
+      "role": "public",
+      "viewport": "desktop",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewExternal"
+    },
+    {
+      "role": "public",
+      "viewport": "tablet",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewExternal"
+    },
+    {
+      "role": "public",
+      "viewport": "mobile",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 401, got 401)",
+      "status": "PASS",
+      "notes": "redirected to /Account/Login?ReturnUrl=%2FCertificate%2FCertificateTileViewExternal"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-add",
+      "name": "No Add Certificate button",
+      "status": "PASS",
+      "notes": "btn-add count=0"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-internal-tag",
+      "name": "Internal Tag column hidden",
+      "status": "PASS",
+      "notes": "internal-tag elements=0"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.partner-filter",
+      "name": "Partner filter present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.export",
+      "name": "Export to CSV control present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.tiles-load",
+      "name": "Tiles load (company-scoped)",
+      "status": "PASS",
+      "notes": "cards=5"
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-add",
+      "name": "No Add Certificate button",
+      "status": "PASS",
+      "notes": "btn-add count=0"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-internal-tag",
+      "name": "Internal Tag column hidden",
+      "status": "PASS",
+      "notes": "internal-tag elements=0"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.partner-filter",
+      "name": "Partner filter present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.export",
+      "name": "Export to CSV control present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.tiles-load",
+      "name": "Tiles load (company-scoped)",
+      "status": "PASS",
+      "notes": "cards=5"
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-add",
+      "name": "No Add Certificate button",
+      "status": "PASS",
+      "notes": "btn-add count=0"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-internal-tag",
+      "name": "Internal Tag column hidden",
+      "status": "PASS",
+      "notes": "internal-tag elements=0"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.partner-filter",
+      "name": "Partner filter present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.export",
+      "name": "Export to CSV control present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.tiles-load",
+      "name": "Tiles load (company-scoped)",
+      "status": "PASS",
+      "notes": "cards=5"
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "external",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-add",
+      "name": "No Add Certificate button",
+      "status": "PASS",
+      "notes": "btn-add count=0"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-internal-tag",
+      "name": "Internal Tag column hidden",
+      "status": "PASS",
+      "notes": "internal-tag elements=0"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.partner-filter",
+      "name": "Partner filter present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.export",
+      "name": "Export to CSV control present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.tiles-load",
+      "name": "Tiles load (company-scoped)",
+      "status": "PASS",
+      "notes": "cards=20"
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-add",
+      "name": "No Add Certificate button",
+      "status": "PASS",
+      "notes": "btn-add count=0"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-internal-tag",
+      "name": "Internal Tag column hidden",
+      "status": "PASS",
+      "notes": "internal-tag elements=0"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.partner-filter",
+      "name": "Partner filter present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.export",
+      "name": "Export to CSV control present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.tiles-load",
+      "name": "Tiles load (company-scoped)",
+      "status": "PASS",
+      "notes": "cards=20"
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-add",
+      "name": "No Add Certificate button",
+      "status": "PASS",
+      "notes": "btn-add count=0"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-internal-tag",
+      "name": "Internal Tag column hidden",
+      "status": "PASS",
+      "notes": "internal-tag elements=0"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.partner-filter",
+      "name": "Partner filter present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.export",
+      "name": "Export to CSV control present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.tiles-load",
+      "name": "Tiles load (company-scoped)",
+      "status": "PASS",
+      "notes": "cards=20"
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "analyst",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-add",
+      "name": "No Add Certificate button",
+      "status": "PASS",
+      "notes": "btn-add count=0"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-internal-tag",
+      "name": "Internal Tag column hidden",
+      "status": "PASS",
+      "notes": "internal-tag elements=0"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.partner-filter",
+      "name": "Partner filter present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.export",
+      "name": "Export to CSV control present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.tiles-load",
+      "name": "Tiles load (company-scoped)",
+      "status": "PASS",
+      "notes": "cards=20"
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "desktop",
+      "id": "cert-tile-external.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-add",
+      "name": "No Add Certificate button",
+      "status": "PASS",
+      "notes": "btn-add count=0"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-internal-tag",
+      "name": "Internal Tag column hidden",
+      "status": "PASS",
+      "notes": "internal-tag elements=0"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.partner-filter",
+      "name": "Partner filter present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.export",
+      "name": "Export to CSV control present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.tiles-load",
+      "name": "Tiles load (company-scoped)",
+      "status": "PASS",
+      "notes": "cards=20"
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "tablet",
+      "id": "cert-tile-external.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.access",
+      "name": "Access check (expected 200, got 200)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-mobile-overflow",
+      "name": "No horizontal scroll on mobile",
+      "status": "PASS",
+      "notes": "docW=375 winW=375"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.grid",
+      "name": "Certificates grid present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-add",
+      "name": "No Add Certificate button",
+      "status": "PASS",
+      "notes": "btn-add count=0"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-internal-tag",
+      "name": "Internal Tag column hidden",
+      "status": "PASS",
+      "notes": "internal-tag elements=0"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.partner-filter",
+      "name": "Partner filter present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.export",
+      "name": "Export to CSV control present",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.tiles-load",
+      "name": "Tiles load (company-scoped)",
+      "status": "PASS",
+      "notes": "cards=20"
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-console-errors",
+      "name": "No console errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-page-errors",
+      "name": "No uncaught page errors",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "role": "admin",
+      "viewport": "mobile",
+      "id": "cert-tile-external.no-network-errors",
+      "name": "No 5xx / unexpected 4xx",
+      "status": "PASS",
+      "notes": ""
+    }
+  ]
+}

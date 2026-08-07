@@ -11,63 +11,77 @@
     const ModalSystem = {
         /**
          * Show custom modal confirmation dialog
+         *
+         * Renders the SHARED `.gcc-modal-*` markup from css/admin/admin-modals.css — the same
+         * structure AdminCore.showConfirmation produces — so every confirmation on the cert
+         * Create/Edit pages (delete, remove PDF, unsaved-changes, CR-031 expired-edit alert)
+         * looks identical to popups everywhere else in the app. It previously emitted a
+         * page-local `.custom-modal-*` variant, which read as a different dialog: 50% overlay
+         * with no blur, left-aligned copy, right-aligned buttons, smaller title/buttons, no
+         * focus ring, no alertdialog semantics. Both stylesheets load globally in _Layout.
+         *
+         * This stays a local implementation rather than delegating to AdminCore because
+         * AdminCore escapes its title unconditionally, so `title: null` would render the
+         * literal string "null".
+         *
          * @param {Object} options - Modal configuration
          * @param {string|null} [options.title] - Heading. Omit for the "Confirm" default;
          *        pass EXPLICIT null to render no heading at all (CR-031: the client's alert
          *        copy carries its own "ALERT:" prefix, so a heading would duplicate it).
          *        Only an explicit null suppresses it — undefined still gets "Confirm", so
          *        every existing caller is unaffected.
+         * @param {string} [options.cancelText='Cancel'] - Cancel button label.
          * @returns {Promise<boolean>} - User's choice
          */
         showConfirmation: function(options) {
             return new Promise((resolve) => {
-                const modalHtml = `
-                    <div class="custom-modal-overlay" id="customConfirmModal">
-                        <div class="custom-modal-dialog">
-                            ${options.title === null ? '' : `<h2 class="modal-title">${options.title || 'Confirm'}</h2>`}
-                            <p class="modal-message">${options.message}</p>
-                            <div class="modal-actions">
-                                <button class="modal-btn modal-btn--danger" id="modalConfirmBtn">${options.confirmText || 'Confirm'}</button>
-                                <button class="modal-btn modal-btn--success" id="modalCancelBtn">Cancel</button>
+                const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                }[c]));
+
+                const modal = document.createElement('div');
+                modal.className = 'gcc-modal-overlay';
+                modal.setAttribute('role', 'alertdialog');
+                modal.setAttribute('aria-modal', 'true');
+                modal.setAttribute('aria-describedby', 'certModalMessage');
+                if (options.title !== null) modal.setAttribute('aria-labelledby', 'certModalTitle');
+
+                // Confirm (red) LEFT, Cancel (green) RIGHT — the standard GCC button order.
+                modal.innerHTML = `
+                    <div class="gcc-modal-dialog">
+                        <div class="gcc-modal-content">
+                            ${options.title === null ? '' : `<h2 id="certModalTitle" class="gcc-modal-title">${esc(options.title || 'Confirm')}</h2>`}
+                            <p id="certModalMessage" class="gcc-modal-message">${esc(options.message)}</p>
+                            <div class="gcc-modal-buttons">
+                                <button type="button" class="gcc-modal-btn gcc-modal-btn--danger" data-action="confirm">${esc(options.confirmText || 'Confirm')}</button>
+                                <button type="button" class="gcc-modal-btn gcc-modal-btn--success" data-action="cancel">${esc(options.cancelText || 'Cancel')}</button>
                             </div>
                         </div>
                     </div>
                 `;
 
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                document.body.appendChild(modal);
+                // `.show` drives the overlay fade-in; next frame so the transition actually runs.
+                requestAnimationFrame(() => modal.classList.add('show'));
 
-                const modal = document.getElementById('customConfirmModal');
-                const confirmBtn = document.getElementById('modalConfirmBtn');
-                const cancelBtn = document.getElementById('modalCancelBtn');
-
-                confirmBtn.addEventListener('click', () => {
-                    modal.remove();
+                const close = (result) => {
                     document.removeEventListener('keydown', keyHandler);
-                    resolve(true);
-                });
+                    modal.classList.remove('show');
+                    setTimeout(() => modal.remove(), 300);
+                    resolve(result);
+                };
 
-                cancelBtn.addEventListener('click', () => {
-                    modal.remove();
-                    document.removeEventListener('keydown', keyHandler);
-                    resolve(false);
-                });
+                modal.querySelector('[data-action="confirm"]').addEventListener('click', () => close(true));
+                modal.querySelector('[data-action="cancel"]').addEventListener('click', () => close(false));
 
                 // Close on overlay click
                 modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.remove();
-                        document.removeEventListener('keydown', keyHandler);
-                        resolve(false);
-                    }
+                    if (e.target === modal) close(false);
                 });
 
                 // Handle keyboard events (Escape key to close)
                 const keyHandler = (e) => {
-                    if (e.key === 'Escape') {
-                        modal.remove();
-                        document.removeEventListener('keydown', keyHandler);
-                        resolve(false);
-                    }
+                    if (e.key === 'Escape') close(false);
                 };
                 document.addEventListener('keydown', keyHandler);
             });

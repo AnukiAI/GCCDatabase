@@ -872,7 +872,9 @@ namespace GCCWebApp.Controllers
 
                 // Load certification types - separate parent types and all types for cascading dropdown
                 var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
-                ViewBag.ParentCertificationTypes = allCertTypes.Where(ct => ct.ParentId == null && ct.IsActive).OrderBy(ct => ct.Name).ToList();
+                // DEF-343: keep this certificate's own type in the option list even when it is not
+                // a top-level active type, otherwise Edit renders the required field blank.
+                ViewBag.ParentCertificationTypes = BuildCertificationTypeOptions(allCertTypes, certificate.CertificationTypeId);
                 ViewBag.AllCertificationTypes = allCertTypes.Where(ct => ct.IsActive).Select(ct => new { id = ct.Id, name = ct.Name, parentId = ct.ParentId }).ToList();
 
                 // Load statuses based on user role (database-driven)
@@ -1524,6 +1526,36 @@ namespace GCCWebApp.Controllers
         /// <summary>
         /// Helper method to reload form data for Edit view
         /// </summary>
+        /// <summary>
+        /// DEF-343 (client 2026-08-07, cert 26-10090) — builds the Certification Type dropdown.
+        ///
+        /// The list is top-level active types (<c>ParentId == null &amp;&amp; IsActive</c>), which is
+        /// correct for Create. On Edit it was wrong: a certificate whose <c>CertificationTypeId</c>
+        /// points at a CHILD type — 26-10090 carries type 117 "Recyclable Material", ParentId 6 —
+        /// or at a since-deactivated type has no matching &lt;option&gt;, so the required field
+        /// rendered empty even though the value is stored and the detail view displays it.
+        ///
+        /// That is not cosmetic: the field is <c>required</c>, so the next save forces the analyst
+        /// to pick a different type and silently rewrites the certificate's certification type.
+        /// Appending the currently-selected type makes the stored value display and round-trip.
+        /// </summary>
+        private static List<CertificationType> BuildCertificationTypeOptions(
+            IEnumerable<CertificationType> allCertTypes, int? selectedId)
+        {
+            var options = allCertTypes.Where(ct => ct.ParentId == null && ct.IsActive).ToList();
+
+            if (selectedId.HasValue && selectedId.Value > 0 && options.All(ct => ct.Id != selectedId.Value))
+            {
+                var selected = allCertTypes.FirstOrDefault(ct => ct.Id == selectedId.Value);
+                if (selected != null)
+                {
+                    options.Add(selected);
+                }
+            }
+
+            return options.OrderBy(ct => ct.Name).ToList();
+        }
+
         private async Task ReloadEditFormDataAsync(int certificateId, string? postedExternalTags = null, string? postedInternalTags = null, string? postedSubcategoryIds = null)
         {
             ViewBag.Companies = (await _unitOfWork.Companies.GetAllAsync()).Where(c => c.IsActive && !c.IsDeleted).OrderBy(c => c.Name).ToList();
@@ -1536,7 +1568,13 @@ namespace GCCWebApp.Controllers
 
             // Load certification types - separate parent types and all types for cascading dropdown
             var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
-            ViewBag.ParentCertificationTypes = allCertTypes.Where(ct => ct.ParentId == null && ct.IsActive).OrderBy(ct => ct.Name).ToList();
+            // DEF-343: same guard as the Edit GET, so a validation re-render does not drop the
+            // stored certification type out of the dropdown.
+            var editedCertTypeId = await _context.Certificates
+                .Where(c => c.Id == certificateId)
+                .Select(c => (int?)c.CertificationTypeId)
+                .FirstOrDefaultAsync();
+            ViewBag.ParentCertificationTypes = BuildCertificationTypeOptions(allCertTypes, editedCertTypeId);
             ViewBag.AllCertificationTypes = allCertTypes.Where(ct => ct.IsActive).Select(ct => new { id = ct.Id, name = ct.Name, parentId = ct.ParentId }).ToList();
 
             // Load statuses based on user role (database-driven)

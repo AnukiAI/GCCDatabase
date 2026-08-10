@@ -1,0 +1,135 @@
+<div style="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:11pt;line-height:1.5;color:#1a1a1a;max-width:760px;">
+
+<p style="margin:0 0 14px 0;"><strong>Subject:</strong> Novi data exchange guidance &mdash; reviewed, and two items that need your decision</p>
+
+<p style="margin:0 0 12px 0;">Hi [name],</p>
+
+<p style="margin:0 0 12px 0;">Thank you for forwarding Novi's data exchange guidance. We've checked it
+against the partner data feed we built, and the short version is that <strong>most of what Novi asks
+for is already there</strong>. Two things are not &mdash; and both are new requirements rather than
+something missed. Neither was in the original scope, so they need your decision before we do anything.</p>
+
+<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:10pt;margin:0 0 18px 0;">
+  <thead>
+    <tr>
+      <th style="background:#002B76;color:#ffffff;text-align:left;padding:8px 10px;font-size:9.5pt;font-weight:600;border:1px solid #002B76;">What Novi asks for</th>
+      <th style="background:#002B76;color:#ffffff;text-align:left;padding:8px 10px;font-size:9.5pt;font-weight:600;border:1px solid #002B76;">What your database sends today</th>
+      <th style="background:#002B76;color:#ffffff;text-align:left;padding:8px 10px;font-size:9.5pt;font-weight:600;border:1px solid #002B76;white-space:nowrap;">Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:7px 10px;border:1px solid #dddddd;">Brand name</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;">Certified company name</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;color:#2e7d32;font-weight:600;white-space:nowrap;">&#10003; Available</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;">Product / variant name</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;">Product name, per identifier</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;color:#2e7d32;font-weight:600;white-space:nowrap;">&#10003; Available</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;border:1px solid #dddddd;">Product identifier (GTIN or MPN)</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;">GTIN, MPN, UPC, EAN, ASIN, SKU</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;color:#2e7d32;font-weight:600;white-space:nowrap;">&#10003; Available</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;">Certification granted</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;">Certification type</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;color:#2e7d32;font-weight:600;white-space:nowrap;">&#10003; Available</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;border:1px solid #dddddd;">Certificate / licence ID</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;">Certificate number</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;color:#2e7d32;font-weight:600;white-space:nowrap;">&#10003; Available</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;">Issuer, issue date, expiry date</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;">All three</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;color:#2e7d32;font-weight:600;white-space:nowrap;">&#10003; Available</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;border:1px solid #dddddd;"><strong>Status: Valid / Expired / Revoked</strong></td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;">The feed contains valid certificates only &mdash; there is no status label to read</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;color:#c62828;font-weight:600;white-space:nowrap;">Needs your decision</td>
+    </tr>
+    <tr>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;"><strong>Standard version</strong></td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;">No such field exists in the database</td>
+      <td style="padding:7px 10px;border:1px solid #dddddd;background:#f8f9fa;color:#c62828;font-weight:600;white-space:nowrap;">Not in scope</td>
+    </tr>
+  </tbody>
+</table>
+
+<p style="margin:0 0 12px 0;">Novi's preferred method of exchange is a direct connection to your feed
+on their schedule &mdash; which is exactly how the feed already works. Nothing to build there, and you
+can support the product-level feed Novi prefers rather than the minimum option.</p>
+
+<p style="margin:18px 0 6px 0;font-size:11.5pt;color:#002B76;"><strong>1. How validity is expressed</strong></p>
+
+<p style="margin:0 0 12px 0;">Our feed answers Novi's status question a different way, by design for
+Amazon: if a certificate is in the feed it is currently valid; if it is absent, it is not. That works
+well for product badging. It is less precise for checking a brand's claim, because a certificate that
+isn't found could be expired, on hold, confidential, or simply a mistyped number &mdash; the feed
+can't say which.</p>
+
+<p style="margin:0 0 12px 0;">Two things to weigh before you decide:</p>
+
+<ul style="margin:0 0 12px 0;padding-left:22px;">
+  <li style="margin-bottom:6px;">There is <strong>no "revoked" status in the system at all.</strong> The
+  certificate workflow you approved has eight states and revocation isn't one. Adding it would change
+  the screens your analysts use daily, not just the feed.</li>
+  <li style="margin-bottom:6px;">Certificates marked <strong>confidential</strong> are paid for but kept
+  private. If we sent every certificate with a status label attached, those would become visible to Novi
+  unless we deliberately exclude them. That's your call, not ours &mdash; our recommendation is to keep
+  them hidden.</li>
+</ul>
+
+<p style="margin:0 0 12px 0;">Also worth knowing: Amazon uses this same feed, so changing what the
+status value means would require them to review and re-test their side, for a change made on Novi's
+behalf.</p>
+
+<p style="margin:0 0 12px 0;"><strong>Our recommendation:</strong> connect Novi now on the current
+arrangement, which fully supports badging. If Novi confirms they specifically need the three-way status,
+we'd scope it as a change and enable it for Novi's connection only, leaving Amazon's untouched.</p>
+
+<p style="margin:18px 0 6px 0;font-size:11.5pt;color:#002B76;"><strong>2. Certification standard version</strong></p>
+
+<p style="margin:0 0 12px 0;">There is no field for this anywhere, and it wasn't in the original
+requirements. One question decides whether it is work at all: <strong>do your certifications get issued
+against numbered versions of a published standard?</strong> If not, the honest answer to Novi is "not
+applicable" &mdash; no build, no cost. If they do, we'd store the version on each certificate rather
+than on the certification type, so that updating a standard later doesn't retroactively change what
+every past certificate reports.</p>
+
+<p style="margin:18px 0 6px 0;font-size:11.5pt;color:#002B76;"><strong>3. Housekeeping &mdash; no cost, but needs an owner</strong></p>
+
+<p style="margin:0 0 12px 0;">Product identifiers can be tagged to a specific partner, and a tagged
+identifier is hidden from other partners &mdash; that isolation is deliberate. The consequence:
+<strong>any identifier tagged only to Amazon will be invisible to Novi</strong>, so Novi's view of which
+products a certificate covers could be narrower than reality, and some genuinely certified products
+wouldn't be recognised. The fix is a data-entry convention rather than software &mdash; identifiers that
+apply generally should be left untagged &mdash; but someone on your side should own it before Novi goes
+live.</p>
+
+<p style="margin:18px 0 6px 0;font-size:11.5pt;color:#002B76;"><strong>What we need from you</strong></p>
+
+<ol style="margin:0 0 14px 0;padding-left:22px;">
+  <li style="margin-bottom:5px;">Does Novi require the three-way status, or is "in the feed means valid" enough?</li>
+  <li style="margin-bottom:5px;">Do your certifications carry a standard version? If yes, should existing certificates be filled in retrospectively?</li>
+  <li style="margin-bottom:5px;">If we expand the status information, should confidential certificates stay hidden?</li>
+  <li style="margin-bottom:5px;">Who owns the identifier tagging convention?</li>
+  <li style="margin-bottom:5px;">Is Novi planning scheduled full pulls, or claim-by-claim checks? The second is much higher volume and we'd raise the limit on their connection first.</li>
+</ol>
+
+<p style="margin:0 0 12px 0;">To be clear on scope: items 1 and 2 are <strong>additions beyond the
+agreed scope</strong>, so if you want either we'd come back with an estimate before starting. Item 3
+costs nothing. None of this blocks Novi &mdash; the feed is ready for them today, and everything above
+is about how completely we match their ideal format.</p>
+
+<p style="margin:0 0 12px 0;">Happy to walk through any of it on a call.</p>
+
+<p style="margin:0 0 2px 0;">Best regards,</p>
+<p style="margin:0;">[your name]<br>Anuki Consulting</p>
+
+</div>

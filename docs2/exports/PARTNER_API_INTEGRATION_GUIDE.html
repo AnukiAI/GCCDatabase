@@ -68,8 +68,10 @@ pre code { background: none; padding: 0; }
     <span class="tbd-label">Internal &mdash; remove before sending</span>
     This is the generic partner template. Before issuing to a partner: (1) fill every
     <span class="fill">[HIGHLIGHTED PLACEHOLDER]</span>, (2) resolve or delete every red TBD block,
-    (3) confirm the status behavior in &sect;4/&sect;8 against the key actually issued. The rate limit in &sect;2
-    is settled at 200/hour, but is <strong>blocked on DEF-338</strong> &mdash; the server does not honour it yet.
+    (3) confirm the &sect;4 validity model suits this partner's use case &mdash; badging works with it,
+    claim validation may not. &sect;8 supplier/parent-company is settled: none is held, so none is sent.
+    The rate limit in &sect;2 is settled at 200/hour but is <strong>blocked on DEF-345</strong> &mdash;
+    the server does not honour it yet.
     <strong>Never paste a live API key into this document</strong> &mdash; keys are delivered separately
     by secure channel (see &sect;2).
 </div>
@@ -165,9 +167,9 @@ retrying into the limit.</p>
     authentication, so partner keys are throttled as anonymous traffic at <strong>100 requests/hour,
     bucketed by IP address</strong> rather than by key &mdash; and that is what
     <code>X-RateLimit-Limit</code> actually returns today. The 200/hour figure above is the agreed target
-    (Shawn, 2026-08-06), not current behaviour. Tracked as <strong>DEF-338</strong>; publishing this
+    (Shawn, 2026-08-06), not current behaviour. Tracked as <strong>DEF-345</strong>; publishing this
     section before that fix ships hands a partner a number we do not honour. Delete this block once
-    DEF-338 is verified.
+    DEF-345 is verified.
 </div>
 
 <h2 id="endpoints">3. API Endpoints</h2>
@@ -255,7 +257,7 @@ retrying into the limit.</p>
     <thead><tr><th style="width:22%">Field</th><th style="width:12%">Type</th><th style="width:33%">Description</th><th>Example</th></tr></thead>
     <tbody>
         <tr><td><code>certificateNumber</code></td><td>string</td><td>Unique certificate identifier</td><td>24-0366</td></tr>
-        <tr><td><code>status</code></td><td>string</td><td>Certificate status &mdash; see TBD below</td><td>Active</td></tr>
+        <tr><td><code>status</code></td><td>string</td><td>Always the literal <code>"Active"</code> &mdash; see <em>Certificate Status and Validity</em> below</td><td>Active</td></tr>
         <tr><td><code>issueDate</code></td><td>datetime</td><td>Certificate effective date</td><td>2024-01-15T00:00:00Z</td></tr>
         <tr><td><code>expirationDate</code></td><td>datetime</td><td>Certificate expiration date</td><td>2025-01-15T00:00:00Z</td></tr>
         <tr><td><code>company</code></td><td>string</td><td>Certified company / brand name</td><td>EcoProduct Co</td></tr>
@@ -278,21 +280,60 @@ are left blank where not relevant.<br>
 <code>All</code> for partner accounts.
 </p>
 
+<h3>Certificate Status and Validity</h3>
+
+<p><strong>The API expresses validity by presence, not by a status value.</strong> The
+<code>status</code> field is always the literal string <code>"Active"</code> on every certificate you
+receive. It is not a variable to branch on &mdash; it never carries any other value for a partner key.</p>
+
+<p>What varies is <em>whether the certificate appears at all</em>. GCC tracks an internal certificate
+lifecycle, and only the states that mean "currently certified" are exposed to partners. Everything else
+is filtered out of list responses and returns <code>404</code> on single-certificate lookups.</p>
+
+<table>
+    <thead>
+        <tr><th>What you receive</th><th>What it means</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Certificate present, <code>status: "Active"</code></td><td>Currently certified. Safe to badge, or to confirm a brand's claim.</td></tr>
+        <tr><td>Certificate absent from the list / <code>404</code> on lookup</td><td>Not currently certified &mdash; <strong>or</strong> not associated with your partner account.</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-warning">
+    <strong>Absence does not tell you why.</strong> A certificate you cannot see may have expired, may be
+    on hold, may be withheld as confidential, may still be in draft, may never have existed, or may simply
+    not be linked to your partner account. These cases are deliberately indistinguishable: collapsing them
+    prevents your key from being used to enumerate certificates outside your scope. If you need to know
+    <em>why</em> a specific certificate is not visible, ask GCC &mdash; do not infer it from the response.
+</div>
+
+<p><strong>There is no "revoked" state.</strong> GCC's lifecycle has no revocation status, so a revoked
+certificate can never be reported as revoked. Withdrawal of certification is expressed the only way the
+contract allows: the certificate stops appearing. Treat disappearance as authoritative.</p>
+
+<p><strong>Expiry.</strong> <code>expirationDate</code> is returned on every certificate, so you can see
+an upcoming expiry in advance. But note the asymmetry &mdash; once a certificate actually moves to an
+expired state it leaves the API entirely rather than appearing with an expired status. Do not wait to
+observe a status change that will never arrive; re-pull on your schedule and treat anything that has
+dropped out as no longer certified.</p>
+
 <div class="tbd">
-    <span class="tbd-label">TBD &mdash; open decision</span>
-    <strong>Certificate status semantics.</strong> The partner API currently returns
-    <code>status: "Active"</code> for every record and <strong>excludes</strong> non-active certificates
-    (draft, expired, suspended, revoked) from all partner responses. This behavior was defined for a
-    badging use case, where only currently-valid certificates matter.
+    <span class="tbd-label">Internal &mdash; confirm scope, then delete</span>
+    <strong>This documents current behaviour (active-only), which is option (a) of the original open
+    decision.</strong> Internally: the filter is <code>CertificateStatusHelper.PublicStatuses</code> =
+    {<em>Client Approved - Paid</em>, <em>Republished</em>} applied at
+    <code>Controllers/Api/v1/CertificatesController.cs:173,201</code> for lists and <code>:388,442</code>
+    for single lookups; the literal <code>"Active"</code> is set at <code>:251,315</code>. Eight internal
+    states exist and none of them is "revoked."
     <br><br>
-    Partners whose use case is <em>claim validation</em> &mdash; confirming or refuting a brand's assertion
-    against the GCC ledger &mdash; generally need to distinguish <strong>Valid / Expired / Revoked</strong>,
-    because a revoked certificate must read as "revoked," not as "absent from the ledger."
-    <br><br>
-    <strong>Pending GCC decision:</strong> whether this partner receives (a) active-only, as today, or
-    (b) an expanded status set including expired and revoked certificates. Option (b) requires a change
-    request &mdash; it alters both the documented contract and the response filter. Resolve before issuing
-    this guide, and replace the <code>status</code> row above with the agreed values.
+    If this partner's use case is <em>claim validation</em> rather than badging, confirm that
+    presence/absence is sufficient for them. Novi's guidance, for example, asks for
+    <strong>Valid / Expired / Revoked-or-invalid</strong> as distinct values &mdash; which this contract
+    cannot supply. That is raised as <strong>CR-035</strong> (proposed, not built): it changes the response
+    filter, the frozen <code>/api/v1/certificates*</code> shape, and &mdash; because no "revoked" state
+    exists &mdash; potentially the 8-state workflow itself, so it needs client decisions and Amazon
+    sign-off. Do not promise a partner anything beyond the table above until CR-035 is resolved.
 </div>
 
 <h3>Product Identifier Fields (within <code>productIds[]</code>)</h3>
@@ -449,7 +490,15 @@ X-API-Key: YOUR_API_KEY</code></pre>
 X-API-Key: YOUR_API_KEY</code></pre>
 
 <p>Returns the certificate record if it exists and is visible to your account; returns <code>404</code>
-otherwise. See the status TBD in &sect;4 for how expired and revoked certificates are represented.</p>
+otherwise.</p>
+
+<p><strong>Reading the result.</strong> A <code>200</code> confirms the brand's claim: that certificate
+number is currently certified and associated with your account. A <code>404</code> means the claim
+<em>cannot be confirmed</em> &mdash; which is not the same as the claim being false. It collapses several
+distinct cases: expired, on hold, confidential, draft, never issued, mistyped, or valid but not linked to
+your partner account. See <em>Certificate Status and Validity</em> in &sect;4 before deciding what action
+a <code>404</code> should trigger on your side; in particular, a <code>404</code> is <strong>not</strong>
+evidence of revocation.</p>
 
 <h3>5.5 Download a Certificate PDF</h3>
 
@@ -514,7 +563,7 @@ GET /api/v1/certificates?pageNumber=2&amp;pageSize=100</code></pre>
         <tr><td>Transport</td><td>HTTPS/TLS required for all requests</td></tr>
         <tr><td>Authentication</td><td>API key via <code>X-API-Key</code> header</td></tr>
         <tr><td>Data Isolation</td><td>Your key returns only certificates associated with your partner account. Data belonging to other partners is not accessible, including on certificates shared across multiple partners &mdash; co-partner names and their product identifiers are removed from your responses.</td></tr>
-        <tr><td>Status Filter</td><td>See the status TBD in &sect;4 &mdash; to be confirmed for this partner</td></tr>
+        <tr><td>Status Filter</td><td>Only currently-certified certificates are returned; everything else is filtered out of lists and returns <code>404</code> on lookup. <code>status</code> is always <code>"Active"</code>. See &sect;4.</td></tr>
         <tr><td>Rate Limiting</td><td>200 requests/hour per partner key; see &sect;2</td></tr>
         <tr><td>Key Management</td><td>Keys are issued, rotated, and revoked by GCC administrators. Keys may be issued with an expiration date.</td></tr>
     </tbody>
@@ -525,13 +574,47 @@ GET /api/v1/certificates?pageNumber=2&amp;pageSize=100</code></pre>
     certificates, or GCC user information.
 </div>
 
-<div class="tbd">
-    <span class="tbd-label">TBD &mdash; confirm with GCC</span>
-    <strong>Supplier and parent-company data.</strong> The <code>company</code> field returns the
-    <em>certified company</em> as recorded by GCC. Where a partner's terms restrict onward sharing of
-    manufacturer or parent-company information, confirm with GCC whether <code>company</code> holds the
-    consumer-facing brand or the manufacturing entity for the certificates in scope, and whether any
-    additional field-level restriction is required.
+<h3>Supplier, Manufacturer and Parent-Company Data</h3>
+
+<p><strong>None is transmitted, because none is held.</strong> GCC records the certified entity as a
+single flat company name. There is no supplier field, no manufacturer-identity field, and no
+parent-company or corporate-hierarchy relationship anywhere in the certificate record &mdash; so there is
+nothing of that kind for the API to disclose, and no field-level restriction is required to keep it out.</p>
+
+<p>Specifically:</p>
+
+<table>
+    <thead>
+        <tr><th>Field</th><th>What it is &mdash; and is not</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>company</code></td>
+            <td>The name of the entity GCC certified &mdash; the brand holding the certification. A single
+            value with no hierarchy above or below it. It is not a manufacturer identity and carries no
+            parent-company reference.</td>
+        </tr>
+        <tr>
+            <td><code>productIds[].type = "MPN"</code></td>
+            <td>Manufacturer <em>Part</em> Number &mdash; a product code supplied by the brand, in the same
+            list as ASIN, UPC and GTIN. Despite the name it identifies <strong>a product, not a
+            manufacturer</strong>, and reveals no manufacturing entity.</td>
+        </tr>
+        <tr>
+            <td><code>productIds[].productSku</code></td>
+            <td>The certified company's own SKU for the item. Its own code, not a supplier's.</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>Company contact details, address, country and website are recorded by GCC for its own operations and
+are <strong>never included in any partner response</strong> &mdash; they are not part of the contract and
+no partner endpoint projects them.</p>
+
+<div class="callout callout-info">
+    If a partner's terms require a written assurance that manufacturer and parent-company information is
+    not shared onward, this section is that assurance: the data is not in the payload because it is not in
+    the system.
 </div>
 
 <h2 id="reference">9. Field Reference</h2>
@@ -590,7 +673,7 @@ GET /api/v1/certificates?pageNumber=2&amp;pageSize=100</code></pre>
     <thead><tr><th style="width:8%">Step</th><th style="width:46%">Action</th><th>Owner</th></tr></thead>
     <tbody>
         <tr><td>1</td><td>Confirm which certificates are in scope for this partner and tag them to the partner account in the GCC Database</td><td>GCC</td></tr>
-        <tr><td>2</td><td>Confirm certificate status behavior (&sect;4 TBD). Rate limit is settled at 200/hour &mdash; but verify <strong>DEF-338</strong> has shipped before issuing this guide, or the server will not honour it</td><td>GCC</td></tr>
+        <tr><td>2</td><td>Confirm presence/absence validity (&sect;4) is sufficient for this partner's use case &mdash; a claim-validation partner may need Valid/Expired/Revoked as distinct values, which requires a change request. Rate limit is settled at 200/hour, but verify <strong>DEF-345</strong> has shipped or the server will not honour it</td><td>GCC</td></tr>
         <tr><td>3</td><td>Issue a test API key against the GCC test environment, with representative test data</td><td>GCC</td></tr>
         <tr><td>4</td><td>Validate the integration end to end against test data &mdash; pull, paginate, parse, download PDFs</td><td>Partner</td></tr>
         <tr><td>5</td><td>Confirm field mapping and any gaps against your internal data model</td><td>Partner</td></tr>

@@ -595,8 +595,10 @@ app.UseApiExceptionHandling();
 // Global exception handling middleware (handles all exceptions with structured logging)
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
-// API Rate Limiting middleware (custom implementation for APIs)
-app.UseApiRateLimiting();
+// NOTE: API rate limiting is deliberately NOT registered here. It must run *after*
+// authentication so it can read the caller's identity and per-partner claims — see
+// the registration below UseAuthentication()/PartnerApiKeyAuthenticationMiddleware.
+// Registering it at this point throttles every API caller as anonymous (DEF-345).
 
 // Error handling
 if (!app.Environment.IsDevelopment())
@@ -696,6 +698,13 @@ app.UseAuthentication();
 
 // Partner API Key Authentication (validates X-API-Key header for partner requests)
 app.UseMiddleware<PartnerApiKeyAuthenticationMiddleware>();
+
+// API Rate Limiting middleware (custom implementation for APIs).
+// DEF-345: must sit below UseAuthentication() and the partner key middleware. It resolves the
+// caller's limit and counter bucket from claims (partner_rate_limit / partner_id / api_key_id /
+// role), all of which are unset until the two middleware above have run. Placed before
+// UseAuthorization() so throttling still applies to callers who authenticate but are then denied.
+app.UseApiRateLimiting();
 
 app.UseAuthorization();
 

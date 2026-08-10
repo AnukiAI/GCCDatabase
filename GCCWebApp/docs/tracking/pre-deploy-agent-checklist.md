@@ -246,7 +246,81 @@ They can disagree — a deploy that extracted the DLL but not `wwwroot` is a rea
 
 Per-bundle record of gate outcomes. Be precise: **VERIFIED** = mechanically run/checked; **N/A** = gate does not fire for this changeset (with the scope reason); **REASONED** = firing gate not run through its full agent/script, assessed by scope+diff instead (a conscious call, not a silent skip); **DEPLOY-TIME** = a manual step owed at upload, not at bundle time.
 
-### `GCCWebApp-deploy-20260804-2230.zip` — built, gated + content-verified 2026-08-04 (**supersedes `20260804-1705` and all earlier — THIS IS THE ONE TO UPLOAD**)
+### `GCCWebApp-deploy-20260807-1312.zip` — built, gated + content-verified 2026-08-07 (**supersedes `20260804-2230` and all earlier — THIS IS THE ONE TO UPLOAD**)
+
+**Built** via canonical `Scripts/deploy.ps1 -SkipUploadsBackupPrompt -FromMigration 20260721015555_WidenStatusHistoryCertificateNumber` (Release, PleskTestEnvironment). 60.5 MB, **338 entries**, `GCCWebApp.dll` 6,358,016 B. Release build clean: **0 errors**.
+
+**Delta vs `20260804-2230`:** three client-reported fixes from the 2026-08-07 spot-check — **DEF-342** (Product Identifiers CSV template Partner heading + importer prefix tolerance), **DEF-343** (Certification Type blank on Edit for child/inactive types), **DEF-344** (certificate detail showed only the first partner). Four files: `Controllers/CertificateController.cs`, `Controllers/Api/ProductIdApiController.cs`, `Views/Certificate/CertificateInternalView.cshtml`, `wwwroot/js/product-id-manager.js`.
+
+> **Gate 5 concurrency — checked, and it fired again (fourth bundle running).** Another terminal committed **`4c158c2`** at 11:06 mid-session, touching `Controllers/AccountController.cs` (+13/-1). Read the diff rather than assuming: it is the **DEF-340** TOTP `TempData`→`ViewBag` hydration, which **already shipped in `20260804-2230`** — the commit merely caught up with the tree that bundle was published from. So it is not a new behaviour in this zip. Everything else in `4c158c2` is `Scripts/` and `_results/` (never published). **Net: the delta against what is live really is just DEF-342/343/344.**
+
+**No migration owed.** Repo migration tail and prod `__EFMigrationsHistory` are both at `20260721015555_WidenStatusHistoryCertificateNumber` — verified against the prod DB, not from memory. The generated `migrations/apply-migrations.sql` is **0 lines of migration DDL** (2,053 B, all of it the appended CR-171 partner-backfill data script). **Gate 7 does not fire for this bundle.**
+
+#### ⚠️ Verification method note — DEF-344 is literal-invisible in Release
+
+The literal-grep method **failed for DEF-344 and would have produced a false ABSENT**. The fix adds no new string: it swaps `Model.Certificate.Partner` for a join over `Model.Certificate.Partners`. The one candidate marker, the Razor local `partnerNames`, **is present in the Debug DLL but stripped from Release** (local names live in the PDB). This is the mirror image of the DEF-340 note on the bundle below — there the literal existed but predated the fix; here the literal does not survive the build configuration.
+
+What was used instead — the artifact was **executed**, which is stronger than any static marker:
+
+| Link | Evidence |
+|---|---|
+| The zip carries this build's assembly | in-zip `GCCWebApp.dll` sha256 `B95306FF…` **==** `bin/Release/net8.0/win-x64/publish/GCCWebApp.dll` sha256 — exact match |
+| The shipped assembly renders both partners | Ran `publish/GCCWebApp.exe` (the Release output that went into the zip) on `:5102` against `GCCDatabase_Dev`. Cert `26-0146` has `CertificatePartners` = Amazon+Novi and denormalized `Certificates.Partner` = `Amazon`. Detail page rendered **`Partner: Amazon, Novi`** — so it is demonstrably reading the collection, not the column |
+| The shipped assembly appends the stored cert type | Same instance: with `26-0146` set to type **73 "Recycled Content" (ParentId 6)** the dropdown rendered **21 options, `selected` = 73**; with the type restored to top-level 17 it rendered **20 options, `selected` = 17`**. The 21-vs-20 delta *is* the append firing (dev has 19 top-level active types + 1 placeholder) |
+
+Dev cert `26-0146` was mutated only to create the child-type condition (dev DB, disposable) and **restored to `CertificationTypeId = 17` afterwards** — confirmed by re-query.
+
+> **Running the published exe to verify needs two env overrides**, worth recording: `appsettings.Development.json` is (correctly) excluded from the publish, so `Authentication:Enable2FA` fell through and the Release instance **challenged 2FA on login**, blocking the check until `Authentication__Enable2FA=false` was set. Incidental but useful corroboration for `production-cutover-plan.md` §2a: **environment variables do override the shipped JSON**, which is the mechanism that section relies on.
+
+#### In-zip content verification
+
+| Change | Marker asserted | Result |
+|---|---|---|
+| *control* | `CertificateController` (UTF-8 type name) | **PRESENT** ✔ method valid |
+| *control* | `zzz_not_a_real_marker_zzz` | **ABSENT** ✔ no false positives |
+| DEF-342 | `"Type","Product ID",…,"Partner (separate by comma)","Description"` in in-zip `wwwroot\js\product-id-manager.js` | **PRESENT** |
+| DEF-342 | `const partnerHeader = rawHeaders.find` (importer tolerance — proves the **reader** shipped, not just the template) | **PRESENT** |
+| DEF-343 | `BuildCertificationTypeOptions` (new method name in DLL metadata) | **PRESENT** |
+| DEF-344 | `partnerNames` | **ABSENT — expected**, see method note; proven by execution instead |
+
+DEF-342 is asserted on **both halves deliberately**: a bundle carrying the renamed template header without the importer's prefix matching would silently import every product-ID row with **no partner**, which is worse than the copy bug it fixes.
+
+#### Hygiene — all PASS
+
+**0 entries** for each of: `appsettings.Development.json`, `appsettings.Test.json`, `Api.Tests`, `wwwroot/uploads/` (both slash styles), `App_Data/uploads/`, `Scripts/`, `docs/`, `docs2/`. In-zip `appsettings.json` (3,627 B) contains **no** dev DB credential and no `GCCDatabase_Dev` reference.
+
+> **Pre-existing exposure that ships in this bundle (not introduced by it):** in-zip `appsettings.json` still carries the plaintext Gmail app password — **DEF-263** / [[security-plaintext-gmail-credential]]. It is in every bundle to date. Flagged here because the file lands on the server; it does not block this deploy, and it is the reason `production-cutover-plan.md` §2a routes SMTP credentials through environment variables rather than this file.
+
+#### Gate assessment
+
+| Gate | Fires? | Result | Evidence / rationale |
+|------|--------|--------|----------------------|
+| 0 — Uploads backup | Yes | **DEPLOY-TIME — OWED** | Built with `-SkipUploadsBackupPrompt`; server-side backup **not** done. In-zip upload entries: 0. |
+| 1 — UI / Design-Guide | Yes (`CertificateInternalView.cshtml`) | **REASONED** | One existing `.certificate-field` row changes its *value* from one string to a comma-joined list. No markup, CSS, font, label, container or `<h1>` change; no native dialog. Full `ux-design-compliance` review not re-run. |
+| 2 — Cross-role + responsive | Yes (cert detail view) | **PARTIAL — functionally verified, not swept** | Detail + Edit exercised on the **Release artifact** as Admin (evidence above), and all three seeded logins verified role-correct on the Debug build. The 4-login × 5-viewport Playwright + AxeCore pass was **not** run. See the external-view note under Gate 3. |
+| 3 — Data-scoping & endpoints | Yes (controllers changed) | **VERIFIED GREEN** | `deploy-gate.js` security suite **exit 0, 66s — PASS**. Note the deliberate scoping decision in DEF-344: only `CertificateInternalView` was changed. `CertificateExternalView` has the same fault but the correct partner-scoped output is the **unresolved DEF-321 question**, so it was left alone rather than risk a cross-partner leak. **No external/partner-facing surface changed in this bundle.** |
+| 4 — Partner API contract | Yes (`Api/` controller changed) | **VERIFIED GREEN** | `amazon-contract-diff.js`: **CONTRACT UNCHANGED**, **7 pass / 0 fail**, 36s. GS1 list, GS1 single, Standard list all structurally identical to the frozen April baselines. Load-bearing here: `ProductIdApiController` was edited, even though only in a dead `sample-csv` action. |
+| 5 — Traceability audit | Yes (always) | **VERIFIED** | DEF-342/343/344 all in the register with QC refs and client-verbatim repros; `observations_log.md` appended. `4c158c2` read at build time and diffed rather than assumed (see box above). |
+| 6 — Performance / EF | Yes (`CertificateController.cs` adds a query) | **REASONED — not timed** | `ReloadEditFormDataAsync` gains one `Where(Id==).Select(CertificationTypeId).FirstOrDefaultAsync()` — single-column, PK-filtered, and only on the **validation re-render** path, not the Edit GET. No cold-start timing run. |
+| 7 — Pending migration → prod | **No** | **N/A — nothing owed** | Repo tail == prod high-water `20260721015555_WidenStatusHistoryCertificateNumber`, verified against the prod DB. Generated script carries **0 lines** of migration DDL. |
+| 8 — CRUD write-path | Yes (Edit form data path touched) | **VERIFIED GREEN** | `deploy-gate.js` crud suite **exit 0, 85s — PASS**. Relevant because DEF-343 changes what the Edit form offers; the concern it closes is precisely a **wrong value being written on save**. |
+| 9 — Static integrity | Yes (always) | **VERIFIED GREEN-WITH-WARNINGS** | `_static/run-all.js`: **22P / 0F / 10W**, exit 0 — identical warning count to the previous bundle, no new warnings. Check-4 roll-up: **5 undeployed** — `DEF-341(CLEAN) DEF-341(CLEAN) DEF-342(MODIFIED) DEF-343(MODIFIED) DEF-344(MODIFIED)`. The three `MODIFIED` are this bundle's fixes, and the gate explicitly warns *"publish from THIS tree, not a clean checkout of HEAD"* — which is what `deploy.ps1` did. The two `DEF-341(CLEAN)` are the known **duplicate DEF-341 headers** with stale Status text, already shipped ([[project_def_number_duplicates_parked]]). |
+| 10 — Config resolves to a row | Yes (always) | **VERIFIED** | `Audit:SystemUserEmail` = `swest@anukiconsulting.com` read from the **in-zip** `appsettings.json`; in-zip `appsettings.Production.json` does **not** override it. Probed the **target** DB (`gccwebap_certificates`): returns exactly `1 | admin | swest@anukiconsulting.com | active`. |
+
+**Deterministic backbone: GREEN** — `_results/deploy-gate-2026-08-07T17-25-50-736Z.json` (security ✔ 66s · crud ✔ 85s · contract ✔ 36s · roll-up `=> GREEN — safe to deploy`), plus Gate 9 static ✔ exit 0 (`_results/static-gate-2026-08-07T17-26-31-519Z.json`).
+
+**Net:** built, gated, hygiene-clean and content-verified. All four mechanical gates GREEN with **0 FAIL** anywhere. Every change is provably inside the zip — DEF-342 on both halves of its template/parser pair, DEF-343 and DEF-344 by **executing the shipped Release assembly**, which is stronger evidence than the literal grep that structurally could not see DEF-344.
+
+**Still owed — the ones no script covers:**
+- **Gate 0 (upload):** zip the server's `wwwroot/uploads/` before extracting. Built with `-SkipUploadsBackupPrompt`, so no backup was made.
+- **Gate 7:** nothing owed — **do not run** `apply-migrations.sql` expecting schema work; it carries only the CR-171 backfill.
+- **Gates 1, 2, 6 (REASONED, not run):** no `ux-design-compliance` review, no 4-login × 5-viewport Playwright + AxeCore sweep, no cold-start timing.
+- **⚠️ This deploy overwrites `web.config` and `appsettings.Production.json`** (both are in the zip). Any SMTP or `Enable2FA` settings applied on the server for `production-cutover-plan.md` §2a will be **wiped by this extract** and must be re-applied afterwards. The failure is silent — email simply reverts to `MockEmailService`.
+- **DEF-342's actual download is unexercised in a browser.** The template is generated client-side; the served asset and the parser were verified, but nobody has opened `product-ids-sample.csv` in Excel to confirm it renders as six columns.
+
+---
+
+### `GCCWebApp-deploy-20260804-2230.zip` — built, gated + content-verified 2026-08-04 (**SUPERSEDED by `20260807-1312` — missing DEF-342 / DEF-343 / DEF-344**)
 
 **Built** via canonical `Scripts/deploy.ps1 -SkipUploadsBackupPrompt -FromMigration 20260605131035_ChangeUserCompanyToFreeText` (Release, PleskTestEnvironment). 60.5 MB, **338 entries**, `GCCWebApp.dll` 6.36 MB built 22:31. Release build clean: **0 errors**.
 

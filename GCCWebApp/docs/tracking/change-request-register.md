@@ -348,6 +348,75 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 - **Detail doc:** `docs/tracking/CR-023-import-batch-undo.md`
 - **Status:** **Built + UI-validated locally — pending deploy.** Pre-prod; client approval still advisable before it's presented as a delivered feature.
 
+### CR-036 (proposed 2026-08-10) — Certification standard version: capture it and expose it to partners
+
+- **Source:** Novi Data Exchange Guidance (client-supplied, 2026-07-31), reviewed against the built API 2026-08-10. **Exact citation** — page 1, *Ideal data structure* table, final row, verbatim:
+
+  | FIELD | WHAT IT CARRIES |
+  |---|---|
+  | Certification metadata | Issuer, issue date, expiration date, **standard version** |
+
+  We supply the first three; the fourth does not exist anywhere in the system.
+
+- **It is not our API version — checked, because the ask is easy to misread** (Shawn queried exactly this on 2026-08-10; the phrase is the last two words of the last row of a table and carries no heading of its own). Two things in the same table settle it: the row sits under *certification metadata* alongside issuer and the two dates, all properties of the certificate itself rather than of the transport; and three rows above, Novi defines its own usage — *"Certification → Name of the standard or certification granted."* "Standard" means the certification standard throughout that table, so "standard version" is the revision of that standard (a certificate granted against v2.1 rather than v1.0). Had it meant the API version, the answer would be free: we are on `/api/v1` and already publish it.
+- **Why CR, not a defect:** there is no standard-version field anywhere in the system to be broken. `CertificationType` carries `Name`, `AmazonCode`, `Description`, `IsActive`, `SortOrder`, `Level`, `ParentId` and nothing else; `Certificate` has no version, edition or revision field either. The requirements baseline does not mention versioning a standard. This is new scope.
+
+**First question, and it may close this CR for free: does GCC version its certification standards at all?** If certifications are not issued against numbered revisions of a published standard, the correct answer to Novi is *"not applicable"* — a sentence in the partner guide, no build. Everything below applies only if the answer is yes.
+
+**The modelling decision that drives the cost.** A standard has versions *over time*; a certificate is issued against whichever version was current on its issue date. So the field almost certainly belongs on the **certificate**, captured at issue, not on the certification type:
+
+| Placed on | Consequence |
+|---|---|
+| `CertificationType` (one value per type) | Cheapest to build, but **updating a type's version silently rewrites history for every certificate ever issued under it** — a certificate issued against v1.0 would start reporting v2.0. Wrong, and wrong invisibly. |
+| `Certificate` (captured per certificate) | Historically accurate and partner-safe. Slightly more work: field on Create/Edit, import/export columns, backfill decision for existing rows. Could default from the type at creation to keep data entry cheap. |
+
+**Contract impact is lower than [[CR-035]].** This is an **additive** field — existing consumers ignore an unrecognised key, so Amazon's integration is unaffected in behaviour. It still changes the `/api/v1/certificates*` response shape, so partner notice is required per [[feedback_amazon_api_immutable]], but it does not require Amazon to re-certify the way a change to `status` semantics would. Note the frozen-baseline contract test (`Scripts/smoke-prod/amazon-contract-diff.js`) reports *any* added field as a contract change — expect it to go red on purpose, and re-baseline deliberately rather than treat it as a failure.
+
+**Decisions required before this can be estimated:**
+
+1. **Does GCC version its standards?** If no, close this CR as not-applicable and say so in the partner guide.
+2. **Certificate-level or type-level?** (Recommended: certificate-level, defaulting from the type — see table above.)
+3. **Free text, or a managed version list per certification type?** Free text is far cheaper and matches how `CertificationResults` was handled; a managed list gives clean partner data and validation.
+4. **Backfill?** Existing certificates would report no version until someone populates them. Leave null, backfill in bulk, or backfill only the certificates in partner scope?
+5. **Where else does it surface?** API only, or also the certificate detail view, CSV import/export template, and the certificate PDF?
+
+- **Interim position:** the partner guide does not promise a standard version, and Novi can be onboarded without one. This gap does not block anything today; it only limits how completely we satisfy Novi's *ideal* structure.
+- **Related:** [[CR-035]] (the other Novi gap — certificate status semantics; larger and structural) · DEF-345 (rate limiting, same review).
+- **Status:** **Proposed — not built.** No code written. Needs the five answers above, starting with question 1, which may retire it entirely.
+
+### CR-035 (proposed 2026-08-10) — Partner API: expose certificate status as a value (Valid / Expired / Revoked) instead of by presence
+
+- **Source:** Anuki, 2026-08-10, while resolving the §4 open decision in `docs2/exports/PARTNER_API_INTEGRATION_GUIDE.html` against the client-supplied **Novi Data Exchange Guidance** (2026-07-31). Novi's "ideal data structure" asks certifying bodies for a **Certification status** field carrying *Valid · Expired · Revoked/invalid*. The partner API cannot supply it.
+- **Why CR, not a defect:** nothing is broken. The current behaviour is deliberate and documented — it was built for **badging**, where only currently-valid certificates matter, and it is the contract Amazon signed off on. Novi's use case is **claim validation** (confirming or refuting a brand's assertion against the GCC ledger), which is a materially different question to ask of the same data. Serving it is new capability, not a fix.
+
+**What the API does today.** Validity is expressed by *presence*, not by a value:
+
+| Mechanism | Where |
+|---|---|
+| Partner list queries filter on `CertificateStatusHelper.PublicStatuses` = {Client Approved - Paid, Republished} | `Controllers/Api/v1/CertificatesController.cs:173,201` |
+| Single-certificate lookups apply the same filter, else `404` | `:388,442` |
+| `status` is the hardcoded literal `"Active"` for partner callers | `:251,315` |
+
+A certificate in any other state is simply absent, and **absence is deliberately ambiguous** — expired, on hold, confidential, draft, never issued, and not-linked-to-your-account are indistinguishable, because collapsing them prevents a partner key being used to enumerate out-of-scope certificates.
+
+**This is bigger than adding a field. Three things make it so:**
+
+1. **There is no "revoked" state to report.** The lifecycle has eight states (`Models/CertificateStatus.cs`) and none of them is revocation. Emitting `Revoked` means either adding a ninth state or designating an existing one to mean it — i.e. **a change to the 8-state workflow**, which is otherwise a protected invariant of this build. That decision belongs to the client, not to an API change.
+2. **It is a disclosure decision, not a serialisation change.** Returning expired or held certificates means showing partners records they have never been able to see. **`Client Approved - Confidential` is paid-but-embargoed** — the client explicitly opted to keep those private (DEF-223). Any expansion must state, state by state, which become partner-visible; "return everything with a status label" would break a promise the client made to its own customers.
+3. **It touches a frozen contract.** `/api/v1/certificates*` response shape is immutable without partner sign-off. Changing `status` from a constant to a variable is a breaking semantic change for **every existing consumer** — Amazon's integration currently has no reason to branch on it and may treat every returned record as valid. Amazon would need to re-certify their side even though the change is for Novi's benefit.
+
+**Decisions required before this can be estimated:**
+
+1. **Which states become visible, and under what label?** Per-state mapping to the exposed value, explicitly including whether Confidential stays hidden (recommended: yes, stays hidden).
+2. **Does "Revoked" get created at all?** If yes, it is a workflow change with UI, transition and reporting consequences well beyond the API.
+3. **Opt-in per partner, or global?** A per-key flag (e.g. `includeInactive`) keeps Amazon's payload byte-identical and confines the change to partners who ask for it. A global change is simpler to build and worse to ship.
+4. **Does absence stay ambiguous for out-of-scope certificates?** Even with expanded statuses, "not associated with your account" must remain indistinguishable from "does not exist", or the enumeration protection is lost.
+5. **Is the 404 path in scope?** Novi's validation flow (`/certificates/number/{n}`) is where this matters most — a `404` there currently cannot be distinguished from revocation, which is the specific misreading most likely to cause harm.
+
+- **Interim position, already documented:** the guide now states the presence/absence model plainly, warns that **a `404` is not evidence of revocation**, and flags to GCC that a claim-validation partner may need more than this contract offers. Novi can be onboarded today for badging-style use; claim validation works only if they accept presence/absence as the signal.
+- **Related:** DEF-345 (rate limiting, same guide review) · [[feedback_amazon_api_immutable]] · [[feedback_workflow_state_count]] · [[feedback_partner_data_isolation]].
+- **Status:** **Proposed — not built.** No code written; the guide documents current behaviour only. Needs client decisions on the five points above, and partner sign-off from Amazon before anything ships.
+
 ### CR-034 (proposed 2026-08-04) — Audit History screen + one-click record restore
 
 - **Source:** Shawn, 2026-08-04 — *"review the Audit history table and ensure there is coverage if the client needs to revert a record."* Raised while resuming the DEF-337 delete-audit work.

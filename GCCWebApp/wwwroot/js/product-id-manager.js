@@ -1459,6 +1459,13 @@ class ProductIdManager {
         const rawHeaders = this.parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
         const parsedProductIds = [];
 
+        // DEF-342 (QC #171): the template's Partner heading now carries the client's parenthetical hint
+        // ("Partner (separate by comma)"), so an exact `productId.partner` lookup would miss it
+        // and silently import every row with no partner. Resolve the column by prefix — the same
+        // tolerance the certificate importer has server-side (DEF-202/DEF-316). Older templates
+        // and exported files that say plain "Partner" keep matching on the exact key.
+        const partnerHeader = rawHeaders.find(h => h === 'partner' || h.startsWith('partner ')) || 'partner';
+
         // Parse data rows
         for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -1493,7 +1500,7 @@ class ProductIdManager {
                 rowNumber: i,
                 productIdType: type.toUpperCase(),
                 productIdValue: value,
-                partner: productId.partner || '',
+                partner: productId[partnerHeader] || '',
                 productName: productId.productname || productId['product name'] || '',
                 productSku: sku,
                 description: productId.description || ''
@@ -2223,7 +2230,17 @@ class ProductIdManager {
         // Order matches the on-screen Product ID Manager table and the in-memory export
         // (Type, Product ID, Product Name, SKU, Partner, Description) so users see one
         // consistent column order across UI, export, and import template.
-        const csvContent = "Type,Product ID,Product Name,SKU,Partner,Description";
+        // DEF-342 / QC #171 (re-flagged 2026-08-07): the client asked for the separator hint in the
+        // Partner column heading of the template behind the Product Identifiers "Template"
+        // button. DEF-316 added it to the *certificate import* template — a different file,
+        // reached from a different button — which is why this one still read plain "Partner".
+        // Wording is client-specified; do not reword ([[feedback_client_requested_labels_immutable]]).
+        //
+        // Headers are quoted because "Partner (separate by comma)" contains a comma: unquoted,
+        // every CSV reader (Excel included, per RFC 4180) would split it into two columns.
+        // Comma is genuinely accepted on the way back in — getPartnerList() splits on /[|,]/ and
+        // the backend SyncPartners splits on '|'/',' — so the hint is truthful, not aspirational.
+        const csvContent = '"Type","Product ID","Product Name","SKU","Partner (separate by comma)","Description"';
 
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);

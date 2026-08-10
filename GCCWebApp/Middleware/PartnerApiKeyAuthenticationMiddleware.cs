@@ -140,10 +140,22 @@ namespace GCCWebApp.Middleware
                     new Claim("partner_id", keyDetails.PartnerId.ToString()),
                     new Claim("partner_name", keyDetails.Partner.Name),
                     new Claim("api_key_id", keyDetails.Id.ToString()),
-                    new Claim("partner_rate_limit", keyDetails.RateLimitPerHour?.ToString() ?? "2000"),
                     new Claim(ClaimTypes.Role, "Partner"),
                     new Claim(ClaimTypes.AuthenticationMethod, "PartnerApiKey")
                 };
+
+                // DEF-345: emit the rate-limit claim ONLY when this key carries an explicit override.
+                // Previously this was `RateLimitPerHour?.ToString() ?? "2000"`, which meant every key
+                // (all of them have a NULL column) reported a hardcoded 2,000/hr and permanently
+                // shadowed the configured platform default in Program.cs. Leaving the claim off when
+                // the column is NULL lets ApiRateLimitingMiddleware fall through to
+                // RateLimitOptions.PartnerApiKeyLimit, so configuration is the single source of truth
+                // and this column is a genuine per-key override.
+                if (keyDetails.RateLimitPerHour.HasValue)
+                {
+                    claims.Add(new Claim("partner_rate_limit",
+                        keyDetails.RateLimitPerHour.Value.ToString()));
+                }
 
                 var identity = new ClaimsIdentity(claims, "PartnerApiKey");
                 var principal = new ClaimsPrincipal(identity);

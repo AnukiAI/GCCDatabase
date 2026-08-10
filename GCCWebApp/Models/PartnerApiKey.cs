@@ -65,8 +65,10 @@ namespace GCCWebApp.Models
         public int RequestCount { get; set; } = 0;
 
         /// <summary>
-        /// Rate limit for this partner (requests per hour)
-        /// null = no rate limit
+        /// Per-key rate limit override, in requests per hour.
+        /// null = use the platform default for partner keys (RateLimitOptions.PartnerApiKeyLimit,
+        /// configured in Program.cs). It does NOT mean "unlimited" — DEF-345 corrected this comment,
+        /// which previously said "no rate limit" and never matched the behaviour.
         /// </summary>
         public int? RateLimitPerHour { get; set; }
 

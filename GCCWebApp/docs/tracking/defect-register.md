@@ -7800,9 +7800,9 @@ Note the "View" control uses the same thumbnail URL as the preview (there is no 
 
 ---
 
-### DEF-338 — Partner API rate limiting never applies: the limiter runs before authentication, so every partner key is throttled as anonymous (100/hr, bucketed by IP)
+### DEF-345 — Partner API rate limiting never applies: the limiter runs before authentication, so every partner key is throttled as anonymous (100/hr, bucketed by IP)
 
-**Date:** 2026-08-06 | **Status:** **Open — not fixed.** Diagnosis only; no code changed. | **Severity:** **Major (partner-facing).** Partners get 1/2 the documented throughput, share one bucket across organisations, and we send them a limit header that contradicts both developer guides. | **QC Ref:** none — found by Anuki while settling a contradiction between the Amazon Developer Guide (200/hr) and the new generic Partner API Integration Guide (2,000/hr). **Found by:** Anuki. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-06 | **Status:** **FIXED 2026-08-10 — verified on localhost:5101, not yet deployed.** See *Fix* at the end. | **Severity:** **Major (partner-facing).** Partners get 1/2 the documented throughput, share one bucket across organisations, and we send them a limit header that contradicts both developer guides. | **QC Ref:** none — found by Anuki while settling a contradiction between the Amazon Developer Guide (200/hr) and the new generic Partner API Integration Guide (2,000/hr). **Found by:** Anuki. | **Reporter:** Anuki (internal).
 
 **How it surfaced.** `docs2/exports/PARTNER_API_INTEGRATION_GUIDE.html` §2 carried a TBD asking which rate limit to publish, because the two guides disagreed by 10×. Neither number turned out to be reachable.
 
@@ -7841,7 +7841,64 @@ The counter ran **98 → 97 → 96 across all three**. The authenticated call di
 
 > **Do not publish the partner guide until this lands.** §2 states 200/hr while the server sends 100 — shipping the doc first hands a partner a number we do not honour.
 
-**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_amazon_api_immutable]], [[feedback_confirm_means_falsifiable]], [[feedback_verify_deployed_asset_not_symptom]].
+---
+
+## Fix (2026-08-10) — verified locally, **not yet deployed**
+
+**Two changes were required, not one.** The ordering move alone would have produced 2,000/hr, not the agreed 200.
+
+1. **Ordering.** `app.UseApiRateLimiting()` moved from `Program.cs:599` to below `PartnerApiKeyAuthenticationMiddleware`, and above `UseAuthorization()` so throttling still applies to callers who authenticate but are then denied. A comment at the old site records why it must not live there.
+2. **The hardcoded fallback that shadowed configuration.** `PartnerApiKeyAuthenticationMiddleware.cs:143` emitted `RateLimitPerHour?.ToString() ?? "2000"` — and since every key's column is NULL, *every* key would have reported 2,000/hr the moment the claim became readable, permanently overriding `Program.cs:403`. The claim is now emitted **only when the column has an explicit value**, so NULL falls through to `RateLimitOptions.PartnerApiKeyLimit` (200). Configuration is now the single source of truth and the column is a genuine per-key override.
+3. **`Models/PartnerApiKey.cs:69` comment corrected** — NULL means "platform default", never meant "unlimited".
+
+**Verification (localhost:5101, dev DB, 2026-08-10).** Build clean, 0 errors. Same probe as the diagnosis:
+
+| # | Auth | HTTP | `X-RateLimit-Limit` | `Remaining` |
+|---|---|---|---|---|
+| A | none | 401 | 100 | 96 |
+| B | invalid key | 401 | *(none — see regression below)* | — |
+| C | **valid partner key** | 200 | **200** | **199** |
+| C2 | valid key again | 200 | 200 | **198** |
+| A2 | none | 401 | 100 | **95** |
+
+**The assertion this defect asked for now holds:** call C starts a fresh bucket at 199 instead of continuing the anonymous counter. The buckets are provably independent — C→C2 ran the partner counter 199→198 while the anonymous counter was untouched, and A2 then resumed at 95 exactly where A stopped. Per-key bucketing at 200/hr.
+
+### Regression introduced by this fix — invalid keys are no longer throttled by this middleware
+
+`PartnerApiKeyAuthenticationMiddleware` short-circuits with 401 and never calls `_next` for a bad key (`:68-88`). With the limiter now below it, **invalid-key requests are neither counted nor throttled by `ApiRateLimitingMiddleware`** — visible above as row B losing its headers. Previously every failed attempt consumed the caller's IP allowance, so API-key spraying was slowed; it no longer is at this layer.
+
+**Mitigation, and where it does not reach.** `app.UseIpRateLimiting()` (`Program.cs:648`) runs before authentication and does cover unauthenticated traffic — `*/api/*` at 60/min, 1,000/hr, 5,000/day per IP in Production. But it is wrapped in `if (!app.Environment.IsDevelopment())`, so **in Development there is now no throttle on invalid-key attempts at all.** Production, Staging and Test all set `EnableEndpointRateLimiting: true` and retain the backstop.
+
+**Not attempted deliberately.** The reflex fix — registering the limiter both before and after authentication — double-counts valid partner traffic against the anonymous IP bucket and would reinstate the 100/hr ceiling this defect just removed. A correct version needs single-increment-per-request semantics with a re-keyed bucket after identity resolves. Left for a decision rather than guessed at.
+
+**Also worth noting for capacity planning:** the per-IP ceiling (1,000/hr) now sits above the per-partner limit (200/hr), so partners sharing a cloud NAT egress begin contending at roughly five partners deep. Not a defect; a number to remember when onboarding.
+
+### Regression pass (2026-08-10) — clean across four layers
+
+**1. .NET suite — no regressions, proven by differential run rather than by matching totals.** 657 passed / 76 failed / 733 with the fix. The 76 failures land in `PartnerApiScopingTests` and `MultiPartnerApiIntegrationTests` — *the exact area this fix touches* — so a matching count was not good enough. Stashed the three changed files, re-ran at HEAD, and diffed the failing test names: **76 baseline vs 76 with-fix, zero new, zero fixed, name-for-name identical.** Sample failure message is byte-identical in both runs (`Expected data.GetArrayLength() to be 2 ... but found 0`) — an empty seed fixture, the known DEF-326 signature, not an auth or 429 failure.
+
+**2. Security P0 gate — GREEN.** `Scripts/smoke-prod/_security/run-all.js`: partner-isolation 21P, rbac-matrix 24P, idor-download 2P, cert-detail-scoping 10P = **57P / 0F / 0W / 0B**.
+
+**3. Amazon contract diff (Gate 4) — `CONTRACT UNCHANGED`.** 7 passed / 0 failed against the frozen April baselines. This mattered more than usual here: the fix alters the partner authentication path, and [[feedback_amazon_api_immutable]] freezes the `/api/v1/certificates*` shape.
+
+**4. New spec pinning the activated branches.** `Scripts/smoke-prod/_security/def338-rate-limit-tiers.js` — **5 PASS / 0 FAIL / 1 WARN**:
+
+| Check | Result |
+|---|---|
+| anonymous → `AnonymousLimit` | 100 ✅ |
+| partner key → `PartnerApiKeyLimit` | HTTP 200, 200 ✅ |
+| **partner and anonymous are independent buckets** | partner 199→198 (limit 200) while anon 98→97 (limit 100) ✅ |
+| analyst → `AuthenticatedLimit` | 500 ✅ |
+| admin → `AdminLimit` | 5,000 ✅ |
+| invalid key unthrottled | **WARN** — known regression, pinned deliberately |
+
+Every one of those four tiers had never executed before this fix; the spec exists so they cannot silently drift again. The invalid-key row is recorded as **WARN rather than FAIL** because it is a known accepted state — and it is written to flip to PASS with a "update the register" message if the gap is ever closed, so it reports the change instead of quietly going green.
+
+> **Not wired into `run-all.js`.** The spec reads the partner key from `DEF338_PARTNER_KEY`; without it the partner rows go BLOCKED, and `run-all.js` exits non-zero on any BLOCKED. Adding it as-is would turn the P0 deploy gate red on every machine that does not export the key. Run it standalone, or decide how the suite should source a partner key before adding it to `SPECS`.
+
+**Still to do before this closes:** deploy, re-run the tier spec against the deployed server (per [[feedback_verify_deployed_asset_not_symptom]] — a local pass is not proof the deployed asset behaves), then delete the BLOCKED block from `PARTNER_API_INTEGRATION_GUIDE.html` §2. The invalid-key regression remains open and needs its own decision.
+
+**Linked memory.** [[feedback_track_every_fix_in_defect_register]], [[feedback_amazon_api_immutable]], [[feedback_confirm_means_falsifiable]], [[feedback_verify_deployed_asset_not_symptom]], [[feedback_scoping_check_adjacent_endpoints]].
 
 ---
 
@@ -8921,3 +8978,96 @@ It remains a local function rather than delegating to `AdminCore.showConfirmatio
 **Validation (2026-08-05).** `node --check wwwroot/js/certificate-create.js` → clean. JS/CSS only, no C# touched, no build or migration required. **Visual confirmation still outstanding** — Chrome automation cannot reach the dev server from this session, so the rendered dialog needs a human look on :5101: open a certificate whose *stored* status is Expired, edit any field, click Save.
 
 **Lesson.** A component with two implementations has one that is quietly wrong. The tell here was a caller passing `type: 'warning'` into a function that has no `type` parameter at all — copied from the AdminCore signature, into a renderer that never implemented it.
+
+---
+
+### DEF-342 — QC #171 "still not fixed": the separator hint was added to the certificate import template, but the client was looking at the *Product Identifiers* template
+
+**Date:** 2026-08-07 | **Status:** Fixed (`wwwroot/js/product-id-manager.js`, `Controllers/Api/ProductIdApiController.cs`) — **not yet deployed** | **Severity:** Minor (client-visible copy) — but it is the **third** time this item has been reported closed and re-opened | **QC Ref:** **#171** (Reporter: client, opened 2026-05-05; re-flagged 7/30, re-flagged again **2026-08-07** — *"This small edit is still not fixed. We reviewed last week but I am still not seeing it corrected."*). **Found by:** client. | **Reporter:** Anuki (internal).
+
+**Client repro (2026-08-07, verbatim).** *"Add Certificate > Scroll to Product Identifiers > Select Template button. The spreadsheet still does not have the final copy as requested."*
+
+**Why we kept reporting this fixed when it wasn't — the actual failure.** There are **two different "Template" download buttons** in this application, and DEF-316 fixed the other one:
+
+| Button | Route to it | Produces | Header before this fix |
+|---|---|---|---|
+| Certificate Import → Template | `/CertificateImport/DownloadTemplate` (server, C#) | certificate import template CSV | `Partner (separate by comma)` — fixed by DEF-316, 7/31 |
+| **Add Certificate → Product Identifiers → Template** | `product-id-manager.js::downloadSample` (**client-side, no server round-trip**) | `product-ids-sample.csv` | **`Partner`** — never touched |
+
+DEF-316's validation was real and is still passing — it downloaded the file, imported it, and confirmed both partners resolved. It validated **the wrong file**. The client's repro path names the button and the section; ours named an endpoint. Nobody compared the two. This is [[feedback_scoping_check_adjacent_endpoints]] in a new shape: not a missed *sibling endpoint*, but a missed **second implementation of the same artifact**, one of which never touches the server.
+
+**Fix.**
+1. `product-id-manager.js::downloadSample` header now reads `"Type","Product ID","Product Name","SKU","Partner (separate by comma)","Description"`. Client-specified wording, not reworded ([[feedback_client_requested_labels_immutable]]).
+2. **Headers are now quoted.** `Partner (separate by comma)` contains a comma; unquoted, every RFC 4180 reader — Excel included — splits it into two columns and the template arrives visibly broken. This is why the change is not a one-word string swap.
+3. **Parser tolerance added, and this was the real risk.** The importer built its row object from lowercased headers and read `productId.partner` by **exact key**. With the new heading that key becomes `partner (separate by comma)`, so `productId.partner` would be `undefined` and **every imported row would have silently arrived with no partner** — a data-loss bug introduced by a copy change. `parseAndPreviewCSV` now resolves the column by prefix (`h === 'partner' || h.startsWith('partner ')`), the same tolerance `CertificateImportService.GetFieldWithMapping` has server-side (DEF-202/DEF-316).
+4. `ProductIdApiController.DownloadSampleCsv` (`GET api/productids/sample-csv`) carries a byte-identical copy. **Nothing calls it** — the UI button is pure client-side — but it had already drifted, so it was aligned rather than left as a second wrong answer.
+
+**The advertised separator is truthful — verified, not assumed.** `getPartnerList()` splits on `/[|,]/` and the backend `SyncPartners` splits on pipe and comma, so comma-separated input resolves to the M2M correctly. No parser change was needed for the *values*, only for the *header*.
+
+**Validation (2026-08-07, Node harness against the real module — not a re-implementation).** Loaded `product-id-manager.js`, extracted the literal string `downloadSample` writes, and ran it through the real `parseCSVLine` / `getPartnerList`:
+
+| Check | Result |
+|---|---|
+| Template header parses to **6** columns (comma inside the quoted heading does not split) | PASS |
+| Partner column resolves by prefix to `partner (separate by comma)` | PASS |
+| Data cell `"Amazon, Novi"` splits to `["Amazon","Novi"]` | PASS |
+| **Back-compat:** old template / exported file with plain `Partner` and pipe-delimited values still splits to `["Amazon","Novi"]` | PASS |
+
+**Left alone deliberately.** The **Export** button (`product-id-manager.js:2191`) still writes a plain `Partner` header with pipe-delimited values. The client asked about the template; export round-trips correctly through the new prefix matching either way ([[feedback_only_requested_changes]]). Flagged only so the inconsistency is a known choice, not a second surprise.
+
+**Lesson.** "Still not fixed" after we validated it end-to-end means we validated a different artifact. Reproduce through the **client's stated click path**, not through the endpoint we believe is behind it.
+
+---
+
+### DEF-343 — Certification Type renders blank on Edit whenever the stored type is a child type; the required field then silently rewrites itself on save
+
+**Date:** 2026-08-07 | **Status:** Fixed (`Controllers/CertificateController.cs`) — **not yet deployed** | **Severity:** **High** — no data is lost today, but the next save of an affected certificate silently changes its certification type | **QC Ref:** new, 2026-08-07 (Reporter: client). **Found by:** client. | **Reporter:** Anuki (internal).
+
+**Client report (verbatim).** *"When I went back to test a prior cert change the Certification Type field was empty under the edit page. Even though it's required and the preview had one listed. Please make sure data is staying (we had a similar issue prior with product types). The one I experienced with was 26-10090."*
+
+**The data is intact — this is a rendering fault. Measured on the client's own environment** (`gccwebap_certificates`, per [[feedback_diagnose_on_clients_environment]]):
+
+| Number | CertificationTypeId | Type name | ParentId | IsActive |
+|---|---|---|---|---|
+| 26-10090 | **117** | Recyclable Material | **6** (Certified Sustainability Facts) | 1 |
+
+**Root cause.** The Certification Type `<select>` is populated from `ViewBag.ParentCertificationTypes`, built as `allCertTypes.Where(ct => ct.ParentId == null && ct.IsActive)` — **top-level types only**. Certificate 26-10090's type is a **child** (ParentId 6), so no option with `value="117"` is emitted, `asp-for` finds nothing to select, and the control falls back to the `Select type...` placeholder. `CertificationTypes` is hierarchical by design ([[feedback_certtypes_hierarchy]]), so a certificate legitimately pointing at a child type is not corrupt data.
+
+The detail/preview page contradicts the Edit page because it reads the navigation property (`Model.Certificate.CertificationType.Name`), which resolves regardless of depth or active state. **The preview was right; Edit was wrong.** The client's instinct — "the preview had one listed" — was the correct signal.
+
+**Why this is High and not cosmetic.** The field carries `required`. An analyst opening 26-10090 to change something unrelated cannot submit until they pick a type, and the only types offered are top-level ones. Saving therefore **overwrites `Recyclable Material` with a different type**, with no warning and nothing in the UI indicating a value was replaced. The client's "please make sure data is staying" is the right worry aimed one step early: the loss happens on the *next* save, not the one already made.
+
+**A second trigger, same fault, not yet observed in the wild:** the filter also requires `IsActive`. Deactivating a certification type in Admin blanks the field on **every** certificate using it, with the same silent-rewrite consequence. Both are closed by the same fix.
+
+**Fix.** New `BuildCertificationTypeOptions(allCertTypes, selectedId)` returns the top-level active list **plus the currently-selected type when it is not already present**. Wired into both Edit paths — the `Edit` GET (uses `certificate.CertificationTypeId`) and `ReloadEditFormDataAsync` (re-queries by `certificateId`, so a validation re-render cannot drop it either). Create is untouched: it has no stored value, so its behaviour is unchanged.
+
+**Validation (2026-08-07).** `dotnet build` → **0 errors**. DB evidence above obtained read-only from the client's environment (SELECT only; no data change — [[feedback_data_changes_require_cr]]). **Still needs a human look on the running site:** open `/Certificate/Edit/26-10090` and confirm the field reads **Recyclable Material** rather than the placeholder.
+
+**Related, and worth a decision separately.** Nothing prevents a child type being assigned as a certificate's primary type in the first place. This fix makes the stored value display and round-trip correctly; whether child types *should* be selectable as the primary type is a requirements question, not a defect.
+
+---
+
+### DEF-344 — Certificate detail/preview shows only the first partner; the second is stored correctly and visible everywhere else
+
+**Date:** 2026-08-07 | **Status:** Fixed (`Views/Certificate/CertificateInternalView.cshtml`) — **not yet deployed** | **Severity:** Major — under-reports partner associations on the certificate's own detail page | **QC Ref:** new, 2026-08-07 (Reporter: client). Same family as **DEF-321** (still open). **Found by:** client. | **Reporter:** Anuki (internal).
+
+**Client report (verbatim).** *"Under Admin login I added a second partner under a cert. Had Amazon, selected Novi too. Novi is not showing on preview page. When I go in to edit cert I can see both selected and it's on the tile listing. Cert 26-10091."*
+
+**Confirmed on the client's environment — the data is correct; the page is not.**
+
+| Source | 26-10091 |
+|---|---|
+| `CertificatePartners` (M2M, the source of truth) | **Amazon, Novi** — correct |
+| `Certificates.Partner` (denormalized column) | **`Amazon`** only |
+| Edit form, tile listing | both — correct (they read the collection) |
+| Detail / preview page | **`Amazon`** only — wrong |
+
+**Root cause.** `CertificateInternalView.cshtml` rendered `Model.Certificate.Partner` — the **denormalized single-value column**, which `SyncCertificatePartnersAsync` sets to the *first matched name*. CR-171 made certificates multi-partner via the `Partners` collection; this view was never moved across. The collection is already `Include`d by `GetCertificateByNumberAsync` (`CertificateRepository.cs:109`), so no query change was needed.
+
+Exactly [[feedback_column_exists_but_never_projected]] / [[feedback_denormalized_copy_width_mismatch]]: the M2M is right, and a stale denormalized copy is what gets read. **DEF-321 is the same bug in the CSV export** and is still open — this raises the count of confirmed surfaces reading `Certificates.Partner` instead of `Partners` to two.
+
+**Fix.** Render the `Partners` collection joined with `", "`, filtering blanks and `"None"`. Falls back to the denormalized string when the collection is empty, so pre-CR-171 rows still display.
+
+**Scoped to the internal view on purpose.** `CertificateExternalView.cshtml:22,87-89` has the identical fault, but the right *output* there is not the same question — showing co-partners to an Amazon-scoped viewer would contradict [[feedback_partner_data_isolation]], and the per-role answer (Admin/Analyst see all; a partner sees only itself) is the **same unresolved decision that has DEF-321 parked**. Fixing it blind would risk a cross-partner leak in order to close a display bug. The client reported this under **Admin login**, which the internal view serves, so the reported defect is closed; the external view is deliberately deferred to the DEF-321 triage rather than guessed at.
+
+**Validation (2026-08-07).** `dotnet build` → **0 errors**; confirmed the edited view actually compiled by finding the new `partnerNames` local in the built `GCCWebApp.dll` (Razor compiles into the assembly, so "it built" alone would not have proven the view was exercised). DB evidence above is read-only. **Still needs a human look:** open 26-10091's detail page and confirm it reads `Amazon, Novi`.

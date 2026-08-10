@@ -499,7 +499,12 @@ namespace GCCWebApp.Controllers.Api
                 // CR-015: Status removed from sample CSV — auto-derived from parent cert.
                 // DEF-111: column order matches the on-screen Product ID Manager table
                 // and the in-memory export.
-                var sampleCsv = "Type,Product ID,Product Name,SKU,Partner,Description";
+                // DEF-342 (QC #171, 2026-08-07): Partner heading carries the client's separator hint, and
+                // the headers are quoted because that hint contains a comma. Kept byte-identical
+                // to the client-side template in wwwroot/js/product-id-manager.js::downloadSample,
+                // which is what the UI's "Template" button actually serves — nothing calls this
+                // endpoint today, so the two drifting apart would be silent.
+                var sampleCsv = "\"Type\",\"Product ID\",\"Product Name\",\"SKU\",\"Partner (separate by comma)\",\"Description\"";
                 var sampleData = System.Text.Encoding.UTF8.GetBytes(sampleCsv);
                 return File(sampleData, "text/csv", "product_ids_sample.csv");
             }

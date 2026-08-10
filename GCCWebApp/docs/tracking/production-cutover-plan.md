@@ -61,6 +61,78 @@ Leaving it as-is is not an option. This is a **cutover blocker**, not a nice-to-
 
 ---
 
+## 2a. Interim — making Forgot Password (#150) and 2FA (#151) testable on the test env *now*
+
+**Added 2026-08-07.** Client asked to be able to test both in prep for go-live. Sequencing decided by
+Shawn the same day: **throwaway/dev mailbox now, real client SMTP before cutover; email proven first,
+2FA flipped only after.** This section is the interim path — §2 remains the cutover path and is
+unchanged.
+
+### Why neither is testable today (measured, not assumed)
+
+`gccwebapp.com` runs `ASPNETCORE_ENVIRONMENT=Production` (`web.config:15`), so it loads
+`appsettings.json` then `appsettings.Production.json`. That second file overrides:
+
+| Setting | Production value | Consequence |
+|---|---|---|
+| `SmtpSettings:Host` / `:Username` / `:Password` | **`""`** (all three) | `Program.cs:494-516` requires all three non-empty; otherwise it selects **`MockEmailService`** — reset links and 2FA codes are generated, logged, and **never sent** |
+| `Authentication:Enable2FA` | **`false`** | 2FA is off entirely (it is `true` only in `Staging`/`Test`, and nothing is deployed as either) |
+| `SmsSettings:Provider` | inherited **`"mock"`** (no Production override) | SMS codes are not delivered either — see §1a |
+
+**Useful split:** Forgot Password needs **only** working email and is independent of the `Enable2FA`
+flag. It is the cheap half and can be proven first, on its own. 2FA is the half that carries the
+lockout risk in §1.
+
+### The injection point — and why not to commit the credential
+
+`WebApplication.CreateBuilder(args)` (`Program.cs:22`) uses the default configuration order, in which
+**environment variables are applied *after* `appsettings.Production.json`**. So env vars override the
+empty strings with **no repo change at all**:
+
+```
+SmtpSettings__Host       = smtp.gmail.com          (double underscore = section separator)
+SmtpSettings__Port       = 587
+SmtpSettings__EnableSsl  = true
+SmtpSettings__Username   = <throwaway mailbox>
+SmtpSettings__Password   = <app password>
+SmtpSettings__FromEmail  = <throwaway mailbox>
+SmtpSettings__FromName   = GCC Database - Test
+```
+
+**Do not put these in `appsettings.Production.json`.** That file is in git, and a committed SMTP
+password is exactly [[security-plaintext-gmail-credential]] / **DEF-263**, which is still open. The
+Gmail app password already sitting in `appsettings.json` should not be reused as the answer here —
+fixing #150 by widening an existing credential leak trades one defect for a worse one.
+
+> ⚠️ **Deploy-fragility — this is the part that will bite.** On this Plesk/IIS host, environment
+> variables live in `web.config` under `<aspNetCore><environmentVariables>`, and **`web.config` is in
+> the repo and is overwritten by `dotnet publish`**. Any SMTP values added on the server are lost on
+> the next deploy, silently reverting to `MockEmailService` — which fails *quietly* (mail simply stops
+> sending; nothing errors). Treat re-applying them as a post-deploy step, in the same family as
+> Gate 7 and Gate 10 in the pre-deploy checklist.
+
+### Steps (interim)
+
+| # | Activity | Owner | Status |
+|---|---|---|---|
+| 2a.1 | Choose the throwaway mailbox: a dedicated dev Gmail with an app password, **or** a capture service (Mailtrap / smtp4dev) if we would rather nothing leaves the network at all. | Shawn | ☐ |
+| 2a.2 | Set the seven `SmtpSettings__*` variables on the server and restart the app. | Shawn (Plesk access) | ☐ |
+| 2a.3 | **Verify `EmailService` was selected, not `MockEmailService`** — from the startup log, not from the config file. All three of Host/Username/Password must be non-empty; one blank silently reverts to mock, with no error. | — | ☐ |
+| 2a.4 | Test **#150**: `/Account/ForgotPassword` for a real test user → confirm the mail arrives, the link works (DEF-183 covered `+`/`/`/`=` in the token), the reset completes, and the new password logs in. | client / Shawn | ☐ |
+| 2a.5 | Enrol at least one admin on **TOTP** as break-glass *before* any 2FA flip. TOTP has no delivery dependency — it works even if email and SMS both fail (§3). | — | ☐ |
+| 2a.6 | Resolve the SMS trap per §1a — configure Twilio **or** hide the SMS option. A tester who selects SMS while the provider is `mock` is locked out at their *next* login, not the current one. | decision | ☐ |
+| 2a.7 | Only then set `Authentication:Enable2FA=true` **on the test env** and test **#151**. Keep the rollback in §3 to hand. | — | ☐ |
+
+**Note on the flag's blast radius.** `Enable2FA` lives in `appsettings.Production.json`, and the test
+env and real production both run as `Production`. Flipping it in the repo file turns 2FA on for
+*both*. Set it as an environment variable on the test host only (`Authentication__Enable2FA=true`), so
+the two environments can diverge without the repo committing to either.
+
+**Still blocked on the client (unchanged):** §2.1 real SMTP credentials, and the Duo scope decision
+(CR-033). The interim path above removes the dependency for *testing*, not for cutover.
+
+---
+
 ## 3. Break-glass and rollback — agree this before the flip, not during
 
 - **Rollback is a config flip:** set `Authentication:Enable2FA` to `false` and restart. **Confirm at

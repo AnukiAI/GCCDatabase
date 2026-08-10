@@ -109,9 +109,30 @@
                         <div class="certificate-field"><strong>Product Category:</strong> <span>@Html.Raw(Model.Certificate?.ProductCategory?.Name ?? "<span class='no-data'>—</span>")</span></div>
                         <div class="certificate-field"><strong>Product Type:</strong> <span>@Html.Raw(Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "<span class='no-data'>—</span>")</span></div>
                         <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@Html.Raw(Model.Certificate?.ProductSubcategory?.Name ?? Model.Certificate?.Product?.ProductSubcategory?.Name ?? "<span class='no-data'>—</span>")</span></div>
-                        @if (!string.IsNullOrEmpty(Model.Certificate?.Partner) && Model.Certificate.Partner != "None")
+                        @*
+                            DEF-344 (client 2026-08-07, cert 26-10091): render the Partners M2M
+                            collection, not the denormalized Certificates.Partner column. That column
+                            holds only the *first* matched name (SyncCertificatePartnersAsync), so a
+                            certificate carrying Amazon + Novi showed "Amazon" here while Edit and the
+                            tile listing — both of which read the collection — correctly showed both.
+                            Falls back to the denormalized string for rows written before CR-171.
+                        *@
+                        @{
+                            var partnerNames = Model.Certificate?.Partners?
+                                .Where(p => !string.IsNullOrWhiteSpace(p.Name) && p.Name != "None")
+                                .Select(p => p.Name)
+                                .ToList() ?? new List<string>();
+
+                            if (!partnerNames.Any()
+                                && !string.IsNullOrEmpty(Model.Certificate?.Partner)
+                                && Model.Certificate.Partner != "None")
+                            {
+                                partnerNames.Add(Model.Certificate.Partner);
+                            }
+                        }
+                        @if (partnerNames.Any())
                         {
-                            <div class="certificate-field"><strong>Partner:</strong> <span>@Model.Certificate.Partner</span></div>
+                            <div class="certificate-field"><strong>Partner:</strong> <span>@string.Join(", ", partnerNames)</span></div>
                         }
                         @if (Model.Certificate?.Pathway != null)
                         {

@@ -85,11 +85,20 @@ shipped log, pre-deploy checklist), `docs/qa/`, `docs/governance/`.
 **ALWAYS**: Check requirements, ask clarifying questions, review mockups, test changes
 
 ## Quick Credentials
-| User | Password | Role |
-|------|----------|------|
-| admin | TestPass123! | Admin |
-| analyst | TestPass123! | Analyst |
-| external | TestPass123! | External |
+| User | Seeded dev email | Password | Role |
+|------|------------------|----------|------|
+| admin | swest@anukiconsulting.com | TestPass123! | Admin |
+| analyst | jane.analyst@anukiconsulting.com | TestPass123! | Analyst |
+| external | external.user@anukiconsulting.com | TestPass123! | External |
+
+**Posting the login form programmatically** (curl / `Invoke-WebRequest` / smoke scripts): the field is
+named **`Email`**, not `Username` — but it accepts **either** a username or an email
+(`LoginViewModel.Email` is labelled "Email or Username"; the lookup is
+`u.Email == email || u.Username == email`, `AccountController.cs:1159`). So `Email=admin` and
+`Email=swest@anukiconsulting.com` both work; posting `Username=admin` silently fails and re-renders
+the login page as HTTP 200, which reads like a bad password rather than a wrong field name.
+An `__RequestVerificationToken` from a prior GET is also required. All three rows verified on
+localhost:5101, 2026-08-07 — each lands on its role-appropriate page.
 
 ## Feature Status
 All complete: Certificate Tiles, Infinite Scroll, Autocomplete, Shareable URLs, Product IDs, CSV Import/Export, 8-State Workflow, RBAC, Partner API, Database Filters

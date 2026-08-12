@@ -820,7 +820,7 @@ namespace GCCWebApp.Services
                     CsvCell(productId.ProductIdType),
                     CsvTextCell(productId.ProductIdValue),
                     CsvCell(productId.Status),
-                    CsvCell(productId.Partner),
+                    CsvCell(FormatPartnerList(productId.Partner)),
                     CsvCell(productId.ProductName),
                     CsvCell(productId.ProductSku),
                     CsvCell(productId.Description),
@@ -832,6 +832,36 @@ namespace GCCWebApp.Services
 
             await writer.FlushAsync();
             return memoryStream.ToArray();
+        }
+
+        /// <summary>
+        /// DEF-346: renders the stored partner list comma-delimited for export.
+        ///
+        /// <para><see cref="CertificateProductId.Partner"/> holds the denormalized list as the UI
+        /// wrote it — pipe-delimited (<c>product-id-manager.js</c> saves
+        /// <c>_partners.join('|')</c>, and the backend <c>SyncPartners</c> splits on both
+        /// <c>'|'</c> and <c>','</c>). Exporting that raw meant a user was handed
+        /// <c>Amazon|Novi</c> under a template heading that says
+        /// <em>"Partner (separate by comma)"</em> — told one thing, shown another. That is the
+        /// same "unclear when multiple" confusion behind QC #171, closed and reopened three
+        /// times.</para>
+        ///
+        /// <para>Normalising on the way OUT rather than changing what is stored keeps this a
+        /// display fix: no migration, no rewrite of live rows, and the save/import path is
+        /// untouched. Round-trip stays lossless because the import parser splits on either
+        /// delimiter, and <see cref="CsvCell"/> quotes the cell so an embedded comma cannot
+        /// split the column.</para>
+        /// </summary>
+        private static string FormatPartnerList(string? stored)
+        {
+            if (string.IsNullOrWhiteSpace(stored)) return string.Empty;
+
+            var names = stored
+                .Split(new[] { '|', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(n => n.Trim())
+                .Where(n => n.Length > 0);
+
+            return string.Join(", ", names);
         }
 
         // Characters that make Excel / Google Sheets treat a cell as a formula (CSV injection /

@@ -1,0 +1,55 @@
+{
+  "specId": "tag-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 7,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 7,
+  "results": [
+    {
+      "id": "tag.C1.create",
+      "name": "POST /Admin/CreateTag accepted",
+      "status": "PASS",
+      "notes": "HTTP 200 {\"success\":true,\"message\":\"Tag created successfully\",\"data\":null,\"errors\":[]}"
+    },
+    {
+      "id": "tag.C2.create-persisted",
+      "name": "tag row exists in DB",
+      "status": "PASS",
+      "notes": "id=1066"
+    },
+    {
+      "id": "tag.U1.update",
+      "name": "PUT /Admin/UpdateTag accepted",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "tag.U2.update-persisted",
+      "name": "edited name persisted",
+      "status": "PASS",
+      "notes": "db Name=\"ZZ_SmokeFixture_Tag_msnswcrq_ed\" expected=\"ZZ_SmokeFixture_Tag_msnswcrq_ed\""
+    },
+    {
+      "id": "tag.D1.delete",
+      "name": "DELETE /Admin/DeleteTag accepted",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "tag.D2.delete-removed",
+      "name": "tag row removed (hard delete)",
+      "status": "PASS",
+      "notes": "gone"
+    },
+    {
+      "id": "tag.INV",
+      "name": "Tags count net-zero after round-trip",
+      "status": "PASS",
+      "notes": "before=4 after=4"
+    }
+  ],
+  "finishedAt": "2026-08-10T22:26:22.152Z"
+}

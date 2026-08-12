@@ -1,0 +1,61 @@
+{
+  "specId": "user-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 8,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 8,
+  "results": [
+    {
+      "id": "user.pre",
+      "name": "role discovery + snapshot",
+      "status": "PASS",
+      "notes": "role=External users=83"
+    },
+    {
+      "id": "user.C1.create",
+      "name": "POST /Admin/CreateUser accepted",
+      "status": "PASS",
+      "notes": "HTTP 200 {\"success\":true,\"message\":\"User created successfully\",\"data\":null,\"errors\":[]}"
+    },
+    {
+      "id": "user.C2.create-persisted",
+      "name": "user row exists in DB",
+      "status": "PASS",
+      "notes": "id=124"
+    },
+    {
+      "id": "user.U1.update",
+      "name": "PUT /Admin/UpdateUser accepted",
+      "status": "PASS",
+      "notes": "HTTP 200 {\"success\":true,\"message\":\"User updated successfully\",\"data\":null,\"errors\":[]}"
+    },
+    {
+      "id": "user.U2.update-persisted",
+      "name": "edited name persisted",
+      "status": "PASS",
+      "notes": "db FullName=\"ZZ_SmokeFixture_User_msnq571a_ed\" expected=\"ZZ_SmokeFixture_User_msnq571a_ed\""
+    },
+    {
+      "id": "user.D1.delete",
+      "name": "DELETE /Admin/DeleteUser accepted",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "user.D2.delete-softdeleted",
+      "name": "user soft-deleted (IsDeleted=1)",
+      "status": "PASS",
+      "notes": "IsDeleted=1"
+    },
+    {
+      "id": "user.INV",
+      "name": "Users count net-zero after round-trip",
+      "status": "PASS",
+      "notes": "before=83 after=83"
+    }
+  ],
+  "finishedAt": "2026-08-10T21:09:39.448Z"
+}

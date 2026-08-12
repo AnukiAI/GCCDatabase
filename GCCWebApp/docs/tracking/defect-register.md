@@ -7800,6 +7800,50 @@ Note the "View" control uses the same thumbnail URL as the preview (there is no 
 
 ---
 
+### DEF-346 — Product ID export writes pipe-delimited partners under a heading that tells the user to use commas
+
+**Date:** 2026-08-10 | **Status:** **Fixed 2026-08-10 — verified against the live endpoint, not yet deployed.** | **Severity:** Minor (client-visible copy/data consistency) — but it sits directly on **QC #171**, which has been closed and reopened **three** times. | **QC Ref:** **#171** (Reporter: client, opened 2026-05-05; re-flagged 7/30 and 2026-08-07). **Found by:** Anuki — surfaced as advisory finding A1 of the Gate 1 pre-deploy audit for the 2026-08-10 bundle, then approved for fix by Shawn. | **Reporter:** Anuki (internal).
+
+**How it surfaced.** [[DEF-342]] put the client's requested separator hint — `Partner (separate by comma)` — into the Product Identifiers CSV **template**. Gate 1 then noticed the **export** still emitted `Amazon|Novi`. So the template instructed commas while the export demonstrated pipes: the user is told one thing and shown another, in the same column, in the same feature. That is the same *"unclear when multiple"* confusion QC #171 has been reopened over three times, which is why a cosmetic-looking mismatch was worth closing now rather than discovering as a fourth reopen.
+
+**Two export paths, and they were broken differently — this is the DEF-342 trap repeating.** DEF-342 was itself caused by fixing one of two templates behind two different buttons. The same shape applied here:
+
+| Path | Used when | What it did | Fix |
+|---|---|---|---|
+| `ProductIdService.ExportToCsvAsync` (`:822`) — reached via `GET /api/productids/certificate/{id}/export` | **Saved certificates — the normal case** | Wrote `CertificateProductId.Partner` **raw**. That denormalized column is stored pipe-delimited (the UI saves `_partners.join('|')`, `product-id-manager.js:779`), so the pipes came from the *stored value*, not from a join. | New `FormatPartnerList()` normalises on the way **out** |
+| `product-id-manager.js:2207` `exportInMemoryProductIds()` | Unsaved (new) certificates only | Joined with `'|'` | `join(', ')` |
+
+Fixing only the client-side one would have left the path that actually runs for real certificates untouched.
+
+**Normalised on output, deliberately — not in storage.** `FormatPartnerList` splits on `'|'` or `','` and rejoins with `", "`. Nothing stored changes: no migration, no rewrite of live rows, and the save/import path is untouched. Round-trip stays lossless because the import parser already accepts either delimiter (`getPartnerList()` splits `/[|,]/`, and the backend `SyncPartners` splits `'|'`/`','`).
+
+**Quoting was already correct, which is the only reason this is safe.** Both paths emit every cell quoted — server-side via `CsvCell` (RFC 4180), client-side via literal `"` wrapping — so a comma *inside* the value cannot split the column. Had the cells been unquoted, this change would have corrupted every multi-partner row.
+
+**What was NOT changed, on purpose:**
+- **The export column heading stays `Partner`.** [[DEF-110]] requires the export header order and labels to match the on-screen table, whose column is `Partner`. The client's requested wording belongs on the **template** (where DEF-342 put it), not on the export.
+- **`product-id-manager.js:779`** still saves `join('|')`. That is the API payload wire format consumed by `SyncPartners`, not a user-facing CSV. Out of scope.
+- The pipe-joined query parameters in the tile-view scripts are URL filter params, not CSV. Untouched.
+
+**Verification (localhost:5101, dev DB, 2026-08-10).** Build clean, 0 errors. Temporarily set `CertificateProductIds.Id = 14` to `Amazon|Novi` on dev, then drove the **real** endpoint through an authenticated admin session (reusing the security harness login rather than a stub):
+
+```
+HTTP 200
+header: Type,Product ID,Status,Partner,ProductName,ProductSku,Description,CreatedAt,CreatedBy
+partner cells: ["Amazon, Novi","Amazon","Amazon","Amazon"]
+any pipe left in Partner column: false
+rows whose column count breaks vs header: 0  (quoting intact)
+```
+
+The column-count assertion is the one that matters: it proves the embedded comma did not split the field. Dev row restored to `Amazon` afterwards; `0` rows with a pipe remain.
+
+> **Coverage gap, stated rather than hidden:** no product ID in the dev database has a genuine multi-partner value, so the multi-partner case only exists under a value I created for this test. The fix is exercised, but not against natural data — worth a look on the client's environment after deploy.
+
+**Gate consequence.** This change landed **after** Gates 1 and 2 had already passed the bundle, so `wwwroot/js/product-id-manager.js` and `Services/ProductIdService.cs` are now newer than the audit that cleared them. Gate 1 and the deterministic Gate 3/4/8 suite must be re-run before upload — see the deploy notes for the 2026-08-10 bundle.
+
+**Linked memory.** [[feedback_client_requested_labels_immutable]], [[feedback_scoping_check_adjacent_endpoints]], [[feedback_track_every_fix_in_defect_register]], [[feedback_def_entries_note_qc_id]].
+
+---
+
 ### DEF-345 — Partner API rate limiting never applies: the limiter runs before authentication, so every partner key is throttled as anonymous (100/hr, bucketed by IP)
 
 **Date:** 2026-08-06 | **Status:** **FIXED 2026-08-10 — verified on localhost:5101, not yet deployed.** See *Fix* at the end. | **Severity:** **Major (partner-facing).** Partners get 1/2 the documented throughput, share one bucket across organisations, and we send them a limit header that contradicts both developer guides. | **QC Ref:** none — found by Anuki while settling a contradiction between the Amazon Developer Guide (200/hr) and the new generic Partner API Integration Guide (2,000/hr). **Found by:** Anuki. | **Reporter:** Anuki (internal).

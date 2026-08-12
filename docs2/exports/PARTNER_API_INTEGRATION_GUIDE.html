@@ -90,6 +90,47 @@ pre code { background: none; padding: 0; }
     <a href="#onboarding">10. Onboarding Checklist</a>
 </div>
 
+<h2 id="your-connection" style="margin-top:24px;">Your Connection</h2>
+
+<p>These values are specific to the key issued to you. Everything else in this guide describes how the
+API behaves for every partner; anything that differs between partners is here, and here only.</p>
+
+<table>
+    <thead>
+        <tr><th style="width:32%;">Setting</th><th>Your value</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Base URL</td>
+            <td><code>https://<span class="fill">[production-domain]</span>/api/v1</code></td>
+        </tr>
+        <tr>
+            <td>API key</td>
+            <td><code>gcc_partner_</code> + 64-character hash, delivered separately by secure channel &mdash; never in this document</td>
+        </tr>
+        <tr>
+            <td>Rate limit</td>
+            <td><span class="fill">[N]</span> requests per hour &mdash; see &sect;2 for how to read the limit headers</td>
+        </tr>
+        <tr>
+            <td>Certificate status mode</td>
+            <td><span class="fill">[Presence &mdash; the feed contains only currently-certified records]</span> &mdash; see &sect;4</td>
+        </tr>
+        <tr>
+            <td>Endpoints permitted</td>
+            <td><span class="fill">[All endpoints in &sect;3]</span> &mdash; a key may be scoped to a subset; a path outside your scope returns <code>403</code></td>
+        </tr>
+        <tr>
+            <td>Product identifier scope</td>
+            <td>Identifiers not tagged to any partner, plus those tagged to your account &mdash; see &sect;8</td>
+        </tr>
+        <tr>
+            <td>Key expiration</td>
+            <td><span class="fill">[None &mdash; or the agreed expiry date]</span></td>
+        </tr>
+    </tbody>
+</table>
+
 <h2 id="quickstart">1. Quick Start</h2>
 
 <p>Three steps to get your first data:</p>
@@ -140,8 +181,10 @@ download links.</p>
 
 <h3>Rate Limit</h3>
 
-<p>Partner API keys are limited to <strong>200 requests per hour</strong>. Each request returns up to
-100 certificates, so a full pull of the certificate database costs one request per 100 records.</p>
+<p>Your hourly request limit is set per key and is stated under <a href="#your-connection">Your
+Connection</a> above. Each request returns up to 100 certificates, so a full pull of the certificate
+database costs one request per 100 records &mdash; budget from that, not from the number of
+certificates.</p>
 
 <p>Every response carries the current state of your allowance:</p>
 
@@ -175,6 +218,11 @@ retrying into the limit.</p>
 <h2 id="endpoints">3. API Endpoints</h2>
 
 <p>Base URL: <code>https://<span class="fill">[production-domain]</span>/api/v1</code></p>
+
+<p>The endpoints below are the full set. <strong>An individual key may be scoped to a subset of
+them</strong> &mdash; a request to a path outside your scope returns <code>403</code> rather than
+<code>404</code>, so a 403 on a documented endpoint means a permissions question for GCC, not a wrong
+URL. Your scope is stated under <a href="#your-connection">Your Connection</a>.</p>
 
 <div class="endpoint-card">
     <div class="endpoint-header"><span class="tag tag-get">GET</span> <code>/certificates/gs1</code> <span class="tag tag-rec">Recommended</span></div>
@@ -257,7 +305,7 @@ retrying into the limit.</p>
     <thead><tr><th style="width:22%">Field</th><th style="width:12%">Type</th><th style="width:33%">Description</th><th>Example</th></tr></thead>
     <tbody>
         <tr><td><code>certificateNumber</code></td><td>string</td><td>Unique certificate identifier</td><td>24-0366</td></tr>
-        <tr><td><code>status</code></td><td>string</td><td>Always the literal <code>"Active"</code> &mdash; see <em>Certificate Status and Validity</em> below</td><td>Active</td></tr>
+        <tr><td><code>status</code></td><td>string</td><td>Depends on the status mode under <a href="#your-connection">Your Connection</a>. In presence mode &mdash; the default &mdash; always the literal <code>"Active"</code>. See <em>Certificate Status and Validity</em> below</td><td>Active</td></tr>
         <tr><td><code>issueDate</code></td><td>datetime</td><td>Certificate effective date</td><td>2024-01-15T00:00:00Z</td></tr>
         <tr><td><code>expirationDate</code></td><td>datetime</td><td>Certificate expiration date</td><td>2025-01-15T00:00:00Z</td></tr>
         <tr><td><code>company</code></td><td>string</td><td>Certified company / brand name</td><td>EcoProduct Co</td></tr>
@@ -564,7 +612,7 @@ GET /api/v1/certificates?pageNumber=2&amp;pageSize=100</code></pre>
         <tr><td>Authentication</td><td>API key via <code>X-API-Key</code> header</td></tr>
         <tr><td>Data Isolation</td><td>Your key returns only certificates associated with your partner account. Data belonging to other partners is not accessible, including on certificates shared across multiple partners &mdash; co-partner names and their product identifiers are removed from your responses.</td></tr>
         <tr><td>Status Filter</td><td>Only currently-certified certificates are returned; everything else is filtered out of lists and returns <code>404</code> on lookup. <code>status</code> is always <code>"Active"</code>. See &sect;4.</td></tr>
-        <tr><td>Rate Limiting</td><td>200 requests/hour per partner key; see &sect;2</td></tr>
+        <tr><td>Rate Limiting</td><td>Per key &mdash; your limit is stated under <a href="#your-connection">Your Connection</a>; mechanics in &sect;2</td></tr>
         <tr><td>Key Management</td><td>Keys are issued, rotated, and revoked by GCC administrators. Keys may be issued with an expiration date.</td></tr>
     </tbody>
 </table>

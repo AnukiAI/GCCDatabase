@@ -2201,10 +2201,16 @@ class ProductIdManager {
             const d = new Date(iso);
             return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
         };
-        // CR-171: Partner column carries ALL associated partners, pipe-delimited (e.g. "Amazon|Novi");
-        // empty = shared with all the certificate's partners. Re-import understands the same format.
+        // CR-171: Partner column carries ALL associated partners; empty = shared with all the
+        // certificate's partners. Re-import understands this format (getPartnerList splits /[|,]/).
+        //
+        // DEF-346: comma-delimited, not pipe. The template heading the client asked for says
+        // "Partner (separate by comma)" (DEF-342), so exporting "Amazon|Novi" told the user to do
+        // one thing and showed them another — the same "unclear when multiple" confusion behind
+        // QC #171, which has now been reopened three times. Safe because every cell here is
+        // already quoted, so a comma inside the value cannot split the column (RFC 4180).
         const rows = this.productIds.map(pid =>
-            `"${pid.productIdType || ''}","${pid.productIdValue || ''}","${pid.productName || ''}","${pid.productSku || ''}","${this.getPartnerList(pid).join('|')}","${formatCreated(pid.createdAt)}","${(pid.createdByUser && pid.createdByUser.username) || pid.createdBy || ''}","${pid.description || ''}"`
+            `"${pid.productIdType || ''}","${pid.productIdValue || ''}","${pid.productName || ''}","${pid.productSku || ''}","${this.getPartnerList(pid).join(', ')}","${formatCreated(pid.createdAt)}","${(pid.createdByUser && pid.createdByUser.username) || pid.createdBy || ''}","${pid.description || ''}"`
         );
         const csvContent = [header, ...rows].join('\n');
 

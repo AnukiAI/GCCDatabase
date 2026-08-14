@@ -249,6 +249,58 @@
             </div>
         }
 
+        <!-- Warning Rows (DEF-347) — these WILL import; they are advisories, not errors -->
+        @if (Model.WarningRows.Any())
+        {
+            <div class="admin-card" style="margin-bottom: 2rem;">
+                <div class="admin-card-header" style="background-color: #ffc107; color: #212529;">
+                    <h3 class="admin-card-title">
+                        <i class="fas fa-exclamation-triangle"></i> Warnings (@Model.RowsWithWarnings)
+                    </h3>
+                </div>
+                <div class="admin-card-body">
+                    <p style="margin-bottom: 1rem;">
+                        These rows <strong>will be imported</strong>. Review them before applying —
+                        each one needs a correction afterwards, or a fix in the source file and a re-upload.
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Row</th>
+                                    <th>Certificate Number</th>
+                                    <th>Warnings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var warned in Model.WarningRows.Take(50))
+                                {
+                                    <tr>
+                                        <td>@warned.RowNumber</td>
+                                        <td><code>@warned.CertificateNumber</code></td>
+                                        <td>
+                                            <ul style="margin: 0; padding-left: 1.2rem;">
+                                                @foreach (var msg in warned.Warnings)
+                                                {
+                                                    <li>@msg</li>
+                                                }
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        @if (Model.RowsWithWarnings > 50)
+                        {
+                            <p style="margin-top: 0.5rem;">
+                                <em>Showing the first 50 of @Model.RowsWithWarnings rows with warnings.</em>
+                            </p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
         <!-- New Certificates -->
         @if (Model.NewRows.Any())
         {

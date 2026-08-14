@@ -1,0 +1,5 @@
+﻿Stage,Sheet,SourceRows,Emitted,Quarantined,Note
+A/B-certs,Active List 7.31.26,1024,1004,20,dup-policy=quarantine
+A/B-certs,Expired List 2 - 8.11.26,356,336,20,dup-policy=quarantine
+A/B-certs,Expired List 1 - 4.9.26,4333,4061,272,dup-policy=quarantine
+C-asins,ACTIVE LIST,21034,16234,9,158 certs; 4791 surplus dup pairs collapsed

@@ -1545,5 +1545,174 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         }
 
         #endregion
+
+        #region DEF-347 — Country validation on import
+
+        // The defect: import wrote Certificate.Country as a raw string with no check against
+        // CountryList, and the UI <select> cannot produce an invalid value — so import was the only
+        // way in, and "Atlantis" reached the test-env database that way. These lock in BOTH halves
+        // of the fix: near-misses normalize, genuine unknowns warn WITHOUT dropping the row.
+
+        [Theory]
+        [InlineData("United States", "United States")]     // exact
+        [InlineData("united states", "United States")]     // case
+        [InlineData("  United States  ", "United States")] // surrounding whitespace
+        [InlineData("United  States", "United States")]    // collapsed internal whitespace
+        [InlineData("USA", "United States")]               // alias
+        [InlineData("usa", "United States")]               // alias, lowercased
+        [InlineData("U.S.A.", "United States")]            // alias with punctuation
+        [InlineData("UK", "United Kingdom")]
+        [InlineData("Great Britain", "United Kingdom")]
+        [InlineData("Czechia", "Czech Republic")]
+        [InlineData("Republic of Korea", "South Korea")]
+        [InlineData("Côte d'Ivoire", "Ivory Coast")]       // accent + apostrophe are noise, not identity
+        [InlineData("Cape Verde", "Cabo Verde")]
+        public void CountryList_TryResolve_NormalisesKnownValues(string input, string expected)
+        {
+            CountryList.TryResolve(input, out var canonical).Should().BeTrue(
+                $"'{input}' should resolve to a known country");
+            canonical.Should().Be(expected);
+        }
+
+        [Fact]
+        public void CountryList_EveryAliasTargetExistsInTheCountryList()
+        {
+            // Guard against the mistake this fix nearly shipped with: aliases pointing at spellings
+            // that aren't in Countries ("Korea, South" when the list says "South Korea"). Such an
+            // alias resolves to a value the UI dropdown cannot represent, so the certificate would
+            // import a country that can never be re-selected on Edit — the DEF-343 failure shape.
+            foreach (var input in new[]
+            {
+                "USA", "UK", "Great Britain", "UAE", "Republic of Korea", "DPRK",
+                "Russian Federation", "Czechia", "Holland", "Côte d'Ivoire", "Burma",
+                "Vatican", "PRC", "Viet Nam", "Cape Verde", "Swaziland", "Macedonia", "ROC",
+            })
+            {
+                CountryList.TryResolve(input, out var canonical).Should().BeTrue(
+                    $"'{input}' is a declared alias and must resolve");
+                CountryList.Countries.Should().Contain(canonical,
+                    $"alias '{input}' resolves to '{canonical}', which must be a real dropdown value");
+            }
+        }
+
+        [Theory]
+        [InlineData("Atlantis")]        // the actual value found in the test-env database
+        [InlineData("Wakanda")]
+        [InlineData("Ontario")]         // a province, not a country — the §87 split can produce this
+        [InlineData("Alberta, Canada")] // a bad Location→Country split, not a country
+        [InlineData("!!!")]
+        public void CountryList_TryResolve_RejectsUnknownValues(string input)
+        {
+            CountryList.TryResolve(input, out var canonical).Should().BeFalse(
+                $"'{input}' is not a country and must not resolve");
+            canonical.Should().BeEmpty();
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void CountryList_TryResolve_TreatsBlankAsUnresolved(string? input)
+        {
+            // Blank is legal on a certificate (Country is optional) — the IMPORT path checks for
+            // blank before calling this, so the resolver itself simply reports "no match".
+            CountryList.TryResolve(input, out var canonical).Should().BeFalse();
+            canonical.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task PreviewImportAsync_KnownCountryAlias_NormalisesAndDoesNotWarn()
+        {
+            var csv = BuildCsv(StdHeaders, StdRow("25-9401", country: "usa"));
+            var file = CreateCsvFormFile(csv);
+
+            var result = await _service.PreviewImportAsync(file, 1, "admin");
+
+            result.NewRows.Should().HaveCount(1);
+            result.NewRows[0].Country.Should().Be("United States",
+                "a recognised alias must be normalised to the canonical dropdown spelling");
+            result.NewRows[0].HasWarnings.Should().BeFalse();
+            result.RowsWithWarnings.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task PreviewImportAsync_UnknownCountry_WarnsButStillImportsTheRow()
+        {
+            var csv = BuildCsv(StdHeaders, StdRow("25-9402", country: "Atlantis"));
+            var file = CreateCsvFormFile(csv);
+
+            var result = await _service.PreviewImportAsync(file, 1, "admin");
+
+            // The critical assertion: the row must NOT become an error. An entry in
+            // ValidationMessages would drop the certificate from the import entirely, which for the
+            // go-live load is worse than importing it with a visible bad country.
+            result.ErrorRows.Should().BeEmpty("an unknown country must not reject the certificate");
+            result.InvalidRows.Should().Be(0);
+            result.NewRows.Should().HaveCount(1);
+            result.NewRows[0].RowStatus.Should().Be(ImportRowStatus.New);
+
+            // ...but it must be visible before Apply.
+            result.RowsWithWarnings.Should().Be(1);
+            result.WarningRows.Should().ContainSingle()
+                .Which.Warnings.Should().ContainSingle()
+                .Which.Should().Contain("Atlantis");
+            result.NewRows[0].Country.Should().Be("Atlantis",
+                "the supplied value is kept as-is so the analyst can see what needs correcting");
+        }
+
+        [Fact]
+        public async Task PreviewImportAsync_BlankCountry_NeitherWarnsNorErrors()
+        {
+            var csv = BuildCsv(StdHeaders, StdRow("25-9403", country: ""));
+            var file = CreateCsvFormFile(csv);
+
+            var result = await _service.PreviewImportAsync(file, 1, "admin");
+
+            result.ErrorRows.Should().BeEmpty("Country is optional");
+            result.RowsWithWarnings.Should().Be(0);
+            result.NewRows.Should().HaveCount(1);
+        }
+
+        [Fact]
+        public async Task PreviewImportAsync_OverlongUnknownCountry_TruncatesToColumnWidth()
+        {
+            // Certificate.Country is nvarchar(100). Without this guard an over-long value from a bad
+            // Location->Country split reaches SaveChanges and SQL Server throws, taking the whole
+            // batch down mid-load — the failure mode that matters most for the 5,556-row go-live.
+            var overlong = string.Join("; ", Enumerable.Repeat("Redcliff, Alberta, Canada", 6)); // 155 chars
+            var csv = BuildCsv(StdHeaders, StdRow("25-9408", country: overlong));
+            var file = CreateCsvFormFile(csv);
+
+            var result = await _service.PreviewImportAsync(file, 1, "admin");
+
+            result.ErrorRows.Should().BeEmpty();
+            result.NewRows.Should().HaveCount(1);
+            result.NewRows[0].Country!.Length.Should().Be(100,
+                "the value must be clipped to the column width, not left to blow up the batch");
+            result.RowsWithWarnings.Should().Be(1);
+            result.WarningRows[0].Warnings[0].Should().Contain("shortened to 100 characters");
+        }
+
+        [Fact]
+        public async Task PreviewImportAsync_MixedCountries_WarnsOnlyOnTheBadRows()
+        {
+            var csv = BuildCsv(StdHeaders,
+                StdRow("25-9404", country: "Germany"),
+                StdRow("25-9405", country: "Atlantis"),
+                StdRow("25-9406", country: "U.S.A."),
+                StdRow("25-9407", country: "Ontario"));
+            var file = CreateCsvFormFile(csv);
+
+            var result = await _service.PreviewImportAsync(file, 1, "admin");
+
+            result.NewRows.Should().HaveCount(4, "every row imports regardless of country");
+            result.RowsWithWarnings.Should().Be(2);
+            result.WarningRows.Select(r => r.CertificateNumber)
+                .Should().BeEquivalentTo(new[] { "25-9405", "25-9407" });
+            result.NewRows.First(r => r.CertificateNumber == "25-9406").Country
+                .Should().Be("United States");
+        }
+
+        #endregion
     }
 }

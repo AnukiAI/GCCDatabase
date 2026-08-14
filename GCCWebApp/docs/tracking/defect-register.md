@@ -7800,6 +7800,73 @@ Note the "View" control uses the same thumbnail URL as the preview (there is no 
 
 ---
 
+### DEF-347 — Certificate import writes Country unvalidated: any string enters the database, and one already has
+
+**Date:** 2026-08-13 | **Status:** **Fixed 2026-08-13 — build clean, 88/88 import tests pass (27 new), zero new failures against the pre-existing 76-failure baseline. NOT deployed; preview card not yet visually validated.** | **Severity:** **Major** — not by current impact (one junk row on the test env) but by timing: it gates the **5,556-row go-live load**, where a bad country split enters at scale and silently. | **QC Ref:** **none — no QC item exists for this.** Surfaced while investigating the client's 2026-08-12 question about certificates showing more than one country (that question is [[CR-037]], not a defect). | **Found by / Reporter:** Anuki (internal).
+
+**The defect.** CSV import assigns `Certificate.Country` as a raw string with no validation against any list:
+
+| Path | Code | What it does |
+|---|---|---|
+| Parse | `Services/Import/CertificateImportService.cs:1097` | `Country = GetFieldWithMapping(csv, CertificateCountryColumns)` — takes the cell verbatim |
+| Create | `:1206` | `Country = csvRow.Country` |
+| Update | `:1771` | `certificate.Country = row.Country` |
+
+Nothing anywhere compares the value to `CountryList.Countries`, the static in-code list that feeds the UI dropdown (`CertificateController.cs:346, 926`). The UI is a single `<select>` (`Views/Certificate/Create.cshtml:293`) and cannot produce an invalid value — **import is the only way in, and it is wide open.**
+
+**Evidence it is not theoretical.** Test-env `Certificates.Country`, grouped:
+
+```
+United States 68 | Germany 31 | United Kingdom 26 | Mexico 23
+Canada 22 | Indonesia 1 | El Salvador 1 | Belgium 1 | Atlantis 1
+```
+
+**`Atlantis`.** That did not come from a dropdown. 174 of 228 certificates carry a country; one of them is a country that does not exist.
+
+**Why it matters now rather than whenever.** The go-live load runs `LOCATION`→`Location`+`Country` splits over the expired/historical set (plan §87, rule revised 2026-08-13). A split that produces `"Ontario"`, `"Alberta, Canada"` or an empty-but-not-null string is **accepted silently** — there is no error, no preview warning, and no post-load signal. The defect turns every transform bug into a *data* bug that has to be found by inspection afterwards. Fixing validation first makes the transform falsifiable ([[feedback_confirm_means_falsifiable]]).
+
+**Proposed fix (not built).** Validate `Country` against `CountryList.Countries` during import parse; surface unknown values as a **row-level warning in the import preview** rather than a hard reject, so an analyst sees them before applying rather than after — the preview surface already exists and already renders per-row issues. Case/whitespace-insensitive match; trim before compare. Keep `Country` optional (blank stays legal — 54 test-env certs have none).
+
+**Open checks before fixing:**
+1. **Does an over-length value truncate or throw?** `Country` is `nvarchar(100)` and `Location` `nvarchar(175)`; the import path's behaviour on a longer string is **unverified** — do not assume it truncates cleanly ([[feedback_denormalized_copy_width_mismatch]]).
+2. **CR-187 interaction:** `NormalizedCountry` is a persisted computed column derived from `Country`, so junk propagates into the search index too. Confirm the fix upstream of the computed column, not alongside it.
+3. **Clean up `Atlantis`** on the test env — data ops, and per [[feedback_data_changes_require_cr]] the CR rule still applies to real records, though the test env is pre-launch ([[feedback_prelaunch_test_env]]).
+
+**Deliberately NOT folded into [[CR-037]].** CR-037 (multi-select countries) may be retired for free if the client answers "display is enough". This fix must ship either way, so tying it to an optional feature would make a mandatory correction hostage to a decision that may never come.
+
+---
+
+### Fix — built 2026-08-13
+
+**Tolerant resolution, not exact match** — `CountryList.TryResolve` (`Models/CountryList.cs`), following the DEF-276 `TryResolveStatus` precedent. Normalises case, surrounding and internal whitespace, punctuation and **diacritics** (`FormD` decomposition, drop `NonSpacingMark` — so `Côte d'Ivoire` and `Cote dIvoire` land on the same key), then matches against the canonical list, then an alias table (`USA`/`U.S.A.`/`America` → United States; `UK`/`Great Britain`/`England` → United Kingdom; `Czechia`, `Holland`, `Burma`, `Cape Verde`, `Swaziland`, `Macedonia`, `PRC`, `Viet Nam`, …). A migration file saying `USA` is a near-miss to be **normalised**, not junk to be flagged. The canonical lookup is **built from `Countries` at static init**, so a rename in the list can never drift out of sync with the resolver.
+
+**Warning, not error — and this required a new channel.** `CertificateImportRow.ValidationMessages` could not be reused: any entry there flips the row to `ImportRowStatus.Error` (`:1445`) and the certificate is **dropped from the import entirely**. For the go-live load, dropping a certificate over a country typo is worse than loading it with the typo visible. Added `CertificateImportRow.Warnings` / `HasWarnings` and `CertificateImportPreviewResult.WarningRows` / `RowsWithWarnings`, surfaced as an amber **Warnings** card in `Views/CertificateImport/Preview.cshtml` (above the New Certificates card, first 50 shown with an overflow note). The row imports; the analyst sees it before Apply.
+
+**Second defect found while fixing the first — bare uppercase headers were never mapped.** `CertificateLocationColumns` and `CertificateCountryColumns` listed `CERTIFICATE_COUNTRY`, `Country`, `country` but **not** bare `COUNTRY`, while every sibling array (e.g. `StatusColumns`) carries the uppercase form. CsvHelper header matching is **case-sensitive** here — no `PrepareHeaderForMatch` is configured (`:1070`) — so a file headed `COUNTRY` imported a **blank country, silently, with no error**. Exactly this defect's theme, and the migration's own source files use `LOCATION`/`COUNTRY` headers. Added both. *This is why the first test run failed: the test fixture's `StdHeaders` has used `COUNTRY` all along, so `StdRow`'s country value had been silently discarded in every existing test.*
+
+**Over-length guard (closes open check 1).** An unresolved value passes through raw, and a bad §87 `Location`→`Country` split can exceed `nvarchar(100)` — SQL Server would throw on `SaveChanges` and take the **whole batch** down mid-load. Values are now clipped to 100 with the shortening stated in the warning text.
+
+**Tests — 27 new, all passing** (`GCCWebApp.Api.Tests/Unit/Services/CertificateImportServiceTests.cs`, region *DEF-347*): alias/case/whitespace/diacritic normalisation; rejection of `Atlantis`, `Wakanda`, `Ontario`, `Alberta, Canada`; blank stays legal; **unknown country warns but the row still imports as `New` with `ErrorRows` empty** (the assertion that encodes the design decision); mixed-file test asserting only the bad rows warn; over-length truncation to exactly 100. Plus `CountryList_EveryAliasTargetExistsInTheCountryList`, a guard against the mistake this fix nearly shipped with — three aliases initially pointed at spellings **not in the list** (`Korea, South` when the list says `South Korea`; `Cote d'Ivoire` when it says `Ivory Coast`), which would have imported a country the Edit dropdown cannot re-select — the [[feedback_dropdown_filtered_subset_drops_stored_value]] failure shape. *The verification that missed it grepped the whole file and matched the alias lines themselves; the corrected check greps the `Countries` block only.*
+
+**Regression:** `GCCWebApp.Api.Tests` **76 failed / 683 passed / 759 total** with the change vs **76 failed / 657 passed / 733 total** with it stashed — **identical failure count, zero new failures**, +26 net new passing tests.
+
+**Data cleanup — DONE 2026-08-13.** The `Atlantis` row was **certificate 26-9721** (Id 174): company `DATA4`, product *"Test Edge Product 0081 Bob's Apostrophe"*, created by **`admin.uat`** on 2026-06-17 — UAT test data, not a business record, so no CR was required ([[feedback_prelaunch_test_env]]; [[feedback_data_changes_require_cr]] applies to real records). Its `Location` is `New York, NY`, so the country was unambiguous:
+
+```sql
+UPDATE Certificates SET Country = 'United States', UpdatedAt = SYSUTCDATETIME()
+WHERE Id = 174 AND Country = 'Atlantis';   -- 1 row, in a transaction, guarded on the old value
+-- rollback: UPDATE Certificates SET Country = 'Atlantis' WHERE Id = 174;
+```
+
+CR-187's persisted `NormalizedCountry` recomputed automatically (`atlantis` → `unitedstates`), confirming the computed column tracks the fix. The test certificate was **not** deleted — its product name is a deliberate apostrophe-handling edge case still worth keeping. **Full-column re-audit after the update: all 8 remaining distinct `Country` values on the test env resolve against `CountryList`.** Note the direct SQL bypassed `AuditService`, so there is no audit row for this correction — acceptable for a UAT record, not acceptable as a pattern for real data.
+
+**Still open after this fix:**
+1. **Preview card not visually validated** — asserted through the service layer, not through a browser ([[env_local_dev_server_and_chrome]]). Needs a look on localhost before deploy.
+2. **`Location` has no equivalent validation** and is `nvarchar(175)`. It is free text by design so there is no list to check it against, but the same over-length risk exists on the §87 split. Not addressed here.
+3. **Code fix and data fix are now out of step** — the data correction is live on the test env, the code fix is local only. Until this ships, the test env is clean but still able to accept a new bad value on the next import.
+
+**Related:** [[CR-037]] · [[DEF-276]] (tolerant status resolution — the pattern copied) · `migration-import-transform-plan-2026-06-22.md` §87 · `docs/tracking/CR-037-multi-country-certificates.md` §8.
+
 ### DEF-346 — Product ID export writes pipe-delimited partners under a heading that tells the user to use commas
 
 **Date:** 2026-08-10 | **Status:** **Fixed 2026-08-10 — verified against the live endpoint, not yet deployed.** | **Severity:** Minor (client-visible copy/data consistency) — but it sits directly on **QC #171**, which has been closed and reopened **three** times. | **QC Ref:** **#171** (Reporter: client, opened 2026-05-05; re-flagged 7/30 and 2026-08-07). **Found by:** Anuki — surfaced as advisory finding A1 of the Gate 1 pre-deploy audit for the 2026-08-10 bundle, then approved for fix by Shawn. | **Reporter:** Anuki (internal).
@@ -9115,3 +9182,353 @@ Exactly [[feedback_column_exists_but_never_projected]] / [[feedback_denormalized
 **Scoped to the internal view on purpose.** `CertificateExternalView.cshtml:22,87-89` has the identical fault, but the right *output* there is not the same question — showing co-partners to an Amazon-scoped viewer would contradict [[feedback_partner_data_isolation]], and the per-role answer (Admin/Analyst see all; a partner sees only itself) is the **same unresolved decision that has DEF-321 parked**. Fixing it blind would risk a cross-partner leak in order to close a display bug. The client reported this under **Admin login**, which the internal view serves, so the reported defect is closed; the external view is deliberately deferred to the DEF-321 triage rather than guessed at.
 
 **Validation (2026-08-07).** `dotnet build` → **0 errors**; confirmed the edited view actually compiled by finding the new `partnerNames` local in the built `GCCWebApp.dll` (Razor compiles into the assembly, so "it built" alone would not have proven the view was exercised). DB evidence above is read-only. **Still needs a human look:** open 26-10091's detail page and confirm it reads `Amazon, Novi`.
+
+---
+
+### DEF-348 — Import template offers "Cert Subcategories" and "Subcategory"; the parser has no mapping for either and drops them silently
+
+**Date:** 2026-08-13 | **Status:** Open — found during the go-live migration transform build; not fixed. | **Severity:** **Major** — not by current impact (nobody has relied on these columns) but by timing: it silently discards **281 values on the 5,556-row go-live load**, with no error, no preview warning and no post-load signal. | **QC Ref:** none — no QC item exists. Surfaced while building `Scripts/data-ops/2026-08-13-migration-transform.py`. | **Found by / Reporter:** Anuki (internal).
+
+**The defect.** The downloaded import template advertises both columns:
+
+`CertificateImportController.cs:464` —
+```
+"Certificate #","Certification Type","Cert Subcategories","Status", … ,"Product Type","Subcategory","Partner (separate by comma)", …
+```
+
+`CertificateImportService` has **no column-mapping array for either one**. Every other template column has one at `:69–119` (`ProductTypeColumns`, `ProductCategoryColumns`, `TagsColumns`, …). There is no `ProductSubcategoryColumns` and no `CertSubcategoryColumns`, and a repo-wide search for `CertificationTypeSubcategor|CertSubcat|SubcategoryIds` under `Services/Import/` returns **zero matches**.
+
+The code says so outright at `:768` —
+
+> *"Subcategory still resolves as null (no column yet)"*
+
+— and `:771` passes `null` for the subcategory argument:
+```csharp
+row.ProductId = await ResolveProductForImportAsync(row.ProductId.Value, row.ProductTypeId, null, row.ProductCategoryId);
+```
+
+**So an analyst fills in a column the template gave them, the file imports "successfully", and the value is gone.** This is the same shape as DEF-101 and CR-029: the surface promises a field the pipeline never carries.
+
+**Measured impact on the go-live load** (`_transform_output/20260813-133622/unmappable-fields.csv`): **281 values across 5,731 source rows** — 104 Product Subcategory (PP 40, HDPE 24, LLDPE 10, LDPE 9, PVC 9, PET 7, TPE/TPV 2, TPO 2, PS 1) and 177 Certificate Subcategories (the client's "for CSF and WD only" columns).
+
+**Aggravating factor — it cannot fail loudly.** `Certificate.ProductSubcategoryId` is **nullable**, and `dbo.ProductSubcategories` is **empty on the test environment** (0 rows), so there is no FK violation and no unmatched-lookup rejection to raise. Contrast `Product Category`, which *does* reject an unmatched value (`:78` "no auto-create — an unmatched value rejects the row"). The one field that silently accepts anything is the one with no parser.
+
+**Note the two halves need different fixes.** `Subcategory` → `ProductSubcategories` + `Certificate.ProductSubcategoryId` (and the lookup rows must be created — the table is empty). `Cert Subcategories` → the `CertificateCertificationTypeSubcategories` M2M, which is a different shape (multi-value, hierarchical under `CertificationTypes`, see [[feedback_certtypes_hierarchy]]). Fixing one does not fix the other.
+
+**Interim handling (in place).** `2026-08-13-migration-transform.py` still emits both columns — harmless, and correct the day the importer gains them — and writes every dropped value to `unmappable-fields.csv` so the loss is **counted rather than discovered**. That is a mitigation, not a fix: the values do not reach the database.
+
+**Options:** (a) add the two mappings to the importer — real work for the M2M half; (b) post-load script to set both from the transform output; (c) accept the loss for go-live and tell the client explicitly. **Do not leave it undeclared** — the client supplied these columns deliberately and will expect them.
+
+**Related:** plan §12.3/§12.5, [[feedback_column_exists_but_never_projected]] (same family: markup/template exists, pipeline doesn't carry it).
+
+---
+
+### DEF-349 — Product name width chain: Products.Name and AuditHistory.EntityName were never widened alongside CertificateProductIds.ProductName; the go-live load fails outright
+
+**Date:** 2026-08-13 | **Status:** **Fixed on dev** via `Scripts/data-ops/2026-08-13-WidenProductsName-PREREQ.sql`. **EF model + migration still TODO; script must also run on test/prod (Gate 7).** | **Severity:** **Critical** — it does not degrade the load, it **stops** it. Two of three go-live files failed with **0 certificates created**. | **QC Ref:** none. Surfaced by running the transform output through the importer on dev. | **Found by / Reporter:** Anuki (internal).
+
+**The defect.** Plan §2 P3 recorded the client's "widen, don't truncate" decision and widened `CertificateProductId.ProductName` 200 → 1000 (migration `20260624142128_...`). **Two other columns carry the same product name and were left behind:**
+
+| Column | Was | Needed | Role |
+|---|---|---|---|
+| `Products.Name` | nvarchar(255) | 1000 | the product entity itself |
+| `AuditHistory.EntityName` | nvarchar(255) | 1000 | denormalized copy written by the audit trail |
+| `CertificateProductIds.ProductName` | nvarchar(1000) | — | already done by P3 |
+
+13 rows in the go-live source exceed 255 chars (3 Active, 10 Expired-1); longest **710**.
+
+**Failure is total, not partial.** `Import failed: String or binary data would be truncated in table 'dbo.Products', column 'Name'` — `certificatesCreated=0` for both `certs-active.csv` (1,006 rows) and `certs-expired1.csv` (4,077). The import is transactional, so one over-length name rejects the entire file.
+
+**It fails in two hops, which is the trap.** Widening `Products.Name` alone moved the identical error one table downstream to `AuditHistory.EntityName` — the audit copy was now narrower than its source. This is [[feedback_denormalized_copy_width_mismatch]] (DEF-314) exactly. The rest of the chain was then checked in one pass rather than hop-by-hop: `Companies.Name` 255 vs max 95, `Certificates.Location` 175 vs 140, `Certificates.Country` 100 vs 28, `Certificates.CertificationResults` 1000 vs 23 — all clear.
+
+**PREVIEW DOES NOT CATCH IT.** Both files previewed **100% valid** (1,006/1,006 and 4,063/4,077) immediately before failing on apply. Preview does not exercise the INSERT, so no amount of preview testing would have found this — only a real apply did.
+
+**Remaining work:** `Models/Product.cs` MaxLength + an EF migration so a fresh DB is born correct, and the SQL run on every non-auto-migrating environment (prod never auto-migrates — Gate 7 / DEF-239).
+
+**Latent limit recorded, not hidden.** `IX_Products_Name` is a nonclustered index; SQL caps a key at 1700 bytes = 850 nvarchar chars, so nvarchar(1000) exceeds it on paper. `CREATE INDEX` succeeds with a warning; only an actual 851+ char insert fails. Longest go-live name is 710, so the load is safe today. (`IX_Products_NormalizedName` already carried the same warning at 8000 bytes **before** this change — pre-existing, not introduced.)
+
+---
+
+### DEF-350 — CertificateExpirationBackgroundService starves the import: preview fails with a 30s SQL timeout, non-deterministically
+
+**Date:** 2026-08-13 | **Status:** Open. Worked around for the dev rehearsal by deferring the sweep (`Jobs:CertificateExpiration:StartupDelaySeconds`). **No code fix.** | **Severity:** **Major** — it blocks the go-live load and, worse, it is **intermittent**, so it reads as a flaky import rather than a known conflict. | **QC Ref:** none. Surfaced during the go-live load rehearsal. | **Found by / Reporter:** Anuki (internal).
+
+**Symptom.** `POST /api/CertificateImport/Preview` returns
+`Failed to process file: Execution Timeout Expired.` after ~30s (the default `SqlCommand` timeout), with `validRows=0, invalidRows=0, hasCriticalErrors=true`.
+
+**Why it was hard to read — it is not size-dependent and not content-dependent.** Measured, in this order:
+
+| Test | Result |
+|---|---|
+| 4,077-row file, before the Active load | previewed fine, 3s |
+| Same file, after the Active load | 30s timeout |
+| Split into 1,000-row chunks | all 5 timed out — **including a 77-row chunk** |
+| 10 / 25 / 50 / 100 / 200-row probes | all fine, <1s |
+| Rows 1–500 | timed out |
+| Rows 4001–4077 | **passed** — the same 77 rows that had failed minutes earlier |
+
+The same content failing then passing ruled out both row count and row content, and pointed at a **time-varying competitor**.
+
+**Ruled out, with evidence:** no blocking and no open transactions (`sys.dm_exec_requests` / `dm_tran_active_transactions` clean); direct sqlcmd queries against the same tables 130–205ms; slowest statement in `dm_exec_query_stats` **16ms**; an app restart did not help (so not leaked connection state).
+
+**Cause.** `Services/CertificateExpirationBackgroundService.cs` runs a sweep 30s after startup and then on an interval — `WHERE ExpirationDate < @today AND Status NOT IN (...)`. Loading thousands of dated certificates gives that sweep a large working set, and it contends with the importer's own queries. **Confirmed by intervention:** with `Jobs__CertificateExpiration__StartupDelaySeconds=86400`, the identical 4,077-row file previewed in **3s** and applied successfully — **4,063 created, 0 failed** — where minutes earlier every attempt had timed out.
+
+**Options:** (a) documented go-live runbook step — disable the sweep for the load window, re-enable after (cheapest, and it is what the rehearsal did); (b) raise the importer's `CommandTimeout` — treats the symptom, and a starved import that takes minutes is still bad; (c) have the sweep back off while an import batch is active. **(a) is the go-live answer; (c) is the real fix.**
+
+---
+
+> ### ⚠️ DIAGNOSIS CORRECTED 2026-08-13 — the sweep was NOT proven to be the cause
+>
+> The "confirmed by intervention" claim above is **not safe**, and the correction matters more
+> than the original finding.
+>
+> **What broke it:** while fixing DEF-353/354 the same timeout reappeared with the sweep still
+> deferred (`StartupDelay=1.00:00:00`, confirmed in the startup log). So deferring the sweep
+> cannot be what fixed it earlier.
+>
+> **The real contaminant: TWO `GCCWebApp.exe` instances were running against the same database.**
+> Several restarts across the session left orphans my process filter missed. With both alive,
+> `GCCDatabase_Dev` became unresponsive enough that even `sys.dm_exec_requests` timed out at 30s.
+> After killing both, a `COUNT(*)` returned instantly. Any measurement taken while duplicates were
+> live — including the original "deferring the sweep fixed it" — is unreliable.
+>
+> **What was measured cleanly afterwards, with one instance:**
+> - EF command logging on: **slowest single command 533ms**, total well under 1s. SQL is *not* the
+>   bottleneck, so the "Execution Timeout Expired" message is misleading about where time goes.
+> - Sampling `dm_exec_requests` throughout a failing 30s preview showed **no query running at all**.
+> - Preview of a 5-row file against 5,405 certificates completed in **19s** — passing, but far too
+>   close to the 30s ceiling.
+>
+> **Change made anyway (kept, and independently justified):** `PreviewImportAsync` preloads every
+> certificate with five `Include`s including the `Tags` collection — the DEF-166/234 cartesian
+> pattern. Added `.AsSplitQuery()` **and** `.AsNoTracking()` (the preload is read-only; the update
+> path re-queries by Id before writing). Correct on its own merits, but it did **not** eliminate
+> the timeout, so it is not the root cause either.
+>
+> **Honest status: cause still unknown.** ~19s of a 19s request is unaccounted for by SQL. Next
+> step is CPU profiling of the preview path, not another guess. Do not close this on the strength
+> of the sweep workaround, and do not assume the workaround is why any given run succeeded.
+> **Operational point stands regardless:** preview cost grows with database size, and at go-live
+> volume it is already near the timeout — so this is a permanent operational risk, not just a
+> migration-window one.
+
+**Do not let this reach go-live undocumented.** Without it, the client's own load attempt fails intermittently with a message that suggests nothing actionable.
+
+---
+
+### DEF-351 — Product-ID CSV import splits on every comma with no quote handling: 50.7% of product names silently truncated
+
+**Date:** 2026-08-13 | **Status:** Open. Worked around for the dev rehearsal by loading through the JSON bulk endpoint instead. **No code fix.** | **Severity:** **Critical** — silent data corruption on more than half the rows, and the corrupted value is served to Amazon through the partner API. | **QC Ref:** none. Surfaced while investigating why `CertificateProductIdPartners` was 0 after the go-live load rehearsal. | **Found by / Reporter:** Anuki (internal).
+
+**The defect.** `ProductIdService.ImportFromCsvAsync` parses with
+
+```csharp
+var values = line.Split(',').Select(v => v.Trim('"').Trim()).ToList();   // :766
+```
+
+`String.Split(',')` is not CSV parsing. It has **no quote handling**, so a correctly-quoted field containing a comma is broken into pieces and every subsequent column shifts left. `GetValueByHeader` then reads by header index and returns a fragment. The header line is split the same way (`:742`).
+
+Note the contrast: the **certificate** importer uses CsvHelper properly. Only this product-ID path hand-rolls it.
+
+**Measured on the go-live data.** 8,231 of 16,234 product IDs — **50.7%** — carry a comma in `productName`. Loading `productids-all.csv` through `POST /api/productids/certificate/{id}/import` stored, for example:
+
+| | |
+|---|---|
+| Source | `DUDE Wipes Flushable Wipes - 1 Pack, 48 Wipes - Unscented Extra-Large Wet Wipes with Vitamin-E & Aloe for at-Home Use - Septic and Sewer Safe` (141 chars) |
+| Stored | `DUDE Wipes Flushable Wipes - 1 Pack` (35 chars) |
+
+**The import reports complete success.** 158/158 files, `successCount` 16,234, zero errors — because `Type` and `Value` are columns 1 and 2 and parse fine. Only the later columns are wrong. Nothing in the result surfaces it.
+
+**It reaches Amazon.** `pi.ProductName` is projected straight into the partner API response (`Controllers/Api/v1/CertificatesController.cs:279`), so the truncated name is what a partner reads.
+
+**Also affected by the same shift:** `Partner`, `ProductSku` and `Description` — every column positioned after a comma-bearing field.
+
+**Proven workaround (used on dev).** `POST /api/productids/certificate/{id}/bulk` takes `BulkProductIdImportRequest` as JSON and bypasses the parser entirely. Reloaded all 16,234 that way: **0 length mismatches against source across all 16,234 rows**, verified by comparing `LEN(ProductName)` per `(cert#, value)` pair.
+
+**Fix:** use CsvHelper here as the certificate importer already does. Do not patch the split with a regex.
+
+---
+
+### DEF-352 — Product IDs imported without a Partner tag become visible to EVERY partner, not none
+
+**Date:** 2026-08-13 | **Status:** Open — **behaviour is by design (CR-171 Model A); the defect is that nothing warns on import.** Corrected in the dev data by tagging on load. | **Severity:** **Major** — a partner-isolation gap that fails open. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal).
+
+**What happened.** After the rehearsal load, `CertificateProductIdPartners` was **0** where the source test environment had 2,644. Cause was benign — the transform's CSV carried no `Partner` column — but the *consequence* is not what one would assume.
+
+**Untagged does not mean hidden. It means shared.** `Controllers/Api/v1/CertificatesController.cs:270`:
+
+```csharp
+.Where(pi => pi.Status == "Active" &&
+    (!isPartnerCaller || !pi.Partners.Any() || pi.Partners.Any(p => userPartnerNames.Contains(p.Name))))
+```
+
+`!pi.Partners.Any()` — an untagged product ID is returned to **every** partner caller. So omitting the tag on 16,234 Amazon ASINs did not make them invisible to Amazon; it made them visible to Amazon, Novi, Wayfair and Other alike.
+
+Today the blast radius is limited because the parent certificate is still partner-filtered (`:1001`), so a caller only reaches product IDs on certificates they can already see. The exposure becomes real for any certificate shared between partners — exactly the multi-partner case behind [[feedback_partner_data_isolation]].
+
+**The defect is the silence.** A bulk import that creates thousands of product IDs with no partner tag produces no warning, no preview count, and no post-load signal — and the failure mode is *fail-open*. At minimum the import result should report how many rows landed untagged.
+
+**Corrected on dev:** reloaded with `Partner=Amazon` → 16,234 partner links, 0 untagged. The transform now emits the `Partner` column.
+
+**Client confirmation still needed:** tagging every ASIN row `Amazon` is an inference (ASIN is an Amazon identifier, the sheet carries `amazonCode`, the client describes it as the Amazon feed). It is the *restrictive* choice under Model A and therefore the safe default — but it should be confirmed rather than assumed.
+
+---
+
+### DEF-353 — Import invents Effective/Expiration dates when the source cell is blank, producing future expiry dates on expired certificates and effective-after-expiry ranges
+
+**Date:** 2026-08-13 | **Status:** **FIXED 2026-08-13 — build clean, verified end-to-end on dev. Not deployed.** | **Severity:** **Major** — it fabricates business data silently, and the fabricated value contradicts the record's own status. | **QC Ref:** none. Found by the value-level reconciliation of the dev load. | **Found by / Reporter:** Anuki (internal).
+
+**The defect.** `CertificateImportService.CreateCertificateAsync` (:1684):
+
+```csharp
+EffectiveDate  = row.EffectiveDate  ?? DateTime.UtcNow,
+ExpirationDate = row.ExpirationDate ?? DateTime.UtcNow.AddYears(1),
+```
+
+A blank date does not fail the row and is not left null — it is **replaced with the import date**. `Certificate.EffectiveDate`/`ExpirationDate` are non-nullable, so the model forces *a* value; the objection is to inventing a plausible-looking one instead of rejecting the row.
+
+**Measured on the go-live load (dev):** 15 certificates affected — 13 given `ExpirationDate` = import date + 1 year, 2 given `EffectiveDate` = import date.
+
+**Two of the outcomes are self-contradictory:**
+
+| Cert | Status | Effective | Expiration | Problem |
+|---|---|---|---|---|
+| 13-0157 | **Expired** | 2013-05-29 | **2027-08-13** | expired cert with an expiry ~1 year in the future |
+| 14-0278 | **Expired** | 2014-11-11 | **2027-08-13** | same |
+| 23-0092 | Expired | **2026-08-13** | 2024-03-31 | **effective date AFTER expiration date** |
+| 24-0401 | Expired | **2026-08-13** | 2025-07-31 | **effective date AFTER expiration date** |
+
+An 11-year-old expired certificate now carries a 2027 expiry. Anything that derives or displays validity from dates — the tile views, the partner API, `CertificateExpirationBackgroundService` — will read these as current. The `eff > exp` pairs are not representable as a real certificate at all.
+
+**Why it survived preview:** the substitution happens in `CreateCertificateAsync`, i.e. on **apply**. Preview reports the row valid, and no warning is emitted at any point.
+
+**This is a migration-scale problem, not a data-entry one.** For an analyst typing one certificate, defaulting to today is defensible. For a 5,405-row historical load where blank means "we never recorded it", it manufactures 15 wrong facts.
+
+**FIX APPLIED — option (a), scoped to new rows only.** Two changes in `CertificateImportService`:
+
+1. `ProcessRowAsync` — inside the `existing == null` branch, a blank Effective or Expiration Date now adds a ValidationMessage and marks the row `Error`, exactly as an *unparseable* date already did (:1306/:1314). Message names which date(s) are missing and says why blanks are no longer filled in.
+2. `CreateCertificateAsync` — `?? DateTime.UtcNow` / `?? .AddYears(1)` replaced with `?? throw new InvalidOperationException(...)`. Unreachable by contract now, but it can never silently fabricate again; the per-row try/catch in Phase 2 turns it into a row-level error rather than a failed batch.
+
+**Deliberately scoped to NEW certificates.** On an update a blank date legitimately means "leave the stored value alone" (`UpdateCertificateAsync` only assigns when `HasValue`), so partial-update files are unaffected.
+
+**Verified on dev (5,405-cert database):**
+
+| Test row | Blank field | Result |
+|---|---|---|
+| ZZTEST-353A | Effective Date | rejected — *"Effective Date is required for a new certificate…"* |
+| ZZTEST-353B | Expiration Date | rejected — correct singular wording |
+| ZZTEST-353C | both | rejected — *"Effective Date and Expiration Date are required…"* |
+| ZZTEST-354D | neither | created |
+| **23-0753 (existing)** | **both blank** | **`Modified`, applied, dates preserved exactly (2023-10-01 / 2026-09-30)** — regression check passed |
+
+Confirmed in the database afterwards: the three rejected numbers do not exist.
+
+**Still outstanding:** the 15 certificates already loaded on dev *before* this fix retain their invented dates. They are not repaired by the code change — a go-live load re-run from the fixed build would reject those rows instead, which is the intended outcome. Rejected: option (c) (nullable columns) as a schema change nobody asked for.
+
+---
+
+### DEF-354 — Import never sets Certificate.ProductTypeId (only Category), so migrated certificates have a blank Product Type on Edit and are invisible to type-based admin counts
+
+**Date:** 2026-08-13 | **Status:** **FIXED 2026-08-13 — build clean, verified on dev, existing rows backfilled. Not deployed.** | **Severity:** **Major** — affects **1,216 of 5,405** migrated certificates, and interacts with DEF-343 to risk silent data rewrite. | **QC Ref:** none. Found by the value-level reconciliation. | **Found by / Reporter:** Anuki (internal).
+
+**The defect.** `CreateCertificateAsync` (:1676) assigns
+
+```csharp
+ProductCategoryId = row.ProductCategoryId, // QC #189 / DEF-278: honor template category
+```
+
+…and there is **no `ProductTypeId` assignment, and no `ProductSubcategoryId`**. The Product Type value is resolved and applied to the **Product** record (`:724`, `:1178`, CR-186 identity) but never written to the certificate.
+
+**Measured on dev after the load:**
+
+| | |
+|---|---|
+| `Certificates.ProductCategoryId` populated | **1,342** (matches source exactly) |
+| `Certificates.ProductTypeId` populated | **0 of 5,405** |
+| Source rows supplying a Product Type | **1,216** |
+
+So Category lands on the certificate and Type does not. DEF-278 fixed one of the two sibling fields and stopped — the same shape as DEF-349 (one of three name columns widened) and DEF-314.
+
+**`Certificate.ProductTypeId` is not a dead column — it is read:**
+
+- `CertificateController.cs:844` populates the **Edit** view model from `certificate.ProductTypeId`. Null ⇒ every migrated certificate opens with a **blank Product Type dropdown**. Combined with **DEF-343** ([[feedback_dropdown_filtered_subset_drops_stored_value]]), a blank required dropdown can be **silently rewritten on save** — so an analyst opening a migrated cert to change something unrelated may quietly clear or change its type.
+- `AdminService.cs:1426` counts `c.ProductTypeId == id` as **delete-protection** for a Product Type. With 0 certificates referencing any type, a type in active use by 1,216 certificates looks unused and can be deleted.
+- `AdminService.cs:913-923` groups certificates by `ProductTypeId` for admin reporting — migrated certs are absent from those figures.
+
+**Note the interaction with DEF-348:** `ProductSubcategoryId` is *also* never set here, which is the certificate-side half of that defect. A fix should address Type and Subcategory together rather than repeating the one-field-at-a-time pattern.
+
+**FIX APPLIED — three changes, because one was not enough.** Setting the field in `CreateCertificateAsync` alone would have covered only rows whose product type already existed:
+
+1. **Phase 2 back-fill** — `row.ProductTypeId` is now populated from `createdProductTypes` for types auto-created by the same import. Previously that dictionary was consulted only when building the **Product** record (:711), so a type created by this import never reached the row and could never reach the certificate.
+2. **`CreateCertificateAsync`** — added `ProductTypeId = row.ProductTypeId` alongside the existing DEF-278 Category line.
+3. **`UpdateCertificateAsync`** — added `if (row.ProductTypeId.HasValue) certificate.ProductTypeId = ...`, following the **Pathway** rule rather than Category's unconditional assignment, so a file without a Product Type column cannot clear an existing type. The audit old-state capture now includes `ProductTypeId` so the diff is correct. (Category's unconditional assignment is a real problem in its own right — raised separately as **DEF-355**.)
+
+**Verified on dev:** a new certificate imported with Product Type *Metal Alloys* now stores `ProductTypeId = 2`; previously NULL.
+
+**Existing data backfilled:** `UPDATE c SET c.ProductTypeId = p.ProductTypeId FROM Certificates c JOIN Products p ON p.Id = c.ProductId WHERE c.ProductTypeId IS NULL` — exact because CR-186 splits products by (Company, Name, Category, Type, Subcategory), so each certificate's product carries its own type. Result: **1,216 of 1,216** certificates that supply a Product Type in the source now carry it, and the value-level reconciliation reports **Product Type 1,216 compared / 1,216 matched / 0 mismatched** (was 0 / 1,216 mismatched).
+
+**Not addressed here:** `ProductSubcategoryId` remains unset, because there is no parser mapping to supply it — that is DEF-348, and inventing a column mapping was out of scope for this fix.
+
+---
+
+### DEF-355 — Re-importing a CSV without the Category / Cert Results / Partner columns silently CLEARS those values on existing certificates
+
+**Date:** 2026-08-13 | **Status:** **FIXED 2026-08-13 — build clean, verified end-to-end on dev. Not deployed.** | **Severity:** **Major** — silent destruction of existing data on a routine re-import; no warning at preview or apply. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal).
+
+**How it was found.** A regression test for DEF-353 re-imported one existing certificate (`23-0753`) with several columns deliberately blank. The value-level reconciliation then flagged three *new* mismatches on that certificate that had not existed before:
+
+| Field | Before re-import | After |
+|---|---|---|
+| Company | `DUDE Wipes` | `DUDE Products Inc.` (re-pointed) |
+| Cert Results | `0.03` | **blank** |
+| Partner | `Amazon` | **blank** (M2M link removed too) |
+| Product Category | `Consumer Products` | **blank** |
+
+**The mechanism.** `UpdateCertificateAsync` assigns these unconditionally from the row:
+
+```csharp
+certificate.ProductCategoryId  = row.ProductCategoryId;   // blank column -> NULL
+certificate.CertificationResults = row.CertificationResults; // blank column -> NULL
+await SyncCertificatePartnersAsync(certificate, row.Partner); // null -> "None" + Partners.Clear()
+```
+
+A missing or blank column is therefore read as **"set this to empty"**, not as "not supplied". Contrast the deliberate handling of Pathway a few lines below, which documents the opposite rule:
+
+```csharp
+// Pathway: only set when the CSV actually provided one, so a file without a Pathway
+// column (e.g. the current export round-trip) never clears an existing pathway.
+if (row.PathwayId.HasValue) certificate.PathwayId = row.PathwayId.Value;
+```
+
+So the correct behaviour is already understood and implemented for one field, and not for the others. DEF-354's fix followed the Pathway rule for `ProductTypeId`; these three still follow the destructive one.
+
+**Why it matters beyond the test.** The export→edit→re-import round trip is a normal analyst workflow, and the export is **role-filtered** — `CertificateService.cs:1260` only emits *Cert Subcategories* (and Pathway) for Admin/Analyst (DEF-295). Any exported subset that omits a column will, on re-import, blank that column for every row it touches. The blast radius is every certificate in the file, not just edited rows.
+
+**Note on Company:** re-pointing on a changed Company name is find-or-create working as designed, not a defect — but combined with the blanking above, a single sloppy re-import silently rewrites several fields at once with no preview warning.
+
+**FIX APPLIED — the parser now tracks column presence, and both preview and apply respect it.**
+
+1. **`HasColumn` / `BuildProvidedColumns`** (new helpers) answer "was this column in the header?", mirroring `GetFieldWithMapping`'s matching rules *exactly* — exact match case-**sensitive** (CsvHelper's `GetField`, no `PrepareHeaderForMatch` — the DEF-347 trap) plus the DEF-202 case-insensitive `"Name "` / `"Name("` prefix fallback. If presence and readability disagreed, the gate would be worse than no gate.
+2. **`ParseCsvFileAsync`** computes the set **once** from the header and stamps it on every row, so it survives the preview cache and reaches apply. Carried on both `CertificateImportCsvRow` and `CertificateImportRow`.
+3. **`UpdateCertificateAsync`** now guards Status, Location, Country, ProductCategoryId, CertificationResults, Partner, Asin, Upc, Gtin and Ean with `Provided(...)`.
+4. **`DetectChanges`** guards the same fields, so **preview and apply agree** — otherwise preview would advertise edits ("Status: Client Approved - Paid → Draft") that apply then refused to make.
+
+**Semantics chosen deliberately:** a column that is *absent* is a no-op; a column that is *present but blank* still clears the value, because that is a deliberate analyst edit and must stay possible. Only the ambiguous-and-destructive case changed.
+
+**Status was the worst instance and is now covered.** A blank/absent Status defaults to `"Draft"` at parse time (:1286), so before this fix a file without a Status column reset **every certificate it touched** to Draft.
+
+**Verified end-to-end on dev** with a purpose-built fixture (`ZZ355-A`), created full then re-imported from a file that omitted Status, Country, Cert Results, Partner and ASIN and changed only Location:
+
+| Field | Before | After partial re-import |
+|---|---|---|
+| Location *(supplied)* | Original City | **CHANGED City** — the intended edit applied |
+| Status | Client Approved - Paid | **preserved** (previously → `Draft`) |
+| Cert Results | 0.42 | **preserved** (previously → blank) |
+| Partner + M2M link | Amazon, 1 link | **preserved** (previously → blank, link dropped) |
+| Country / ASIN / Category / Type | set | **all preserved** |
+
+Preview reported exactly one change — `Location` — with no phantom Partner/CertificationResults entries. Fixtures deleted afterwards; dev back to 5,405 certificates.
+
+**Not changed:** `CompanyId`, `ProductId` and `CertificationTypeId` remain unconditional. They are required fields that always resolve to a value, so they cannot be blanked by omission — the Company re-pointing noted above is find-or-create working as designed, not this defect.
+
+**Dev data note:** `23-0753` was fully restored (Company, Cert Results, Partner + M2M link, Product/Category/Type) and the stray company and product created by the test were removed. Verified by re-running the reconciliation.

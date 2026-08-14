@@ -1,0 +1,36 @@
+3|Carbon Footprint Reduction|1|NULL|1
+4|Certified Energy Savings|1|NULL|1
+5|Certified Environmental Facts|1|NULL|1
+6|Certified Sustainability Facts|1|NULL|1
+7|Certified Water Savings|1|NULL|1
+8|Closed Loop Product|1|NULL|1
+9|Dematerialization|1|NULL|1
+10|Greenhouse Gas (GHG) Verification|1|NULL|1
+11|GreenCircle Audited|1|NULL|1
+12|Life Cycle Assessment (LCA) Optimized|1|NULL|1
+13|Material Ingredient Reporting|1|NULL|1
+15|Recycled Content|1|NULL|1
+17|Sustainable Energy Practices|1|NULL|1
+18|Sustainable Manufacturing Practices|1|NULL|1
+19|Waste Diversion from Landfill|1|NULL|1
+20|Waste System Audit|2|19|1
+24|+Vantage Vinyl Verified|1|NULL|1
+71|Closed Loop Product|2|6|1
+72|Dematerialization|2|6|1
+73|Recycled Content|2|6|1
+78|Waste Diversion from Landfill|2|6|1
+82|Material Ingredient Reporting|2|6|1
+84|Certified Energy Savings|2|6|1
+88|Life Cycle Assessment (LCA) Optimized|2|6|1
+90|Sustainable Energy Practices|2|6|1
+95|Certified Water Savings|2|6|1
+115|Waste Diversion Event|2|19|1
+116|Carbon Footprint Reduction|2|6|1
+117|Recyclable Material|2|6|1
+118|Sustainable Manufacturing Practices|2|6|1
+119|Product Optimization: Carbon Footprint Reduction|1|NULL|1
+120|Recyclable Material|1|NULL|1
+126|Biodegradable|1|NULL|0
+127|Biobased|1|NULL|0
+128|Renewable Resource Content|1|NULL|0
+129|Verified Health Product Declaration|1|NULL|0

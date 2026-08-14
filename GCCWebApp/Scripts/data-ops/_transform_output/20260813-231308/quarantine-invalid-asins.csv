@@ -1,0 +1,10 @@
+﻿ExcelRow,CertificateNumber,Type,Value,Why
+1728,23-1046,ASIN,08FDWPMP6,fails ProductIdService ASIN pattern ^[A-Z0-9]{10}$
+13719,24-1633,ASIN,TO BE CHECKED,fails ProductIdService ASIN pattern ^[A-Z0-9]{10}$
+13720,24-1633,ASIN,TO BE CHECKED,fails ProductIdService ASIN pattern ^[A-Z0-9]{10}$
+13847,24-1634,ASIN,TO BE CHECKED,fails ProductIdService ASIN pattern ^[A-Z0-9]{10}$
+14017,24-1634,ASIN,TO BE CHECKED,fails ProductIdService ASIN pattern ^[A-Z0-9]{10}$
+14018,24-1634,ASIN,TO BE CHECKED,fails ProductIdService ASIN pattern ^[A-Z0-9]{10}$
+14032,24-1634,ASIN,TO BE CHECKED,fails ProductIdService ASIN pattern ^[A-Z0-9]{10}$
+14033,24-1634,ASIN,TO BE CHECKED,fails ProductIdService ASIN pattern ^[A-Z0-9]{10}$
+14149,24-1634,ASIN,TO BE CHECKED,fails ProductIdService ASIN pattern ^[A-Z0-9]{10}$

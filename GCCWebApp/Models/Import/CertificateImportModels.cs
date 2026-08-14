@@ -29,6 +29,12 @@ namespace GCCWebApp.Models.Import
         public List<CertificateImportRow> UnchangedRows { get; set; } = new();
         public List<CertificateImportError> ErrorRows { get; set; } = new();
 
+        // DEF-347: rows that WILL be imported but carry an advisory (e.g. an unrecognised country).
+        // Surfaced in the preview so the analyst sees them before Apply, not by inspection after.
+        public List<CertificateImportRow> WarningRows =>
+            NewRows.Concat(ModifiedRows).Concat(UnchangedRows).Where(r => r.HasWarnings).ToList();
+        public int RowsWithWarnings => WarningRows.Count;
+
         // Validation summary
         public bool HasErrors => ErrorRows.Count > 0;
         public bool CanApply => ValidRows > 0 && !HasCriticalErrors;
@@ -79,6 +85,14 @@ namespace GCCWebApp.Models.Import
     public class CertificateImportRow
     {
         public int RowNumber { get; set; }
+
+        /// <summary>
+        /// DEF-355: logical fields whose column was present in the uploaded file's header.
+        /// UpdateCertificateAsync only overwrites these, so a file that omits a column can no
+        /// longer silently blank it on an existing certificate.
+        /// </summary>
+        public HashSet<string> ProvidedColumns { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
         public string CertificateNumber { get; set; } = string.Empty;
         public string CompanyName { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
@@ -142,6 +156,14 @@ namespace GCCWebApp.Models.Import
         // Metadata
         public ImportRowStatus RowStatus { get; set; }
         public List<string> ValidationMessages { get; set; } = new();
+
+        // DEF-347: NON-blocking advisories. ValidationMessages cannot be used for these — any entry
+        // there flips the row to ImportRowStatus.Error (CertificateImportService.cs:1445), which
+        // silently drops the certificate from the import instead of loading it. A warning must let
+        // the row through while still being visible in the preview before Apply.
+        public List<string> Warnings { get; set; } = new();
+        public bool HasWarnings => Warnings.Count > 0;
+
         public List<FieldChange> Changes { get; set; } = new(); // For modified certificates
 
         // Matched entities (resolved from names)
@@ -215,6 +237,13 @@ namespace GCCWebApp.Models.Import
     public class CertificateImportCsvRow
     {
         public int RowNumber { get; set; }
+
+        /// <summary>
+        /// DEF-355: logical fields whose column was present in the uploaded file's header.
+        /// A blank cell and a missing column are different intents; only fields listed here
+        /// may be overwritten on an update. Shared instance across all rows of one file.
+        /// </summary>
+        public HashSet<string> ProvidedColumns { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
         // Certificate fields
         public string CertificateNumber { get; set; } = string.Empty;

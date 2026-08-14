@@ -1,0 +1,18 @@
+﻿Sheet,Field,LookupTable,DataRows,ResolvedDistinct,ResolvedRows,UnresolvedDistinct,UnresolvedRows,BlankRows,NaRows
+Active List 7.31.26,CERTIFICATE_TYPE,certtypes,1026,15,1026,0,0,0,0
+Active List 7.31.26,Product Category,prodcat,1026,7,936,0,0,0,90
+Active List 7.31.26,Product Type,prodtype,1026,32,926,0,0,100,0
+Active List 7.31.26,Product Subcategory,prodsub,1026,0,0,9,84,942,0
+Active List 7.31.26,Pathway (SEP Amazon only),pathways,1026,1,55,0,0,971,0
+Active List 7.31.26,Partner (Amazon),partners,1026,1,231,0,0,795,0
+Active List 7.31.26,External Tags,tags,1026,2,247,0,0,779,0
+Active List 7.31.26,Internal Tags,tags,1026,1,4,0,0,1022,0
+Expired List 2 - 8.11.26,CERTIFICATE_TYPE,certtypes,356,7,356,0,0,0,0
+Expired List 2 - 8.11.26,Product Category,prodcat,356,5,330,0,0,0,26
+Expired List 2 - 8.11.26,Product Type,prodtype,356,18,330,0,0,26,0
+Expired List 2 - 8.11.26,Product Subcategory,prodsub,356,0,0,3,20,336,0
+Expired List 2 - 8.11.26,Pathway (SEP Amazon only),pathways,356,0,0,0,0,356,0
+Expired List 2 - 8.11.26,Partner (Amazon),partners,356,1,13,0,0,343,0
+Expired List 2 - 8.11.26,External Tags,tags,356,2,161,0,0,195,0
+Expired List 2 - 8.11.26,Internal Tags,tags,356,0,0,0,0,356,0
+Expired List 1 - 4.9.26,CERTIFICATE_TYPE,certtypes,4349,13,4266,4,83,0,0

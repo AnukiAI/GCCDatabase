@@ -1,0 +1,6 @@
+﻿CountryValue,RowCount,Note
+United States; China; Poland,8,multi-country value — see CR-037
+"United States, Canada",6,multi-country value — see CR-037
+Puerto Rico,2,not in CountryList.Countries
+Hungary; Germany,2,multi-country value — see CR-037
+United States; Canada,1,multi-country value — see CR-037

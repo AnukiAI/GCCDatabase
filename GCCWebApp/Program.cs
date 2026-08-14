@@ -86,7 +86,15 @@ if (!string.IsNullOrEmpty(connectionString))
                     maxRetryCount: 5,
                     maxRetryDelay: TimeSpan.FromSeconds(30),
                     errorNumbersToAdd: null);
-                sqlServerOptions.CommandTimeout(30);
+                // DEF-350: was a hardcoded 30. The certificate-import preview scales with
+                // database size and at go-live volume (5,405 certs) already runs close to that
+                // ceiling, failing with "Execution Timeout Expired" — which reads as a flaky
+                // import rather than a limit being hit. Default is unchanged at 30s; set
+                // Database:CommandTimeoutSeconds (or Database__CommandTimeoutSeconds) to raise it
+                // for a migration window. This is a mitigation, not a fix: the underlying cost
+                // of the preview path is still unexplained.
+                sqlServerOptions.CommandTimeout(
+                    builder.Configuration.GetValue<int?>("Database:CommandTimeoutSeconds") ?? 30);
             });
         });
         Console.WriteLine("Using SQL Server database provider");
@@ -573,6 +581,15 @@ builder.Services.AddHttpClient();
 // ===== BUILD APPLICATION =====
 var app = builder.Build();
 
+// ===== DATA-OPS COMMANDS (argv branch) =====
+// Migration plan §10. Runs with the full DI container but WITHOUT the middleware pipeline or a
+// listening port, then exits — so it can never be reached over HTTP, only from a console.
+// `dotnet run -- link-pdfs --manifest <path> --dry-run`
+if (GCCWebApp.Services.DataOps.PdfLinkCommand.Matches(args))
+{
+    return await GCCWebApp.Services.DataOps.PdfLinkCommand.RunAsync(app, args);
+}
+
 // ===== STARTUP LOGGING (before middleware) =====
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("GreenCircle Certified Database application starting up");
@@ -1025,6 +1042,10 @@ using (var scope = app.Services.CreateScope())
 
 // ===== RUN APPLICATION =====
 app.Run();
+
+// The entry point returns int because the data-ops argv branch above exits with a status code.
+// app.Run() blocks until shutdown, so this is only reached on a clean stop.
+return 0;
 
 // Make the implicit Program class accessible to test projects
 public partial class Program { }

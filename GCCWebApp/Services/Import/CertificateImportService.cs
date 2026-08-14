@@ -86,8 +86,19 @@ namespace GCCWebApp.Services.Import
         private static readonly string[] StatusColumns = { "STATUS", "Status", "status" };
         private static readonly string[] EffectiveDateColumns = { "EFFECTIVE_DATE", "EffectiveDate", "effective_date", "Effective Date", "Eff Date" };
         private static readonly string[] ExpirationDateColumns = { "EXPIRATION_DATE", "ExpirationDate", "expiration_date", "Expiration Date", "Exp Date" };
-        private static readonly string[] CertificateLocationColumns = { "CERTIFICATE_LOCATION", "Location", "certificate_location", "location" };
-        private static readonly string[] CertificateCountryColumns = { "CERTIFICATE_COUNTRY", "Country", "certificate_country", "country" };
+        // DEF-347: bare uppercase "LOCATION"/"COUNTRY" were missing here while every other mapping
+        // array carries the uppercase form (see StatusColumns). CsvHelper header matching is
+        // case-SENSITIVE — no PrepareHeaderForMatch is configured (:1070) — so a file headed
+        // "COUNTRY" silently imported a blank country and no error was raised. That is exactly the
+        // silence this defect is about, and the migration's own source files use LOCATION/COUNTRY.
+        private static readonly string[] CertificateLocationColumns = { "CERTIFICATE_LOCATION", "LOCATION", "Location", "certificate_location", "location" };
+        private static readonly string[] CertificateCountryColumns = { "CERTIFICATE_COUNTRY", "COUNTRY", "Country", "certificate_country", "country" };
+
+        // DEF-347: matches Certificate.Country's nvarchar(100) (Models/Certificate.cs:25).
+        private const int CountryMaxLength = 100;
+
+        private static string Truncate(string value, int max) =>
+            value.Length <= max ? value : value[..max] + "…";
         private static readonly string[] PartnerColumns = { "PARTNER", "Partner", "partner" };
         private static readonly string[] CertificationResultsColumns = { "CERTIFICATION_RESULTS", "CertificationResults", "certification_results", "Certification Results", "Cert Results" };
         // Pathway (optional; SEP/Amazon CPF). The "Pathway (SEP Amazon only)" template header is
@@ -110,6 +121,50 @@ namespace GCCWebApp.Services.Import
         /// <summary>
         /// Gets a field value by trying multiple column name formats
         /// </summary>
+        // === DEF-355 support: which columns did the FILE actually carry? ===
+        // A blank value and an absent column are different intents, and the importer could not
+        // tell them apart — so a file without (say) a Partner column read as "clear Partner".
+        // These two helpers answer "was this column present in the header?", mirroring
+        // GetFieldWithMapping's matching rules EXACTLY so presence and readability agree:
+        // an exact, case-SENSITIVE match (CsvHelper's GetField, no PrepareHeaderForMatch — the
+        // DEF-347 trap), plus the DEF-202 case-insensitive "Name " / "Name(" prefix fallback.
+        private static bool HasColumn(string[]? header, string[] possibleNames)
+        {
+            if (header == null) return false;
+            foreach (var name in possibleNames)
+            {
+                if (header.Any(h => h != null && h.Equals(name, StringComparison.Ordinal)))
+                    return true;
+                if (header.Any(h => h != null &&
+                        (h.StartsWith(name + " ", StringComparison.OrdinalIgnoreCase) ||
+                         h.StartsWith(name + "(", StringComparison.OrdinalIgnoreCase))))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// DEF-355: the set of logical fields whose column appeared in the uploaded file.
+        /// Only these may be overwritten on an UPDATE; anything absent is left untouched.
+        /// </summary>
+        private static HashSet<string> BuildProvidedColumns(string[]? header)
+        {
+            var provided = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            void Check(string key, string[] names) { if (HasColumn(header, names)) provided.Add(key); }
+
+            Check(nameof(Certificate.Status), StatusColumns);
+            Check(nameof(Certificate.Location), CertificateLocationColumns);
+            Check(nameof(Certificate.Country), CertificateCountryColumns);
+            Check(nameof(Certificate.ProductCategoryId), ProductCategoryColumns);
+            Check(nameof(Certificate.CertificationResults), CertificationResultsColumns);
+            Check(nameof(Certificate.Partner), PartnerColumns);
+            Check(nameof(Certificate.Asin), AsinColumns);
+            Check(nameof(Certificate.Upc), UpcColumns);
+            Check(nameof(Certificate.Gtin), GtinColumns);
+            Check(nameof(Certificate.Ean), EanColumns);
+            return provided;
+        }
+
         private static string GetFieldWithMapping(CsvReader csv, string[] possibleNames)
         {
             foreach (var name in possibleNames)
@@ -246,12 +301,26 @@ namespace GCCWebApp.Services.Import
                 var productTypes = await _context.ProductTypes.Where(pt => pt.IsActive).ToListAsync();
                 var tags = await _context.Tags.Where(t => t.IsActive).ToListAsync();
                 var categories = await _context.ProductCategories.Where(c => c.IsActive).ToListAsync();
+                // DEF-350: this preloads EVERY certificate with five Includes, one of which
+                // (Tags) is a collection — so a single SQL statement carries the cartesian
+                // product of certs x tags. Harmless at the 228 rows this was written against;
+                // at the 5,405-row go-live volume it exceeds the 30s command timeout and the
+                // preview fails with "Execution Timeout Expired", which reads as a flaky import.
+                //
+                // AsSplitQuery is the established remedy here (DEF-166 / DEF-234) — keep the
+                // Includes, split the statement. See [[feedback_ef_includes_with_projection]].
                 var existingCerts = await _context.Certificates
                     .Include(c => c.Company)
                     .Include(c => c.Product)
                     .Include(c => c.CertificationType)
                     .Include(c => c.Pathway)
                     .Include(c => c.Tags)
+                    .AsSplitQuery()
+                    // Preview never mutates these — DetectChanges only reads them, and
+                    // UpdateCertificateAsync re-queries the certificate by Id before writing.
+                    // Tracking 5,405 certificates plus their graphs is pure overhead here, and
+                    // with AsSplitQuery alone the process died outright on the go-live volume.
+                    .AsNoTracking()
                     .ToListAsync();
 
                 // Get default category for auto-created products
@@ -746,6 +815,14 @@ namespace GCCWebApp.Services.Import
                         // Resolve IDs from created entities if needed
                         if (!row.CompanyId.HasValue && createdCompanies.TryGetValue(row.CompanyName, out var cId))
                             row.CompanyId = cId;
+                        // DEF-354: back-fill a product type created by THIS import onto the row.
+                        // createdProductTypes was previously consulted only when building the
+                        // Product record (:711), so a type auto-created here never reached the
+                        // row — and therefore could never reach the certificate below.
+                        if (!row.ProductTypeId.HasValue
+                            && !string.IsNullOrWhiteSpace(row.ProductTypeName)
+                            && createdProductTypes.TryGetValue(row.ProductTypeName, out var newRowPtId))
+                            row.ProductTypeId = newRowPtId;
                         if (!row.ProductId.HasValue && createdProducts.TryGetValue(row.ProductName, out var pId))
                             row.ProductId = pId;
 
@@ -1078,6 +1155,10 @@ namespace GCCWebApp.Services.Import
             await csv.ReadAsync();
             csv.ReadHeader();
 
+            // DEF-355: computed ONCE from the header, then stamped on every row so it survives
+            // the preview cache and reaches UpdateCertificateAsync at apply time.
+            var providedColumns = BuildProvidedColumns(csv.HeaderRecord);
+
             while (await csv.ReadAsync())
             {
                 rowNumber++;
@@ -1087,6 +1168,7 @@ namespace GCCWebApp.Services.Import
                 rows.Add(new CertificateImportCsvRow
                 {
                     RowNumber = rowNumber,
+                    ProvidedColumns = providedColumns,
                     // Certificate fields
                     CertificateNumber = GetFieldWithMapping(csv, CertificateNumberColumns),
                     CertificationType = GetFieldWithMapping(csv, CertificationTypeColumns),
@@ -1197,6 +1279,7 @@ namespace GCCWebApp.Services.Import
             var row = new CertificateImportRow
             {
                 RowNumber = csvRow.RowNumber,
+                ProvidedColumns = csvRow.ProvidedColumns, // DEF-355: carry header presence to apply time
                 CertificateNumber = csvRow.CertificateNumber,
                 CompanyName = csvRow.CompanyName,
                 ProductName = csvRow.ProductName,
@@ -1253,6 +1336,43 @@ namespace GCCWebApp.Services.Import
             // Validate company email format if provided
             if (!string.IsNullOrWhiteSpace(csvRow.CompanyEmail) && !IsValidEmail(csvRow.CompanyEmail))
                 row.ValidationMessages.Add($"Invalid Company Email format: {csvRow.CompanyEmail}");
+
+            // === Country validation / normalization (DEF-347) ===
+            // Import wrote Country as a raw string with no check against CountryList, and the UI
+            // <select> can't produce a bad value — so import was the only way in, and "Atlantis"
+            // got in that way. Resolve tolerantly like DEF-276 does for Status, so migration
+            // spellings ("USA", " united states ") normalize instead of being flagged.
+            //
+            // Deliberately a WARNING, not a ValidationMessage: an entry there marks the row Error
+            // and drops the certificate from the import (:1445). For the go-live load, dropping a
+            // certificate over a country typo is worse than loading it with the typo visible. The
+            // value is kept as-supplied so the analyst can see what to correct.
+            if (!string.IsNullOrWhiteSpace(row.Country))
+            {
+                if (CountryList.TryResolve(row.Country, out var canonicalCountry))
+                {
+                    row.Country = canonicalCountry;
+                }
+                else
+                {
+                    var supplied = row.Country;
+
+                    // Certificate.Country is nvarchar(100). An unresolved value passes through raw,
+                    // and a bad Location->Country split (plan section 87) can be far longer than a
+                    // country name — SQL Server would then throw on SaveChanges and take the WHOLE
+                    // batch down mid-load. Truncate and say so rather than fail 5,556 rows.
+                    if (supplied.Length > CountryMaxLength)
+                        row.Country = supplied[..CountryMaxLength];
+
+                    row.Warnings.Add(
+                        $"Unrecognised Country '{Truncate(supplied, 60)}' — it is not in the standard " +
+                        "country list. The certificate will import with this value" +
+                        (supplied.Length > CountryMaxLength
+                            ? $", shortened to {CountryMaxLength} characters"
+                            : " as-is") +
+                        "; correct it on the certificate afterwards, or fix the source file and re-upload.");
+                }
+            }
 
             // Parse dates
             if (!string.IsNullOrWhiteSpace(csvRow.EffectiveDate))
@@ -1454,6 +1574,33 @@ namespace GCCWebApp.Services.Import
 
             if (existing == null)
             {
+                // === DEF-353: a NEW certificate may not be created without dates ===
+                // Certificate.EffectiveDate/ExpirationDate are NOT NULL, so a blank cell used to
+                // be replaced with DateTime.UtcNow / +1 year in CreateCertificateAsync. That is
+                // fabrication, not a default: on the go-live rehearsal it gave 15 certificates
+                // invented dates, including an Expired 2013 cert with a 2027 expiry and two certs
+                // whose effective date landed AFTER their expiration date. An unparseable date is
+                // already rejected above (:1306/:1314); a blank one now gets the same treatment,
+                // consistent with the other "is required" checks.
+                //
+                // Scoped to NEW rows on purpose. On an UPDATE a blank date legitimately means
+                // "leave the stored value alone" (UpdateCertificateAsync only assigns when
+                // HasValue), so partial-update files keep working exactly as before.
+                var missingDates = new List<string>();
+                if (!row.EffectiveDate.HasValue) missingDates.Add("Effective Date");
+                if (!row.ExpirationDate.HasValue) missingDates.Add("Expiration Date");
+
+                if (missingDates.Count > 0)
+                {
+                    row.ValidationMessages.Add(
+                        $"{string.Join(" and ", missingDates)} " +
+                        $"{(missingDates.Count == 1 ? "is" : "are")} required for a new certificate. " +
+                        "Blank dates are no longer filled in automatically, because the substituted " +
+                        "value is indistinguishable from a real one.");
+                    row.RowStatus = ImportRowStatus.Error;
+                    return row;
+                }
+
                 // New certificate
                 row.RowStatus = ImportRowStatus.New;
             }
@@ -1475,6 +1622,12 @@ namespace GCCWebApp.Services.Import
         private List<FieldChange> DetectChanges(Certificate existing, CertificateImportRow newData)
         {
             var changes = new List<FieldChange>();
+
+            // DEF-355: a column the file never carried is not a change. Without this the preview
+            // would advertise edits ("Status: Client Approved - Paid -> Draft") that
+            // UpdateCertificateAsync now correctly refuses to apply — preview and apply must agree.
+            // Pathway already worked this way; the rest now match it.
+            bool Provided(string field) => newData.ProvidedColumns.Contains(field);
 
             // Compare each field
             if (existing.CompanyId != newData.CompanyId)
@@ -1511,7 +1664,7 @@ namespace GCCWebApp.Services.Import
                     NewValue = newData.Pathway
                 });
 
-            if (existing.Status != newData.Status)
+            if (Provided(nameof(Certificate.Status)) && existing.Status != newData.Status)
                 changes.Add(new FieldChange
                 {
                     FieldName = "Status",
@@ -1535,7 +1688,7 @@ namespace GCCWebApp.Services.Import
                     NewValue = newData.ExpirationDate?.ToString("yyyy-MM-dd")
                 });
 
-            if ((existing.Location ?? "") != (newData.Location ?? ""))
+            if (Provided(nameof(Certificate.Location)) && (existing.Location ?? "") != (newData.Location ?? ""))
                 changes.Add(new FieldChange
                 {
                     FieldName = "Location",
@@ -1543,7 +1696,7 @@ namespace GCCWebApp.Services.Import
                     NewValue = newData.Location
                 });
 
-            if ((existing.Country ?? "") != (newData.Country ?? ""))
+            if (Provided(nameof(Certificate.Country)) && (existing.Country ?? "") != (newData.Country ?? ""))
                 changes.Add(new FieldChange
                 {
                     FieldName = "Country",
@@ -1551,7 +1704,7 @@ namespace GCCWebApp.Services.Import
                     NewValue = newData.Country
                 });
 
-            if ((existing.Asin ?? "") != (newData.Asin ?? ""))
+            if (Provided(nameof(Certificate.Asin)) && (existing.Asin ?? "") != (newData.Asin ?? ""))
                 changes.Add(new FieldChange
                 {
                     FieldName = "Asin",
@@ -1559,7 +1712,7 @@ namespace GCCWebApp.Services.Import
                     NewValue = newData.Asin
                 });
 
-            if ((existing.Upc ?? "") != (newData.Upc ?? ""))
+            if (Provided(nameof(Certificate.Upc)) && (existing.Upc ?? "") != (newData.Upc ?? ""))
                 changes.Add(new FieldChange
                 {
                     FieldName = "Upc",
@@ -1567,7 +1720,7 @@ namespace GCCWebApp.Services.Import
                     NewValue = newData.Upc
                 });
 
-            if ((existing.Gtin ?? "") != (newData.Gtin ?? ""))
+            if (Provided(nameof(Certificate.Gtin)) && (existing.Gtin ?? "") != (newData.Gtin ?? ""))
                 changes.Add(new FieldChange
                 {
                     FieldName = "Gtin",
@@ -1575,7 +1728,7 @@ namespace GCCWebApp.Services.Import
                     NewValue = newData.Gtin
                 });
 
-            if ((existing.Ean ?? "") != (newData.Ean ?? ""))
+            if (Provided(nameof(Certificate.Ean)) && (existing.Ean ?? "") != (newData.Ean ?? ""))
                 changes.Add(new FieldChange
                 {
                     FieldName = "Ean",
@@ -1583,7 +1736,7 @@ namespace GCCWebApp.Services.Import
                     NewValue = newData.Ean
                 });
 
-            if ((existing.Partner ?? "None") != (newData.Partner ?? "None"))
+            if (Provided(nameof(Certificate.Partner)) && (existing.Partner ?? "None") != (newData.Partner ?? "None"))
                 changes.Add(new FieldChange
                 {
                     FieldName = "Partner",
@@ -1592,7 +1745,7 @@ namespace GCCWebApp.Services.Import
                 });
 
             // CertificationResults change detection
-            if ((existing.CertificationResults ?? "") != (newData.CertificationResults ?? ""))
+            if (Provided(nameof(Certificate.CertificationResults)) && (existing.CertificationResults ?? "") != (newData.CertificationResults ?? ""))
                 changes.Add(new FieldChange
                 {
                     FieldName = "CertificationResults",
@@ -1632,9 +1785,25 @@ namespace GCCWebApp.Services.Import
                 ProductId = row.ProductId!.Value,
                 CertificationTypeId = row.CertificationTypeId!.Value,
                 ProductCategoryId = row.ProductCategoryId, // QC #189 / DEF-278: honor template category
+                // DEF-354: the template's Product Type now reaches the certificate too. DEF-278
+                // added Category here and stopped, so ProductTypeId stayed NULL on every
+                // imported certificate (0 of 5,405 on the go-live rehearsal) even though the
+                // value was resolved and written to the Product record. It is read back by the
+                // Edit view model (CertificateController.cs:844) and used for ProductType
+                // delete-protection (AdminService.cs:1426), so a NULL here is not cosmetic.
+                ProductTypeId = row.ProductTypeId,
                 Status = row.Status,
-                EffectiveDate = row.EffectiveDate ?? DateTime.UtcNow,
-                ExpirationDate = row.ExpirationDate ?? DateTime.UtcNow.AddYears(1),
+                // DEF-353: these were `?? DateTime.UtcNow` / `?? .AddYears(1)`, which silently
+                // invented dates for blank source cells — on the go-live rehearsal that gave an
+                // Expired 2013 certificate a 2027 expiry, and gave two certificates an effective
+                // date AFTER their expiration date. New rows without both dates are now rejected
+                // in preview (see ProcessRowAsync), so these are unreachable by contract; throw
+                // rather than fabricate if that ever stops being true. The per-row try/catch in
+                // Phase 2 turns this into a row-level error, not a failed batch.
+                EffectiveDate = row.EffectiveDate ?? throw new InvalidOperationException(
+                    $"Effective Date missing for new certificate {row.CertificateNumber}; it must be rejected in preview, never defaulted."),
+                ExpirationDate = row.ExpirationDate ?? throw new InvalidOperationException(
+                    $"Expiration Date missing for new certificate {row.CertificateNumber}; it must be rejected in preview, never defaulted."),
                 Location = row.Location,
                 Country = row.Country,
                 Asin = row.Asin,
@@ -1756,25 +1925,47 @@ namespace GCCWebApp.Services.Import
                 Ean = certificate.Ean,
                 Partner = certificate.Partner,
                 CertificationResults = certificate.CertificationResults,
-                PathwayId = certificate.PathwayId
+                PathwayId = certificate.PathwayId,
+                ProductTypeId = certificate.ProductTypeId // DEF-354: capture the old value so the audit diff is right
             };
 
             // Apply updates
             if (row.CompanyId.HasValue) certificate.CompanyId = row.CompanyId.Value;
             if (row.ProductId.HasValue) certificate.ProductId = row.ProductId.Value;
             if (row.CertificationTypeId.HasValue) certificate.CertificationTypeId = row.CertificationTypeId.Value;
-            certificate.ProductCategoryId = row.ProductCategoryId; // QC #189 / DEF-278: honor template category
-            certificate.Status = row.Status;
+            // === DEF-355: a column the file never carried must NOT be overwritten ===
+            // These assignments used to be unconditional, so a re-import that omitted a column
+            // read as "set this to empty" and silently destroyed data on every row it touched.
+            // Proven on 23-0753 during the DEF-353 regression test: Cert Results 0.03 -> blank,
+            // Partner Amazon -> blank (M2M link dropped too), Category -> blank.
+            //
+            // The rule now matches the one already documented for Pathway below: only write what
+            // the file actually supplied. A column that IS present but blank still clears the
+            // value — that is a deliberate edit, and remains supported.
+            //
+            // Status is the most dangerous of these: a blank/absent Status defaults to "Draft"
+            // at parse time (:1286), so before this fix a file without a Status column reset
+            // every certificate it touched to Draft.
+            bool Provided(string field) => row.ProvidedColumns.Contains(field);
+
+            if (Provided(nameof(Certificate.ProductCategoryId)))
+                certificate.ProductCategoryId = row.ProductCategoryId; // QC #189 / DEF-278: honor template category
+            // DEF-354: Product Type follows the same rule.
+            if (row.ProductTypeId.HasValue) certificate.ProductTypeId = row.ProductTypeId.Value;
+            if (Provided(nameof(Certificate.Status)))
+                certificate.Status = row.Status;
             if (row.EffectiveDate.HasValue) certificate.EffectiveDate = row.EffectiveDate.Value;
             if (row.ExpirationDate.HasValue) certificate.ExpirationDate = row.ExpirationDate.Value;
-            certificate.Location = row.Location;
-            certificate.Country = row.Country;
-            certificate.Asin = row.Asin;
-            certificate.Upc = row.Upc;
-            certificate.Gtin = row.Gtin;
-            certificate.Ean = row.Ean;
-            await SyncCertificatePartnersAsync(certificate, row.Partner); // CR-171 (sets denorm + M2M)
-            certificate.CertificationResults = row.CertificationResults;
+            if (Provided(nameof(Certificate.Location))) certificate.Location = row.Location;
+            if (Provided(nameof(Certificate.Country))) certificate.Country = row.Country;
+            if (Provided(nameof(Certificate.Asin))) certificate.Asin = row.Asin;
+            if (Provided(nameof(Certificate.Upc))) certificate.Upc = row.Upc;
+            if (Provided(nameof(Certificate.Gtin))) certificate.Gtin = row.Gtin;
+            if (Provided(nameof(Certificate.Ean))) certificate.Ean = row.Ean;
+            if (Provided(nameof(Certificate.Partner)))
+                await SyncCertificatePartnersAsync(certificate, row.Partner); // CR-171 (sets denorm + M2M)
+            if (Provided(nameof(Certificate.CertificationResults)))
+                certificate.CertificationResults = row.CertificationResults;
             // Pathway: only set when the CSV actually provided one, so a file without a Pathway
             // column (e.g. the current export round-trip) never clears an existing pathway.
             if (row.PathwayId.HasValue) certificate.PathwayId = row.PathwayId.Value;

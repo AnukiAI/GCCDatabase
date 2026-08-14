@@ -1,0 +1,9 @@
+1|Chemicals and Raw Materials
+2|Clothing, Apparel, and Fabrics
+4|Consumer Products
+5|Electronics, Computers, and Accessories
+6|Food and Beverage
+7|Healthcare and Pharmaceutical
+8|Packaging
+11|Construction / Building Products
+15|N/A

@@ -27,6 +27,27 @@ Do not delete rows — a superseded answer stays with a note. Update the *Last u
 > As of 2026-07-07, **no client answer is recorded for any item.** Items 5 and 7 cannot be closed by
 > our recommended defaults — they require the client specifically.
 
+### Re-check against the 2026-08-12 go-live files (done 2026-08-13)
+
+All seven were re-tested against `GCC Database Migration_Certs_8.12.26V2.xlsx` /
+`GCC ASIN Master List_8.12.26.xlsm` before re-asking. **Four no longer need a client answer:**
+
+| # | Was | Now | Evidence |
+|---|---|---|---|
+| 1 | Open | **Still open** — but it's an *Amazon-side* confirm, not a data question | Client uses `greencircle_cef` consistently, 8,562 rows |
+| 2 | Open | **Still open** (low risk — default already built) | 96 names >200 chars, longest **951**; field is `nvarchar(1000)`, so it fits |
+| 3 | Open | **Overtaken by the client's own 8/12 email** | They asked for the retired types to be *added and shown, hidden from the dropdown* — which **replaces** the June plan to display "Unspecified". Confirm back; don't re-ask |
+| 4 | Open | **RESOLVED by the new data** | 25-0437 / 25-0438 are both present (Expired List 2); orphan ASIN cert numbers **51 → 0** |
+| 5 | Open (no default) | **Still open, but now HAS a default** | ASIN list: `0.63` ×513 vs `0.23` ×13, **and the cert listing itself says 0.63** → recommend 0.63 |
+| 6 | Open | **RESOLVED by the new data** | Both 25-0479 and 25-0482 read `Block Inc.` in *both* files; "Square" appears nowhere. Use the client's spelling (no comma) |
+| 7 | Open (Critical) | **Superseded** — restated with current numbers | Now 137 duplicated numbers / 175 surplus rows across all three sheets (was 114, expired only). Folded into the 8/12 note's item 3, Group 1 — do not ask twice |
+
+Net: the 8/12 client note asks only **A (item 1), B (item 2), C (item 5)**, plus a confirm-back on
+item 3. Reproduce with
+`scratchpad/recheck_june_decisions.py`. **Do not mark anything Answered on the strength of this
+table — these are our findings, not the client's words.** Items 4 and 6 are resolved by *data*,
+which is different from a decision on file.
+
 ---
 
 ## Decision log

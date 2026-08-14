@@ -9162,3 +9162,1171 @@ primary evidence rather than something to resolve by deciding which screen to tr
   **A contradiction found while sourcing the claims.** `appsettings.Production.json` sets `Database:AutoMigrateOnStartup: true`, but pre-deploy Gate 7 (DEF-239) exists precisely because **prod never auto-migrates** and matching SQL must be run by hand. One of those two is wrong. Left it out of the email body — a sysadmin can't act on it — and flagged it in the internal notes as something to resolve *before* the new environment is built, so the wrong value isn't carried forward into a fresh config. Not raised as a defect yet; it needs a look at whether the flag is actually reached in the deployed path before it earns a DEF number.
 
   **The tell, for next time.** *A "what do you need for the new environment" email is the cheapest full audit of the old one you will ever run* — every line item forces the question "what does this do today?", and the answer was "wrong" three times out of about twelve. Also: I deliberately kept the **SMS 2FA decision out** of the email. It's a real cutover blocker but it's a product decision, and mixing decisions the recipient can't make into a request they must action is how the actionable items get lost.
+
+- 2026-08-12 - **Repo cleanup pass, items 2 and 5 of a 5-item triage. Freed 4.99 GB / 27,395 files. The interesting part was not the space - it was that the space had a cause, and the cause is a publish script recursing into its own output.**
+
+  **What ran.** All 31 `bin/`+`obj/` trees, `TestResults/`, two regenerable `node_modules/`, and four empty phantom directories. Repo went 6,616 MB / 32,603 files to 1,626 MB / 5,208 files. `dotnet build` green afterwards (0 errors, 63 pre-existing warnings); `git status` unchanged - still only the two pre-existing working-tree items, so nothing tracked was touched.
+
+  **The 4.87 GB had a root cause, and it is a live bug.** Enumerating `publish` directories returned **34 of them, all nested inside `bin/`**, with paths like `bin/Debug/net8.0/publish/publish/publish`, `.../deploy-output/deploy-output/publish/publish`, and `publish-production/publish-production/deploy-output/publish/publish`. That is a publish/deploy script whose **output directory sits inside its own source tree**, so every run re-copies the previous run's output one level deeper. The disk usage was a symptom; left alone it regrows, and it grows *geometrically*, not linearly. Not chased down this pass - flagged for Shawn, because the fix is in whichever deploy script sets the output path, and that script is deploy-critical.
+
+  **Two things preflight caught that would have been damage.** (1) `qc184-live-check/node_modules` has **no `package.json` and no lockfile** - deleting it would have destroyed something not reconstructible by `npm install`. Skipped it; the other two had both files and went. **"node_modules is always regenerable" is an assumption, not a fact - it is only true where the manifest survives.** (2) Checked for running `dotnet`/`MSBuild` processes before touching `bin/`; none, so no lock risk. Five `node` processes were up but unrelated.
+
+  **The deletion itself failed twice, for a reason worth knowing.** `Remove-Item -Recurse` threw *"Could not find a part of the path"* on the RoleBasedUI and UAT test bins - which reads like a missing-file error and is actually **Windows MAX_PATH (260 chars)**, caused by exactly the recursive `publish/publish/publish` nesting above. `robocopy <empty-dir> <target> /MIR` purges these because robocopy handles long paths natively; it exits **2** on success here ("extra files removed"), which is not an error. **The misleading error message and the disk bloat were the same underlying defect wearing two masks.**
+
+  **Deliberately not done, pending Shawn's call:** committed secrets in `.env`/`.env.test` (item 1, the urgent one), 15 tracked backup/`- Copy` files (item 3), and scratch files at the ASP.NET project root (item 4).
+
+  **The tell, for next time.** *When a cleanup target is unexpectedly large, ask what produced it before deleting it* - deleting 4.87 GB without looking would have felt like a win and silently reset a counter that climbs again next deploy. Also: **run the preflight even when the task is "obviously safe."** Two of six checks changed what I did.
+
+- 2026-08-12 - **GreenCircle public DB mirror finished: 1021/1021 certificates, 753 MB, 22 min, zero failures. The story is that the estimate which paused this job for a session was wrong by 10x.**
+
+  **What shipped.** The scrape script was already written and tested last session; only the PDF pull was outstanding. Ran it to `C:\Users\swest\GCCPublicMirror`: 1018 downloaded this run + 3 already held = **1021 of 1021**, with `manifest.csv` (21 cols, Excel-safe) and `manifest.json` covering every record. Log is clean across 2076 lines - **0 warnings, 0 errors, 0 retries**, no request ever needed a backoff. All 1021 files independently validated to start with `%PDF-`; smallest 110 KB, none zero-byte, no orphan `.part` files.
+
+  **The pause was unnecessary, and that is the lesson.** Last session stopped and asked Shawn to choose a destination because the pull was estimated at **7.3 GB against 12.4 GB free** - "too tight to decide unilaterally." That average came from the **first 3 PDFs**, which happened to be large scans. True average: **0.74 MB**. Actual total: **753 MB**. It would have fit all along with 11+ GB to spare. The blocking question was real work for Shawn and bought nothing. *The first N items are ordered, not random - extrapolating from them is the failure mode.* Also worth noting: by the time the job resumed the disk had **84.6 GB free**, so the constraint had evaporated on its own - **re-check a parked question's premise before re-asking it.**
+
+  **"Did we get all of them?" deserved a real answer, not a row count.** 1021 rows in the manifest only proves we got what the API handed us. Probed the population directly: **seven pagination styles** (`page`/`limit`/`offset`/`pageSize`/`perPage`/`take`) each return **exactly 1021** with an identical first and last id; the response is a bare JSON array with **no `total` field** that could claim more; and a live re-fetch after the run still returned 1021, so nothing was published mid-run that we missed. The honest limit: record ids span **2635-6017 with 2362 ids in-range not exposed at all** - non-consented certificates that 404 individually. So we hold **100% of the public set, which is a minority of all certificates GreenCircle has issued.** No sign-in involved, nothing bypassed.
+
+  **A data caveat for anyone using this as a migration cross-check.** 1021 files but only **1018 unique sha256** - three pairs are byte-identical PDFs (Regupol 26-0201/0202, SARGENT 26-0129/0131, Corbin Russwin 26-0130/0132), each a single certificate covering several products. **Cert-file identity is not record identity.**
+
+  **A Windows gotcha that cost a false start.** The first detached launch reported a PID and then silently did nothing - no log file, no error. Cause: **PowerShell 5.1's `Start-Process -ArgumentList <array>` joins arguments without quoting**, and the repo path contains spaces (`OneDrive - PointSolve...`), so Python received a mangled path and died instantly. Fix is to pass **one pre-quoted string**. The tell was that the completion watcher returned immediately and the "newest" log was from the previous session.
+
+  **The tell, for next time.** *An estimate that blocks work has to be measured, not sampled off the top of the list.* And when asked "did we get everything," the answer is never the row count of the thing you produced - it is a test of whether the source could have given you more.
+
+- 2026-08-12 - **Added the public PDF corpus to the migration plan as §9. The measured overlap is the useful part: 705 of 959 active certs have a public PDF, and zero of the 4,219 expired do.**
+
+  **Where it went.** There is **no file called "the data migration playbook"** - the operational document is `docs/tracking/migration-import-transform-plan-2026-06-22.md`, so §9 went there and the header now carries the update. Flagged the naming to Shawn rather than creating a second doc; a parallel "playbook" would immediately drift from the plan.
+
+  **The measurement, not the assumption.** Shawn said "we have enough to test using the public today," which was worth confirming with a number instead of agreeing with. Joined the mirror's 1009 unique cert numbers against `_remediation_output/20260622-170846/cleaned_cert_listing.xlsx`: **Active List 705/959 = 73.5%**, **Expired List 0/4,219 = 0%**, plus **304 mirror certs in neither source list** (issued after the 4.9.26 snapshot, or other GCC clients). So Shawn was right about today, and the credentialed pull is specifically an *expired-cert* problem - **GreenCircle does not publish expired certificates at all**, which is a property of the source, not something a better scrape closes.
+
+  **What the 705 actually unlock.** The importer's `pdfDownloadUrl` -> PDF path mapping (`:90`) has **never been exercised with real files**. 705 pairs is enough to prove that path, the `IUploadPathResolver` single-resolver contract, and storage outside the deploy folder - which is the exact root cause of the June incident where all 15 prod PDFs 404'd. Also gives real sizing (0.74 MB average) instead of a guess, and an **independent second reading** of company/product/cert-type/dates for 705 certs, which is the only cross-check source we have against the client's spreadsheet.
+
+  **The trap I wrote into the section.** 1021 files but **1018 unique sha256** (3 byte-identical pairs) and **1009 unique cert numbers across 1021 records** (12 collide). *Cert number is not a unique key for a PDF, and file identity is not record identity.* A loader keyed on cert number alone mis-attaches on both counts - cheap to design around now, expensive to discover after a load.
+
+  **Prep item raised, not silently assumed.** The scrape script has **no auth mode at all** - it only ever used unauthenticated public endpoints. The credentialed pull is a code change, not a flag, so it needs scoping the moment we see what the credentials grant. Also flagged for confirmation on arrival: whether re-distributing other companies' non-public PDFs into our environment is agreed **in writing**, since the credentialed set is by definition data those clients declined to publish.
+
+  **The tell, for next time.** *When someone says "we have enough to start," the helpful move is to quantify "enough" - it either confirms them with a number they can cite, or finds the half that isn't covered.* Here it did both: green-lit today's work and isolated the expired certs as the real dependency.
+
+---
+
+### 2026-08-12 - Go-live source files received; profiled, and one blocker found
+
+**Two asks in one day.** First: plan the post-migration PDF link script (-> migration plan §10).
+Then the client's go-live data arrived (`GCC Database Migration_Certs_8.12.26V2.xlsx`,
+`GCC ASIN Master List_8.12.26.xlsm`) with "this is REAL data, remove test certs, prep for go-live,
+confirm receipt." Profiled both read-only. Nothing loaded, nothing deleted.
+
+**§10 - the PDF link script plan.** The naming convention was already fixed by the code and is not
+ours to choose: `{Certificate.Number}_{yyyyMMdd_HHmmss}.pdf` under `IUploadPathResolver
+.CertificatesDir`, logical path in `Certificate.CertificateFile`. The mirror's
+`{CertNo}_{Company}_{id}.pdf` names get discarded on copy. The `{CertNo}_` prefix is load-bearing
+in ops too - our own recovery script globs `26-0174_*.pdf`. The finding that picks the language:
+`CertificateImagePath` must be set in the same pass or the certs render a blank preview, and the
+thumbnail comes from Docnet + ImageSharp - **so this is C#, not Python or SQL.** Recommended as a
+`dotnet run -- link-pdfs` argv branch reusing the app's own services.
+
+**The correction I had to make to my own work, same day.** §10.3 said the 8 duplicate-cert-number
+collisions were *outside* the load set, so the join was a clean 1:1. True of the 4.9.26 files;
+**false** three hours later. All 8 Regupol numbers are on the new Active List 7.31.26, and the new
+expired sheets add more. Marked as a dated correction in the doc rather than a silent edit -
+the reasoning was sound, the input changed underneath it.
+
+**The blocker.** The client asks: *"multiple listings with the same cert number - can they be
+uploaded this way since they already exist?"* As-is, **no**. `Certificate.Number` is UNIQUE
+(`ApplicationDbContext.cs:68`) and a cert holds one `ProductId` and one `CertificateFile`. The data
+is one cert number covering several *products*. **175 rows across 137 numbers.** This is the same
+thing as open client decision 7 from 06-22 (114 duplicate expired numbers) - which is still `Open`,
+along with all seven. It has grown, and it now hits the **Active** list too. Recommended collapse-
+to-one for go-live, with the model change raised as a post-launch CR rather than attempted in
+go-live week.
+
+**Their other two questions both answer "yes," but one has a trap.** Retired cert types can be
+loaded and hidden - `CertificationType.IsActive` exists for exactly that. But **DEF-343** is
+directly in the way: a filtered dropdown renders blank for an out-of-filter stored value and a
+required field then silently rewrites on save. That is precisely those 83 expired-type certs.
+Granting the request without verifying that fix would quietly corrupt the data we were asked to
+preserve. Flagged internally; not the client's problem to decide.
+
+**Measured rather than assumed, and it paid twice.** PDF coverage against the **new** Active list
+is **954/1014 = 94.1%**, not the 73.5% I recorded this morning - the 4.9.26 list simply predated
+most of the mirror. But expired is still 3/344 and 0/4198: **4,599 certs have no public PDF**, so
+"pull PDFs for all Active and Expired" is achievable for one half and impossible for the other
+without credentials. Also found: ASIN list has **zero orphans** (was 51), but 4,797 surplus
+duplicate (cert#, ASIN) pairs that must be deduped against the per-cert unique index, a `pathway`
+case split, and 6 "active" ASIN certs that are actually on the expired lists.
+
+**The tell.** *When a client says "this is real, load it," the fastest useful reply is the profile,
+not the load.* Three hours of read-only measurement produced answers to all three of their
+questions, one blocker they need to decide, and four issues they hadn't spotted - none of which
+would have surfaced from starting the upload, and one of which (175 rows) would have failed it.
+
+---
+
+## 2026-08-13 — Client test round: 4 asks + 2 status questions, measured before building
+
+**One fix shipped, three answered without writing code.** The client sent four items and two
+status questions from their test pass. Only one was actually a code change: the word "(Optional)"
+after **Product Category** on cert Create + Edit. Removed from `Views/Certificate/Create.cshtml:182`
+and `Views/Certificate/Edit.cshtml:131`. Label text only — the field remains non-required in
+validation, which is still the QC #195 (2026-06-24) decision. Worth naming that tension back to
+the client: they read the word as a contradiction, but the *behavior* they described ("you have to
+have one when adding a Product") is not what the code enforces. Removing the word closes the
+cosmetic complaint and hides the real question. Flagged, not resolved.
+
+**"Why is Delete User sometimes missing?" — answered from source, no repro needed.** Any user
+holding the **Admin** role renders a disabled *"Protected User"* item instead of Delete
+(`wwwroot/js/userManagement.js:396-408`), and the server refuses independently at
+`AdminService.cs:626`. So it is by design, not a bug — but it is also the reason their cleanup is
+stuck: **9 of the accounts they want gone hold Admin** (carly@gcccc.com, carly@admin.com,
+carly@gcc5/6/7.com, cara.admin@, hank.badstatus@, robert.taylor@). Those cannot be removed through
+the UI at all. The UI path is not merely inconvenient here; it is incapable.
+
+**The cleanup request had a trap under it.** They named 4 accounts to keep out of 66 active. Eight
+they did *not* name are load-bearing: the P0 security gate logs in as usernames `admin`/`analyst`/
+`external` (Ids 1-3) and asserts partner isolation as `partner@amazon.com`, `perry.novi@`,
+`pam.wayfair@`, `pip.other@`, `pru.multi@example.com`
+(`Scripts/smoke-prod/_security/_lib/security-harness.js:42-52`). Deleting to their literal list
+turns the pre-deploy gate from GREEN to BLOCKED. Also: **Id 1 authored 38 certificates and Id 22
+authored 165** — soft-delete suffixes the email, so "Created By" attribution goes cosmetic on 203
+certs. Backed up first (43 tables, 8823 rows) and put the full list back to them rather than
+guessing. Nothing deleted.
+
+**The country ask is smaller than it looks, and the reason is a hardcode.** Their evidence
+("some certs have multiple countries") is **not** in the test env — 0 of 228 rows there. It is in
+the live/public data: **19 of 1021 certs genuinely span more than one country** (e.g. 25-8767 =
+US + Canada; one is US + China + Poland), across 35 distinct countries. The decisive detail is that
+the Amazon contract is **not** in the blast radius: `certificationCountries` is hardcoded to the
+literal `"All"` for partner callers (`Controllers/Api/v1/CertificatesController.cs:254, 318, 1067,
+1668`) per Dev Guide §4/§8. Only internal/non-partner callers project `c.Country`. So the immutable
+contract stays untouched — the cost is schema + filters + import/export + the CR-187 persisted
+`NormalizedCountry` column, not partner re-certification.
+
+**Both status questions have the same answer, and it is not "the feature is missing."** Forgot
+Password is fully built (token flow, `AccountController.cs:404-570`) and 2FA is fully built
+(`EnhancedTwoFactorService`, email/SMS/Both, `TwoFactorPreferences`). Neither works on the test env
+for one reason: `SmtpSettings.Host/Username/Password` are **empty strings** in
+`appsettings.Production.json`, so `Program.cs:505` falls through to `MockEmailService` and no mail
+is ever sent. That is DEF-263, already logged. The features are not the gap; the mail credential is.
+
+**The tell.** *Two of the four asks dissolved on contact with the data — one had no instances in the
+environment the client was testing, and one was working as designed and blocking them for a
+different reason than they thought.* Profiling first turned a 4-item build list into 1 edit,
+1 config unblock, and 2 decisions that were theirs to make.
+
+
+**Follow-up: those multi-country certs were never created in our UI.** The 19 records are not
+GCCWebApp rows at all — they come from the legacy public directory (`db.greencirclecertified.com`,
+scraped 2026-08-12). That system has **no country field**: `location` is one free-text string and
+the sites are semicolon-joined, e.g. 25-8767 = `Athens, GA; Chowchilla, CA; Kansas City, KS;
+Ottawa, Ontario, Canada; Redcliff, Alberta, Canada`. My "spans >1 country" count came from parsing
+that string, not from a stored multi-value field. Our app is single-valued by construction —
+`Country` is a `<select>` (`Views/Certificate/Create.cshtml:293`, `nvarchar(100)`) and `Location`
+is a separate "City, State" input — which is exactly why the test env shows 0 of 228.
+
+**So the real decision is a migration-transform question, not a UI capability gap.** Plan §87
+splits Location→Country; it has to decide what those 19 multi-site strings become. If the answer is
+"first/primary site wins" the whole thing is transform logic and no CR is needed. A country
+multi-select is only warranted if GCC wants all sites *filterable* — worth asking before pricing it.
+
+**Separating the three cases collapsed the ask.** Pulled every multi-site row on the test env:
+3 of 4 are several sites in ONE country (`24-0304` = `Buffalo, NY; Cedar Rapids, IA` / United
+States) — the current design already handles those correctly and they were inflating the count.
+Only 1 genuinely crosses a border (`23-0925` = Hungary in Location, Germany in Country). And their
+own example, `26-9633`, is neither — `Seattle, WA` filed under **Mexico**, a wrong dropdown value,
+not a multi-location certificate. So a "we need multi-country" ask is really ~2% cross-border plus
+a handful of data-entry errors.
+
+**Recommendation: don't build the multi-select.** Nothing drives it — Amazon sends `"All"`, no one
+has asked to *filter* by a second country, and the schema + `NormalizedCountry` + filters +
+import/export work is real money. Instead: (1) fix plan §87's transform rule, which currently takes
+the LAST country and would load 25-8767 as Canada while dropping three US sites — first-listed site
+wins, full string preserved; (2) hand GCC a review list for the cross-border + contradiction rows;
+(3) add country validation to import, which is a raw passthrough today (`Atlantis` is in the test-env
+Country column because of it). Client email drafted at
+`docs/tracking/migration-client-note-2026-08-13-location-country.md`.
+
+**The deciding question is filter-vs-display, and it is theirs.** Displaying every site is nearly
+free — the text is already in Location. Making every country *filterable* is the expensive version.
+Asked them that directly rather than pricing the expensive one on an assumption.
+
+**Wording correction from Shawn: lead with which field is actually limited.** My draft implied the
+multi-site data was being preserved as a consolation ("full original text kept intact"). Wrong
+emphasis — Location is free text and *is designed to* list every site; only the Country dropdown is
+single-value. Reworded the open, group 1, and the proposal so the email states that distinction up
+front rather than burying it. The ask is visibly narrower as a result: all the places already
+display, so a change request would only buy them *filtering* by the secondary countries.
+
+**CR-037 drafted (multi-select countries).** Register high-water was **CR-036**, confirmed by
+grepping `^### CR-[0-9]+` rather than trusting the memory index — same discipline as DEF numbers.
+Entry added to `change-request-register.md` above CR-036; detail doc at
+`docs/tracking/CR-037-multi-country-certificates.md`.
+
+**Two findings shaped the CR more than the feature itself did.** First, `CountryList.Countries` is a
+**static in-code list, not a table** (`CertificateController.cs:346, 926`) — so the CR-171 precedent
+applies to the *shape* (collection + denormalized primary string) but not to the entity model.
+Recommended a plain string join table over seeding a `Countries` entity; the managed-list version is
+its own CR that nobody has asked for. Second, CR-187's `NormalizedCountry` is computed **from
+`Country`**, so it would normalize the primary only — secondaries silently not fuzzy-searchable.
+That is the least obvious cost in the whole CR and it is the kind of thing that surfaces mid-build if
+it isn't written down now.
+
+**Estimated 2–2.5 days against CR-171's 3–4, and said why in the CR:** countries are not
+access-control data, so the entire visibility/isolation dimension — per-requester scoping, leak risk,
+the product-ID layer — simply does not exist here. The join table is not the cost; converting the
+filters and sort to collection membership is.
+
+**Wrote it so it can be retired for free.** Question 1 (filter vs display) sits at the top of the
+detail doc, and a "display" answer closes the CR at zero cost — same structure as CR-036's
+"does GCC version its standards at all?". Kept the import-validation gap (`Atlantis`) explicitly OUT
+of the CR: it must ship regardless, so folding it in would make a mandatory fix hostage to an
+optional feature.
+
+**§87 revised + DEF-347 opened.** DEF high-water was **346** (grepped the register, not the memory
+index — that discipline has already prevented one collision). Next is **DEF-347**.
+
+**The §87 rewrite is the substantive part.** The old rule — "strip trailing country into Country" —
+takes the LAST country out of a free-text multi-site string, so `25-8767` would have loaded as
+**Canada** with three US sites dropped, silently. Replaced with a three-part rule: Location keeps the
+complete original string (log any 175-cap truncation), Country takes the FIRST-listed site, and every
+cross-border row goes to a review CSV rather than being guessed. Also extended the check to
+**Transform A**, which the plan describes as "already split" — true of that source's *columns*, but
+no guarantee its Country column holds a single country. Same validation, same review CSV.
+
+**DEF-347 = import writes Country unvalidated** (`CertificateImportService.cs:1097/1206/1771`); no
+comparison to `CountryList` anywhere, and the UI dropdown cannot produce a bad value, so import is
+the only way in. Severity Major on *timing* rather than current impact — one junk row today
+(`Atlantis`), but it gates the 5,556-row load where a bad split enters at scale with no error, no
+preview warning and no post-load signal. Proposed fix is a preview-level row warning, not a hard
+reject. Three open checks recorded rather than assumed: over-length behaviour at `nvarchar(100)` is
+**unverified**, CR-187's computed `NormalizedCountry` propagates junk into the search index, and
+`Atlantis` needs a data-ops cleanup.
+
+**Kept DEF-347 out of CR-037 on purpose, and wrote the reason into both documents.** CR-037 can be
+retired for free if the client says display is enough; DEF-347 must ship regardless. Folding a
+mandatory fix into an optional feature makes it hostage to a decision that may never arrive.
+
+---
+
+## 2026-08-13 (later) — Cloned the test-env DB into dev as the migration rehearsal target
+
+**Ask:** "copy the test db and load it into dev … test the data migration on the dev database
+before we run on test." Right instinct — the 5,556-cert load has a known UNIQUE-index blocker,
+and rehearsing it against a throwaway copy of the real target costs nothing to get wrong.
+
+**Measured before rebuilding anything.** The obvious plan was drop-and-rebuild `GCCDatabase_Dev`
+from the backup's `create-schema.sql`. Diffed the two `schema.json` snapshots first instead:
+**43 tables, identical column sets, identical types, zero drift**. No pending-migration gap
+between dev and test at all. That turned a schema teardown — with its `GCC_DevUser` re-grant
+risk — into a plain data restore. The five minutes of diffing removed the only genuinely
+destructive step in the plan.
+
+**What ran:** `backup-testenv-db.ps1` Export of `GCCDatabase_Dev` first (43 tables / 4,260 rows,
+`db-backups\GCCDatabase_Dev-2026-08-13-105050`) so the overwrite is reversible, then Restore of
+the 09:00 test-env backup (`gccwebap_certificates-2026-08-13-090039`) into dev.
+
+**Verified rather than assumed — four checks, all green:**
+- Row counts vs manifest: **43/43 tables, 8,823/8,823 rows, zero mismatches.**
+- Foreign keys: `WITH CHECK CHECK` left **no untrusted and no disabled constraints** — the
+  NOCHECK wrapper genuinely re-validated instead of leaving the FKs unverified.
+- **IDENTITY seeds: no table where seed < MAX(Id).** This was the one I expected to fail —
+  `SqlBulkCopy` with `KeepIdentity` is documented not to reseed, and a lagging seed collides on
+  the *first* row the migration inserts, which would have read as a migration-script bug rather
+  than a restore artifact. It reseeded correctly; worth re-checking on any future restore rather
+  than trusting it.
+- Computed columns recalculated on insert: `NormalizedNumber`/`NormalizedLocation` populated for
+  all 228 certs, **0 NULL** where `Number` is non-NULL (CR-187 intact through the round-trip).
+
+**The blocker is confirmed present in the rehearsal target**, which is the whole point of doing
+this: `IX_Certificates_Number` is **UNIQUE and unfiltered**. Dev's 228 restored certs are 228
+distinct numbers, so nothing masks it — the 175 source rows sharing cert numbers will fail here
+exactly as they would on test.
+
+**Note for whoever tests logins:** dev now carries the test env's 88 `Users` rows, not the dev
+seed. `admin` / `analyst` / `external` still exist at Ids 1–3, but the password hashes are the
+test environment's.
+
+---
+
+## 2026-08-13 (later still) — Migration dry run on the dev clone: confirmed steps 1 and 3, step 2 isn't runnable
+
+**Ask:** confirm the client's three-step go-live sequence, then run the migration dry run on dev.
+Did the confirmation first, because it changed what the dry run should even test.
+
+**Steps 1 and 3 confirmed workable. Step 2 is not runnable today** — and the reason is not the
+database. **No transform script exists for the 8.12 source files.** §4/§5 of the plan describe
+Transforms A/B/C as a *design* against the superseded 4.9.26 files; what is actually built is the
+validation gate and the mechanical remediation, and remediation emits **cleaned XLSX, not a
+load-ready importer CSV**. The step that turns a sheet into importer input was never written.
+Saying "ran the dry run" without saying that would have been a false green.
+
+**So I ran the dry run that *is* possible and is the one that matters** — a lookup-resolution gate:
+if we purge the test data but preserve the reference tables the client named, does the 5,731-row
+source actually resolve against what's left? New script
+`Scripts/data-ops/2026-08-13-migration-dryrun-lookup-resolution.py`, read-only, nothing deleted or
+loaded.
+
+**Result: two failures out of eight fields, both already known as open questions — now quantified.**
+Certification types on both current sheets, product categories, product types, pathways, partner,
+external and internal tags all resolve **100%**. That 100% also *proves the prefix-stripping
+transform is right*: without it Product Type would have resolved 0 of 32.
+
+**Failure 1 — the client's own preserve list has a hole.** They said "DO NOT remove Product
+Cat/Type/Subcat." **`ProductSubcategories` has zero rows** on the test environment. There is
+nothing to preserve; 104 source rows carry a subcategory (PP 40, HDPE 24, LLDPE 10 …). The
+instruction as written cannot be executed. Worse, `Certificates.ProductSubcategoryId` is
+**nullable** — so following it literally loses those 104 values **silently**, with no import error.
+
+**Failure 2 — corrected a wrong claim in our own plan.** §11.3 stated all four retired cert types
+(Biodegradable/Biobased/Renewable Resource Content/Verified HPD, 83 rows) already exist, so the
+client's request was a flag-flip. Re-measured on the **test environment**: **none of the four
+exist**, and all 32 types are `IsActive=1` with zero inactive. The original number came from local
+dev's 34 types. Same error class as DEF-323 — [[feedback_diagnose_on_clients_environment]] —
+caught this time only because dev is now a clone of test. P1 of the plan was already right; §11.3
+contradicted it. Corrected §11.3 in place rather than leaving two claims fighting.
+
+**Two structural findings on the purge that the client's phrasing hides:**
+
+- **Delete order is forced by the FK graph, not free choice.** `Certificates` cascades to its seven
+  children, but `AuditHistory`, `Certificates.CreatedBy/UpdatedBy`, `CertificateStatusHistory`,
+  `CertificateProductIds` and `GoogleAnalyticsSettings` all reference `Users` with **NO_ACTION**.
+  "Remove fake users" attempted first simply fails. Order must be
+  Certificates → Products → Companies → AuditHistory → ImportBatches → Users.
+- **`Audit:SystemUserEmail` = `swest@anukiconsulting.com` = `Users.Id 1` must survive the purge**,
+  or every audited write breaks on the target. That is the Gate 10 / DEF-337 failure mode exactly,
+  and any "key test accounts" list that omits it is wrong. Also flagged the tables the client never
+  mentioned — **`PartnerApiKeys` (9 rows) is the dangerous one**: purging it revokes Amazon's live
+  key. Recommended preserving all unstated tables and deleting none.
+
+**Also worth stating to the client rather than letting them discover it:** the purge removes the 5
+existing `@greencirclecertified.com` accounts including `admin.uat`/`analyst.uat`. Correct per
+their own step 3, but they should hear it, and the account-creation path needs verifying before
+the last surviving admin is removed.
+
+Written up as **§12** of the migration plan. Still no CR raised for the purge itself — it is a
+delete of business records and needs one ([[feedback_data_changes_require_cr]]) once the "key test
+accounts" list is agreed.
+
+**DEF-347 fixed. Two things worth keeping from how it went.**
+
+**The fix needed a new channel, not a new check.** `ValidationMessages` looked like the obvious home
+for a country warning — but any entry there flips the row to `ImportRowStatus.Error` and the
+certificate is **dropped from the import**. For a 5,556-row load, dropping a cert over a country typo
+is worse than loading it with the typo visible. Added `Warnings`/`HasWarnings` on the row plus
+`WarningRows`/`RowsWithWarnings` on the preview result, and an amber Warnings card in the preview.
+The row imports; the analyst sees it before Apply. Resolution itself is **tolerant** (DEF-276's
+`TryResolveStatus` pattern): `USA`, `U.S.A.`, `  united states  ` and `Côte d'Ivoire` all normalise;
+only genuine unknowns warn.
+
+**My first verification was wrong in a way that would have shipped.** I grepped the whole file to
+confirm each alias target existed in the country list — but I had *just added the aliases to that
+same file*, so `["south korea"] = "Korea, South"` matched my own line. The list actually says
+"South Korea" and "Ivory Coast". Three aliases pointed at spellings that do not exist, which would
+have imported a country the Edit dropdown cannot re-select — the DEF-343 shape exactly. Caught by
+running the tests, not by the grep. Fixes: grep the `Countries` block only, and a permanent test
+(`CountryList_EveryAliasTargetExistsInTheCountryList`) so it cannot recur.
+**Lesson: never verify a claim against a file you just edited to make the claim true.**
+
+**A second silent defect fell out of the first test run.** `CertificateCountryColumns` listed
+`CERTIFICATE_COUNTRY`, `Country`, `country` but **not** bare `COUNTRY` — and CsvHelper matching here
+is case-SENSITIVE (no `PrepareHeaderForMatch`, `:1070`). A file headed `COUNTRY` imported a blank
+country with no error. Same for `LOCATION`. The migration's own source files use those headers. The
+tell was that the test fixture has used `COUNTRY` all along, so `StdRow`'s country value had been
+silently discarded in every existing import test and nobody noticed.
+
+**Result:** 88/88 import tests (27 new); full Api.Tests **76 failed/683 passed** vs stashed baseline
+**76 failed/657 passed** — identical failure count, zero new failures. Not deployed; preview card not
+yet visually validated; `Atlantis` still sits in the test-env DB as a data-ops cleanup.
+
+---
+
+## 2026-08-13 (later again) — Step 1 purge built and rehearsed on dev
+
+**Shawn's decisions:** keep `PartnerApiKeys` (9), `ApiKeys` (3), `GoogleAnalyticsSettings` (1), and
+the GCC admin account. Checked the dependencies of those three keeps before writing anything —
+`GoogleAnalyticsSettings.UpdatedBy` is an FK to `Users` with **NO_ACTION**, which would have blocked
+the user delete outright. It happens to be **NULL**, so the dependency is inert. That was luck, not
+design, and it is now asserted in the script rather than assumed.
+
+**"The GCC admin account" is ambiguous, so I kept both readings.** `swest@anukiconsulting.com`
+(Id 1) survives regardless — it is `Audit:SystemUserEmail` and its removal breaks every audited
+write, so it was never really a choice. Added `admin@greencirclecertified.com` (Id 22, `admin.uat`)
+as the GreenCircle-side admin. Keeping an extra account is trivially reversible; deleting the wrong
+one on test is not, so the asymmetry decided it. Shawn can trim the list — it is two lines at the
+top of the script.
+
+**Built `Scripts/data-ops/2026-08-13-golive-testdata-purge.sql`** — one script with
+`-v Execute=0|1`, deliberately **not** the usual IDENTIFY/REMEDIATE pair. The report and the delete
+have to share one keep-list and one set of WHERE clauses; two files drift, and a drifted purge
+deletes the wrong rows. Whole delete runs in a single transaction with post-purge assertions that
+**roll back** if the system user vanished, a cascade failed to fire, or any preserved table came
+back empty — `PartnerApiKeys` included, since emptying it destroys Amazon's live key.
+
+**Caught a safety default that did the opposite of safe.** The first revision carried
+`:setvar Execute 0` as a guard. sqlcmd applies `:setvar` **after** `-v`, so the script silently
+ignored `-v Execute=1` and printed the report when told to delete. Harmless in that direction, but
+the same precedence bug with the flags reversed is a purge that runs when you asked for a report.
+Removed the default outright: `-v Execute` is now required and a missing one fails loudly.
+
+**Rehearsed on dev — executed, not just reported.** Deleted 228 certs (+7 cascaded child tables),
+312 products, 173 companies, 930 audit rows, 6 import batches, 86 of 88 users. Verified
+independently of the script's own assertions: all ten cascade-target tables at **0**, `UserRoles`
+correctly down to the 2 surviving rows, **0 untrusted or disabled FKs**, and both survivors still
+hold the **Admin** role. Preserved tables all intact — CertificationTypes 32, ProductCategories 9,
+ProductTypes 54, Tags 4, Pathways 6, Partners 4, PartnerApiKeys 9, ApiKeys 3, GA 1, Roles 5,
+Permissions 22.
+
+Reseeded IDENTITY on Certificates/Products/Companies/AuditHistory so the migrated set starts at 1
+rather than continuing the test data's numbering.
+
+**Consequence worth stating: dev now has only two Admin users.** `jane.analyst@` and
+`external.user@` are gone, so analyst and external RBAC cannot be exercised against the migrated
+data on dev. That is faithful to what will happen on test — but if we want to QC role-scoped views
+after the load, those accounts need recreating, and that should be a deliberate step rather than a
+surprise.
+
+Dev is now in the exact post-step-1 state. **Step 2 remains blocked on the unwritten transform**
+(plan §12.5) and the 175-row duplicate decision. The purge on the **test environment** still needs
+a CR ([[feedback_data_changes_require_cr]]).
+
+---
+
+## 2026-08-13 (last) — Built the migration transform; it produces a clean load set and exposed DEF-348
+
+**Built `Scripts/data-ops/2026-08-13-migration-transform.py`** — the step §12.5 said was missing.
+Transforms A+B (three cert sheets → importer CSV) and C (ASIN master list → per-certificate
+product-ID CSVs). Read-only against sources.
+
+**Read the parser before writing a single header, and that was the whole game.** CsvHelper header
+matching in `CertificateImportService` is **case-SENSITIVE** — no `PrepareHeaderForMatch` is
+configured (:1070). That is precisely the DEF-347 failure mode, where a file headed `COUNTRY`
+imported a blank country and raised no error. Every emitted header is copied from the column
+arrays at :69–119 and verified against a listed form. Guessing them would have produced a file
+that imports "successfully" and silently drops fields.
+
+**Result — the emitted set resolves 100%.** 5,419 certificates across three CSVs, **0 unresolved
+values** for Certification Type, Product Category, Product Type, Pathway, Partner, External Tag and
+Internal Tag. 16,234 product IDs across 158 certificates, **0 orphans**. The independent numbers
+match the plan's own profiling (312 quarantined rows, the 4,689/474 pathway case split), which is
+the useful kind of agreement — two different methods, same answer.
+
+**DEF-348 — the template offers two columns the parser cannot read.** `Cert Subcategories` and
+`Subcategory` are both in the downloaded template (`CertificateImportController.cs:464`), and
+**neither has a mapping array**. The code admits it at :768 — *"Subcategory still resolves as null
+(no column yet)"* — and :771 passes `null` outright. So an analyst fills in a column the template
+gave them and the value vanishes. **281 values on this load** (104 product subcategory, 177
+certificate subcategory).
+
+This reframes §12.3. I had recorded the problem as "the `ProductSubcategories` table is empty" —
+that is real but secondary. **The pipeline could not carry the value even if the table were full.**
+And it cannot fail loudly: `ProductSubcategoryId` is nullable and the lookup table is empty, so
+there is no FK violation and no unmatched-lookup rejection. Compare `Product Category`, which
+*does* reject an unmatched value. The one field that accepts anything is the one with no parser.
+The transform still emits both columns and writes every dropped value to `unmappable-fields.csv`
+— counted rather than discovered. That is mitigation, not a fix.
+
+**Duplicate cert numbers: defaulted to the non-destructive option.** `--dup-policy` defaults to
+`quarantine` — all 312 affected rows held back and none emitted. `collapse` (the June
+recommendation) is available but still writes the dropped rows to quarantine so the loss is
+auditable, and `all` exists only to measure the unique-index failure, never to run. The decision is
+the client's; the script refuses to make it silently.
+
+**Finished P1 rather than leaving it as the last blocker.** The 4 retired cert types were the only
+remaining unresolved values (83 rows), and the importer **throws** on an unmatched type rather than
+warning — so those rows would have failed outright. Wrote
+`2026-08-13-migration-prereq-retired-certtypes.sql`, idempotent, asserting all four exist and none
+is selectable. **First run failed: `SortOrder` is NOT NULL with no default.** `XACT_ABORT` rolled
+it back cleanly — worth noting that the failure was safe *because* the guard was there, not by
+luck. Fixed to append after `MAX(SortOrder)` so retired types sort last. Re-ran: 4 created,
+`IsActive = 0`, 36 types total / 4 deactivated. Re-validated the emitted CSVs: **0 unresolved
+row-hits across all 5,419 rows.**
+
+**On Shawn's "lookup tables such as country should be preserved":** confirmed, and **`Country` is
+not a database table at all** — it is `Models/CountryList.cs`, a static in-code list, so the purge
+cannot reach it. (That is also why DEF-347 exists: import never checks values against it.) Took a
+full post-purge table inventory to answer this properly rather than from memory — **every lookup
+table is at its exact pre-purge count**: CertificationTypes 32→36 (+4 retired, deliberate),
+ProductCategories 9, ProductTypes 54, Tags 4, Pathways 6, Partners 4, Roles 5, Permissions 22,
+PermissionRole 41, PartnerApiKeys 9, ApiKeys 3, GA 1. The purge emptied nothing it was not told to.
+
+**Flagged, not acted on: `Pathways` contains test data.** 3 of its 6 rows are `test`, `testtest`,
+`Carly test`. They survived because Pathways is on the client's preserve list — correct per
+instruction, but it is junk being carried into go-live, and only the 3 real pathways are used by
+the source data. One line to clean; needs the client's word since it is their preserve list.
+
+**Still open and unchanged:** the 175-row duplicate decision (blocks which policy to run), DEF-348,
+the expired-PDF credentialed pull, and a CR for the purge on the test environment.
+
+**`Atlantis` cleaned up on the test env.** Identified it first rather than just running an UPDATE:
+cert **26-9721** (Id 174), company `DATA4`, product *"Test Edge Product 0081 Bob's Apostrophe"*,
+created by **`admin.uat`** on 2026-06-17. That makes it UAT test data, not a business record — so no
+CR was required. Worth stating the test explicitly, because the CR rule turns on *what the row is*,
+not which environment it lives in.
+
+Its `Location` is `New York, NY`, so the country was unambiguous — set to `United States` in a
+transaction guarded on the old value (`WHERE Id = 174 AND Country = 'Atlantis'`), with the rollback
+statement recorded in the DEF entry. **Did not delete the certificate**: the product name is a
+deliberate apostrophe-handling edge case and is still useful.
+
+**Two things the cleanup confirmed as a side effect.** CR-187's persisted `NormalizedCountry`
+recomputed on its own (`atlantis` → `unitedstates`), which is direct evidence the computed column
+tracks writes correctly. And a full re-audit after the update shows **all 8 remaining distinct
+Country values on the test env now resolve against `CountryList`** — so the column is clean, not just
+the one row I was pointed at. Checking the whole column rather than the reported value is the cheap
+half of the job.
+
+**Noted as a limitation, not hidden:** the direct SQL bypassed `AuditService`, so there is no audit
+row for this correction. Fine for a UAT record; explicitly not the pattern for real data. Also logged
+that the code fix and the data fix are now out of step — the test env is clean but, until the fix
+ships, the next import can still put a new bad value in.
+
+---
+
+## 2026-08-13 (final) — Ran the transform output through the dev importer: 5,405 certs + 16,234 ASINs loaded, two Critical/Major defects found
+
+**The load completed.** Against the purged dev clone, through the real
+`/api/CertificateImport` Preview+Apply path as an admin:
+
+| File | Rows | Created | Apply time |
+|---|---|---|---|
+| certs-expired2.csv | 336 | **336** | 11s |
+| certs-active.csv | 1,006 | **1,006** | 45s |
+| certs-expired1.csv | 4,077 | **4,063** (14 invalid) | 501s |
+| ASINs (158 per-cert files) | 16,234 | **16,234** | 27s |
+
+Final state: **5,405 certificates, all distinct numbers**, 310 companies, 3,042
+products, 16,234 product IDs across 158 certs (largest 2,440 — matches the plan's
+profiling). CR-187 computed columns 0 NULL, 0 untrusted FKs. Status split exactly as
+predicted: 4,399 Expired / 966 Paid / 40 Confidential.
+
+**Neither defect was findable without actually applying.**
+
+**DEF-349 (Critical) — the product-name width chain.** P3 widened
+`CertificateProductIds.ProductName` 200→1000 and stopped there. `Products.Name` and
+`AuditHistory.EntityName` carry the same value and were still **255**. Two of the three
+files failed with **0 certificates created** — the import is transactional, so one
+710-char name rejects the whole file. **Both previewed 100% valid immediately before
+failing**, because preview never exercises the INSERT. No amount of preview testing
+finds this.
+
+It also failed in **two hops**: widening `Products.Name` moved the identical error
+downstream to `AuditHistory.EntityName`, the audit trail's denormalized copy — DEF-314
+again. So I stopped fixing hop-by-hop and checked the whole chain in one pass
+(Companies.Name 255 vs 95, Location 175 vs 140, Country 100 vs 28, CertificationResults
+1000 vs 23 — all clear). Wrote the widen as an idempotent prereq that drops/recreates the
+CR-187 computed column and its indexes, capturing the computed definition **from the
+catalogue at runtime** rather than hardcoding it, so it can't drift from what CR-187
+actually deployed.
+
+**DEF-350 (Major) — the background expiry sweep starves the import.** Preview started
+failing with `Execution Timeout Expired` at 30s. This one deserved the care it took,
+because every obvious reading was wrong: not size (a **77-row** chunk failed while
+200-row probes passed), not content (rows 4001–4077 failed, then passed minutes later
+unchanged). **The same bytes failing then passing** is what ruled out both and pointed at
+a time-varying competitor.
+
+Ruled the alternatives out with evidence rather than intuition — no blocking, no open
+transactions, direct queries 130–205ms, slowest cached statement **16ms**, restart didn't
+help. Cause is `CertificateExpirationBackgroundService`, which sweeps
+`ExpirationDate < today AND Status NOT IN (...)`; thousands of dated certs give it a big
+working set and it contends with the importer. **Confirmed by intervention:** deferring
+the sweep took the identical 4,077-row file from repeated 30s timeouts to a 3s preview
+and a clean 4,063-row apply. That is the difference between a hypothesis and a finding.
+
+**I nearly chunked my way past this and shouldn't have.** Splitting into 1,000-row files
+was a reasonable first instinct, and it failed — which was the useful result, because a
+77-row chunk failing is what killed the size hypothesis. Had chunking "worked", I'd have
+shipped a workaround for a problem I hadn't understood.
+
+**Also worth stating: `CertificateProductIdPartners` is 0.** The test env had 2,644. The
+client's ASIN sheet carries no per-product-ID partner column, so CR-171 partner links are
+not created by this load. Cert-level `CertificatePartners` (244) did populate. If Amazon's
+API scopes product IDs by partner, those 16,234 IDs may be invisible to it. **Needs
+checking before go-live** — flagged, not investigated.
+
+**Two other things done to make the load possible, both recorded rather than quiet:** the
+dev admin password was reset to the seeded `TestPass123!` hash (the purge left only
+test-env hashes and I could not log in), and the 14 invalid Expired-1 rows are import
+validation rejects, not transform faults.
+
+**Left running:** the app on localhost:5101 against `GCCDatabase_Dev`, with the expiry
+sweep deferred 24h. Dev now holds a full post-migration dataset for review.
+
+---
+
+## 2026-08-13 — Drafted the production-access request to the client
+
+Shawn asked for an email requesting access to the client's current certificate system so we
+can pull all certificate PDFs. She had already checked the hosting side — no access there —
+so the ask has to be an application-level account, Admin or Analyst, since anything less
+can't see non-public certificates.
+
+Grounded the note in measured numbers rather than a general "we need access": the public
+mirror holds 1,021 PDFs, which covers **954/1,014** Active, **3/344** Expired-2 and
+**0/4,198** Expired-1 — **4,599 certificates would migrate with no document attached**.
+That figure is the whole argument, and it comes from the §11 profile, not an estimate.
+
+Two things deliberately included. First, a **fallback that is easier for them than issuing a
+login** — a DB export plus the S3 file store, or a bulk PDF export named by certificate
+number. Asking for one thing with no alternative is how access requests stall. Second, the
+client's **own** commitment record: Plan row 13, *"Anuki confirmed 4/15 they can run a script
+to pull and map these from old DB to new DB."* Quoting their document beats asserting the
+need in ours.
+
+Also folded in the still-open decision on whether a PDF from their *public* database is
+acceptable as the document of record. It changes the size of the job — if their own copy is
+required, the 1,021 we hold are a test corpus and the credentialed pull is the entire task
+rather than the remainder. Flagged to Shawn that this question could be cut if she'd rather
+the email do one job.
+
+Draft saved to `docs/tracking/migration-client-note-2026-08-13-prod-access-request.md`,
+marked DRAFT — not sent, recipient name still a placeholder.
+
+---
+
+## 2026-08-13 — Portal access confirmed; scrape script extended to the signed-in pull
+
+Shawn logged in to the client's portal as a non-guest and asked to run the PDF pull. The
+existing script could not have done it, and finding out why was the whole value of the hour.
+
+**The portal is a different protocol from the public database.** The public site is a plain
+REST route (`/api/certificates`). The portal at `/portal/certificate` is **tRPC** behind a
+**NextAuth session cookie**; `/api/portal/certificates` doesn't exist. I established this by
+fetching the site's own JS chunks — no login involved — which named the procedures directly:
+`certificate.getAll`, `certificate.exportCSV`, `certificate.sendForReview`. The last two are
+mutations and the script calls neither.
+
+**Downloads are unchanged** — `/api/certificates/{id}/download` still 307s to presigned S3.
+That is why this became a `--portal` flag on the proven 688-line script rather than a second
+script: the download, retry, resume, sha256 and manifest halves are reused untouched.
+
+**What the account sees: 6,000 certificates, not 1,021.** Verified downloads on three statuses
+the public API cannot serve — Expired, DRAFT-Internal, and Client Approved-Confidential — all
+returned real PDFs. I checked whether 6,000 was a server-side cap rather than assuming: ids run
+1–6,076 with gaps and include ids above 6,000, and the procedure takes no arguments, so it is a
+plain return-everything call.
+
+**Three findings that outlive the pull:**
+- **425 of 6,000 records have no attached document.** The ceiling is 5,575 PDFs. Those 425 will
+  migrate fileless no matter what we do — a source-data fact, not a migration defect.
+- **5,822 unique cert numbers across 6,000 records = 178 duplicates.** This independently
+  confirms the go-live blocker is real in the client's live system, not a spreadsheet artifact.
+- **174 DRAFT-Internal certs are visible**, which is the fix for the plan §14 numbering gap.
+
+**A bug my own regression test caught, worth recording.** I added a "skip records with no
+attached document" shortcut. The public API omits the `documents` key entirely, so *absent*
+collapsed into *empty* and the first public run skipped all three test records. Had I only
+tested portal mode, I'd have shipped a flag that silently broke the mode that already worked.
+Fix: absent → `""` (attempt anyway), empty list → `0` (skip). **Test the path you didn't change.**
+
+**Correction to what I told Shawn earlier:** I said to set `$env:GCC_PORTAL_COOKIE` in her
+window and I'd run the probe. That was wrong — my tool calls spawn separate processes and never
+see her shell's environment. She runs the pull herself, which is better anyway: the cookie stays
+entirely in her hands and is never persisted.
+
+Not yet run — awaiting her go. Est. ~2 hours, ~4 GB, 65.9 GB free.
+
+**Pull launched 16:43** — PID 11128, detached, `--portal` full run (all 6 statuses incl. the 43
+confidential, at Shawn's explicit go). Output `C:\Users\swest\GCCPortalPull`. ETA ~2.5h.
+
+**The half hour it cost to authenticate, and why.** The site runs **Auth.js v5**, so the cookie
+is `__Secure-authjs.session-token` — not the NextAuth v4 `__Secure-next-auth.session-token` the
+script assumed. A wrong cookie *name* returns a bare **401**, which is indistinguishable from a
+wrong or expired *value*. So I read the 401 as "bad token" and sent Shawn back to re-copy a value
+that had been correct on her first attempt. **When a bare credential 401s, suspect the name
+before the value** — the script now says so in a comment, with the four known cookie names in
+priority order.
+
+Two smaller time sinks worth avoiding next time: `Get-Clipboard` grabbed the *command text*
+because copying the command from chat overwrote the cookie on the clipboard (fix: paste the
+command first, copy the cookie second, then ↑-Enter). And Chrome automation went unresponsive on
+three separate attempts, so the cookie name was finally established from a screenshot Shawn sent
+of the DevTools cookie list — cheaper than the three failed tool calls that preceded it.
+
+---
+
+## 2026-08-13 (follow-up) — Chased the CertificateProductIdPartners = 0 flag; it was hiding a worse bug
+
+Shawn asked me to check the thing I had flagged but not investigated. Two defects came out
+of it, and the second one is worse than the flag itself.
+
+**The flag was real but I had the consequence backwards.** I wrote "those 16,234 IDs may be
+invisible to Amazon's API." **Wrong — untagged means SHARED, not hidden.** CR-171 Model A
+(`CertificatesController.cs:270`) returns a product ID to a partner caller when
+`!pi.Partners.Any() || pi.Partners.Any(...)`. So omitting the tag did not hide the ASINs
+from Amazon; it exposed them to **every** partner — Amazon, Novi, Wayfair, Other alike.
+The isolation gap **fails open**. Worth stating plainly because the intuitive reading of a
+missing link is "less visible", and here it is strictly more. Raised as **DEF-352**, where
+the real defect is the *silence*: thousands of untagged rows produce no warning, no preview
+count, no post-load signal.
+
+Cause was mundane — my transform's product-ID CSV had no `Partner` column, and the parser
+does accept one.
+
+**Then the fix attempt exposed DEF-351, which is the serious one.**
+`ProductIdService.ImportFromCsvAsync` parses with `line.Split(',')` and `.Trim('"')` —
+**that is not CSV parsing.** No quote handling, so any correctly-quoted field containing a
+comma is torn apart and every later column shifts left.
+
+**8,231 of 16,234 product names — 50.7% — were silently truncated at the first comma.**
+`DUDE Wipes Flushable Wipes - 1 Pack, 48 Wipes - Unscented...` (141 chars) was stored as
+`DUDE Wipes Flushable Wipes - 1 Pack` (35). And **the import reported complete success** —
+158/158 files, successCount 16,234, zero errors — because `Type` and `Value` are columns 1
+and 2 and parse fine. Nothing in the result hints at it. Worse, `pi.ProductName` is
+projected straight into the Amazon partner API response, so the truncated name is what a
+partner reads. The certificate importer uses CsvHelper properly; only this path hand-rolls it.
+
+**I had already looked at this data and not seen it.** After the first load I ran a sample
+query and read `DUDE Wipes Flushable Wipes - 1 Pack` as a plausible product name. It is
+plausible — that is exactly why the corruption is dangerous, and why "looks reasonable" is
+not verification.
+
+**Fixed on dev by going around the parser**, not through it:
+`POST /api/productids/certificate/{id}/bulk` takes JSON and bypasses `ImportFromCsvAsync`
+entirely. Cleared and reloaded all 16,234 with `Partner=Amazon` → **16,234 partner links,
+0 untagged, and 0 product-name length mismatches against source across all 16,234 rows.**
+
+**A measurement trap worth remembering.** My first fidelity check reported 3,086 name
+mismatches. They were not real — the `sqlcmd -o` dump mangled en dashes through the console
+codepage, so I was comparing my own corrupted export. Re-ran the comparison on
+`LEN(ProductName)` instead, which is encoding-independent: **0 mismatches.** I nearly filed
+a third defect against clean data. Compare on something the transport cannot damage.
+
+**One thing that turned out fine:** the sheet's `amazonCode` column has no home on
+`CertificateProductIds` and is not parsed — but the Amazon API sources `amazonCode` from
+`CertificationType.AmazonCode` (`:265`), which is populated for every certificate carrying
+product IDs (0 affected). Redundant, not lost.
+
+**Transform updated** to emit `Partner` and to carry an explicit warning against feeding its
+product-ID CSVs to the broken `/import` endpoint. **Client confirmation still needed** on
+tagging every ASIN row `Amazon` — it is an inference, and although it is the restrictive
+(safe) choice under Model A, it should be confirmed rather than assumed.
+
+Noted but not chased: `CertificationTypes.AmazonCode` is internally inconsistent —
+`CEF` (short) alongside `greencircle_energy_savings` (long), while the client's sheet uses
+`greencircle_cef`. Amazon contract is immutable ([[feedback_amazon_api_immutable]]), so this
+is a question for the client, not an edit.
+
+---
+
+## 2026-08-13 (retrospective) — Why the truncation survived verification, and correcting the partner rule
+
+Shawn asked two questions. The second one showed my own recommendation was wrong.
+
+### Why we missed the 50.7% truncation
+
+Not one oversight — four filters that each let it through:
+
+1. **The success signal was actively misleading.** 158/158 files, `successCount` 16,234, zero
+   errors. The importer's own report is the natural place to look and it said "clean".
+2. **I verified structure, not content.** Row counts, distinct numbers, computed-column
+   nullity, FK trust. **Every one of those passes on truncated data.** None compares a value
+   to its source.
+3. **I inspected content through a lossy view.** My spot check used
+   `LEFT(ProductName,70)` — which visually truncates, so a truncated value and a full value
+   render *identically*. I used a lossy lens to look for lossy writes.
+4. **The corrupted value was plausible.** `DUDE Wipes Flushable Wipes - 1 Pack` reads like a
+   product name. "Looks reasonable" is not verification.
+
+**The plan would not have caught it either**, which matters more than my execution. §6
+Reconciliation says *"Assert post-load counts match the transform output."* Counts **did**
+match — 16,234 = 16,234 — because the corruption was **inside** fields, not row loss. §6 is
+count-based and needs a value-level check. The one comparison that works is source-vs-DB on
+field content, and it must be done on something the transport cannot damage (see the
+`LEN()` lesson below).
+
+**And it only surfaced because Shawn made me pull a thread I had deferred.** I flagged
+`CertificateProductIdPartners = 0`, called it "flagged, not investigated", and moved on. The
+visible anomaly was sitting next to an invisible one. Without that follow-up we would have
+gone live with half the product names corrupted and served to Amazon.
+
+### Is tagging the right call? — I was half right, and the half I got wrong I got wrong twice
+
+**Tag vs leave untagged: tag.** Untagged is not neutral — CR-171 Model A returns untagged
+product IDs to *every* partner. Leaving them is fail-open.
+
+**Tag everything "Amazon": NO. My reasoning was bad and the evidence says so.**
+I argued "ASIN is an Amazon identifier, therefore Amazon". **Measured against the test
+environment, that rule is simply false:** ASIN-type product IDs there are tagged
+**Amazon 1,559 / Other 536 / Novi 527**, plus 528 untagged. ASIN does not imply Amazon.
+
+**Then I over-corrected and nearly adopted a second wrong rule.** I next assumed product-ID
+tags inherit the certificate's partners — so I checked, and in the test env **2,516 of ~2,625
+tagged ASINs carry a partner that is NOT on the parent certificate** (only 106 match exactly).
+So the test env is internally inconsistent — and it is the **test data we just purged**. I had
+labelled it "source of truth for existing convention"; it is nothing of the kind. Weak
+evidence, correctly discarded.
+
+**The defensible signal is the client's own cert sheet:** of the 158 certificates in the ASIN
+master list, **154 carry cert-level `Partner = Amazon`**. So derive the tag from the
+certificate rather than from the identifier type — which yields Amazon for those 154.
+
+**The remaining 4 are the real finding: 1,960 ASINs, 12% of the load.**
+`23-0814` (P&G, expired) and Kohler `25-8535` / `26-0053` / `26-0101` have a **blank**
+cert-level Partner. Tagging them Amazon would invent a partner relationship the client never
+stated — the same reason `fix_email()` refuses to guess a missing TLD. They are left
+untagged, listed in `review-untagged-product-ids.csv`, and **flagged as fail-open**: untagged
+means visible to every partner, so this needs a client answer before go-live, not after.
+
+Transform corrected to derive Partner from the certificate; dev reloaded to match —
+**14,274 Amazon-tagged, 1,960 untagged.** Also note for Gate 4: tagging populates `partner`
+and `ownPartner` in the Amazon API response where they were empty, so
+`amazon-contract-diff.js` must be run before this reaches a partner-facing environment
+([[feedback_amazon_api_immutable]]).
+
+**Measurement lesson banked:** my first fidelity check reported 3,086 name mismatches that
+were pure artefact — the `sqlcmd -o` dump mangled en dashes through the console codepage, so
+I was diffing my own corrupted export. Comparing `LEN(ProductName)` instead, which the
+transport cannot damage, gave **0**. Across an encoding boundary, compare a property the
+boundary cannot alter.
+
+**Pull COMPLETE 18:43** — 5,575 PDFs, 3.59 GB, 120.6 min, **zero failures**. All 5,575 validated
+(`%PDF` header, none zero-byte, 89 KB–9.89 MB). 425 records skipped because the source system
+holds no document for them.
+
+**Reconciliation against the go-live load set — the point of the whole exercise:**
+
+| Sheet | Certs | With PDF | Coverage |
+|---|---:|---:|---:|
+| Active List 7.31.26 | 1,006 | 1,005 | 99.9% |
+| Expired List 2 - 8.11.26 | 336 | 336 | 100% |
+| Expired List 1 - 4.9.26 | 4,077 | 3,851 | 94.5% |
+| **Total** | **5,419** | **5,192** | **95.8%** |
+
+Up from 954/5,556 (~17%) on the public mirror. All 227 remaining misses are "in the portal, no
+document attached" — **nothing left to fetch**, and that should be said to the client in exactly
+those words so 95.8% doesn't read as an incomplete job. (5,419 = load set minus the 137
+quarantined duplicate numbers.)
+
+**All 51 live certs missing from the load sheets: PDFs now held for every one.**
+
+**The numbering collision is 5x worse than the plan says, and I'd have missed it without this
+pull.** §14 assumed GCC had issued to 26-0500 with 19 drafts in between — that was their verbal
+figure. Measured against their live DB: highest issued is **26-0591**, load-set high-water is
+**26-0481**, so **110 numbers would be silently re-issued**. 107 are DRAFT-Internal, but **3 are
+`Client Approved - Paid`** — live certificates the load set drops *and* whose numbers we would
+then hand to different certs. Data loss and a UNIQUE-constraint collision in the same defect.
+**Verbal high-water marks from a client are a hypothesis; the live DB is the fact.**
+
+---
+
+## 2026-08-13 (continued) — Built the value-level reconciliation §6 was missing; it found two more defects on its first run
+
+Acting on the lesson rather than just recording it. §6 acceptance was count-based, and I had
+proved counts cannot see field-internal corruption. So I built the check that can, and pointed
+it at the load I had already declared verified.
+
+**`2026-08-13-migration-reconciliation.ps1` + `.py`** — dump every loaded certificate, compare
+field by field against the transform output. The dump goes through `System.Data.SqlClient` to
+UTF-8 **deliberately not `sqlcmd -o`**, because that was the exact thing that produced 3,086
+false mismatches earlier. The lesson is baked into the tool, not just the log.
+
+**Result: 5,405 certificates compared. Eleven of fifteen fields are perfect** — Certification
+Type, Status, Company, Product Name, Product Category, Pathway, Cert Results, Location, Partner,
+External Tag, Internal Tag: **0 mismatches each**. So the certificate path (which uses CsvHelper
+properly) is sound, and the earlier corruption really was confined to the hand-rolled product-ID
+parser. Good to have that bounded rather than assumed.
+
+**Two new defects in the remainder.**
+
+**DEF-354 — `Certificate.ProductTypeId` is never set. 0 of 5,405.** `CreateCertificateAsync`
+assigns `ProductCategoryId` — with an explicit `// QC #189 / DEF-278: honor template category`
+comment — and has **no `ProductTypeId` line at all**. Category lands on the certificate, Type
+does not, though 1,216 source rows supply one. **DEF-278 fixed one of two sibling fields and
+stopped.** That is the third time today the same shape has appeared: DEF-349 widened one of three
+name columns, DEF-314 before it, now this. It is worth naming as a pattern rather than a
+coincidence — when a fix touches one member of a set, check the siblings.
+
+It is not a dead column: `CertificateController.cs:844` loads it into the **Edit** view model, so
+every migrated certificate opens with a blank Product Type — and via **DEF-343** a blank required
+dropdown can silently rewrite on save. `AdminService.cs:1426` uses it for Product Type
+**delete-protection**, so a type used by 1,216 certificates currently looks unused and is
+deletable. Note `ProductSubcategoryId` is missing from the same block, which is the
+certificate-side half of DEF-348 — fix them together, not one at a time.
+
+**DEF-353 — the importer invents dates.** `EffectiveDate = row.EffectiveDate ?? DateTime.UtcNow`
+and `ExpirationDate = ?? DateTime.UtcNow.AddYears(1)` (:1684). Blank source dates became the
+import date. 15 certificates affected, and **two of the results are self-contradictory**:
+`13-0157` is **Expired** with a **2027** expiry, and `23-0092`/`24-0401` have an **effective date
+after their expiration date**. For a single analyst entry, defaulting to today is defensible; for
+a 5,405-row historical load where blank means "never recorded", it manufactures 15 wrong facts —
+and anything deriving validity from dates will read an 11-year-expired certificate as current.
+
+**Two findings I checked and did NOT raise**, because measuring beat assuming:
+- **Product Type "missing" on the Product record** — it is there (944 of 3,042 products carry
+  `ProductTypeId` via CR-186 identity). Only the *certificate* copy is absent. Had I stopped at
+  the reconciliation output I would have filed a wrong defect.
+- **Country 15 mismatches** — `The Netherlands` → `Netherlands`. That is the DEF-347 fix
+  canonicalising against `CountryList`, i.e. working as designed. Correct behaviour, not drift.
+
+**§6 updated** to require the value-level reconciliation and to state plainly that counts are a
+floor, not the acceptance test — with the reason recorded so nobody re-derives it.
+
+---
+
+## 2026-08-13 — PDF link step built (plan §10) and dry-run clean
+
+`Services/DataOps/PdfLinkCommand.cs` + 6 lines in `Program.cs`. Runs as an argv branch with the
+full DI container but **no middleware and no listening port**, so it cannot be reached over HTTP:
+
+    dotnet run -- link-pdfs --manifest C:\Users\swest\GCCPortalPull\manifest.csv --dry-run
+
+Calls the app's own services as §10 requires — `IUploadPathResolver.CertificatesDir` and
+`IFileUploadService.GeneratePdfThumbnailAsync` — and matches
+`CertificateImportService.UploadPdfFromPathAsync` naming exactly (`{Number}_{yyyyMMdd_HHmmss}.pdf`),
+so the recovery script's `26-0174_*.pdf` glob still finds files. sha256 is verified **before** the
+DB is touched: a wrong PDF silently attached is worse than no PDF, because nothing downstream
+would flag it. Undo CSV flushed every 100 rows so a crash still leaves a complete rollback.
+
+**Dry run against `GCCDatabase_Dev`: 5,179 would link, 0 checksum failures, 0 missing files.**
+
+**The arithmetic cross-checks, which is the real confidence signal.** Reconciliation said 5,192
+load-set certs have a PDF; the command matched 5,179 against the loaded DB. The gap is 13, and
+the DB holds 5,405 certs against a 5,419-cert load set — the 14 Expired-1 rows rejected by import
+validation. 13 of those 14 had PDFs. Two independent paths agreeing to within a known quantity.
+
+**NEW FINDING — 69 live certificates are missing from the migrated DB, not 51.** Of the 220
+portal certs with no row in our DB: **69 are `Client Approved - Paid`** (plus 141 Expired, 6
+DRAFT-Internal, 3 Confidential, 1 Draft-Client). The previously reported 51 came from comparing
+their Full List against the load sheets; this is measured against what actually loaded, and it is
+a superset. Every one has a PDF we now hold. **This belongs in the same client conversation as
+the numbering gap** — both say the load sheets are a filtered pull that drops live records.
+
+**176 alternate files** (duplicate cert numbers) written to a review CSV rather than dropped.
+
+**Environment note:** the build needed the dev server's file lock released. Stopped it, built,
+restarted it with `Jobs__CertificateExpiration__IntervalMinutes=1440` /
+`StartupDelaySeconds=86400` as **env overrides** — `appsettings.Development.json` still says
+`IntervalMinutes: 1`, so the 24h deferral is per-process and will NOT survive a restart that
+doesn't repeat those variables. Verified back up: HTTP 200 on localhost:5101.
+
+**Not yet run for real.** The live run needs Shawn's go, and the audit-rows question is still
+open (currently: no audit rows, undo CSV + log as the trail).
+
+---
+
+## 2026-08-13 (final) — Fixed DEF-353 and DEF-354; corrected my own DEF-350 diagnosis; found DEF-355
+
+**DEF-354 needed three changes, not one.** Setting `ProductTypeId` in `CreateCertificateAsync`
+would have covered only rows whose product type already existed. `createdProductTypes` was
+consulted **only** when building the Product record, so a type auto-created by the same import
+never reached the row — and so could never reach the certificate. Added the Phase-2 back-fill,
+the create assignment, and a **conditional** update assignment following the **Pathway** rule
+rather than Category's unconditional one. Audit old-state capture extended so the diff is right.
+Backfilled existing data from `Products.ProductTypeId` (exact, because CR-186 splits products by
+full identity): **1,216 of 1,216**, and reconciliation went from 0/1,216 matched to **1,216/1,216**.
+
+**DEF-353 fixed by refusing to guess.** Blank dates on a **new** certificate are now rejected in
+preview, exactly as unparseable ones already were; `?? DateTime.UtcNow` became `?? throw`. Scoped
+to new rows so partial updates still work — and the regression test proved it: `23-0753` with both
+dates blank came through as **Modified** with its dates preserved exactly.
+
+**I corrected DEF-350 rather than leaving a plausible wrong answer standing.** The timeout
+reappeared with the sweep still deferred (verified in the startup log), so "deferring the sweep
+fixed it" cannot be true. The actual contaminant: **two `GCCWebApp.exe` instances running against
+the same database** — orphans my process filter kept missing across restarts. With both alive the
+DB was so contended that `sys.dm_exec_requests` itself timed out; after killing them a `COUNT(*)`
+returned instantly. **Every measurement taken while duplicates were live is unreliable, including
+my original "confirmed by intervention".** Measured cleanly afterwards: slowest EF command
+**533ms**, no query running during a failing 30s preview, and a 5-row preview against 5,405 certs
+completing in **19s**. So SQL is not where the time goes and the cause is still unknown — I kept
+the `AsSplitQuery()` + `AsNoTracking()` change because it is right on its own merits (DEF-166/234
+pattern, read-only preload), but it did **not** fix the timeout and I have not claimed it did.
+Next step is profiling, not another guess.
+
+**DEF-355 found by accident, which is the honest description.** My own regression test — one
+existing certificate re-imported with blank columns — silently **cleared** its Cert Results
+(`0.03`→blank), Partner (`Amazon`→blank, M2M link removed) and Category, and re-pointed its
+Company. `UpdateCertificateAsync` assigns those unconditionally, so a missing column reads as
+"set to empty". The correct rule already exists three lines below for Pathway, documented and
+deliberate. This matters beyond my test: export→edit→re-import is a normal workflow and the export
+is **role-filtered**, so an analyst's exported subset can blank a column for every row it touches.
+
+**And it caught me damaging real data.** The reconciliation flagged 1,215 backfilled where 1,216
+were expected. Chasing that one row led to `23-0753` — my own test fixture — which I had partially
+repaired and left wrong in three more fields. Fully restored (Company, Cert Results, Partner + M2M,
+Product/Category/Type), stray company and product deleted, verified by re-running the comparison.
+**A one-row discrepancy was worth chasing; had I rounded it off as "close enough", a corrupted
+record would have stayed in the rehearsal data.**
+
+**Final reconciliation: 13 of 15 fields at 0 mismatches.** The two remaining are both understood —
+Country ×15 is the DEF-347 canonicalisation working as designed (`The Netherlands`→`Netherlands`),
+and the ×15 invented dates are pre-fix rows already loaded; a re-run from the fixed build rejects
+those rows instead of inventing values.
+
+**Operational note that outlives the migration:** preview cost scales with database size and at
+go-live volume already sits at 19s against a 30s ceiling. That is a permanent risk, not a
+migration-window one.
+
+---
+
+## 2026-08-13 (later) — DEF-355 fixed: the importer can now tell "column absent" from "value cleared"
+
+**The fix is a distinction the parser never made.** A blank cell and a missing column both arrived
+as `""`, so a file that simply omitted a column read as "set this to empty". Added
+`HasColumn`/`BuildProvidedColumns`, computed **once** per file from the header and stamped on every
+row so it survives the preview cache and reaches apply.
+
+**Mirroring the matching rules exactly was the part that mattered.** `GetFieldWithMapping` does an
+exact **case-sensitive** match (CsvHelper's `GetField`, no `PrepareHeaderForMatch` — the DEF-347
+trap) plus a case-*insensitive* `"Name "`/`"Name("` prefix fallback for DEF-202 headers. If my
+presence check had used different rules, a column readable-but-not-"provided" would be silently
+skipped — a worse bug than the one being fixed. So `HasColumn` replicates both legs precisely.
+
+**Gated `DetectChanges` too, not just the apply path.** Otherwise preview would advertise edits it
+would then refuse to make. That mattered in practice: the first verification run still showed
+phantom `Partner: Amazon -> None` and `CertificationResults: 0.42 -> ''` changes because two
+comparisons sit further down the method than the block I first patched. Caught it because the
+**preview output disagreed with the intended behaviour** — worth noting that the test caught an
+incomplete fix, not just a working one.
+
+**Semantics chosen deliberately:** absent column = no-op; present-but-blank = still clears, because
+that is a real analyst edit and must remain possible. Only the ambiguous, destructive case changed.
+
+**Status was the worst instance.** A blank/absent Status defaults to `"Draft"` at parse time, so
+before this fix a re-import without a Status column reset **every certificate it touched** to Draft.
+
+**Verified with a purpose-built fixture rather than migrated data** — I had already contaminated
+`23-0753` once and was not going to do it twice. Created `ZZ355-A` fully populated, then re-imported
+a file omitting Status/Country/Cert Results/Partner/ASIN and changing only Location: the Location
+edit applied, and **Status, Country, Cert Results, Partner (+ M2M link), ASIN, Category and Type all
+survived**. Fixtures deleted; dev back to 5,405 certificates.
+
+**One change beyond the defect, and it is flagged as such:** `CommandTimeout(30)` in `Program.cs`
+was hardcoded, and at 5,405 certificates the preview could not complete inside it — I could not
+test my own fix at go-live volume. Made it read `Database:CommandTimeoutSeconds`, **default
+unchanged at 30**. That is DEF-350's option (b), a mitigation and explicitly not a fix.
+
+**DEF-350 is now the dominant problem and the numbers are bad.** With the raised timeout, previews
+of a *single-row* file against 5,405 certificates took **148s and 266s**. That is not a migration
+inconvenience — it is the ordinary import path, and it degrades as the database grows. Also spotted
+while reading `Program.cs`: `EnableRetryOnFailure(maxRetryCount: 5)` means a timed-out command is
+retried up to five times, which plausibly explains the wildly erratic durations seen earlier. Worth
+investigating together; still not root-caused, still not guessed at.
+
+## 2026-08-13 — PDF link step RUN (dev): 5,179 certificates now carry their documents
+
+Verified in `GCCDatabase_Dev`, not inferred from file counts:
+
+| metric | n |
+|---|---:|
+| total certificates | 5,406 |
+| with `CertificateFile` | **5,179** |
+| with `CertificateImagePath` | 5,178 |
+| file but no preview image | 1 |
+| no file at all | 227 |
+
+5,179 matches the dry-run prediction exactly. 0 sha256 mismatches, 0 missing source files.
+The 227 with no file are the source-data ceiling established earlier — certificates the client's
+own system holds no document for.
+
+**The one blank preview is `23-0971` (Id 725), and it is not our bug:** the PDF is
+**password-protected** — `Docnet.Core.Exceptions.DocnetLoadDocumentException: password required
+or incorrect password`. The document is attached and downloadable; only the inline preview is
+missing. Client question, not a defect: they hold an encrypted certificate PDF.
+
+**It took five runs, and the idempotency is what made that survivable.** The process was reaped
+four times (silently, no stack trace — a limitation of how this session spawns processes, not of
+the command). Each restart resumed rather than redoing. Consolidating all five undo CSVs gives
+**5,179 rows across 5,179 distinct certificate ids — zero double-links.** That is the real proof
+the skip-if-already-linked guard works, and it is worth more than a clean single run would have
+been. Consolidated rollback: `GCCPortalPull\_link-pdfs\rollback-consolidated.csv`.
+
+**Two environment issues surfaced, both worth acting on before the production migration:**
+1. **Uploads live inside the OneDrive-synced project folder.** ~3.3 GB of PDFs and thumbnails now
+   sit in `App_Data\uploads\`, actively syncing. One run sat with a live process and zero progress
+   for 3+ minutes. `FileStorage:StoragePath` (DEF-286) exists exactly to move this out — it also
+   protects uploads from a Plesk publish. Do it before the real load.
+2. **`Program.cs` changed mid-run from another work stream** (DEF-350: SQL command timeout now
+   configurable via `Database:CommandTimeoutSeconds`, because import preview hit the hardcoded 30s
+   at go-live volume). The run used the previously built binary, so it was unaffected — but the
+   built DLL and source have diverged and need a rebuild.
+
+---
+
+## 2026-08-13 (final) — SQL generator built; loads 5,390 certs in 20s and reconciles at 14/15 fields clean
+
+Built `Scripts/data-ops/2026-08-13-migration-sql-generator.py` — transform output → one
+transactional T-SQL script. Audit/ImportBatches rows deliberately skipped (Shawn's call), so
+there is **no UndoImport for this load**; rollback is "restore the backup", which on a one-time
+load onto an empty database is stronger anyway.
+
+**Result: 5,390 certificates, 301 companies, 3,305 products, 16,234 product IDs, 14,274
+product-id partner links — in 20 seconds**, against ~560s plus timeouts through the importer.
+Reconciliation: **5,390 source = 5,390 loaded, 0 missing, 0 extra, and 14 of 15 fields at zero
+mismatches.** The single remainder is Country ×15, the deliberate `The Netherlands` →
+`Netherlands` canonicalisation, which matches the importer's own DEF-347 behaviour.
+
+**I verified every importer rule I replicated rather than assuming it.** Cert types resolve
+`MIN(Id)` per name — confirmed against all 5,405 rows of the earlier rehearsal, which matters
+because the hierarchy puts the same name at several Levels. Blank product category falls back to
+the lowest active category — confirmed by the 1,766 products carrying it. Product-ID status
+derives from the parent cert's public status (CR-015). **Lookups resolve by name at run time, so
+no dev Ids are baked in** — that would have been the DEF-323 mistake, and it means the same file
+runs against test or prod unchanged.
+
+**Three things went wrong, and each was caught by a guard rather than by luck.**
+
+1. **Preflight refused to load onto the populated database** — 5,405 numbers already existed. It
+   left every row intact. Working exactly as intended.
+2. **The post-load assertion rolled back a partial load**: 5,390 certificates inserted against
+   5,401 staged. The 11 were blank Product Names — the same rows the importer rejects, since
+   `Certificates.ProductId` is NOT NULL. Fixed at the right layer: the transform now withholds
+   **any** incomplete row (Company / Product Name / Certification Type / both dates) to
+   `quarantine-incomplete-rows.csv`, 29 rows, rather than letting a loader fail on them.
+3. **The encoding bug is the one worth remembering.** I wrote the .sql as UTF-8; sqlcmd decoded
+   it as the ANSI codepage, so `EcoFlex®` (U+00AE) went in as `EcoFlex®` (U+00C2 U+00AE).
+   **1,674 product names and 360 company names silently corrupted — and the load reported
+   complete success.** Nothing failed. Only the value-level reconciliation caught it, and only
+   because I compared code points instead of trusting console output, which renders both sides
+   as `?` and would have told me nothing.
+
+   Fixed twice over: the file is now **UTF-16 LE with a BOM** (sqlcmd auto-detects it, so nobody
+   has to remember `-f 65001`), and the script carries an **encoding canary** —
+   `IF N'®' <> NCHAR(174) ... RAISERROR` — so a mis-decoded run aborts instead of writing
+   mojibake. A guard the artefact carries itself beats a guard someone has to remember.
+
+**Integrity after the clean run:** 0 duplicate product identities, 0 untrusted/disabled FKs,
+0 NULL `NormalizedNumber`/`NormalizedName` (CR-187 intact), 0 certificates without a product.
+
+**One difference from the importer, explained not hand-waved:** 3,305 products vs the importer's
+3,042. The generator creates exactly one product per distinct CR-186 identity tuple
+(Company, Name, Category, Type); the importer's create pass keys by product **name alone** first
+and only then re-resolves. Mine is the more faithful reading of CR-186, and the certificate-level
+Product Name / Category / Type all reconcile at 100%, so nothing is mis-pointed. Worth a look as a
+possible importer defect, but not raised as one without more evidence.
+
+**Still true and unchanged:** this does not fix DEF-350. Routine analyst imports still preview
+against 5,390+ certificates. The SQL loader must not become the reason that stops being fixed.
+
+---
+
+## 2026-08-13 — Rollback drill: the restore path is now PROVEN (it never had been)
+
+Shawn asked whether we have a rollback plan before going near test. We had **backup scripts**, and
+a backup you have never restored is not a backup — the only prior attempt, `GCCRestoreTest` from
+8/12, was an abandoned partial (40 tables, 36 rows). So I exercised it for real instead of
+describing it.
+
+**Drill 1 — restore into an empty database** (`GCCRestoreDrill`): `create-schema.sql` built all 43
+tables in 3s; the Restore run loaded **8,823 rows in 82s** — exactly the manifest total. 0
+untrusted/disabled FKs, 0 NULL `NormalizedNumber` (CR-187 computed columns rebuilt correctly), 228
+certificates all distinct. **Unicode survives:** `+Vantage Vinyl™ Verified` came back intact, which
+matters now that a UTF-8/ANSI mix-up has already corrupted 2,034 values once today.
+
+**Drill 2 — restore OVER a populated database, which is the real scenario.** Drill 1 proved the
+easy path; a rollback on test overwrites live rows, not empty tables. So I deliberately damaged the
+target first — deleted 5 certificates and set `23-0753`'s Location to `ROLLBACK-ME` — then restored:
+223 → **228 certificates**, Location back to `Springdale, AR`, 8,823 rows, 0 untrusted FKs, **24s**.
+
+So the rollback works in both shapes. That is now a measured fact rather than an assumption.
+
+**The one thing that makes it fragile is timing, not mechanism.** The 09:00 backup is already
+stale — test showed **229 certificates against our 228** when I checked it, so the client (or
+another session) added one during the day. Restoring that backup today would silently lose their
+work. The backup must be taken **immediately before** the load, in the same session, not reused
+from earlier.
+
+**Correction to the premise of the question:** the SQL load has **already run on dev** and is
+confirmed — 5,390 certificates, reconciliation 14/15 fields clean, `EcoFlex®` intact. Nothing was
+re-run.
+
+Left `GCCRestoreDrill` in place as evidence; the stale `GCCRestoreTest` from 8/12 is misleading and
+should be dropped.

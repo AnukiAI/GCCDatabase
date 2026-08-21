@@ -333,6 +333,9 @@ namespace GCCWebApp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AllowsDuplicateNumber")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Asin")
                         .HasColumnType("nvarchar(max)");
 
@@ -467,7 +470,9 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("NormalizedNumber");
 
                     b.HasIndex("Number")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_Certificates_Number")
+                        .HasFilter("[AllowsDuplicateNumber] = 0");
 
                     b.HasIndex("PathwayId");
 

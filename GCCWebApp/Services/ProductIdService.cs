@@ -564,6 +564,27 @@ namespace GCCWebApp.Services
             return type != null && upperTypes.Contains(type) ? value.ToUpperInvariant() : value;
         }
 
+        /// <summary>
+        /// CR-171 partner resolution, shared by the insert path and the DEF-364 reactivation path
+        /// so the two can never drift apart. Clears first: a reactivated row must not keep partners
+        /// the new import did not ask for, because partner assignment decides who can see the ID.
+        /// </summary>
+        private static void ApplyPartners(CertificateProductId entity, string? partnerCell,
+            IDictionary<string, Partner> partnerByName)
+        {
+            entity.Partners.Clear();
+            foreach (var pname in (partnerCell ?? string.Empty)
+                         .Split(new[] { ',', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                         .Select(n => n.Trim())
+                         .Where(n => n.Length > 0 && !n.Equals("None", StringComparison.OrdinalIgnoreCase))
+                         .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (partnerByName.TryGetValue(pname, out var partnerEntity))
+                    entity.Partners.Add(partnerEntity);
+            }
+            entity.Partner = entity.Partners.FirstOrDefault()?.Name ?? partnerCell;
+        }
+
         public async Task<BulkImportResult> ImportProductIdsAsync(int certificateId, List<ProductIdImportItem> productIds, int? userId = null, bool overwriteExisting = false)
         {
             // DEF-112: previously this method called CreateProductIdAsync per row,
@@ -585,13 +606,22 @@ namespace GCCWebApp.Services
                 .Where(p => !p.IsDeleted)
                 .ToDictionaryAsync(p => p.Name, StringComparer.OrdinalIgnoreCase);
 
+            // DEF-364: Partners are Included because a reactivated row must re-resolve its
+            // partner set exactly like a fresh insert (CR-171) instead of keeping a stale one.
             var existingRows = await _context.CertificateProductIds
+                .Include(p => p.Partners)
                 .Where(p => p.CertificateId == certificateId)
                 .ToListAsync();
 
             // CR-015 dup scope: per-cert. Key = upper(type) + ":" + trimmed value.
+            // DEF-364: the map covers INACTIVE rows too. The unique index
+            // IX_CertificateProductIds_CertificateId_ProductIdType_ProductIdValue has no
+            // IsActive filter, so a soft-deactivated row still owns its slot in the index.
+            // Keying on active rows only let a guaranteed-doomed INSERT through, and because
+            // the commit below is a single batched SaveChanges, that one row took the whole
+            // import down with it.
             var existingByKey = new Dictionary<string, CertificateProductId>(StringComparer.OrdinalIgnoreCase);
-            foreach (var row in existingRows.Where(r => r.IsActive))
+            foreach (var row in existingRows)
             {
                 var key = $"{(row.ProductIdType ?? string.Empty).ToUpper()}:{(row.ProductIdValue ?? string.Empty).Trim()}";
                 existingByKey[key] = row;
@@ -646,9 +676,27 @@ namespace GCCWebApp.Services
                     }
 
                     var key = $"{item.Type.ToUpper()}:{item.Value.Trim()}";
-                    if (existingByKey.ContainsKey(key))
+                    if (existingByKey.TryGetValue(key, out var existingRow))
                     {
-                        // Match prior contract: in overwrite mode, dup = silent success (kept).
+                        // DEF-364: the row is still there, just deactivated — re-importing it
+                        // means "put it back". Reactivate in place rather than queuing an INSERT
+                        // the unique index is certain to reject. This also makes the importer
+                        // agree with CheckDuplicateAsync, which never filtered on IsActive.
+                        if (!existingRow.IsActive)
+                        {
+                            existingRow.IsActive = true;
+                            existingRow.Status = derivedStatus;   // CR-015: status follows the cert
+                            existingRow.ProductName = item.ProductName;
+                            existingRow.ProductSku = item.ProductSku;
+                            existingRow.Description = item.Description;
+                            existingRow.UpdatedBy = userId;
+                            existingRow.UpdatedAt = now;
+                            ApplyPartners(existingRow, item.Partner, partnerByName);
+                            result.SuccessCount++;
+                            continue;
+                        }
+
+                        // Already active. Match prior contract: in overwrite mode, dup = silent success (kept).
                         if (overwriteExisting)
                         {
                             result.SuccessCount++;
@@ -681,16 +729,7 @@ namespace GCCWebApp.Services
                     };
 
                     // CR-171: resolve the (possibly delimited) Partner cell into the M2M collection.
-                    foreach (var pname in (item.Partner ?? string.Empty)
-                                 .Split(new[] { ',', '|' }, StringSplitOptions.RemoveEmptyEntries)
-                                 .Select(n => n.Trim())
-                                 .Where(n => n.Length > 0 && !n.Equals("None", StringComparison.OrdinalIgnoreCase))
-                                 .Distinct(StringComparer.OrdinalIgnoreCase))
-                    {
-                        if (partnerByName.TryGetValue(pname, out var partnerEntity))
-                            entity.Partners.Add(partnerEntity);
-                    }
-                    entity.Partner = entity.Partners.FirstOrDefault()?.Name ?? entity.Partner;
+                    ApplyPartners(entity, item.Partner, partnerByName);
 
                     _context.CertificateProductIds.Add(entity);
                     existingByKey[key] = entity; // prevent within-batch dup

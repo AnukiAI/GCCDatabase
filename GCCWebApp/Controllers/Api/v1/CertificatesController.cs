@@ -169,8 +169,13 @@ namespace GCCWebApp.Controllers.Api.v1
                     }
 
                     // Partner API contract (Amazon Developer Guide §8): only active certificates are returned;
-                    // draft, expired, suspended, and revoked certs are excluded
-                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+                    // draft, expired, suspended, and revoked certs are excluded.
+                    // DEF-358: "active" also means the effective date has been reached. Partner callers are
+                    // always reported status="Active", and Amazon does not validate effectiveDate on its side,
+                    // so a cert staged ahead of time would be treated as in-force weeks early. Omit it entirely
+                    // rather than adding a new status value — the response shape stays frozen.
+                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status))
+                                 .WhereEffectiveDateReached();
                 }
                 else if (userRole == "External")
                 {
@@ -384,8 +389,11 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 if (isPartnerCaller)
                 {
-                    // Partner API contract: non-active certs are not visible to partners
-                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                    // Partner API contract: non-active certs are not visible to partners.
+                    // DEF-358: a cert staged ahead of its effective date is not yet in force —
+                    // 404 exactly like a non-active one, so the response shape is unchanged.
+                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status)
+                        || CertificateVisibility.IsNotYetEffective(certificate))
                         return NotFoundResponse($"Certificate with ID {id} not found");
 
                     // DEF-106: scope by partner. A Partner caller (API key OR Partner-role user)
@@ -429,6 +437,7 @@ namespace GCCWebApp.Controllers.Api.v1
                         .ThenInclude(pi => pi.Partners)
                     .Include(c => c.CustomFieldValues)
                         .ThenInclude(cfv => cfv.Field)
+                    .OrderByDescending(c => c.EffectiveDate).ThenByDescending(c => c.Id)
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);
 
                 if (certificate == null)
@@ -438,8 +447,10 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 if (isPartnerCaller)
                 {
-                    // Partner API contract: non-active certs are not visible to partners
-                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                    // Partner API contract: non-active certs are not visible to partners.
+                    // DEF-358: not-yet-effective certs 404 the same way.
+                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status)
+                        || CertificateVisibility.IsNotYetEffective(certificate))
                         return NotFoundResponse($"Certificate with number {certificateNumber} not found");
 
                     // DEF-106: scope by partner.
@@ -700,9 +711,11 @@ namespace GCCWebApp.Controllers.Api.v1
                         });
                     }
 
+                    // DEF-358: effective-date lower bound alongside the status + partner scoping.
                     query = query.Where(c =>
                         CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
-                        c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
+                        c.Partners.Any(p => userPartnerNames.Contains(p.Name)))
+                        .WhereEffectiveDateReached();
                 }
 
                 var totalCount = await query.CountAsync();
@@ -798,9 +811,12 @@ namespace GCCWebApp.Controllers.Api.v1
                         });
                     }
 
+                    // DEF-358: a not-yet-effective cert is not in force, so it cannot be "expiring soon"
+                    // from the partner's perspective either — apply the same lower bound here.
                     query = query.Where(c =>
                         CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
-                        c.Partners.Any(p => userPartnerNames.Contains(p.Name)));
+                        c.Partners.Any(p => userPartnerNames.Contains(p.Name)))
+                        .WhereEffectiveDateReached();
                 }
 
                 query = query.OrderBy(c => c.ExpirationDate);
@@ -1008,8 +1024,10 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         return SuccessResponse(new List<object>(), "No certificates found matching your access permissions");
                     }
 
-                    // Partner API contract (Amazon Developer Guide §8): only active certificates are returned
-                    certificatesQuery = certificatesQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+                    // Partner API contract (Amazon Developer Guide §8): only active certificates are returned.
+                    // DEF-358: plus the effective-date lower bound.
+                    certificatesQuery = certificatesQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status))
+                                                         .WhereEffectiveDateReached();
                 }
                 // Apply role-based filtering for External users (logged in via session)
                 else if (userRole == "External")
@@ -1255,7 +1273,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         .Include(c => c.Company)
                         .Include(c => c.CertificationType)
                         .Include(c => c.Partners)
-                        .FirstOrDefaultAsync(c => c.Number == id);
+                        .OrderByDescending(c => c.EffectiveDate).ThenByDescending(c => c.Id)
+                    .FirstOrDefaultAsync(c => c.Number == id);
                 }
 
                 if (certificate == null)
@@ -1263,8 +1282,10 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
 
                 if (GetCurrentUserRole() == "Partner")
                 {
-                    // Partner API contract: non-active certs are not visible to partners
-                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                    // Partner API contract: non-active certs are not visible to partners.
+                    // DEF-358: not-yet-effective certs 404 the same way — no PDF before the effective date.
+                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status)
+                        || CertificateVisibility.IsNotYetEffective(certificate))
                         return NotFoundResponse($"Certificate '{id}' not found");
 
                     // DEF-106: scope by partner.
@@ -1418,8 +1439,10 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         });
                     }
 
-                    // Partner API contract (Amazon Developer Guide §8): only active certificates are returned
-                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+                    // Partner API contract (Amazon Developer Guide §8): only active certificates are returned.
+                    // DEF-358: plus the effective-date lower bound.
+                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status))
+                                 .WhereEffectiveDateReached();
                 }
                 else if (userRole == "External")
                 {
@@ -1533,6 +1556,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     .Include(c => c.ProductIds)
                         .ThenInclude(pi => pi.Partners) // CR-171 Model A: per-product partner filtering
                     .AsSplitQuery()
+                    .OrderByDescending(c => c.EffectiveDate).ThenByDescending(c => c.Id)
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);
 
                 if (certificate == null)
@@ -1542,8 +1566,10 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 var userPartnerNames = isPartnerCaller ? await GetCurrentUserPartnerNamesAsync() : new List<string>();
                 if (isPartnerCaller)
                 {
-                    // Partner API contract: non-active certs are not visible to partners
-                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                    // Partner API contract: non-active certs are not visible to partners.
+                    // DEF-358: not-yet-effective certs 404 the same way (GS1 surface).
+                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status)
+                        || CertificateVisibility.IsNotYetEffective(certificate))
                         return NotFoundResponse($"Certificate '{certificateNumber}' not found");
 
                     // DEF-106: scope by partner.

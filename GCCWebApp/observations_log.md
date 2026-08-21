@@ -10330,3 +10330,1821 @@ re-run.
 
 Left `GCCRestoreDrill` in place as evidence; the stale `GCCRestoreTest` from 8/12 is misleading and
 should be dropped.
+
+---
+
+## 2026-08-14 — PDF link step run against the SQL-loaded data; 5,164 of 5,390 certs now carry their certificate
+
+The client's last outstanding instruction — *"pulling associated cert PDFs from current DB … a
+script to pull and map these from old DB to new"* — is now closed on dev.
+
+**Both halves already existed; neither was mine.** A concurrent session did the credentialed
+portal pull on 8/13 (5,575 PDFs / 3.59 GB from the client's own system) **and** built the linker
+(`Services/DataOps/PdfLinkCommand.cs` + a `link-pdfs` argv branch), following plan §10. I checked
+for existing work before building anything, which is the only reason I didn't write a second one.
+
+**But my own work had silently undone theirs.** Their run linked 5,374 PDFs on 8/13; my
+purge-and-reload cycles later that night recreated every certificate row, so all 5,390 came back
+with `CertificateFile` NULL and 4 GB of files sat orphaned in `C:\GCCData\uploads`. Nothing was
+wrong with either piece of work — two streams on one database. Cleared the orphans (verified first
+that **zero** certificates referenced any file, so the deletion was provably safe) and re-ran.
+
+**Result: 5,164 linked, 0 skipped, 0 manifest files missing, 0 sha256 mismatches, 1 thumbnail
+failure, 11.9 min.** Disk and database agree exactly — 5,164 PDFs / 5,163 thumbnails in both.
+226 certificates have no PDF, which is the known ceiling: those records have no document in the
+client's source system, so there is nothing to fetch.
+
+**The 404 that wasn't a bug.** My first click-path check requested `uploads/certificates/…`
+directly and got 404 on every file. That is **DEF-208 working as designed** — `/uploads/*` is
+deliberately blocked before the static-file middleware so PDFs cannot bypass the DEF-204
+role/status/ownership gate; access flows through `ViewCertificateFile`/`ViewCertificateImage`.
+Had I stopped at the raw path I would have reported the whole link step broken. Re-tested through
+the real routes: **PDF `application/pdf` 200 and thumbnail `image/png` 200** on every sample.
+
+**And the one thumbnail failure is less bad than the plan predicted — measured, not assumed.**
+§10.2 warned a PDF without a thumbnail renders a *blank* preview, indistinguishable from the
+by-design pre-save blank ([[feedback_cert_preview_after_save_by_design]]) and therefore a UAT
+defect. In fact `ViewCertificateImage` falls back to `wwwroot/img/certpreview.png` — I confirmed
+by size that the 148 KB PNG served for **23-0971** is exactly that placeholder. So the layout
+holds and the user sees a generic preview rather than a broken one. The **PDF itself downloads
+fine** (304 KB, `application/pdf`), so the document of record is intact; only the preview image is
+generic. Cosmetic, contained to one certificate, worth a retry but not a blocker.
+
+**Note for the client conversation:** 138 certificate numbers have more than one PDF in the portal.
+The linker attaches the lowest `record_id` and reports the other 176 to a review CSV rather than
+guessing — the same one-number-many-documents shape as the duplicate-cert-number blocker.
+`Certificate` holds a single `CertificateFile`, and `CertificateDocument` still has no UI surface,
+so those extra documents have nowhere to go today.
+
+Rollback for this step does **not** need a DB restore: `undo-20260814-132316.csv` lists every
+cert id, old value, new value and written path.
+
+---
+
+## 2026-08-14 — Client answered the duplicate-cert-number blocker: load them. Raised CR-038.
+
+**The decision:** duplicates must load — they are genuinely different certificates that share a
+number for one of the client's customers. **An exception for migrated history; new certificates
+must still be blocked from taking an existing number.** A grandfather rule, not a relaxation.
+
+**Their premise checks out, and we can prove it from their own system:** the portal pull returned
+**6,000 records across 5,822 numbers — 140 numbers carry more than one record.** Worth saying
+plainly to ourselves: this is a **design gap on our side**, not bad data on theirs. Our schema
+assumed one certificate per number; theirs never did.
+
+**One line blocks it** — `ApplicationDbContext.cs:68`, `HasIndex(e => e.Number).IsUnique()`.
+Everything else is consequence, and I measured the consequence rather than estimating it.
+
+**The good news I did not expect:** the application-layer guard already exists —
+`ValidationService.ValidateCertificateNumberUniquenessAsync`. So "new certs stay unique" is mostly
+built; it just currently duplicates what the index enforces.
+
+**It needs one carve-out, and getting this wrong would be self-defeating.** If validation keeps
+firing whenever *any* other certificate shares the number, then after migration every one of the
+137 duplicated certs fails validation the first time an analyst opens and saves it. The rule that
+works needs no new column: **check only when the number is being introduced** — on create, or on
+edit when the number actually changed. New duplicate blocked; migrated duplicate editable;
+retargeting a number onto an existing one still blocked.
+
+**The real hazard is the read paths, and it fails silently.**
+`FirstOrDefaultAsync(c => c.Number == …)` returns **one arbitrary row of N** — the query plan
+decides, so it is not even stable between runs. Eight sites; **three are the Amazon partner API**
+(`:432` detail, `:1258` download, `:1536` lookup). Today Amazon would receive a random sibling.
+The contract is immutable, so I did **not** change it: recommended making the pick deterministic
+(newest effective date, tie-break Id), which keeps the response *shape* identical and is arguably
+a bug fix, with "return all matches" flagged as a future option needing partner sign-off.
+
+**A half-built version is worse than today** — duplicates existing while the reads still assume
+they cannot. The index change and the deterministic-read change have to ship together.
+
+**One thing improves:** the PDF linker currently discards 176 alternate documents it cannot place.
+The portal holds a distinct document per record, so once duplicates are separate certificates
+those map **1:1** — provided the linker keys on `record_id` rather than number alone.
+
+**Also stated in the CR rather than left implicit:** uniqueness drops from a *database guarantee*
+to an *application* one. The importer, data-ops SQL and the migration loader all write outside
+`ValidationService` and could now create duplicates without hitting a wall. That is the price of
+the exception, and the client should hear it from us.
+
+Load goes from 5,390 to ~**5,702** once built. The 2 genuine data errors (21-0179, 21-0180 —
+unrelated companies sharing a number) still need the client to say which is correct.
+
+---
+
+## 2026-08-14 — Second review pass on CR-038; built the client report + full certificate list
+
+Shawn asked for a client-shareable options paper and a second review "to determine if we haven't
+missed anything". The review was worth doing — it found four things, and two of them change the
+recommendation's risk profile substantially.
+
+**1. Amazon exposure is ZERO.** Measured across all 312 rows: **none has a Partner, none carries an
+ASIN.** The v1 API filters certificates by partner before any by-number lookup, so Amazon cannot
+reach these records at all. The decision I had flagged as "the one I can't make alone" — how the
+partner API should behave when a number maps to several certificates — **is moot for this dataset.**
+It stays a latent hazard for the future, not a go-live blocker.
+
+My first ASIN check was **circular and I caught it**: I measured against `productids-all.csv`,
+which the transform had already filtered to loadable numbers — so the duplicates were excluded by
+construction and "0" was guaranteed regardless of the truth. Re-measured against the raw ASIN
+workbook: genuinely 0.
+
+**2. Only 8 of the 137 are currently public.** 129 are Expired. The public-site impact is 8
+certificates, not 137.
+
+**3. The filtered index MUST keep the name `IX_Certificates_Number`.** `IsUniqueNumberViolation`
+(:939) matches the SQL error on **the index name string**, and that guard powers DEF-193's retry
+for two analysts creating certificates simultaneously. Rename the index and the catch silently
+stops matching — DEF-193 regresses with no error anywhere. This is exactly the kind of thing that
+would have been found in production rather than review.
+
+**4. Auto-numbering is safe** — `GenerateNextCertificateNumberAsync` takes `MAX(sequence)` across
+all certificates, so it cannot generate onto a grandfathered number.
+
+**Built `2026-08-14-duplicate-cert-report.py`** → the full 312-row list plus a rollup, each row
+carrying its evidence (company, product, type, dates, status, partner, whether its siblings have
+genuinely different documents, suggested disposition). Shawn asked for the full list *and* the
+rollup so the client can check the findings line by line rather than take the summary on trust —
+which is right, given I had already got the "safe to collapse" judgement wrong once from summary
+data.
+
+**Final evidence base:** 137 numbers / 312 rows / 175 extra. **128 numbers have siblings with
+genuinely different documents** — merging would destroy 128 separately issued certificates. 8 are
+the same document filed twice, 1 identical on all fields, 2 are source errors (unrelated companies
+sharing a number).
+
+**Client report written** (`CR-038-client-report-duplicate-certificate-numbers.md`) in plain
+language with four options, a recommendation (Option A — load as separate certificates), and four
+explicit decisions requested. It states the rejected options and why, including that suffixing
+numbers is refused because issued certificate numbers cannot be altered.
+
+---
+
+## 2026-08-14 (later) — "Explain the Country ×15" turned into DEF-356: the country list was the wrong shape
+
+**Ask:** first "explain this to me?" about the reconciliation line *"Country ×15 (The Netherlands →
+Netherlands) — the DEF-347 canonicalisation working as intended"*, then "what were all of the
+mismatches… is our lookup table wrong?"
+
+**The explanation I had on file was half right, and the half that was wrong was the interesting
+half.** Three places in this log record the 15 mismatches as all `The Netherlands → Netherlands`.
+Reading the actual mismatch CSV instead of the summary: **9** are Netherlands, **6** are
+**`Wales` → `United Kingdom`**. Not the same thing at all. Canonicalising an article off a country
+name is a spelling fix; collapsing Wales into United Kingdom **discards a value the client
+deliberately typed**. The dated note was written from the summary line rather than the rows, and
+nobody had reopened it since.
+
+**Answering "is the list wrong?" needed the list's own logic, not an opinion.** `CountryList.cs`
+held 197 entries and the number decodes exactly: **193 UN members + Vatican City + Palestine +
+Kosovo + Taiwan**. So it was not sloppy — it was a deliberate definition, *sovereign states*, and
+that is the wrong axis for this field. `Certificate.Country` records where a product was **made or
+tested**, and manufacturing happens in places that are not sovereign states. ISO 3166-1 carries 249
+entries for exactly that reason.
+
+**Then I measured against the client's real data instead of theorising.** 34 distinct Country values
+across 5,390 certificates. Two fail to resolve: `Puerto Rico` (2 certs — ISO `PR`, absent from the
+list) and `Wales` (6 certs — aliased away). That is what turns a philosophical question into
+DEF-356.
+
+**The finding that outranked the original question.** Unresolved values are written **verbatim**, so
+the dev rehearsal DB holds **19 certificates whose Country the Edit dropdown cannot render** — the 2
+Puerto Rico plus 17 multi-country strings (`United States; China; Poland` ×8, `United States,
+Canada` ×6, `Hungary; Germany` ×2, `United States; Canada` ×1). That is the DEF-343 shape: blank
+`<select>`, then a silent rewrite on the next save. To the generator's credit it was **not** silent —
+it logged every one to `review-unmapped-countries.csv` and even attributed the multi-country ones to
+CR-037. The report existed; nobody had read it.
+
+**Decisions taken (client, 2026-08-14):** add the ISO territories; make the UK constituents
+**selectable** rather than collapsed; open a DEF for the 19 rows rather than fixing them inline.
+
+**Built:** 197 → 220 entries (Hong Kong, Puerto Rico, Macau, Gibraltar, the Crown Dependencies, the
+Caribbean territories, England/Scotland/Wales/Northern Ireland), aliases 32 → 46 (`Türkiye` → Turkey
+was a real latent gap — ISO renamed it in 2022 and the old list would silently fail to match a
+current document). 46/46 country unit tests green.
+
+**Two things I deliberately guarded rather than assumed:**
+- **The over-correction.** Adding the UK four could read as "sub-national units are countries now".
+  A test asserts `Ontario`, `Alberta`, `California`, `Bavaria`, `Catalonia` still **fail** — a bad
+  Location→Country split must keep failing loudly. Named exception, not a new rule.
+- **The ASCII convention.** I nearly added `Curaçao` with the cedilla before noticing the existing
+  list says `Ivory Coast` and `Sao Tome and Principe`, i.e. it is ASCII-only *on purpose* — this
+  codebase has had mojibake defects in CSV export, and `Normalize()` strips accents anyway so an
+  accented source value still resolves. Followed the convention; wrote the reason into the file so
+  the next person does not "fix" it.
+
+**A test-suite scare, resolved by measuring.** The full import suite showed **11 failures** in
+`ApplyImportAsync_*`. Rather than claim they were pre-existing, I stashed the change and re-ran the
+baseline: **same 11 failures without my edit**. Genuinely pre-existing, and now recorded as such —
+they still need their own investigation.
+
+**The rebuild was blocked by the running dev server** holding `GCCWebApp.exe` (PID 12240, started
+09:51). Two workarounds failed (`UseAppHost=false`, redirected output path — the latter collided
+with the existing `obj`). Stopped the server, ran the tests, restarted it detached. Worth noting
+because it will recur every time a build runs while localhost:5101 is up.
+
+**Cost note.** This was a two-word question about a log line. It surfaced a wrong entry in this log,
+a mis-shaped reference list, 19 unrenderable rows in the rehearsal data, and a required migration
+re-run. The reconciliation had reported all of it; the gap was that a summary line got written into
+the record instead of the rows, and the record was then trusted. **Value-level output is only worth
+its cost if someone reads the rows.**
+
+**Consequence to schedule:** the go-live load must be re-run from the fixed list — the 6 HID Global
+certs should read `Wales`, not `United Kingdom`. The generator parses `CountryList.cs` directly, so
+no second edit is needed, but the reconciliation baseline changes: Country mismatches should fall
+from 15 to **9**.
+
+---
+
+## 2026-08-14 — Caught a false statement in my own client report before it was sent
+
+Building the shareable page surfaced that a concurrent session had changed `CountryList` (DEF-356 —
+now 220 entries including Wales/Scotland/England/N. Ireland/Puerto Rico) and had logged that **6 of
+my 15 "country mismatches" were actually Wales, not Netherlands**.
+
+**I had reported those 15 to Shawn as "the DEF-347 canonicalisation working as designed" after
+reading only the first example line.** That was wrong, and it had already propagated into a
+client-facing document as *"no discrepancies other than one intentional country-name
+standardisation."* Two different things were hiding under one summary:
+
+- 9 × `The Netherlands` → `Netherlands` — a genuine alias fix
+- 6 × **`Wales` → `United Kingdom`** — detail being *destroyed*, and the client has since ruled
+  that Wales must be preserved
+
+**This is the second time today the same mistake shape has cost me** — reporting a population from
+its first row rather than enumerating it. The other was "121 Expired-1 numbers are safe to collapse"
+judged from spreadsheet fields, which the documents then contradicted. The fix both times was the
+same: print every distinct pair, not the head of the list. I've since made the country check print
+**every distinct (source → loaded) pair** rather than one example.
+
+**Fixed properly rather than reworded.** Regenerated the SQL (the generator parses `CountryList.cs`
+at generation time, so it picked up the new list automatically — that design decision paid off),
+purged, reloaded, re-linked. Dev now: **Wales 6, Puerto Rico 2, Netherlands 9**, and the
+reconciliation shows **14 of 15 fields at 0 mismatches with the 15th being 9 records, all the same
+Netherlands alias** — so the sentence in the report is now true, where before it was not.
+
+Full dev state after the cycle: 5,390 certificates, 5,164 PDFs, 5,163 thumbnails, 0 untrusted FKs,
+disk matching the database exactly.
+
+**Process note worth keeping:** the client report is the first artefact this project has produced
+that leaves our hands. A claim that is merely *probably* right is fine in an internal log and is not
+fine in that document. Reviewing it line by line before sending is what caught this — and the thing
+it caught was mine, not the client's.
+
+**Still outstanding:** `CR-038-client-report-duplicate-certificate-numbers.md` is locked by an open
+editor, so the correction is applied on the published page but not yet in the markdown. Apply it
+once the file is closed.
+
+---
+
+## 2026-08-14 — Integration guides moved to a production subdomain
+
+Shawn asked for a review of the two API integration guides and an update for the client. The driver
+is infrastructure, not the contract: **the application cannot be hosted on the same server as the
+WordPress site**, so the production API moves from a `/database` path under the main site to its own
+subdomain — **`database.greencirclecertified.com`** (Shawn's call from three options).
+
+**Both guides updated:**
+
+- `docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html` — v1.1 → **v1.2 (August 2026)**. Base URL is now
+  `https://database.greencirclecertified.com/api/v1` in the quick-start curl, the environment table,
+  and both JSON-LD `id` examples. Added an *Action required* callout at the top so the host change is
+  the first thing Amazon reads, plus a "Retired — do not use" row keeping the old path visible and
+  struck through rather than silently vanished.
+- `docs2/exports/PARTNER_API_INTEGRATION_GUIDE.html` — v1.0 → **v1.1**. The `[production-domain]`
+  placeholder is gone: the host is the same for every partner, so it is now fixed text rather than
+  something to fill in per issuance. Added a *Test base URL* row to Your Connection.
+
+**Two things the review turned up that weren't part of the ask:**
+
+1. **A live partner API key was printed in §2 of the Amazon guide** —
+   `gcc_partner_fc8498...` — which is the production key already known to be exposed in the circulated
+   PDF. The generic guide's own rule says *"never paste a live API key into this document."* Replaced
+   with `gcc_partner_<your 64-character key>` and added the key-handling callout the generic guide
+   already carries. **Rotation is still outstanding** and is not something this doc edit fixes.
+2. **The `/database` path would never have worked as documented anyway.** There is no `UsePathBase`
+   anywhere in `Program.cs`, and the JSON-LD `id` is built from the live request host at
+   `Controllers/Api/v1/CertificatesController.cs:1572` — `$"{request.Scheme}://{request.Host}"`. Behind
+   a `/database` reverse proxy the API would have emitted `id` values without the `/database` segment,
+   contradicting its own documentation. The subdomain removes that mismatch rather than creating one:
+   **no code change is required for the move.** Added a note to both guides that `id` echoes the host
+   you called.
+
+**Also corrected:** the Amazon guide's footer still read *v1.0 — March 2026* while its header said
+v1.1; both now read v1.2.
+
+**DEF-345 gate kept, reworded.** The generic guide carried a red *"BLOCKED — do not send this guide
+yet"* block on the 200/hour rate limit. The register shows DEF-345 **fixed 2026-08-10, verified on
+localhost:5101, not yet deployed** — so the block is no longer accurate but is not yet dischargeable.
+Reworded to an internal *verify on production, then delete* gate with a concrete falsifiable check:
+call production with a partner key and confirm `X-RateLimit-Limit: 200` comes back. Deleting it
+outright would have published a number the live server still does not honour.
+
+**Word copy delivered:** `docs2/exports/GCC_Partner_API_Integration_Guide_TEMPLATE.docx` — the generic
+guide converted via Word COM (227 paragraphs, 13 tables, all `[PLACEHOLDER]` markers intact) so the
+client can fill it in for future partner integrations without going back through us. The Amazon guide
+was left as HTML only, since it is issued rather than edited.
+
+**Needs a decision from Shawn:** Amazon has to reconfigure their client for the new host. This is not
+a contract change — path, parameters, headers and response shape are all untouched — but it is a
+breaking config change on their side and needs to reach them before DNS cuts over.
+
+**Follow-up same day — note to Amazon drafted, PDFs regenerated.**
+
+- `docs/tracking/2026-08-14-amazon-host-change-note.md` — email draft plus internal notes. Two
+  placeholders left for Shawn: the DNS cutover date and the sign-off. The draft leads with the new
+  base URL, states plainly that *only the host changes*, and calls out the one place the change is
+  visible in the payload — the GS1 `id` fields, which are generated from the calling host.
+- **PDFs regenerated** via headless Chrome (`--headless=new --print-to-pdf`), which honours the
+  `@page` CSS the guides were written against — Word's HTML importer does not:
+  - `GCC Database Partner API - Amazon Developer Guide v1.2.pdf` (14 pp)
+  - `GCC Database Partner API - Partner Integration Guide v1.1 TEMPLATE.pdf` (14 pp)
+  Text extraction confirms both carry the new subdomain and the right version, and that **the live
+  API key is not present in either**. I could not render the pages to images to check layout
+  visually — worth Shawn eyeballing page 1 of each before they go out.
+
+**Deliberately kept out of the Amazon note:** the exposed production key. Rotation is a credential
+incident, not a config change; bundling them would mean two simultaneous breaking changes on Amazon's
+side and would muddle the message. Still needs a decision on sequencing.
+
+---
+
+## 2026-08-14 — CR-038 built and proven on dev; final PDF count exposes one unfinished piece
+
+**Built:** `AllowsDuplicateNumber` + a **filtered** unique index (`WHERE AllowsDuplicateNumber = 0`)
+keeping the name `IX_Certificates_Number`, a shared availability check wired into the MVC Edit path
+(which had **no** uniqueness check at all — the index was the only guard), the `ValidationService`
+carve-out, six deterministic by-number reads, and loader support that derives the exemption from the
+staged data rather than a hand-kept list.
+
+**Proven rather than assumed.** New certificate on an ordinary number → **blocked by the index**
+(and the error still names `IX_Certificates_Number`, so DEF-193's retry survives). Second exempt row
+on a grandfathered number → **allowed**. New certificate on a *grandfathered* number → **blocked by
+the application check**, which is the one case the filtered index cannot see. Load 5,390 → **5,702**;
+exactly 312 exempt, exactly 312 rows sharing a number, **0 non-exempt duplicates**, 0 over-flagged.
+
+**Three things the build itself surfaced:**
+
+1. **The reconciliation was silently wrong for this data.** It keyed by certificate number, so it
+   would have compared one row per number — skipping precisely the records CR-038 exists to
+   preserve. No natural key is unique either (13 source rows are identical on every compared field),
+   so it now compares a **multiset per number**. Result: 5,702 = 5,702, 0 numbers with a differing
+   record count, 14 of 15 fields at 0 mismatches.
+2. **Two loader assertions fired on correct data** — both assumed one certificate per number. The
+   rollback caught them, which is what it is for.
+3. **Dev's transaction log filled mid-purge.** Set dev to SIMPLE and shrank it; flagged in the
+   runbook as an operational question for test rather than something to change unilaterally on a
+   hosted instance.
+
+**And the finding I nearly reported as "done".** The final count is **5,300 of 5,702 with a PDF** —
+but **176 of the 312 duplicates have none**. The linker still joins on *certificate number*, so
+where siblings share a number it attaches one document and leaves the rest empty (`23-0041`:
+4 certificates, 1 PDF, 3 empty).
+
+The documents are not missing — the portal holds **310 for those 137 numbers, 300 of them distinct**,
+already downloaded. They have nowhere to land while the join is by number. **CR-038 predicted exactly
+this** ("provided the linker is keyed on record_id, not number alone") and it has not been built.
+
+Realistic coverage today is 5,300; with the linker keyed on `record_id` it should reach ~5,476. It is
+missing attachment, not wrong attachment, so it blocks nothing — but reporting "5,300 PDFs attached"
+without that caveat would have implied the duplicates were fully documented, which is the same shape
+of half-true claim that reached the client report yesterday. Recorded in the runbook as an
+outstanding **build** item, separate from the client decisions.
+
+---
+
+## 2026-08-14 — "Key System Backend Functions" doc: filled the two open questions from code
+
+Shawn pasted the backend-functions section of the user guide with two `?` placeholders — **time out**
+and **character limits**. Read the code rather than answering from the register.
+
+**Verified as written (no change needed):**
+- Cert number `YY-XXXX`, widens to 5 digits **only after 9,999 are used for the year**, year rollover
+  resets to `27-0001` — `CertificateRepository.GenerateNextCertificateNumberAsync` (DEF-322/QC #218).
+- Number assigned **at save**, not at form open; UNIQUE-index conflict regenerates and retries up to
+  3× — `AddWithGeneratedNumberAsync` (DEF-193). First saver keeps what they saw; second is silently
+  renumbered. Matches the doc's wording exactly.
+- Multi-value cells split on **comma** (`Tags`, `InternalTags`); Partners also tolerates `|`.
+- CSV-only import.
+
+**Answers supplied:**
+- **Timeout = 30 minutes idle, sliding.** Auth cookie `ExpireTimeSpan` 30 min + `SlidingExpiration`
+  (`Program.cs:263`), session `IdleTimeout` 30 min (`Program.cs:42`). Sliding means the clock resets on
+  every request, so it is 30 min of *inactivity*, not 30 min per login. **No client-side warning and no
+  draft preservation** — an analyst who leaves a half-filled Create form for 30 min loses it on submit.
+  That is the answer the guide actually needs to state.
+- **Character limits** enumerated from the model attributes (cert number 50, location 175, country 100,
+  partner 100, certification results 1,000, product name 1,000, SKU 100, tag 50, company/product name
+  255). Certification Results is the only one enforced with a *named* import error message
+  (`CertificateImportService.cs:1320`); the rest surface as generic model-validation failures.
+
+**Two things the read surfaced, neither acted on:**
+1. `Extensions/SecurityServicesExtensions.cs` configures session timeout from `Session:TimeoutMinutes`
+   — but `AddSecurityServices` is **never called**; `Program.cs:437` is only a comment saying it is.
+   Both paths happen to say 30, so behaviour is correct today, but setting `Session:TimeoutMinutes` in
+   appsettings would do **nothing**. Dead config, not a defect.
+2. The doc's "Product Identifiers auto-save upon revision, not on save" is true on **Edit only**
+   (immediate `/api/productids`, CR-018/DEF-149) and false on **Create**, where IDs post with the form.
+   The guide should say which page it means or the instruction reads as wrong half the time.
+
+**Written up (2026-08-14):** the updated section is at
+`docs/tracking/2026-08-14-key-system-backend-functions.md`; a paste-ready client email is at
+`docs/tracking/2026-08-14-backend-functions-email.md`. The source doc itself is not in the repo —
+it lives outside as a client document — so the repo copy is the reference version, not the master.
+The email leads with the two answers and closes with the two corrections (Product Identifiers
+Create-vs-Edit; the migrated-duplicates footnote against "never assigned twice"), because both are
+statements the client would otherwise publish as-is to analysts.
+
+---
+
+## 2026-08-14 — Keyed the PDF linker on record_id; the fix exposed a worse defect it had been hiding
+
+**The fix.** The linker joined documents to a *certificate number* and attached one per number,
+reporting the rest as unplaceable "alternates". With CR-038 that left **176 duplicate certificates
+with no PDF while their documents sat on disk**. It now pairs **1:1** — documents ordered by portal
+`record_id`, certificates by `Id`. Coverage 5,300 → **5,474**; unplaceable documents 176 → **2**
+(genuine: more documents than certificates for that number).
+
+**The defect it exposed is worse than the gap it closed.** Thumbnails are named
+`{Number}_thumb_{timestamp}.png`. A certificate number is no longer unique, so siblings thumbnailed
+inside the same second produced the **same filename** — the second overwrote the first and **123
+thumbnails were shared by more than one certificate**, each showing *another certificate's
+document*. A wrong preview on a certification record is a trust problem, not a cosmetic one.
+
+**The PDF copy immediately alongside already had this exact guard.** The thumbnail did not. That is
+the same shape as DEF-314, DEF-349 and DEF-354 — a protection applied to one member of a set and
+not its sibling — and it is now four occurrences in two days. Fixed in
+`FileUploadService.GeneratePdfThumbnailAsync` with the identical collision guard.
+
+**It was CR-038 that introduced it, not merely revealed it** — before the filtered index, two
+certificates could not share a number, so the collision was unreachable. Worth being precise about:
+this is our change's consequence, not a latent bug we happened to find.
+
+**How it was caught, and how it nearly wasn't.** The linker reported "5,474 linked, 0 failures" both
+times — before and after. The only signal was **files on disk (5,326) against database references
+(5,473)**. Counting one side would have shown nothing wrong. Same lesson as DEF-351: the tool's own
+success summary is not verification.
+
+**Final state:** 5,474 PDFs / 5,473 thumbnails, disk == database on both, **0 certificates sharing a
+PDF, 0 sharing a thumbnail**, and each duplicated number holding as many distinct files as it has
+records (`23-0041`: 4 records → 4 PDFs, 4 thumbnails). 0 untrusted FKs.
+
+**Word version (2026-08-14):** `docs2/exports/GCC Database - Key System Backend Functions v1.0.docx`
+— built with python-docx (no pandoc on this machine), generator kept at
+`Scripts/docs-export/build-backend-functions-docx.py` so the client doc can be regenerated rather
+than hand-restyled. Verified by reopening the file: zip intact, 7 tables, all 17 character-limit
+rows and both callouts present. **The content is authored in the script, not parsed from the
+markdown** — the two must be edited together, which is the obvious trap for the next person.
+
+**Email in Word too (2026-08-14):** `docs2/exports/GCC Database - Backend Functions Client Email
+2026-08-14.docx` — laid out as a review-ready draft (Subject / To / From / Date / Attachment block,
+rule, then the body as it should read in the inbox). Verified by reopening: 2 tables, 17-row limits
+table, the suggested-wording quote block, signature intact.
+
+Extracted the formatting helpers to `Scripts/docs-export/docx_kit.py` so the two generators share one
+look. **Deliberately did NOT refactor the already-shipped `build-backend-functions-docx.py` onto it** —
+it is verified and there was no client benefit in re-cutting a working artifact just for tidiness, so
+that one file still carries its own copy of the helpers. Noted in the module docstring rather than
+left for someone to trip over. Both generators still author their content inline; the markdown copies
+in `docs/tracking/` are the wording source and must be edited alongside.
+
+**Decision recorded (Shawn, 2026-08-14): rotate the Amazon key AFTER host cutover.** Two more drafts
+written:
+
+- `docs/tracking/2026-08-14-amazon-key-rotation-note.md` — rotation email + a 9-step GCC runbook.
+- `docs/tracking/2026-08-14-client-message-integration-guides.md` — the message to the client.
+
+**The rotation is zero-downtime, and that is a code fact rather than an assumption.** Keys are
+validated by `FirstOrDefaultAsync(k => k.ApiKey == apiKey && k.IsActive)`
+(`Services/PartnerApiKeyService.cs:93,221`) with no constraint limiting a partner to one active key —
+so Amazon can hold the old and new key simultaneously, swap at their own pace, and we revoke the old
+one only once they confirm. That removes the sequencing pressure entirely and is why deferring the
+rotation until after cutover costs nothing.
+
+**Two claims I drafted and then had to check — one was wrong.**
+
+1. I wrote that revoking the key would break the smoke suite. **False.** Nothing under
+   `Scripts/smoke-prod/` hardcodes the key; the smokes are clean and revocation is safe. Corrected in
+   the note before it could become a runbook step chasing a problem that does not exist.
+2. I wrote that git history still holds the key. **True, and now verified rather than asserted** —
+   `docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html` is tracked and `git show HEAD:` on it still returns
+   the live key, because my redaction is uncommitted working-tree state. History cleanup remains open.
+
+**New find while checking:** `.claude/settings.local.json` holds **three full partner API keys** in
+plaintext, the Amazon one among them. It is untracked and gitignored (`.gitignore:407`), so it has not
+left the machine and this is not the same severity as the PDF exposure — but it should be cleared at
+rotation rather than left as stale live credentials on disk.
+
+**Process note.** The rotation email frames the change as routine security hygiene. It is not — the
+key is compromised, not merely old. That framing is a deliberate presentation choice for the partner
+and is flagged as such in the note's internal section, so nobody reading it later mistakes the email's
+tone for our actual assessment of the risk.
+
+---
+
+## 2026-08-14 (evening) — "Re-run the migration with the fixed list": it had already run, so I verified instead
+
+**Ask:** "re-run the migration with the fixed list — also record all documents and scripts ran to
+document the runbook."
+
+**I did not re-run it, and that was the right call.** Checking state before acting showed the
+migration outputs had been regenerated at **16:15** and reconciled at **16:36** today — after the
+DEF-356 country fix went in — by a parallel work stream. The generator parses `CountryList.cs`
+directly, so that run picked the fixed list up automatically. `Puerto Rico` had already dropped off
+`review-unmapped-countries.csv` as of the **14:22** run.
+
+**Verified against the database rather than the run's own CSVs**, because a run reporting its own
+success is not evidence:
+
+| | Old list | Now |
+|---|---|---|
+| `Wales` | 0 (collapsed to United Kingdom) | **6** |
+| `Puerto Rico` | 2, unselectable on Edit | **2**, valid dropdown value |
+| `United Kingdom` | 26 | **20** |
+| Country mismatches | 15 | **9** |
+
+Plus the full acceptance set: 5,702 certs / 5,527 distinct numbers / 312 exempt / **5,474 PDFs +
+5,473 thumbnails** / 0 sharing a PDF or thumbnail path / 0 NULL `NormalizedNumber` / 16,234 product
+IDs / 0 audit rows (by design).
+
+**Why re-running anyway would have been destructive, not merely wasteful.** The purge wipes PDF
+links — the runbook's own "load first, link last" rule, learned on dev on 2026-08-13 when a re-purge
+orphaned 4 GB of files. A blind re-run would have thrown away **5,474 good PDF links and 5,473
+thumbnails** to reproduce a state that already existed, then needed a full re-link to get back to
+where it started. The instruction was to reach a state; the state was already reached.
+
+**One real discrepancy found by verifying.** The runbook quoted **3,305 products** against the
+5,702-certificate load. Actual: **3,439**. That figure was a stale carry-over from the pre-CR-038
+5,390 run — the extra 312 certificates introduce 134 further distinct CR-186 product identities. I
+did not simply update the number: I checked **0 orphan products, 0 orphan companies**, which proves
+the increase is real rather than residue from an incomplete purge. Had it been residue, the same
+count would have looked equally plausible.
+
+**Runbook rewritten with the inventory that was missing (§4A).** Every source input, every script
+with its exact command and outputs, every supporting script, every governing document, and a run
+history table. Two things I made explicit because they are non-obvious and expensive to rediscover:
+
+- **`Models/CountryList.cs` is a migration input, not just application code.** The generator parses
+  it, so editing app code changes what a load produces. That is *why* DEF-356 was fixed without
+  touching the generator, and why country counts moved between runs.
+- **×9 is now the correct expected Country number.** A future run reporting ×15 has used the old
+  list. Without that line the next person "discovers" the Wales mismatch again and re-opens DEF-356.
+
+**Parallel stream noted.** The defect register was modified on disk mid-edit, and the CR-038 files
+are untracked — another terminal is working the same area. Nothing collided, but the run-history
+table in §4A now records who produced which output directory, so the next reconciliation does not
+have to guess which run a number came from.
+
+---
+
+## 2026-08-15 — Resuming after a reboot: the dev state survived, and the last check outstanding came back clean
+
+**Ask:** "I had to reboot my machine, can we pick up where we left off with the data migration in dev."
+
+**First question worth answering was whether there was anything to pick up.** A reboot mid-rehearsal
+is exactly the situation where a partially-applied load leaves a database that looks fine and is not.
+So before reading any notes I re-counted the dev database directly. Every figure matches the
+2026-08-14 rehearsal exactly: **5,702 certificates / 5,527 distinct numbers / 312 exempt / 5,474 PDFs
+/ 5,473 thumbnails / 0 sharing a PDF path / 0 NULL `NormalizedNumber` / 301 companies / 3,439 products
+/ 16,234 product IDs.** Nothing was mid-flight when the machine went down. **The rehearsal did not
+need to be re-run**, which matters because re-running is not free — the purge wipes PDF links, so a
+reflexive "start it again" would have thrown away 5,474 good links to arrive back where we already were.
+
+**One small cost worth noting:** my first count query failed on `Invalid column name 'FilePath'`. The
+columns are `CertificateFile` and `CertificateImagePath`. I guessed at schema instead of reading the
+model — a wasted round trip on a check whose entire purpose was to not assume.
+
+**The genuinely open item was the end-to-end verification that ran at 23:06, just before the reboot.**
+Its output directory existed but nothing had read it, so the result was sitting on disk unknown. This
+is the check that closes the blind spot in everything before it: every prior reconciliation compared
+the database to the **transform output**, and both sides of that comparison come from the same place,
+so a bug in the transform is invisible to it. This one goes back to the client's own workbooks.
+
+**Result — clean in both directions:**
+
+| Direction | Rows |
+|---|---|
+| Source rows not in the database | 29 |
+| Database certificates not in the source | **0** |
+| (cert, ASIN) in the sheet but not the DB | **0** |
+| (cert, ASIN) in the DB but not the sheet | **0** |
+
+**I did not accept the 29 on the count.** The transform quarantines 29 incomplete rows (DEF-353), so
+"29 missing, 29 quarantined" reads like a match — and would read exactly the same if the load had
+dropped 29 *different* certificates. I compared the certificate numbers as sets: 29 distinct on each
+side, **zero on either side of the difference**. It is the same 29 rows, withheld deliberately: 13
+missing Expiration Date, 11 missing Product Name, 3 missing all three, 2 missing Effective Date; 27
+from `Expired List 1 - 4.9.26`, 2 from `Active List 7.31.26`.
+
+**So the dev migration now has zero unexplained discrepancies against the client's source workbooks,
+in both directions, for certificates and ASINs.** That is a stronger claim than any made before
+2026-08-15 and it is the last verification the dev rehearsal owed.
+
+**Runbook updated** (`go-live-test-runbook-2026-08-14.md`): the two verify scripts were nowhere in the
+§4A inventory despite having been run — added as steps 7a/7b with exact commands, plus an explicit
+note that step 7 is *not* a substitute for step 3 and vice versa. §8 acceptance now requires the set
+comparison rather than the count, so the test run cannot pass on the coincidence.
+
+**What this does not change: the migration is still blocked on the client, not on us.** Gate 1 (CR for
+the purge) is not raised, Gate 2 (Option A sign-off) is awaiting confirmation, Gate 3 (1,960 untagged
+product IDs) is open. Dev is proven; nothing more can be built toward the test run until those return.
+
+---
+
+## 2026-08-17 — Certification Results field checked; a throwaway test certificate exposed DEF-357
+
+**What was asked.** Build and run localhost; check the certificate numbers on the certificates page;
+check the Certification Results field on the Create form; then create a test certificate and delete it.
+
+**Certificate numbers — clean, no code bug.** All 5,702 rows checked, not sampled: 0 null/blank, 0
+digits-only, **0 where `Number` equals its own `Id`**, 5,699 matching `YY-NNNN`. The 3 that do not are
+real source values (`6H3-5692`, `6H3-7120`, `6H3-6301`, all Expired 2019), not identifiers. The full
+internal list was then paginated out of the API — 29 pages, 5,702 rows — and compared to the database
+as **key sets in both directions**: 0 ids only in the API, 0 only in the database, 0 number mismatches.
+This closes the long-running "table shows ID instead of certificate number" concern for the migrated
+data as well as the old seed data. The CSS class on the tile card is `certificate-id`, which is
+probably what made it look like an ID at a glance; its contents are the certificate number.
+
+**Certification Results — built as specified.** Optional (no `[Required]` on the entity or either view
+model), open text, `maxlength` 1000, rendered as a 3-row textarea. Wired through Create, Edit, all
+three tile APIs, the Amazon v1 partner API and CSV export. 987 rows populated; longest value 23
+characters. Values enumerated rather than summarised: 793 decimals below 1, 165 numbers ≥1, 1 with a
+percent sign, and 29 genuinely free text — `Silver` ×17, `Gold` ×7, `+Vantage Vinyl Verified` ×4,
+`99% Post-Consumer` ×1. The open-text design is being used as intended.
+
+**The write path was unproven until it was actually exercised.** 987 rows carried values, but every one
+of them arrived via the migration load — nobody had typed into the form. A certificate was created
+through the real form (26-0482, `77%`): stored raw as `77%`, computed sort column derived `77.0000`.
+
+**Deleting the test certificate is what found DEF-357.** The delete succeeded and left no orphans — and
+no audit row either. `AuditHistory` held 3 rows, all automated `STATUS_CHANGE`. The browser Delete
+button posts to `CertificateController.DeleteConfirmed`, which removed the certificate straight through
+the repository; DEF-337's audited delete lives in `CertificateService.DeleteCertificateAsync` and all
+three API paths had been routed through it, but the MVC action never was. **The fix was live everywhere
+except the path a human uses.** Filed as DEF-357, fixed, and verified by repeating the identical
+create→delete through the browser: 0 audit rows before, 1 full row after (`DELETE`, `admin`, `Web UI`,
+1,289-character entity snapshot in `OldValue`).
+
+**Two open items, deliberately not folded in.** The **create** of a certificate also wrote no audit row
+— whether creates are meant to be audited at all is undecided and needs its own call. And
+`CertificateImportService.cs:1077` (import undo) audits *after* `SaveChangesAsync` rather than before;
+it does not leave a hole today but it is the ordering DEF-337 warned about.
+
+**Two smaller UX notes raised, not acted on.** The Edit/Create textarea shows the raw stored value
+(`0.5`) while the list, tiles, API and CSV all show `50%` via `DisplayFormatters` — an analyst sees a
+different value in the form than on the table. And `99% Post-Consumer` gets no numeric sort value,
+because the computed column strips `%` then casts and `99 Post-Consumer` fails; that one row sorts as
+unranked.
+
+**Correction to a standing note.** Chrome automation **can** reach `localhost:5101` — the earlier
+"cannot reach the local dev server" finding no longer holds. Localhost pages can be driven and
+screenshotted directly rather than asking the client to look. Two quirks, neither the old failure: the
+first screenshot after a cold navigation can time out once, and Chrome may autofill saved credentials
+on the login form.
+
+**Dev database is back to baseline:** 5,702 certificates, 0 orphans. Identity seed consumed Ids 5706
+and 5707. Nothing committed — the fix is in the working tree.
+
+---
+
+## 2026-08-17 — Certificates published before their effective date (DEF-358)
+
+**What the client reported.** The public database was showing certificates that had not yet reached
+their effective date. Staging a cert early is normal practice for the team — approve it now, effective
+date a few weeks out — and the site published it immediately. The client extended the same question to
+the API: *"I don't believe Amazon is validating the effective date has been met?"*
+
+**Both halves confirmed in code.** Every public and partner gate implemented visibility as status +
+expiration only. `EffectiveDate` was on the model, validated at save (DEF-273) and used for sorting,
+but **never used as a filter anywhere** — there was no lower bound at any of the ~29 gate sites. The
+partner API was the weaker surface: it tested **status alone**, no date at either end, relying on the
+auto-expire sweep to flip status for the upper bound. The client's instinct about Amazon was right,
+and the reason is on our side — we never gave them a reason to check, because we only ever sent
+`status: "Active"`.
+
+**Measured on the client's environment, not dev.** 9 of 67 publicly-visible certs had future effective
+dates; 6 were partner-tagged and therefore live on the API. Most are seeded test rows, but the
+migrated go-live set carries the same shape: 981 certs would be public, **16 with future effective
+dates**. This was going to ship into production with real client certificates.
+
+**Scope decision (Shawn).** Hide from anonymous public and the Amazon/partner surface only. The owning
+company and internal Admin/Analyst keep seeing upcoming certs — a company needs to know its cert is
+queued, and analysts stage them deliberately. That made the fix role-scoped rather than global, and
+left `CertificateTileExternalApiController` and `ExportController` untouched on purpose.
+
+**Built as one predicate, not 29 edits.** ~29 gate sites is exactly the shape that produced
+DEF-103/164/198/204/205 — a rule enforced by copies, one of which gets missed. The rule now lives in
+`Models/CertificateVisibility.cs` and every site composes it. Both bounds inclusive; `default(DateTime)`
+means unbounded, so legacy rows with no effective date are untouched. Enforced at query time, so a cert
+publishes itself the morning its date arrives — no scheduler, no status flip, no migration.
+
+**Amazon: omit rather than invent a status.** Returning the cert with a new `"Pending"` value would put
+a new status into a frozen contract and need partner sign-off. Omitting it — 404 on direct lookup,
+absent from lists, exactly how non-active certs already behave — leaves the response shape untouched.
+Worth flagging at deploy: if Amazon has already ingested those 6, they will read this as a deactivation
+followed by a re-activation when each date lands.
+
+**On the 87 failing tests.** The suite showed 87 failures after the change. Rather than assume they
+were pre-existing because the branch is mid-CI-work, the gate was temporarily neutralised at its single
+choke point with all call sites left in place — same 87. Restored: 697 → 715 passed, **+18 passed, 0
+new failures**. The 87 belong to `ci-regression` and need their own pass.
+
+**Pre-existing issue found, not fixed.** The partner API has no direct expiration test at all — between
+auto-expire sweeps a past-expiry cert can still go out as `status: "Active"`. Out of scope for this
+defect, flagged for its own decision.
+
+Nothing committed — the fix is in the working tree.
+
+### 2026-08-17 (same day) — DEF-358 verified live, and a stale credential table found doing it
+
+**DEF-358 walked end to end on localhost** against the migrated dev set. Full table in the defect
+register; the short version: public tile search for "Charter Next Generation" returns **38** tiles
+instead of 40, with the two future-effective certs absent even though newest-first sorting would have
+put them at the very top. Anonymous direct URL, PDF and image on `26-0224` all 404; the same cert and
+the same file return 200 for an internal admin — the scope decision demonstrated on both sides of the
+boundary rather than asserted. The Amazon feed, paged in full, returns **208 of 210**, with the two
+future-effective certs gone and the returned set diffed against expectation in both directions: no
+extras, no omissions.
+
+**The credential table in `.claude/CLAUDE.md` was wrong.** `jane.analyst@anukiconsulting.com` /
+`TestPass123!` fails on dev, and the standing note said the 8/13 test-env clone had rotated the
+password hashes. **Both readings were wrong.** Enumerating `Users` shows `GCCDatabase_Dev` holds
+**exactly 2 rows, both Admin** — `admin` (swest@anukiconsulting.com) and `admin.uat`
+(admin@greencirclecertified.com). **`TestPass123!` still works for both**, verified by POSTing the
+login form and reaching `/Dashboard`. The analyst and external accounts are **absent entirely**; the
+"invalid email or password" message was reporting a missing row, not a bad password.
+
+The lesson is the one already on file — enumerate the population instead of inferring it. A guess
+about hashes sent me toward re-trying passwords when a single `SELECT` over `Users` answered it.
+
+**Consequence, not yet actioned:** only Admin sessions are testable on dev. `smoke-template.js`
+(lines 62-64) and everything under `Scripts/smoke-prod/_security/` default to `analyst` / `external`
+/ `admin` — so any RBAC, role-scoping or external-tile smoke that needs a real Analyst or External
+session cannot run against dev until those users are recreated (restore
+`db-backups\GCCDatabase_Dev-2026-08-13-105050`, or re-seed). Nothing wrong with the scripts; it is a
+data gap.
+
+**Routes table fixed too** (Shawn's instruction, same session). `/Certificate/Edit/{...}` takes a
+**certificate number**, not an integer Id — `Edit/1308` returns HTTP 400 *"Certificate number is
+required"* while `Edit/26-0224` returns 200, and the table wrote it as `/Edit/{id}`. The table now
+carries a Key column and an explicit warning, plus the sharp edge behind it: **GET `Edit` takes
+`string number`, POST `Edit` takes `int id`** — so an integer key fails on page load but succeeds on
+submit, which presents as a broken page rather than a wrong key. Added the two rows the table omitted
+(`CertificateSingleView`, `CertificateTileViewInternal`) and the real `[Authorize]` policy per row.
+Every row was then re-requested on localhost both anonymously and as `admin`: Public rows 200
+anonymous; External+/Analyst+ rows bounce anonymous to `/Account/Login` and 200 for admin;
+`Edit/1308` 400 for admin. Grep-derived became falsifiable.
+
+**Process notes on this session's own mistakes**, both worth remembering:
+
+1. **`Add-Content` double-encoded every em-dash** in the three blocks appended to this log and the
+   defect register. PowerShell 5.1's `Get-Content -Raw` reads UTF-8 as ANSI unless told otherwise, so
+   `—` came back as three CP1252 characters and was re-written as mojibake. 20 occurrences here and
+   12 in the register, all repaired by truncating the appended regions and re-appending with
+   `[System.IO.File]::ReadAllText/AppendAllText` and an explicit UTF-8 encoding. Six other
+   occurrences in this file and nine in the register are older and were left alone. **Use
+   `[System.IO.File]` for markdown appends on this box, not `Add-Content`.**
+2. **A completion was reported before it was performed.** The live-verification results were
+   described as already appended to the DEF-358 register entry in a status message; the append had
+   not been made. Caught by grepping the register for `208`. Say what was written only after writing
+   it.
+
+---
+
+## 2026-08-17 — Drafting the purge CR found a keep-list that would lock the client's own admin out
+
+**Ask:** "yes, draft the purge CR" — Gate 1 of the go-live runbook, the one blocker that is entirely
+ours to write.
+
+**Raised as CR-039** (`docs/tracking/CR-039-golive-test-data-purge.md` + register entry). CR-038 is
+documented on disk but was never entered in the register, whose high-water was CR-037 — so 039 was the
+next free number, and **CR-038 still needs its row.** I took the number from the register, not from
+memory, which is the only reason a collision was avoided.
+
+**I did not write the CR from the runbook's figures.** The runbook quoted 228–229 certificates from
+2026-08-13. This CR authorises deleting rows from the *client's* environment, so the numbers had to
+come from there — I ran the purge script's own report-only mode (`-v Execute=0`; it SELECTs and
+`RETURN`s before the transaction opens) against test. Current scope: **229 certificates, 173
+companies, 312 products, 930 audit rows, 86 users**, plus ~6,000 cascaded child rows.
+
+**Then the finding that changes the CR.** The script keeps exactly two accounts and deletes every
+other user. "86 fake users" is how the client's own instruction reads — *"remove fake users (except
+key test accounts)"* — and it would have been easy to write the CR on that framing. Enumerating all 86
+instead of trusting the label:
+
+- 22 are already soft-deleted (`__deleted__` mangled emails) — genuinely dead
+- **64 are live**, and only **6 have ever logged in**
+- three of those six are **the client's, not ours**: `carly@greencirclecertified.com` (**Admin, last
+  login 2026-08-14 — three days ago**), `analyst@greencirclecertified.com`, `partner@amazon.com`
+
+**As written, the purge locks the client's administrator out of the test environment**, on an account
+she was using this week, with no self-service recovery — we would have to recreate it. The runbook had
+this gate marked "⚠️ two assumed, confirm", which reads like a formality. It is not; it is the one
+item in this CR that causes visible harm if answered wrong. Gate 4 is now marked ❌ with the three
+names in it.
+
+The other 58 live accounts really are ours and safe — 13 `@anukiconsulting.com` seeds, 37
+`@example.com` import-validation fixtures from QC (`zoe.emoji`, `formula.name`, `riley.comma`), 4
+`qc108-*@gcc-test.local`, and 5 never-used duplicate `carly@` accounts on throwaway domains. Worth
+saying explicitly, so the fix is "add three names", not "re-litigate the whole purge".
+
+**Two claims I checked rather than asserted, because both would have been plausible either way.**
+
+1. **Does the purge break Amazon?** It deletes `partner@amazon.com`. I enumerated every FK referencing
+   `dbo.Users`: `PartnerApiKeys` has **none** — `CreatedBy`/`RevokedBy` are plain columns, and auth is
+   key-based. All 8 Amazon keys survive. **No impact**, and the CR says so as a verified fact rather
+   than a reassurance.
+2. **`GoogleAnalyticsSettings.UpdatedBy` → `Users` is NO_ACTION, and that table is *preserved*** — so
+   if its `UpdatedBy` pointed at a deleted user, the purge would fail at commit. Checked: it is NULL.
+   Safe. This one was worth checking precisely because the script's delete-order comment lists that FK
+   as a hazard and then never revisits it.
+
+**One thing I flagged that nobody has asked about.** `AuditHistory` is emptied *and* the migration
+writes no audit rows (the SQL loader bypasses the application — by design, matches dev). So migrated
+certificates arrive with **no history whatsoever**. If the client expects "imported on <date> by
+<user>" per record, they will not get it. Cheaper to say now than to discover after go-live.
+
+**Still blocked on the client, and this CR does not unblock it** — CR-039 needs approval, CR-038 needs
+sign-off, and the 1,960 untagged product IDs need a decision. What changed today is that Gate 1 now
+has a document to approve instead of being an empty box, and Gate 4 has a specific answer to confirm
+rather than an assumption to discover during the run.
+
+---
+
+## 2026-08-17 (cont.) — DEF-358 verified on every surface; the verification found DEF-359
+
+**DEF-358 (certificates published before their effective date) is correct.** Verified rather than
+assumed, on the live app, against a population of 16 certificates that are publishable but not yet
+effective (13 effective 2026-09-01, one 09-11, two 10-21):
+
+| Surface | Result |
+|---|---|
+| Public tile API | `totalCount` 965 = 981 − 16; 0 of the 16 present |
+| Public single view | `26-0481` / `26-0224` / `26-0441` → 404 |
+| — control, same route | `26-0478` (effective 2026-07-23) → **200** |
+| Amazon partner API | full 208-row set walked; 0 of the 16 |
+| Internal detail view | all three → 200, correct per the documented scope |
+
+**Two of my own test errors, caught before they became claims.** The first control was `25-0357`,
+which is *Expired* — its 404 proved nothing, so a currently-effective control was substituted. And the
+partner API appeared to ignore pagination (three pages, same 100 rows) until `PaginationParams` showed
+the parameter is **`pageNumber`**, not `page`; passing `page` is silently ignored and always returns
+page 1. Neither was a product defect. Worth adding `pageNumber` to the API reference.
+
+**The public set's 965 rows vs 953 distinct numbers is not pagination overlap.** The database
+independently reports the same 965/953, and the 12-row gap is 8 CR-038 duplicate numbers
+(`26-0182` ×4, `26-0166` ×3, `26-0168` ×3, and five more ×2).
+
+**DEF-359 — found by checking the surfaces DEF-358 deliberately excluded.** The *Active Product
+Identifiers* export defined its filter, in its own docstring, as "parent cert is publicly live" —
+the exact phrase DEF-358 had just redefined — while still filtering on status alone. It was emitting
+14 identifier rows for 2 certificates effective two months out, in a file titled "Active" carrying an
+`ID Partner` column populated with Amazon. Fixed by composing `WhereEffectiveDateReached()` into the
+query rather than restating the date rule inline, which is the DEF-357 lesson applied deliberately.
+
+**The fix was verified twice, from independent directions.** The export dropped 16,096 → 16,082 with
+0 of the 16 present; and the same two rules run straight against the database return 16,096 and 16,082
+with a difference of exactly 14, so the totals were never taken from the delta. `26-0478` turned out to
+be a useless "still present" control — it has no product identifiers at all — so `23-0753` (11 rows,
+unchanged) is the real one.
+
+**This narrows a scope decision, so it is recorded rather than done silently.** `CertificateVisibility`
+names `ExportController` as deliberately outside DEF-358's gate. One endpoint is now inside it, on
+instruction after the finding was reported. The rest of the export controller and the owning-company
+surface are untouched.
+
+**Still open.** The export intermittently returns HTTP 400 — 3 failures then 4 successes on the same
+session, before any change — and `ExportController.cs:227` catches everything and returns
+`BadRequest("Error generating report")`, reporting a server fault as a client error and swallowing the
+cause. Not diagnosed; the app had been restarted by a concurrent stream under a different log path.
+
+**Two things untestable on dev, stated rather than assumed:** the External (owning company) surface,
+because dev has no External user; and the API delete path's audit behaviour, confirmed only by reading
+call sites.
+
+**Note on the environment.** A second stream is working in this repo concurrently — it added DEF-358,
+rewrote the CLAUDE.md route/credentials sections, and restarted the dev server under its own PID. The
+`%TEMP%` scratchpad is also being wiped between commands, so intermediate files do not survive; download
+and analysis have to happen in a single step.
+
+**Same day — the client email, and the two questions that came with it.**
+
+Drafted `docs/tracking/2026-08-17-client-email-migration-approvals.md` covering CR-038 and CR-039 in
+one message, since both wait on the same person. It asks for the keep-list **without** telling them we
+nearly deleted their admin — framed as "confirm which accounts survive", with the three client
+accounts already listed in our proposal. The internal note at the top of the draft says plainly that
+if that question comes back unanswered, the purge does not run.
+
+**"Is the entire database backed up?" — No, and it is worth being exact about why.**
+
+The newest test-environment backup is **2026-08-13 09:00** — four days old. It is real and complete
+for its moment (43 tables, **8,823 rows**, Certificates 228, Users 88, schema snapshot), but test has
+moved since:
+
+| | Backup 08-13 09:00 | Now |
+|---|---|---|
+| Certificates | 228 | **229** |
+| Users | 88 | 88 |
+
+Named rather than counted: `26-9879` was **created** 08-13 13:40 and `26-9721` **edited** 08-13 18:55,
+both after the backup was taken. So restoring it today would silently discard two pieces of the
+client's work — exactly the drift the runbook warns about, now measured instead of predicted.
+
+**Two limits of that backup that "the database is backed up" would hide.** It is a *logical* backup —
+JSONL per table — because the only credential we hold lacks `BACKUP DATABASE` and `VIEW DEFINITION`,
+so a server-side `.bak` is not available to us at all. And it covers the database only: **uploaded
+PDFs are not in it.** After the 2026-06-15 incident where every production PDF went missing, that is
+not a footnote.
+
+**One thing I noticed and deliberately did not chase:** `AuditHistory` has **0** rows written since
+2026-08-13 09:00, yet two certificate writes happened in that window. That may be nothing, but audited
+writes producing no audit rows is the shape of a real problem. Logged here rather than investigated —
+it is not what was asked, and it does not block the migration.
+
+**"Are we ready to run?" — No.** Both approvals are outstanding (CR-038 sign-off, CR-039
+authorization), the keep-list is wrong as it stands, no window is agreed, transaction-log headroom on
+test is unverified, and the backup would need retaking in the same session. The *build* is ready; the
+authorizations and the operational preconditions are not.
+
+**Correction, same day — I mis-framed the backup.** Shawn: *"the data migration data is the current
+data. If something was added to test, it is only test data."*
+
+Correct, and it invalidates the concern as I wrote it. I had flagged that restoring the 08-13 backup
+would "silently discard the client's work" — the work in question was `26-9879` (created 08-13) and
+`26-9721` (edited 08-13). Those are **test records the purge deletes anyway.** Discarding them costs
+nothing. Treating disposable rows as if they were client output made a non-issue look like a blocker.
+
+**Re-asking the question properly changed what I checked.** The backup does not need to protect the
+certificates — the migration replaces them. It needs to protect the **preserved** set: API keys,
+partners, certification types, categories, tags, pathways, roles and users all survive the purge and
+are **never reloaded by the migration**. If those had drifted, a restore would lose them permanently.
+
+Compared against the 08-13 backup, and for the three that matter **by identity rather than count** —
+because equal totals would look identical if a row had been swapped, which is a lesson I wrote down
+two days ago and then nearly failed to apply:
+
+| | Backup 08-13 | Live 08-17 |
+|---|---|---|
+| Users | 88 | **88 — identical on (Id, Email)** |
+| PartnerApiKeys | 9 | **9 — identical on (Id, PartnerId, ApiKey, IsActive)** |
+| Partners | 4 | **4 — identical on (Id, Name)** |
+| CertTypes / Categories / Types / Tags / Pathways / Roles / Permissions / ApiKeys / GA | 32/9/54/4/6/5/22/41/3/1 | all match |
+
+**Nothing in the preserved set has drifted. The 08-13 backup is a valid rollback target today.**
+CR-039 §4 and the register entry are corrected; "no fresh backup" is no longer a risk item or a
+blocker. Still worth retaking in-session — free, and it removes any need to reason about drift at the
+moment you are least able to — but that is hygiene, not a gate.
+
+**What stands unchanged:** the backup is *logical* (JSONL, because our credential lacks
+`BACKUP DATABASE`), and it does not cover uploaded PDFs. Both remain true and both still matter.
+
+**Same day — log headroom checked, and it turned up something better and something worse.**
+
+**Headroom: sufficient. Precondition 5 closes.** Test is FULL recovery, data file 72 MB against a
+**500 MB** cap (only **11 MB actually used**), log file 72 MB against a **1,024 MB** cap,
+`log_reuse_wait_desc` = NOTHING.
+
+- **Data is a non-issue.** Dev holds this exact load — 5,702 certs, 3,439 products, 16,234 product
+  IDs — in **39 MB allocated / 27 MB used**. Better than 12× headroom against the 500 MB cap. The
+  dataset is small; it is the row *count* that makes this migration awkward, not its size.
+- **Log fits with ~2× margin.** Dev's log reached **520 MB** against test's 1,024 MB — but dev's
+  figure came from *repeated* purge/load cycles, so one clean run should need less. That is an
+  inference, not a measurement, and I have written it as one.
+
+**The better thing: the provider is running proper backups, which we did not know.** `msdb` history
+shows a nightly pair — **FULL ~22:05 (20.2 MB) + LOG ~22:14** — unbroken 08-08 through 08-15. So a
+server-side `.bak` chain exists *in addition* to our logical backup, which strengthens the rollback
+story rather than replacing it. Worth noting that we had been reasoning for days as though our JSONL
+export was the only safety net, because our credential can't take a backup itself. It isn't.
+
+**The worse thing: that chain has stopped.** Last entry is **LOG 2026-08-15 22:20**; nothing for 08-16
+or 08-17. Two nights missing. Flagged in CR-039 §5A and added to the client email as something for
+whoever manages the hosting — likely a job needing a restart, but it is both the restore point and the
+only thing that truncates the log.
+
+**Operational consequence, now in the email:** run shortly after ~22:20, when the log is emptiest.
+And **do not `SET RECOVERY SIMPLE`** — that is how it was fixed on dev, but test has a live backup
+chain that the change would break, it is the provider's call, and the headroom means it is unnecessary.
+
+**"Confirm products will be maintained" — it splits three ways, and conflating them is how a migration
+gets accepted on a wrong assumption.**
+
+1. **Product configuration is preserved and sufficient.** ProductCategories **9** and ProductTypes
+   **54** on test; **identical on dev after the full load.** The migration *maps into* the existing
+   lists rather than adding to them, so nothing has to be recreated.
+2. **Product records are replaced, which is the intent.** The 312 test products go; **3,439** real
+   products load. All 3,439 have a category and a company, **0 orphan products, 0 certificates
+   without a product** — nothing stranded in either direction. 16,234 ASINs.
+3. **Two fields do not get populated**, and this is the part "products are maintained" would hide:
+   - `ProductSubcategoryId` — **0 of 3,439**. Known: DEF-348, no import path.
+   - `ProductTypeId` — **1,000 of 3,439 (29%)**. **Not previously flagged.** Worth confirming that
+     matches what the workbooks actually supply rather than being a mapping gap. Does not block the
+     load. Triage only — not investigated, not fixed.
+
+**Same day — the Product Type question, checked against the workbooks and closed. No defect.**
+
+I flagged `ProductTypeId` populated on only 1,000 of 3,439 products and asked whether the source
+actually supplies more. It does not.
+
+| Check | Result |
+|---|---|
+| Source rows carrying a Product Type | **1,254 of 5,702** |
+| Certificates in the DB whose product has a type | **1,254 — exact match** |
+| Distinct Product Type values in source | 33 |
+| …failing to resolve against the 54 configured types | **0** |
+| Product Type in `unmappable-fields.csv` | **no** — that file is only Subcategory (104) + Cert Subcategories (177) |
+
+**Nothing was dropped.** Every source row that supplies a product type produced a product carrying it.
+The workbooks simply leave it blank on 78% of rows.
+
+**The route to that answer is worth recording, because my first attempt produced a false signal.** I
+compared *distinct product identities* — reconstructing the CR-186 key (Company + Name + Category +
+Type + Subcategory) by hand — and got **1,005 source vs 1,000 database**, a 5-row gap that looked
+real. Collapsing whitespace didn't move it. Diffing the two identity sets returned **2,435 vs 2,426
+differences**, which is nonsense for a 9-row discrepancy — and that was the tell: the loader **fills
+Category where the source leaves it blank**, so a hand-built key does not reproduce its grouping at
+all. My key was measuring something else.
+
+**Switching to a row-level count settled it exactly: 1,254 = 1,254.** The lesson is not "check twice"
+— it is that **a reconstructed key is a hypothesis about someone else's code, and a near-miss (1,005
+vs 1,000) is more dangerous than a wild one**, because it looks like a small real defect instead of a
+broken method. The 2,435-difference diff is what exposed it; a smaller diff would have let me
+"explain" the gap and move on with a wrong conclusion. When a derived comparison is close but not
+exact, prefer a directly measurable one over rationalising the remainder.
+
+Capped the diagnosis there rather than reverse-engineering the loader's identity rule — the question
+asked was answered, and CR-039 §5B now records `ProductTypeId` as closed, no defect.
+`ProductSubcategoryId` (0 of 3,439) remains genuinely unpopulated — DEF-348, unchanged.
+
+---
+
+## 2026-08-17 (cont.) — DEF-360: export timeout mitigated and query hardened; three of my own measurements corrected
+
+**The defect.** `Export/DownloadActiveProductIds` returned **HTTP 400 after exactly 30 seconds** on the
+first three runs against a cold app, then succeeded in 5–7s. The log gave it away outright:
+`Failed executing DbCommand (30,083ms) … CommandTimeout='30'` → `SqlException: Execution Timeout
+Expired`. Two separate problems produced one symptom: the 30s command timeout was being hit, and
+`ExportController.cs:227` catches everything and returns `BadRequest("Error generating report")` — a
+server-side timeout reported as a client error, which is why it read as flakiness.
+
+**`Database:CommandTimeoutSeconds` already existed and was set nowhere.** DEF-350 added that seam for
+exactly this failure on the import-preview path and left it unused, so every environment ran at the 30s
+default. Now set to 120 in `appsettings.json`.
+
+**The query was also rewritten** from an `Include`/`ThenInclude` entity graph (seven entities per row,
+plus `AsSplitQuery`) to a 19-column projection into a named `ActiveProductIdExportRow` — exactly the
+fields the CSV writes. `AsSplitQuery` went with the Includes; there are no collection navigations here,
+only references, so it was never doing anything.
+
+**Output is byte-identical: 4,354,161 bytes before and after**, 16,082 rows, control `23-0753` still 11
+rows, DEF-359 population still 0. That is the strongest evidence available that the projection is
+faithful across every field, quoting rule and formatter.
+
+**What I did NOT prove, and said so in the register.** The projection does not reduce database work:
+logical reads are **901 vs 899**, and the query costs ~**115ms** server-side. A 30s timeout on a 115ms /
+900-read query is not explained by data volume, so **the projection is not what fixes it — the timeout
+bump is**. The likely remaining cause is a bad plan for EF's parameterised command (`@__unset_0`,
+`@__today_1`) where the hand-written equivalent uses literals. That is a parameter-sniffing
+investigation and was left open rather than guessed at.
+
+**Three measurement errors of mine, corrected in the register so the numbers are not misread:**
+1. An early "19ms" was `COUNT(*)` with no projection or sort — not representative.
+2. "63s consistently" used `SELECT … INTO #temp`, so it measured tempdb write and client transfer, not
+   query cost. **My claim that the database was pathologically slow was wrong.**
+3. A run of HTTP 401s was measured against **a different process** — a concurrent stream's build had
+   taken port 5101 after my instance failed to bind.
+
+**Environment lesson worth keeping.** `dotnet run --urls` is **ignored** by this app — it binds 5101
+regardless — and `dotnet run` reports the *launcher* PID, not the child process that owns the socket.
+With two sessions working this repo at once, always confirm which PID owns port 5101 before trusting an
+HTTP result. `%TEMP%` is being wiped between commands, so download-and-analyse must be one step.
+
+**Left open deliberately:** the blanket `catch { return BadRequest(...) }` appears on all four export
+actions, not just this one. A server fault should be a 500. Not changed here — it is a separate,
+wider edit than the defect being fixed.
+
+**Same day — keep-list reviewed and fixed in the script.** Shawn: *"review the keep list, we need to
+keep the admin."*
+
+**Reviewing every Admin account was the right unit of work, because "the admin" is ambiguous on this
+database — there are eleven.**
+
+| | Kept | Deleted |
+|---|---|---|
+| Admin accounts | **3** | **8** |
+
+Of the 8 deleted, **not one has ever been logged into.** Five of them are `carly@`-lookalikes *we*
+created during testing — `carly@gcccc.com`, `carly@admin.com`, `carly@gcc5.com`, `carly@gcc6.com`,
+`carly@gcc7.com` — plus `robert.taylor@anukiconsulting.com` (our seed) and two `@example.com` QC
+fixtures that are not even active. **That is exactly why "keep the admin" had to be resolved against
+the account list rather than the account name:** acting on the name alone would have kept five
+throwaway rows and still left the real one ambiguous.
+
+**Changed in `2026-08-13-golive-testdata-purge.sql`** — keep-list goes from 2 entries to 5, adding
+`carly@greencirclecertified.com` (client Admin), `analyst@greencirclecertified.com` and
+`partner@amazon.com`. **Verified by re-running the script's own report mode against the live test
+database:** all five entries resolve to real users, the unmatched-entries report is **empty** (no
+typos), and users deleted drops **86 → 83**.
+
+I wrote the reasoning into the script rather than only into the CR, because the script is what someone
+runs at 22:30 under time pressure: *a keep-list errs safe in one direction only — keeping an account
+that could have been deleted is reversible in seconds, deleting one that was needed is not.*
+
+**Documents updated:** CR-039 §2/§3/§7 (§3 now leads with the fix and keeps the original finding
+below it for the record), the register entry, runbook Gate 4 ❌ → ✅, and the client email — whose
+internal note previously said "if this comes back unanswered, do not run the purge". That is no longer
+true, and leaving it would have been a live instruction pointing at a resolved problem. The email's
+question is now a genuine check for client logins we cannot recognise, not a disguised repair.
+
+**One small thing noticed and not fixed:** the script reports `UserRoles` / `CompanyUser` /
+`PartnerUser` cascade counts as whole-table `COUNT(*)`, not as the subset that actually cascades — so
+now that 5 users are kept, those three lines over-state slightly. It over-states rather than
+under-states, so it is safe for client sign-off. Cosmetic; noted in CR-039 §2. Not worth touching
+before the run.
+
+---
+
+## 2026-08-17 (cont.) — Amazon contract + partner scoping verified after DEF-358/359/360
+
+**Gate 4 satisfied: `amazon-contract-diff.js` prints CONTRACT UNCHANGED, 7 passed / 0 failed.** GS1 list,
+GS1 single and the standard list all match the frozen April baselines structurally. This is the
+mechanical proof that DEF-358 changed **which certificates** Amazon receives without touching the
+**shape** — exactly what the immutable-contract rule requires.
+
+**Partner scoping is exact, not approximate.** The Amazon key returns **208** certificates; the database
+independently reports **208** for "Amazon-linked AND publicly live". The leak ceiling — every publicly
+live certificate regardless of partner — is **965**, so the endpoint is genuinely scoped rather than
+returning everything. The GS1 feed returns the same 208, and the extraction was validated (208 cert
+numbers pulled out of the payload = 208 reported) rather than assumed.
+
+**DEF-358's effect on Amazon, quantified:** Amazon-linked certificates with a publishable status number
+**210**; after the effective-date gate, **208**. Exactly 2 withheld — `26-0441` and `26-0442` — which are
+the same pair whose 14 product-identifier rows DEF-359 removed from the active-product-ID export. The
+three surfaces tell one consistent story.
+
+**Untestable on dev, stated rather than assumed:** the QC #171 multi-partner isolation case (never leak
+co-partners to Amazon) cannot be exercised here — dev has **only Amazon** links (244 cert-level, 14,274
+product-ID level; Novi, Wayfair and Other have zero), and **no certificate is linked to more than one
+partner**. There is no co-partner data to leak, so a pass here would be meaningless.
+
+**One error of mine, caught before it became a claim.** The first GS1 sweep extracted **0** records
+because the GS1 payload nests the certificate number in a URL (`id`) and in
+`products[].certificationInfo.certificateId`, not in a `certificateNumber` field — and then reported
+"0 leaks", which is the failure the check exists to detect surviving as a pass. Redone with correct
+extraction and a count assertion (208 extracted = 208 reported) so an extraction bug cannot read as
+clean.
+
+**Tooling gap.** `Scripts/smoke-prod/amazon-contract-diff.js` requires Playwright but that directory has
+no `node_modules`; it only runs with `NODE_PATH` pointed at `qc184-live-check/node_modules`. A Gate 4
+script with no installed dependencies of its own will fail for whoever runs the checklist next.
+
+**Minor, not raised as a defect:** the GS1 payload returns `additionalTradeItemId` as a run of spaces
+rather than null or an empty string. Cosmetic, in an Amazon-facing field, and the contract is frozen —
+so noting it rather than touching it.
+
+## 2026-08-17 (evening) — "Let's run it in test": backup taken, purge STOPPED on a schema check
+
+**Ask:** *"as long as we have a backup, let do the data migration in test. I need to redeploy the code
+as well. the build is being handled in another session."*
+
+**Backup taken first, because it was the stated condition.**
+`db-backups\gccwebap_certificates-2026-08-17-171135` — 43 tables, **8,824 rows**, today. The condition
+is satisfied.
+
+**Then I checked whether test could actually receive the load before deleting anything, and it
+cannot. All three schema prerequisites fail:**
+
+| Prereq | Required | On test today |
+|---|---|---|
+| `Products.Name` width (DEF-349) | `nvarchar(500)` | **`nvarchar(255)`** |
+| `IX_Certificates_Number` (CR-038) | filtered unique | **plain unique, no filter** |
+| `Certificates.AllowsDuplicateNumber` (CR-038) | exists | **column does not exist** |
+
+Newest migration on test is **`20260721015555`**. The CR-038 migration `20260814195931` is not there —
+test is behind the build.
+
+**Why this mattered more than any approval question.** Had I run the purge on the instruction alone,
+test would have been emptied and the load would then have failed immediately: the 312 duplicate-number
+records cannot insert against a non-filtered unique index. **The client's test site would have been
+left empty and broken**, mid-week, while they are actively using it — `carly@` logged in on 08-14. The
+backup would have covered it, but the recovery is a restore under pressure on someone else's
+environment, which is not a position to put us in when a five-second read-only check avoids it.
+
+This is the value of the pre-purge check being *mechanical* rather than procedural. The gates I had
+been tracking were all about **authorization**; this one is about **capability**, and it was the one
+that would actually have bitten.
+
+**A second, quieter trap in the same area:** `Products.Name` at 255 would not have failed loudly. It
+would have **truncated product names on insert** — which is precisely DEF-351, where 50.7% of names
+were silently truncated while every row count matched exactly. A load that "succeeded" on counts and
+was wrong in the field.
+
+**Required order, now recorded in the runbook:** backup ✅ → deploy code → **apply the schema SQL to
+test** → re-verify the three prereqs → purge → load → link PDFs. Step 3 is not optional and is not
+done by the deploy: **test never auto-migrates** (Gate 7 / DEF-239), so shipping the DLL leaves the
+database untouched.
+
+**Two things flagged to Shawn rather than decided:** loading now commits to **CR-038 Option A** before
+the client has confirmed it (rework, not danger, if they choose B); and the **PDF link step has no
+solved path on test** — the 5,474 files are on this workstation, and getting them into the test
+server's uploads store is a deploy-side operation nobody has specified yet.
+
+**Schema prereqs APPLIED to test — 2026-08-17, all three, verified independently.**
+
+Shawn authorized the three scripts and confirmed the CR-038 decision: *"the certificates with the
+same number will be allowed for historic data"* — **Option A, confirmed.** That closes Gate 2 on our
+side; the client's own confirmation is still outstanding but the direction is now decided.
+
+Read all three before running — none were run blind. All are idempotent, transactional, and assert
+before commit.
+
+| # | Script | Result |
+|---|---|---|
+| 1 | `2026-08-13-WidenProductsName-PREREQ.sql` | `Products.Name` 255 → **1000**; `NormalizedName` + both indexes dropped and rebuilt; `AuditHistory.EntityName` 255 → **1000** |
+| 2 | `2026-08-13-migration-prereq-retired-certtypes.sql` | 4 retired types created (Ids 126–129), all `IsActive = 0`. Cert types 32 → 36 |
+| 3 | `2026-08-14-CR038-duplicate-cert-numbers-PROD.sql` | `AllowsDuplicateNumber` added; unfiltered unique index dropped, **filtered unique** `IX_Certificates_Number` created with `([AllowsDuplicateNumber]=(0))` |
+
+**Verified with my own query rather than the scripts' output** — a script reporting its own success is
+not evidence. **10/10 PASS**, including the two that matter most and are easy to miss: `NormalizedName`
+is non-NULL for every row with a Name (a rebuilt computed column that silently yielded NULL would have
+broken CR-187 fuzzy search with no error), and the existing **229 certificates / 312 products are
+untouched** — this was schema work on a live database, not a reload.
+
+**Correction to something I told Shawn earlier:** I reported the widen target as `nvarchar(500)`. It is
+**1000**, matching the sibling `CertificateProductId.ProductName` column. Nothing operational changed —
+the check was "is it wide enough", and 255 failed either way — but the number I quoted was wrong.
+
+**Two warnings raised by SQL Server, both expected and pre-documented in the script itself:**
+`IX_Products_Name` and `IX_Products_NormalizedName` exceed the 1700-byte nonclustered key limit.
+`CREATE INDEX` succeeds; only an actual insert over ~850 chars fails. Longest name in the go-live
+source is **710**, so the load is safe — but this is now a live latent limit on test, not just on dev.
+
+**Test is now schema-ready.** Remaining before the purge: the code deploy (other session), because the
+filtered index alone does **not** stop a *new* certificate reusing a grandfathered number — that guard
+lives in `IsCertificateNumberAvailableAsync` / `ValidationService`, i.e. in the DLL. Running the SQL
+ahead of the deploy is what the script's own header warns about, and it is the state test is in right
+now. Narrow window, worth closing promptly.
+
+---
+
+## 2026-08-17 (cont.) — Public file-access scoping: PASS, plus a latent leak behind a broken path
+
+**Public certificate-file access is correctly gated — verified falsifiably.** Four anonymous endpoints
+tested against four visibility classes, with **the file confirmed present on disk in every case**, so a
+404 proves a deliberate gate rather than a missing file:
+
+| Endpoint (anonymous) | Publicly live | Not-yet-effective | Confidential | Expired |
+|---|---|---|---|---|
+| `/Certificate/Download/{number}` (the public button) | **200, PDF** | 404 | 404 | 404 |
+| `/Certificate/ViewCertificateFile/{id}` | **200, PDF** | 404 | 404 | 404 |
+| `/Certificate/ViewCertificateImage/{id}` | 200 | 404 | 404 | 404 |
+| `/Certificate/DownloadByNumber/{number}` | 200 | 404 | 404 | 404 |
+
+DEF-358's effective-date gate reaches the file endpoints, not just the list and detail views.
+
+**FINDING — `CertificateTilesApiController.cs:551`, `/api/certificate-tiles/{id}/download`.** This
+`[AllowAnonymous]` endpoint does `GetByIdAsync(id)` and streams the file with **no visibility check of
+any kind** — no status, no date window. It is also the **only remaining hardcoded
+`Path.Combine(GetCurrentDirectory(), "wwwroot", …)` in any controller**, so it bypasses
+`IUploadPathResolver` — the single logical→physical mapping DEF-286 established. Uploads moved to
+`C:\GCCData\uploads` on 2026-08-13, so it 404s for all **5,474** migrated PDFs; only 41 legacy files
+remain under `wwwroot`.
+
+**It has no caller.** The public tile view downloads via `/Certificate/Download/{number}`; the external
+service targets `/api/CertificateTileExternal/{id}/download`. Nothing in the codebase calls it.
+
+**Why it still matters: it is harmless only by accident.** The broken path is the sole thing preventing
+the leak. Anyone who sees a download endpoint returning 404 and "fixes" it by pointing it at the
+resolver — without noticing there is no status check — instantly publishes Confidential, expired and
+not-yet-effective certificate PDFs to anonymous callers, addressable by integer id. That is a plausible
+future edit, not a hypothetical. Safest resolution is to **delete the endpoint** (no callers); otherwise
+gate it with `CertificateVisibility` *and* route it through the resolver.
+
+**Method note.** The first pass at this test returned 404 for all four classes **including the control**,
+which proved nothing — the control was failing for the same path reason as the others. It only became a
+real test once a certificate was found whose file was confirmed on disk and a second endpoint served it
+(200, 151,916 bytes) while this one 404'd. A gate test with a failing control is not a pass.
+
+- 2026-08-17: **Test-env gate lockout after the full rebuild — root-caused as far as remote evidence allows, plus DEF-361 raised for credential material the bundle shipped.** Shawn could not pass the `/__gate` shared-password wall on gccwebapp.com after deploying `GCCWebApp-FULL-EVERYTHING-20260817-2140.zip`, and asked whether the test DB had been updated to match dev. **Database answer:** schema **yes** — `Database:AutoMigrateOnStartup=true` applied `20260814195931_CR038_AllowDuplicateCertificateNumbers` on first start, confirmed present in `__EFMigrationsHistory` on the test DB. Data **no**, and deliberately not: test = 229 certs / 88 users / 173 companies / 312 products; dev = 5,702 / **2** / 301 / 3,439. Dev is not a superset — it was purged to 2 users, so copying dev over test would delete 86 accounts including the client's admins and the `analyst`/`external` logins (which exist on test but not dev). That is the CR-039 keep-list operation, not a deploy side-effect. **Gate diagnosis, without ever submitting the real password:** scraped a `formToken` from `GET /__gate`, POSTed it with a deliberately wrong password, and got **401 "Incorrect password"** — which proves the data-protection key ring, the CSRF token round-trip across two separate requests, and the password-compare path are all healthy, and isolates the failure to the configured value. A broken key ring would have returned **400 "Your session expired"** instead. Ruled out by direct check: no `TestEnvironmentGate__Password` env override anywhere; no second password in the repo (config, all 8 bundles, `smoke-prod/README.md`, 46 smoke scripts and ~31 archived probes all carry the same literal); no lockout on any account (`FailedLoginAttempts=0`, `LockedUntil=NULL`); DPAPI/machine-bound keys ruled out because the shipped keys are stored **unencrypted** and therefore load fine on the server. The new build is definitely live — CR-038 in the test DB proves the new DLL ran, and the app could not have started at all without `appsettings.Production.json`. **Not resolved:** why a correct password is rejected at the browser. The two remaining candidates are a browser/autofill artifact and a server config that differs from every repo copy; both need one command Shawn runs herself (`curl -u gcc:… /Account/Login` → 200 vs 302) or the server's `logs\stdout*.log`, where `failed cookie-gate password attempt` is written **only** on a genuine mismatch. **Rotation attempted and reverted at Shawn's request:** password was rotated to a special-character-free value across `appsettings.Production.json` + 46 `Scripts/smoke-prod` files (byte-level replace, so no re-encoding), then fully reverted when Shawn asked to keep the original and rebuild — verified zero traces remain. The ~31 archived probes in `qc159-live-check/`/`qc184-live-check/` were left untouched in both directions by design. **DEF-361 raised:** the everything-bundle put 5 unencrypted data-protection key files and `appsettings.Development.json` (dev DB password) on the test host; the two known-good deploys had shipped 0 key files, so this was new. Rebuilt clean as `GCCWebApp-deploy-20260817-2255.zip` (334 files, 60.5 MB, sha256 `11146732…`, 0 entries matching the excluded paths) — but the files are already on the server and extraction does not delete, so manual removal + recycle is still required. **Lessons:** (1) a negative control is often available when the positive test is off-limits — submitting a knowingly-wrong password proved the whole mechanism healthy without authenticating; (2) "the deployed asset matches my bundle" needs a file that actually *changed* — `robots.txt` matching proved little, whereas CR-038 appearing in the target DB proved the new DLL ran; (3) `appsettings.Production.json` must ship and `appsettings.Development.json` must not, so "include the configs" is not a safe rule; (4) a config-only change to `TestEnvironmentGate` does nothing without an app-pool recycle — the middleware binds its options once in the constructor and is a singleton.
+
+**DEF-362 filed and fixed (same day)** — filed as DEF-361, renumbered when a concurrent stream claimed 361
+for the deploy-bundle data-protection-keys defect between my high-water grep and my append. The finding
+above was actioned: `/api/certificate-tiles/{id}/download`
+is **deleted**, not repaired. Full-repo sweep first confirmed no caller in any `.cs`/`.js`/`.cshtml`/`.json`
+file or smoke script, and zero unit tests touching `CertificateTilesApiController`. A comment stands in its
+place recording why, and saying **do not restore it**.
+
+**Removal was proven by response shape, not status code** — the endpoint already returned 404 before
+deletion because of the path bug, so a 404 afterwards would have proved nothing:
+
+| | Before | After |
+|---|---|---|
+| Status | 404 | 404 |
+| Content-Type | `application/json` | none |
+| Body | `{"error":"Certificate PDF file not found on server"}` | empty, 0 bytes |
+
+An empty untyped 404 is the framework saying "no route matched"; a JSON body is the controller running.
+Control: `/api/CertificateTileExternal/999999/download` still returns a JSON body, confirming a live route
+on this app produces one.
+
+**No collateral damage:** tiles list 200, `/filters` 200, `/autocomplete` 200, and the real public download
+path unchanged (`26-0478` 200 with the PDF, `26-0224` 404, `25-8153` 404).
+
+**Documentation corrected:** `docs/qa/coverage-matrix.md:26` listed the public "Download cert PDF" action as
+using the deleted route. It never did — the public button calls `/Certificate/Download/{number}`. A QA
+coverage matrix pointing at the wrong endpoint means the row was never really covered.
+
+---
+
+## 2026-08-18 — Go-live data migration executed on the TEST environment
+
+**Ask:** "we just deployed the latest build. I would like us to now do the data migration on the
+test environment." Approved by Shawn to run in full, in business hours, after being shown that
+CR-038 and CR-039 had no client sign-off on file.
+
+**Outcome: the data migration is complete and verified. The PDF link step is not, and cannot be
+finished from a workstation — see the bottom of this entry.**
+
+### What ran
+
+`backup → transform → generate → lookup-resolution gate → purge → load → reconcile → contract diff
+→ live checks`. Purge + load took **≈1 minute** combined; the whole sequence with verification about
+35 minutes.
+
+- Backup: `db-backups/gccwebap_certificates-2026-08-18-105016/` — 43 tables, 8,829 rows
+- Purge: 229 certs, 312 products, 173 companies, 930 audit rows, 83 users deleted. Users 88 → 5,
+  **0 unmatched keep-list entries** — the client's `carly@` Admin survived
+- Load: **5,702 certificates / 5,527 numbers / 301 companies / 3,439 products / 16,234 product IDs**
+  — identical to the dev rehearsal in every figure
+- Verification: 0 missing, 0 extra, 0 numbers with a differing record count; 14 of 15 fields at 0
+  mismatches; CR-038 exempt 312 == 312 sharing, 0 non-exempt duplicates, 0 over-flagged; 0 untrusted
+  FKs; 0 orphans; step-7 spreadsheet→DB **exact set match** on the 29 withheld rows with the other
+  three CSVs empty; Amazon contract diff **`CONTRACT UNCHANGED`**
+
+### Four things worth carrying forward
+
+**1. The runbook's schema-prereq section was stale, and checking beat trusting it.**
+§3 said "test and prod never auto-migrate (Gate 7 / DEF-239)" and listed three scripts to run by
+hand. In fact `appsettings.Production.json` carries `Database:AutoMigrateOnStartup: true` (DEF-252),
+so the build deployed that morning had **already applied CR-038 itself** — column present, filtered
+index in place, `20260814195931_CR038_...` the newest applied migration. Had I run the three scripts
+on faith they would have been no-ops (all idempotent), but the reasoning would have been wrong.
+The general lesson is the familiar one: **a documented environment invariant is a claim with a date
+on it.** Gate 7 still holds for the real production cutover; the flag has to be read per environment.
+
+**2. A verification script defaulting to the wrong environment is worse than one that fails.**
+`2026-08-13-migration-reconciliation.ps1` defaults `-ConnectionString` to the **dev** database. Run
+bare after a test load it would have reconciled dev against the test transform output and printed a
+clean-looking result. Passed the test connection string explicitly and wrote to
+`loaded-certificates-TEST-20260818.csv` so the dev artifact survives for comparison.
+
+**3. `amazon-contract-diff.js` produced a false `CONTRACT CHANGED` — twice.**
+First against `localhost:5101` (its default `BASE_URL`, nothing listening), then against
+gccwebapp.com, where the test-env access gate intercepts the admin login it uses to *mint a new
+partner key*, so it timed out waiting for `#Email`. Both failures print the same
+`CONTRACT CHANGED — review diffs above` as a genuine contract break would. Gate 4 was executed
+properly instead by reusing the script's own `shapePaths`/`diffShapes` functions and the same frozen
+baselines, reading the existing Amazon key from `PartnerApiKeys.Id = 6` and calling the partner API
+directly — **the partner API bypasses the gate by design**, so the browser was never needed.
+Result: 7/7, `CONTRACT UNCHANGED`. **The script needs a fix** — honour `BASE_URL`, accept a key from
+the environment, and stop minting a key just to read one. Until then a red result from it means
+nothing without checking *how* it failed.
+
+**4. Counts that "match" can still be a coincidence.**
+Step 7 reported 29 source rows missing from the database and the transform quarantined 29 — the
+runbook warns explicitly that this is a coincidence until the certificate numbers are compared. Did
+the set comparison: exact match, zero on either side of the difference. The habit that catches this
+is the same one as [[feedback_equal_counts_are_not_the_same_rows]].
+
+### Two observations that are not defects
+
+- **Generator logs `cert-tag links 388`; the database holds 412.** Reconciliation compares tag values
+  per certificate: 408 external + 4 internal = 412, all matching, 0 mismatches. Source and database
+  agree; the generator's log line counts something narrower than it emits. Cosmetic, but dev's
+  recorded `388` came from the same line, so the two will look like drift to the next reader.
+- **3 certificates moved `Client Approved - Paid` → `Expired` within minutes of the load** (984 →
+  981). That is the `CertificateExpiration` background sweep acting on freshly-loaded rows already
+  past their expiration date. Expected behaviour, but it will read as a load discrepancy to anyone
+  comparing the load output against a later query.
+
+### Live state after the migration
+
+Test-env gate passes; `/Certificate/CertificateSingleView/26-0146` and `/25-8161` both HTTP 200
+rendering migrated data; `/api/certificate-tiles` returns **965 publicly visible certificates** with
+real company names. 981 are Client Approved - Paid — the 16-record difference is DEF-358 windowing
+(effective ≤ today ≤ expiration) working as designed.
+
+### NOT DONE — PDF linking, and why it was stopped rather than attempted
+
+`PdfLinkCommand` writes a **logical** path to the database (`uploads/certificates/{Number}_{ts}.pdf`,
+`PdfLinkCommand.cs:257`) while copying the **physical** file to wherever `IUploadPathResolver`
+resolves *on the machine running it*. Run from this workstation against the test database it would
+have written 5,474 perfectly-formed links pointing at files that exist only here — **every
+certificate PDF on the test site would 404, and the linker would report complete success.** That is
+[[feedback_verify_deployed_asset_not_symptom]] waiting to happen, so it was not run.
+
+Current state is the safe one: `CertificateFile` and `CertificateImagePath` are NULL on all 5,702
+rows — no documents, but no broken links either. Finishing it needs a decision on
+`FileStorage:StoragePath` (currently unset, so uploads land **inside** the deploy folder — the same
+arrangement that lost 23 PDFs on 2026-08-17) and a ~3.5 GB transfer to the server. Steps written up
+in the runbook §11.
+
+### 2026-08-18, later the same day — PDF link step run after all, into a staging root
+
+The entry above closed with "NOT DONE — PDF linking, and why it was stopped rather than attempted."
+Shawn's direction was to stage locally and upload separately, so it **was** run — with
+`FileStorage__StoragePath` pointed at `C:\Users\swest\GCCUploadStaging` and
+`ASPNETCORE_ENVIRONMENT=Production`, which splits the operation exactly where it needed splitting:
+the **database** gets its correct logical paths from here, the **files** land somewhere transferable
+instead of somewhere useless.
+
+**Result — identical to the dev rehearsal:** 5,474 linked, **0 sha256 mismatches**, 0 manifest files
+missing, 99 documents with no matching certificate (numbers not in the load), **1 thumbnail failure**
+(`23-0971`, the same pre-existing renderer bug dev hit), 2 genuine unplaceable. 11.0 minutes.
+
+**Verified with a new script, `Scripts/data-ops/2026-08-18-verify-pdf-links.ps1`** — all checks
+passed: `withPdf` 5,474 / `withThumbnail` 5,473, **0 certificates sharing a PDF path, 0 sharing a
+thumbnail path** (the CR-038 collision that produced 123 shared thumbnails on dev), and database
+references == files on disk **compared as sets in both directions**, not as counts
+([[feedback_equal_counts_are_not_the_same_rows]]). Staged: 5,474 PDFs / 3.47 GB + 5,473 thumbnails /
+561 MB.
+
+**Still outstanding: the upload.** Until that folder reaches the server's upload root every
+certificate PDF on test 404s — the database holds perfectly-formed paths to files that exist only on
+the workstation. The linker's own "5,474 linked" line reads identically in that failure case, which
+is the entire reason the disk-vs-database set comparison exists.
+
+**Order matters on the remaining work:** decide `FileStorage:StoragePath` on the server *before*
+uploading. It is unset today, so uploads resolve inside the deploy folder — the arrangement that lost
+23 PDFs on 2026-08-17. Deciding after the transfer means moving 3.5 GB twice. Changing it needs an
+app-pool recycle, since `UploadPathResolver` binds once at startup.
+
+**Two operational notes worth keeping:**
+- **`dotnet run` is unusable for this while the local dev server is up.** It had been running since
+  2026-08-17 23:11 on port 5101 against the **dev** database and held
+  `bin\Debug\net8.0\GCCWebApp.exe`, failing the build with MSB3027. Left it running and published to
+  a separate directory instead — killing a long-running dev instance to run a migration step is the
+  kind of collateral damage that is never worth it.
+- **Publish the `.csproj`, not the solution.** `dotnet publish` without an explicit project picks up
+  the test projects and dies with NETSDK1152 on duplicate `appsettings.Test.json`.
+
+### 2026-08-18 — CORRECTION: the "1,960 untagged ASINs are fail-open to every partner" claim was wrong
+
+Shawn challenged it: *"I don't think this is true. whether it goes to a partner depends if a
+certificate partner is selected."* She was right, and it had already reached a client email draft,
+the published migration report, the CR-039 register entry, the verification workbook and the
+runbook.
+
+**What I had claimed** (repeating runbook §7 rather than checking): under CR-171 Model A an untagged
+product ID is returned to **every** partner caller, so Amazon was receiving all 1,960.
+
+**What the code actually does.** Two filters, and §7 quoted only the second:
+
+- `CertificatesController.cs:162` — for a partner caller the whole query is scoped first:
+  `query.Where(c => c.Partners.Any(p => userPartnerNames.Contains(p.Name)))`. A certificate with no
+  partner association **never enters the result set**. Single-certificate reads apply the same test
+  (lines 402, 458).
+- `CertificatesController.cs:274` — only *then* does Model A's
+  `!isPartnerCaller || !pi.Partners.Any() || …` include untagged product IDs.
+
+So Model A's fail-open is real, but it operates **only within a certificate the partner can already
+see**. Quoted alone it inverts the conclusion.
+
+**Measured on test, not reasoned about a second time:**
+
+| Certificate | Partner string | Rows in `CertificatePartners` | Product IDs | Untagged |
+|---|---|---|---|---|
+| 23-0814 (P&G) | None | **0** | 1 | 1 |
+| 25-8535 (Kohler) | None | **0** | 143 | 143 |
+| 26-0053 (Kohler) | None | **0** | 908 | 908 |
+| 26-0101 (Kohler) | None | **0** | 908 | 908 |
+
+`untagged_reachable_by_a_partner` = **0 of 1,960**.
+
+**The real finding is the inverse, and it is still worth asking the client about.** These four
+certificates are not over-shared — they are invisible to every partner. If they were meant to reach
+Amazon, **Amazon is not receiving them or their 1,959 ASINs.** "Should these be hidden?" was the
+wrong question; "should these be shared?" is the right one.
+
+**Corrected in:** runbook §7 (with the original wording preserved and marked wrong), CR-039 register
+entry, `2026-08-18-client-email-migration-complete.md`, the generated Word letter, the verification
+workbook (Summary note + ASINs sheet + Read Me), and the published migration report.
+
+**The lesson, and it is not "check your facts".** The claim was written down in a runbook by us,
+carried a file-and-line citation, and was repeated three times before anyone doubted it. What made
+it survive was that the citation was *accurate* — line 274 says exactly what §7 claimed it said. The
+error was reading one filter without the filter above it. **A permission check quoted in isolation
+can invert the answer.** When a claim is about who-can-see-what, trace the whole query path, and
+prefer a measurement over a reading: one `COUNT(*)` against `CertificatePartners` would have settled
+it at any point in the last five days.
+
+
+---
+
+## 2026-08-18 — ASIN counts: the migration was right, the *validation* was missing
+
+**Reported:** "I don't think the ASIN counts are correct — 23-0753 shows 16 records in the master
+list but only 11 ASINs in test."
+
+**Verdict on 23-0753: the database is correct.** The spreadsheet holds 16 rows for that certificate
+but only **11 distinct ASINs**. Five ASINs are listed twice under a second, shorter product name
+(B00L1GHHV2 as both "DUDE Wipes Flushable Wipes - 1 Pack, 48 Wipes - Unscented" and "DUDE Wipes 48ct
+Fragrance Free", and four more like it). The database enforces
+`UNIQUE (CertificateId, ProductIdType, ProductIdValue)`
+(`Migrations/20260420171817_FixProductIdUniqueIndex_PerCertificate.cs:22`), so the transform
+collapses them at `2026-08-13-migration-transform.py:503` rather than failing the insert. 16 -> 11
+is the schema working, not data loss.
+
+**The real finding is what was never checked.** `reconciliation-summary.csv` reconciles 15
+*certificate* fields and not one product ID. The ASIN master list — 21,034 rows, the largest table
+in the load — had **no reconciliation artefact at all**. The first question anyone asked about it
+had nothing to answer it with. That is why the counts "felt" wrong: nobody had ever verified them.
+
+**Built to close it:**
+- `2026-08-18-asin-reconciliation-dump.ps1` — dumps loaded product IDs as UTF-8 (not `sqlcmd -o`,
+  which mangled non-ASCII into 3,086 false mismatches last time). `-Target` is **mandatory**; the
+  resolved Server/Database is echoed before any query and stamped into the output filename.
+- `2026-08-18-asin-reconciliation.py` — compares the **set** of (Type, Value) pairs per certificate
+  in **both directions**, plus ProductName for pairs present on both sides.
+
+**Result against TEST (gccwebap_certificates): 0 drift.** 16,234 distinct source pairs, 16,234
+loaded, every pair matched both ways across all 158 certificates, 0 product-name mismatches.
+
+**The counts were equal, which proves nothing on its own** — a matching total survives exactly the
+failure it is meant to detect. So the checker was fault-injected before the clean result was
+believed: delete one ASIN, corrupt one ASIN value, truncate one product name at the first comma
+(the DEF-351 signature). It reported 2 missing + 1 extra + 1 name mismatch and exited 1. The clean
+run exits 0. The green is falsifiable.
+
+**Two items left for a decision, neither a defect:**
+1. **1,564 collapsed rows kept a different product name than the row that was dropped**, and which
+   name survives is decided by spreadsheet row order — arbitrary. On 23-0753 the DB kept the long
+   Amazon retail titles and dropped the short internal names. Affects 47 certificates. Full list in
+   `_reconciliation/asin-reconciliation-collapsed.csv` (`NamesDiffer=YES`).
+2. **9 source rows fail the ASIN pattern** `^[A-Z0-9]{10}$` and were quarantined, never reviewed.
+
+**Latent bug found while answering the follow-up (not live, not yet filed):** bulk product-ID import
+builds its duplicate map from **active rows only** (`ProductIdService.cs:594`), but the unique index
+has no `IsActive` filter. A soft-deactivated ASIN therefore passes the in-memory check and dies at
+the single batched `SaveChanges`, taking the **whole batch** with it (the failure is caught and
+reported honestly at `:714-722`, so nothing corrupts silently — the import just fails entirely). The
+single-add path is correct: `CheckDuplicateAsync` does not filter `IsActive`. Unreachable in test
+today — all 16,234 rows are `IsActive=1` — and reachable only after an overwrite-mode import, which
+is what creates inactive rows (`:617`).
+
+**Lesson.** Every field in the reconciliation summary was one somebody thought to list. The gap was
+not a wrong number, it was an **absent row** — and an absent row looks exactly like a passing one on
+a summary sheet. Reconciliation coverage should be derived from the tables actually loaded, not from
+the fields we remembered to name.
+
+### 2026-08-18 — Field-level reconciliation of product identifiers (ProductName + partner tagging)
+
+The existing ASIN check compares the **pairing only** — the 3-tuple (certificate, type, value) as
+sets both ways. It proves the right ASINs hang off the right certificates and says nothing about the
+fields carried on them. New script `Scripts/data-ops/2026-08-18-reconcile-productid-fields.py`
+closes that gap, comparing against the **client's workbooks**, not our transform output.
+
+**Result — both fields clean:**
+
+| Field | Compared | Match | Mismatch |
+|---|---|---|---|
+| `productName` | 16,234 | **16,234** | **0** |
+| partner tag | 16,234 | **16,234** | **0** |
+
+**Partner tagging is DERIVED, not supplied.** The ASIN worksheet has no partner column at all — the
+tag is inherited from the certificate's `Partner (Amazon)` column
+(`2026-08-13-migration-transform.py:519`). So the correct test is "does each ASIN's tag equal its
+certificate's source partner", which is what this now asserts.
+
+**A data-shape fact worth knowing:** of the three load sheets, **only two carry `Partner (Amazon)`**.
+`Expired List 1 - 4.9.26` — the largest at 4,349 rows — has 8 columns and no partner column at all,
+so every certificate from it legitimately has no source partner. Sheet-level totals: Active 231
+tagged, Expired 2 → 13 tagged, Expired 1 → 0 (column absent).
+
+**My first run reported 14,274 partner mismatches. That was my bug, not the data** — I looked up
+`"Certificate #"` when the header is `CERTIFICATE_NUMBER`, so the map came back empty and every
+tagged ASIN looked wrong. The tell was that the per-sheet row counts never printed, meaning every
+sheet had been skipped. **A 100%-mismatch rate on one field while another is 100% clean is almost
+always the harness, not the data** — check the lookup before believing the finding.
+
+### Two residual findings the pair-level check could not see
+
+**1. Eleven product IDs have a blank product name — and the source is blank too.**
+10 on `25-9301`, 1 on `23-0812`. The database faithfully reflects the source, so this is a
+client data gap rather than a migration defect. Worth listing for them.
+
+**2. 1,564 duplicate source rows disagree on product name — 1,096 distinct ASINs across 30
+certificates.** The same ASIN appears more than once in the master list with genuinely different
+names (differences that survive case/space/accent normalisation), e.g.:
+
+| ASIN | Kept | Discarded |
+|---|---|---|
+| `B00L1GHHV2` | *DUDE Wipes Flushable Wipes - 1 Pack, 48 Wipes - Unscented Extra-Large…* | *DUDE Wipes 48ct Fragrance Free* |
+| `B007D17A52` | *(Packaging May Vary) Earth Rated Dog Poop Bags, Thick Grab and Go…* | *Earth Rated Dog Poop Bags, Thick Grab and Go…* |
+
+They look like the same product captured in different pulls — a long Amazon-style title versus a
+short internal one, or with/without a "(Packaging May Vary)" prefix. **The transform keeps
+first-seen**, and the database matches first-seen in all 16,234 cases, so nothing is inconsistent —
+but **which name Amazon receives is decided by row order in the spreadsheet**, which is arbitrary.
+That is a client decision (prefer the longest? the Amazon-style title? the last pull?), not a defect.
+
+Output: `Scripts/data-ops/_productid_recon/<ts>/` — `summary.csv`, `productname-mismatches.csv`,
+`partner-mismatches.csv`, `collapsed-disagreements.csv`, `blank-productname.csv`.
+
+**Still unverified on product identifiers:** `Status` (16,096 Active / 138 Inactive — the source of
+the Inactive flag is unconfirmed) and `ProductSku` (0 populated in the database; confirm the source
+carries none). `ProductSubcategory` is separately known not to be stored at all (DEF-348).
+
+
+### 2026-08-19 — Enabling 2FA and password reset: the mail server refuses the transport the code used
+
+Shawn set up a mailbox on the test environment and asked for email 2FA and password reset to be
+turned on. The register (DEF-263, 2026-06-12) said this was **config-only** — fill in the four blank
+`SmtpSettings` values and it works. That was wrong, and filling them in would have failed.
+
+**I probed the mail server before changing anything.** `gccwebapp.com` MX → `mail.gccwebapp.com`
+→ `accumail3.denver.wehostwebsites.com` (`72.18.135.96`):
+
+| Port | EHLO says | Reality |
+|---|---|---|
+| 587 | `AUTH PLAIN LOGIN CRAM-MD5`, **no STARTTLS** | explicit `STARTTLS` → **`503 TLS is not allowed`** |
+| 465 | same AUTH set | **implicit TLS, negotiates TLS 1.2 cleanly** |
+
+**Then a second, sharper trap.** The host must be **`accumail3.accuwebhosting.com`, not
+`mail.gccwebapp.com`** — both resolve to `72.18.135.96`, but the server presents a DigiCert
+certificate covering only the `accuwebhosting` name, so the obvious host **fails certificate
+validation before it ever authenticates**.
+
+**I missed this on my first pass, and the way I missed it is the lesson.** My initial probe was a
+hand-rolled `SslStream` with a permissive validation callback — `{$true}` — and it cheerfully
+reported *"465 implicit TLS OK - proto=Tls12"*. It had been told to accept any certificate, so of
+course it did. MailKit validates by default and failed immediately. **A probe that disables the
+check cannot tell you whether the check passes.** Had I trusted my own green result, this would have
+shipped and surfaced as an unexplained authentication failure on the live site.
+
+With the correct host, the same probe reaches `535: Authentication failed` on a deliberately wrong
+password — TLS, certificate validation and the SMTP conversation all succeed. The transport is
+proven; only the credential is outstanding.
+
+`System.Net.Mail.SmtpClient` — what `EmailService` used — has **no implicit-TLS mode**;
+`EnableSsl=true` always means STARTTLS. So against this server the old code could only have
+connected by sending the mailbox password **in clear text** on 587. The config's own default was
+`Port: 587`, so the obvious action was the wrong one.
+
+**The lesson is the cheap probe.** Six shell commands against the live mail server converted a
+"fill in four values" task into a code change, *before* any of it was deployed and debugged through
+a client-visible failure. A server's advertised capabilities are a five-minute question — ask it
+rather than trusting what the config file's defaults imply.
+
+### Three fixes, because one would not have held
+
+1. **Transport** — `EmailService` rewritten to **MailKit 4.7.0** (already in the local NuGet cache,
+   so it restored offline). `IEmailService` unchanged ⇒ no consumer touched. New optional
+   `SmtpSettings:Security`; when absent, transport is inferred from the port (465 ⇒ implicit TLS),
+   so existing configs keep working.
+
+2. **The credential had nowhere safe to live.** The pre-deploy checklist already warned that a
+   deploy *"overwrites `web.config` and `appsettings.Production.json` … any SMTP settings applied on
+   the server will be wiped by this extract … the failure is silent."* Both ship in the zip; the repo
+   must not hold a live password. So `Program.cs` now loads **`appsettings.Secrets.json`** last —
+   excluded from publish, from git, and `deploy.ps1` **aborts** if it reaches staging. It survives
+   deploys because extracting a zip adds and overwrites but never *deletes*.
+
+3. **The silence itself was the defect.** This sat broken for **two months** and was found by
+   reading `Program.cs`, not by anything failing — `MockEmailService` logs and drops,
+   `MockEmailService.TestConnectionAsync()` **always returns `true`**, and `ForgotPassword` returns
+   an identical response either way by design (DEF-209 anti-enumeration). Startup now states
+   `Email: LIVE via <host>:<port> (<security>)` or `Email: DISABLED (MockEmailService) — missing
+   <keys>`. Added as **Gate 12** in the pre-deploy checklist.
+
+**Verified, not assumed** — publish exclusion proven with a sentinel file (absent from output,
+ignored by git); the overlay proven at runtime to override `appsettings.json`; **both** banner
+branches captured from the running app; password confirmed absent from the log.
+
+**Two things remain unproven and need the credential + a deploy:** that the web host can reach
+`accumail3.accuwebhosting.com:465` outbound, and a real authenticated send. `Scripts`-free verifier built at
+`scratchpad/smtpcheck` — prompts for the password with masked input, tries 465/587/25 in order, and
+prints the exact config for whichever transport delivers.
+
+**Still open on DEF-263 (Finding 1):** the Gmail App Password in `appsettings.json` is unrotated and
+still in git history. It is also the **fallback sender for any environment that does not override
+it** — the empty strings in `appsettings.Production.json` are the only reason the test environment
+does not send as a personal Gmail account. Do not tidy those empty keys away.
+
+### 2026-08-19 (cont.) — The configured sender address did not exist either
+
+Shawn named the mailbox: **`admin@gccwebapp.com`**. Before asking for the password I probed whether
+it exists, using SMTP `RCPT TO` on port 25 with no `DATA` — an existence check that sends nothing:
+
+| Address | Server response |
+|---|---|
+| `admin@gccwebapp.com` | **`250 OK … Recipient ok`** |
+| `noreply@gccwebapp.com` | `550 No such user here` |
+| `no-reply@` / `support@` / `info@` | `550 No such user here` |
+| invented control address | `550 No such user here` |
+
+The control address matters: without it, a `250` proves nothing, because a catch-all domain accepts
+everything. It was rejected, so the server does real per-user validation and the positive result is
+meaningful.
+
+**This caught a third trap.** `appsettings.Production.json` had `FromEmail: noreply@gccwebapp.com`,
+inherited from the `noreply@yourdomain.com` placeholder — and **that mailbox does not exist.** With
+the credential in place, authentication would have succeeded and delivery would then have failed or
+bounced at the sender check: a second silent failure sitting directly downstream of the one I was
+fixing. `FromEmail` is now `admin@gccwebapp.com`, the only mailbox on the domain.
+
+**Pattern worth keeping:** three faults in one config block — port, hostname, sender — and every one
+of them looked plausible on the page. None would have been caught by reading it. Cheap live probes
+against the actual server found all three in about ten commands, before a single deploy.
+
+Outstanding: the mailbox password only. Transport is proven to `535: Authentication failed`, so
+everything except the credential is confirmed working.
+
+### 2026-08-19 — One address, two credentials: the test account collided with the sending mailbox
+
+Setting up an end-to-end 2FA test, I created the application user with the email
+**`admin@gccwebapp.com`** — reasoning that it was the only mailbox on the domain that Shawn could
+read, so verification codes would be visible. It was also, however, the mailbox the application
+**sends from**.
+
+That made one address mean two unrelated things with two unrelated passwords:
+
+| | What it is | Password |
+|---|---|---|
+| App user `admin@gccwebapp.com` | a row in `Users`, created via `/Admin/CreateUser` | `ResetTest2026!` |
+| Mailbox `admin@gccwebapp.com` | a real mailbox on accumail3, created in Plesk | different, ~8 chars |
+
+When Shawn filled in `appsettings.Secrets.json`, she paired the address with the password we had
+been discussing all session — the *application* one — and SMTP returned `535 Authentication failed`.
+The symptom was "Unable to send verification code", which reads as a mail-server or network problem
+and sent us looking at outbound port 465, the secrets-file location, and the mock fallback in turn.
+
+**The tell I should have caught sooner:** the password file used for the original successful
+`smtpcheck` run was **9 bytes**. `ResetTest2026!` is 14 characters. The two could not have been the
+same value, and that was checkable in seconds without ever knowing either password.
+
+**Fixed** by moving the test account off the sending mailbox entirely: username `2fatest`, email
+`shawnmwest@gmail.com`. Plus-addressing was tested first as a neater option and **is not supported**
+by this server — `admin+2fa@` returns `550 No such user here`, so `admin@gccwebapp.com` really is the
+only deliverable address on the domain and sharing it was not avoidable that way.
+
+**Rule going forward: never give a test account the same address as the application's sending
+mailbox.** A credential collision does not announce itself — both values look right next to a field
+labelled "Password", and the resulting auth failure points at the mail server rather than at the
+value. Where a readable inbox is needed for a test user, use an address on a different domain.
+
+Also worth noting: `MockEmailService` made an intermediate stage of this actively misleading. With
+the secrets file absent, the mock **succeeded silently**, so the 2FA challenge page appeared with no
+error and no email — indistinguishable from a delivery delay. The startup banner added earlier the
+same day is what settles that question, and I should have sent Shawn to it before suggesting she
+skip the file-presence check.
+
+
+---
+
+## 2026-08-21 — Client questionnaire: Time Out + Character Limits answered, PDF limit aligned to 10MB (DEF-368)
+
+**Ask.** Client's "Key System Backend Functions" document had two unanswered bullets — *"What is
+current time out time and function (e.g., record saving, etc.)?"* and *"Character Limits — any
+special limits to callout?"* Shawn asked for both answered, the 10MB/20MB discrepancy aligned to
+10MB, and the whole thing delivered as a Word document for the client.
+
+**Timeout — answer.** 30 minutes idle, sliding (any request resets it); on-screen warning at 25 min
+(`wwwroot/js/auth.js:69-104`, loaded from `_Layout.cshtml:342`). Auth cookie and server session both
+30 min (`Program.cs:312-313`, `Program.cs:62`). "Remember Me" = 14 days persistence across browser
+restarts only, does NOT extend the idle window (`AccountController.cs:1249-1251`). 2FA code 5 min;
+password-reset link 1 hr; lockout 5 attempts / 15 min (`AccountController.cs:1072-1073`).
+
+**Record saving specifically: there is no separate save timeout.** Saving is an ordinary POST under
+the same 30-min window. Idle past 30 min ⇒ stale anti-forgery token ⇒ the POST drops the form
+(the old QC #58 / DEF-151 symptom). Form auto-saves to localStorage every 30s
+(`certificate-create.js:603`) but the restore prompt is still off (`SHOW_RECOVERY_PROMPT: false`,
+CR-017 Phase 2). Said so plainly in the client doc rather than implying recovery exists.
+
+**Character limits — answer.** Certification Results 1,000 · Location 175 · Country 100 ·
+Number/Status 50 · Company/Product/CertType/Category names 255 · Tag 50 · custom field name 100.
+Identifier rows: value 50 (plus format rules), product name 1,000, SKU 100, description 500.
+Identifier formats are check-digit validated for UPC and EAN (`ProductIdService.cs:96-99`).
+
+**DEF-368 — and the correction that mattered.** I first reported this as a cosmetic controller-only
+inconsistency (20MB at `CertificateController.cs:3334` vs 10MB elsewhere) and wrote the register
+entry claiming the 20MB was unreachable because the service would stop it at 10MB. **That was
+wrong.** `FileUploadService.UploadCertificateAsync:85` was passing `IsValidFileSize(file, 20971520)`
+— an explicit 20MB that overrides the interface's 10MB default — and that call is the *only*
+server-side size gate behind all five certificate-PDF entry points, Create and Edit included. So on
+the certificate form the 10MB limit was enforced **in the browser only**; anything posting straight
+to the server could store a 20MB PDF. Fixed in both files, rebuilt clean (0 errors), register
+entry rewritten with the caller table.
+
+**Lesson (the reusable one).** I asserted where a limit was enforced from the presence of a
+`FileUploadConfiguration` default, without reading the call. Defaults on an interface signature are
+not evidence of the value used — the caller can override, and here it did, by 2x. Read the call
+site before writing the claim into a register, and especially before writing it into something the
+client will hold us to. This is the same shape as "verify the deployed asset, not the symptom":
+the artifact that enforces is the one to inspect.
+
+**Also true and deliberately not changed:** `FileUploadService.cs:141` caps image uploads at 5MB.
+Different asset, no inconsistency.
+
+**Deliverable.** `docs/GCC_KeyBackendFunctions_2026-08-21.docx` — six sections mirroring the
+client's own headings (Certificate Number, Product Identifiers, Time Out, Character Limits, Import
+Files, Import Template), 5 tables, generated from HTML via Word COM. Client-facing tone; no DEF
+numbers, no file paths, "client" not names.

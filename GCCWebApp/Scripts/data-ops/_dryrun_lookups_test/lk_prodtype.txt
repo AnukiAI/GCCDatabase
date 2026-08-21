@@ -1,0 +1,54 @@
+1|Additives
+2|Metal Alloys
+4|Plastics
+5|Apparel
+6|Bags and Accessories
+7|Jewelry
+24|Appliances
+25|Baby Products
+26|Cleaning Supplies
+27|Furniture
+28|Health and Beauty
+29|Home Goods
+30|Office Supplies (non-electronic)
+31|Personal Protective Equipment
+32|Pet Products
+33|Security & Safety
+34|Card Readers
+35|Electronic Accessories
+36|Microelectronics
+37|Printers and Printer Cartridges
+38|Animal Products
+39|Beverages
+40|Food
+41|Fragrance and Flavor
+42|Medical Devices
+43|Paper
+44|Plastic
+45|Other
+46|HDPE
+47|LDPE
+48|LLDPE
+49|PET
+50|PP
+51|PVC
+61|Minerals
+62|Adhesives and Sealants
+63|Ceramics and Tile
+64|Coatings
+65|Concrete and Concrete Materials
+66|Doors, Door Hardware, and Accessories
+67|Fiberglass Mats
+68|Flooring
+69|Grout and Mortar
+70|HVAC
+71|Insulation
+72|Moisture Control
+73|Plumbing and Accessories
+74|Roofing
+75|Wallcoverings and Interior Wall Finishes
+76|Windows, Parts, and Accessories
+77|Wiring and Cable
+84|Wood
+85|PS
+95|Textiles

@@ -11,6 +11,21 @@ namespace GCCWebApp.Models
         [MaxLength(50)]
         public string Number { get; set; } = string.Empty; // Certificate number
 
+        /// <summary>
+        /// CR-038: marks a MIGRATED certificate that is permitted to share its Number with another
+        /// certificate. The client issued some numbers to more than one certificate (137 numbers /
+        /// 312 records, 128 of them with genuinely different signed documents), and those numbers
+        /// cannot be changed after issue.
+        ///
+        /// This is a grandfather flag, NOT a general relaxation:
+        ///   * the UNIQUE index on Number is FILTERED to `WHERE AllowsDuplicateNumber = 0`, so the
+        ///     database still guarantees uniqueness for every ordinary certificate;
+        ///   * new certificates are created with 0 and can never take an existing number.
+        /// Set to 1 ONLY by the migration loader, and only on the rows that actually participate in
+        /// a duplicated number — never on the migration as a whole.
+        /// </summary>
+        public bool AllowsDuplicateNumber { get; set; }
+
         [MaxLength(50)]
         public string Status { get; set; } = "Draft"; // Certificate lifecycle status - aligned with DATA_VALIDATION_RULES.md
 

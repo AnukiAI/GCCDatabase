@@ -26,7 +26,22 @@
                 <i class="fas fa-shield-alt" aria-hidden="true"></i>
             </div>
             <h2>Two-Factor Authentication</h2>
-            <p id="2fa-instructions">Enter the 6-digit code from your authenticator app or email</p>
+            @* DEF-367: name the factor actually in use. "your authenticator app or email" was
+               ambiguous for every user on every sign-in, and actively misleading for anyone with
+               an authenticator enrolled on a different account. Falls back to the previous wording
+               only if the controller did not supply an instruction. *@
+            <p id="2fa-instructions">
+                @(ViewBag.TwoFactorInstruction as string
+                  ?? "Enter the 6-digit code from your authenticator app or email")
+            </p>
+            @if ((ViewBag.TwoFactorMethod as string) != "TOTP")
+            {
+                <p class="text-muted small mb-0">
+                    Sent to @(((TempData.Peek("2FAEmail") as string) is string e && e.Contains('@'))
+                              ? e[..1] + "•••" + e[e.IndexOf('@')..]
+                              : "your registered email address")
+                </p>
+            }
         </div>
 
         @if (!string.IsNullOrEmpty(ViewBag.Error))

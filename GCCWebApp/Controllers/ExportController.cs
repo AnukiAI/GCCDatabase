@@ -235,8 +235,11 @@ namespace GCCWebApp.Controllers
         /// <summary>
         /// Aggregate export of all ACTIVE product identifiers across every certificate — the
         /// "all active product identifiers across certs" report from QC #184 / CR-184.
-        /// "Active" = parent cert is publicly live (PublicStatuses: Client Approved - Paid or
-        /// Republished), which is exactly CR-015's definition of an active product identifier.
+        /// "Active" = parent cert is publicly live, which is exactly CR-015's definition of an
+        /// active product identifier. Since DEF-358 that means publishable status (PublicStatuses:
+        /// Client Approved - Paid or Republished) AND the certificate has reached its effective
+        /// date — see DEF-359 in the query below. A certificate staged for a future effective date
+        /// is not yet active, so neither are its identifiers.
         /// The per-certificate export (ProductIdService.ExportToCsvAsync) only covers one cert at a
         /// time; this is the single cross-cert file an analyst needs, with the certificate context
         /// (number, company) plus the product-level fields (name, SKU, partner) that the
@@ -257,22 +260,63 @@ namespace GCCWebApp.Controllers
 
                 // Active product identifiers only: non-deleted rows whose parent cert is publicly
                 // live (PublicStatuses = Paid or Republished) — the client's "all active product
-                // identifiers across certs". AsSplitQuery + tie-breaker ordering per the
-                // many-Includes guidance (DEF-166/234).
+                // identifiers across certs". Tie-breaker ordering per DEF-166/234.
+                //
+                // DEF-360: this used to Include the whole Certificate entity graph (Certificate →
+                // Company/CertificationType/Pathway, plus both User navigations) with AsSplitQuery,
+                // then read 19 fields off it. Loading full entities to write a flat CSV made the
+                // query exceed the 30s command timeout on a cold cache, and the catch below turned
+                // that into HTTP 400 "Error generating report" — a server-side timeout reported as
+                // a client error. It is a projection now: EF selects exactly the 19 columns the CSV
+                // emits and nothing else. AsSplitQuery is gone with the Includes — there are no
+                // collection navigations here, only references, so it was never doing anything.
+                //
+                // DEF-359: "publicly live" is status AND the validity window since DEF-358. This
+                // export filtered on status alone, so it emitted identifiers for certificates the
+                // public database and the Amazon partner API both correctly withhold — 14 rows
+                // across 2 certs effective two months out, in a file titled "Active" that carries
+                // an ID Partner column. The certificate-id subquery reuses
+                // CertificateVisibility.WhereEffectiveDateReached rather than restating the date
+                // rule here, so there is no second copy to drift (the DEF-357 lesson).
+                //
+                // Lower bound only, deliberately. The upper bound stays with the status filter:
+                // CertificateExpirationService flips Status to Expired on a daily sweep, so an
+                // expired cert leaves PublicStatuses on its own. Only the not-yet-effective case
+                // had no status to carry it.
+                var effectiveCertIds = _context.Certificates
+                    .WhereEffectiveDateReached()
+                    .Select(c => c.Id);
+
                 var rows = await _context.CertificateProductIds
-                    .Where(p => p.IsActive && CertificateStatusHelper.PublicStatuses.Contains(p.Certificate.Status))
-                    .Include(p => p.Certificate)
-                        .ThenInclude(c => c.Company)
-                    .Include(p => p.Certificate)
-                        .ThenInclude(c => c.CertificationType)
-                    .Include(p => p.Certificate)
-                        .ThenInclude(c => c.Pathway)
-                    .Include(p => p.CreatedByUser)
-                    .Include(p => p.UpdatedByUser)
+                    .AsNoTracking()
+                    .Where(p => p.IsActive
+                                && CertificateStatusHelper.PublicStatuses.Contains(p.Certificate.Status)
+                                && effectiveCertIds.Contains(p.CertificateId))
                     .OrderBy(p => p.Certificate.Number)
                     .ThenBy(p => p.ProductIdType)
                     .ThenBy(p => p.Id)
-                    .AsSplitQuery()
+                    .Select(p => new ActiveProductIdExportRow
+                    {
+                        CompanyName = p.Certificate.Company != null ? p.Certificate.Company.Name : null,
+                        CertificateNumber = p.Certificate.Number,
+                        CertificationTypeName = p.Certificate.CertificationType != null ? p.Certificate.CertificationType.Name : null,
+                        EffectiveDate = p.Certificate.EffectiveDate,
+                        ExpirationDate = p.Certificate.ExpirationDate,
+                        CertificateStatus = p.Certificate.Status,
+                        IdPartner = p.Partner,
+                        CertPartner = p.Certificate.Partner,
+                        CertificationResults = p.Certificate.CertificationResults,
+                        PathwayName = p.Certificate.Pathway != null ? p.Certificate.Pathway.Name : null,
+                        ProductIdType = p.ProductIdType,
+                        ProductIdValue = p.ProductIdValue,
+                        ProductName = p.ProductName,
+                        ProductSku = p.ProductSku,
+                        CreatedAt = p.CreatedAt,
+                        CreatedByUsername = p.CreatedByUser != null ? p.CreatedByUser.Username : null,
+                        UpdatedAt = p.UpdatedAt,
+                        UpdatedByUsername = p.UpdatedByUser != null ? p.UpdatedByUser.Username : null,
+                        Description = p.Description
+                    })
                     .ToListAsync();
 
                 _logger.LogInformation("DownloadActiveProductIds exporting {Count} active product identifiers across all certificates", rows.Count);
@@ -294,28 +338,27 @@ namespace GCCWebApp.Controllers
 
                 foreach (var p in rows)
                 {
-                    var c = p.Certificate;
                     csv.AppendLine(string.Join(",", new[]
                     {
-                        CsvField(c?.Company?.Name),
-                        CsvField(c?.Number),
-                        CsvField(c?.CertificationType?.Name),
-                        CsvField(c?.EffectiveDate.ToString("yyyy-MM-dd")),
-                        CsvField(c?.ExpirationDate.ToString("yyyy-MM-dd")),
-                        CsvField(c?.Status),
-                        CsvField(p.Partner),
-                        CsvField(c?.Partner),
-                        CsvField(GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(c?.CertificationResults)),
-                        CsvField(c?.Pathway?.Name),
+                        CsvField(p.CompanyName),
+                        CsvField(p.CertificateNumber),
+                        CsvField(p.CertificationTypeName),
+                        CsvField(p.EffectiveDate.ToString("yyyy-MM-dd")),
+                        CsvField(p.ExpirationDate.ToString("yyyy-MM-dd")),
+                        CsvField(p.CertificateStatus),
+                        CsvField(p.IdPartner),
+                        CsvField(p.CertPartner),
+                        CsvField(GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(p.CertificationResults)),
+                        CsvField(p.PathwayName),
                         CsvField(p.ProductIdType),
                         // Leading-zero-safe: UPC/GTIN/EAN values keep their zeros (DEF-306).
                         CsvTextField(p.ProductIdValue),
                         CsvField(p.ProductName),
                         CsvField(p.ProductSku),
                         CsvField(p.CreatedAt.ToString("yyyy-MM-dd")),
-                        CsvField(p.CreatedByUser?.Username),
+                        CsvField(p.CreatedByUsername),
                         CsvField(p.UpdatedAt.ToString("yyyy-MM-dd")),
-                        CsvField(p.UpdatedByUser?.Username),
+                        CsvField(p.UpdatedByUsername),
                         CsvField(p.Description)
                     }));
                 }
@@ -328,6 +371,35 @@ namespace GCCWebApp.Controllers
                 _logger.LogError(ex, "Error generating active-product-identifiers export");
                 return BadRequest("Error generating report");
             }
+        }
+
+        /// <summary>
+        /// DEF-360: flat projection target for the active-product-identifier export — exactly the
+        /// 19 values the CSV writes, and nothing else. Named rather than anonymous so the column
+        /// set is greppable and the next person editing the header row can see what the query
+        /// must supply. Adding a column to the CSV means adding it here, which is the point.
+        /// </summary>
+        private sealed class ActiveProductIdExportRow
+        {
+            public string? CompanyName { get; init; }
+            public string? CertificateNumber { get; init; }
+            public string? CertificationTypeName { get; init; }
+            public DateTime EffectiveDate { get; init; }
+            public DateTime ExpirationDate { get; init; }
+            public string? CertificateStatus { get; init; }
+            public string? IdPartner { get; init; }
+            public string? CertPartner { get; init; }
+            public string? CertificationResults { get; init; }
+            public string? PathwayName { get; init; }
+            public string? ProductIdType { get; init; }
+            public string? ProductIdValue { get; init; }
+            public string? ProductName { get; init; }
+            public string? ProductSku { get; init; }
+            public DateTime CreatedAt { get; init; }
+            public string? CreatedByUsername { get; init; }
+            public DateTime UpdatedAt { get; init; }
+            public string? UpdatedByUsername { get; init; }
+            public string? Description { get; init; }
         }
 
         /// <summary>

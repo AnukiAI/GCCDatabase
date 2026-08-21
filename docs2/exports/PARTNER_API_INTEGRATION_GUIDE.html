@@ -55,7 +55,7 @@ pre code { background: none; padding: 0; }
     <h1>GCC Database Partner API</h1>
     <p class="subtitle">Partner Integration Guide</p>
     <div class="doc-meta">
-        <div><strong>Version:</strong> 1.0</div>
+        <div><strong>Version:</strong> 1.1</div>
         <div><strong>Date:</strong> <span class="fill">[MONTH YEAR]</span></div>
         <div><strong>Prepared for:</strong> <span class="fill">[PARTNER NAME] Integration Team</span></div>
         <div><strong>Prepared by:</strong> GreenCircle Certified</div>
@@ -70,8 +70,17 @@ pre code { background: none; padding: 0; }
     <span class="fill">[HIGHLIGHTED PLACEHOLDER]</span>, (2) resolve or delete every red TBD block,
     (3) confirm the &sect;4 validity model suits this partner's use case &mdash; badging works with it,
     claim validation may not. &sect;8 supplier/parent-company is settled: none is held, so none is sent.
-    The rate limit in &sect;2 is settled at 200/hour but is <strong>blocked on DEF-345</strong> &mdash;
-    the server does not honour it yet.
+    <br><br>
+    <strong>Settled since the last revision:</strong> the production host is
+    <code>database.greencirclecertified.com</code> &mdash; a dedicated subdomain, because the application
+    cannot be hosted on the same server as the WordPress site. The former
+    <code>greencirclecertified.com/database</code> path is retired and was never activated. The base URL is
+    the same for every partner, so it is no longer a placeholder; only the key, rate limit, scope and
+    expiry under <em>Your Connection</em> vary per partner.
+    <br><br>
+    The rate limit in &sect;2 is settled at 200/hour. <strong>DEF-345 is fixed but not yet deployed</strong>
+    &mdash; confirm the fix is live on production before issuing this guide to anyone (see the red block in
+    &sect;2).
     <strong>Never paste a live API key into this document</strong> &mdash; keys are delivered separately
     by secure channel (see &sect;2).
 </div>
@@ -102,7 +111,12 @@ API behaves for every partner; anything that differs between partners is here, a
     <tbody>
         <tr>
             <td>Base URL</td>
-            <td><code>https://<span class="fill">[production-domain]</span>/api/v1</code></td>
+            <td><code>https://database.greencirclecertified.com/api/v1</code><br>
+            <span style="font-size:8.5pt;color:#555;">The GCC certificate database is served from its own subdomain, not from a path under the main <code>greencirclecertified.com</code> website. This host is the same for every partner.</span></td>
+        </tr>
+        <tr>
+            <td>Test base URL</td>
+            <td><code>https://gccwebapp.com/api/v1</code> &mdash; <span class="fill">[issued on request; see &sect;10 step 3]</span></td>
         </tr>
         <tr>
             <td>API key</td>
@@ -139,7 +153,7 @@ API behaves for every partner; anything that differs between partners is here, a
 
 <p><span class="step-num">2</span> Make your first request:</p>
 
-<pre><code>curl -X GET "https://<span class="fill">[production-domain]</span>/api/v1/certificates/gs1" \
+<pre><code>curl -X GET "https://database.greencirclecertified.com/api/v1/certificates/gs1" \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Accept: application/json"</code></pre>
 
@@ -205,19 +219,22 @@ rather than 60 minutes after your first call. Exceeding the limit returns <code>
 retrying into the limit.</p>
 
 <div class="tbd">
-    <span class="tbd-label">BLOCKED &mdash; do not send this guide yet</span>
-    <strong>The server does not yet honour 200/hour.</strong> Rate limiting currently runs before
-    authentication, so partner keys are throttled as anonymous traffic at <strong>100 requests/hour,
-    bucketed by IP address</strong> rather than by key &mdash; and that is what
-    <code>X-RateLimit-Limit</code> actually returns today. The 200/hour figure above is the agreed target
-    (Shawn, 2026-08-06), not current behaviour. Tracked as <strong>DEF-345</strong>; publishing this
-    section before that fix ships hands a partner a number we do not honour. Delete this block once
-    DEF-345 is verified.
+    <span class="tbd-label">Internal &mdash; verify on production, then delete</span>
+    <strong>DEF-345 is fixed but not yet deployed.</strong> The limiter previously ran before
+    authentication, so partner keys were throttled as anonymous traffic at 100 requests/hour bucketed by
+    IP address rather than by key &mdash; and that is what <code>X-RateLimit-Limit</code> returned. The fix
+    was made and verified on localhost:5101 on 2026-08-10, but <strong>has not shipped to
+    production</strong>. Before issuing this guide, call the production API with a partner key and confirm
+    <code>X-RateLimit-Limit: 200</code> comes back; until that is verified, the 200/hour figure above is a
+    target rather than observed behaviour. Delete this block once confirmed on production.
 </div>
 
 <h2 id="endpoints">3. API Endpoints</h2>
 
-<p>Base URL: <code>https://<span class="fill">[production-domain]</span>/api/v1</code></p>
+<p>Base URL: <code>https://database.greencirclecertified.com/api/v1</code></p>
+
+<p>Every path below is relative to that base URL and is identical in the test environment &mdash; only the
+host differs. Point your client at the correct host and nothing else in your integration changes.</p>
 
 <p>The endpoints below are the full set. <strong>An individual key may be scoped to a subset of
 them</strong> &mdash; a request to a path outside your scope returns <code>403</code> rather than
@@ -418,7 +435,7 @@ X-API-Key: YOUR_API_KEY</code></pre>
 <pre><code>{
   "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
   "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
-  "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+  "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366",
   "type": "CertificationReport",
   "issueDate": "2024-01-15",
   "issuer": "GreenCircle Certified",
@@ -448,6 +465,16 @@ X-API-Key: YOUR_API_KEY</code></pre>
     }
   ]
 }</code></pre>
+
+<div class="callout callout-info">
+    <strong>Reading the two <code>id</code> fields.</strong> The report-level <code>id</code> is built from
+    the host you called, so the same certificate returns
+    <code>https://database.greencirclecertified.com/api/v1/&hellip;</code> from production and
+    <code>https://gccwebapp.com/api/v1/&hellip;</code> from test. The product-level <code>id</code> is a
+    canonical <code>id.gs1.org</code> URI when the product has a GTIN, and falls back to a GCC-hosted
+    <code>&hellip;/product</code> URI when it does not. Both are JSON-LD identifiers, not endpoints to
+    fetch &mdash; use them to key records, not as links to follow.
+</div>
 
 <h3>5.2 List All Certificates (Standard JSON)</h3>
 
@@ -742,7 +769,7 @@ no partner endpoint projects them.</p>
 <span class="fill">[GCC support contact]</span></p>
 
 <div class="doc-footer">
-    GCC Database Partner API &mdash; Partner Integration Guide &mdash; v1.0 &mdash;
+    GCC Database Partner API &mdash; Partner Integration Guide &mdash; v1.1 &mdash;
     <span class="fill">[MONTH YEAR]</span><br>
     &copy; <span class="fill">[YEAR]</span> GreenCircle Certified. All rights reserved.
 </div>

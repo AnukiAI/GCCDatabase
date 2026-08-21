@@ -248,10 +248,13 @@ namespace GCCWebApp.Controllers
                 {
                     var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
                     var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
+                    // DEF-358: certs are routinely approved ahead of time in prep for an upcoming
+                    // effective date — they must not be publicly viewable until that date arrives.
+                    var isNotYetEffective = CertificateVisibility.IsNotYetEffective(certificate);
 
-                    if (!isPublicStatus || isExpired)
+                    if (!isPublicStatus || isExpired || isNotYetEffective)
                     {
-                        _logger.LogWarning("Anonymous access denied for non-public certificate: {CertificateNumber}, Status: {Status}, Expired: {Expired}", id, certificate.Status, isExpired);
+                        _logger.LogWarning("Anonymous access denied for non-public certificate: {CertificateNumber}, Status: {Status}, Expired: {Expired}, NotYetEffective: {NotYetEffective}", id, certificate.Status, isExpired, isNotYetEffective);
                         return NotFound($"Certificate {id} is not currently available for public viewing.");
                     }
                 }
@@ -1063,8 +1066,22 @@ namespace GCCWebApp.Controllers
                     //   • Audit trail — every status change is still written to
                     //     CertificateStatusHistory below.
 
-                    // Update basic properties
-                    certificate.Number = model.Number;
+                    // CR-038: the Number field is readonly in the Edit view, but a readonly input
+                    // still posts and a crafted request could retarget it. Uniqueness used to be
+                    // guaranteed solely by the UNIQUE index; that index is now FILTERED, so it no
+                    // longer sees the grandfathered duplicates and would let a certificate be moved
+                    // onto an issued historical number. Only accept a changed number if it is free.
+                    if (!string.Equals(certificate.Number, model.Number, StringComparison.Ordinal))
+                    {
+                        if (!await _certificateRepository.IsCertificateNumberAvailableAsync(model.Number, certificate.Id))
+                        {
+                            ModelState.AddModelError(nameof(model.Number),
+                                $"Certificate number '{model.Number}' is already in use.");
+                            await ReloadEditFormDataAsync(id, ExternalTags, InternalTags, SubcategoryIds);
+                            return View(model);
+                        }
+                        certificate.Number = model.Number;
+                    }
                     certificate.Status = requestedStatus;
                     certificate.Partner = model.Partner;
                     certificate.CertificationResults = model.CertificationResults;
@@ -1689,8 +1706,23 @@ namespace GCCWebApp.Controllers
                 }
 
                 var deletedNumber = certificate.Number;
-                await _certificateRepository.RemoveAsync(certificate);
-                await _unitOfWork.CompleteAsync();
+
+                // DEF-357: this action used to call _certificateRepository.RemoveAsync directly,
+                // so the browser Delete button — the only delete an admin performs by hand —
+                // wrote NO audit row and destroyed the seven cascade child sets silently.
+                // DEF-337 closed that hole inside CertificateService.DeleteCertificateAsync and
+                // the three API delete paths were routed through it, but this MVC action was
+                // never switched over, so the fix was live everywhere except the click path.
+                // Delegate here too: one audited delete implementation, no second path to drift.
+                if (!await _certificateService.DeleteCertificateAsync(
+                        certificate.Id,
+                        userRole: "Admin",
+                        userId: GetCurrentUserId() ?? 0,
+                        username: GetCurrentUsername()))
+                {
+                    _logger.LogError("Delete failed for certificate {Number} (id {Id})", deletedNumber, certificate.Id);
+                    return StatusCode(500, new { success = false, message = $"Error deleting certificate {deletedNumber}." });
+                }
 
                 _logger.LogInformation("Certificate {Number} deleted by user {UserId}", deletedNumber, GetCurrentUserId());
 
@@ -2009,10 +2041,12 @@ namespace GCCWebApp.Controllers
                 {
                     var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
                     var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
+                    // DEF-358: mirror the CertificateSingleView gate — no PDF before the effective date.
+                    var isNotYetEffective = CertificateVisibility.IsNotYetEffective(certificate);
 
-                    if (!isPublicStatus || isExpired)
+                    if (!isPublicStatus || isExpired || isNotYetEffective)
                     {
-                        _logger.LogWarning("Anonymous download denied for non-public certificate: {CertificateNumber}, Status: {Status}, Expired: {Expired}", id, certificate.Status, isExpired);
+                        _logger.LogWarning("Anonymous download denied for non-public certificate: {CertificateNumber}, Status: {Status}, Expired: {Expired}, NotYetEffective: {NotYetEffective}", id, certificate.Status, isExpired, isNotYetEffective);
                         return NotFound($"Certificate {id} is not currently available for public download.");
                     }
                 }
@@ -2198,9 +2232,11 @@ namespace GCCWebApp.Controllers
         /// <summary>
         /// DEF-204: shared gate for ViewCertificateFile + ViewCertificateImage.
         /// Admin / Analyst → unrestricted.
-        /// Anonymous → only PublicStatuses, only non-expired.
-        /// External → must be in user's CompanyIds AND in PublicStatuses (non-expired).
-        /// Partner → must be in user's PartnerNames AND in PublicStatuses (non-expired).
+        /// Anonymous → only PublicStatuses, only non-expired, only on/after EffectiveDate (DEF-358).
+        /// External → must be in user's CompanyIds AND in PublicStatuses (non-expired). The owning
+        ///            company still sees its own not-yet-effective certs (DEF-358 scope decision).
+        /// Partner → must be in user's PartnerNames AND in PublicStatuses (non-expired), and only
+        ///           on/after EffectiveDate (DEF-358 — parity with the partner API).
         /// All other roles → denied.
         /// </summary>
         /// <summary>
@@ -2244,6 +2280,16 @@ namespace GCCWebApp.Controllers
             if (!isPublicStatus || isExpired)
             {
                 denyReason = $"non-public (Status={certificate.Status}, Expired={isExpired})";
+                return false;
+            }
+
+            // DEF-358: not-yet-effective certs are hidden from the PUBLIC and PARTNER (Amazon)
+            // surfaces only. External users are the owning company and deliberately keep visibility
+            // of their own upcoming certs (client decision, Shawn 2026-08-17), so this gate is
+            // scoped by role rather than applied above alongside the status/expiry check.
+            if ((role == "Public" || role == "Partner") && CertificateVisibility.IsNotYetEffective(certificate))
+            {
+                denyReason = $"not yet effective (EffectiveDate={certificate.EffectiveDate:yyyy-MM-dd})";
                 return false;
             }
 
@@ -2376,10 +2422,13 @@ namespace GCCWebApp.Controllers
                 {
                     var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
                     var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
+                    // DEF-358: same window gate as Download() — this entry point keeps its own copy
+                    // deliberately (see the DEF-103 note above) so it cannot regress independently.
+                    var isNotYetEffective = CertificateVisibility.IsNotYetEffective(certificate);
 
-                    if (!isPublicStatus || isExpired)
+                    if (!isPublicStatus || isExpired || isNotYetEffective)
                     {
-                        _logger.LogWarning("Anonymous download-by-number denied for non-public certificate: {CertificateNumber}, Status: {Status}, Expired: {Expired}", number, certificate.Status, isExpired);
+                        _logger.LogWarning("Anonymous download-by-number denied for non-public certificate: {CertificateNumber}, Status: {Status}, Expired: {Expired}, NotYetEffective: {NotYetEffective}", number, certificate.Status, isExpired, isNotYetEffective);
                         return NotFound();
                     }
                 }
@@ -3282,10 +3331,15 @@ namespace GCCWebApp.Controllers
                 if (!pdfFile.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
                     return BadRequest(new { success = false, message = "Only PDF files are accepted" });
 
-                if (pdfFile.Length > 20 * 1024 * 1024)
-                    return BadRequest(new { success = false, message = "File size must be less than 20MB" });
+                // DEF-368: was 20MB here while every other PDF path enforces 10MB
+                // (certificate-create.js:250, FileUploadService IsValidFileSize default,
+                // CertificatesApiController.cs:442, CSV import). A 15MB PDF was rejected on
+                // Create and accepted here, so the documented limit depended on the route used.
+                if (pdfFile.Length > 10 * 1024 * 1024)
+                    return BadRequest(new { success = false, message = "File size must be less than 10MB" });
 
                 var certificate = await _context.Certificates
+                    .OrderByDescending(c => c.EffectiveDate).ThenByDescending(c => c.Id)
                     .FirstOrDefaultAsync(c => c.Number == number);
 
                 if (certificate == null)

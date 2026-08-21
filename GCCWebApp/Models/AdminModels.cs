@@ -19,7 +19,18 @@ namespace GCCWebApp.Models
         NotFound,
 
         /// <summary>The update threw; details are in the server log. Maps to 500.</summary>
-        Failed
+        Failed,
+
+        /// <summary>
+        /// DEF-366: another live user already owns the requested email. Maps to 409 with a message
+        /// naming the address, so the admin can act on it. Previously this case had no result of
+        /// its own: the email was assigned, the database's unique index threw on save, and it came
+        /// back as <see cref="Failed"/> — a 500 reading "Update failed. See the server log for
+        /// details." The user was told nothing they could act on, for an entirely ordinary and
+        /// foreseeable mistake. CreateUserAsync has always reported this properly; only the update
+        /// path did not.
+        /// </summary>
+        DuplicateEmail
     }
 
     // User Management Models

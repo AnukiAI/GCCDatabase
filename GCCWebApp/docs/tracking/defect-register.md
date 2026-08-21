@@ -601,7 +601,7 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 
 - **Date:** 2026-06-12
 - **Severity:** High (live credential in source control — present in git history, not just the working tree). Mitigating factors: it is a *dev* Gmail App Password (revocable, scoped to send-mail, not the account password), and it lives in `appsettings.json` (the Development default), not `appsettings.Production.json`. Still must be rotated + purged.
-- **Status:** **OPEN — flagged, not fixed (no code changed).** Surfaced during the CR-009 outbound-email verification, 2026-06-12.
+- **Status:** **Finding 2 FIXED 2026-08-19 (built, pending deploy). Finding 1 STILL OPEN — the Gmail App Password has not been rotated or purged from git history.** Surfaced during the CR-009 outbound-email verification, 2026-06-12.
 - **QC Ref:** none (internal finding while verifying CR-009 / QC #150 forgot-password delivery).
 - **Bucket:** Bug (security — secret in source control) + Config (prod email unwired).
 - **Linked memory.** [[security-plaintext-gmail-credential]], [[reference_amazon_key_in_devguide_pdf]] (same class — plaintext secret committed; rotation + git-history cleanup pending). Relates to CR-009 in the change-request register.
@@ -609,6 +609,74 @@ Test artifacts: `qc159-live-check/older-defs-grouped-sweep.js` + `older-defs-gro
 - **Finding 2 — prod email is a no-op (relates to CR-009 / QC #150).** `Program.cs:486-503` registers the real `EmailService` only when `SmtpSettings:Host/Username/Password` are all non-empty; `appsettings.Production.json:90` has all three `""`, so production resolves to **`MockEmailService`** — forgot-password reset links and email 2FA codes are generated and stored but **never sent**. (Caveat: a Plesk runtime env-var override `SmtpSettings__Host/__Username/__Password` would change this — must be confirmed on the live box; per committed config alone it is Mock.)
 - **Recommended remediation (not yet done).** (1) Rotate/revoke the exposed Gmail App Password in the Google account immediately. (2) Move the dev secret to user-secrets / environment variables; replace the JSON value with an empty string or placeholder. (3) Purge from git history (filter-repo/BFG) or accept-and-rotate if history rewrite is out of scope. (4) For prod, configure a real domain SMTP/relay sender (the `noreply@yourdomain.com` placeholder in `appsettings.Production.json:96` is unfilled) so CR-009 / QC #150 can actually pass, then re-test forgot-password end-to-end.
 - **Files (for remediation, none touched yet):** `appsettings.json` (dev secret), `appsettings.Production.json` (unfilled prod `SmtpSettings`). No code change required for the secret itself; the prod-email wiring is config-only.
+
+#### Resolution of Finding 2 — 2026-08-19 (built, pending deploy)
+
+Triggered by the client setting up a mailbox on the test environment and asking for 2FA and
+password reset to be switched on.
+
+- **"Config-only" was wrong, and filling in the blanks would have failed — twice over.** The mail
+  server was probed directly before anything was changed.
+  - **Transport.** Port **587 advertises no STARTTLS**, and answers an explicit `STARTTLS` with
+    **`503 TLS is not allowed`**. Port **465 negotiates implicit TLS 1.2 cleanly**.
+    `System.Net.Mail.SmtpClient` — what `EmailService` used — has no implicit-TLS mode at all:
+    `EnableSsl=true` always means STARTTLS. Against this server the old code could only have
+    connected by sending the mailbox password **in the clear** on 587. The config's own default was
+    `Port: 587`, so the obvious action was the wrong one.
+  - **Hostname.** The host must be **`accumail3.accuwebhosting.com`, not `mail.gccwebapp.com`.**
+    Both resolve to `72.18.135.96`, but the server presents a DigiCert certificate covering only
+    `accumail3.accuwebhosting.com` (+ `www.`), so the obvious, friendlier host **fails certificate
+    validation before authentication is attempted**. This was missed by my own first probe — a
+    hand-rolled `SslStream` with a permissive validation callback reported "465 implicit TLS OK",
+    because it had been told to accept any certificate. MailKit validates by default and failed.
+    **A probe that disables the check cannot answer whether the check passes.**
+- **Fix 1 — transport.** `Services/EmailService.cs` rewritten from `System.Net.Mail` to **MailKit
+  4.7.0**, which supports `SecureSocketOptions.SslOnConnect`. `IEmailService` is unchanged, so no
+  consumer was touched. New optional `SmtpSettings:Security` key (`SslOnConnect` / `StartTls` /
+  `StartTlsWhenAvailable` / `None`); when absent, transport is inferred — 465 ⇒ implicit TLS,
+  anything else ⇒ STARTTLS — so existing configs keep working.
+- **Fix 2 — the credential survives deploys.** The pre-deploy checklist already warned (line 351)
+  that *"this deploy overwrites `web.config` and `appsettings.Production.json` … any SMTP settings
+  applied on the server will be wiped by this extract … the failure is silent."* Both files ship in
+  the zip, and the repo must not hold a live password, so **neither could hold it durably**.
+  `Program.cs` now loads **`appsettings.Secrets.json`** last — excluded from publish
+  (`GCCWebApp.csproj`), from git (`.gitignore`), and `Scripts/deploy.ps1` **aborts** if it reaches
+  staging. Extracting a zip adds and overwrites but never deletes, so a file absent from the zip
+  survives every deploy. Shape documented in `appsettings.Secrets.template.json`.
+  Environment variables are re-registered after it so they still outrank it.
+- **Fix 3 — the failure is no longer silent.** This stayed broken for months because nothing said
+  so: `MockEmailService` logs and drops, `MockEmailService.TestConnectionAsync()` **always returns
+  true**, and `ForgotPassword` deliberately returns an identical response whether or not mail was
+  sent (DEF-209 anti-enumeration). Startup now logs `Email: LIVE via <host>:<port> (<security>) as
+  <user>` or `Email: DISABLED (MockEmailService) — SmtpSettings missing <keys>` with the
+  consequences spelled out. Password is never logged. **Both branches were verified by running the
+  built app**, not by inspection.
+- **Verified:** build clean (0 errors); publish exclusion proven with a sentinel file (absent from
+  output, ignored by git); overlay proven to override `appsettings.json` at runtime; password
+  confirmed absent from the startup log. **The transport itself is proven end-to-end**: a probe
+  against `accumail3.accuwebhosting.com:465` with a deliberately wrong password reaches
+  `535: Authentication failed` — TLS, certificate validation and the SMTP conversation all succeed,
+  and only the credential is outstanding. **Not yet verified: that the web host can reach
+  port 465 outbound** (probes ran from the workstation, not the server) **and a real authenticated
+  send** — both need the mailbox credential and a deploy.
+- **Sender corrected — the configured one did not exist.** `appsettings.Production.json` shipped
+  `FromEmail: noreply@gccwebapp.com`, carried over from the `noreply@yourdomain.com` placeholder. An
+  SMTP `RCPT` probe on 2026-08-19 shows **`noreply@`, `no-reply@`, `support@` and `info@` all return
+  `550 No such user here`**; the only mailbox on the domain is **`admin@gccwebapp.com`** (accepted,
+  while an invented control address is rejected — so the server does real per-user validation, and
+  the positive result is meaningful rather than a catch-all). `FromEmail` is now
+  `admin@gccwebapp.com`. Had the placeholder shipped, authentication would have succeeded and mail
+  would have failed or bounced at the sender check — a second silent failure downstream of the first.
+  If a friendlier sender is wanted later, **create the mailbox or alias first.**
+- **No `TestConnectionAsync` UI exists**, so post-deploy verification is: read the startup banner in
+  `logs/stdout`, then run a real password reset and confirm the message arrives.
+- **Files:** `Services/EmailService.cs`, `Program.cs`, `GCCWebApp.csproj`,
+  `appsettings.Production.json`, `appsettings.Secrets.template.json` (new), `Scripts/deploy.ps1`,
+  `.gitignore`.
+- **Still open from this defect:** Finding 1 — the Gmail App Password in `appsettings.json:66-73` is
+  unchanged and still in git history. It is also the **fallback sender for any environment that does
+  not override it**; the empty strings in `appsettings.Production.json` are what currently stop the
+  test environment sending as `shawnmwest@gmail.com`. Do not "tidy" those empty keys away.
 
 ### DEF-262 — PDF thumbnail/preview never generates ("Certificate Unavailable — Preview not generated"): DEF-208 moved uploads to App_Data but left several path resolvers pointing at wwwroot, so the cert saves with no preview image — on every environment
 
@@ -6146,7 +6214,14 @@ The materialize-then-sort pattern matches `CertificateTilesApiController.cs:322`
   - `deploy-out/**` — regenerates on next `dotnet publish`
   - `docs/tracking/test-execution-log.md`, `qc-readyforuat-2026-05-01.md`, `qc-manual-tests-2026-05-01.md`, `qc-sit-screenshots-2026-04-24/index.html` — internal docs, not served to users
   - 30+ `.cs` controller/service files lack a UTF-8 BOM but contain only ASCII high-byte content in legitimate string literals; no rendering bug, no action.
-- **Prevention recommendation (NOT implemented — proposing for tracking):** add a pre-commit hook or CI check that greps `^Views/.*\.cshtml$` for the canonical mojibake byte sequences (`â„`, `â€`, `â†`, `â–`, `Â®`, `Â `) and fails the commit. Cheap to wire up; would have caught this at the moment of corruption.
+- **Prevention recommendation — ✅ NOW FULLY IMPLEMENTED (hook 2026-05-03, CI check + signature fix 2026-08-17).** The recommendation offered "a pre-commit hook **or** CI check"; both halves now exist. **Correction to an earlier edit of this entry:** a 2026-08-17 revision described the recommendation as previously unimplemented and credited the whole thing to that day's work. That was wrong — **the pre-commit hook had existed since 2026-05-03** at `.githooks/pre-commit`, tracked, with `core.hooksPath=.githooks` already configured. Only the CI half was missing.
+  - **The hook had a hole, and it is the reason DEF-213 still shipped.** Its pattern was `â„|â€|â†|â–|Â®` — which does **not** match `Ã—` (C3 97 read as Latin-1), the exact sequence in DEF-213's tag-chip close button. The hook was live on 2026-05-03; DEF-213 was found on gccwebapp.com and fixed 2026-05-21, with the guard silent throughout, because the one signature it needed was absent. **A guard is only as good as its signature list** — when a defect of the class a guard covers gets through, check the guard's patterns before assuming the guard is absent.
+  - **Hook widened 2026-08-17** to `â„|â€|â†|â–|Â®|Ã—|Â©|Â°|Â |Ã¢â‚¬`. False positives re-verified the way the original list was: run against the entire tracked `.cshtml`/`.cs`/`.js` corpus (672 files, build output + vendored libs excluded). `Â©`/`Â°`/`Â `/`Ã¢â‚¬` → zero hits. `Ã—` → 4 hits, all in `qc159-live-check/qc-final-batch.js`, the QC script that *detects* DEF-213 and so must contain the sequence it searches for; those 4 lines now carry the existing `mojibake-doc` line-scoped exemption marker. Verified end to end by staging a planted `Ã—` in a Razor view (hook exits 1 with the file and line), then re-staging the same line with the marker (exits 0); index and working tree restored clean.
+  - **CI half added 2026-08-17.** `Scripts/ci/check-encoding.js` greps the render surfaces for the canonical mojibake sequences and exits non-zero on any hit; wired into `.github/workflows/regression-ci.yml` as the **first** step of `build-test`, before the .NET setup, so a corrupted view fails in seconds instead of after a Release build. It backstops the hook, which `git commit --no-verify` can bypass.
+  - **Scope:** `Views/**/*.cshtml` (as recommended here) **plus `wwwroot/js/**/*.js`** — widened because DEF-213's `&times;` convention lives there and those strings are injected straight into the DOM, so corruption is equally user-visible. 98 files scanned, currently clean.
+  - **Signatures:** the six proposed here (`â„`, `â€`, `â†`, `â–`, `Â®`, `Â `) plus `Ã—` (the sequence that actually shipped in DEF-213 and was **not** on the original list), `Ã¢â‚¬` (double-encoding, per the Burt's Bees case), `â€™ â€œ â€¢ â€¦ â„¢ Â© Â°`. All are 2+ characters — bare lead bytes (`Ã`, `Â`, `â`) would false-positive on legitimate accented text.
+  - **Tracking docs are deliberately OUT of scope.** `docs/tracking/*.md` and `observations_log.md` contain mojibake *on purpose* — this entry, DEF-213, DEF-232, DEF-307 and the Burt's Bees investigation all quote the corrupted sequences as evidence. Scanning them would fail the build on correct documentation. Quoted mojibake is documentation; mojibake in a render surface is a bug.
+  - **The guard is proven able to fail, not just to pass.** `--self-test` plants every signature and asserts the detector fires on each, plus asserts a clean file passes; CI runs it before the real scan, so a green result means the detector still works. Separately validated against the real tree by planting `Ã—` in `Views/Certificate/Edit.cshtml` (reproducing DEF-213): guard exited 1 with the exact file:line:column and the right diagnosis, and the file was restored byte-identical (sha256 verified).
 - **Files:** `Views/Product/Management.cshtml`, `Views/Admin/ProductManagement.cshtml`, `Views/Certificate/Edit.cshtml`, `Views/Certificate/Create.cshtml`
 
 ---
@@ -9532,3 +9607,941 @@ Preview reported exactly one change — `Location` — with no phantom Partner/C
 **Not changed:** `CompanyId`, `ProductId` and `CertificationTypeId` remain unconditional. They are required fields that always resolve to a value, so they cannot be blanked by omission — the Company re-pointing noted above is find-or-create working as designed, not this defect.
 
 **Dev data note:** `23-0753` was fully restored (Company, Cert Results, Partner + M2M link, Product/Category/Type) and the stray company and product created by the test were removed. Verified by re-running the reconciliation.
+
+---
+
+### DEF-356 — Country list was sovereign-states-only, so real manufacturing locations (Puerto Rico, Wales) could not be stored or re-selected
+
+**Date:** 2026-08-14 | **Status:** **FIXED 2026-08-14 — build clean, 46/46 country unit tests green. Not deployed. Migration re-run required (see below).** | **Severity:** **Major** — blocks the go-live load from representing 8 of the client's certificates correctly, and produces the DEF-343 silent-rewrite shape on Edit. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal), from a client question about the reconciliation output.
+
+**How it was found.** The client asked what the "Country ×15" line in the migration reconciliation actually meant. The log had recorded it as *"The Netherlands → Netherlands, the DEF-347 canonicalisation working as intended"* — true of 9 rows, but the mismatch CSV showed **two** patterns, not one:
+
+| Certificates | Source value | Loaded value | Rows |
+|---|---|---|---|
+| 24-1633/34/35, 26-0462/63/64, 26-0476/77/78 | `The Netherlands` | `Netherlands` | 9 |
+| 26-0158 → 26-0163 (HID Global) | `Wales` | `United Kingdom` | 6 |
+
+The Netherlands half is genuine canonicalisation. The Wales half is not — it is an alias **discarding a value the client deliberately supplied**.
+
+**The defect.** `Models/CountryList.cs` held 197 entries, and the number was not arbitrary: **193 UN member states + Vatican City + Palestine (the two UN observers) + Kosovo + Taiwan**. That is a coherent definition — *sovereign states* — and it is the wrong one for this application. `Certificate.Country` records **where a product was made or tested**, and manufacturing happens in places that are not sovereign states. ISO 3166-1 itself carries 249 entries precisely to cover them.
+
+The client's own migration source proves it. Across 5,390 certificates there are 34 distinct Country values, and two do not resolve:
+
+- **`Puerto Rico` (2 certs)** — ISO 3166-1 `PR`, a major pharma/consumer manufacturing location, simply absent from the list.
+- **`Wales` (6 certs)** — aliased away to `United Kingdom`.
+
+**Why it is Major rather than cosmetic — this is the DEF-343 shape.** Unresolved values are **passed through verbatim** by the migration SQL generator (`2026-08-13-migration-sql-generator.py:215`, which does log them to `review-unmapped-countries.csv` — it was not silent). So the dev rehearsal database currently holds **19 certificates whose Country the Edit dropdown cannot render**:
+
+| Loaded value | Rows | Cause |
+|---|---|---|
+| `United States; China; Poland` | 8 | multi-country — CR-037 |
+| `United States, Canada` | 6 | multi-country — CR-037 |
+| `Hungary; Germany` | 2 | multi-country — CR-037 |
+| `Puerto Rico` | 2 | **this defect** |
+| `United States; Canada` | 1 | multi-country — CR-037 |
+
+For any of these the `<select>` renders blank because the stored value is not an option, and the next analyst save silently rewrites the field — exactly DEF-343.
+
+**FIX APPLIED.**
+
+1. **Countries expanded 197 → 220.** Added the ISO 3166-1 territories that are genuine manufacturing/business locations: Aruba, Bermuda, British Virgin Islands, Cayman Islands, Curacao, Faroe Islands, French Polynesia, Gibraltar, Greenland, Guam, Guernsey, **Hong Kong**, Isle of Man, Jersey, Macau, New Caledonia, **Puerto Rico**, Sint Maarten, United States Virgin Islands. Hong Kong is the one with no rows today but near-certain future need — a separate customs territory and a dominant consumer-electronics source.
+2. **The four UK constituent countries are now selectable** — England, Northern Ireland, Scotland, Wales — and their aliases to `United Kingdom` were **removed**. This is a deliberate departure from ISO (which calls them subdivisions, `GB-WLS` etc.), taken on the client's instruction 2026-08-14 because they supply these values and expect them back. `UK` / `Great Britain` / `Britain` still resolve to `United Kingdom`.
+3. **Alias gaps closed:** `Türkiye` → Turkey (ISO renamed it in 2022, so current documents use it and it previously failed to resolve), `Holy See` → Vatican City, `East Timor` → Timor-Leste, `Republic of Ireland` / `Eire` → Ireland, plus the customs-paperwork forms for the new territories (`Hong Kong SAR`, `Macao`, `US Virgin Islands`, `BVI`, …). 32 → 46 aliases.
+
+**Guard against the obvious over-correction.** Adding the UK four must not read as "sub-national units are countries now". `CountryList_OtherSubNationalUnits_StillDoNotResolve` asserts that `Ontario`, `Alberta`, `California`, `Bavaria` and `Catalonia` still fail, so a bad Location→Country split still fails loudly. The UK four are a named exception, not a new rule.
+
+**Verified.**
+- `CountryList_IsAlphabeticalAndFreeOfDuplicates` — the dropdown renders `Countries` verbatim, so authoring order *is* display order. Also asserts ASCII-only, matching the list's existing convention (`Ivory Coast`, not `Côte d'Ivoire`) because this codebase has had mojibake defects in CSV export, and `Normalize()` strips accents anyway.
+- `CountryList_EveryAliasTargetExistsInTheCountryList` extended to the new aliases — all 46 targets exist.
+- Replayed all 34 distinct Country values from the client's real source files against the new list: `Puerto Rico` and `Wales` now resolve to themselves, `The Netherlands` still canonicalises, `Atlantis` / `Ontario` / `Alberta, Canada` still reject. The only remaining unresolved values are the **17 multi-country rows**, which are CR-037 scope and deliberately out of this fix.
+- **46/46** country unit tests pass. 11 `ApplyImportAsync_*` tests in the same file fail — **confirmed pre-existing** by stashing this change and re-running the baseline: same 11 failures before and after. Not caused by this fix; needs its own investigation.
+
+**MIGRATION RE-RUN — DONE AND VERIFIED ON DEV 2026-08-14.** The load was regenerated and re-run at 16:15 and reconciled at 16:36, picking up the fixed list automatically (the generator parses `CountryList.cs` directly). Confirmed by querying the database rather than reading the run's own CSVs:
+
+| Check | Before (old list) | After |
+|---|---|---|
+| `Wales` | 0 — collapsed into United Kingdom | **6** |
+| `Puerto Rico` | 2, but unselectable on Edit | **2**, now a valid dropdown value |
+| `United Kingdom` | 26 | **20** |
+| Country mismatches in reconciliation | 15 | **9** — Netherlands canonicalisation only |
+
+Full acceptance re-verified at the same time: 5,702 certificates / 5,527 distinct numbers / 312 exempt / 5,474 PDFs / 5,473 thumbnails / **0** certificates sharing a PDF or thumbnail path / **0** NULL `NormalizedNumber` / 3,439 products and 301 companies with **0 orphans** / 16,234 product IDs. The PDF links survived, so the link step was correctly re-run after the load (§4 "load first, link last").
+
+**Runbook figures corrected as a result:** `go-live-test-runbook-2026-08-14.md` quoted **3,305** products against the 5,702-certificate load — a stale carry-over from the pre-CR-038 5,390 run. The true figure is **3,439**; the extra 312 certificates introduce 134 further distinct CR-186 product identities, and the 0-orphan check proves the increase is real rather than purge residue. **×9 is now the correct expected Country number; a run reporting ×15 used the old list.**
+
+**Original re-run rationale (retained for the record).** The dev rehearsal had been loaded with the old list, so:
+- The 6 HID Global certificates (26-0158 → 26-0163) currently read `United Kingdom` and should read `Wales`.
+- The 2 `Puerto Rico` certificates hold a value the dropdown could not previously offer; they now round-trip cleanly.
+Re-running the SQL generator against the fixed `CountryList.cs` is sufficient — the generator parses the list straight out of the `.cs` file (`2026-08-13-migration-sql-generator.py:95`), so no second edit is needed. **The reconciliation baseline changes too**: Country mismatches should drop from 15 to 9 (the Netherlands canonicalisation only).
+
+**Still open, tracked elsewhere:** the 17 multi-country rows (`United States; China; Poland` etc.) remain unrenderable. That is CR-037 (multi-country certificates) and needs either the §87 first-listed-site rule applied in the generator or the CR built. Not folded in here — same reasoning as DEF-347 vs CR-037: a mandatory fix must not be held hostage to an optional feature.
+
+---
+
+### DEF-357 — Deleting a certificate from the browser wrote no audit record: DEF-337's audited delete was live on every API path but never wired to the MVC action the Delete button posts to
+
+**Date:** 2026-08-17 | **Status:** **FIXED 2026-08-17 — build clean (0 errors), verified end-to-end on dev by create→delete through the browser. Not deployed.** | **Severity:** **Major** — silent, unrecoverable loss of the audit trail on the system's core entity, on the one delete path a human actually uses. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal), while proving the Certification Results write path with a throwaway certificate.
+
+**How it was found.** The client asked whether the optional Certification Results field on the Create form actually persists. Code inspection said yes, and 987 of 5,702 rows already carry values — but those came from the migration load, not from anyone typing into the form, so the write path was unproven. A test certificate was created through the real form (26-0482, Certification Results `77%`) and then deleted through the detail page's Delete button. Both worked. Checking afterwards that nothing was left behind, `AuditHistory` held **3 rows — all automated `STATUS_CHANGE` entries from the expiration service**. Neither the create nor the delete had left a trace.
+
+**The defect.** There are two ways to delete a certificate, and they do not behave the same:
+
+| Path | Implementation | Audited |
+|---|---|---|
+| `Api/CertificatesApiController.cs:317` | → `CertificateService.DeleteCertificateAsync` | yes |
+| `Api/v1/CertificatesController.cs:580` | → `CertificateService.DeleteCertificateAsync` | yes |
+| `Api/v1/BulkCertificatesController.cs:283` | → `CertificateService.DeleteCertificateAsync` | yes |
+| `CertificateService.cs:718` (bulk, internal) | → `DeleteCertificateAsync` | yes |
+| **`CertificateController.DeleteConfirmed:1690` — the browser Delete button** | **`_certificateRepository.RemoveAsync()` + `_unitOfWork.CompleteAsync()`** | **no** |
+
+`CertificateService.DeleteCertificateAsync` (`Services/CertificateService.cs:969`) is the DEF-337 fix: it snapshots the certificate plus the seven cascade child sets — `CertificateProductIds`, `CertificateStatusHistory`, `CertificateDocuments`, `CustomFieldValues`, and the `Tags` / `Partners` / `CertificationTypeSubcategories` join rows — and calls `LogEntityDeleteWithChildrenAsync` **before** `SaveChangesAsync`. `DeleteConfirmed` bypassed all of it and wrote a single `ILogger` line, which is not queryable and does not survive log rotation. The controller has `_auditService` injected at `:30` and never used it.
+
+**Why it is Major.** Every FK pointing at `Certificates` is `ON DELETE CASCADE`, so an unaudited delete destroys the certificate *and* its product IDs, status history, documents, custom field values and partner associations with no application code ever seeing them. There is no soft delete (DEF-288 is still parked), so the audit row is the only record that the certificate ever existed. `Certificate.Number` is also reused: the test certificate was deleted and the very next create took `26-0482` again — so the number alone cannot prove what was there before.
+
+**Note the shape — this is DEF-342 again.** DEF-337 was believed to have closed this hole on the UI path; `Api/v1/CertificatesController.cs:575` even carries the comment *"the same hole DEF-337 closed on the UI path, still open on the API"*. The API half was done. The MVC action that the browser actually posts to was not, so the fix was live everywhere except the click path. **Verified through the client's click path** (`feedback_verify_through_client_click_path`) is the rule that caught it; nothing in the code review would have.
+
+**FIX APPLIED.** `Controllers/CertificateController.cs:1706` — `DeleteConfirmed` now delegates to `_certificateService.DeleteCertificateAsync(certificate.Id, userRole: "Admin", userId: GetCurrentUserId() ?? 0, username: GetCurrentUsername())` instead of removing through the repository, and returns 500 if the service reports failure. One audited delete implementation; no second path left to drift. The acting user is now captured, which the previous `ILogger` line did not do in queryable form.
+
+**Verified — the same click path, before and after.**
+
+| | Before fix | After fix |
+|---|---|---|
+| `POST /Certificate/Delete/26-0482` | 200 | 200 |
+| Certificate removed | yes (5703 → 5702) | yes (5703 → 5702) |
+| Orphaned `CertificateProductIds` | 0 | 0 |
+| **`AuditHistory` rows written** | **0** | **1** |
+
+The audit row: `EntityType=Certificate`, `EntityId=5707`, `EntityName=26-0482`, `Action=DELETE`, `ChangedBy=1`, `ChangedByUsername=admin`, `ChangeSource=Web UI`, `Reason="Certificate deleted (role: Admin)"`. `OldValue` holds a 1,289-character entity snapshot including `Number`, `Status`, both dates, `NormalizedNumber`, `Partner` and `CertificationResults` — enough to reconstruct the record.
+
+**Adjacent delete paths checked** (`feedback_scoping_check_adjacent_endpoints`). The only other direct removal of a `Certificate` outside the service is `Services/Import/CertificateImportService.cs:1077`, the import-batch undo. It is **not** affected: it clears children explicitly and does call `LogEntityChangeAsync(AuditAction.Delete)`. One observation, not folded in here — it audits *after* `SaveChangesAsync`, so a throw in the audit call would lose the row where the DEF-337 ordering would not. Worth a separate look; it does not leave a hole today.
+
+**Still open, tracked separately:** the **create** of a certificate also wrote no audit row. This defect and its fix cover the delete path only — whether certificate creates are supposed to be audited at all has not been established and needs its own decision before anything is built.
+
+**Dev data note:** both test certificates were created and deleted on `GCCDatabase_Dev`; the database is back to 5,702 certificates with 0 orphans. The identity seed consumed Ids 5706 and 5707, so there is a harmless gap in the rehearsal set. `AuditHistory` retains the one row from the verification run (Id 4) as evidence.
+
+---
+
+### DEF-358 — Certificates were published before their effective date: every public and partner gate tested status + expiration only, never the effective date
+
+**Date:** 2026-08-17 | **Status:** **FIXED 2026-08-17 — build clean, 18/18 new unit tests green. Not deployed.** Stakeholder row in `shipped-2026-08.md`, logged as **"Prepared 2026-08-17 — not yet deployed"** (July's convention for prepared-but-unreleased work) — that row must be re-labelled with the deploy date and bundle name when this actually ships, since the shipped log is used as client receipts. | **Severity:** **Major** — the public database and the Amazon partner API both presented not-yet-in-force certificates as active certifications. 9 of 67 publicly-visible certs on the client's test environment were in that state, 6 of them partner-tagged and therefore going out over the API. | **QC Ref:** none. | **Found by / Reporter:** client via Shawn — *"the public database is showing certificates that have not yet hit their effective date… they should only be visible on the public side when it's within the certs effective and expiration period. Also, the same would be true for the passing of information through the API. I don't believe Amazon is validating the effective date has been met?"*
+
+**The workflow this breaks.** Staging a certificate ahead of time is normal practice for the team: the cert is set to Client Approved - Paid while the effective date is still weeks out, so everything is ready when the date arrives. The application published it immediately instead.
+
+**Root cause.** Every public-facing and partner-facing gate in the codebase implemented visibility as **status + upper bound only**:
+
+```csharp
+PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= businessToday)
+```
+
+`EffectiveDate` existed on the model, was validated at save (DEF-273 enforces Expiration > Effective) and was used for sorting (`OrderByDescending(c => c.EffectiveDate)`) — but **was never used as a visibility filter anywhere**. There was no lower bound. Confirmed by inspection across all ~29 gate sites; no site had one.
+
+**The partner API was the weaker of the two surfaces.** `Controllers/Api/v1/CertificatesController.cs` filtered on **status alone** — no date test at either end. Its expiration protection is indirect, relying on `CertificateExpirationService` flipping status to Expired on a sweep. So Amazon received these certs reported as `status: "Active"`, and — per the client's own read, which the code supports — has no effective-date field to validate against on its side.
+
+**Blast radius, measured on the client's environment** (`gccwebap_certificates`, not dev — `feedback_diagnose_on_clients_environment`). 9 of 67 publicly-visible certs, 6 partner-tagged:
+
+| Cert # | Status | Effective | Expires | Company |
+|---|---|---|---|---|
+| 26-9879 | Client Approved - Paid | 2026-08-19 | 2026-08-31 | 3M |
+| 26-10052 | Client Approved - Paid | 2026-09-10 | 2027-09-10 | Test Upload |
+| 26-10055 | Republished | 2026-09-13 | 2027-09-13 | Sonos |
+| 26-10061 | Client Approved - Paid | 2026-09-19 | 2027-09-19 | (100-char test company) |
+| 26-10064 | Republished | 2026-09-22 | 2027-09-22 | Acme Corporation |
+| 26-10079 | Client Approved - Paid | 2026-10-07 | 2027-10-07 | Herman Miller Inc. |
+| 26-10082 | Republished | 2026-10-10 | 2027-10-10 | Forbo Flooring Systems |
+| 26-10088 | Client Approved - Paid | 2026-10-16 | 2027-10-16 | Cree Lighting |
+| 26-10091 | Republished | 2026-10-19 | 2027-10-19 | Comcast |
+
+Most of that set is seeded test data, but the defect is in the code, not the rows. **The go-live dataset carries it too**: in the migrated dev rehearsal set, 981 certs would be publicly visible and **16 have future effective dates**. Without this fix the condition ships into production with real client certificates.
+
+**SCOPE — client decision (Shawn, 2026-08-17): hide from anonymous public and the Amazon/partner surface ONLY.** Logged-in External (owning company) users and internal Admin/Analyst users keep seeing upcoming certs — a company needs to know its certificate is queued, and analysts stage them deliberately. This is why the fix is scoped by role rather than applied globally, and why `CertificateTileExternalApiController` and `ExportController` are deliberately untouched.
+
+**FIX APPLIED.**
+
+1. **New single source of truth: `Models/CertificateVisibility.cs`.** Rather than 29 hand-edited inline predicates (the shape that produced DEF-103/164/198/204/205), the rule lives in one place: `IsPubliclyLive` (in-memory), `PubliclyLiveExpression` / `WherePubliclyLive` (EF), `IsNotYetEffective`, and `WhereEffectiveDateReached` for call sites that already own their status/expiry filters. All take an optional `asOf` clock seam so the boundary is falsifiable in tests rather than dependent on the ambient date (`feedback_confirm_means_falsifiable`).
+2. **Both bounds inclusive.** A cert is live **on** its effective date and remains live **through** its expiration date, matching the existing expiration semantics ("shows through its expiration day, expires the day after"). `default(DateTime)` on either bound means unbounded on that side, so legacy/imported rows with no effective date set are unaffected — this is a new lower bound, not a new required field.
+3. **No background job.** The window is enforced at query time, so a cert publishes itself the morning its effective date arrives. No scheduler, no status flip, no migration.
+4. **Public surfaces:** `CertificateSearchFilter.ExcludeNotYetEffectiveByDate` added and honoured in `CertificateRepository` (paired with the existing `ExcludeExpiredByDate`), set by the public tile list; `CertificateTilesApiController` filters + autocomplete endpoints moved to `WherePubliclyLive()`; anonymous gates in `CertificateSingleView`, `Download`, `DownloadByNumber`, and the shared `FileAccessAllowed` all extended. `EfQueryWarmupService` updated so the warmed query still matches the real one.
+5. **Partner/Amazon API:** all 9 gate sites in `Controllers/Api/v1/CertificatesController.cs` — list, search, expiring-soon, GS1 list, GS1 single, by-id, by-number, by-id-or-number, file download. Not-yet-effective certs are **omitted from lists and 404 on direct lookup**, exactly as non-active certs already are.
+6. **CSV export (`CertificateService.ApplyExportSecurityScope`) — added 2026-08-17 after Gate 3 caught it.** `CertificateController.ExportCertificates` is **`[AllowAnonymous]`**, and the method guarding it filtered on `PublicStatuses` alone. So the first build of this fix would have shipped a contradiction: the public site, detail page, PDF endpoints and Amazon feed all withholding a cert while the anonymous CSV export still handed it over. **Root cause of the drift is in the method's own doc comment** — it said it "mirrors `CertificateTileExternalApiController`", and the *external* tile view is deliberately ungated here; the anonymous branch is not external and had to mirror the *public* view instead. Public and Partner branches now compose `WhereEffectiveDateReached()`; External stays ungated per the scope decision; Admin/Analyst unrestricted.
+   - **Lesson for the next one of these:** an "audit adjacent endpoints" pass that greps for the *code pattern* misses a call site whose comment claims kinship with a surface that is intentionally exempt. Gate 3's mechanical sweep (every `PublicStatuses` gate, classified gated/ungated) found it; reading the diff did not.
+
+**Amazon contract impact — shape unchanged (`feedback_amazon_api_immutable`).** Omitting the cert was chosen over returning it with a new `"Pending"` status precisely because the latter would introduce a new status value into a frozen contract and require partner sign-off. No field was added, removed, or retyped; the only change is which rows qualify. Gate 4's `amazon-contract-diff.js` must still print CONTRACT UNCHANGED before deploy. **Operational note for the deploy:** if Amazon has already ingested the 6 partner-tagged certs above, they will read the omission as a deactivation and then a re-activation when each effective date lands.
+
+**Verified.**
+- **18/18** new tests in `GCCWebApp.Api.Tests/Unit/Services/DEF358_EffectiveDateVisibilityTests.cs`, all on a fixed clock (`2026-08-17`) with no ambient date anywhere in the file. Covers day-before / day-of / day-after on the effective bound; day-of / day-after on the expiration bound (proving the upper bound did not shift); `default(DateTime)` on each bound; both public statuses subject to the gate, not just Paid; all six non-public statuses still hidden inside the window; and an equivalence assertion that the EF predicate and the in-memory helper return the identical id set — a listing that hides a cert while the detail page shows it is this same defect again.
+- `WhereEffectiveDateReached` asserted to apply **only** the lower bound, since the partner API composes it on top of its own status and partner filters and must not independently drop expired or non-public rows.
+- Build clean (0 errors).
+- **87 test failures in the wider suite are pre-existing on the `ci-regression` branch, not caused by this fix.** Proved rather than assumed: the gate was temporarily neutralised at its choke point in `CertificateVisibility` with every call site left in place, and the suite returned the **same 87** failures. Restored, the suite goes 697 → 715 passed, 784 → 802 total — **+18 passed, 0 new failures.**
+
+**Not changed, deliberately:** `ExportController`'s "active certificates" / "expiring soon" reports are `[Authorize(Policy = "AnalystOrAdmin")]` internal reports and keep full visibility per the scope decision above. One nuance worth a decision if the client wants it tightened: a user with role **External** who carries a partner association (the umbrella case, `feedback_external_user_umbrella`) keeps visibility, because the gate keys on role `Partner` / anonymous. Role `Partner` — API key and portal login alike — is gated.
+
+**Pre-existing issue observed, not fixed here:** the partner API has no direct expiration test at all, relying on the auto-expire sweep to flip status. Between sweeps a past-expiry cert can still be served as `status: "Active"`. Out of scope for this defect; flagged for its own decision.
+
+**LIVE VERIFICATION on localhost:5101 (2026-08-17), against `GCCDatabase_Dev`** — the migrated
+rehearsal set, which carries 16 future-effective public certs. Dev server restarted onto the new
+build first; every check below was run through the real HTTP surface, not the test harness.
+
+*Test subjects.* `Charter Next Generation` has **38** currently-effective public certs
+(25-8189 … 25-8226) plus exactly **2** future-effective (`26-0224`, `26-0225`, both effective
+2026-09-01). Amazon is tagged on **210** public certs, **2** of them future-effective (`26-0441`,
+`26-0442`, effective 2026-10-21). Both give a clean expected-count target.
+
+| Surface | Caller | Result |
+|---|---|---|
+| Public tile view (browser, searched "Charter Next Generation") | anonymous | **38 tiles**, 25-8226 → 25-8189. `26-0224`/`26-0225` absent — and the sort is newest-first, so they would have been the **first two tiles** if the gate were not working |
+| `GET /api/certificate-tiles?search=Charter Next Generation` | anonymous | `totalCount = 38` (was 40) |
+| `/Certificate/CertificateSingleView/26-0224` | anonymous | **404** — *"Certificate 26-0224 is not currently available for public viewing."* |
+| `/Certificate/CertificateSingleView/25-8189` (control) | anonymous | **200**, renders |
+| `/Certificate/ViewCertificateFile/1308` (26-0224) | anonymous | **404** |
+| `/Certificate/ViewCertificateImage/1308` (26-0224) | anonymous | **404** |
+| `ViewCertificateFile` control (25-8189) | anonymous | **200**, real 746 KB PDF |
+| `/Certificate/CertificateSingleView/26-0224` | **admin** | **200** |
+| `/Certificate/ViewCertificateFile/1308` | **admin** | **200**, PDF |
+
+The last two rows are the scope decision demonstrated on both sides of the boundary: the **same cert
+and the same file** return 404 anonymously and 200 internally.
+
+*Amazon partner API*, called with an active Amazon key from `PartnerApiKeys`:
+
+- Paged the **entire** feed (not page 1 — the endpoint caps at 100/page): **208 certificates, 208
+  distinct.** DB expectation for live-only Amazon certs is exactly 208.
+- `26-0441` and `26-0442` appear nowhere in the feed.
+- `GET /api/v1/certificates/number/26-0441` → **404**; `GET /api/v1/certificates/gs1/26-0441` →
+  **404**. Control `26-0310` → **200** on both.
+- Equal counts are not the same rows ([[feedback_equal_counts_are_not_the_same_rows]]), so the API
+  set was diffed against the expected set **in both directions**: *in-API-but-not-expected: none;
+  expected-but-not-in-API: none.* Exact set equality.
+
+*Note on the download route.* `/Certificate/DownloadByNumber/{n}` returns 404 for the control cert
+too, even though it has a linked file — so that route does **not** discriminate here and was not
+used as evidence. `ViewCertificateFile` / `ViewCertificateImage` were used instead; they are the
+paths that actually route through `FileAccessAllowed`. Why `DownloadByNumber` 404s on a cert with a
+file on disk is unrelated to this defect and is not investigated here.
+
+*Not verified live:* the Analyst role specifically. `GCCDatabase_Dev` contains only two users, both
+Admin — the analyst/external accounts do not exist in the test-env clone. Admin and Analyst take the
+identical short-circuit at the top of `FileAccessAllowed`, so the Admin rows above exercise the same
+branch, but an Analyst session was not driven.
+
+---
+
+### DEF-359 — "Active Product Identifiers" export still used the pre-DEF-358 definition of "publicly live", so it exported identifiers for certificates the public site and Amazon API withhold
+
+**Date:** 2026-08-17 | **Status:** **FIXED 2026-08-17 — build clean (0 errors), verified end-to-end against the live export and independently against the database. Not deployed.** | **Severity:** **Moderate** — an internal file, but it discloses product identifiers for certificates that are deliberately not yet public, and it carries an `ID Partner` column naming Amazon. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal), while verifying DEF-358 on every surface.
+
+**How it was found.** DEF-358 was verified as correct on all three public surfaces (public tile API 965 = 981 − 16; public single view 404 for not-yet-effective with a 200 control on the same route; the Amazon partner API's full 208-row set clean). The scope note in `Models/CertificateVisibility.cs` records that `ExportController` was excluded **deliberately**, on the reasoning that internal Admin/Analyst users should keep seeing upcoming certificates. That reasoning holds for a staff-facing screen. It does not sit well with **this particular export**, whose own docstring defined its filter as *"parent cert is publicly live"* — a phrase DEF-358 had just redefined. Downloading the file and scanning it confirmed the divergence.
+
+**The defect.** `Controllers/ExportController.cs:262` filtered on status alone:
+
+```csharp
+.Where(p => p.IsActive && CertificateStatusHelper.PublicStatuses.Contains(p.Certificate.Status))
+```
+
+After DEF-358, "publicly live" means publishable status **AND** inside the validity window. The export kept the status half only, so certificates staged with a future effective date still contributed their identifiers:
+
+| Certificate | Rows | Effective |
+|---|---|---|
+| `26-0441` | 12 | 2026-10-21 |
+| `26-0442` | 2 | 2026-10-21 |
+
+14 rows, two months ahead of going public. Only 2 of the 16 not-yet-effective certificates appear because the other 14 have no product identifiers — the exposure scales with whatever is staged, it is not inherently a 14-row problem.
+
+**Why it matters more than an internal report normally would.** The file is titled *Active Product Identifiers*, and CR-015 makes a product identifier's status follow its parent certificate — so "active" identifier for a not-yet-active certificate is self-contradictory. It carries `ID Partner` and `Cert Partner` columns populated with `Amazon`, and it is the cross-certificate file an analyst hands over for validation. The public database and `/api/v1/certificates` both withhold these certificates by design; this CSV did not, so the one artifact most likely to be forwarded was the one that leaked.
+
+**FIX APPLIED.** `Controllers/ExportController.cs:262` now composes the DEF-358 lower bound as a certificate-id subquery:
+
+```csharp
+var effectiveCertIds = _context.Certificates.WhereEffectiveDateReached().Select(c => c.Id);
+... .Where(p => p.IsActive
+            && CertificateStatusHelper.PublicStatuses.Contains(p.Certificate.Status)
+            && effectiveCertIds.Contains(p.CertificateId))
+```
+
+It **reuses `CertificateVisibility.WhereEffectiveDateReached`** rather than restating the date comparison inline. That is deliberate and is the DEF-357 lesson applied: a second copy of a rule is a second thing to drift. The docstring was corrected in the same edit so the stated definition of "Active" and the code now agree.
+
+**Lower bound only, deliberately.** The upper bound stays with the status filter: `CertificateExpirationService` flips `Status` to `Expired` on a daily sweep, so an expired certificate leaves `PublicStatuses` on its own. Only the not-yet-effective case had no status transition to carry it — which is the whole reason DEF-358 existed.
+
+**Scope note — this narrows DEF-358's documented exclusion, on instruction.** `CertificateVisibility.cs` states the not-yet-effective gate applies to anonymous public + partner surfaces only, and names `ExportController` as out of scope (client decision, 2026-08-17). This fix brings **one endpoint** — `DownloadActiveProductIds` — inside the gate, on Shawn's instruction after the finding was reported the same day. The rest of `ExportController` is untouched, and `CertificateTileExternalApiController` (the owning-company surface) is untouched. If the original blanket exclusion was intended to cover this endpoint too, this is the entry that records the change.
+
+**Verified — the live export, and the database independently.**
+
+| | Before fix | After fix |
+|---|---|---|
+| Export HTTP | 200 | 200 |
+| `Total Active Product Identifiers` header | 16,096 | **16,082** |
+| Rows for the 16 not-yet-effective certs | **14** (`26-0441` ×12, `26-0442` ×2) | **0** |
+| Control `23-0753` (effective 2023-10-01) | 11 rows | **11 rows** |
+
+The two totals were **not** taken from the delta. The same two rules were run straight against the database — status-only returns 16,096, status + effective-reached returns 16,082, difference 14 — and both match the export byte-for-byte in row count. `26-0478` was initially used as the "still present" control and is **not** a valid one: it has 0 active product identifiers, so its absence proves nothing. `23-0753` is the real control.
+
+**Unrelated observation, not diagnosed, logged here so it is not lost.** This endpoint intermittently returns **HTTP 400** — 3 failures then 4 consecutive successes on the same session and URL, before any change was made. `ExportController.cs:227` catches every exception and returns `BadRequest("Error generating report")`, so a server-side fault is reported with a client-error status and the cause is swallowed. The exception could not be read: a concurrent stream had restarted the app under a different log path. Needs its own investigation — a broad catch mapping server faults to 400 is worth fixing regardless of what the underlying failure turns out to be.
+
+---
+
+### DEF-360 — Active Product Identifiers export times out at 30s on a cold cache and reports the failure as HTTP 400 "Error generating report"
+
+**Date:** 2026-08-17 | **Status:** **FIXED (mitigated + hardened) 2026-08-17 — build clean, export succeeds, output byte-identical. Not deployed. See "What is NOT proven" before closing.** | **Severity:** **Major at go-live volume** — a legitimate admin export fails on the first attempt after every deploy or app-pool recycle, and the error tells the operator nothing true. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal), while re-testing `DownloadActiveProductIds` after DEF-359.
+
+**Symptom, reproduced before any change was made.**
+
+| Run (cold app) | Result |
+|---|---|
+| 1–3 | **HTTP 400 after exactly 30s** |
+| 4–8 | 200 in 18s, then 5–7s |
+
+From the application log:
+
+```
+fail: Microsoft.EntityFrameworkCore.Database.Command[20102]
+      Failed executing DbCommand (30,083ms) [Parameters=[@__unset_0=..., @__today_1=...],
+      CommandType='Text', CommandTimeout='30']
+Microsoft.Data.SqlClient.SqlException (0x80131904): Execution Timeout Expired.
+```
+
+**Two distinct defects, one symptom.**
+
+**1. The 30s command timeout is hit.** `Program.cs:96` sets `CommandTimeout(Configuration.GetValue<int?>("Database:CommandTimeoutSeconds") ?? 30)`. That seam was added by **DEF-350** for exactly this class of failure on the certificate-import preview — and it is **set in no appsettings file**, so every environment runs at the 30s default. DEF-350 mitigated its own path and left the seam unused.
+
+**2. A server-side timeout is reported as a client error.** `ExportController.cs:227` catches every exception and returns `BadRequest("Error generating report")`. HTTP 400 means "the caller sent something wrong"; nothing was wrong with the request. The operator sees a failure that looks like bad input, retries, and it works — so it reads as flakiness rather than as a limit being hit. This is the same misreading DEF-350 described.
+
+**FIX APPLIED — both halves.**
+
+1. **`appsettings.json`** — added `"Database": { "CommandTimeoutSeconds": 120 }`. Four times the ceiling that was being blown. This is the change that actually stops the failure.
+2. **`ExportController.cs:282`** — the query was an entity graph: `Include(p => p.Certificate).ThenInclude(Company/CertificationType/Pathway)` plus both `User` navigations, with `AsSplitQuery()`, materialising seven full entities per row in order to read 19 fields off them. It is now a **projection** into a named `ActiveProductIdExportRow` selecting exactly the 19 values the CSV writes. `AsSplitQuery()` is removed with the Includes — there are no collection navigations here, only references, so it was never doing anything. `AsNoTracking()` added.
+
+**Verified — the output did not change.**
+
+| | Before | After |
+|---|---|---|
+| Export HTTP (warm) | 200 | 200 |
+| **Bytes** | **4,354,161** | **4,354,161** |
+| `Total Active Product Identifiers` | 16,082 | 16,082 |
+| Control `23-0753` | 11 rows | 11 rows |
+| DEF-359 population (`26-0441`/`26-0442`/`26-0224`) | 0 rows | 0 rows |
+| Warm end-to-end | 5–7s | 5.2–6.1s |
+
+Byte-identical output across the rewrite is the strongest available evidence that the projection is faithful — every field, every quoting rule, every `DisplayFormatters.FormatCertificationResults` call produces the same CSV.
+
+**What is NOT proven — read this before closing the defect.**
+
+The projection **does not measurably reduce database work**, and the timeout's true cause is not established:
+
+- Logical reads are effectively unchanged: **901 (entity-graph shape) vs 899 (projection shape)**. Selecting fewer columns does not change which pages must be read.
+- The query is **cheap server-side**: ~**115ms**, three consecutive runs, ~900 logical reads.
+- So a 30s SQL timeout on a query that costs 115ms and 900 reads is **not explained by data volume**, and the projection is therefore *not* the thing that fixes it. The timeout bump is.
+
+The most plausible remaining hypothesis, untested: EF's generated command is parameterised (`@__unset_0`, `@__today_1` — the `default(DateTime)` sentinel and the `asOf` date) where the hand-written equivalent uses literals, and got a bad plan. That is a parameter-sniffing investigation, not a five-minute check. **The projection is defensible on its own merits** — less materialisation, less memory, no tracking, and a greppable column set that must be updated when the CSV header changes — but it should not be credited with fixing the timeout.
+
+**Three measurement corrections made during this investigation, recorded so the numbers above are not misread:**
+1. An early "19ms" figure was `COUNT(*)` with no projection and no `ORDER BY` — not representative of the export.
+2. A follow-up "63s, consistently, twice" figure used `SELECT ... INTO #temp`, so it measured tempdb write and client transfer, not query cost. The query is ~115ms server-side. **The claim that the database was pathologically slow was wrong.**
+3. A batch of test runs that returned HTTP 401 were executed against **a different process** — a concurrent stream's build had taken port 5101 after my instance failed to bind. Those results say nothing about this code.
+
+**Environment note that cost time here.** Two sessions are working this repo simultaneously and both bind port 5101; `dotnet run --urls` is **ignored** (the app binds 5101 regardless, and `dotnet run` reports the launcher PID, not the child app PID that owns the socket). Confirm which PID owns the socket before trusting any HTTP result. `%TEMP%` is also being wiped between commands, so download-then-analyse must happen in a single step.
+
+**Recommended follow-up, not done here:** replace the blanket `catch { return BadRequest(...) }` in `ExportController` with a 500 for server-side faults, so a timeout is never again reported as a client error. That pattern is present on all four export actions, not just this one.
+
+**PRE-DEPLOY GATES RUN 2026-08-17** against the isolated DEF-358-only bundle
+(`deployment-drops/GCCWebApp-deploy-20260817-1722-DEF358-FINAL.zip`, dll sha256 `01CC05F4…`).
+
+| Gate | Fires | Result |
+|---|---|---|
+| 0 uploads backup | yes | **NOT DONE — manual, owner: Shawn** |
+| 1 UI / design guide | no | bundle contains 0 `.cshtml` / `.js` / `.css` files |
+| 2 cross-role + responsive | no | no shared layout / nav / role-conditional view changed |
+| 3 data scoping | yes | **found the CSV-export gap (item 6 above)**; re-audit after the fix is clean |
+| 4 Amazon contract | yes | **CONTRACT UNCHANGED**, 7/7 |
+| 5 traceability | always | 9 source files, all DEF-358; register + shipped rows present |
+| 6 performance / EF | yes | cold **0.49s**, warm 0.13s on `/api/certificate-tiles` (ceiling 30s; DEF-234 baseline 23.1s) |
+| 7 migration → schema | **no** | no migration, no mapped-entity change. `CertificateVisibility` is a static helper; `ExcludeNotYetEffectiveByDate` sits on `CertificateSearchFilter`, a plain DTO. Target DB already carries every column HEAD maps |
+| 8 CRUD write paths | no | 0 write-path changes; deliberately not run because it writes fixtures to the dev DB |
+| 9 static integrity | always | **0 FAIL** (22P/10W), selftest **9 ok / 0 failed** |
+| 10 config → data row | always | `1 \| admin \| swest@anukiconsulting.com \| active` on the **target** DB, exactly the documented baseline |
+| 11 post-deploy close-out | after upload | pending |
+
+**Runtime verification, on the artifact (process ownership of :5101 confirmed each time):**
+
+| Surface | Caller | Result |
+|---|---|---|
+| public tile search "Charter Next Generation" | anonymous | 38, not 40 — `26-0224`/`26-0225` absent |
+| `/api/certificate-tiles` | anonymous | `totalCount = 965` on the full migration set (981 public − 16 future-effective) |
+| **anonymous CSV export** | anonymous | **965 rows, was 981**; all four future-effective subjects absent, both live controls present |
+| Amazon feed, paged in full | API key | 208 of 210; set-diffed against expectation **both directions** — no extras, no omissions |
+| `26-0224` detail / PDF / image | anonymous | 404 / 404 / 404 |
+| `26-0224` detail + PDF | **admin** | **200 / 200** — same cert, same file, opposite side of the boundary |
+| `26-0441` by-number + GS1 | Amazon | 404 / 404 |
+
+**Three findings raised by the gates, none fixed here:**
+
+1. **`DEF-343` is NOT in this bundle** (Gate 9, `unshipped-fixes`). Its fix exists only in the working tree; the bundle is built from `HEAD` + DEF-358 by construction. Correct for a "just DEF-358" deploy, recorded so it is not mistaken for shipped.
+2. **The GS1 list endpoint returned HTTP 500 on a cold app** against the 5,702-cert migration dataset — a SQL execution timeout inside a split-include collection, not a contract change (warm run is 7/7 PASS). `EfQueryWarmupService` warms the **tiles** query only, so the partner GS1 path has no warmup cover. Harmless on the test env's 67 public certs; a real risk once the migration lands. Deserves its own DEF.
+3. **Unrecognised role strings are fail-OPEN in the export scope chain.** `Partner`/`External`/`Public` are handled and everything else reaches the unrestricted tail — which is exactly how Admin/Analyst get full access, so an unknown role is indistinguishable from an internal one. Not reachable from the anonymous endpoint today (`GetUserRole()` returns `"Public"`). Locked in by
+   `DEF358_ExportScopeTests.UnrecognisedRole_FallsThroughUnrestricted_ByDesign`, which asserts current behaviour so the day it changes, it changes loudly.
+
+**Two process notes worth keeping:**
+
+- **The bundle cannot hold a login session over plain local HTTP.** It ships only base `appsettings.json` (production-shaped, secure-cookie policy), so a local `http://` login POST succeeds and every subsequent request is anonymous — `/Dashboard` bounces to `/Account/Login`, admin APIs 401. Gate 4 needs an admin session to mint a partner key, so it must run against the same source hosted with Development config, not against the published exe. Nothing wrong with the bundle; the server is HTTPS.
+- **Do not run the app from the publish folder.** Doing so creates `App_Data/uploads/` at runtime, and a subsequent re-publish sweeps those directories into the zip — the exact shape the DEF-286 / 2026-06-15 exclusion exists to prevent. Caught here on the second packaging attempt (empty dirs, no data at risk). The FINAL bundle was produced from a cleared publish output and its zip index was asserted to contain **0** entries matching `App_Data` or `wwwroot/uploads`.
+
+
+---
+
+### DEF-361 — The 2026-08-17 full-rebuild deploy bundle shipped dev data-protection keys in plaintext, plus the dev database config, to the test server
+
+**Date:** 2026-08-17 | **Status:** **Bundle fixed 2026-08-17 (`GCCWebApp-deploy-20260817-2255.zip` ships neither). Server-side remediation still REQUIRED — the files are on gccwebapp.com now.** | **Severity:** **Major** — credential material at rest on a publicly-routable host, during the hardening phase. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal), while diagnosing the post-rebuild test-env gate lockout.
+
+**What shipped.** `GCCWebApp-FULL-EVERYTHING-20260817-2140.zip` was built to the instruction "give me everything … we can't miss any of the defect resolution on the deployment", which was the right call for defect coverage — the previous HEAD-based bundles were silently dropping DEF-343, DEF-356 and CR-038. Sweeping in every folder also caught two that should never leave the workstation:
+
+| Shipped | Contains |
+|---|---|
+| `DataProtectionKeys/` (5 files) | ASP.NET Core key ring, **stored unencrypted** |
+| `appsettings.Development.json` | dev SQL Server connection string incl. password |
+
+The key XML is not merely unprotected in practice, it says so: `<!-- Warning: the key below is in an unencrypted form. -->`. There is no DPAPI or certificate wrapper, so the master key value is readable by anyone who can read the file.
+
+**Evidence this was new, not pre-existing.** Bundle-by-bundle count of `DataProtectionKeys/*.xml`:
+
+| Bundle | Key files |
+|---|---|
+| `deploy-20260804-2230` (known good) | **0** |
+| `deploy-20260807-1312` (known good) | **0** |
+| `deploy-20260817-1722-DEF358-FINAL` | 0 |
+| `deploy-20260817-2057-DEF358-v2` | 0 |
+| **`FULL-EVERYTHING-20260817-2140`** | **5** |
+| `deploy-20260817-2255` (this fix) | **0** |
+
+**Second-order effect.** Dev and the test environment were left sharing one key ring, so a cookie or token minted on either would validate on the other. Nothing exploited that, but it collapses a boundary that should exist.
+
+**What this did NOT cause.** It did not break the test-env gate. Because the keys are unencrypted they load fine on the server — verified live: a `formToken` minted by one request validated correctly on a separate request, and the gate returned `401 "Incorrect password"` to a deliberately wrong password rather than `400 "Your session expired"`. Recorded because the DPAPI/machine-bound-key theory is the intuitive explanation for a cookie-gate failure and it was wrong here.
+
+**FIX APPLIED (bundle).** `GCCWebApp-deploy-20260817-2255.zip` is a clean publish of the same working tree — same defect coverage, 334 files — asserted to contain **0** entries matching `DataProtectionKeys`, `appsettings.Development.json`, `App_Data`, `wwwroot/uploads`, or `.env`.
+
+**REMEDIATION STILL REQUIRED — on the server, by hand.** Deploying the new bundle does not remove what the old one already placed there; extraction overwrites, it does not delete.
+
+1. Delete `DataProtectionKeys/` from the app root on gccwebapp.com. The server regenerates its own ring on next start via `PersistKeysToFileSystem` (`Program.cs:57-61`).
+2. Delete `appsettings.Development.json` from the app root.
+3. Recycle the app pool. **Expect every user to be signed out and re-prompted at the gate** — that is the new key ring taking effect, not a failed deploy.
+4. Treat the dev SQL credential in `appsettings.Development.json` as exposed for the period it was on the host, and rotate it if that host is considered untrusted.
+
+**Prevention.** Deploy bundles must never carry `DataProtectionKeys/` or any `appsettings.<env>.json` other than the target environment's. Note the asymmetry that made this easy to miss: `appsettings.Production.json` **must** be included (its absence is what caused the HTTP 500.30 earlier the same day — it is gitignored, so a clean-HEAD build has no copy and Production throws `missing critical secrets: JWT_SECRET_KEY`), while `appsettings.Development.json` must be excluded. "Include the config files" is not a safe rule; the target environment's file is the only one that belongs.
+
+---
+
+### DEF-362 — Anonymous `/api/certificate-tiles/{id}/download` streamed any certificate PDF with no visibility check; a path bug was the only thing preventing the leak
+
+> **Numbering note.** Filed as DEF-361 and renumbered to **DEF-362** the same day. A concurrent work stream claimed 361 (the deploy-bundle data-protection-keys defect, above) in the window between this session grepping the register for the high-water number and appending its entry. Grepping the register is still the right procedure — it is just not atomic when two streams write the same file. Re-check for a duplicate header immediately after appending.
+
+**Date:** 2026-08-17 | **Status:** **FIXED 2026-08-17 — endpoint DELETED, build clean, removal verified by response shape. Not deployed.** | **Severity:** **High as written, not currently exploitable** — see "Why this was deleted rather than repaired". | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal), auditing endpoints adjacent to DEF-358 per `feedback_scoping_check_adjacent_endpoints`.
+
+**How it was found.** DEF-358 hides not-yet-effective certificates from public surfaces. The adjacent question is whether their **files** are still reachable, so every anonymous file endpoint was tested against four visibility classes, with the file confirmed present on disk in each case so that a 404 proves a gate rather than a missing file:
+
+| Anonymous endpoint | Publicly live | Not-yet-effective | Confidential | Expired |
+|---|---|---|---|---|
+| `/Certificate/Download/{number}` (the public button) | **200, PDF** | 404 | 404 | 404 |
+| `/Certificate/ViewCertificateFile/{id}` | **200, PDF** | 404 | 404 | 404 |
+| `/Certificate/ViewCertificateImage/{id}` | 200 | 404 | 404 | 404 |
+| `/Certificate/DownloadByNumber/{number}` | 200 | 404 | 404 | 404 |
+
+All correct. `/api/certificate-tiles/{id}/download` was the outlier.
+
+**The defect.** `CertificateTilesApiController.cs:532`, `[AllowAnonymous]`:
+
+```csharp
+var certificate = await _certificateRepository.GetByIdAsync(id);
+if (certificate == null) return NotFound(...);
+if (string.IsNullOrEmpty(certificate.CertificateFile)) return NotFound(...);
+var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", certificate.CertificateFile.TrimStart('/'));
+```
+
+**No status check. No validity-window check. No partner or company scoping.** Any certificate addressable by integer id — including the 39 `Client Approved - Confidential` certificates that hold a PDF, plus Expired, Draft, and (post-DEF-358) not-yet-effective ones.
+
+**It leaked nothing only because it was also broken.** That `Path.Combine(GetCurrentDirectory(), "wwwroot", ...)` was the **last hardcoded physical path in any controller** — confirmed by grep, every other file path goes through `IUploadPathResolver`, the single logical→physical mapping DEF-286 established. Uploads moved to `FileStorage:StoragePath` (`C:\GCCData\uploads`) on 2026-08-13, so the endpoint 404'd for all **5,474** migrated PDFs; only 41 legacy files remain under `wwwroot`.
+
+Proven rather than inferred — same certificate, two endpoints, three for three:
+
+| Certificate | File in `wwwroot`? | File in `C:\GCCData`? | `/api/certificate-tiles/{id}/download` | `/Certificate/ViewCertificateFile/{id}` |
+|---|---|---|---|---|
+| 26-0478 (id 4559) | No | **Yes** | 404 | **200, 151,916 bytes** |
+| 26-0477 (id 4558) | No | **Yes** | 404 | **200, 151,923 bytes** |
+| 26-0476 (id 4557) | No | **Yes** | 404 | **200, 151,912 bytes** |
+
+**Why this was deleted rather than repaired.** The endpoint had **no caller anywhere in the codebase** — verified by full-repo sweep across `.cs`, `.js`, `.cshtml`, `.json` and the smoke scripts. The public tile view downloads via `/Certificate/Download/{number}`; the external service targets `/api/CertificateTileExternal/{id}/download`. There are also **zero unit tests** referencing `CertificateTilesApiController`.
+
+So the realistic failure mode is not an attacker finding it — it is a maintainer finding it. A download endpoint that returns 404 for every certificate looks like a straightforward path bug, and the obvious fix is to route it through `IUploadPathResolver` like every neighbouring endpoint. That single edit, made in good faith, publishes every confidential certificate PDF on the system to anonymous callers. The bug was load-bearing. Repairing the path without noticing the absent status check converts a dead endpoint into a data breach, so the method is gone and a comment in its place says why and says **do not restore it**.
+
+**FIX APPLIED.** `Controllers/Api/CertificateTilesApiController.cs` — `DownloadCertificate` deleted, replaced by a comment recording the reasoning and the correct pattern if a tiles-scoped download is ever genuinely needed (gate with `CertificateVisibility` **and** resolve through `IUploadPathResolver`). `docs/qa/coverage-matrix.md:26` corrected: it documented the public "Download cert PDF" action as using this route, which was never true — the public button calls `/Certificate/Download/{number}`.
+
+**Verified — removal proven by response shape, not by status code.** A 404 alone proves nothing here, because the endpoint already returned 404 before deletion via the path bug. The distinguishing evidence:
+
+| | Before | After |
+|---|---|---|
+| Status | 404 | 404 |
+| Content-Type | `application/json` | **none** |
+| Body | `{"error":"Certificate PDF file not found on server"}` | **empty, 0 bytes** |
+
+An empty, untyped 404 is the framework reporting "no route matched"; a JSON error body is the controller running. Control: `/api/CertificateTileExternal/999999/download` still returns a JSON body (401), confirming that a live route on this app produces one.
+
+**No collateral damage.** The rest of the tiles API is unaffected — list 200, `/filters` 200, `/autocomplete` 200 — and the real public download path still behaves correctly: `26-0478` 200 with the PDF, `26-0224` (not-yet-effective) 404, `25-8153` (confidential) 404.
+
+**Related:** DEF-286 (upload path resolver as single source), DEF-358 (validity-window visibility), and the `feedback_scoping_check_adjacent_endpoints` pattern that produced DEF-103/164/198/204/205 — a rule applied to lists and detail views while one sibling endpoint keeps its own copy of the logic.
+
+
+---
+
+### DEF-363 — Deploy left the ASP.NET Core handler inactive, IIS served the app folder as a static site, and appsettings.Production.json (DB password, JWT key, gate password) was downloadable over HTTPS
+
+**Date:** 2026-08-18 | **Status:** **RESOLVED — site restored, exposure closed, verified live.** Secret rotation and IIS-log review still OUTSTANDING. | **Severity:** **Critical** — production-facing credentials publicly readable; site down for several hours. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal), from Shawn's "I deployed the code and got 403-forbidden".
+
+**Reported symptom was misleading.** A 403 on `/` looked like an authorization problem. It was IIS declining to list a directory. The real signal was in the static files:
+
+| Probe | Result | Meaning |
+|---|---|---|
+| `/robots.txt` | 404 | static middleware not running |
+| `/wwwroot/robots.txt` | **200** | physical-path traversal — impossible when ASP.NET Core routing is live |
+| `/GCCWebApp.dll` | **200** | IIS serving the app binary as a static file |
+| `/appsettings.Production.json` | **200, 11,142 bytes** | **the whole config, public** |
+
+`web.config` maps `path="*"` to `AspNetCoreModuleV2`. When that mapping is in effect nothing is served raw, so a raw 200 on the DLL proved the handler was not active and IIS had fallen back to plain static hosting.
+
+**Exposed:** the SQL Server connection string (server, user, password), the JWT signing key, and the test-env gate password. Also `GCCWebApp.dll` (6.4 MB), and — because the 2026-08-17 bundle had placed them there (DEF-361) — five **unencrypted** data-protection key files, addressable by name despite directory listing being denied. Those keys protect the authentication cookie: anyone holding them can forge a session for any user, including admin. Bodies were never retrieved during diagnosis; only status codes and sizes.
+
+**Site stopped within minutes of detection; all paths 503; exposure closed.**
+
+**Root cause of the outage that followed — mine.** Restoring the handler took several failed deploys because of changes I made while diagnosing:
+
+1. **`web.config` request filtering (the actual blocker).** I added `fileExtensions` + `hiddenSegments` so IIS itself would refuse to serve config and binaries even with the handler dead. **Plesk rejects those sections on this server.** Every bundle carrying them failed to start — empty HTTP 500 on every path. The line I replaced said so: *"REMOVED fileExtensions and hiddenSegments to avoid Plesk conflicts."* I quoted that warning in my own comment and shipped it anyway, on the strength of one build serving `/__gate` 200 — which I wrongly called "proven". One served request is not evidence the pool starts cleanly.
+2. **`DataProtection:KeyPath` → `..\DataProtectionKeys`.** `Program.cs` calls `Directory.CreateDirectory` on it with **no try/catch**; the app-pool identity cannot write to the vhost root, so startup threw → **HTTP 500.30**. Reverted.
+3. **`stdoutLogFile` → `..\logs\stdout`** and **`FileStorage:StoragePath` → `..\gcc-uploads`** — shipped in the same build as (2), never independently tested, both reverted.
+
+(2)–(4) came from over-reading a single log line. `"Application is shutting down..."` was a clean, orderly stop — equally consistent with Shawn stopping the site to capture the log, which is likely what happened. A three-part theory was built on it and shipped without a one-variable test.
+
+**What actually resolved it.** Shawn deployed the 2026-08-04 bundle, which worked. That gave a bisect point. A semantic diff (comments stripped, duplicate keys merged the way the config provider merges them) showed `appsettings.Production.json` **byte-identical** between the two, and `appsettings.json` differing only by `Database:CommandTimeoutSeconds=120` (DEF-360). So config was exonerated and only `web.config` and application code differed. Swapping in the 8/4 `web.config` while leaving the new binaries in place restored the site — a clean one-variable test.
+
+**Verified live after the fix:**
+
+| Probe | Result |
+|---|---|
+| `/` | 302 → gate |
+| `/__gate` | 200, form + `formToken` |
+| `/robots.txt` | 200, 77 bytes |
+| `/appsettings.Production.json` | **302 — handled, not served** |
+| `/GCCWebApp.dll` | **302** |
+| `/wwwroot/robots.txt` | **302** |
+| `/api/v1/certificates` | 401 (partner API alive) |
+
+Re-checked after a delay: still up.
+
+**FIX APPLIED.** `web.config` in the repo now matches the working file — request filtering removed, with a comment recording that Plesk rejects it and that this is the *second* time that conclusion has been reached. Verified functionally identical to the 8/4 file across handler, `stdoutLogFile`, `hostingModel`, `processPath`, blocked extensions, hidden segments, env vars and request limits. Shipped as `GCCWebApp-deploy-20260818-0935-GOOD.zip`.
+
+**Why removing the filtering is acceptable.** It only mattered while the handler was inactive. With the handler mapped, `path="*"` takes every request and nothing is served raw — confirmed above. It was defence in depth for a broken state, not a requirement.
+
+**STILL OUTSTANDING:**
+1. **Rotate** the SQL Server password, the JWT signing key, and the gate password. All three were publicly readable for an unknown window.
+2. **Review IIS logs** between deploy and stop for `GET /appsettings.Production.json`, `GET /GCCWebApp.dll`, and the five `DataProtectionKeys/key-*.xml` filenames (listed in DEF-361). If only the four diagnostic probes appear, rotation is precautionary.
+3. **Delete the server's `DataProtectionKeys\*.xml`** if not already done, and `appsettings.Development.json` (DEF-361).
+
+**PREVENTION — add to the pre-deploy checklist as a post-deploy gate.** Gate 11 would not have caught this. One request does:
+
+```
+/appsettings.Production.json  must NOT return 200
+/GCCWebApp.dll                must NOT return 200
+/robots.txt                   must return 200
+/wwwroot/robots.txt           must NOT return 200
+```
+
+Static assets work while binaries and config do not. Inverted means the handler is unmapped and secrets are public.
+
+**Process lessons.**
+- **A bundle that stops shipping a file does not un-ship it.** DEF-361 removed the keys from later bundles; they stayed on the server and were in the blast radius here.
+- **Change one thing when the site is down.** Four changes went out together; each additional one lengthened the outage and obscured the previous result.
+- **A prerequisite that cannot be tested belongs in code as a fallback, not in a README as a note.** `KeyPath` needed a permission I could not verify, guarding a `CreateDirectory` that throws.
+- **"It served one request" is not "it is proven".** That claim caused the filtering change to be treated as cleared when it was the blocker.
+- **A known-good artifact is the most valuable diagnostic available.** Testing the 8/4 bundle converted hours of inference into a two-way test.
+
+### DEF-364 — Bulk product-ID import builds its duplicate map from active rows only, so one soft-deactivated ASIN kills the entire batch at `SaveChanges`
+
+**Date:** 2026-08-19 | **Status:** **OPEN — not fixed. Latent: not reachable on test or dev as they stand today.** | **Severity:** Medium — no data corruption, no leak; the import simply fails in full and stays failed until someone clears the inactive row by hand. | **QC Ref:** none — not from the client QC log. | **Found by / Reporter:** Anuki (internal), 2026-08-19, answering a follow-up question during ASIN reconciliation ("what happens if a user enters duplicate ASINs on different products?").
+
+**How it was found.** The ASIN reconciliation work (see `observations_log.md`, 2026-08-18) confirmed the migration collapses repeated ASINs correctly. The natural next question was whether the *application* applies the same rule the migration did. It does — for every path except one.
+
+**The defect.** `Services/ProductIdService.cs:588-598`, in `ImportProductIdsAsync`:
+
+```csharp
+var existingRows = await _context.CertificateProductIds
+    .Where(p => p.CertificateId == certificateId)
+    .ToListAsync();
+
+var existingByKey = new Dictionary<string, CertificateProductId>(StringComparer.OrdinalIgnoreCase);
+foreach (var row in existingRows.Where(r => r.IsActive))   // <-- active only
+{
+    var key = $"{(row.ProductIdType ?? string.Empty).ToUpper()}:{(row.ProductIdValue ?? string.Empty).Trim()}";
+    existingByKey[key] = row;
+}
+```
+
+The in-memory duplicate check is scoped to **active** rows. The database constraint is not:
+
+```
+IX_CertificateProductIds_CertificateId_ProductIdType_ProductIdValue
+UNIQUE (CertificateId, ProductIdType, ProductIdValue)   -- no filtered WHERE IsActive = 1
+```
+(`Migrations/20260420171817_FixProductIdUniqueIndex_PerCertificate.cs:18-22`)
+
+So a soft-deactivated row is invisible to the guard and fully visible to the index. The import queues an INSERT that the database is guaranteed to reject.
+
+**Why the whole batch dies, not just the row.** DEF-112 replaced per-row saves with a single batched commit (`:707-712`) to stop 1,000-row imports timing out. Correct for performance, but it means one doomed INSERT takes every sibling with it. The handler is honest about it (`:714-722`) — it moves the whole success count into errors rather than reporting a partial write that never happened:
+
+```csharp
+result.Errors.Add($"Database save failed: {ex.Message}");
+result.ErrorCount += result.SuccessCount;
+result.SuccessCount = 0;
+```
+
+**Nothing corrupts silently.** That is the one piece of good news: the failure is loud, the transaction is atomic, and the reported result matches what is actually in the database. The user sees a raw SQL uniqueness error and loses every valid row they submitted.
+
+**Reproduction.**
+1. A certificate has ASIN `B00L1GHHV2` active.
+2. Run a bulk import with **overwrite** enabled whose payload omits that ASIN. `:612-621` sets `IsActive = false`. The row is not deleted — it stays, holding its slot in the unique index.
+3. Run any later import that includes `B00L1GHHV2` again. The guard does not see it; the index does. `SaveChangesAsync` throws and the entire batch is rejected.
+
+Step 2 is the only way to create an inactive row through the application, which is why this is latent rather than live.
+
+**Not currently reachable — measured, not assumed.** All 16,234 product-ID rows on the test environment are `IsActive = 1` (dump of 2026-08-18, `Scripts/data-ops/_reconciliation/loaded-productids-TEST.csv`). There is no inactive row anywhere to trip over. The migration used the direct SQL load path, not this importer, so the loaded data never exercised it.
+
+**The single-add path is correct, and inconsistent with this one.** `CheckDuplicateAsync` (`:971-988`) does **not** filter on `IsActive`, so adding one product ID at a time correctly refuses a deactivated duplicate. Two paths, two different definitions of "already exists". A secondary wrinkle worth deciding at the same time: on that path the user is told "Product ID {value} already exists on this certificate" about a row they cannot see anywhere in the UI.
+
+**Affected callers.** `ImportProductIdsAsync` directly, and `ImportFromCsvAsync` (`:731`) which delegates to it — so both the API and the CSV upload button.
+
+**Proposed fix (~30 min, not yet applied).** Build `existingByKey` from **all** rows rather than active ones, and on collision with an inactive row reactivate it in place — set `IsActive = true`, refresh `ProductName`/`Partner`/`Status`, stamp `UpdatedBy`/`UpdatedAt` — counting it as a success instead of queuing a doomed INSERT. That makes the importer agree with `CheckDuplicateAsync`, keeps the batched commit, and turns a re-import of a previously removed ASIN into the thing the user obviously means by it. Needs a regression test that deactivates a row and re-imports it, since nothing in the current suite covers the inactive case.
+
+**Related:** DEF-112 (batched commit this depends on), CR-015 (per-certificate duplicate scope), and the ASIN reconciliation tooling in `Scripts/data-ops/2026-08-18-asin-reconciliation*.{ps1,py}` that surfaced it.
+
+
+---
+
+
+### DEF-365 — Per-user "2FA enabled" is never read at login; two-factor is governed only by a global flag, which is `false` on the test environment
+
+- **Date:** 2026-08-19
+- **Severity:** **High (security control that presents as active but is inert).** Not an outage: the
+  system is *less* protected than the UI states, and nothing surfaces it. An administrator can turn
+  2FA on for an account, see it recorded, and reasonably believe the account is protected when it is
+  not.
+- **Status:** **FIXED 2026-08-19 (built, pending deploy).** Master switch also turned on, which is only safe now that the per-user check exists.
+- **QC Ref:** none — found by the client during end-to-end verification of the DEF-263 email work.
+  Reporter: Shawn. Reported as *"I enabled 2fa, and then re logged in. 2fa did not stop me from
+  logging on. I also did not get a notification to setup."*
+- **Bucket:** Bug (security — authentication).
+- **Linked:** [[project_smtp_secrets_overlay]], DEF-263 (2FA is only reachable at all now that email
+  delivery works).
+
+**Finding 1 — `User.TwoFactorEnabled` has no effect on authentication.** Both decision points read a
+*global configuration flag* and never consult the user row:
+
+```
+AccountController.cs:203  var is2FAEnabled = _configuration.GetValue<bool>("Authentication:Enable2FA", true);   // login
+AccountController.cs:680  var is2FAEnabled = _configuration.GetValue<bool>("Authentication:Enable2FA", true);   // after password reset
+```
+
+`User.TwoFactorEnabled` is **written** in four places (`AdminService.cs:3210/3239/3266`,
+`EnhancedTwoFactorService.cs:579/603`) and **read in exactly one** — `AdminService.cs:95`, a
+projection that populates the admin user-list display. **No authentication path reads it.** The
+per-user toggle therefore changes a database column and a grid cell, nothing more.
+
+**Finding 2 — the flag is `false` on the test environment.** `appsettings.Production.json:122`
+sets `"Enable2FA": false`, so 2FA is off for every account regardless of individual settings. That
+is the direct cause of the reported symptom. Note the code default is `true`, so the *absence* of
+the key would enable it — the current state depends on an explicit `false`.
+
+**Finding 3 — the two are coupled, which is the trap.** Because the flag is global, flipping it to
+`true` does not "switch on 2FA for users who asked for it" — it forces 2FA on **every account at
+once**, including `carly@` (the client's administrator), `partner.amazon`, and the analyst logins,
+none of which have enrolled. With `TwoFactorMethod` defaulting to `TOTP` and `TwoFactorSecret` null
+(below), a naive flip would lock out every user of the system. **Do not enable this flag as a
+"quick fix" — the per-user check must be implemented first.**
+
+**Finding 4 — enabling 2FA provisions nothing and prompts nobody.** `AdminService.Enable2FAAsync`
+sets `TwoFactorSecret = null` with the comment *"User will need to set up 2FA on next login"*, but
+**no such prompt exists**: login does not branch on enrolment state (Finding 1), so nothing ever
+directs the user to enrol. Enrolment lives at `/Account/TwoFactorPreferences` → `/Account/SetupTotp`
+and is reachable only by the user navigating there unaided — matching the reported *"I did not get a
+notification to setup"*. Observed on the new test user (Id 100): `TwoFactorEnabled = 1`,
+`TwoFactorMethod = 'TOTP'`, `TwoFactorSecret = NULL`.
+
+**Finding 5 — the admin action defaults to TOTP, not email.** `AdminController.cs:1680` passes
+`request.TwoFactorMethod ?? "TOTP"`. The client-facing position (and the only method with a working
+delivery path now that SMTP is live) is **email**. An admin enabling 2FA from the user grid silently
+selects authenticator-app 2FA.
+
+**Remediation (not done — needs a decision on intended behaviour first).** The global flag and the
+per-user column express two different policies and the code honours only the first. Either:
+(a) treat the config flag as a *master switch* and gate on `flag && user.TwoFactorEnabled` — the
+behaviour the UI already implies; or (b) drop the per-user column and make 2FA mandatory. (a) is
+almost certainly intended, since the UI, the admin action and `TwoFactorPreferences` all present 2FA
+as per-account. Whichever is chosen, `Enable2FAAsync` must stop leaving an enabled account with no
+secret and no route to enrol, and the method default should be `Email`.
+
+**Verification requirement when fixed:** assert the *negative* — a user with `TwoFactorEnabled = 0`
+still logs in unchallenged while a user with `TwoFactorEnabled = 1` is challenged, **in the same
+run**. A test that only proves the challenge appears would have passed throughout the period this
+defect existed, because the global flag can produce that result on its own.
+
+- **Files:** `Controllers/AccountController.cs:203,680`, `Services/AdminService.cs:95,3258-3286`,
+  `Controllers/AdminController.cs:1674-1690`, `appsettings.Production.json:122`.
+
+#### Resolution — 2026-08-19 (built, pending deploy)
+
+- **Fix 1 — one decision, one place.** New `AccountController.Resolve2FARequirementAsync(email)`
+  returns *(required, method)* and is the sole reader of `Authentication:Enable2FA` in the codebase
+  (verified by grep: one hit). Both former decision points — login and post-password-reset — call
+  it, so they can no longer diverge. A challenge now requires **`Enable2FA` AND
+  `user.TwoFactorEnabled`**.
+- **Fix 2 — TOTP no longer emails a code.** `GetUserPreferencesAsync` mapped `"TOTP"` to the `Email`
+  default, so an authenticator user was sent an emailed code at sign-in — a second, weaker way in
+  that defeats the point of choosing an authenticator. `"TOTP"` now maps to
+  `TwoFactorDeliveryMethod.TOTP`, and the login path skips code generation entirely for it.
+- **Fix 3 — enrolment actually works (the reported "Invalid code" error).** `SetupTotp` generated
+  the secret with a **local** `GenerateBase32Secret()` and stored it **only in session**, while
+  `ValidateTotpCodeAsync` verifies against `User.TwoFactorSecret` **in the database** — which was
+  always `NULL`. The entered code was therefore compared against nothing and validation failed on
+  its first guard, **for every user, every time**. The UI blamed the user's authenticator app for a
+  value the server never saved. `SetupTotp` and `GenerateQrCode` now both call
+  `GenerateTotpSecretAsync`, which persists the secret and returns any existing one unchanged — so
+  reloading the page no longer invalidates an already-scanned QR code.
+- **Fix 4 — insecure generator removed.** The deleted `GenerateBase32Secret()` seeded from
+  `System.Random`, a non-cryptographic PRNG, for the shared secret that *is* the strength of the
+  second factor. `EnhancedTwoFactorService.GenerateTotpSecret()` (`RandomNumberGenerator`) is now
+  the only place a TOTP secret is created.
+- **Fix 5 — no lock-out path.** An account flagged `TOTP` with no enrolled secret (exactly what
+  `AdminService.Enable2FAAsync` produces) would otherwise be challenged for a code no app can
+  generate, with no way back in. `Resolve2FARequirementAsync` falls back to an emailed code and logs
+  a warning. Still a genuine second factor; the user can enrol afterwards.
+- **`Authentication:Enable2FA` set to `true`** in `appsettings.Production.json`. Safe *only* because
+  of Fix 1 — blast radius was measured against the target DB first: exactly one account
+  (`admin@gccwebapp.com`, the test user) has `TwoFactorEnabled = 1`. No client login is affected.
+
+**Verification — `Scripts/data-ops/2026-08-19-verify-2fa-per-user.js`.** Asserts both directions in
+one run, per the requirement above. **Its negative control was run against the unfixed live site
+first**: the no-2FA account passed both checks and the 2FA account failed both — proving the test is
+sensitive to the defect rather than capable of passing regardless. Re-run after deploy; expect 4/4.
+The load-bearing assertion is the *absence* of the `GCC.Auth` cookie before the challenge is
+answered — a challenge page shown to an already-authenticated session is decorative, not a factor.
+
+**Note for whoever runs it:** the default no-2FA account is `admin.uat`, **not** `admin` — the
+`admin` password was changed on 2026-08-19 during the DEF-263 reset verification, so the documented
+`TestPass123!` no longer works for it.
+
+- **Files:** `Controllers/AccountController.cs` (helper + both call sites + `SetupTotp` +
+  `GenerateQrCode`, `GenerateBase32Secret` removed), `Services/EnhancedTwoFactorService.cs`
+  (`GetUserPreferencesAsync` TOTP mapping), `appsettings.Production.json`,
+  `Scripts/data-ops/2026-08-19-verify-2fa-per-user.js` (new).
+
+#### Follow-up fix — 2026-08-19, second bundle (`GCCWebApp-deploy-20260819-1436.zip`)
+
+The first bundle deployed and the per-user gate worked, but signing in as the 2FA account showed
+**"Unable to send verification code. Please try again or contact support."** That was a regression
+introduced by this very fix, and it is worth recording precisely because it was *caused by* Fix 2.
+
+`SendCodeAsync` **throws** when handed `TOTP` — it has no TOTP branch, so `tasks` stays empty and it
+raises `InvalidOperationException("No valid contact information provided for TOTP delivery")`. Both
+call sites passed **`preferences.PreferredMethod`**, which Fix 2 had just changed to return `TOTP`,
+instead of the **resolved** method that Fix 5's no-secret fallback had correctly downgraded to
+`Email`. Before Fix 2, `"TOTP"` silently mapped to `Email`, so this path never threw — the mapping
+correction exposed a latent mismatch between "what the user prefers" and "what we decided to do".
+
+Both call sites now pass the resolved `twoFactorMethod`. The lesson: **when a resolver decides
+something, every downstream call must consume the resolver's answer, not re-derive it from the
+source the resolver was correcting.**
+
+**The verification script caught this**, which is the point of it: the run against the first
+deployment reported `sent to the 2FA challenge — FAIL (no redirect)` while still passing
+`NOT authenticated before answering`. The security-critical half held — no `GCC.Auth` cookie was
+ever issued, so the account was never exposed — and only the delivery half was broken.
+
+#### Enrolment prompt added — 2026-08-20 (`GCCWebApp-deploy-20260820-1312.zip`)
+
+Finding 4 (an account flagged for TOTP with no secret, and nothing telling the user to enrol) was
+originally left open as a usability gap. Confirmed live by the client: after signing in with an
+emailed code, *"I didn't see any challenge or information to update authenticator"*. Requested and
+now built.
+
+- **`NeedsAuthenticatorEnrolmentAsync(email)`** — true when `TwoFactorEnabled`,
+  `TwoFactorMethod = "TOTP"` and `TwoFactorSecret` is null. Users who deliberately chose **Email**
+  are never prompted; an enrolled user is never prompted again.
+- **`RedirectAfterSignInAsync(email, returnUrl)`** — the single exit point for a completed *local*
+  sign-in. All three paths that finish authentication (direct login, post-password-reset, post-2FA)
+  now route through it, so the prompt cannot be wired into one and forgotten in the others. That is
+  the precise failure mode DEF-365 itself was raised for, so it is deliberately not repeated here.
+- **Not applied** to the Azure AD B2C callback — the other `RedirectToLocal` caller that completes a
+  sign-in. B2C is not configured on this deployment and carries its own identity model with no local
+  2FA state. Revisit if B2C is ever enabled rather than assuming it is covered.
+- **Not a trap.** `SetupTotp` is an ordinary page with full navigation, and the message says the
+  user may skip and enrol later from Two-Factor Preferences. Emailed codes keep working until they
+  do. The prompt reappears at each sign-in and stops permanently once a secret exists.
+- Message is passed as `TempData["SetupTotpPrompt"]` and hydrated to `ViewBag` with an **indexer**
+  read, not `Peek()` — Peek leaves the entry in the cookie and reproduces the DEF-340 leak where an
+  unread message surfaced later on an unrelated page. Rendered as `alert-info`, not `alert-danger`:
+  nothing is broken, codes are simply arriving by email.
+
+**Cannot be verified by the automated script.** The prompt is only reachable *after* a successful
+2FA challenge, and answering that needs a code from a mailbox the tooling cannot read. Manual test:
+put an account into the flagged-but-unenrolled state (`TwoFactorMethod = 'TOTP'`,
+`TwoFactorSecret = NULL`), sign in, and confirm the redirect to `/Account/SetupTotp` with the blue
+information banner. Both current 2FA accounts are enrolled (`admin` on TOTP, `2fatest` on Email), so
+neither will trigger it — that state has to be created deliberately.
+
+- **Files:** `Controllers/AccountController.cs` (two new helpers, three call sites re-pointed,
+  `SetupTotp` TempData hydration), `Views/Account/SetupTotp.cshtml` (info alert).
+
+### DEF-366 — Changing a user's email to one already in use fails with "Update failed. See the server log for details."
+
+- **Date:** 2026-08-20
+- **Severity:** Medium (usability / error reporting). No data loss and no security impact — the
+  update is correctly refused. The fault is that the admin is told nothing they can act on.
+- **Status:** **FIXED 2026-08-20 (built, pending deploy).**
+- **QC Ref:** none — reported by the client while setting up test accounts. Reporter: Shawn.
+  *"I tried to change the one to shawnmwest@gmail.com. I got an error message, but it didn't tell me
+  why. poor usability."*
+- **Bucket:** UX (error reporting) + Bug (missing validation).
+
+**Finding — the create and update paths were inconsistent.** `AdminService.CreateUserAsync:129-132`
+has always checked for a duplicate email and returned
+`"A user with email 'X' already exists"`. `UpdateUserAsync` had **no such check**: it assigned
+`user.Email = model.Email` and let `SaveChangesAsync` hit the unique index. The resulting
+`DbUpdateException` was caught and flattened to `UserUpdateResult.Failed`, which
+`AdminController.UpdateUser` maps to **HTTP 500 "Update failed. See the server log for details."**
+
+So the *most likely* reason an admin edits an email — typing one that already exists — produced the
+least informative response in the system, and pointed at a server log the person reading it usually
+cannot open. The admin UI was not at fault: `userManagement.js:777-781` does surface
+`result.message`; the message it was given simply said nothing.
+
+**Fix.**
+- New `UserUpdateResult.DuplicateEmail`.
+- `UpdateUserAsync` checks before assigning — case-insensitive, excluding this user's own row (so
+  re-saving an unchanged email is not a conflict) and soft-deleted rows, matching how
+  `CreateUserAsync` scopes the same lookup.
+- Mapped to **409 Conflict**, not 500: nothing failed, the request was refused. Message names the
+  address and gives the two ways out — pick a different address, or free it up by editing the other
+  account first.
+
+**Context that produced it:** `2fatest` already held `shawnmwest@gmail.com`, so re-pointing another
+test account at the same address was correctly refused — it was the *explanation* that was missing.
+
+**Worth a follow-up, not fixed here:** `userManagement.js:783-785` falls back to a generic
+*"Error saving user. Please try again."* whenever `response.json()` throws, which hides any
+non-JSON error response (a 500 HTML page, a gate redirect). That is a second, independent way for a
+real reason to be swallowed. It did not fire in this case — the response was valid JSON — so it is
+recorded rather than speculatively changed.
+
+- **Files:** `Models/AdminModels.cs` (enum), `Services/AdminService.cs` (`UpdateUserAsync` check),
+  `Controllers/AdminController.cs` (409 mapping + message).
+
+### DEF-367 — The 2FA challenge page does not say which factor it is waiting for ("authenticator app or email")
+
+- **Date:** 2026-08-20
+- **Severity:** Medium (usability). No security impact — the challenge is enforced correctly either
+  way. It causes failed sign-in attempts, and failed attempts **lock the account after five**.
+- **Status:** **FIXED 2026-08-20 (built, pending deploy).**
+- **QC Ref:** none — reported by the client during 2FA testing. Reporter: Shawn.
+  *"2fatest, 6 digit code appeared and says invalid or expired code. I pasted that from
+  authenticator."*
+- **Bucket:** UX.
+
+**Finding.** `Views/Account/2FAAuthenticate.cshtml:29` read *"Enter the 6-digit code from your
+authenticator app or email"* for every user on every sign-in. The system always knows which factor
+it used — `Resolve2FARequirementAsync` returns it, and the login path acts on it — but the page
+never said.
+
+The reported case is the worst version of it: the account (`2fatest`) had 2FA enabled with method
+`TOTP` but **no enrolled secret**, so the DEF-365 fallback emailed a code instead. The user had an
+authenticator enrolled on a *different* account (`admin`), reasonably pasted a code from it, and got
+*"Invalid or expired code"* — which is true but unhelpful, since no authenticator could ever have
+produced a valid code for that account.
+
+**Why this is more than cosmetic:** `Users.FailedLoginAttempts` locks an account after five failures
+for ~15 minutes. An instruction that sends users to the wrong factor manufactures exactly those
+failures, and the lockout then presents as *"Invalid email or password"* — a third, unrelated
+message. That chain cost real time on 2026-08-19/20.
+
+**Fix.**
+- `SetTwoFactorMethodViewData()` sets a method-specific instruction: authenticator app / text
+  message / email, defaulting to **email** when the value is missing, because email is what the
+  sign-in path falls back to.
+- Called at all three points that render the challenge view, so a failed attempt re-renders with
+  the same instruction rather than reverting to the ambiguous text.
+- When the factor is not TOTP, the page also shows a **masked** destination (`s•••@gmail.com`) so
+  the user knows which inbox to open without the address being disclosed.
+- Reinstates the `TempData["2FAMethod"]` write that **DEF-334** removed — that removal note said
+  explicitly to bring it back *only together with the reader that consumes it*, which is what this
+  does. Read with `Peek`, deliberately: the value must survive the challenge round-trip, and it is
+  cleared with the rest of the 2FA TempData on success, so it cannot leak forward the way DEF-340's
+  message did.
+
+- **Files:** `Controllers/AccountController.cs` (helper, two TempData writes, three render sites),
+  `Views/Account/2FAAuthenticate.cshtml`.
+
+
+---
+
+### DEF-368 — Certificate PDF size limit was 20MB on one upload route and 10MB on every other
+
+- **Date:** 2026-08-21
+- **Severity:** Low (consistency / documentation accuracy). No data loss, no security impact.
+- **Status:** **FIXED 2026-08-21 (built, pending deploy).**
+- **QC Ref:** none — surfaced while answering the client's "Key System Backend Functions"
+  questionnaire (Time Out / Character Limits). Reporter: Shawn.
+- **Bucket:** Bug.
+
+**Finding.** `POST /api/certificates/{number}/upload-pdf`
+(`Controllers/CertificateController.cs:3334`) rejected PDFs over **20MB**. Every other path that
+accepts a certificate PDF enforces **10MB**:
+
+| Path | Limit | Source |
+|------|-------|--------|
+| Certificate Create/Edit form | 10MB | `wwwroot/js/certificate-create.js:250` |
+| `FileUploadService` default | 10MB | `Services/FileUploadService.cs:289` (`maxSizeInBytes = 10485760`) |
+| Certificates API upload | 10MB | `Controllers/Api/CertificatesApiController.cs:442` |
+| CSV import | 10MB | `Controllers/CertificateImportController.cs:68` |
+| `FileUploadConfiguration.MaxFileSize` | 10MB | `Models/FileUploadModels.cs:29` |
+
+So a 15MB PDF was **rejected on Create and accepted on this route** — the effective limit depended
+on which door the file came through, and no single number could be stated to the client.
+
+**Why it mattered enough to fix now.** The client questionnaire asks the system's limits to be
+documented. A documented "10MB" would have been wrong for this route, and a documented "20MB" wrong
+for all the others. The deliverable
+(`docs/GCC_KeyBackendFunctions_2026-08-21.docx`) states 10MB and now that is true everywhere.
+
+**The controller was the smaller half of the problem.** Tracing the route's delegate,
+`FileUploadService.UploadCertificateAsync` was calling `IsValidFileSize(file, 20971520)` —
+**20MB, explicitly overriding the interface's 10MB default** — and that method is the *only*
+server-side size gate behind **all five** certificate-PDF entry points:
+
+| Caller | Pre-check before the service | Real server ceiling (before this fix) |
+|--------|------------------------------|----------------------------------------|
+| `CertificateController.cs:537` (Create) | client-side JS only | **20MB** |
+| `CertificateController.cs:1143` (Edit) | client-side JS only | **20MB** |
+| `CertificateController.cs:3348` (upload-pdf route) | 20MB | **20MB** |
+| `CertificatesApiController.cs:368` | none | **20MB** |
+| `CertificatesApiController.cs:455` | 10MB | 10MB |
+
+So on the Create and Edit forms the documented 10MB limit was **enforced in the browser only** —
+anything posting directly to the server could store a 20MB PDF. That is the part worth recording:
+the number in the UI was not the number the server kept.
+
+**Fix (two files).**
+- `Services/FileUploadService.cs:85` — `20971520` → `10485760`, message now *"…maximum limit of
+  10MB."* This is the change that actually makes 10MB true, because every caller passes through it.
+- `Controllers/CertificateController.cs:3334` — `20 * 1024 * 1024` → `10 * 1024 * 1024`, so the
+  route rejects early with a specific message instead of failing later inside the service.
+
+Both lines carry a comment listing the other call sites so the value is not raised again in
+isolation.
+
+**Not changed:** `FileUploadService.cs:141` caps *image* uploads at 5MB. Different asset, different
+limit, no inconsistency — left alone.
+
+**Verification.** `dotnet build` — 0 errors. Server-side hard cap in `web.config`
+(`maxAllowedContentLength="104857600"`, 100MB) is unchanged and unrelated; it bounds the whole
+request, not the certificate PDF.

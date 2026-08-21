@@ -169,7 +169,11 @@ def main():
     print(f"transform : {tdir}")
     print(f"countries : {n_countries} canonical + {n_aliases} aliases from CountryList.cs\n")
 
-    certs = OrderedDict()
+    # CR-038: a certificate number may legitimately appear on SEVERAL rows now, so this is a
+    # LIST, not a dict keyed by number. It used to dedupe by number, which silently kept only the
+    # first of each duplicated set — exactly the data the client asked us to preserve.
+    certs = []
+    cert_numbers = set()
     cert_tags, cert_partners = [], []
     country_unmapped = {}
     subcat_skipped = 0
@@ -182,7 +186,7 @@ def main():
         n = 0
         for r in csv.DictReader(io.open(p, encoding="utf-8-sig")):
             num = (r["Certificate #"] or "").strip()
-            if not num or num in certs:
+            if not num:
                 continue
 
             raw_country = (r.get("Country") or "").strip()
@@ -193,11 +197,16 @@ def main():
             if (r.get("Subcategory") or "").strip():
                 subcat_skipped += 1
 
-            certs[num] = r | {"_country": country}
-            for t in split_multi(r.get("External Tag")) + split_multi(r.get("Internal Tag")):
-                cert_tags.append((num, t))
-            for pn in split_multi(r.get("Partner")):
-                cert_partners.append((num, pn))
+            certs.append(r | {"_country": country})
+            # Tag and partner links are keyed by NUMBER, so a duplicated number would otherwise
+            # emit the same link several times. The load INSERTs are DISTINCT + NOT EXISTS
+            # guarded, but keep the staging clean rather than relying on that.
+            if num not in cert_numbers:
+                for t in split_multi(r.get("External Tag")) + split_multi(r.get("Internal Tag")):
+                    cert_tags.append((num, t))
+                for pn in split_multi(r.get("Partner")):
+                    cert_partners.append((num, pn))
+            cert_numbers.add(num)
             n += 1
         print(f"  {fn:22} {n} certificates")
 
@@ -205,7 +214,7 @@ def main():
     pids = []
     if os.path.exists(pid_path):
         for r in csv.DictReader(io.open(pid_path, encoding="utf-8-sig")):
-            if (r["certificateNumber"] or "").strip() in certs:
+            if (r["certificateNumber"] or "").strip() in cert_numbers:
                 pids.append(r)
     print(f"  productids-all.csv     {len(pids)} product IDs")
     print(f"  cert-tag links {len(cert_tags)} | cert-partner links {len(cert_partners)}")
@@ -238,7 +247,7 @@ def main():
   GO-LIVE MIGRATION LOAD  —  generated {stamp}
   Source: {os.path.basename(os.path.normpath(tdir))}
   ------------------------------------------------------------------------------
-  {len(certs)} certificates, {len(pids)} product IDs, {len(cert_tags)} tag links,
+  {len(certs)} certificate records ({len(cert_numbers)} distinct numbers), {len(pids)} product IDs, {len(cert_tags)} tag links,
   {len(cert_partners)} partner links.
 
   RUN WITH:  sqlcmd -S <server> -d <database> -I -i migration-load.sql
@@ -279,7 +288,7 @@ END;
 
 -------------------------------------------------------------------- staging --
 CREATE TABLE #Cert (
-    Number        nvarchar(50)  NOT NULL PRIMARY KEY,
+    Number        nvarchar(50)  NOT NULL,   -- CR-038: no longer unique in staging
     CertType      nvarchar(200) NULL,
     Status        nvarchar(50)  NULL,
     Company       nvarchar(255) NULL,
@@ -308,7 +317,8 @@ CREATE TABLE #Pid (
 """)
 
     cert_rows = []
-    for num, r in certs.items():
+    for r in certs:
+        num = (r["Certificate #"] or "").strip()
         cert_rows.append([
             sq(num), sq(r.get("Certification Type")), sq(r.get("Status")),
             sq(r.get("Company")), sq(r.get("Product Name")),
@@ -407,7 +417,7 @@ IF @bad > 0 BEGIN
 
 -- Certificate.Number is UNIQUE. Re-running onto a populated database must fail
 -- loudly rather than half-insert.
-SELECT @bad = COUNT(*) FROM #Cert s JOIN dbo.Certificates c ON c.Number = s.Number;
+SELECT @bad = COUNT(DISTINCT s.Number) FROM #Cert s JOIN dbo.Certificates c ON c.Number = s.Number;
 IF @bad > 0 BEGIN
     SET @errmsg = CAST(@bad AS nvarchar(10)) + ' certificate number(s) already exist in the target. Purge first, or this load is a re-run.';
     RAISERROR(@errmsg,16,1); RETURN; END;
@@ -454,17 +464,23 @@ PRINT '  products  inserted: ' + CAST(@@ROWCOUNT AS varchar(10));
 INSERT INTO dbo.Certificates
     (Number, CompanyId, ProductId, CertificationTypeId, ProductCategoryId, ProductTypeId,
      Status, EffectiveDate, ExpirationDate, Location, Country, Partner,
-     CertificationResults, PathwayId, CreatedAt, UpdatedAt)
+     CertificationResults, PathwayId, AllowsDuplicateNumber, CreatedAt, UpdatedAt)
 SELECT s.Number, co.Id, p.Id, ct.Id, pc.Id, pt.Id,
        s.Status, s.EffectiveDate, s.ExpirationDate, s.Location, s.Country,
        ISNULL((SELECT TOP 1 cp.PartnerName FROM #CertPartner cp WHERE cp.Number = s.Number ORDER BY cp.PartnerName), 'None'),
-       s.CertResults, pw.Id, @now, @now
+       s.CertResults, pw.Id,
+       -- CR-038: exempt ONLY the rows that actually share a number, derived from the staged
+       -- data rather than a hand-maintained list. Flagging the whole migration would silently
+       -- drop the uniqueness guarantee for every other certificate.
+       CASE WHEN d.Number IS NULL THEN 0 ELSE 1 END,
+       @now, @now
 FROM   #Cert s
 JOIN   dbo.Companies co ON co.Name = s.Company
 JOIN   #CT ct ON ct.Name = s.CertType
 LEFT JOIN #PC pc ON pc.Name = s.Category
 LEFT JOIN #PT pt ON pt.Name = s.ProductType
 LEFT JOIN #PW pw ON pw.Name = s.Pathway
+LEFT JOIN (SELECT Number FROM #Cert GROUP BY Number HAVING COUNT(*) > 1) d ON d.Number = s.Number
 JOIN   dbo.Products p
        ON  p.Name = s.ProductName
        AND p.CompanyId = co.Id
@@ -524,13 +540,26 @@ PRINT '  product-id partner links: ' + CAST(@@ROWCOUNT AS varchar(10));
 --------------------------------------------------------------- assertions ---
 SET @errmsg = NULL;
 
-IF (SELECT COUNT(*) FROM dbo.Certificates c JOIN #Cert s ON s.Number = c.Number) <> (SELECT COUNT(*) FROM #Cert)
+-- CR-038: joining on Number is many-to-many now, so compare ROW COUNTS, not a join cardinality.
+IF (SELECT COUNT(*) FROM dbo.Certificates c WHERE c.Number IN (SELECT Number FROM #Cert))
+   <> (SELECT COUNT(*) FROM #Cert)
     SET @errmsg = 'certificate count does not match staging';
+-- CR-038: the exemption must cover exactly the duplicated rows and nothing else.
+IF (SELECT COUNT(*) FROM dbo.Certificates WHERE AllowsDuplicateNumber = 1)
+   <> (SELECT COUNT(*) FROM #Cert s WHERE s.Number IN (SELECT Number FROM #Cert GROUP BY Number HAVING COUNT(*) > 1))
+    SET @errmsg = 'AllowsDuplicateNumber was not set on exactly the duplicated rows';
 IF EXISTS (SELECT 1 FROM dbo.Certificates WHERE Number IS NOT NULL AND NormalizedNumber IS NULL)
     SET @errmsg = 'NormalizedNumber is NULL — CR-187 computed column did not populate';
-IF EXISTS (SELECT c.Id FROM dbo.Certificates c JOIN #Cert s ON s.Number = c.Number
-           GROUP BY c.Id HAVING COUNT(*) > 1)
-    SET @errmsg = 'a staging row matched more than one certificate';
+-- (removed) "a staging row matched more than one certificate" — that assertion assumed one
+-- certificate per number. Under CR-038 several certificates legitimately share a number, so the
+-- join is many-to-many by design and the check fired on correct data. The row-count assertion
+-- above covers what it was actually protecting.
+--
+-- CR-038: every duplicated number must end up with ALL its records present.
+IF EXISTS (
+    SELECT s.Number FROM #Cert s GROUP BY s.Number
+    HAVING COUNT(*) <> (SELECT COUNT(*) FROM dbo.Certificates c WHERE c.Number = s.Number))
+    SET @errmsg = 'a certificate number has a different number of records than were staged';
 IF (SELECT COUNT(*) FROM dbo.CertificateProductIds pid JOIN dbo.Certificates c ON c.Id = pid.CertificateId
     JOIN #Cert s ON s.Number = c.Number) <> (SELECT COUNT(*) FROM #Pid)
     SET @errmsg = 'product-id count does not match staging';

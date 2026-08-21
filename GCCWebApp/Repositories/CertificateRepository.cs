@@ -92,10 +92,37 @@ namespace GCCWebApp.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// CR-038: a certificate number no longer identifies exactly one certificate — 137 migrated
+        /// numbers are shared by several records. Every by-number read therefore has to pick, and
+        /// the pick must be STABLE: an unordered FirstOrDefault returns whichever row the query plan
+        /// yields, which can differ between runs and would make the public site and the partner API
+        /// non-deterministic.
+        ///
+        /// The rule, used everywhere a single certificate is resolved from a number:
+        /// most recent EffectiveDate wins, ties broken by highest Id (the later-created record).
+        /// </summary>
+        public static IQueryable<Certificate> PickOneByNumber(IQueryable<Certificate> query) =>
+            query.OrderByDescending(c => c.EffectiveDate).ThenByDescending(c => c.Id);
+
+        /// <summary>
+        /// CR-038: is this certificate number free for a NEW or RETARGETED certificate?
+        ///
+        /// Deliberately considers EVERY certificate, including the grandfathered duplicates. The
+        /// filtered unique index cannot see exempt rows, so this is the only thing standing between
+        /// a new certificate and a number the client already issued to a historical one.
+        /// </summary>
+        public async Task<bool> IsCertificateNumberAvailableAsync(string certificateNumber, int? excludeCertificateId = null)
+        {
+            if (string.IsNullOrWhiteSpace(certificateNumber)) return true;
+            return !await _dbSet.AnyAsync(c =>
+                c.Number == certificateNumber &&
+                (excludeCertificateId == null || c.Id != excludeCertificateId));
+        }
+
         public async Task<Certificate?> GetCertificateByNumberAsync(string certificateNumber)
         {
-            return await _dbSet
-                .Where(c => c.Number == certificateNumber)
+            return await PickOneByNumber(_dbSet.Where(c => c.Number == certificateNumber))
                 .Include(c => c.Company)
                 .Include(c => c.Product).ThenInclude(p => p.Category)
                 .Include(c => c.Product).ThenInclude(p => p.ProductType)
@@ -119,17 +146,20 @@ namespace GCCWebApp.Repositories
             // CR-187: normalized search — "Product A" matches "Product™ A", "product-a", etc.
             var nq = SearchNormalizer.Normalize(searchTerm);
 
+            // DEF-366: tag ids resolved first so the tag match never becomes a per-row correlated
+            // subquery inside the OR. See Search/TagSearchMatch.cs for the measurements.
+            var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_dbSet, nq);
+
             // Include navigation properties first to prevent N+1 queries
             return await _dbSet
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
-                .Where(c => c.NormalizedNumber!.Contains(nq) ||
+                .WhereMatchesSearch(c => c.NormalizedNumber!.Contains(nq) ||
                            c.Company.NormalizedName!.Contains(nq) ||
                            c.Product.NormalizedName!.Contains(nq) ||
                            (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                           (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
-                           c.Tags.Any(t => t.NormalizedName!.Contains(nq)))
+                           (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)), tagIds)
                 .ToListAsync();
         }
 
@@ -142,11 +172,12 @@ namespace GCCWebApp.Repositories
             if (!string.IsNullOrEmpty(searchTerm))
             {
                 // CR-187: normalized search against persisted computed columns.
+                // DEF-366: tag ids resolved separately — see Search/TagSearchMatch.cs.
                 var nq = SearchNormalizer.Normalize(searchTerm);
-                query = query.Where(c => c.NormalizedNumber!.Contains(nq) ||
+                var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_dbSet, nq);
+                query = query.WhereMatchesSearch(c => c.NormalizedNumber!.Contains(nq) ||
                                         c.Company.NormalizedName!.Contains(nq) ||
-                                        c.Product.NormalizedName!.Contains(nq) ||
-                                        c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
+                                        c.Product.NormalizedName!.Contains(nq), tagIds);
             }
 
             if (companyId.HasValue)
@@ -257,14 +288,18 @@ namespace GCCWebApp.Repositories
                 // same as an empty search box, rather than a Contains("") that matches everything.
                 if (!string.IsNullOrEmpty(nq))
                 {
-                    query = query.Where(c =>
+                    // DEF-366: the tag match used to be the last term of this OR, where SQL Server
+                    // had to re-run it per row of the joined result — 3,200 ms vs 212 ms without it
+                    // on the 5,702-row test database, paid twice per request (count + page). It is
+                    // now resolved up front as its own semi-join. See Search/TagSearchMatch.cs.
+                    var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_dbSet, nq);
+                    query = query.WhereMatchesSearch(c =>
                         c.NormalizedNumber!.Contains(nq) ||
                         c.Company.NormalizedName!.Contains(nq) ||
                         c.Product.NormalizedName!.Contains(nq) ||
                         c.CertificationType.NormalizedName!.Contains(nq) ||
                         (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                        (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
-                        c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
+                        (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)), tagIds);
                 }
             }
 
@@ -313,6 +348,14 @@ namespace GCCWebApp.Repositories
             {
                 var businessToday = CertificateStatusHelper.BusinessToday;
                 query = query.Where(c => c.ExpirationDate == null || c.ExpirationDate >= businessToday);
+            }
+
+            // DEF-358: the other half of the validity window. Certs staged ahead of time (approved
+            // now, effective next month) must not appear on the public database before their
+            // effective date. Inclusive — a cert is live ON its effective date.
+            if (filter.ExcludeNotYetEffectiveByDate)
+            {
+                query = query.WhereEffectiveDateReached();
             }
 
             if (!string.IsNullOrEmpty(filter.Location))

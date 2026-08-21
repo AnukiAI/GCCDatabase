@@ -1,0 +1,234 @@
+{
+  "status": "GREEN-WITH-WARNINGS",
+  "totals": {
+    "pass": 22,
+    "fail": 0,
+    "warn": 10,
+    "info": 3
+  },
+  "checks": [
+    {
+      "spec": "tempdata-pairing",
+      "pass": 20,
+      "fail": 0,
+      "warn": 6,
+      "info": 1,
+      "findings": [
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:219 writes \"2FARole\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"2FARole\", but AccountController.Verify2FA does",
+          "key": "2FARole",
+          "at": "Controllers/AccountController.cs:219",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:220 writes \"ReturnUrl\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"ReturnUrl\", but AccountController.Verify2FA does",
+          "key": "ReturnUrl",
+          "at": "Controllers/AccountController.cs:220",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:221 writes \"RememberMe\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"RememberMe\", but AccountController.Verify2FA does",
+          "key": "RememberMe",
+          "at": "Controllers/AccountController.cs:221",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:691 writes \"2FARole\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"2FARole\", but AccountController.Verify2FA does",
+          "key": "2FARole",
+          "at": "Controllers/AccountController.cs:691",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:692 writes \"ReturnUrl\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"ReturnUrl\", but AccountController.Verify2FA does",
+          "key": "ReturnUrl",
+          "at": "Controllers/AccountController.cs:692",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "WARN",
+          "msg": "Controllers/AccountController.cs:693 writes \"RememberMe\" - redirect target Account/TwoFactorAuthentication (Views/Account/2FAAuthenticate.cshtml) does not read \"RememberMe\", but AccountController.Verify2FA does",
+          "key": "RememberMe",
+          "at": "Controllers/AccountController.cs:693",
+          "fix": "confirm the consumer is reachable from the redirect destination (a form that posts to it). If it is only reachable by unrelated navigation, this IS DEF-318 and the write must go."
+        },
+        {
+          "level": "INFO",
+          "msg": "18 write(s) had a destination this check could not resolve statically - not a finding, just uncovered"
+        }
+      ]
+    },
+    {
+      "spec": "redirect-targets",
+      "pass": 1,
+      "fail": 0,
+      "warn": 0,
+      "info": 0,
+      "findings": []
+    },
+    {
+      "spec": "orphan-views",
+      "pass": 1,
+      "fail": 0,
+      "warn": 2,
+      "info": 0,
+      "findings": [
+        {
+          "level": "WARN",
+          "msg": "partial Views/Shared/_ReviewInstructions.cshtml is rendered by nothing",
+          "at": "Views/Shared/_ReviewInstructions.cshtml",
+          "fix": "remove it, or wire it in - if it is the only entry point to a controller, that controller is UI-dead too"
+        },
+        {
+          "level": "WARN",
+          "msg": "view Views/Company/Create.cshtml has no matching controller action and nothing renders it by name",
+          "at": "Views/Company/Create.cshtml"
+        }
+      ]
+    },
+    {
+      "spec": "unshipped-fixes",
+      "pass": 0,
+      "fail": 0,
+      "warn": 2,
+      "info": 2,
+      "findings": [
+        {
+          "level": "WARN",
+          "msg": "5 defect(s) say \"pending deploy\" and appear in no deploy row, yet none of their files differ from HEAD - most likely shipped with stale Status text: DEF-345, DEF-341, DEF-341, DEF-342, DEF-344",
+          "ids": [
+            "DEF-345",
+            "DEF-341",
+            "DEF-341",
+            "DEF-342",
+            "DEF-344"
+          ],
+          "fix": "for each: either it is committed-but-undeployed (say so in the Status), or it shipped and the Status needs updating. Cheap to clear, and it is what makes the MODIFIED list above trustworthy."
+        },
+        {
+          "level": "WARN",
+          "msg": "1 defect(s) exist ONLY in the working tree - publish the bundle from THIS tree, not from a clean checkout of HEAD",
+          "ids": [
+            "DEF-343"
+          ],
+          "fix": "commit them, or confirm the publish source - a clean clone silently drops every one of these"
+        },
+        {
+          "level": "INFO",
+          "msg": "96 register Status line(s) still say \"pending deploy\" for defects that appear in a shipped log - stale text, not a deploy risk (DEF-300, DEF-295, DEF-293, DEF-292, DEF-281, DEF-273, …)",
+          "ids": [
+            "DEF-300",
+            "DEF-295",
+            "DEF-293",
+            "DEF-292",
+            "DEF-281",
+            "DEF-273",
+            "DEF-272",
+            "DEF-271",
+            "DEF-267",
+            "DEF-266",
+            "DEF-264",
+            "DEF-259",
+            "DEF-250",
+            "DEF-249",
+            "DEF-248",
+            "DEF-247",
+            "DEF-246",
+            "DEF-238",
+            "DEF-237",
+            "DEF-236",
+            "DEF-236",
+            "DEF-234",
+            "DEF-233",
+            "DEF-232",
+            "DEF-231",
+            "DEF-230",
+            "DEF-229",
+            "DEF-227",
+            "DEF-226",
+            "DEF-221",
+            "DEF-220",
+            "DEF-219",
+            "DEF-218",
+            "DEF-216",
+            "DEF-215",
+            "DEF-203",
+            "DEF-197",
+            "DEF-193",
+            "DEF-192",
+            "DEF-190",
+            "DEF-181",
+            "DEF-178",
+            "DEF-174",
+            "DEF-171",
+            "DEF-167",
+            "DEF-161",
+            "DEF-159",
+            "DEF-158",
+            "DEF-157",
+            "DEF-156",
+            "DEF-155",
+            "DEF-143",
+            "DEF-142",
+            "DEF-141",
+            "DEF-140",
+            "DEF-139",
+            "DEF-138",
+            "DEF-137",
+            "DEF-136",
+            "DEF-135",
+            "DEF-134",
+            "DEF-132",
+            "DEF-131",
+            "DEF-129",
+            "DEF-128",
+            "DEF-126",
+            "DEF-124",
+            "DEF-123",
+            "DEF-122",
+            "DEF-121",
+            "DEF-120",
+            "DEF-119",
+            "DEF-118",
+            "DEF-117",
+            "DEF-116",
+            "DEF-115",
+            "DEF-114",
+            "DEF-108",
+            "DEF-107",
+            "DEF-098",
+            "DEF-100",
+            "DEF-099",
+            "DEF-103",
+            "DEF-235",
+            "DEF-300",
+            "DEF-301",
+            "DEF-302",
+            "DEF-303",
+            "DEF-304",
+            "DEF-306",
+            "DEF-307",
+            "DEF-308",
+            "DEF-309",
+            "DEF-310",
+            "DEF-311",
+            "DEF-312"
+          ]
+        },
+        {
+          "level": "INFO",
+          "msg": "2 genuinely-pending entr(ies) name no repo-rooted file path, so their code state cannot be verified",
+          "ids": [
+            "DEF-346",
+            "DEF-358"
+          ]
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-08-17T20:53:37.270Z"
+}

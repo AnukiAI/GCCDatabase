@@ -213,6 +213,18 @@ namespace GCCWebApp.Controllers
                     })
                     { StatusCode = StatusCodes.Status404NotFound },
 
+                    // DEF-366: a foreseeable, user-correctable mistake — say which address clashes
+                    // and what to do, rather than "see the server log". 409 Conflict, not 500:
+                    // nothing failed, the request was refused.
+                    UserUpdateResult.DuplicateEmail => new JsonResult(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = $"The email address '{model.Email}' is already used by another user. "
+                                + "Email addresses must be unique — choose a different one, or free it up "
+                                + "by changing the other account first."
+                    })
+                    { StatusCode = StatusCodes.Status409Conflict },
+
                     // UserUpdateResult.Failed — the service logged the exception; don't leak it.
                     _ => new JsonResult(new ApiResponse<object>
                     {

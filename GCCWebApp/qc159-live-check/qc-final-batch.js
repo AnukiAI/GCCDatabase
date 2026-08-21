@@ -1,5 +1,5 @@
 // Final QC batch — 4 UX items:
-//   QC #213 / DEF-213 — Tag close button renders `×` not `Ã—` on Cert Edit
+//   QC #213 / DEF-213 — Tag close button renders `×` not `Ã—` on Cert Edit   mojibake-doc
 //   QC #212 / DEF-212 — SearchableSelect refocus shows full list, not collapsed-to-selected
 //   QC #175 / DEF-201 — Header logo doesn't distort at 1025-1440px desktop widths
 //   QC #176 / DEF-201 — Filter sidebar auto-shows when viewport drops below 1024px
@@ -67,7 +67,7 @@ const record = (id, name, status, notes) => {
     await page.goto(`${BASE}/Certificate/Edit/${certWithTags}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(2500);
     // Look at the rendered tag chips — close button should be `×` (U+00D7), not the
-    // 2-char mojibake sequence `Ã—` (0xC3 0x97 viewed as Latin-1)
+    // 2-char mojibake sequence `Ã—` (0xC3 0x97 viewed as Latin-1)   mojibake-doc
     const tagCloseTextNodes = await page.evaluate(() => {
       const out = [];
       document.querySelectorAll('.tag-chip, .external-tag, .internal-tag, [class*="tag-"]').forEach(el => {
@@ -77,9 +77,9 @@ const record = (id, name, status, notes) => {
       return out.slice(0, 20);
     });
     const allChipText = tagCloseTextNodes.map(t => t.text).join(' | ');
-    const hasMojibake = /Ã—/.test(allChipText);
+    const hasMojibake = /Ã—/.test(allChipText); // mojibake-doc: this detector must contain the sequence it detects
     const hasCorrectX = /×/.test(allChipText) || /&times;/.test(allChipText);
-    record('QC213-no-mojibake', 'Tag chips contain NO `Ã—` mojibake',
+    record('QC213-no-mojibake', 'Tag chips contain NO `Ã—` mojibake', // mojibake-doc
       !hasMojibake ? 'PASS' : 'FAIL',
       `samples (first 3)=${JSON.stringify(tagCloseTextNodes.slice(0, 3))}`);
     if (tagCloseTextNodes.length > 0) {

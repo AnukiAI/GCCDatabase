@@ -144,15 +144,20 @@ namespace GCCWebApp.Controllers.Api
                     var nq = SearchNormalizer.Normalize(search);
                     if (!string.IsNullOrEmpty(nq))
                     {
-                        query = query.Where(c =>
+                        // DEF-366: tag match resolved up front rather than as a per-row correlated
+                        // subquery inside this OR. The role scoping applied above this point is a
+                        // separate AND'd Where, so OR-ing an unscoped tag id set into the search
+                        // predicate cannot widen what an External or Partner caller sees.
+                        // See Search/TagSearchMatch.cs.
+                        var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
+                        query = query.WhereMatchesSearch(c =>
                             c.NormalizedNumber!.Contains(nq) ||
                             c.CertificationType.NormalizedName!.Contains(nq) ||
                             c.Company.NormalizedName!.Contains(nq) ||
                             c.Product.NormalizedName!.Contains(nq) ||
                             c.Product.Category.NormalizedName!.Contains(nq) ||
                             (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
-                            c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
+                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)), tagIds);
                     }
                 }
 

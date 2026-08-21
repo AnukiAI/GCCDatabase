@@ -68,13 +68,31 @@ shipped log, pre-deploy checklist), `docs/qa/`, `docs/governance/`.
 | Requirements | `docs/Final Req Docs/` + `docs/Final Req Docs/archive/` (PDFs/notes — there is no `Requirements.md`) |
 
 ## Routes Quick Reference
-| Route | Access |
-|-------|--------|
-| `/Certificate/CertificateTileView` | Public |
-| `/Certificate/CertificateTileViewExternal` | External+ |
-| `/Certificate/Create`, `/Edit/{id}` | Analyst+ |
-| `/Admin/*` | Admin only |
-| `/api/v1/certificates` | API Key |
+
+**Certificate routes are keyed by CERTIFICATE NUMBER, not integer Id** — `/Certificate/Edit/26-0224`
+works, `/Certificate/Edit/1308` returns HTTP 400 *"Certificate number is required"*. Same for
+`CertificateSingleView`. The one exception is the **POST** half of Edit, which does take `int id`
+(`Edit(string number)` for GET, `Edit(int id, CertificateEditViewModel model, …)` for POST) — so an
+integer "works" on submit and fails on load, which reads like a broken page rather than a wrong key.
+
+| Route | Key | Access | Attribute |
+|-------|-----|--------|-----------|
+| `/Certificate/CertificateTileView` | — | Public | `[AllowAnonymous]` |
+| `/Certificate/CertificateSingleView/{number}` | number | Public | `[AllowAnonymous]` |
+| `/Certificate/CertificateTileViewExternal` | — | External+ | `[Authorize(Policy = "ExternalAccess")]` |
+| `/Certificate/CertificateTileViewInternal` | — | Analyst+ | `[Authorize(Policy = "AnalystOrAdmin")]` |
+| `/Certificate/Create` | — | Analyst+ | `[Authorize(Policy = "AnalystOrAdmin")]` |
+| `/Certificate/Edit/{number}` | **number** (GET) / `int id` (POST) | Analyst+ | `[Authorize(Policy = "AnalystOrAdmin")]` |
+| `/Admin/*` | — | Admin only | — |
+| `/api/v1/certificates` | — | API Key | `[Authorize(AuthenticationSchemes = "ApiKey")]` |
+
+Public routes are `[AllowAnonymous]` at the action, but the **data** is still gated — publishable
+status AND inside the effective-to-expiration window (DEF-358, `Models/CertificateVisibility.cs`).
+
+**Every row verified live on localhost:5101, 2026-08-17**, requested both anonymously and as `admin`:
+the two Public rows return 200 anonymously; External+/Analyst+/Admin rows all bounce anonymous
+callers to `/Account/Login` and return 200 for admin; `Edit/1308` returns 400 for admin, confirming
+the number-vs-Id note above. `/api/v1/certificates` verified with an active Amazon API key.
 
 ## Development Rules
 
@@ -85,11 +103,71 @@ shipped log, pre-deploy checklist), `docs/qa/`, `docs/governance/`.
 **ALWAYS**: Check requirements, ask clarifying questions, review mockups, test changes
 
 ## Quick Credentials
-| User | Seeded dev email | Password | Role |
-|------|------------------|----------|------|
-| admin | swest@anukiconsulting.com | TestPass123! | Admin |
-| analyst | jane.analyst@anukiconsulting.com | TestPass123! | Analyst |
-| external | external.user@anukiconsulting.com | TestPass123! | External |
+
+### Role-matrix test accounts — TEST environment (gccwebapp.com) only
+
+Created 2026-08-20 through `/Admin/CreateUser` (not SQL), so each went through the same validation,
+hashing and audit path as a real account. **All share the password `GccTest2026!`** and have 2FA
+**off**, so they are usable immediately; switch 2FA on per account to test it.
+
+| Username | Email | Role | Scoped to | Lands on |
+|----------|-------|------|-----------|----------|
+| `test.admin` | shawnmwest+admin@gmail.com | Admin | — | TileViewInternal |
+| `test.analyst` | shawnmwest+analyst@gmail.com | Analyst | — | TileViewInternal |
+| `test.external` | shawnmwest+external@gmail.com | External | **Sika Corporation** (574 certs) | TileViewExternal |
+| `test.external2` | shawnmwest+external2@gmail.com | External | **MAPEI** (313 certs) | TileViewExternal |
+| `test.amazon` | shawnmwest+amazon@gmail.com | Partner | **Amazon** | TileViewExternal |
+| `test.novi` | shawnmwest+novi@gmail.com | Partner | **Novi** | TileViewExternal |
+
+All six verified to sign in and land on the correct role page, 2026-08-20.
+
+**The pairs are the point.** `test.external` / `test.external2` sit on different companies and
+`test.amazon` / `test.novi` on different partners, because a single scoped account can only ever
+show that it *sees* something — never that it is correctly *denied* someone else's data. Test them
+against each other.
+
+**Addresses use Gmail subaddressing** (`+tag`) so each account has the unique email the app requires
+while all mail lands in one inbox. Deliberately **not** on `gccwebapp.com`: that domain's only
+mailbox is the address the app *sends from*, and giving a test account the sender's address caused
+the credential collision on 2026-08-19 (see DEF-263). Note `mail.gccwebapp.com` does **not** support
+subaddressing — Gmail does; don't generalise.
+
+Also present: `2fatest` / `GccTest2026!` (Analyst, email `shawnmwest@gmail.com` — no `+` tag) — the
+2FA fixture, deliberately left with 2FA **on**. Because it is the only account with 2FA enabled, it
+is the `WITH2FA_USER` in `Scripts/data-ops/2026-08-19-verify-2fa-per-user.js`; changing its 2FA
+state breaks that check.
+
+### Dev database
+
+**`GCCDatabase_Dev` currently has exactly TWO users — both Admin.** The database was overwritten
+with the test environment's dataset on 2026-08-13 to rehearse the migration, and that dataset never
+contained the old seeded analyst/external accounts. Verified by enumerating `Users` 2026-08-17.
+
+| Username | Email | Password | Role | Exists in dev? |
+|----------|-------|----------|------|----------------|
+| `admin` | swest@anukiconsulting.com | **CHANGED — see below** | Admin | **yes** |
+| `admin.uat` | admin@greencirclecertified.com | TestPass123! | Admin | **yes** — login verified 2026-08-17 |
+| ~~`analyst`~~ | ~~jane.analyst@anukiconsulting.com~~ | — | Analyst | **NO — user does not exist** |
+| ~~`external`~~ | ~~external.user@anukiconsulting.com~~ | — | External | **NO — user does not exist** |
+
+> **⚠️ `admin` no longer uses `TestPass123!` on the TEST environment (gccwebapp.com).** Its password
+> was changed on **2026-08-19 at 18:00 UTC** by a real password-reset, run to verify DEF-263 email
+> delivery end-to-end. Confirmed in the DB: the reset token was consumed and `PasswordHash` moved
+> from `$2a$11$PLqXq…` to `$2a$11$DZxYtoR…`. **Only Shawn knows the new value.** The symptom if you
+> forget this is *"Invalid email or password"*, which reads exactly like a broken login — it is not.
+> **Use `admin.uat` instead** (same Admin role, still `TestPass123!`, verified 2026-08-19), which is
+> why `Scripts/data-ops/2026-08-19-verify-2fa-per-user.js` defaults to it.
+> The dev database (`GCCDatabase_Dev`) is unaffected — the reset was against test only.
+
+The password is unchanged — `TestPass123!` still works. An analyst/external login against dev fails
+with *"Invalid email or password"* because **the account is absent**, not because the hash rotated.
+Don't burn time re-trying passwords; check `Users` first.
+
+**Consequence for the test suites:** `Scripts/smoke-prod/_lib/smoke-template.js` (lines 62-64) and
+`Scripts/smoke-prod/_security/` default to `analyst` / `external` / `admin`, all `TestPass123!`. Only
+the `admin` row can authenticate against dev today, so any role-scoping or RBAC smoke that needs a
+real Analyst or External session cannot run there until those users are recreated. Nothing to fix in
+the scripts — it is a data gap in the database.
 
 **Posting the login form programmatically** (curl / `Invoke-WebRequest` / smoke scripts): the field is
 named **`Email`**, not `Username` — but it accepts **either** a username or an email
@@ -97,8 +175,9 @@ named **`Email`**, not `Username` — but it accepts **either** a username or an
 `u.Email == email || u.Username == email`, `AccountController.cs:1159`). So `Email=admin` and
 `Email=swest@anukiconsulting.com` both work; posting `Username=admin` silently fails and re-renders
 the login page as HTTP 200, which reads like a bad password rather than a wrong field name.
-An `__RequestVerificationToken` from a prior GET is also required. All three rows verified on
-localhost:5101, 2026-08-07 — each lands on its role-appropriate page.
+An `__RequestVerificationToken` from a prior GET is also required. Blocking redirects to detect the
+302 is unreliable here — POST, follow the redirect, then confirm by requesting `/Dashboard` and
+checking you were not bounced back to `/Account/Login`.
 
 ## Feature Status
 All complete: Certificate Tiles, Infinite Scroll, Autocomplete, Shareable URLs, Product IDs, CSV Import/Export, 8-State Workflow, RBAC, Partner API, Database Filters

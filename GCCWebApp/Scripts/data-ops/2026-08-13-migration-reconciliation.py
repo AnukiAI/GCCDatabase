@@ -99,7 +99,13 @@ def main():
     print(f"loaded    : {loaded_path}\n")
 
     # ---- source: what we asked the importer to store -------------------------
-    source = {}
+    # CR-038: a certificate number can now belong to SEVERAL certificates, so both sides are
+    # grouped as LISTS per number and compared as MULTISETS. Keying by number (as this script
+    # originally did) silently kept one row per number — which would have skipped exactly the
+    # duplicated records this migration exists to preserve. No natural key is unique either:
+    # 13 source rows are identical on every compared field, so row-to-row pairing is impossible
+    # and a per-number multiset is the only correct comparison.
+    source = defaultdict(list)
     dup_src = 0
     for fn in CERT_FILES:
         p = os.path.join(tdir, fn)
@@ -112,17 +118,25 @@ def main():
                 continue
             if num in source:
                 dup_src += 1
-            source[num] = r
+            source[num].append(r)
 
     # ---- loaded: what the database actually holds ----------------------------
-    loaded = {}
+    loaded = defaultdict(list)
     for r in csv.DictReader(io.open(loaded_path, encoding="utf-8")):
         num = (r["Certificate #"] or "").strip()
         if num:
-            loaded[num] = r
+            loaded[num].append(r)
 
-    print(f"source certificates : {len(source)}" + (f"  (dup keys: {dup_src})" if dup_src else ""))
-    print(f"loaded certificates : {len(loaded)}")
+    src_rows = sum(len(v) for v in source.values())
+    load_rows = sum(len(v) for v in loaded.values())
+    print(f"source : {src_rows} records across {len(source)} numbers"
+          + (f"  ({dup_src} share a number)" if dup_src else ""))
+    print(f"loaded : {load_rows} records across {len(loaded)} numbers")
+
+    # per-number record counts must agree before any field comparison means anything
+    count_mismatch = [n for n in set(source) & set(loaded) if len(source[n]) != len(loaded[n])]
+    print(f"numbers with a different record count: {len(count_mismatch)}"
+          + (f"  e.g. {', '.join(count_mismatch[:5])}" if count_mismatch else ""))
 
     missing = sorted(set(source) - set(loaded))
     extra = sorted(set(loaded) - set(source))
@@ -140,25 +154,33 @@ def main():
     mismatches = []
 
     for num in both:
-        s, l = source[num], loaded[num]
+        srows, lrows = source[num], loaded[num]
         for f in COMPARE:
-            sv, lv = (s.get(f) or "").strip(), (l.get(f) or "").strip()
-            if not sv and not lv:
-                stats[f]["both_blank"] += 1
+            # multiset compare: same values, same multiplicities, order irrelevant
+            svals = sorted(norm((r.get(f) or "").strip()) for r in srows)
+            lvals = sorted(norm((r.get(f) or "").strip()) for r in lrows)
+            blanks = sum(1 for a, b in zip(svals, lvals) if not a and not b)
+            stats[f]["both_blank"] += blanks
+            n_compared = max(len(svals), len(lvals)) - blanks
+            if n_compared <= 0:
                 continue
-            stats[f]["compared"] += 1
-            if norm(sv) == norm(lv):
-                stats[f]["match"] += 1
+            stats[f]["compared"] += n_compared
+            if svals == lvals:
+                stats[f]["match"] += n_compared
             else:
-                stats[f]["mismatch"] += 1
+                stats[f]["mismatch"] += n_compared
+                sset, lset = Counter(svals), Counter(lvals)
+                only_src = list((sset - lset).elements())
+                only_load = list((lset - sset).elements())
+                raw_src = "; ".join(sorted({(r.get(f) or "").strip() for r in srows}))
+                raw_load = "; ".join(sorted({(r.get(f) or "").strip() for r in lrows}))
                 mismatches.append({
                     "CertificateNumber": num,
                     "Field": f,
-                    "Source": sv,
-                    "Loaded": lv,
-                    "Kind": ("BLANK IN DB" if sv and not lv else
-                             "ADDED BY DB" if lv and not sv else
-                             "TRUNCATED" if lv and sv.startswith(lv) else
+                    "Source": raw_src,
+                    "Loaded": raw_load,
+                    "Kind": ("BLANK IN DB" if only_src and not only_load else
+                             "ADDED BY DB" if only_load and not only_src else
                              "DIFFERENT"),
                 })
 
@@ -174,7 +196,7 @@ def main():
     # DEF-348 fields: quantify what never had anywhere to go.
     print()
     for f in NOT_STORED:
-        n = sum(1 for num in both if (source[num].get(f) or "").strip())
+        n = sum(1 for num in both for r in source[num] if (r.get(f) or "").strip())
         print(f"NOT STORED (DEF-348)  {f:22} {n} source values with no import path")
 
     outdir = os.path.join(HERE, "_reconciliation")

@@ -48,11 +48,30 @@ DECLARE @Execute bit = CAST('$(Execute)' AS bit);
   swest@anukiconsulting.com is MANDATORY, not a preference: it is
   Audit:SystemUserEmail in appsettings.json. If it is missing on the target,
   every audited write fails — the Gate 10 / DEF-337 failure mode.
+
+  REVISED 2026-08-17 — three client-side accounts added. The earlier two-entry
+  list would have deleted the CLIENT'S OWN ADMIN. Enumerating all 86 accounts
+  the purge removes (not sampling them) showed 22 already soft-deleted, 64 live,
+  and only 6 ever logged in — three of those six belonging to the client, not to
+  us. A deleted account cannot be recovered by the client; we would have to
+  recreate it with a new password.
+
+  A keep-list errs safe in one direction only: keeping an account that could have
+  been deleted is reversible in seconds, deleting one that was needed is not.
+  When in doubt, add the address.
+
+  Everything NOT listed here is our own test scaffolding — @anukiconsulting.com
+  seeds, @example.com import-validation fixtures, qc108-*@gcc-test.local rows,
+  and never-used duplicate carly@ accounts on throwaway domains (gcc5/6/7.com,
+  admin.com, gcccc.com). Verified against the live test database 2026-08-17.
 -------------------------------------------------------------------------------*/
 DECLARE @KeepUsers TABLE (Email nvarchar(256) PRIMARY KEY);
 INSERT INTO @KeepUsers (Email) VALUES
     (N'swest@anukiconsulting.com'),          -- MANDATORY: Audit:SystemUserEmail
-    (N'admin@greencirclecertified.com');     -- GCC admin (Shawn, 2026-08-13)
+    (N'admin@greencirclecertified.com'),     -- GCC admin       (Shawn, 2026-08-13)
+    (N'carly@greencirclecertified.com'),     -- CLIENT ADMIN    (Shawn, 2026-08-17) last login 08-14
+    (N'analyst@greencirclecertified.com'),   -- client analyst  (Shawn, 2026-08-17) last login 08-07
+    (N'partner@amazon.com');                 -- Amazon partner  (Shawn, 2026-08-17) last login 08-12
 
 /*--------------------------------------------------------------- pre-flight --*/
 IF NOT EXISTS (SELECT 1 FROM dbo.Users u JOIN @KeepUsers k ON k.Email = u.Email

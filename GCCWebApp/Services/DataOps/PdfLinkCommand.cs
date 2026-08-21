@@ -105,32 +105,45 @@ namespace GCCWebApp.Services.DataOps
                 Console.WriteLine($"  after --status filter      : {usable.Count}  (was {before})");
             }
 
-            // One certificate number can appear on several portal records (178 of them do — one
-            // certificate covering several products). Our Certificate.Number is UNIQUE, so exactly
-            // one file can be attached. Pick the lowest record_id for determinism and write the
-            // alternates out — silently dropping them would look like data loss later.
+            // CR-038: a certificate number can appear on several portal records (178 do), and it
+            // can now belong to several certificates. Documents are therefore PAIRED 1:1 with the
+            // certificates sharing that number — ordered by record_id on one side and Id on the
+            // other, so the pairing is deterministic.
+            //
+            // This used to take candidates[0] and report every other document as an "alternate",
+            // which left 176 duplicate certificates with no PDF while their documents sat on disk.
             var grouped = usable
                 .GroupBy(r => Key(r.CertificateNumber))
                 .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RecordId).ToList());
             var ambiguous = grouped.Where(kv => kv.Value.Count > 1).ToList();
             Console.WriteLine($"  distinct certificate numbers: {grouped.Count}");
             if (ambiguous.Count > 0)
-                Console.WriteLine($"  numbers with >1 file        : {ambiguous.Count}  (lowest record_id wins; alternates reported)");
+                Console.WriteLine($"  numbers with >1 file        : {ambiguous.Count}  (paired 1:1 with the certificates sharing that number)");
 
             // ---------------------------------------------------------------- certificates
             var certs = await db.Certificates.ToListAsync();
             Console.WriteLine($"Certificates in the database : {certs.Count}");
 
-            var byNumber = new Dictionary<string, Certificate>();
-            var byNormalized = new Dictionary<string, Certificate>();
-            foreach (var c in certs)
+            // CR-038: LISTS, not single certificates — several may share a number. Ordered by Id
+            // so the document/certificate pairing below is stable between runs.
+            var byNumber = new Dictionary<string, List<Certificate>>();
+            var byNormalized = new Dictionary<string, List<Certificate>>();
+            foreach (var c in certs.OrderBy(c => c.Id))
             {
                 var k = Key(c.Number);
-                if (k.Length > 0) byNumber.TryAdd(k, c);
+                if (k.Length > 0)
+                {
+                    if (!byNumber.TryGetValue(k, out var listK)) byNumber[k] = listK = new List<Certificate>();
+                    listK.Add(c);
+                }
                 // CR-187: fall back to the persisted normalized column. Never add another
                 // normalizer — SearchNormalizer is the single source.
                 var n = SearchNormalizer.Normalize(c.Number);
-                if (!string.IsNullOrEmpty(n)) byNormalized.TryAdd(n, c);
+                if (!string.IsNullOrEmpty(n))
+                {
+                    if (!byNormalized.TryGetValue(n, out var listN)) byNormalized[n] = listN = new List<Certificate>();
+                    listN.Add(c);
+                }
             }
 
             // ---------------------------------------------------------------- work
@@ -145,27 +158,38 @@ namespace GCCWebApp.Services.DataOps
             Console.WriteLine($"Certificate numbers to process: {work.Count}");
             Console.WriteLine();
 
+            // ---- CR-038: pair documents to certificates 1:1 before doing any work ----
+            var pairs = new List<(ManifestRow Row, Certificate Cert)>();
             foreach (var (key, candidates) in work)
             {
-                processed++;
-                var row = candidates[0];
-
-                foreach (var alt in candidates.Skip(1))
-                    problems.Add(new ReviewRow(alt.CertificateNumber, alt.RecordId, alt.LocalPath,
-                        "alternate file for a certificate number already attached from another record"));
-
-                // --- match to a certificate ---
-                if (!byNumber.TryGetValue(key, out var cert))
+                if (!byNumber.TryGetValue(key, out var certList))
                 {
-                    var norm = SearchNormalizer.Normalize(row.CertificateNumber);
-                    if (string.IsNullOrEmpty(norm) || !byNormalized.TryGetValue(norm, out cert))
+                    var norm = SearchNormalizer.Normalize(candidates[0].CertificateNumber);
+                    if (string.IsNullOrEmpty(norm) || !byNormalized.TryGetValue(norm, out certList))
                     {
                         notFound++;
-                        unmatched.Add(new ReviewRow(row.CertificateNumber, row.RecordId, row.LocalPath,
-                            "no certificate with this number in the target database"));
+                        foreach (var r in candidates)
+                            unmatched.Add(new ReviewRow(r.CertificateNumber, r.RecordId, r.LocalPath,
+                                "no certificate with this number in the target database"));
                         continue;
                     }
                 }
+
+                var n = Math.Min(candidates.Count, certList.Count);
+                for (var i = 0; i < n; i++) pairs.Add((candidates[i], certList[i]));
+
+                // More documents than certificates for this number: the surplus has nowhere to go.
+                for (var i = n; i < candidates.Count; i++)
+                    problems.Add(new ReviewRow(candidates[i].CertificateNumber, candidates[i].RecordId,
+                        candidates[i].LocalPath,
+                        $"more documents ({candidates.Count}) than certificates ({certList.Count}) share this number"));
+            }
+            Console.WriteLine($"Document/certificate pairs     : {pairs.Count}");
+            Console.WriteLine();
+
+            foreach (var (row, cert) in pairs)
+            {
+                processed++;
 
                 // --- already linked? ---
                 if (!string.IsNullOrWhiteSpace(cert.CertificateFile) && !opts.Force)
@@ -277,7 +301,7 @@ namespace GCCWebApp.Services.DataOps
             Console.WriteLine(new string('=', 78));
             Console.WriteLine("SUMMARY");
             Console.WriteLine(new string('=', 78));
-            Console.WriteLine($"Certificate numbers processed : {processed}");
+            Console.WriteLine($"Document/certificate pairs processed : {processed}");
             if (opts.DryRun)
                 Console.WriteLine($"  would link                  : {wouldLink}");
             else

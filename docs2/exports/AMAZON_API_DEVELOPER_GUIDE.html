@@ -52,8 +52,8 @@ pre code { background: none; padding: 0; }
     <h1>GCC Database Partner API</h1>
     <p class="subtitle">Amazon Developer Integration Guide</p>
     <div class="doc-meta">
-        <div><strong>Version:</strong> 1.1</div>
-        <div><strong>Date:</strong> April 2026</div>
+        <div><strong>Version:</strong> 1.2</div>
+        <div><strong>Date:</strong> August 2026</div>
         <div><strong>Prepared for:</strong> Amazon Integration Team</div>
         <div><strong>Prepared by:</strong> GreenCircle Certified</div>
     </div>
@@ -61,8 +61,18 @@ pre code { background: none; padding: 0; }
 
 <div class="confidential">CONFIDENTIAL - For authorized Amazon integration personnel only</div>
 
+<div class="callout callout-warning">
+    <strong>Action required &mdash; production host changed in v1.2 (August 2026).</strong> The production API is served from the dedicated subdomain <code>database.greencirclecertified.com</code>, not from a <code>/database</code> path under the main website. The base URL is now:
+    <div style="margin:8px 0 6px 0;"><code style="font-size:9.5pt;">https://database.greencirclecertified.com/api/v1</code></div>
+    The previously circulated <code>https://greencirclecertified.com/database/api/v1</code> will <strong>not</strong> serve the API and should be removed from your configuration. Only the host changes &mdash; every path, parameter, header, field name and response shape in this guide is unchanged, so this is a single configuration value on your side. The test environment (<code>gccwebapp.com</code>) is unaffected.
+</div>
+
+<div class="callout callout-info">
+    <strong>Why the change:</strong> the certificate database runs as a separate application and cannot be hosted on the same server as the main GreenCircle Certified website. A dedicated subdomain gives the API its own host, certificate and scaling path, and removes the reverse-proxy hop that the <code>/database</code> path would have required.
+</div>
+
 <div class="callout callout-success">
-    <strong>What&rsquo;s new in v1.1 (April 2026):</strong> Per-identifier product names are now surfaced in the GS1 response. Each <code>additionalTradeItemId</code> entry optionally carries a <code>name</code> field. The data is already collected during import and on the certificate edit page, and has been available in the Standard endpoint as <code>productIds[].productName</code>. This update brings the GS1 endpoint into parity &mdash; no data model or UI changes required, simply a serialization update on a field that&rsquo;s already populated. See <a href="#examples">&sect;5.2</a> for the response shape and <a href="#appendix-a">Appendix A</a> for the field mapping.
+    <strong>Also new since v1.0:</strong> Per-identifier product names are surfaced in the GS1 response. Each <code>additionalTradeItemId</code> entry optionally carries a <code>name</code> field. The data is already collected during import and on the certificate edit page, and has been available in the Standard endpoint as <code>productIds[].productName</code>. This brought the GS1 endpoint into parity &mdash; no data model or UI changes, simply a serialization update on a field that&rsquo;s already populated. See <a href="#examples">&sect;5.2</a> for the response shape and <a href="#appendix-a">Appendix A</a> for the field mapping.
 </div>
 
 <div class="toc">
@@ -96,7 +106,7 @@ curl -X GET "https://gccwebapp.com/api/v1/certificates/gs1" \
   -H "Accept: application/json"
 
 # Production environment (pending DNS configuration)
-curl -X GET "https://greencirclecertified.com/database/api/v1/certificates/gs1" \
+curl -X GET "https://database.greencirclecertified.com/api/v1/certificates/gs1" \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Accept: application/json"</code></pre>
 
@@ -113,7 +123,11 @@ curl -X GET "https://greencirclecertified.com/database/api/v1/certificates/gs1" 
 
 <p>Every request requires the <code>X-API-Key</code> header:</p>
 
-<pre><code>X-API-Key: gcc_partner_fc8498d5e8067766f74ed28bb439b17210196895e4e67828036f1737d222138a</code></pre>
+<pre><code>X-API-Key: gcc_partner_&lt;your 64-character key&gt;</code></pre>
+
+<div class="callout callout-warning">
+    <strong>Key handling.</strong> Your API key is a bearer credential &mdash; anyone holding it can read your certificate data. Keys are delivered by secure channel and are never printed in this document. Store the key in a secrets manager or environment variable, never in source control, ticket text, or email bodies. If a key is exposed, contact GCC immediately for rotation.
+</div>
 
 <table>
     <thead><tr><th>Response Code</th><th>Meaning</th><th>Action</th></tr></thead>
@@ -136,9 +150,14 @@ curl -X GET "https://greencirclecertified.com/database/api/v1/certificates/gs1" 
     <thead><tr><th>Environment</th><th>Base URL</th><th>Status</th></tr></thead>
     <tbody>
         <tr><td><strong>Test (current)</strong></td><td><code>https://gccwebapp.com/api/v1</code></td><td>Active &mdash; use this for development and integration testing</td></tr>
-        <tr><td><strong>Production</strong></td><td><code>https://greencirclecertified.com/database/api/v1</code></td><td>Pending DNS configuration</td></tr>
+        <tr><td><strong>Production</strong></td><td><code>https://database.greencirclecertified.com/api/v1</code></td><td>Pending DNS configuration</td></tr>
+        <tr><td><em>Retired</em></td><td><code style="text-decoration:line-through;">https://greencirclecertified.com/database/api/v1</code></td><td><strong>Do not use.</strong> Published in v1.0&ndash;v1.1; never activated. Superseded by the subdomain above</td></tr>
     </tbody>
 </table>
+
+<div class="callout callout-info">
+    <strong>Host only.</strong> Every path below is relative to the base URL, and the paths themselves are identical across environments &mdash; <code>/api/v1/certificates/gs1</code> is the same route on test and production. Point your client at the correct host and nothing else needs to change.
+</div>
 
 <!-- Endpoint 1 -->
 <div class="endpoint-card">
@@ -318,13 +337,13 @@ X-API-Key: YOUR_API_KEY</code></pre>
 <pre><code>{
   "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
   "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
-  "id": "https://greencirclecertified.com/database/api/v1/certificates/gs1/24-0366",
+  "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366",
   "type": "CertificationReport",
   "issueDate": "2024-01-15",
   "issuer": "GreenCircle Certified",
   "products": [
     {
-      "id": "https://greencirclecertified.com/database/api/v1/certificates/gs1/24-0366/product",
+      "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366/product",
       "type": "Product",
       "gtin": null,                                          // Amazon-tagged certs typically have no GTIN; ASIN is the primary identifier
       "name": "Energy-Efficient LED Bulb",                   // &rarr; productName
@@ -349,6 +368,10 @@ X-API-Key: YOUR_API_KEY</code></pre>
   ]
 }
 // See Appendix A for complete GS1 &harr; Standard JSON field mapping</code></pre>
+
+<div class="callout callout-info">
+    <strong>The <code>id</code> fields echo the host you called.</strong> Both <code>id</code> values are built from the request host at response time, so a call to the test environment returns <code>https://gccwebapp.com/api/v1/&hellip;</code> and a call to production returns <code>https://database.greencirclecertified.com/api/v1/&hellip;</code>. They are stable JSON-LD identifiers for the certificate and product, not separate endpoints to fetch &mdash; treat them as identifiers rather than links to follow.
+</div>
 
 <h3>5.3 Search by ASIN</h3>
 
@@ -623,7 +646,7 @@ GET /api/v1/certificates?pageNumber=2&amp;pageSize=100
 </div>
 
 <div class="doc-footer">
-    <p>GCC Database Partner API - Amazon Developer Guide - v1.0 - March 2026</p>
+    <p>GCC Database Partner API - Amazon Developer Guide - v1.2 - August 2026</p>
     <p>&copy; 2026 GreenCircle Certified. All rights reserved.</p>
 </div>
 

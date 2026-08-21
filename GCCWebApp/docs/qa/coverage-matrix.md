@@ -23,7 +23,7 @@
 | CertificateTileView (Public) | Sort dropdown (7 modes) | ✔ | ✔ | ✘ | No sort-order assertion |
 | CertificateTileView (Public) | Clear filters | ✔ | ✔ | ✘ | |
 | CertificateTileView (Public) | Generate shareable link | 🟦 ✘ | ✔ | ✘ | `POST /api/certificate-tiles/share-link` — **built, not documented** |
-| CertificateTileView (Public) | Download cert PDF | ✔ | ✔ | ✘ | `/api/certificate-tiles/{id}/download` |
+| CertificateTileView (Public) | Download cert PDF | ✔ | ✔ | ✘ | `/Certificate/Download/{number}` — corrected 2026-08-17 (DEF-362). The route previously listed here, `/api/certificate-tiles/{id}/download`, was never what the public button called and has been deleted. |
 | CertificateTileViewExternal | Browse grid (company/partner-scoped) | ✔ | ✔ | ✔ `cert-tile-external.js` | Internal tags hidden, no Add btn asserted |
 | CertificateTileViewExternal | Search / filter / sort / share-link / download | ~ | ✔ | ~ | Same sub-actions as public, external-scoped; share-link undocumented 🟦 |
 | CertificateTileViewInternal | Browse grid (all data) | ✔ | ✔ | ✔ `cert-tile-internal.js` | Add btn + internal-tag col + admin import gating asserted |

@@ -110,6 +110,7 @@ namespace GCCWebApp.Controllers.Api
                     SearchTerm = finalSearchTerm,
                     Statuses = CertificateStatusHelper.PublicStatuses.ToList(),
                     ExcludeExpiredByDate = true, // Only show non-expired certs on public view
+                    ExcludeNotYetEffectiveByDate = true, // DEF-358: and not certs staged ahead of their effective date
                     SortBy = MapSortBy(finalSort),
                     SortDescending = finalSort == "cert-number-newest" || finalSort == "company-za" || finalSort == "product-za" || finalSort == "cert-type-za" || finalSort == "location-za" || finalSort == "country-za",
                     Page = Math.Max(1, (actualOffset / actualLimit) + 1),
@@ -253,10 +254,10 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                // Base query for active certificates (public view shows only active/expiring/renewal certificates)
-                var businessToday = CertificateStatusHelper.BusinessToday;
-                var baseQuery = _context.Certificates
-                    .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= businessToday));
+                // Base query for active certificates (public view shows only active/expiring/renewal certificates).
+                // DEF-358: WherePubliclyLive enforces the FULL window (status + effective + expiration) so the
+                // sidebar's "every option returns >= 1 result" guarantee still holds against the listing query.
+                var baseQuery = _context.Certificates.WherePubliclyLive();
 
                 // Strict scoping: only surface filter options that have at least one cert in baseQuery.
                 // Picking any dropdown option must always return >= 1 result (no dead clicks).
@@ -435,10 +436,10 @@ namespace GCCWebApp.Controllers.Api
 
                 var suggestions = new List<object>();
 
-                // Base query: only public-visible certificates (same filter as tile view)
-                var businessToday = CertificateStatusHelper.BusinessToday;
-                var baseQuery = _context.Certificates
-                    .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= businessToday));
+                // Base query: only public-visible certificates (same filter as tile view).
+                // DEF-358: autocomplete must not leak the company/product name of a cert that is not
+                // yet effective — the suggestion would return zero rows when clicked.
+                var baseQuery = _context.Certificates.WherePubliclyLive();
 
                 // Search companies that have at least one public certificate
                 var companies = await baseQuery
@@ -524,45 +525,30 @@ namespace GCCWebApp.Controllers.Api
             }
         }
 
-        /// <summary>
-        /// Download certificate PDF
-        /// GET: /api/certificate-tiles/{id}/download
-        /// </summary>
-        [HttpGet("{id}/download")]
-        [AllowAnonymous]
-        public async Task<IActionResult> DownloadCertificate(int id)
-        {
-            try
-            {
-                var certificate = await _certificateRepository.GetByIdAsync(id);
-                if (certificate == null)
-                {
-                    return NotFound(new { error = "Certificate not found" });
-                }
-
-                // Per business rule (2026-04-25): never auto-generate a placeholder PDF.
-                // Analysts must upload a real certificate file at creation time.
-                if (string.IsNullOrEmpty(certificate.CertificateFile))
-                {
-                    return NotFound(new { error = "Certificate PDF not available" });
-                }
-
-                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", certificate.CertificateFile.TrimStart('/'));
-                if (!System.IO.File.Exists(fullPath))
-                {
-                    return NotFound(new { error = "Certificate PDF file not found on server" });
-                }
-
-                var fileBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
-                var fileName = $"Certificate_{certificate.Number}.pdf";
-                return File(fileBytes, "application/pdf", fileName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error downloading certificate PDF for ID: {Id}", id);
-                return BadRequest(new { error = "Failed to download certificate" });
-            }
-        }
+        // DEF-362: GET /api/certificate-tiles/{id}/download was REMOVED here, deliberately.
+        //
+        // It was [AllowAnonymous] and streamed a certificate PDF after nothing more than
+        // GetByIdAsync(id) — no status check, no validity-window check, no partner scoping. Any
+        // certificate was addressable by integer id, including Client Approved - Confidential,
+        // Expired, Draft, and (post-DEF-358) not-yet-effective ones.
+        //
+        // It leaked nothing only because it was ALSO broken: it built its path with
+        // Path.Combine(GetCurrentDirectory(), "wwwroot", ...) — the last hardcoded physical path in
+        // any controller — and so bypassed IUploadPathResolver, the single logical→physical mapping
+        // DEF-286 established. Uploads moved to FileStorage:StoragePath on 2026-08-13, so it 404'd
+        // for all 5,474 migrated PDFs. The bug was the only thing standing between an anonymous
+        // caller and every confidential certificate on the system.
+        //
+        // That is why it is deleted rather than repaired: "fix the 404 by pointing it at the
+        // resolver" is the obvious next edit for anyone who finds it, and that single change
+        // publishes the whole file store. Nothing called it — the public tile view downloads via
+        // /Certificate/Download/{number} and the external service via
+        // /api/CertificateTileExternal/{id}/download, both of which gate visibility correctly
+        // (verified anonymously against publicly-live / not-yet-effective / confidential / expired
+        // certificates, with the files confirmed present on disk).
+        //
+        // If a tiles-scoped download is ever genuinely needed, gate it with CertificateVisibility
+        // AND resolve the path through IUploadPathResolver. Do not restore this method.
 
         /// <summary>
         /// Generate shareable link for current search

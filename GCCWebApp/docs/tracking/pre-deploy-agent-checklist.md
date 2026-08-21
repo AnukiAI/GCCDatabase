@@ -2,6 +2,39 @@
 
 **Purpose:** Stop client-found UI/QC regressions *before* they ship. Each gate below names the agent that runs it, what it must verify, and the documented incident that justifies it. Run top-to-bottom before every Plesk deploy. A gate that can't pass blocks the deploy — fix or consciously waive (and log the waiver).
 
+> ## ⚠ "Production" means the TEST environment. Read this before every deploy.
+>
+> There is **one** deployed environment — `gccwebapp.com` — and it is the **test environment**.
+> It is called "Production" only because `ASPNETCORE_ENVIRONMENT=Production` is set in
+> `web.config`, which is what makes the app load `appsettings.Production.json` and use SQL Server
+> instead of the dev database. **The word is a config-file name, not a statement about who the
+> users are.** The real production URL (`greencirclecertified.com/database`) is not live yet.
+>
+> Everything below follows from that, and each line has cost time at least once:
+>
+> | Reads as production | Is actually |
+> |---|---|
+> | `appsettings.Production.json` | the **test** environment's config — the only one that ships |
+> | `ConnectionStrings:DefaultConnection` in it | the **test** DB (`gccwebap_certificates` @ `68.71.129.120,1533`) |
+> | `Jwt:Issuer` / `Audience` = `GCCWebApp-Production` | test-environment tokens |
+> | `DataProtection:ApplicationName` = `GCC-Production` | inert — nothing reads that section |
+> | "deploying to production" in any note | deploying to **test** |
+>
+> **Consequences that are easy to get wrong:**
+> - `Database:AutoMigrateOnStartup: true` is set *because* this is a test env — a real production
+>   cutover would set it `false` and run migrations under DBA control. Don't carry the `true`
+>   forward to the real production environment.
+> - `TestEnvironmentGate:Enabled: true` and `ShowBanner: true` are correct **here** and must be
+>   `false` on the real production environment.
+> - "Test on localhost, never live" still applies. `gccwebapp.com` being called Production does
+>   not make it a safe place to experiment, and it does not make it a real production system
+>   either — it is the client's shared test environment, running against real records.
+> - The **dev** database (`GCCDatabase_Dev` on `ANUKI01`) is a *third* thing again, and is not a
+>   superset of test. See the deploy record at the bottom of this file.
+>
+> When writing a defect, shipped-log or deploy note, say **"test environment"** or
+> **"gccwebapp.com"**. Reserve "production" for the environment that does not exist yet.
+
 > **Gates 0–10 run before the upload. Gate 11 runs after it, and is not optional.** For most of this document's life there was no post-upload step at all, so "Pending deploy" was a state the process could enter and never leave — 54 shipped defects were still recorded as undelivered on 2026-08-04. The deploy is not finished when the zip is up; it is finished when the record says so.
 
 **How to run a gate:** launch the named agent via the Task tool with the changed files as scope. Gates 1–4 are independent — fire them in parallel in a single message, then read the results. Gate 5 (governance) runs last because it audits the *outcome* of the others. **Gates 4, 6, and 8 also have deterministic script steps that need the app running on `localhost:5101`** (Gate 4 = `amazon-contract-diff.js` Amazon-shape diff; Gate 6 = cold-start timing; Gate 8 = the write-path/security/contract script bundle) — start the app first, then run those alongside the agent reviews.
@@ -222,6 +255,46 @@ Some settings are not values — they are *references to a database row*. The DL
 **Backfill is a different operation from close-out — do not conflate them.** `--date` stamps everything with one date, which is correct for the bundle you just uploaded and *wrong* for history. The first dry run of `--all-pending` proposed rewriting a row that names its own June zip to "Deployed 2026-08-04". A confidently wrong date is worse than visible staleness, so a row whose own date is more than 21 days before `--date` is refused; use `--keep-row-date` to backfill history from each row's own evidence.
 
 > Justifies this gate: on 2026-08-04 a full regression run reported **54 fixed defects "NOT yet in the client's hands"** while every one of them was `CLEAN` — committed and matching HEAD. Every row in `shipped-2026-07.md` still read "Pending deploy", ~50 of them, long after shipping. Nothing had gone wrong at deploy time; there was simply no step that ever marked anything delivered. The cost lands on the client, not the build: the shipped log is used as delivery receipts, and it was **understating** delivery by fifty items.
+
+---
+
+## Gate 12 — Outbound email still works after the extract  ·  manual + stdout log  ·  **runs AFTER the upload**
+
+**Fires when:** **always**, from the 2026-08-19 bundle onwards. It is one grep and it guards a control that fails **silently and closed**.
+
+The SMTP credential lives in **`appsettings.Secrets.json`** beside `GCCWebApp.dll` — deliberately **not** in the zip, not in git, and `Scripts/deploy.ps1` aborts if it reaches staging. That is what makes it survive a deploy: extracting a zip adds and overwrites but never *deletes*, so a file the zip does not contain is left alone. Two things break that: a **clean-folder deploy** (delete-then-extract) and **restoring the site from a backup taken before the file existed**. Either silently reverts email to `MockEmailService`.
+
+Silently is the operative word, and it is why this gate exists rather than "someone would notice":
+
+- `MockEmailService` logs the message and returns success — no exception, no failed request.
+- `MockEmailService.TestConnectionAsync()` **always returns `true`**. Any future "test email" button reports green while delivering nothing. Never accept it as evidence.
+- `ForgotPassword` returns an identical response whether or not mail was sent — that is deliberate (DEF-209 anti-enumeration), and it means the UI cannot tell you.
+
+So nothing surfaces until a real person cannot get into their account. Worse than a dead reset link: **a user who enables email 2FA while this is broken is locked out**, because the code they are asked for never arrives.
+
+- [ ] Confirm the file survived the extract — it must sit in the same folder as `GCCWebApp.dll`:
+  ```
+  Test-Path .\appsettings.Secrets.json    # must be True
+  ```
+  If `False`, recreate it from `appsettings.Secrets.template.json` **before** recycling the app pool.
+- [ ] Read the startup banner in `logs/stdout` after the recycle. It states the choice outright:
+  ```
+  Email: LIVE via accumail3.accuwebhosting.com:465 (SslOnConnect) as <mailbox>, from <sender>
+  Email: DISABLED (MockEmailService) — SmtpSettings missing Username, Password
+  ```
+  `DISABLED` is a deploy defect, not a warning to note and move past.
+- [ ] Prove delivery end-to-end, because a live banner only proves the *config* parsed — it does not prove the host can reach the mail server outbound: run one **password reset** against a mailbox you can read, and confirm the message arrives.
+
+**Two config values are load-bearing. Do not "correct" either one.**
+
+- **Host is `accumail3.accuwebhosting.com`, not `mail.gccwebapp.com`.** Both resolve to `72.18.135.96`, but the server's DigiCert certificate covers only the `accuwebhosting` name, so the friendlier-looking host **fails certificate validation before it authenticates**. It will look like a credential problem and is not.
+- **Port 465 with `Security: SslOnConnect`.** Port 587 advertises **no STARTTLS** and answers an explicit `STARTTLS` with `503 TLS is not allowed`, so 465 is the only encrypted path. Moving to 587 to make a connection succeed means sending the mailbox password in clear text. This is also why `EmailService` uses MailKit rather than `System.Net.Mail`, which cannot do implicit TLS at all.
+
+> **When diagnosing this, do not disable certificate validation to "see if the network works".** The first probe of this server used an `SslStream` with a permissive callback and reported the 465 handshake as fine; MailKit, which validates by default, then failed on the hostname mismatch. A probe that turns the check off cannot tell you whether the check passes — and here that was the entire fault.
+
+**Do not move the credential into `appsettings.Production.json` or `web.config` "for tidiness".** Both ship in the zip, so both are overwritten on every deploy — that is the exact failure this design removes, and the checklist warned about it (Deploy record 2026-08-17) before it was fixed. `appsettings.Production.json` is also the file that was **publicly downloadable** during DEF-363; IIS serves `.json` raw whenever the AspNetCore handler is unmapped.
+
+> Justifies this gate: DEF-263 Finding 2. Outbound email was a no-op on the test environment from 2026-06-12 to 2026-08-19 — over two months — and was found by *reading `Program.cs`*, not by anything failing. During that window every password-reset link and 2FA code was generated, logged, and dropped, while the UI reported success each time.
 
 ---
 
@@ -620,3 +693,68 @@ If you ship past a failed gate on purpose, add a line here so it's not silently 
 | Date | Deploy | Gate waived | Why | Follow-up |
 |------|--------|-------------|-----|-----------|
 | | | | | |
+
+
+---
+
+## Deploy record — 2026-08-17 · `GCCWebApp-deploy-20260817-2328-config.zip` · **TARGET = TEST ENV (gccwebapp.com)**
+
+Restating the header warning because this bundle is the one that made it matter: the target is the
+**test environment**. It loads `appsettings.Production.json` only because `ASPNETCORE_ENVIRONMENT`
+is `Production` in `web.config`. No real production environment exists yet.
+
+**Bundle:** 334 files · 357 zip entries · 60.5 MB · sha256 `44eb4c8352f91a8a63e9b883551d9f78d7f3625b4f9c3db3196d7c07541f0407`
+**Built from:** Shawn's **working tree**, not `HEAD`. This is load-bearing — see Gate 9.
+
+### Gate results
+
+| Gate | Fires? | Result | Evidence |
+|---|---|---|---|
+| 0 uploads backup | yes | **NOT DONE — manual, owner: Shawn** | Moot for the 23 PDFs already lost in the 8/17 wipe; no local copy exists. Still required for whatever is on the server now. |
+| 1 UI / design guide | yes | **NOT RUN** | Views changed (DEF-343 dropdown, DEF-356 country list). Agent-driven gate; subagents were not authorised this session. **Open risk, consciously carried.** |
+| 2 cross-role + responsive | yes | **NOT RUN** | Same reason as Gate 1. Also blocked on dev having no `analyst`/`external` accounts. **Open risk.** |
+| 3 data scoping | yes | **PARTIAL** | DEF-358 export/visibility scoping covered by 25/25 unit tests incl. the deliberate External carve-out. Full `_security/run-all.js` not run (needs app on :5101 + analyst/external logins absent from dev). |
+| 4 Amazon contract | yes | **NOT RE-RUN** | Was **CONTRACT UNCHANGED 7/7** on the DEF-358 bundle; this bundle adds no further `/api/v1/*` change. Re-run after upload. |
+| 5 traceability | always | **PARTIAL** | Gate 9's `unshipped-fixes` covers the register-vs-code half mechanically; the governance agent pass was not run. |
+| 6 performance / EF | yes | **NOT RE-RUN** | Prior run: cold 0.49s / warm 0.13s on `/api/certificate-tiles`. No query changed since. |
+| 7 migration → schema | yes | **PASS** | **0 pending migrations.** 34 in code, 35 applied on the test DB; `comm` diff both directions shows nothing in code awaiting application. **Deploying this changes the database not at all.** CR-038 (`20260814195931`) already applied. One historical row, `20260127002958_AddPartnerIdToCompanies`, is applied on the DB but absent from the codebase — pre-existing, harmless to `Migrate()`, noted so it is not rediscovered as alarming. |
+| 8 CRUD write paths | yes | **NOT RUN** | Writes fixtures to a live DB; deliberately skipped. |
+| 9 static integrity | always | **PASS — 22P / 0F / 10W, GREEN-WITH-WARNINGS** | `_static/run-all.js`. Critically, `unshipped-fixes` reports **DEF-343 exists only in the working tree** and warns "publish the bundle from THIS tree, not from a clean checkout of HEAD" — independent confirmation that building from the working tree was correct, and that the earlier HEAD-based bundles were silently dropping fixes. |
+| 10 config → data row | always | **PASS** | `Audit:SystemUserEmail` = `swest@anukiconsulting.com` resolves on the **target** DB to `1 \| admin \| active \| not deleted`. `PartnerApiKeys` = 9 rows, 4 active, so the Amazon feed keeps authenticating. |
+| 11 post-deploy close-out | after upload | **pending** | |
+
+### Non-gate validation
+
+| Check | Result |
+|---|---|
+| Release build (working tree) | **0 errors** |
+| DEF-358 test suites | **25/25** |
+| Full unit suite | 88 failed / 721 passed — failing set **byte-identical** to the pre-change baseline, diffed both directions. Zero new failures. |
+| `appsettings.Production.json` | parses under the provider's real rules (comments skipped, trailing commas allowed); **0 duplicate keys**; 19 sections; 8 `FeatureFlags` leaves |
+| Bundle hygiene | **0** entries matching `DataProtectionKeys`, `appsettings.Development.json`, `App_Data`, `wwwroot/uploads`, `.env` (DEF-361) |
+
+### What the client will actually see change (measured on the test DB, not estimated)
+
+| Metric | Count |
+|---|---|
+| Certificates in a publishable status | 67 |
+| …of those, **not yet effective → disappear from public + Amazon** | **9** |
+| …of those, expired (already hidden before this fix) | 0 |
+
+### Config changes in this bundle
+
+Merged the **duplicated `FeatureFlags` key** (it appeared twice; the provider merged them by leaf
+path, and would have thrown `FormatException` → HTTP 500.30 the moment two leaf names collided).
+All 8 flags preserved. Annotated three sections that do not do what they claim: `PasswordPolicy`
+(lockout is hardcoded to 5 in `AccountController.cs:1044`), `DataProtection` (nothing reads it),
+and `Database` (`CommandTimeoutSeconds` is inherited from `appsettings.json`, not absent).
+`FileStorage:StoragePath` left **unset** but documented in-file — enabling it needs a server path
+and write permission that cannot be verified from the workstation.
+
+### Carried risk, stated plainly
+
+Gates 1, 2 and 8 did not run, and 3/4/5/6 ran only partially. The code in this bundle is the same
+code whose DEF-358 half passed a full gate sweep earlier the same day, plus DEF-343/DEF-356/CR-038
+which have not had a UI or cross-role pass. **This is a knowingly incomplete gate run, accepted to
+restore access to the test environment.** Gates 1, 2 and 8 should run before the client is asked
+to retest.

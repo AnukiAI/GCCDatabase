@@ -1,0 +1,4 @@
+1|Amazon
+2|Novi
+3|Other
+4|Wayfair

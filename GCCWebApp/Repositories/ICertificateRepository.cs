@@ -16,6 +16,13 @@ namespace GCCWebApp.Repositories
         Task<IEnumerable<Certificate>> GetCertificatesByProductAsync(int productId);
         Task<IEnumerable<Certificate>> GetCertificatesByTypeAsync(int certificateTypeId);
         Task<Certificate?> GetCertificateByNumberAsync(string certificateNumber);
+
+        /// <summary>
+        /// CR-038: true when no certificate holds this number (optionally ignoring one id, for edits).
+        /// Checks ALL certificates including the grandfathered duplicates — the filtered unique index
+        /// cannot see those, so this is what stops a new certificate reusing an issued number.
+        /// </summary>
+        Task<bool> IsCertificateNumberAvailableAsync(string certificateNumber, int? excludeCertificateId = null);
         /// <summary>
         /// DEF-336: batched equivalent of <see cref="IRepository{T}.GetByIdAsync"/> for callers that
         /// need many certificates at once. Same Includes, one round-trip set instead of N.
@@ -69,6 +76,10 @@ namespace GCCWebApp.Repositories
         public string? Status { get; set; }
         public List<string>? Statuses { get; set; }
         public bool ExcludeExpiredByDate { get; set; }
+        // DEF-358: public-surface lower bound — drop certs whose EffectiveDate is in the future.
+        // Paired with ExcludeExpiredByDate to give the full validity window. Public/partner
+        // surfaces only; internal and external-company listings leave this false.
+        public bool ExcludeNotYetEffectiveByDate { get; set; }
         public string? Partner { get; set; }
         public string? Location { get; set; }
         public string? Country { get; set; }

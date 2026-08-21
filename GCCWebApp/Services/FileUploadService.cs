@@ -82,9 +82,16 @@ namespace GCCWebApp.Services
                     return result;
                 }
 
-                if (!IsValidFileSize(file, 20971520)) // 20MB for certificates
+                // DEF-368: was 20MB. This is the ONLY server-side size gate behind every
+                // certificate-PDF entry point (Create, Edit, /api/certificates/{number}/upload-pdf,
+                // and both CertificatesApiController upload actions), so while it said 20MB the
+                // form's 10MB check was client-side only and the real ceiling was 20MB.
+                // 10MB is now enforced on the server for all five callers. Keep in step with
+                // certificate-create.js:250, CertificatesApiController.cs:442,
+                // CertificateImportController.cs:68 and FileUploadModels.cs:29.
+                if (!IsValidFileSize(file, 10485760)) // 10MB for certificates
                 {
-                    result.AddError("File size exceeds the maximum limit of 20MB.");
+                    result.AddError("File size exceeds the maximum limit of 10MB.");
                     return result;
                 }
 
@@ -478,9 +485,24 @@ namespace GCCWebApp.Services
                     return null;
                 }
 
-                // Generate unique thumbnail filename
+                // Generate unique thumbnail filename.
+                //
+                // CR-038: the name is {Number}_thumb_{timestamp}, and a certificate number is no
+                // longer unique — several migrated certificates can share one. Two siblings
+                // thumbnailed inside the same second produced the SAME filename, so the second
+                // overwrote the first and both rows pointed at one image: 123 thumbnails were
+                // shared by more than one certificate on the first CR-038 load.
+                //
+                // That is worse than a missing preview — it shows one certificate's document on
+                // another's page. The PDF copy alongside this already guarded against exactly this
+                // collision; the thumbnail did not. Same guard, same reason.
                 var thumbnailFileName = $"{certificateNumber}_thumb_{DateTime.UtcNow:yyyyMMdd_HHmmss}.png";
                 var thumbnailPath = Path.Combine(_imagesPath, thumbnailFileName);
+                if (File.Exists(thumbnailPath))
+                {
+                    thumbnailFileName = $"{certificateNumber}_thumb_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N")[0..8]}.png";
+                    thumbnailPath = Path.Combine(_imagesPath, thumbnailFileName);
+                }
 
                 // First pass: detect actual PDF page aspect ratio using a small render
                 int renderWidth, renderHeight;

@@ -122,15 +122,20 @@ namespace GCCWebApp.Controllers.Api
                     var nq = SearchNormalizer.Normalize(search);
                     if (!string.IsNullOrEmpty(nq))
                     {
-                        query = query.Where(c =>
+                        // DEF-366: the tag match is resolved as its own semi-join first rather than
+                        // sitting in this OR, where SQL Server re-ran it per row of the joined
+                        // result. This is the endpoint the internal tile view calls, and the one
+                        // that took 7-8s per search after the 5,702-cert load. See
+                        // Search/TagSearchMatch.cs.
+                        var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
+                        query = query.WhereMatchesSearch(c =>
                             c.NormalizedNumber!.Contains(nq) ||
                             c.CertificationType.NormalizedName!.Contains(nq) ||
                             c.Company.NormalizedName!.Contains(nq) ||
                             c.Product.NormalizedName!.Contains(nq) ||
                             c.Product.Category.NormalizedName!.Contains(nq) ||
                             (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
-                            c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
+                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)), tagIds);
                     }
                 }
 

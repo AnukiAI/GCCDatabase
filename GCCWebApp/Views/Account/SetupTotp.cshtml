@@ -24,6 +24,18 @@
                         </div>
                     }
 
+                    @* DEF-365: shown when the user was sent here automatically at sign-in because
+                       2FA is on but no authenticator is enrolled. Informational, not an error —
+                       codes still arrive by email until this is completed, so nothing is broken. *@
+                    @if (!string.IsNullOrEmpty(ViewBag.SetupTotpPrompt))
+                    {
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            @ViewBag.SetupTotpPrompt
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
                     <div class="row">
                         <!-- QR Code Column -->
                         <div class="col-md-6 text-center mb-4">

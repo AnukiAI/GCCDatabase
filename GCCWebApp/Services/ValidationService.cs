@@ -150,15 +150,36 @@ namespace GCCWebApp.Services
 
         private async Task ValidateCertificateNumberUniquenessAsync(Certificate certificate, ValidationResult result)
         {
-            if (!string.IsNullOrEmpty(certificate.Number))
-            {
-                var existingCert = await _context.Certificates
-                    .FirstOrDefaultAsync(c => c.Number == certificate.Number && c.Id != certificate.Id);
+            if (string.IsNullOrEmpty(certificate.Number)) return;
 
-                if (existingCert != null)
-                {
-                    result.AddError($"Certificate number '{certificate.Number}' is already in use.");
-                }
+            // CR-038: 137 issued certificate numbers are shared by more than one migrated
+            // certificate, and those numbers cannot be changed. Such rows are flagged
+            // AllowsDuplicateNumber and exempted from the (now filtered) unique index.
+            //
+            // Without the carve-out below this check would make the migration self-defeating: every
+            // one of those certificates would fail validation the first time an analyst opened and
+            // saved it, purely because a sibling exists.
+            //
+            // So enforce only when the number is being INTRODUCED — a new certificate, or an
+            // existing one whose number is actually changing. Saving a grandfathered record
+            // unchanged is allowed; moving any certificate onto an in-use number is not.
+            if (certificate.Id != 0)
+            {
+                var storedNumber = await _context.Certificates
+                    .Where(c => c.Id == certificate.Id)
+                    .Select(c => c.Number)
+                    .FirstOrDefaultAsync();
+
+                if (string.Equals(storedNumber, certificate.Number, StringComparison.Ordinal))
+                    return; // number unchanged — nothing to police
+            }
+
+            var taken = await _context.Certificates
+                .AnyAsync(c => c.Number == certificate.Number && c.Id != certificate.Id);
+
+            if (taken)
+            {
+                result.AddError($"Certificate number '{certificate.Number}' is already in use.");
             }
         }
 

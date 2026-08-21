@@ -312,10 +312,16 @@ namespace GCCWebApp.Services
             var preferences = new TwoFactorPreferences
             {
                 UserId = userId,
+                // DEF-365: "TOTP" previously fell through to the Email default, so an
+                // authenticator user was emailed a code at sign-in — the wrong factor entirely, and
+                // it silently made TOTP indistinguishable from email 2FA. TOTP is a *generated*
+                // factor: SendCodeAsync deliberately has no TOTP branch, because the code comes
+                // from the user's app and there is nothing to deliver.
                 PreferredMethod = user?.TwoFactorMethod switch
                 {
                     "SMS" => TwoFactorDeliveryMethod.SMS,
                     "Both" => TwoFactorDeliveryMethod.Both,
+                    "TOTP" => TwoFactorDeliveryMethod.TOTP,
                     _ => TwoFactorDeliveryMethod.Email
                 },
                 Email = user?.Email ?? userId,

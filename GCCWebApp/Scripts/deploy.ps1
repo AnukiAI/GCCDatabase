@@ -300,6 +300,17 @@ Generated $(Get-Date -Format 'yyyy-MM-dd HH:mm zzz') by Scripts/deploy.ps1.
 "@
 $readmeContent | Out-File -FilePath $migrationReadme -Encoding utf8 -NoNewline
 
+# --- Sanity check: confirm the server-only secrets overlay is NOT in staging (DEF-263) ---
+# appsettings.Secrets.json holds the SMTP mailbox password on the deployed box. It works precisely
+# because it is absent from the zip: extracting adds and overwrites but never deletes, so the file
+# survives every deploy. If it ever rides along in the zip it would (a) ship a live credential in a
+# build artifact and (b) overwrite the server's copy with whatever a developer had locally. Abort.
+$stagedSecrets = Get-ChildItem -Path $stagingDir -Recurse -File -Filter "appsettings.Secrets.json" -ErrorAction SilentlyContinue
+if ($stagedSecrets) {
+    Write-Error "ABORT: appsettings.Secrets.json is in staging ($($stagedSecrets.Count) copy/copies). This file must never be bundled -- it carries the SMTP credential and would overwrite the server's copy. Remove it from the publish output before deploying."
+    exit 1
+}
+
 # --- Sanity check: confirm wwwroot/uploads/ is NOT in staging ---
 $stagedUploads = Join-Path $stagingDir "wwwroot\uploads"
 if (Test-Path $stagedUploads) {

@@ -5,7 +5,8 @@ name: Regression CI
 # Separate from the dormant ci-cd-pipeline.yml (which targets main/develop + Azure and does not run
 # on master). Targets `master` — the actual working branch.
 #
-#   build-test   — portable, every push/PR: build + test the PORTABLE projects only
+#   build-test   — encoding guard (Scripts/ci/check-encoding.js — DEF-133 prevention; runs first,
+#                  no SDK needed) then portable, every push/PR: build + test the PORTABLE projects only
 #                  (GCCWebApp.Tests + GCCWebApp.Api.Tests; both InMemory/mock, no SQL Server).
 #                  Deliberately EXCLUDES the Playwright/live-app suites (RoleBasedUI/UAT/Security/
 #                  Accessibility/Performance) — they need a running app and belong in deploy-gate.
@@ -30,6 +31,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Mojibake guard — DEF-133's prevention recommendation, implemented 2026-08-17.
+      # DEF-133 (▶ • — → baked into 4 Razor views) and DEF-213 (Ã— instead of × on the cert Edit
+      # page) both shipped to users and were caught by a human noticing garbage on screen. This
+      # greps the render surfaces for the canonical Windows-1252 misreadings and fails the build.
+      # Deliberately FIRST — no build or SDK needed, so a corrupted view fails in seconds rather
+      # than after a full Release build. Tracking docs are out of scope by design: they quote
+      # mojibake as evidence, so scanning them would fail on correct documentation.
+      # --self-test runs first so a green result proves the detector can still go red.
+      - name: Encoding guard (Views + wwwroot/js)
+        run: |
+          node GCCWebApp/Scripts/ci/check-encoding.js --self-test
+          node GCCWebApp/Scripts/ci/check-encoding.js --root=GCCWebApp
 
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4

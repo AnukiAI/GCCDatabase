@@ -2,7 +2,7 @@
 
 **Project:** GCC Database Solution · **Prepared by:** Anuki Consulting
 **Role:** Master index of the `docs/tracking/` framework — the entry point to every register, log, plan, and gate.
-**Last updated:** 2026-07-07
+**Last updated:** 2026-08-17
 
 > This is an **index**, not a metrics snapshot. Counts and statuses live in the linked files (their
 > own headers are the source of truth) so this page doesn't go stale. A prior metrics-style dashboard
@@ -68,6 +68,7 @@ standalone plan/design doc are listed; all others live inline in the register.
 
 | Month | File |
 |---|---|
+| August 2026 | [shipped-2026-08.md](shipped-2026-08.md) |
 | July 2026 | [shipped-2026-07.md](shipped-2026-07.md) |
 | June 2026 | [shipped-2026-06.md](shipped-2026-06.md) |
 | May 2026 | [shipped-2026-05.md](shipped-2026-05.md) |

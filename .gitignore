@@ -412,3 +412,24 @@ apiUpdates.txt
 /GCCWebApp/publish-20260504-2301
 /GCCWebApp/Database_Scripts
 /GCCWebApp/docs/tracking/client-exec-brief-qc-volume-5-13.docx
+
+# DEF-263: server-only secrets overlay. Holds the SMTP mailbox password (and any
+# future runtime secret) on the deployed box ONLY. Never commit it, and never let
+# it into a deploy zip - Scripts/deploy.ps1 aborts if it reaches staging.
+appsettings.Secrets.json
+**/appsettings.Secrets.json
+
+# Migration run artifacts. Each dated folder is a full regenerable dump of the
+# client dataset (~3-6 MB of generated SQL per run, ~2.8 MB of CSV per run) and
+# there is one per re-run, so committing them grows the repo by tens of MB for
+# output the scripts reproduce from the source workbooks. The generators are
+# tracked; their output is not. Earlier dated folders committed before
+# 2026-08-21 stay tracked - .gitignore does not untrack them.
+/GCCWebApp/Scripts/data-ops/_sql_output/
+/GCCWebApp/Scripts/data-ops/_transform_output/
+# Raw DB dumps that feed the spreadsheet-to-database verifier; re-dumped by
+# 2026-08-15-verify-dump.ps1 / 2026-08-18-asin-reconciliation-dump.ps1.
+/GCCWebApp/Scripts/data-ops/_verify_input/
+
+# dotnet run stderr capture from local dev
+_dev.log.err

@@ -65,7 +65,23 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<Certificate>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.Number).IsUnique();
+
+                // CR-038: FILTERED unique index. The client issued 137 certificate numbers to more
+                // than one certificate and those numbers cannot be changed, so migrated records
+                // flagged AllowsDuplicateNumber are exempt — but every ordinary certificate is still
+                // guaranteed unique BY THE DATABASE, not merely by a screen check.
+                //
+                // Two things here are load-bearing:
+                //   * The NAME must stay IX_Certificates_Number. CertificateRepository
+                //     .IsUniqueNumberViolation matches the SQL error on that literal string to drive
+                //     DEF-193's retry (two analysts creating a certificate at the same moment).
+                //     Rename it and that retry silently stops working.
+                //   * The filter cannot see exempt rows, so it does not stop a NEW certificate
+                //     taking a grandfathered number. ValidationService covers that case.
+                entity.HasIndex(e => e.Number)
+                      .IsUnique()
+                      .HasFilter("[AllowsDuplicateNumber] = 0")
+                      .HasDatabaseName("IX_Certificates_Number");
                 
                 // Performance indexes for common search patterns
                 entity.HasIndex(e => e.Status);

@@ -88,6 +88,12 @@
     <None Remove="GCCWebApp.Accessibility.Tests\**" />
     <None Remove="GCCWebApp.Api.Tests\**" />
     <None Remove="GCCWebApp.Tests.Common\**" />
+    <!-- DEF-263: server-only secrets overlay. The SDK globs appsettings.*.json into Content by
+         default, which would publish a developer's local copy into the deploy zip and overwrite the
+         server's credential. Excluded here so it is never an output; Scripts/deploy.ps1 also aborts
+         if it somehow reaches staging. -->
+    <Content Remove="appsettings.Secrets.json" />
+    <None Remove="appsettings.Secrets.json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -153,6 +159,10 @@
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
+    <!-- DEF-263: the GCC mail server refuses STARTTLS on 587 ("503 TLS is not allowed") and
+         offers implicit TLS on 465 only. System.Net.Mail.SmtpClient cannot do implicit TLS,
+         so EmailService uses MailKit, which supports SecureSocketOptions.SslOnConnect. -->
+    <PackageReference Include="MailKit" Version="4.7.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.16" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />

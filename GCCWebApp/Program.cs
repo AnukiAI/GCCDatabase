@@ -25,6 +25,26 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Azure Key Vault and secure configuration management
 builder.Configuration.AddAzureKeyVaultIfAvailable(builder.Environment);
 
+// Server-only secrets overlay (DEF-263).
+//
+// Every other config file the app reads ships inside the deploy zip, so a secret written into one
+// on the server is destroyed by the next extract — and destroyed SILENTLY, because empty SMTP
+// credentials just fall back to MockEmailService, which logs and delivers nothing. That is how
+// email stayed dead here: the setting was applied, then a deploy quietly reverted it.
+//
+// appsettings.Secrets.json is deliberately NOT in the zip (deploy.ps1 aborts if it appears in
+// staging) and NOT in git (.gitignore). Extracting a zip adds and overwrites but never deletes, so
+// a file that is absent from the zip survives every deploy untouched. It is registered last, so it
+// overrides appsettings.json and appsettings.{Environment}.json.
+//
+// optional: true keeps developer machines and CI working without it.
+builder.Configuration.AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: true);
+
+// Re-register environment variables so they still outrank the overlay above. CreateBuilder already
+// added them, but anything appended after a provider outranks it, and an env var set on the box is
+// the more deliberate act of the two - it should win, not lose to a file.
+builder.Configuration.AddEnvironmentVariables();
+
 // Cookie Secure-flag policy. Test/Prod are HTTPS-only (IIS in-process hosting +
 // the web.config HTTP→HTTPS redirect rule + HSTS), so all cookies must carry the
 // Secure attribute — Always removes any dependence on the app's perceived request
@@ -52,14 +72,43 @@ builder.Services.AddSession(options =>
 builder.Services.AddDistributedMemoryCache();
 
 // ===== DATA PROTECTION =====
-// Configure keys to persist in application folder (not user profile)
-// This ensures keys survive deployments and app pool recycles
-var dataProtectionPath = Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys");
+// Keys persist on the file system (not the user profile) so they survive app-pool recycles.
+//
+// DEF-363 — the location is now CONFIGURABLE and should point OUTSIDE the content root.
+// It used to be hardcoded to <content root>\DataProtectionKeys. Under IIS that is actively
+// harmful: IIS watches the application directory, and the key ring is WRITTEN there on first
+// start (and Directory.CreateDirectory below touches it on every start). The resulting change
+// notification shuts the app down — and with hostingModel="inprocess" a stopped app cannot
+// restart in the same worker process, so every subsequent request returns HTTP 500 until the
+// pool is recycled. Observed on gccwebapp.com 2026-08-18: the app started, served /__gate 200,
+// warmed its queries, then logged "Application is shutting down..." and 500'd thereafter.
+//
+// It only looked stable before because the key files already existed, so nothing was written.
+// Deleting them (correctly — they were leaked) exposed the latent fault.
+//
+// Set DataProtection:KeyPath to somewhere outside the deployed folder. A relative value is
+// resolved against the content root, so "..\\DataProtectionKeys" puts it alongside the app
+// folder rather than inside it. Leaving it unset preserves the old in-folder behaviour.
+var configuredKeyPath = builder.Configuration["DataProtection:KeyPath"];
+var dataProtectionPath = string.IsNullOrWhiteSpace(configuredKeyPath)
+    ? Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys")
+    : (Path.IsPathRooted(configuredKeyPath)
+        ? configuredKeyPath
+        : Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), configuredKeyPath)));
 Directory.CreateDirectory(dataProtectionPath);
 
-builder.Services.AddDataProtection()
+var dataProtectionBuilder = builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
     .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+
+// Pin the key-ring discriminator to a stable name. Without this it derives from the app's own
+// path, so moving the app (or the key folder) silently invalidates every cookie. The config key
+// already existed but was never read.
+var dataProtectionAppName = builder.Configuration["DataProtection:ApplicationName"];
+if (!string.IsNullOrWhiteSpace(dataProtectionAppName))
+{
+    dataProtectionBuilder.SetApplicationName(dataProtectionAppName);
+}
 
 Console.WriteLine($"DataProtection keys will be stored in: {dataProtectionPath}");
 
@@ -594,6 +643,45 @@ if (GCCWebApp.Services.DataOps.PdfLinkCommand.Matches(args))
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("GreenCircle Certified Database application starting up");
 logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
+
+// Email transport banner (DEF-263).
+//
+// Falling back to MockEmailService is completely silent at runtime: 2FA codes and password-reset
+// links are logged and dropped, while the UI still reports success (ForgotPassword deliberately
+// returns an identical response either way — DEF-209 anti-enumeration). That combination hid a dead
+// mail path here for months. Stating the choice once at startup makes it checkable in stdout.
+{
+    var smtp = app.Configuration.GetSection("SmtpSettings");
+    var smtpConfigured = !string.IsNullOrWhiteSpace(smtp["Host"])
+                      && !string.IsNullOrWhiteSpace(smtp["Username"])
+                      && !string.IsNullOrWhiteSpace(smtp["Password"]);
+
+    if (smtpConfigured)
+    {
+        // Never log Password. Username is logged because identifying the sending mailbox is the
+        // first thing needed when delivery fails.
+        logger.LogInformation(
+            "Email: LIVE via {Host}:{Port} ({Security}) as {Username}, from {FromEmail}. " +
+            "2FA codes and password-reset links will be delivered.",
+            smtp["Host"], smtp["Port"], smtp["Security"] ?? "auto-detect from port",
+            smtp["Username"], smtp["FromEmail"]);
+    }
+    else
+    {
+        var missing = new List<string>();
+        if (string.IsNullOrWhiteSpace(smtp["Host"])) missing.Add("Host");
+        if (string.IsNullOrWhiteSpace(smtp["Username"])) missing.Add("Username");
+        if (string.IsNullOrWhiteSpace(smtp["Password"])) missing.Add("Password");
+
+        logger.LogWarning(
+            "Email: DISABLED (MockEmailService) — SmtpSettings missing {Missing}. Messages are " +
+            "written to this log and NOT delivered, so two-factor authentication and password " +
+            "reset will not work. Anyone who enables email 2FA will be locked out. " +
+            "Fix by creating appsettings.Secrets.json beside GCCWebApp.dll " +
+            "(see appsettings.Secrets.template.json) and recycling the app pool.",
+            string.Join(", ", missing));
+    }
+}
 
 // ===== MIDDLEWARE PIPELINE CONFIGURATION =====
 

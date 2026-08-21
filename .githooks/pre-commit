@@ -18,7 +18,20 @@ set -e
 # match Windows-1252 visual aliases of common UTF-8 multibyte chars. Verified
 # 2026-05-03 against the entire tracked .cshtml/.cs/.js corpus: zero false
 # positives.
-PATTERN='â„|â€|â†|â–|Â®'
+#
+# WIDENED 2026-08-17. The original list missed `Ã—` (C3 97 read as Latin-1) — which is exactly the
+# sequence that shipped as DEF-213, the tag-chip close button on the cert Edit page. This hook was
+# already in place on 2026-05-03; DEF-213 was found on live in the weeks after and the hook stayed
+# silent, because the one sequence it needed was not in the pattern. A guard is only as good as its
+# signature list, so `Ã—` plus `Â©`, `Â°`, `Â ` (nbsp) and `Ã¢â‚¬` (double-encoding, the Burt's Bees
+# case) are now covered.
+#
+# False positives re-verified 2026-08-17 the same way the original list was: the widened pattern was
+# run against the entire tracked .cshtml/.cs/.js corpus (672 files, build output and vendored libs
+# excluded). `Â©`, `Â°`, `Â `, `Ã¢â‚¬` -> zero hits. `Ã—` -> 4 hits, all in
+# qc159-live-check/qc-final-batch.js, which is the QC script that DETECTS DEF-213 and therefore has
+# to contain the sequence it looks for. Those 4 lines carry the mojibake-doc marker below.
+PATTERN='â„|â€|â†|â–|Â®|Ã—|Â©|Â°|Â |Ã¢â‚¬'
 
 # Some lines quote the corrupted glyphs on purpose -- the comments on the CSV
 # BOM fix, for instance, show the mojibake to explain what the fix prevents.
@@ -60,7 +73,8 @@ if [ "$violations" -gt 0 ]; then
     echo ""
     echo "  Common substitutions:"
     echo "    â–¶  -> ▶     â€¢  -> •     â€\" -> —     â†'  -> →"
-    echo "    â„¢ -> ™     Â®   -> ®"
+    echo "    â„¢ -> ™     Â®   -> ®     Ã—   -> × (or &times;)"
+    echo "    Â©   -> ©     Â°   -> °     Ã¢â‚¬ -> double-encoded, re-save from the original"
     echo ""
     echo "  Re-save the file as UTF-8 (with BOM) and replace the corrupted glyphs."
     echo "  See docs/tracking/defect-register.md DEF-133 for context."

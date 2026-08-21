@@ -51,6 +51,7 @@ namespace GCCWebApp.Services
                     {
                         Statuses = CertificateStatusHelper.PublicStatuses.ToList(),
                         ExcludeExpiredByDate = true,
+                        ExcludeNotYetEffectiveByDate = true, // DEF-358: match the public tile query shape we're warming
                         Page = 1,
                         PageSize = 1, // minimum — we just need EF to compile and SQL to plan
                         SortBy = "number",

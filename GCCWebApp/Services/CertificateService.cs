@@ -47,12 +47,14 @@ namespace GCCWebApp.Services
                 // CR-187: normalized search against persisted computed columns.
                 if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
                 {
+                    // DEF-366: tag ids resolved up front instead of as a correlated subquery inside
+                    // the OR. See Search/TagSearchMatch.cs for the measurements.
                     var nq = SearchNormalizer.Normalize(request.Filters.SearchTerm);
-                    query = query.Where(c =>
+                    var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
+                    query = query.WhereMatchesSearch(c =>
                         c.Company.NormalizedName!.Contains(nq) ||
                         c.Product.NormalizedName!.Contains(nq) ||
-                        c.NormalizedNumber!.Contains(nq) ||
-                        c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
+                        c.NormalizedNumber!.Contains(nq), tagIds);
                 }
 
                 if (request.Filters.CertificationTypes.Any())
@@ -176,12 +178,14 @@ namespace GCCWebApp.Services
                 // CR-187: normalized search against persisted computed columns.
                 if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
                 {
+                    // DEF-366: tag ids resolved up front instead of as a correlated subquery inside
+                    // the OR. See Search/TagSearchMatch.cs for the measurements.
                     var nq = SearchNormalizer.Normalize(request.Filters.SearchTerm);
-                    query = query.Where(c =>
+                    var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
+                    query = query.WhereMatchesSearch(c =>
                         c.Company.NormalizedName!.Contains(nq) ||
                         c.Product.NormalizedName!.Contains(nq) ||
-                        c.NormalizedNumber!.Contains(nq) ||
-                        c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
+                        c.NormalizedNumber!.Contains(nq), tagIds);
                 }
 
                 if (request.Filters.CertificationTypes.Any())
@@ -458,12 +462,15 @@ namespace GCCWebApp.Services
             // CR-187: normalized search against persisted computed columns.
             if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
             {
+                // DEF-366: tag ids resolved up front instead of as a correlated subquery inside the
+                // OR. Safe against the DEF-198 export scoping above: that scope is a separate
+                // AND'd Where, so a broader tag id set cannot widen what this export returns.
                 var nq = SearchNormalizer.Normalize(request.Filters.SearchTerm);
-                query = query.Where(c =>
+                var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
+                query = query.WhereMatchesSearch(c =>
                     c.Company.NormalizedName!.Contains(nq) ||
                     c.Product.NormalizedName!.Contains(nq) ||
-                    c.NormalizedNumber!.Contains(nq) ||
-                    c.Tags.Any(t => t.NormalizedName!.Contains(nq)));
+                    c.NormalizedNumber!.Contains(nq), tagIds);
             }
             if (request.Filters.CertificationTypes.Any())
                 query = query.Where(c => request.Filters.CertificationTypes.Contains(c.CertificationType.Name));
@@ -497,6 +504,14 @@ namespace GCCWebApp.Services
         /// DEF-198 (QC #182): role-based security predicate for CSV export queries.
         /// Mirrors the predicate enforced by CertificateTileExternalApiController so the
         /// export cannot return more than the tile view shows the same user.
+        ///
+        /// DEF-358: "mirrors the EXTERNAL tile view" is why the anonymous branch drifted — the
+        /// external tile view is deliberately ungated for the effective date (the owning company
+        /// may see its own upcoming certs), but the PUBLIC branch here serves anonymous callers
+        /// through an [AllowAnonymous] endpoint, so it must mirror the PUBLIC tile view instead.
+        /// Partner likewise mirrors the partner API. Without this, an anonymous CSV export handed
+        /// out certificates the public site, the PDF endpoints and the Amazon feed all withheld.
+        /// External stays ungated on purpose — same scope decision as everywhere else.
         /// </summary>
         private static IQueryable<Certificate> ApplyExportSecurityScope(IQueryable<Certificate> query, CertificateListRequest request)
         {
@@ -520,7 +535,10 @@ namespace GCCWebApp.Services
                 {
                     query = query.Where(c => false);
                 }
-                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+                // DEF-358: parity with the partner API — a cert that has not reached its effective
+                // date is not in force, so it must not appear in a partner's CSV either.
+                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status))
+                             .WhereEffectiveDateReached();
             }
             else if (string.Equals(role, "External", StringComparison.OrdinalIgnoreCase))
             {
@@ -539,7 +557,14 @@ namespace GCCWebApp.Services
             else if (string.Equals(role, "Public", StringComparison.OrdinalIgnoreCase))
             {
                 // Anonymous / unauthenticated callers see only PublicStatuses certs.
-                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+                // DEF-358: and only from the effective date onward, matching the public tile view.
+                // Note on the branch chain: a NULL UserRole coalesces to "Public" and is gated here,
+                // but an unrecognised NON-NULL role string falls past every branch to the
+                // unrestricted tail — that tail is how Admin/Analyst/Internal get full access, so
+                // unknown roles are fail-OPEN by construction. Out of scope for DEF-358; see
+                // DEF358_ExportScopeTests.UnrecognisedRole_FallsThroughUnrestricted_ByDesign.
+                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status))
+                             .WhereEffectiveDateReached();
             }
             // Admin / Analyst / Internal: no restriction.
 
@@ -829,6 +854,7 @@ namespace GCCWebApp.Services
             try
             {
                 var certificate = await _context.Certificates
+                    .OrderByDescending(c => c.EffectiveDate).ThenByDescending(c => c.Id)
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);
 
                 if (certificate == null)
@@ -1085,6 +1111,7 @@ namespace GCCWebApp.Services
                     .Include(c => c.Tags)
                     .Include(c => c.CustomFieldValues)
                     .ThenInclude(cfv => cfv.Field)
+                    .OrderByDescending(c => c.EffectiveDate).ThenByDescending(c => c.Id)
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);
 
                 if (certificate == null) return null;

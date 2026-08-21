@@ -1586,6 +1586,9 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 "USA", "UK", "Great Britain", "UAE", "Republic of Korea", "DPRK",
                 "Russian Federation", "Czechia", "Holland", "Côte d'Ivoire", "Burma",
                 "Vatican", "PRC", "Viet Nam", "Cape Verde", "Swaziland", "Macedonia", "ROC",
+                // DEF-356 additions
+                "Türkiye", "Holy See", "East Timor", "Republic of Ireland", "Eire",
+                "Hong Kong SAR", "Macao", "US Virgin Islands", "BVI",
             })
             {
                 CountryList.TryResolve(input, out var canonical).Should().BeTrue(
@@ -1606,6 +1609,86 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             CountryList.TryResolve(input, out var canonical).Should().BeFalse(
                 $"'{input}' is not a country and must not resolve");
             canonical.Should().BeEmpty();
+        }
+
+        // ---- DEF-356 — the list is countries AND territories, not sovereign states only ----
+        // The original 197 entries were "193 UN members + Vatican City + Palestine + Kosovo +
+        // Taiwan". Wrong axis for this application: Country records where a product was made or
+        // tested. The client's migration data contained "Puerto Rico" (2 certs) and "Wales"
+        // (6 certs); neither could be re-selected on Edit, which is the DEF-343 failure shape.
+
+        [Theory]
+        [InlineData("Puerto Rico", "Puerto Rico")]   // found in the client's own source files
+        [InlineData("Hong Kong", "Hong Kong")]       // separate customs territory; electronics manufacturing
+        [InlineData("Hong Kong SAR", "Hong Kong")]
+        [InlineData("Macao", "Macau")]               // ISO spells it "Macao", the dropdown says "Macau"
+        [InlineData("Gibraltar", "Gibraltar")]
+        [InlineData("Isle of Man", "Isle of Man")]
+        [InlineData("Guernsey", "Guernsey")]
+        [InlineData("Greenland", "Greenland")]
+        [InlineData("US Virgin Islands", "United States Virgin Islands")]
+        [InlineData("BVI", "British Virgin Islands")]
+        [InlineData("Curacao", "Curacao")]
+        public void CountryList_TryResolve_ResolvesTerritories(string input, string expected)
+        {
+            CountryList.TryResolve(input, out var canonical).Should().BeTrue(
+                $"'{input}' is an ISO 3166-1 territory and a real manufacturing location");
+            canonical.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData("Wales")]
+        [InlineData("Scotland")]
+        [InlineData("England")]
+        [InlineData("Northern Ireland")]
+        public void CountryList_UkConstituents_ResolveToThemselvesNotUnitedKingdom(string input)
+        {
+            // Deliberate departure from ISO (which calls these subdivisions, GB-WLS etc.), taken on
+            // the client's instruction 2026-08-14: they supply these values and expect to see them
+            // back. Before this they aliased to "United Kingdom", silently discarding the answer.
+            CountryList.TryResolve(input, out var canonical).Should().BeTrue();
+            canonical.Should().Be(input, "the client's stated country must survive the round trip");
+            CountryList.Countries.Should().Contain(input,
+                "it must also be selectable on Edit, or DEF-343 recurs");
+        }
+
+        [Theory]
+        [InlineData("UK", "United Kingdom")]
+        [InlineData("Great Britain", "United Kingdom")]
+        [InlineData("Britain", "United Kingdom")]
+        public void CountryList_UnitedKingdomAliases_SurviveTheConstituentSplit(string input, string expected)
+        {
+            // Adding the four constituents must not break the whole-UK aliases.
+            CountryList.TryResolve(input, out var canonical).Should().BeTrue();
+            canonical.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData("Ontario")]          // Canadian province
+        [InlineData("Alberta")]
+        [InlineData("California")]       // US state
+        [InlineData("Bavaria")]          // German state
+        [InlineData("Catalonia")]
+        public void CountryList_OtherSubNationalUnits_StillDoNotResolve(string input)
+        {
+            // The UK four are a NAMED EXCEPTION, not a new rule that any sub-national unit counts.
+            // Without this, DEF-356 reads as a licence to add provinces and the field stops meaning
+            // anything. A bad Location->Country split must still fail loudly.
+            CountryList.TryResolve(input, out var canonical).Should().BeFalse(
+                $"'{input}' is a sub-national unit with no client mandate, and must not resolve");
+            canonical.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void CountryList_IsAlphabeticalAndFreeOfDuplicates()
+        {
+            // The dropdown renders Countries verbatim, so authoring order IS display order.
+            CountryList.Countries.Should().BeInAscendingOrder(StringComparer.Ordinal,
+                "the Country dropdown renders this list in authoring order");
+            CountryList.Countries.Should().OnlyHaveUniqueItems();
+            CountryList.Countries.Should().OnlyContain(c => c.All(ch => ch <= 127),
+                "the list is ASCII-only by convention — accents are stripped by Normalize anyway, "
+                + "and this codebase has had mojibake defects in CSV export");
         }
 
         [Theory]

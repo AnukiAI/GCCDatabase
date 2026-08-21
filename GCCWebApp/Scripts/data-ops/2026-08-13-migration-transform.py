@@ -420,7 +420,8 @@ def apply_dup_policy(rows, policy, sheet_name, quarantine):
         if policy == "all":
             emit.extend(group)
             for excel_row, rec in group:
-                quarantine.append(_q(sheet_name, excel_row, rec, "emitted anyway (--dup-policy all); WILL violate IX_Certificates_Number"))
+                quarantine.append(_q(sheet_name, excel_row, rec,
+                                     "EMITTED as its own certificate (CR-038); loader flags AllowsDuplicateNumber = 1"))
         elif policy == "collapse":
             group_sorted = sorted(group, key=lambda t: (-completeness(t[1]), t[0]))
             keeper = group_sorted[0]

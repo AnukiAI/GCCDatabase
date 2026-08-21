@@ -4,10 +4,31 @@ using System.Text;
 namespace GCCWebApp.Models
 {
     /// <summary>
-    /// Provides a standard list of countries (ISO 3166-1) for dropdown selection.
+    /// Provides a standard list of countries and territories (ISO 3166-1) for dropdown selection.
     /// </summary>
     public static class CountryList
     {
+        // The list below is ISO 3166-1, but it is NOT limited to sovereign states — see DEF-356.
+        // It was originally 197 entries = 193 UN members + Vatican City + Palestine + Kosovo +
+        // Taiwan. That definition is wrong for this application: Country records where a product
+        // was MADE OR TESTED, and manufacturing happens in places that are not sovereign states.
+        // The client's own migration data proved it — "Puerto Rico" (2 certs) and "Wales" (6 certs)
+        // both arrived from the source files and neither could be re-selected on Edit, which is
+        // the DEF-343 failure shape. So:
+        //   * ISO 3166-1 territories that are real manufacturing/business locations are included
+        //     (Hong Kong, Puerto Rico, Macau, the Crown Dependencies, the Caribbean territories).
+        //   * The four UK constituent countries are SELECTABLE rather than collapsed to
+        //     "United Kingdom" — the client supplies them, and Location alone was losing the
+        //     distinction. This is a deliberate departure from ISO, which treats them as
+        //     subdivisions (GB-WLS etc.), taken on the client's instruction 2026-08-14.
+        // Sub-national units in general are still NOT countries — "Ontario" and "Alberta" must
+        // keep failing to resolve. The UK four are a named exception, not a new rule.
+        //
+        // Entries are ASCII-only by existing convention ("Ivory Coast", not "Côte d'Ivoire";
+        // "Sao Tome and Principe", not "São Tomé"). Keep it that way — this codebase has had
+        // mojibake defects in CSV export, and Normalize() strips accents anyway so an accented
+        // source value still resolves.
+        // The list is kept in alphabetical order because the dropdown renders it verbatim.
         public static readonly List<string> Countries = new()
         {
             "Afghanistan",
@@ -18,6 +39,7 @@ namespace GCCWebApp.Models
             "Antigua and Barbuda",
             "Argentina",
             "Armenia",
+            "Aruba",
             "Australia",
             "Austria",
             "Azerbaijan",
@@ -29,11 +51,13 @@ namespace GCCWebApp.Models
             "Belgium",
             "Belize",
             "Benin",
+            "Bermuda",
             "Bhutan",
             "Bolivia",
             "Bosnia and Herzegovina",
             "Botswana",
             "Brazil",
+            "British Virgin Islands",
             "Brunei",
             "Bulgaria",
             "Burkina Faso",
@@ -42,6 +66,7 @@ namespace GCCWebApp.Models
             "Cambodia",
             "Cameroon",
             "Canada",
+            "Cayman Islands",
             "Central African Republic",
             "Chad",
             "Chile",
@@ -53,6 +78,7 @@ namespace GCCWebApp.Models
             "Costa Rica",
             "Croatia",
             "Cuba",
+            "Curacao",
             "Cyprus",
             "Czech Republic",
             "Denmark",
@@ -62,27 +88,35 @@ namespace GCCWebApp.Models
             "Ecuador",
             "Egypt",
             "El Salvador",
+            "England",
             "Equatorial Guinea",
             "Eritrea",
             "Estonia",
             "Eswatini",
             "Ethiopia",
+            "Faroe Islands",
             "Fiji",
             "Finland",
             "France",
+            "French Polynesia",
             "Gabon",
             "Gambia",
             "Georgia",
             "Germany",
             "Ghana",
+            "Gibraltar",
             "Greece",
+            "Greenland",
             "Grenada",
+            "Guam",
             "Guatemala",
+            "Guernsey",
             "Guinea",
             "Guinea-Bissau",
             "Guyana",
             "Haiti",
             "Honduras",
+            "Hong Kong",
             "Hungary",
             "Iceland",
             "India",
@@ -90,11 +124,13 @@ namespace GCCWebApp.Models
             "Iran",
             "Iraq",
             "Ireland",
+            "Isle of Man",
             "Israel",
             "Italy",
             "Ivory Coast",
             "Jamaica",
             "Japan",
+            "Jersey",
             "Jordan",
             "Kazakhstan",
             "Kenya",
@@ -111,6 +147,7 @@ namespace GCCWebApp.Models
             "Liechtenstein",
             "Lithuania",
             "Luxembourg",
+            "Macau",
             "Madagascar",
             "Malawi",
             "Malaysia",
@@ -133,12 +170,14 @@ namespace GCCWebApp.Models
             "Nauru",
             "Nepal",
             "Netherlands",
+            "New Caledonia",
             "New Zealand",
             "Nicaragua",
             "Niger",
             "Nigeria",
             "North Korea",
             "North Macedonia",
+            "Northern Ireland",
             "Norway",
             "Oman",
             "Pakistan",
@@ -151,6 +190,7 @@ namespace GCCWebApp.Models
             "Philippines",
             "Poland",
             "Portugal",
+            "Puerto Rico",
             "Qatar",
             "Romania",
             "Russia",
@@ -162,11 +202,13 @@ namespace GCCWebApp.Models
             "San Marino",
             "Sao Tome and Principe",
             "Saudi Arabia",
+            "Scotland",
             "Senegal",
             "Serbia",
             "Seychelles",
             "Sierra Leone",
             "Singapore",
+            "Sint Maarten",
             "Slovakia",
             "Slovenia",
             "Solomon Islands",
@@ -198,12 +240,14 @@ namespace GCCWebApp.Models
             "United Arab Emirates",
             "United Kingdom",
             "United States",
+            "United States Virgin Islands",
             "Uruguay",
             "Uzbekistan",
             "Vanuatu",
             "Vatican City",
             "Venezuela",
             "Vietnam",
+            "Wales",
             "Yemen",
             "Zambia",
             "Zimbabwe"
@@ -230,10 +274,10 @@ namespace GCCWebApp.Models
             ["uk"] = "United Kingdom",
             ["great britain"] = "United Kingdom",
             ["britain"] = "United Kingdom",
-            ["england"] = "United Kingdom",
-            ["scotland"] = "United Kingdom",
-            ["wales"] = "United Kingdom",
-            ["northern ireland"] = "United Kingdom",
+            // DEF-356: England / Scotland / Wales / Northern Ireland used to alias to
+            // "United Kingdom". They are now first-class entries in Countries above (client
+            // instruction, 2026-08-14), so they resolve by exact match and must NOT be aliased —
+            // an alias here would silently override the client's stated country.
             ["uae"] = "United Arab Emirates",
             ["republic of korea"] = "South Korea",
             ["korea south"] = "South Korea",
@@ -255,6 +299,30 @@ namespace GCCWebApp.Models
             ["cape verde"] = "Cabo Verde",
             ["swaziland"] = "Eswatini",
             ["macedonia"] = "North Macedonia",
+
+            // DEF-356 additions.
+            // ISO renamed Turkey to "Türkiye" in 2022, so current documents use it. Normalize()
+            // strips the umlaut, giving the key below — without this a modern source file silently
+            // fails to resolve.
+            ["turkiye"] = "Turkey",
+            ["holy see"] = "Vatican City",     // the ISO 3166-1 name for Vatican City
+            ["east timor"] = "Timor-Leste",
+            ["republic of ireland"] = "Ireland",
+            ["eire"] = "Ireland",
+            // Territories added to Countries above; these cover the forms customs paperwork uses.
+            ["hong kong sar"] = "Hong Kong",
+            ["hong kong sar china"] = "Hong Kong",
+            ["hong kong china"] = "Hong Kong",
+            ["macao"] = "Macau",               // ISO spells it "Macao"
+            ["macao sar"] = "Macau",
+            ["macau sar"] = "Macau",
+            ["us virgin islands"] = "United States Virgin Islands",
+            ["virgin islands us"] = "United States Virgin Islands",   // ISO "Virgin Islands (U.S.)"
+            ["usvi"] = "United States Virgin Islands",
+            ["virgin islands british"] = "British Virgin Islands",    // ISO "Virgin Islands (British)"
+            ["bvi"] = "British Virgin Islands",
+            ["channel islands jersey"] = "Jersey",
+            ["puerto rico us"] = "Puerto Rico",
         };
 
         // Built once from Countries so a rename in the list above can never drift out of sync with

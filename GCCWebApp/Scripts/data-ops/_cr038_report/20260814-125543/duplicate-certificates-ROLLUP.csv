@@ -1,0 +1,37 @@
+﻿Section,Item,Value
+Totals,Certificate numbers affected,137
+Totals,Certificate rows affected,312
+Totals,Extra rows beyond one per number,175
+Group size,2 rows sharing one number,104
+Group size,3 rows sharing one number,28
+Group size,4 rows sharing one number,5
+Document evidence,Siblings have DIFFERENT documents,128
+Document evidence,Siblings share ONE document,8
+Document evidence,No document found in the portal,1
+What differs,ProductName,92
+What differs,"Company, ProductName",20
+What differs,(nothing on compared fields),12
+What differs,ExpirationDate,7
+What differs,"ProductName, ExpirationDate",3
+What differs,"Company, ProductName, CertificationType, EffectiveDate, ExpirationDate",1
+What differs,"Company, ProductName, EffectiveDate, ExpirationDate",1
+What differs,"EffectiveDate, ExpirationDate",1
+Status,Expired,129
+Status,Client Approved - Paid,8
+Partner (Amazon exposure),(none),137
+Source list,Expired List 1 - 4.9.26,121
+Source list,Expired List 2 - 8.11.26,8
+Source list,Active List 7.31.26,8
+Company,Sika Canada Inc.,65
+Company,Regupol America,37
+Company,Sika Corporation,16
+Company,MAPEI,10
+Company,Deceuninck North America,2
+Company,"Corbin Russwin, an ASSA ABLOY Group Brand",2
+Company,"Sargent Manufacturing Company, an ASSA ABLOY Group company",2
+Company,ASSA ABLOY,1
+Company,DuPont™ Performance Building Solutions,1
+Company,Greenfield Natural Meat Co.,1
+Suggested disposition,SEPARATE CERTIFICATES — siblings have different documents,128
+Suggested disposition,Same document filed twice — safe to merge,8
+Suggested disposition,Identical on all compared fields — safe to merge,1

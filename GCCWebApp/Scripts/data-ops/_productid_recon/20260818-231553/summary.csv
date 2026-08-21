@@ -1,0 +1,5 @@
+﻿Field,Compared,Match,Mismatch
+productName,16234,16234,0
+partner tag,16234,1960,14274
+blank productName in DB,16234,,11
+collapsed rows disagreeing,21034,,1564

@@ -478,6 +478,30 @@ namespace GCCWebApp.Services
                 var oldRole = oldUser?.Roles.FirstOrDefault()?.Name ?? "None";
                 var newRole = model.Role ?? "None";
 
+                // DEF-366: reject a duplicate email HERE, with a message naming the address, rather
+                // than letting the unique index throw on SaveChangesAsync. That exception surfaced
+                // as a generic 500 ("Update failed. See the server log for details.") and told the
+                // admin nothing actionable about an ordinary mistake. Mirrors the check
+                // CreateUserAsync has always had — the two paths were inconsistent, not the rule.
+                //
+                // Excludes this user's own row (so re-saving an unchanged email is not a conflict)
+                // and soft-deleted rows, matching how CreateUserAsync scopes the same lookup.
+                if (!string.IsNullOrWhiteSpace(model.Email))
+                {
+                    var emailTaken = await _context.Users.AsNoTracking().AnyAsync(u =>
+                        u.Id != id &&
+                        !u.IsDeleted &&
+                        u.Email.ToLower() == model.Email.ToLower());
+
+                    if (emailTaken)
+                    {
+                        _logger.LogWarning(
+                            "Update of user {UserId} rejected: email {Email} already belongs to another user",
+                            id, model.Email);
+                        return UserUpdateResult.DuplicateEmail;
+                    }
+                }
+
                 user.FullName = model.Name;
                 user.Email = model.Email;
                 // DEF-326. Case/whitespace-insensitive: an ordinal "active" match silently deactivated the

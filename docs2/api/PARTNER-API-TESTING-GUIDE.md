@@ -7,6 +7,16 @@
 **Audience:** Partners, QA Teams, Integration Engineers
 **Status:** Production Ready
 
+> **Corrected 2026-08-25 — sample payload hosts.** The GS1 `id` values in the example responses below
+> now read `https://database.greencirclecertified.com/api/v1/...`. They previously mixed
+> `greencirclecertified.com` and `greencirclecertified.com/database` **within the same response**, which
+> could never occur: `id` is generated from the host the caller used, so every `id` in one response
+> shares a host. The path-based address was never activated and is retired.
+>
+> **This is the older reference set.** For anything client- or partner-facing, use the current guides in
+> `docs2/exports/` (Amazon Developer Guide v1.2, Partner Integration Guide v1.1). This file has not been
+> reviewed against current rate-limit or certificate-status behaviour.
+
 ---
 
 ## Table of Contents
@@ -286,7 +296,6 @@ curl -X GET "http://localhost:5101/api/v1/certificates" \
 | CERT-03 | Get by Certificate Number | `GET /certificates/number/{number}` | Critical |
 | CERT-04 | Get by Database ID | `GET /certificates/{id}` | High |
 | CERT-05 | Filter Active Only | `GET /certificates?status=Active` | High |
-| CERT-06 | Get Expiring Certificates | `GET /certificates/expiring?days=30` | Medium |
 
 ### 5.2 Test: List All Certificates (CERT-01)
 
@@ -581,13 +590,13 @@ curl -X GET "http://localhost:5101/api/v1/certificates/gs1?pageSize=10" \
     {
       "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
       "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
-      "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+      "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366",
       "type": "CertificationReport",
       "issueDate": "2024-01-15",
       "issuer": "Green Circle Certified",
       "products": [
         {
-          "id": "https://greencirclecertified.com/database/api/v1/certificates/gs1/24-0366/product",
+          "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366/product",
           "type": "Product",
           "gtin": null,
           "additionalTradeItemId": [

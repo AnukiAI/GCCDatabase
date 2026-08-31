@@ -112,6 +112,23 @@ namespace GCCWebApp.Controllers.Api
                         // Partner user with no partner association - show nothing
                         query = query.Where(c => false);
                     }
+
+                    // DEF-358 applies to the partner/Amazon surface, and this controller is part of
+                    // it. CertificateVisibility's scope note excludes this controller deliberately —
+                    // correct for the External/owning-company role below, which must keep seeing its
+                    // own upcoming certs — but the exclusion was applied to the whole controller when
+                    // it should only ever have covered the External branch. The result was that the
+                    // Amazon partner account listed certificates two months before their effective
+                    // date (26-0441 / 26-0442, effective 2026-10-21) while the same account's CSV
+                    // export and single-certificate view both correctly withheld them: 210 tiles vs
+                    // 208 exported rows, the 208 matching the v1 partner API's verified-clean set.
+                    //
+                    // Lower bound only, same reasoning as DEF-359: CertificateExpirationService flips
+                    // Status to Expired on a daily sweep, so the upper bound is already carried by
+                    // the PublicStatuses filter further down. Only the not-yet-effective case had no
+                    // status to carry it. Reuses the shared helper rather than restating the date
+                    // rule, so there is no second copy to drift.
+                    query = query.WhereEffectiveDateReached();
                 }
                 else if (userRole == "External")
                 {
@@ -715,6 +732,16 @@ namespace GCCWebApp.Controllers.Api
 
                 // Only allow download of active certificates for external users
                 if (!CertificateStatusHelper.IsPubliclyVisible(certificate.Status) || (certificate.ExpirationDate != null && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday))
+                {
+                    return BadRequest(new { error = "Certificate is not available for download" });
+                }
+
+                // Same DEF-358 gap as the list query above, on the download path: without this a
+                // Partner who has (or guesses) the id could still pull the PDF of a certificate that
+                // has not gone live yet, even once it stops appearing in their tiles. Partner only —
+                // External/owning-company keeps its own upcoming certs, and Admin/Analyst returned
+                // early above.
+                if (userRole == "Partner" && CertificateVisibility.IsNotYetEffective(certificate))
                 {
                     return BadRequest(new { error = "Certificate is not available for download" });
                 }

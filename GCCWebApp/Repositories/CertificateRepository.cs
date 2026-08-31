@@ -120,9 +120,13 @@ namespace GCCWebApp.Repositories
                 (excludeCertificateId == null || c.Id != excludeCertificateId));
         }
 
-        public async Task<Certificate?> GetCertificateByNumberAsync(string certificateNumber)
-        {
-            return await PickOneByNumber(_dbSet.Where(c => c.Number == certificateNumber))
+        /// <summary>
+        /// DEF-369: the single-view Include chain, shared by the number-only and number+id
+        /// lookups. Extracted so the two can never drift — a detail page that loads different
+        /// navigation properties depending on which URL form was used would be its own defect.
+        /// </summary>
+        private static IQueryable<Certificate> WithSingleViewIncludes(IQueryable<Certificate> query) =>
+            query
                 .Include(c => c.Company)
                 .Include(c => c.Product).ThenInclude(p => p.Category)
                 .Include(c => c.Product).ThenInclude(p => p.ProductType)
@@ -137,8 +141,33 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.CustomFieldValues)
                     .ThenInclude(cfv => cfv.Field)
                 .Include(c => c.ProductIds)
-                .Include(c => c.Pathway)
+                .Include(c => c.Pathway);
+
+        public async Task<Certificate?> GetCertificateByNumberAsync(string certificateNumber)
+        {
+            return await WithSingleViewIncludes(
+                    PickOneByNumber(_dbSet.Where(c => c.Number == certificateNumber)))
                 .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// DEF-369. Both halves of the key are matched deliberately — see the interface for why a
+        /// mismatch returns null instead of falling back to the number.
+        /// </summary>
+        public async Task<Certificate?> GetCertificateByNumberAndIdAsync(string certificateNumber, int certificateId)
+        {
+            if (string.IsNullOrWhiteSpace(certificateNumber)) return null;
+
+            return await WithSingleViewIncludes(
+                    _dbSet.Where(c => c.Number == certificateNumber && c.Id == certificateId))
+                .FirstOrDefaultAsync();
+        }
+
+        /// <summary>DEF-369.</summary>
+        public async Task<int> CountCertificatesByNumberAsync(string certificateNumber)
+        {
+            if (string.IsNullOrWhiteSpace(certificateNumber)) return 0;
+            return await _dbSet.CountAsync(c => c.Number == certificateNumber);
         }
 
         public async Task<IEnumerable<Certificate>> SearchCertificatesAsync(string searchTerm)
@@ -480,7 +509,10 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.Tags)
                 .Include(c => c.Partners)
                 .AsSplitQuery()
-                .Skip((filter.Page - 1) * filter.PageSize)
+                // DEF-381: honour an exact row offset when the caller supplied one. Offset-based
+                // callers cannot round-trip through a page number unless the offset happens to be a
+                // multiple of the page size — see CertificateSearchFilter.Skip.
+                .Skip(filter.Skip ?? ((filter.Page - 1) * filter.PageSize))
                 .Take(filter.PageSize)
                 .ToListAsync();
 

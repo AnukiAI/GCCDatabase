@@ -348,6 +348,43 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 - **Detail doc:** `docs/tracking/CR-023-import-batch-undo.md`
 - **Status:** **Built + UI-validated locally — pending deploy.** Pre-prod; client approval still advisable before it's presented as a delivered feature.
 
+### CR-040 (proposed 2026-08-23) — Product Management "IDs" column: make it say WHICH ASIN figure it is showing
+
+- **Source:** the client's ASIN validation, 2026-08-21. Method, in their words: *"I went to the product management page, sorted from most to least ASINS. I then searched each company's name and totaled the ASINS associated with that company and compared that number to what we have in our master ASIN list."* Five companies came back short and were reported as a suspected migration fault. **The migration was not at fault** — see the record log below — but the reviewer had no way to know that from the screen, and their follow-up was *"I'm still concerned the ASINs are not correct."* That is the cost this CR addresses: the screen cannot currently be used for the reconciliation people are naturally using it for.
+- **Why CR, not a defect:** nothing is broken. The page returns exactly what it is coded to return, no data is wrong, and no stored value is affected. What is being asked for is a **change to what the screen displays**, which is scope. Filed as a CR on that basis alone.
+- **What the column actually counts — measured, not inferred.** `/Product/Management` (the page reached from the main nav, `Views/Shared/_Layout.cshtml:180`) renders an **"IDs"** column, sortable, at `Views/Product/Management.cshtml:108`. Its value is computed at `Views/Product/Management.cshtml:714` as `Object.values(product.identifiers).reduce((sum, arr) => sum + arr.length, 0)`, and `identifiers` is built server-side in `Controllers/ProductController.cs`, `GetProducts()`:
+
+  ```csharp
+  Identifiers = p.CertificateIdentifiers
+      .GroupBy(pi => pi.ProductIdType)
+      .ToDictionary(g => g.Key.ToLower(), g => g.Select(pi => pi.ProductIdValue).Distinct().ToList()),
+  ```
+
+  The `.Distinct()` is **per product line item**, over the ASINs of *all* that product's certificates flattened together. So the figure a reader totals for a company is **the sum, over that company's product line items, of the distinct ASINs on each** — which is neither the number of ASIN records held nor the number of distinct ASINs the company owns. It sits between the two, and **where it lands depends entirely on how that company's certificates happen to be distributed across product line items** — a detail invisible on screen.
+- **This is why one screen produced two different units.** Reproduced directly against the test database on 2026-08-23; `PAGE` is the summed IDs column, `DBROWS` is the ASIN records actually stored:
+
+  | Company | Line items | PAGE (what the client totalled) | DBROWS | Client reported |
+  |---|---:|---:|---:|---:|
+  | Philips | 7 | **2,019** | 2,019 | 2,019 |
+  | The Estée Lauder Companies | 1 | **1,847** | 1,854 | 1,847 |
+  | The Procter & Gamble Company | 15 | **1,240** | 1,240 | 1,240 |
+  | Clover Imaging Group | 2 | **1,202** | 1,202 | 1,202 |
+  | Kohler Co. | 2 | **1,051** | 1,959 | 1,051 |
+  | Clover Environmental Solutions, LLC | 3 | **67** | 67 | 67 |
+
+  **All six of the client's figures reproduce exactly from the PAGE column.** For Philips, P&G and Clover the column happens to equal the stored record count; for Kohler and Estée it does not, because those companies' certificates share line items and the per-line-item `.Distinct()` bites. Same screen, same method, two different units — with nothing on the page to signal the switch.
+- **The data itself is confirmed correct, so this CR is purely about legibility.** `Scripts/data-ops/2026-08-23-asin-record-log.py` compares every `(certificate, type, value)` in the union of the client's master list and a live test dump, in both directions: **16,234 OK · 0 MISSING_FROM_DB · 0 EXTRA_IN_DB**, across the 158 certificates that carry ASINs. The only one-sided values are 3 distinct source values that are not valid ASINs (9 spreadsheet rows: eight literal `TO BE CHECKED`, one 9-character ASIN — all Philips). Product names: 15,925 exact, 309 differing by whitespace only, **0 differing in content**. This is a second, independently written implementation agreeing with `2026-08-18-asin-reconciliation.py`.
+- **Proposed change — smallest thing that removes the ambiguity.** Label the column for what it is and give the reconciliation figure people actually want:
+  - **(a)** Rename `IDs` → **`ASINs on this product`**, with a tooltip stating it counts each ASIN once per product line item. *Cheapest; removes the false confidence, does not give them the total they want.*
+  - **(b)** (a) **plus** a per-company distinct-ASIN figure surfaced where a company is filtered — the number that is directly comparable to a master-list total. **Recommended.**
+  - **(c)** Add a "distinct ASINs" column alongside the existing one. *Rejected as a default — two adjacent numeric columns that disagree is the same trap with more surface.*
+- **Deliberately NOT in scope:** changing the `.Distinct()` itself. Per-line-item de-duplication is correct for the product view; the fix is to say so, not to alter the number and risk a different reading of the same screen.
+- **Related — worth a decision, not folded in here:** there are **four** product-management surfaces — `/Product/Management` (live, in the nav), `/Product/ManagementAlt`, `/Product/ManagementV2`, and `/Admin/ProductManagement` (a separate implementation with its own de-duplication at `wwwroot/js/admin/productManagement.js:2107`). Only the first is linked from the nav. Whichever option is chosen has to be applied to whichever of these survive, so **agreeing which to retire is a precondition for costing this accurately.**
+- **Effort:** **(a) ≈ 0.5 day.** **(b) ≈ 1–1.5 days** — the per-company distinct figure needs a new aggregate rather than a client-side sum of what is already loaded, because the page holds only the per-line-item lists. Both assume a single surviving surface; multiply by the number kept.
+- **Decisions required:** (1) (a), (b) or (c); (2) which product-management surfaces are retired; (3) whether the per-company figure should count ASINs only or all identifier types.
+- **Sent to client?** **No — not yet drafted for them.** Raised from our own analysis of their 2026-08-21 findings. The reply answering the validation question (`docs/tracking/2026-08-21-client-email-asin-validation-response.md`) deliberately mentions only that we are "looking at making that screen state plainly which figure it is showing" — the CR itself should be presented separately, once the questions above are settled.
+- **Status:** **Proposed — not approved, not built.**
+
 ### CR-039 (proposed 2026-08-17) — Authorization to purge test-environment business records ahead of the go-live load
 
 - **Source:** Gate 1 of `docs/tracking/go-live-test-runbook-2026-08-14.md`. The underlying instruction is the client's own, in writing: *"All test certs/ASINs should be removed before uploading as we are preparing for go-live"* — remove certs/companies/products/fake users, keep Cert Types, Product Cat/Type/Subcat, Tags, Pathways, Partners (`ReadMe.txt`, 2026-08-12).
@@ -426,7 +463,7 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 
 - **Interim position:** the partner guide does not promise a standard version, and Novi can be onboarded without one. This gap does not block anything today; it only limits how completely we satisfy Novi's *ideal* structure.
 - **Related:** [[CR-035]] (the other Novi gap — certificate status semantics; larger and structural) · DEF-345 (rate limiting, same review).
-- **Status:** **Proposed — not built.** No code written. Needs the five answers above, starting with question 1, which may retire it entirely.
+- **Status:** **Proposed — not built.** No code written. Needs the five answers above, starting with question 1, which may retire it entirely. **Questions put to the client 2026-08-24** — draft in `docs/tracking/2026-08-24-client-questions-partner-api.md` (sent with CR-035 and the 200/hr rate-limit confirmation, all three being products of the same guide review).
 
 ### CR-035 (proposed 2026-08-10) — Partner API: expose certificate status as a value (Valid / Expired / Revoked) instead of by presence
 
@@ -459,7 +496,7 @@ A certificate in any other state is simply absent, and **absence is deliberately
 
 - **Interim position, already documented:** the guide now states the presence/absence model plainly, warns that **a `404` is not evidence of revocation**, and flags to GCC that a claim-validation partner may need more than this contract offers. Novi can be onboarded today for badging-style use; claim validation works only if they accept presence/absence as the signal.
 - **Related:** DEF-345 (rate limiting, same guide review) · [[feedback_amazon_api_immutable]] · [[feedback_workflow_state_count]] · [[feedback_partner_data_isolation]].
-- **Status:** **Proposed — not built.** No code written; the guide documents current behaviour only. Needs client decisions on the five points above, and partner sign-off from Amazon before anything ships.
+- **Status:** **Proposed — not built.** No code written; the guide documents current behaviour only. Needs client decisions on the five points above, and partner sign-off from Amazon before anything ships. **Questions put to the client 2026-08-24** — draft in `docs/tracking/2026-08-24-client-questions-partner-api.md` (sent with CR-036 and the 200/hr rate-limit confirmation, all three being products of the same guide review).
 
 ### CR-034 (proposed 2026-08-04) — Audit History screen + one-click record restore
 

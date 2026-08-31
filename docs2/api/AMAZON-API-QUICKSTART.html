@@ -364,13 +364,13 @@ Header: X-API-Key: YOUR_API_KEY</pre>
     {
       "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
       "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
-      "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+      "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366",
       "type": "CertificationReport",
       "issueDate": "2024-01-15",
       "issuer": "Green Circle Certified",
       "products": [
         {
-          "id": "https://greencirclecertified.com/database/api/v1/certificates/gs1/24-0366/product",
+          "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366/product",
           "type": "Product",
           "gtin": null,
           "additionalTradeItemId": [
@@ -379,7 +379,7 @@ Header: X-API-Key: YOUR_API_KEY</pre>
           "name": "Recycled Paper Towels",
           "description": "100% recycled paper towels",
           "certificationInfo": {
-            "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366/certification",
+            "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366/certification",
             "type": "CertificationDetails",
             "agency": "Green Circle Certified",
             "agencyURL": "https://www.greencirclecertified.com",
@@ -714,46 +714,7 @@ Header: X-API-Key: YOUR_API_KEY</pre>
   ]
 }</pre>
 
-<h3>6.8 Expiring Certificates</h3>
-<p><strong>Request:</strong> <code>GET /api/v1/certificates/expiring?days=90</code></p>
-<p><strong>Use Case:</strong> Monitor certificates that will expire soon for renewal tracking.</p>
-<pre>{
-  "success": true,
-  "data": [
-    {
-      "id": 125,
-      "certificateNumber": "23-0289",
-      "status": "Active",
-      "issueDate": "2023-04-15T00:00:00Z",
-      "expirationDate": "2024-04-15T00:00:00Z",
-      "daysUntilExpiration": 45,
-      "brandName": "CleanEarth Products",
-      "productName": "Organic Cleaning Spray",
-      "certificationName": "USDA BioPreferred",
-      "partner": "Amazon"
-    },
-    {
-      "id": 126,
-      "certificateNumber": "23-0312",
-      "status": "Active",
-      "issueDate": "2023-05-01T00:00:00Z",
-      "expirationDate": "2024-05-01T00:00:00Z",
-      "daysUntilExpiration": 61,
-      "brandName": "NaturePack Co",
-      "productName": "Compostable Food Containers",
-      "certificationName": "OK Compost",
-      "partner": "Amazon"
-    }
-  ],
-  "pagination": {
-    "totalCount": 12,
-    "pageNumber": 1,
-    "pageSize": 20,
-    "totalPages": 1
-  }
-}</pre>
-
-<h3>6.9 Validation Error</h3>
+<h3>6.8 Validation Error</h3>
 <p><strong>Request:</strong> <code>GET /api/v1/certificates/search/productid?productId=&type=INVALID</code></p>
 <p><strong>Use Case:</strong> Handle invalid request parameters.</p>
 <pre>{

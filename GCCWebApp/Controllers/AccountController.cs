@@ -28,6 +28,7 @@ namespace GCCWebApp.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _auditService;
         private readonly ICertificateExpirationService _certificateExpirationService;
+        private readonly ITrustedDeviceService _trustedDeviceService;
 
         public AccountController(
             ILogger<AccountController> logger,
@@ -37,7 +38,8 @@ namespace GCCWebApp.Controllers
             IEmailService emailService,
             ApplicationDbContext context,
             IAuditService auditService,
-            ICertificateExpirationService certificateExpirationService)
+            ICertificateExpirationService certificateExpirationService,
+            ITrustedDeviceService trustedDeviceService)
         {
             _logger = logger;
             _azureAdB2COptions = azureAdB2COptions?.Value;
@@ -47,6 +49,7 @@ namespace GCCWebApp.Controllers
             _context = context;
             _auditService = auditService;
             _certificateExpirationService = certificateExpirationService;
+            _trustedDeviceService = trustedDeviceService;
 
             // Check if Azure AD B2C is properly configured
             _isAzureAdB2CConfigured = _azureAdB2COptions != null &&
@@ -203,6 +206,15 @@ namespace GCCWebApp.Controllers
             // it. Previously only the master switch was consulted, so the per-user setting had no
             // effect on authentication at all.
             var (is2FAEnabled, twoFactorMethod) = await Resolve2FARequirementAsync(canonicalEmail);
+
+            // DEF-385: honour "Trust this device for 30 days". The password has already been
+            // verified above; this skips only the SECOND factor, and only when this browser holds a
+            // live, unrevoked trust issued to THIS account after a real 2FA verification.
+            if (is2FAEnabled && await IsRequestFromTrustedDeviceAsync(canonicalEmail))
+            {
+                await SignInUser(canonicalEmail, userRole, model.RememberMe);
+                return await RedirectAfterSignInAsync(canonicalEmail, returnUrl);
+            }
 
             if (is2FAEnabled)
             {
@@ -602,6 +614,11 @@ namespace GCCWebApp.Controllers
 
             await _context.SaveChangesAsync();
 
+            // DEF-385: a password reset invalidates every "trust this device" decision. Whoever
+            // reset the password may not be whoever trusted those browsers — a device trusted by an
+            // attacker (or by the previous holder of a shared account) must not keep skipping 2FA.
+            await RevokeTrustedDevicesAsync(user.Email, "Password was reset");
+
             _logger.LogInformation("Password successfully reset for {Email}", model.Email);
 
             return View("PasswordResetSuccess");
@@ -695,6 +712,11 @@ namespace GCCWebApp.Controllers
 
                 _logger.LogInformation("Password successfully reset for user {Email}", canonicalEmail);
 
+                // DEF-385: same rule as the token-based reset above — changing the password revokes
+                // every trusted device, so this path deliberately does NOT check for one and the
+                // user is challenged for 2FA below.
+                await RevokeTrustedDevicesAsync(canonicalEmail, "Password was reset (forced reset)");
+
                 // DEF-365: same per-user check as the login path. This site had the identical flaw —
                 // both are routed through Resolve2FARequirementAsync so they cannot drift apart.
                 var (is2FAEnabled, twoFactorMethod) = await Resolve2FARequirementAsync(canonicalEmail);
@@ -743,6 +765,88 @@ namespace GCCWebApp.Controllers
                 return View("ForcePasswordReset");
             }
         }
+
+        #region DEF-385 — trusted device ("Trust this device for 30 days")
+
+        /// <summary>
+        /// True when this browser holds a live trust for <paramref name="canonicalEmail"/>, so the
+        /// 2FA challenge can be skipped. Password verification has already happened by this point —
+        /// this only suppresses the SECOND factor, never the first.
+        /// </summary>
+        private async Task<bool> IsRequestFromTrustedDeviceAsync(string canonicalEmail)
+        {
+            var token = Request.Cookies[TrustedDeviceService.CookieName];
+            if (string.IsNullOrWhiteSpace(token)) return false;
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == canonicalEmail);
+            if (user == null) return false;
+
+            var trusted = await _trustedDeviceService.IsTrustedDeviceAsync(user.Id, token);
+            if (trusted)
+            {
+                _logger.LogInformation("2FA skipped for {Email} — request came from a trusted device", canonicalEmail);
+            }
+            else
+            {
+                // Stale or foreign cookie: clear it so the browser stops presenting it every sign-in.
+                Response.Cookies.Delete(TrustedDeviceService.CookieName);
+            }
+            return trusted;
+        }
+
+        /// <summary>
+        /// Issues the trust and sets the cookie. Called only after a second factor has actually been
+        /// verified — never on the password step alone.
+        /// </summary>
+        private async Task IssueTrustedDeviceCookieAsync(string canonicalEmail)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == canonicalEmail);
+            if (user == null) return;
+
+            var userAgent = Request.Headers.UserAgent.ToString();
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            var rawToken = await _trustedDeviceService.TrustDeviceAsync(user.Id, userAgent, ip);
+
+            Response.Cookies.Append(TrustedDeviceService.CookieName, rawToken, new CookieOptions
+            {
+                HttpOnly = true,                       // never readable by script
+                Secure = true,                         // HTTPS only; the site is HTTPS everywhere
+                SameSite = SameSiteMode.Lax,           // not sent on cross-site POSTs
+                Expires = DateTimeOffset.UtcNow.AddDays(TrustedDeviceService.DefaultTrustDays),
+                IsEssential = true                     // security function, not subject to consent opt-out
+            });
+
+            await _auditService.LogAuditEventAsync(
+                AuditEntityType.User, user.Id.ToString(), user.Username,
+                AuditAction.Update, user.Id, user.Username,
+                $"Device trusted for {TrustedDeviceService.DefaultTrustDays} days (2FA will be skipped on this browser until it expires)",
+                changeSource: AuditChangeSource.WebUI);
+        }
+
+        /// <summary>
+        /// Revokes every trusted device for a user. Called when the password changes or 2FA is
+        /// turned off — both mean the earlier "trust this device" decision can no longer be assumed
+        /// to be the account owner's.
+        /// </summary>
+        private async Task RevokeTrustedDevicesAsync(string canonicalEmail, string reason)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == canonicalEmail);
+            if (user == null) return;
+
+            var revoked = await _trustedDeviceService.RevokeAllForUserAsync(user.Id, reason);
+            if (revoked > 0)
+            {
+                Response.Cookies.Delete(TrustedDeviceService.CookieName);
+                await _auditService.LogAuditEventAsync(
+                    AuditEntityType.User, user.Id.ToString(), user.Username,
+                    AuditAction.Update, user.Id, user.Username,
+                    $"Revoked {revoked} trusted device(s): {reason}",
+                    changeSource: AuditChangeSource.WebUI);
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Display the Two-Factor Authentication page
@@ -837,6 +941,18 @@ namespace GCCWebApp.Controllers
 
             if (isValidCode)
             {
+                // DEF-385: this is the point the "Trust this device for 30 days" checkbox was always
+                // meant to reach. Until now `trustDevice` only widened the auth-cookie lifetime via
+                // `rememberMe || trustDevice` — it kept you signed in longer but never suppressed the
+                // next 2FA challenge, which is why the client was still prompted every time.
+                //
+                // The trust is issued HERE, after a second factor has actually been verified, and
+                // never on the password step alone.
+                if (trustDevice)
+                {
+                    await IssueTrustedDeviceCookieAsync(email);
+                }
+
                 await SignInUser(email, role, rememberMe || trustDevice);
                 return await RedirectAfterSignInAsync(email, returnUrl);
             }

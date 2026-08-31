@@ -209,6 +209,30 @@ function proveDestination(write, srcByRel, index, viewFiles) {
     };
   }
 
+  // FINAL FALLBACK before asserting a leak — scan the target controller's ENTIRE source, not only
+  // its action bodies and views. The loop above walks `targetCtrl.actions`, so a read that lives in
+  // a PRIVATE HELPER the actions call is invisible to it, and the check then states outright that
+  // "NOTHING in XController" reads the key while the read sits a few hundred lines away.
+  //
+  // Found 2026-08-25: `"2FAMethod"` is read by `AccountController.SetTwoFactorMethodViewData()`
+  // (AccountController.cs:1316) — a private method invoked by the 2FA actions to set the
+  // instruction text. Extracting shared logic into a helper is ordinary refactoring and must not
+  // turn a paired key into a deploy-blocking "provable orphan".
+  //
+  // A whole-file hit downgrades to `twohop` (WARN), never to `ok`: this proves a consumer EXISTS,
+  // not that it is reachable from this destination — the same distinction the block above draws.
+  for (const [rel, s] of srcByRel) {
+    if (!/(?:^|[\\/])Controllers[\\/].*Controller\.cs$/.test(rel)) continue;
+    if (!rel.endsWith(`${targetCtrlName}Controller.cs`)) continue;
+    if (textReadsKey(s.code, write.key)) {
+      return {
+        verdict: 'twohop',
+        why: `redirect target ${targetCtrlName}/${actionName} (${checked.join(', ')}) does not read ` +
+             `"${write.key}", but ${rel} does outside an action body (private helper)`,
+      };
+    }
+  }
+
   return {
     verdict: 'orphan',
     why: `redirect target ${targetCtrlName}/${actionName} (${checked.join(', ')}) never reads "${write.key}", ` +
@@ -241,8 +265,19 @@ function run() {
     const consuming = rd.filter(x => x.kind !== 'peek');
     const waiver = allow[key];
 
-    // L1 — writers, no consuming read anywhere.
-    if (w.length > 0 && consuming.length === 0) {
+    // L1 — writers, and NO read of any kind anywhere. Provable orphan.
+    //
+    // `rd.length === 0` is load-bearing: without it this branch also swallowed every Peek-only key
+    // and reported it as "written Nx but NEVER read" — a FAIL, which blocks a deploy. L3 below is
+    // the intended verdict for that case (WARN), but its condition is a strict SUBSET of this one,
+    // so with L1 testing only `consuming.length === 0` and then `continue`-ing, **L3 was
+    // unreachable dead code and no Peek-only key could ever reach it**.
+    //
+    // Found 2026-08-25 when this gate blocked a bundle over `"2FAMethod"`, which is read at
+    // AccountController.cs:1316 via `TempData.Peek(...)` — deliberately, and documented there, so
+    // that a failed 2FA attempt re-renders the same instruction. The gate's own collector had
+    // always recorded that read (PEEK_RE); the verdict logic discarded it.
+    if (w.length > 0 && consuming.length === 0 && rd.length === 0) {
       const at = w.map(x => `${x.rel}:${x.line}`).join(', ');
       if (waiver) { l1Failed.add(key); r.info(`"${key}" orphan write - WAIVED: ${waiver}`, { at }); continue; }
       l1Failed.add(key);

@@ -3,6 +3,7 @@ using CsvHelper.Configuration;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Models.Import;
+using GCCWebApp.Repositories;
 using GCCWebApp.Services;
 using GCCWebApp.Services.Audit;
 using Microsoft.AspNetCore.Http;
@@ -30,6 +31,7 @@ namespace GCCWebApp.Services.Import
         private readonly IProductIdService _productIdService;
         private readonly IUploadPathResolver _uploadPaths;
         private readonly ICertificateService _certificateService;
+        private readonly ICertificateRepository _certificateRepository;
         private const string CACHE_KEY_PREFIX = "CertImport_";
         private const int CACHE_MINUTES = 30;
         // Deactivated placeholder type for migrated certs whose certification type isn't in the system
@@ -46,7 +48,13 @@ namespace GCCWebApp.Services.Import
             IFileUploadService fileUploadService,
             IProductIdService productIdService,
             IUploadPathResolver uploadPaths,
-            ICertificateService certificateService)
+            ICertificateService certificateService,
+            // Injected purely to reuse GenerateNextCertificateNumberAsync for blank Certificate #
+            // cells. Deliberately not reimplemented here: the rule carries the DEF-322 fix (only
+            // sequences inside the standard 4-digit space count, so one out-of-band "26-10095"
+            // cannot push the whole year's numbering out) and the year-rollover behaviour the client
+            // asked us to prove (QC #218). A second copy would drift from both.
+            ICertificateRepository certificateRepository)
         {
             _context = context;
             _auditService = auditService;
@@ -57,6 +65,7 @@ namespace GCCWebApp.Services.Import
             _productIdService = productIdService;
             _uploadPaths = uploadPaths;
             _certificateService = certificateService;
+            _certificateRepository = certificateRepository;
         }
 
         #region Column Name Mappings
@@ -344,13 +353,36 @@ namespace GCCWebApp.Services.Import
                 var tagsToCreate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var internalTagsToCreate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                // Group rows by certificate number to handle multi-ASIN rows
+                // Group rows by certificate number to handle multi-ASIN rows: several CSV rows that
+                // share one certificate number are ONE certificate carrying several product IDs.
+                //
+                // A blank certificate number carries no identity, so it must NOT group. Keyed on the
+                // number alone, every auto-numbered row in a file collapsed into a single group and
+                // only group.First() survived — two blank rows imported as ONE certificate.
+                //
+                // The key is a tuple rather than a sentinel string: AutoNumberIndex is the row's
+                // position for a blank row and -1 for a numbered one, so blank rows can never share
+                // a key with each other or with a real number, whatever the file contains. (A magic
+                // string prefix would in principle be forgeable by a CSV cell; a tuple cannot be.)
+                // Number is upper-cased to preserve the case-insensitive matching the previous
+                // StringComparer.OrdinalIgnoreCase gave, which a tuple key does not carry.
+                //
+                // Consequence, and it is the right trade: a row that leaves Certificate # blank
+                // cannot take part in multi-ASIN grouping, because there is no shared key to group
+                // on. To attach several product IDs to one imported certificate, give it a number in
+                // the file.
                 var groupedRows = csvRows
                     .Where(r => !string.IsNullOrWhiteSpace(r.CertificateNumber) ||
                                 !string.IsNullOrWhiteSpace(r.CompanyName) ||
                                 !string.IsNullOrWhiteSpace(r.ProductName) ||
                                 !string.IsNullOrWhiteSpace(r.CertificationType))
-                    .GroupBy(r => r.CertificateNumber, StringComparer.OrdinalIgnoreCase)
+                    .Select((r, index) => (Row: r, Index: index))
+                    .GroupBy(x => (
+                        Number: string.IsNullOrWhiteSpace(x.Row.CertificateNumber)
+                            ? string.Empty
+                            : x.Row.CertificateNumber.ToUpperInvariant(),
+                        AutoNumberIndex: string.IsNullOrWhiteSpace(x.Row.CertificateNumber) ? x.Index : -1))
+                    .Select(g => g.Select(x => x.Row).ToList())
                     .ToList();
 
                 foreach (var group in groupedRows)
@@ -1304,8 +1336,19 @@ namespace GCCWebApp.Services.Import
             };
 
             // Validate required fields
+            //
+            // Certificate # is deliberately NOT required. A blank one means "mint the next number",
+            // exactly as /Certificate/Create does when the analyst leaves Number blank — auto
+            // numbering is an original requirement, and the two write paths disagreeing about it
+            // meant an analyst could create a certificate through the form but not through an
+            // import of the same data. The template annotates Status with "defaults to Draft if
+            // blank" and said nothing here, so the old rejection was also undiscoverable until the
+            // import was refused.
+            //
+            // Supplying a number still works and still wins — which is what the initial data
+            // migration does, since it carries the client's existing certificate numbers.
             if (string.IsNullOrWhiteSpace(row.CertificateNumber))
-                row.ValidationMessages.Add("Certificate Number is required");
+                row.WillAutoAssignNumber = true;
 
             if (string.IsNullOrWhiteSpace(row.CompanyName))
                 row.ValidationMessages.Add("Company Name is required");
@@ -1568,9 +1611,14 @@ namespace GCCWebApp.Services.Import
                 return row;
             }
 
-            // Check if certificate exists
-            var existing = existingCerts.FirstOrDefault(c =>
-                c.Number.Equals(row.CertificateNumber, StringComparison.OrdinalIgnoreCase));
+            // Check if certificate exists. A row with no number cannot match one — it is new by
+            // definition — and is short-circuited rather than left to rely on Equals(null) being
+            // false, so several blank rows in one file stay independent New rows instead of
+            // collapsing onto each other or onto a stored certificate.
+            var existing = row.WillAutoAssignNumber
+                ? null
+                : existingCerts.FirstOrDefault(c =>
+                    c.Number.Equals(row.CertificateNumber, StringComparison.OrdinalIgnoreCase));
 
             if (existing == null)
             {
@@ -1778,6 +1826,20 @@ namespace GCCWebApp.Services.Import
             string? reason,
             Guid? importBatchId = null)
         {
+            // Blank Certificate # in the file means "mint the next one" (see WillAutoAssignNumber).
+            // Done here, at apply time, rather than in preview: each Create below ends in its own
+            // SaveChangesAsync, so a file with several blank rows sees the previous row committed
+            // and the sequence advances 26-0483, 26-0484, … instead of every blank row colliding on
+            // the same number. Written back onto the row so the error paths, the audit trail and the
+            // result summary all report the number that was actually issued.
+            if (string.IsNullOrWhiteSpace(row.CertificateNumber))
+            {
+                row.CertificateNumber = await _certificateRepository.GenerateNextCertificateNumberAsync();
+                _logger.LogInformation(
+                    "Import row {RowNumber} had no Certificate #; assigned {CertNumber}",
+                    row.RowNumber, row.CertificateNumber);
+            }
+
             var certificate = new Certificate
             {
                 Number = row.CertificateNumber,

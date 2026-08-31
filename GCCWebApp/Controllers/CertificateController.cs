@@ -97,11 +97,11 @@ namespace GCCWebApp.Controllers
         /// GET: /Certificate/CertificateExternalView/24-0366 (by certificate number)
         /// </summary>
         [Authorize(Policy = "ExternalAccess")]
-        public async Task<IActionResult> CertificateExternalView(string id)
+        public async Task<IActionResult> CertificateExternalView(string id, int? cid = null)
         {
             try
             {
-                _logger.LogInformation("CertificateExternalView called with certificate number: {CertificateNumber}", id);
+                _logger.LogInformation("CertificateExternalView called with certificate number: {CertificateNumber}, cid: {Cid}", id, cid);
 
                 if (string.IsNullOrWhiteSpace(id))
                 {
@@ -109,8 +109,12 @@ namespace GCCWebApp.Controllers
                     return BadRequest("Certificate number is required");
                 }
 
-                // Only look up by certificate number (not integer ID)
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
+                // DEF-369: same CR-038 collapse. The company/partner scoping below is unchanged and
+                // still applies — `cid` only selects WHICH certificate of a shared number is being
+                // asked for; it never widens what this caller is allowed to see.
+                var certificate = cid.HasValue
+                    ? await _certificateRepository.GetCertificateByNumberAndIdAsync(id, cid.Value)
+                    : await _certificateRepository.GetCertificateByNumberAsync(id);
 
                 if (certificate == null)
                 {
@@ -139,9 +143,17 @@ namespace GCCWebApp.Controllers
                 // Generate thumbnail if missing (for imported certificates without thumbnails)
                 await EnsureCertificateThumbnailAsync(certificate);
 
+
+                // DEF-369: one cheap COUNT so the view knows whether this number is shared and
+                // the shareable listing URL needs a disambiguator. Kept out of the view: a
+                // Razor page must not issue its own query.
+                var sharesNumber = await _certificateRepository
+                    .CountCertificatesByNumberAsync(certificate.Number) > 1;
                 var model = new CertificateDetailsViewModelSimple
                 {
                     Certificate = certificate,
+                    // DEF-369: drives the ?cid= on the shareable listing URL for CR-038 shared numbers.
+                    SharesCertificateNumber = sharesNumber,
                     CanEdit = false,
                     CanDelete = false,
                     ShowInternalData = false
@@ -164,11 +176,11 @@ namespace GCCWebApp.Controllers
         /// GET: /Certificate/CertificateInternalView/24-0366 (by certificate number)
         /// </summary>
         [Authorize(Policy = "AnalystOrAdmin")]
-        public async Task<IActionResult> CertificateInternalView(string id)
+        public async Task<IActionResult> CertificateInternalView(string id, int? cid = null)
         {
             try
             {
-                _logger.LogInformation("CertificateInternalView called with certificate number: {CertificateNumber}", id);
+                _logger.LogInformation("CertificateInternalView called with certificate number: {CertificateNumber}, cid: {Cid}", id, cid);
 
                 if (string.IsNullOrWhiteSpace(id))
                 {
@@ -176,8 +188,12 @@ namespace GCCWebApp.Controllers
                     return BadRequest("Certificate number is required");
                 }
 
-                // Only look up by certificate number (not integer ID)
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
+                // DEF-369: same CR-038 collapse as the public single view — the number alone no
+                // longer identifies a certificate. Analysts see the internal grid, so without this
+                // they cannot open 175 of the certificates at all.
+                var certificate = cid.HasValue
+                    ? await _certificateRepository.GetCertificateByNumberAndIdAsync(id, cid.Value)
+                    : await _certificateRepository.GetCertificateByNumberAsync(id);
 
                 if (certificate == null)
                 {
@@ -191,9 +207,17 @@ namespace GCCWebApp.Controllers
                 // Generate thumbnail if missing (for imported certificates without thumbnails)
                 await EnsureCertificateThumbnailAsync(certificate);
 
+
+                // DEF-369: one cheap COUNT so the view knows whether this number is shared and
+                // the shareable listing URL needs a disambiguator. Kept out of the view: a
+                // Razor page must not issue its own query.
+                var sharesNumber = await _certificateRepository
+                    .CountCertificatesByNumberAsync(certificate.Number) > 1;
                 var model = new CertificateDetailsViewModelSimple
                 {
                     Certificate = certificate,
+                    // DEF-369: drives the ?cid= on the shareable listing URL for CR-038 shared numbers.
+                    SharesCertificateNumber = sharesNumber,
                     CanEdit = CanUserEditCertificate(),
                     CanDelete = CanUserDeleteCertificate(),
                     ShowInternalData = true
@@ -216,11 +240,11 @@ namespace GCCWebApp.Controllers
         /// GET: /Certificate/CertificateSingleView/24-0366
         /// </summary>
         [AllowAnonymous]
-        public async Task<IActionResult> CertificateSingleView(string id)
+        public async Task<IActionResult> CertificateSingleView(string id, int? cid = null)
         {
             try
             {
-                _logger.LogInformation("CertificateSingleView called with certificate number: {CertificateNumber}", id);
+                _logger.LogInformation("CertificateSingleView called with certificate number: {CertificateNumber}, cid: {Cid}", id, cid);
 
                 if (string.IsNullOrWhiteSpace(id))
                 {
@@ -228,9 +252,33 @@ namespace GCCWebApp.Controllers
                     return BadRequest("Certificate number is required");
                 }
 
-                // Only look up by certificate number (not integer ID) - per requirement
-                _logger.LogInformation("Looking up certificate by number: {CertificateNumber}", id);
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
+                // The URL is still keyed on the certificate NUMBER — that requirement is unchanged,
+                // and a bare /CertificateSingleView/26-0182 still works exactly as before.
+                //
+                // DEF-369: CR-038 allowed several certificates to share one number (137 numbers,
+                // 312 certificates), which made the number alone insufficient to address a record.
+                // Before this, every sibling tile linked to the same URL, so one certificate was
+                // reachable and the other 175 had no address and silently showed a sibling's page
+                // and PDF. `cid` is an optional DISAMBIGUATOR, not a new key: the number must still
+                // match, and when the number is unique `cid` changes nothing.
+                Certificate? certificate;
+                if (cid.HasValue)
+                {
+                    certificate = await _certificateRepository.GetCertificateByNumberAndIdAsync(id, cid.Value);
+                    if (certificate == null)
+                    {
+                        // Deliberately NOT falling back to the number-only lookup. A stale or wrong
+                        // cid must not quietly serve a different certificate — that is the exact
+                        // failure this defect is about.
+                        _logger.LogWarning("Certificate not found for number {CertificateNumber} with cid {Cid}", id, cid);
+                        return NotFound($"Certificate {id} not found");
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("Looking up certificate by number: {CertificateNumber}", id);
+                    certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
+                }
 
                 if (certificate == null)
                 {
@@ -265,9 +313,17 @@ namespace GCCWebApp.Controllers
                 // Generate thumbnail if missing (for imported certificates without thumbnails)
                 await EnsureCertificateThumbnailAsync(certificate);
 
+
+                // DEF-369: one cheap COUNT so the view knows whether this number is shared and
+                // the shareable listing URL needs a disambiguator. Kept out of the view: a
+                // Razor page must not issue its own query.
+                var sharesNumber = await _certificateRepository
+                    .CountCertificatesByNumberAsync(certificate.Number) > 1;
                 var model = new CertificateDetailsViewModelSimple
                 {
                     Certificate = certificate,
+                    // DEF-369: drives the ?cid= on the shareable listing URL for CR-038 shared numbers.
+                    SharesCertificateNumber = sharesNumber,
                     CanEdit = CanUserEditCertificate(),
                     CanDelete = CanUserDeleteCertificate(),
                     ShowInternalData = IsInternalUser()
@@ -289,12 +345,15 @@ namespace GCCWebApp.Controllers
         /// Public verification URL redirect - maps /Certificate/Verify/24-1605 to CertificateSingleView
         /// </summary>
         [AllowAnonymous]
-        public IActionResult Verify(string id)
+        public IActionResult Verify(string id, int? cid = null)
         {
             if (string.IsNullOrWhiteSpace(id))
                 return BadRequest("Certificate number is required");
 
-            return RedirectToAction("CertificateSingleView", new { id });
+            // DEF-369: carry the disambiguator through. Without this the verification URL would
+            // still collapse every certificate sharing a number onto one of them — the same defect
+            // one redirect further out.
+            return RedirectToAction("CertificateSingleView", cid.HasValue ? new { id, cid } : (object)new { id });
         }
 
         /// <summary>
@@ -800,7 +859,7 @@ namespace GCCWebApp.Controllers
         /// GET: /Certificate/Edit/24-0366
         /// </summary>
         [Authorize(Policy = "AnalystOrAdmin")]
-        public async Task<IActionResult> Edit(string number)
+        public async Task<IActionResult> Edit(string number, int? cid = null)
         {
             try
             {
@@ -809,7 +868,16 @@ namespace GCCWebApp.Controllers
                     return BadRequest("Certificate number is required");
                 }
 
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
+                // DEF-369: the most consequential instance of the CR-038 collapse, because this one
+                // WRITES. Where several certificates share a number, an analyst clicking Edit on any
+                // of them was loaded into the same single certificate — so a correction intended for
+                // one product was saved onto another, and the intended record could not be edited at
+                // all. The POST half already keys on the integer id, so once the correct record is
+                // loaded here the save targets the right row.
+                var certificate = cid.HasValue
+                    ? await _certificateRepository.GetCertificateByNumberAndIdAsync(number, cid.Value)
+                    : await _certificateRepository.GetCertificateByNumberAsync(number);
+
                 if (certificate == null)
                 {
                     return NotFound($"Certificate {number} not found");
@@ -1652,7 +1720,7 @@ namespace GCCWebApp.Controllers
         /// GET: /Certificate/Delete/24-0366
         /// </summary>
         [Authorize(Policy = "AdminOnly")]
-        public async Task<IActionResult> Delete(string number)
+        public async Task<IActionResult> Delete(string number, int? cid = null)
         {
             try
             {
@@ -1661,15 +1729,31 @@ namespace GCCWebApp.Controllers
                     return BadRequest("Certificate number is required");
                 }
 
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
+                // DEF-369: the most dangerous instance of the CR-038 collapse. There is no
+                // certificate soft-delete (DEF-288 parked), so a delete is permanent — and where
+                // several certificates share a number this resolved to whichever one the shared-number
+                // rule picked, NOT the one the admin was looking at. Deleting "Impacta ProBase" would
+                // have destroyed "Thunder Flat". `cid` is matched together with the number, and a
+                // mismatch is a 404 rather than a fallback.
+                var certificate = cid.HasValue
+                    ? await _certificateRepository.GetCertificateByNumberAndIdAsync(number, cid.Value)
+                    : await _certificateRepository.GetCertificateByNumberAsync(number);
                 if (certificate == null)
                 {
                     return NotFound($"Certificate {number} not found");
                 }
 
+
+                // DEF-369: one cheap COUNT so the view knows whether this number is shared and
+                // the shareable listing URL needs a disambiguator. Kept out of the view: a
+                // Razor page must not issue its own query.
+                var sharesNumber = await _certificateRepository
+                    .CountCertificatesByNumberAsync(certificate.Number) > 1;
                 var model = new CertificateDetailsViewModelSimple
                 {
                     Certificate = certificate,
+                    // DEF-369: drives the ?cid= on the shareable listing URL for CR-038 shared numbers.
+                    SharesCertificateNumber = sharesNumber,
                     CanEdit = false,
                     CanDelete = true,
                     ShowInternalData = IsInternalUser()
@@ -1690,7 +1774,7 @@ namespace GCCWebApp.Controllers
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<IActionResult> DeleteConfirmed(string number)
+        public async Task<IActionResult> DeleteConfirmed(string number, int? cid = null)
         {
             try
             {
@@ -1699,7 +1783,15 @@ namespace GCCWebApp.Controllers
                     return BadRequest(new { success = false, message = "Certificate number is required" });
                 }
 
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
+                // DEF-369: the most dangerous instance of the CR-038 collapse. There is no
+                // certificate soft-delete (DEF-288 parked), so a delete is permanent — and where
+                // several certificates share a number this resolved to whichever one the shared-number
+                // rule picked, NOT the one the admin was looking at. Deleting "Impacta ProBase" would
+                // have destroyed "Thunder Flat". `cid` is matched together with the number, and a
+                // mismatch is a 404 rather than a fallback.
+                var certificate = cid.HasValue
+                    ? await _certificateRepository.GetCertificateByNumberAndIdAsync(number, cid.Value)
+                    : await _certificateRepository.GetCertificateByNumberAsync(number);
                 if (certificate == null)
                 {
                     return NotFound(new { success = false, message = $"Certificate {number} not found" });
@@ -2019,7 +2111,7 @@ namespace GCCWebApp.Controllers
         /// GET: /Certificate/Download/24-0366
         /// </summary>
         [AllowAnonymous]
-        public async Task<IActionResult> Download(string id)
+        public async Task<IActionResult> Download(string id, int? cid = null)
         {
             try
             {
@@ -2028,7 +2120,17 @@ namespace GCCWebApp.Controllers
                     return BadRequest("Certificate number is required");
                 }
 
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
+                // DEF-369: this is a SECOND, independent collapse of the same kind as
+                // CertificateSingleView, and it is the one the client actually described
+                // ("they all are pulling the same PDF"). The tile's download button calls
+                // /Certificate/Download/{number} directly — it never goes through the detail
+                // page — so fixing the detail route alone would have left every sibling tile
+                // still downloading the same file. `cid` disambiguates; the number is still
+                // required and still matched, and a mismatch is a 404 rather than a fallback.
+                var certificate = cid.HasValue
+                    ? await _certificateRepository.GetCertificateByNumberAndIdAsync(id, cid.Value)
+                    : await _certificateRepository.GetCertificateByNumberAsync(id);
+
                 if (certificate == null)
                 {
                     return NotFound($"Certificate {id} not found");
@@ -2405,11 +2507,14 @@ namespace GCCWebApp.Controllers
         /// GET: /Certificate/Download/24-1605
         /// </summary>
         [AllowAnonymous]
-        public async Task<IActionResult> DownloadByNumber(string number)
+        public async Task<IActionResult> DownloadByNumber(string number, int? cid = null)
         {
             try
             {
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
+                // DEF-369: a third download entry point, same CR-038 collapse as Download().
+                var certificate = cid.HasValue
+                    ? await _certificateRepository.GetCertificateByNumberAndIdAsync(number, cid.Value)
+                    : await _certificateRepository.GetCertificateByNumberAsync(number);
                 if (certificate == null)
                 {
                     return NotFound();
@@ -2433,7 +2538,17 @@ namespace GCCWebApp.Controllers
                     }
                 }
 
-                return await Download(certificate.Number);
+                // DEF-369 (follow-up): pass the id of the certificate THIS action resolved, not just
+                // its number. Delegating on the number alone threw the disambiguation away at the
+                // last step: Download() re-ran the number-only lookup and returned whichever sibling
+                // the shared-number rule picks, so every `cid` on this route produced the identical
+                // PDF while appearing to work. Measured before the fix — cid 3741/3742/3743/3744 on
+                // 26-0182 all returned the same file (sha 82890eb803d8).
+                //
+                // `certificate.Id` rather than `cid` deliberately: it pins the delegate call to the
+                // record already resolved and status-checked above, so the two lookups cannot
+                // diverge even on the number-only path.
+                return await Download(certificate.Number, certificate.Id);
             }
             catch (Exception ex)
             {
@@ -2682,9 +2797,14 @@ namespace GCCWebApp.Controllers
                     exportData = await _certificateService.ExportCertificatesAsync(request, includeInternalTags);
                 }
 
+                // null now means the export genuinely failed (the service logged the exception), not
+                // "your scope is empty" — an empty scope comes back as a header-only CSV. A server
+                // fault must not be reported as HTTP 400, which tells the caller they sent something
+                // wrong and turns a real failure into apparent flakiness (same misreading as
+                // DEF-350/DEF-360).
                 if (exportData == null || exportData.Length == 0)
                 {
-                    return BadRequest("No data to export or export failed");
+                    return StatusCode(500, "Export failed. Please try again or contact support if it persists.");
                 }
 
                 var fileName = $"certificates-{DateTime.Now:yyyy-MM-dd-HHmmss}.csv";

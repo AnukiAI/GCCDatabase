@@ -749,6 +749,7 @@ class UserManagement {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                         'RequestVerificationToken': this.getAntiForgeryToken()
                     },
                     body: JSON.stringify(formData)
@@ -759,14 +760,15 @@ class UserManagement {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                         'RequestVerificationToken': this.getAntiForgeryToken()
                     },
                     body: JSON.stringify(formData)
                 });
             }
-            
-            const result = await response.json();
-            
+
+            const result = await this.readJsonResponse(response);
+
             if (result.success) {
                 this.showNotification(result.message || (this.currentEditingId ? 'User updated successfully' : 'User created successfully'), 'success');
                 this.hideModal();
@@ -782,12 +784,12 @@ class UserManagement {
             }
         } catch (error) {
             console.error('Error saving user:', error);
-            this.showNotification('Error saving user. Please try again.', 'error');
+            this.showNotification('Error saving user: ' + (error.message || 'Please try again.'), 'error');
         } finally {
             this.showLoading(false);
         }
     }
-    
+
     showModal() {
         if (typeof AdminCore !== 'undefined' && AdminCore.openModal) {
             AdminCore.openModal('user-modal');
@@ -1753,7 +1755,47 @@ class UserManagement {
                      document.querySelector('meta[name="__RequestVerificationToken"]')?.content;
         return token || '';
     }
-    
+
+    // DEF-387 (the follow-up recorded under DEF-366): the save path did a bare
+    // `await response.json()` inside a try/catch whose only output was
+    // "Error saving user. Please try again." Every failure path in
+    // AdminController.CreateUser/UpdateUser returns JSON, so a throw here means the
+    // response never came from the action at all — and the admin was told nothing.
+    //
+    // Two ways that happens, both now named rather than swallowed:
+    //   400 — [ValidateAntiForgeryToken] rejected a stale token (the page stamps it at
+    //         render time and the cookie is SameSite=Strict, so a long-open tab or a
+    //         re-login elsewhere is enough).
+    //   401 — the auth cookie expired.
+    // Callers now send X-Requested-With, so both arrive with their real status instead
+    // of being rewritten into the /Account/Login HTML page by UseStatusCodePages
+    // (Program.cs:731-740) or the cookie OnRedirectToLogin handler (Program.cs:326).
+    async readJsonResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        const body = await response.text();
+
+        if (contentType.includes('json')) {
+            try {
+                return JSON.parse(body);
+            } catch {
+                throw new Error(`the server sent malformed JSON (HTTP ${response.status}).`);
+            }
+        }
+
+        if (response.status === 400) {
+            throw new Error('your security token has expired. Reload the page, then re-enter the user.');
+        }
+
+        if (response.status === 401 || response.status === 403 ||
+            (response.redirected && /\/Account\/Login/i.test(response.url))) {
+            throw new Error('your session has expired. Sign in again, then re-enter the user.');
+        }
+
+        throw new Error(`the server returned HTTP ${response.status} ${response.statusText || ''}`.trim() +
+                        ' instead of JSON. Check the server log.');
+    }
+
+
     populateCompanyDropdowns() {
         // Sort companies alphabetically by name
         const sorted = [...this.companies].sort((a, b) =>

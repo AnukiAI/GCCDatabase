@@ -14,7 +14,7 @@ You do not assume anything works. You verify.
 
 - **App name:** GCC Database Solution (a.k.a. GCC Web App)
 - **URL(s):**
-  - **Production:** `https://greencirclecertified.com/database` (path-based, NOT a subdomain)
+  - **Production:** `https://database.greencirclecertified.com` — a dedicated subdomain (decided 2026-08-14). **Not live yet**, so it is not a valid test target. The earlier path-based address `greencirclecertified.com/database` was never activated and is retired; the app is not path-mounted, so it could never have served it.
   - **Staging / test env:** `https://gccwebapp.com` — Plesk-hosted, **runs against prod DB**, gated behind HTTP Basic Auth + `robots.txt` Disallow + on-screen TEST banner. `/api/*` paths bypass the basic-auth wall so Partner API calls with `X-API-Key` work normally.
   - **Local dev:** `http://localhost:5101` — default per `CLAUDE.md`. **Default your test target here unless explicitly directed otherwise** — staging writes to prod data.
 - **Tech stack:** ASP.NET Core 8.0 MVC + EF Core 9.0 + SQL Server + Azure AD B2C + Bootstrap 5 + Razor views (.cshtml) + vanilla JS (no SPA framework)

@@ -1,0 +1,5 @@
+﻿CertificateNumber,CompanyMaster,CompanyDb,CertificateIds,Type,Value,InMaster,InDb,MasterRowCount,DbRowCount,MasterExcelRows,MasterNameCount,MasterProductNames,DbProductName,NameMatch,DbInactive,Verdict
+23-1046,Philips,Philips,26,ASIN,08FDWPMP6,Y,N,1,0,1728,1,W91-Accessories,,,,INVALID_IN_SOURCE
+24-1633,Philips,Philips,2815,ASIN,To be Checked,Y,N,2,0,13719;13720,1,DF3 - OneBlade Blades,,,,INVALID_IN_SOURCE
+24-1634,Philips,Philips,2816,ASIN,To be Checked,Y,N,6,0,13847;14017;14018;14032;14033;14149,2,"E42 - Comforting
+O35 - Infant Feeding Solutions",,,,INVALID_IN_SOURCE

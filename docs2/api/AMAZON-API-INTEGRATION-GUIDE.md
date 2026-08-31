@@ -401,9 +401,7 @@ All requests must include:
 | GET | `/certificates` | List certificates with pagination |
 | GET | `/certificates/{id}` | Get certificate by database ID |
 | GET | `/certificates/number/{number}` | Get certificate by certificate number |
-| GET | `/certificates/search` | Advanced search with filters |
 | GET | `/certificates/search/productid` | Search by product identifier (ASIN) |
-| GET | `/certificates/expiring` | Get certificates expiring soon |
 | GET | `/certificates/{number}/download` | Download certificate PDF |
 
 ---
@@ -642,29 +640,6 @@ curl -X GET "https://[domain]/api/v1/certificates/24-0366/download" \
 **Response:**
 - Content-Type: `application/pdf`
 - Body: Binary PDF file
-
----
-
-#### 6.4.6 Get Expiring Certificates
-
-Retrieves certificates that will expire within a specified number of days.
-
-**Endpoint:** `GET /api/v1/certificates/expiring`
-
-**Query Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `days` | integer | 30 | Number of days to look ahead |
-| `pageNumber` | integer | 1 | Page number |
-| `pageSize` | integer | 20 | Items per page |
-
-**Example Request:**
-```bash
-curl -X GET "https://[domain]/api/v1/certificates/expiring?days=90" \
-  -H "X-API-Key: gcc_partner_[your_key]" \
-  -H "Accept: application/json"
-```
 
 ---
 
@@ -1261,14 +1236,6 @@ curl -X GET "https://[domain]/api/v1/certificates/number/24-0366" \
 curl -X GET "https://[domain]/api/v1/certificates/24-0366/download" \
   -H "X-API-Key: gcc_partner_[key]" \
   -o certificate.pdf
-```
-
-#### A.5 Get Expiring Certificates (90 days)
-
-```bash
-curl -X GET "https://[domain]/api/v1/certificates/expiring?days=90&pageSize=50" \
-  -H "X-API-Key: gcc_partner_[key]" \
-  -H "Accept: application/json"
 ```
 
 ---

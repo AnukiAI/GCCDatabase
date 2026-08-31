@@ -381,9 +381,15 @@ namespace GCCWebApp.Services
             try
             {
                 var exportRows = await GetCertificatesForExportAsync(request);
-                if (!exportRows.Any())
-                    return null;
 
+                // An empty result set is NOT a failure — it is a legitimate answer for any caller
+                // whose scope contains no certificates (e.g. a Partner with no cert-level
+                // associations). Returning null here made it indistinguishable from the catch
+                // below, and the controller turned both into HTTP 400 "No data to export or export
+                // failed" — a client-error status for a server-side outcome, with a message that
+                // conflated "nothing to export" with "the export broke". GenerateCsvExport emits
+                // the header row before it iterates, so an empty list yields a valid header-only
+                // CSV, which is what a spreadsheet user expects. null now means failure, only.
                 return GenerateCsvExport(exportRows, includeInternalTags);
             }
             catch (Exception ex)
@@ -400,10 +406,10 @@ namespace GCCWebApp.Services
                 if (certificateIds == null || !certificateIds.Any())
                     return null;
 
+                // As above: after scoping, an empty set is a legitimate answer, not a failure. It is
+                // also the DEF-198 outcome when a Partner lists ids outside their scope — a
+                // header-only CSV is the correct, non-leaky response there.
                 var exportRows = await GetCertificatesForExportByIdsAsync(certificateIds, securityContext);
-                if (!exportRows.Any())
-                    return null;
-
                 return GenerateCsvExport(exportRows, includeInternalTags);
             }
             catch (Exception ex)

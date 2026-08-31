@@ -17,6 +17,8 @@
         },
         loadedCount: 0,
         batchSize: 50,
+        pendingAppend: [], // DEF-381: the batch renderCertificates(true) is allowed to draw
+
         totalCount: 0,
         isLoading: false,
         hasMore: true,
@@ -273,9 +275,13 @@
                     const uniqueNew = data.certificates.filter(c => !existingIds.has(c.id));
                     state.certificates = [...state.certificates, ...uniqueNew];
                     state.loadedCount += uniqueNew.length;
+                    // DEF-381: renderCertificates(true) appends exactly this batch. It must NOT
+                    // re-render state.certificates, which by now holds every cert loaded so far.
+                    state.pendingAppend = uniqueNew;
                 } else {
                     state.certificates = data.certificates;
                     state.loadedCount = data.certificates.length;
+                    state.pendingAppend = [];
                 }
 
                 state.totalCount = data.totalCount;
@@ -391,7 +397,14 @@
             return;
         }
 
-        const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
+        // DEF-381: on an infinite-scroll append, render ONLY the newest batch. Rendering
+        // state.certificates here appended the whole accumulated list on every scroll, so batch 2
+        // re-drew certs 1-100 below the existing 1-50, batch 3 re-drew 1-150, and so on. The visible
+        // symptom was "it repeats the prior batch"; the grid also grew quadratically (~10k tiles for
+        // 963 certs), which is what made the page feel like it was reloading. The external and
+        // internal tile scripts already append `newCerts` only — this brings the public one in line.
+        const source = append ? (state.pendingAppend || []) : state.certificates;
+        const html = source.map(cert => createCertificateCard(cert)).join('');
 
         if (append) {
             // Remove loading/end messages before appending
@@ -475,11 +488,11 @@
                 <div class="card-header">
                     <div class="header-row">
                         <div class="certificate-category">${escapeHtml(cert.certificationType)}</div>
-                        <div class="certificate-id" onclick="viewCertificateDetails('${cert.certificateNumber}')" style="cursor: pointer;">${escapeHtml(formattedCertNumber)}</div>
+                        <div class="certificate-id" onclick="viewCertificateDetails('${cert.certificateNumber}', ${cert.id})" style="cursor: pointer;">${escapeHtml(formattedCertNumber)}</div>
                     </div>
-                    <div class="company-name" onclick="viewCertificateDetails('${cert.certificateNumber}')" style="cursor: pointer;">${escapeHtml(cert.companyName)}</div>
+                    <div class="company-name" onclick="viewCertificateDetails('${cert.certificateNumber}', ${cert.id})" style="cursor: pointer;">${escapeHtml(cert.companyName)}</div>
                 </div>
-                <div class="card-body" onclick="viewCertificateDetails('${cert.certificateNumber}')" style="cursor: pointer;">
+                <div class="card-body" onclick="viewCertificateDetails('${cert.certificateNumber}', ${cert.id})" style="cursor: pointer;">
                     <div class="product-info">
                         <div class="product-name">${escapeHtml(cert.productName)}</div>
                     </div>
@@ -500,10 +513,10 @@
                     ` : ''}
                 </div>
                 <div class="card-actions">
-                    <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
+                    <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}', ${cert.id})">
                         <i class="fas fa-download"></i>
                     </div>
-                    <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.certificateNumber}')">
+                    <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.certificateNumber}', ${cert.id})">
                         <i class="fas fa-external-link-alt"></i>
                     </div>
                 </div>
@@ -1110,37 +1123,59 @@
         }
     }
 
+    // DEF-369: build the single-view URL.
+    //
+    // The path is still the certificate NUMBER — that requirement has not changed, and the URL a
+    // visitor sees, copies or shares is the same as before. What is added is an optional `cid`.
+    //
+    // CR-038 allowed several certificates to share one number. The number alone therefore no
+    // longer identifies a record, so every sibling tile pointed at the same URL and the server
+    // could only ever return one of them: one certificate was reachable, its siblings silently
+    // showed that one's page and PDF. Appending the id the tile already holds makes each tile
+    // address its own certificate. Where a number is unique — the overwhelming majority — the
+    // parameter is inert.
+    function buildSingleViewUrl(certificateNumber, certificateId) {
+        // Encode URI to handle certificate numbers with special chars like "24-0366"
+        const base = `/Certificate/CertificateSingleView/${encodeURIComponent(certificateNumber)}`;
+        // Guard against '', null, undefined and NaN — an id of 0 is not valid either.
+        const id = Number(certificateId);
+        return id > 0 ? `${base}?cid=${id}` : base;
+    }
+
     // View certificate details (main card click - new tab per requirement)
-    // Uses certificate NUMBER only (not database ID) - per requirement
-    window.viewCertificateDetails = function(certificateNumber) {
+    window.viewCertificateDetails = function(certificateNumber, certificateId) {
         if (!certificateNumber) {
             console.error('Certificate number is missing');
             showToast('Error: Certificate number not found', 'error');
             return;
         }
-        // Encode URI to handle certificate numbers with special chars like "24-0366"
-        window.open(`/Certificate/CertificateSingleView/${encodeURIComponent(certificateNumber)}`, '_blank');
+        window.open(buildSingleViewUrl(certificateNumber, certificateId), '_blank');
     };
 
     // View certificate (external link - new tab)
-    // Uses certificate NUMBER only (not database ID) - per requirement
-    function viewCertificate(certificateNumber) {
+    function viewCertificate(certificateNumber, certificateId) {
         if (!certificateNumber) {
             console.error('Certificate number is missing');
             showToast('Error: Certificate number not found', 'error');
             return;
         }
-        // Encode URI to handle certificate numbers with special chars like "24-0366"
-        window.open(`/Certificate/CertificateSingleView/${encodeURIComponent(certificateNumber)}`, '_blank');
+        window.open(buildSingleViewUrl(certificateNumber, certificateId), '_blank');
     }
     
     // Make it globally accessible
     window.viewCertificate = viewCertificate;
 
     // Download certificate
-    async function downloadCertificate(id) {
+    // DEF-369: `id` here is the certificate NUMBER (unchanged), `certificateId` is the optional
+    // disambiguator. The download button bypasses the detail page entirely, so without this every
+    // tile sharing a number downloaded the same PDF — the client's exact report.
+    async function downloadCertificate(id, certificateId) {
         try {
-            const response = await fetch(`/Certificate/Download/${id}`);
+            const numericId = Number(certificateId);
+            const url = numericId > 0
+                ? `/Certificate/Download/${encodeURIComponent(id)}?cid=${numericId}`
+                : `/Certificate/Download/${encodeURIComponent(id)}`;
+            const response = await fetch(url);
 
             if (response.ok) {
                 const blob = await response.blob();
@@ -1460,13 +1495,13 @@
             <div class="grid-row" data-cert-id="${cert.id}">
                 <div class="grid-cell actions-column">
                     <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="editCertificate('${cert.certificateNumber}')" title="Edit Certificate">
+                        <button class="action-btn edit-btn" onclick="editCertificate('${cert.certificateNumber}', ${cert.id})" title="Edit Certificate">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn download-btn" onclick="downloadCertificate('${cert.certificateNumber}')" title="Download PDF">
+                        <button class="action-btn download-btn" onclick="downloadCertificate('${cert.certificateNumber}', ${cert.id})" title="Download PDF">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${cert.certificateNumber}')" title="View Details">
+                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${cert.certificateNumber}', ${cert.id})" title="View Details">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
                     </div>
@@ -1500,14 +1535,19 @@
     // Table action handlers simplified - checkboxes removed
 
     // Edit certificate function
-    window.editCertificate = function(certificateNumber) {
+    // DEF-369: carries the disambiguator for the same reason as the view/download paths, but this
+    // one matters most — without it an analyst editing any of several certificates sharing a number
+    // was silently loaded into one of them and saved over it.
+    window.editCertificate = function(certificateNumber, certificateId) {
         if (!certificateNumber) {
             console.error('Certificate number is missing');
             showToast('Error: Certificate number not found', 'error');
             return;
         }
         // Use certificate number (e.g., "24-1605") instead of ID for URL
-        window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
+        const numericId = Number(certificateId);
+        const base = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
+        window.location.href = numericId > 0 ? `${base}?cid=${numericId}` : base;
     };
 
     // Export functions for global access as object as well

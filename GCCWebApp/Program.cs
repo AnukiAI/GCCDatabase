@@ -596,6 +596,8 @@ builder.Services.AddScoped<ISmsService>(serviceProvider =>
 // 2FA Services
 builder.Services.AddScoped<ITwoFactorService, TwoFactorService>();
 builder.Services.AddScoped<IEnhancedTwoFactorService, EnhancedTwoFactorService>();
+// DEF-385: "Trust this device for 30 days" on the 2FA challenge.
+builder.Services.AddScoped<ITrustedDeviceService, TrustedDeviceService>();
 
 // ===== SECURITY SERVICES =====
 builder.Services.AddSecureConfiguration(builder.Configuration, builder.Environment);

@@ -69,7 +69,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _service = new CertificateImportService(
                 _context, _mockAuditService.Object, _cache, _mockLogger.Object,
                 _mockEnvironment.Object, _mockFileUploadService.Object, mockProductIdService.Object,
-                _uploadPathsStub, _mockCertificateService.Object);
+                _uploadPathsStub, _mockCertificateService.Object,
+                new GCCWebApp.Repositories.CertificateRepository(_context));
 
             SeedData();
         }
@@ -335,7 +336,13 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         #region PreviewImportAsync - Validation Errors
 
         [Fact]
-        public async Task PreviewImportAsync_MissingCertNumber_ReturnsError()
+        // Was PreviewImportAsync_MissingCertNumber_ReturnsError. A blank Certificate # is no longer
+        // an error: it means "mint the next number", matching /Certificate/Create, which already
+        // auto-numbered when the analyst left Number blank. The two write paths disagreeing meant an
+        // analyst could create a certificate through the form but not by importing the same data.
+        // A number supplied in the file still wins — which is how the initial data migration keeps
+        // the client's existing numbers.
+        public async Task PreviewImportAsync_MissingCertNumber_QueuesRowForAutoNumbering()
         {
             var csv = BuildCsv(StdHeaders,
                 StdRow(certNum: "", company: "Test Company"));
@@ -343,9 +350,63 @@ namespace GCCWebApp.Api.Tests.Unit.Services
 
             var result = await _service.PreviewImportAsync(file, 1, "admin");
 
-            result.InvalidRows.Should().Be(1);
-            result.ErrorRows[0].ErrorMessages
-                .Should().Contain(m => m.Contains("Certificate Number"));
+            result.InvalidRows.Should().Be(0);
+            result.ErrorRows.Should().BeEmpty();
+            result.NewRows.Should().ContainSingle();
+
+            var row = result.NewRows[0];
+            row.WillAutoAssignNumber.Should().BeTrue();
+            row.CertificateNumber.Should().BeEmpty("the number is minted at apply time, not reserved during preview");
+            row.DisplayCertificateNumber.Should().Be("(auto-assign)");
+        }
+
+        [Fact]
+        // The blank rows must each get their OWN number. CreateCertificateAsync saves per row, so
+        // the generator sees the previous row committed and the sequence advances; asserting
+        // "two certificates exist" would pass even if both landed on the same number, so this
+        // asserts distinctness explicitly.
+        public async Task ApplyImportAsync_MultipleBlankCertNumbers_AssignsDistinctNumbers()
+        {
+            var csv = BuildCsv(StdHeaders,
+                StdRow(certNum: "", company: "Test Company", product: "Blank Number Product A"),
+                StdRow(certNum: "", company: "Test Company", product: "Blank Number Product B"));
+            var file = CreateCsvFormFile(csv);
+
+            var preview = await _service.PreviewImportAsync(file, 1, "admin");
+            preview.NewRows.Should().HaveCount(2);
+            preview.CanApply.Should().BeTrue();
+
+            var result = await _service.ApplyImportAsync(preview, 1, "admin", "unit test");
+            result.Success.Should().BeTrue();
+
+            var numbers = _context.Certificates
+                .Where(c => c.Product!.Name.StartsWith("Blank Number Product"))
+                .Select(c => c.Number)
+                .ToList();
+
+            numbers.Should().HaveCount(2);
+            numbers.Should().OnlyContain(n => !string.IsNullOrWhiteSpace(n));
+            numbers.Distinct().Should().HaveCount(2, "each auto-numbered row needs its own certificate number");
+        }
+
+        [Fact]
+        // The migration path: a number supplied in the file is preserved verbatim, never replaced by
+        // a generated one.
+        public async Task ApplyImportAsync_SuppliedCertNumber_IsPreservedNotRegenerated()
+        {
+            var csv = BuildCsv(StdHeaders,
+                StdRow(certNum: "99-1234", company: "Test Company", product: "Supplied Number Product"));
+            var file = CreateCsvFormFile(csv);
+
+            var preview = await _service.PreviewImportAsync(file, 1, "admin");
+            preview.NewRows.Should().ContainSingle();
+            preview.NewRows[0].WillAutoAssignNumber.Should().BeFalse();
+
+            var result = await _service.ApplyImportAsync(preview, 1, "admin", "unit test");
+            result.Success.Should().BeTrue();
+
+            _context.Certificates
+                .Should().Contain(c => c.Number == "99-1234");
         }
 
         [Fact]
@@ -690,7 +751,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var freshService = new CertificateImportService(
                 freshContext, _mockAuditService.Object, _cache,
                 _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object,
-                new Mock<IProductIdService>().Object, _uploadPathsStub, _mockCertificateService.Object);
+                new Mock<IProductIdService>().Object, _uploadPathsStub, _mockCertificateService.Object,
+                new GCCWebApp.Repositories.CertificateRepository(freshContext));
 
             var csv = BuildCsv(StdHeaders, StdRow());
             var file = CreateCsvFormFile(csv);
@@ -1446,7 +1508,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 freshContext, _mockAuditService.Object,
                 new MemoryCache(new MemoryCacheOptions()),
                 _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object,
-                new Mock<IProductIdService>().Object, _uploadPathsStub, _mockCertificateService.Object);
+                new Mock<IProductIdService>().Object, _uploadPathsStub, _mockCertificateService.Object,
+                new GCCWebApp.Repositories.CertificateRepository(freshContext));
 
             var preview = CreatePreviewWithNewRow("25-8000");
             preview.NewCompanyNames = new List<string> { "NewCo" };

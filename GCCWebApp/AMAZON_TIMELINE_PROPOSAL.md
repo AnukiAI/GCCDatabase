@@ -183,8 +183,25 @@ Same scope as Option A Phase 5.
 |------|--------|------------|------------|
 | **Amazon sandbox access delays** | Blocks integration testing | Low-Medium | Request sandbox credentials by May 15 regardless of timeline option. |
 | **Azure AD B2C configuration issues** | Blocks forgot password, Duo MFA | Low | These are not on the Amazon critical path. Can be addressed in parallel. |
-| **Production environment DNS/hosting changes** | Deployment disruption | Low | URL structure already confirmed (greencirclecertified.com/database). DNS change is pending but independent of API work. |
+| **Production environment DNS/hosting changes** | Deployment disruption | Low | ~~URL structure already confirmed (greencirclecertified.com/database). DNS change is pending but independent of API work.~~ **Superseded 2026-08-14 — see note below.** |
 | **Partner role implementation (QC 143)** | Amazon can see non-Amazon certs via API | Medium | Current API already filters by partner. Full role-based scoping is enhancement, not blocker. |
+
+> **Update 2026-08-14 — production URL changed; the April row above is no longer accurate.**
+>
+> This document was issued 2026-04-15 and is left intact as the record of what was proposed then. One
+> item has since changed and would mislead a reader who acted on it today.
+>
+> The production API host is **`https://database.greencirclecertified.com/api/v1`** — a dedicated
+> subdomain. The path-based `greencirclecertified.com/database` named above was **never activated** and
+> is retired: the certificate database runs as a separate application that cannot share a server with
+> the main website, and the app is not path-mounted (there is no `UsePathBase`), so it could not have
+> served that address without a code change.
+>
+> **Only the host changes.** Every path, parameter, header, field name and response shape is unchanged,
+> so the risk assessment itself still holds — this remains a low-impact configuration change,
+> independent of API work. The Amazon Developer Guide **v1.2** carries the corrected endpoint.
+>
+> Test remains **`gccwebapp.com`** and is unaffected.
 
 ### Dependencies (External to Anuki)
 

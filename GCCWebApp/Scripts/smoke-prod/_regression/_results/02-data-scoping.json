@@ -1,0 +1,399 @@
+{
+  "phaseId": "02-data-scoping",
+  "base": "https://gccwebapp.com",
+  "startedAt": "2026-08-31T03:34:13.240Z",
+  "finishedAt": "2026-08-31T03:34:48.620Z",
+  "populations": {
+    "internal_admin": {
+      "totalCount": 5702,
+      "fetched": 5702,
+      "health": {
+        "missing": 0,
+        "distinct": 5527,
+        "duplicateNumbers": 137,
+        "duplicateRows": 312,
+        "examples": [
+          "26-0166x3",
+          "26-0168x3",
+          "26-0169x2",
+          "26-0170x2",
+          "26-0174x2",
+          "26-0175x2",
+          "26-0182x4",
+          "26-0184x2",
+          "25-0077x3",
+          "25-0079x3"
+        ]
+      },
+      "numberCount": 5527
+    },
+    "internal_analyst": {
+      "totalCount": 5702,
+      "fetched": 5702,
+      "health": {
+        "missing": 0,
+        "distinct": 5527,
+        "duplicateNumbers": 137,
+        "duplicateRows": 312,
+        "examples": [
+          "26-0166x3",
+          "26-0168x3",
+          "26-0169x2",
+          "26-0170x2",
+          "26-0174x2",
+          "26-0175x2",
+          "26-0182x4",
+          "26-0184x2",
+          "25-0077x3",
+          "25-0079x3"
+        ]
+      },
+      "numberCount": 5527
+    },
+    "public": {
+      "totalCount": 963,
+      "fetched": 963,
+      "health": {
+        "missing": 0,
+        "distinct": 951,
+        "duplicateNumbers": 8,
+        "duplicateRows": 20,
+        "examples": [
+          "26-0184x2",
+          "26-0182x4",
+          "26-0175x2",
+          "26-0174x2",
+          "26-0170x2",
+          "26-0169x2",
+          "26-0168x3",
+          "26-0166x3"
+        ]
+      },
+      "numberCount": 951
+    },
+    "external": {
+      "totalCount": 30,
+      "fetched": 30,
+      "health": {
+        "missing": 0,
+        "distinct": 30,
+        "duplicateNumbers": 0,
+        "duplicateRows": 0,
+        "examples": []
+      },
+      "companies": [
+        "Sika Corporation"
+      ],
+      "scope": "Sika Corporation",
+      "numberCount": 30
+    },
+    "external2": {
+      "totalCount": 21,
+      "fetched": 21,
+      "health": {
+        "missing": 0,
+        "distinct": 21,
+        "duplicateNumbers": 0,
+        "duplicateRows": 0,
+        "examples": []
+      },
+      "companies": [
+        "MAPEI"
+      ],
+      "scope": "MAPEI",
+      "numberCount": 21
+    },
+    "amazon": {
+      "totalCount": 208,
+      "fetched": 208,
+      "health": {
+        "missing": 0,
+        "distinct": 208,
+        "duplicateNumbers": 0,
+        "duplicateRows": 0,
+        "examples": []
+      },
+      "companies": [
+        "Tractive, Inc.",
+        "Westlake Dimex",
+        "The Procter & Gamble Company",
+        "Spectrum Brands Holdings, Inc.",
+        "Clover Environmental Solutions, LLC",
+        "The Estée Lauder Companies",
+        "X-SENSE",
+        "Glad",
+        "eero, an Amazon Company",
+        "Haleon UK Trading Limited",
+        "Bemis Manufacturing Company",
+        "Deciem Inc.",
+        "Haleon US Holdings LLC",
+        "Essity",
+        "Guhl Ikebana GmbH",
+        "Kao Germany GmbH",
+        "IRIS USA, Inc.",
+        "General Mills, Inc.",
+        "Lansinoh Laboratories, Inc.",
+        "Sonos",
+        "Alfred Kärcher SE & Co. KG",
+        "Brugman & Gevers B.V.",
+        "Henkel",
+        "Reynolds Consumer Products LLC",
+        "Kenvue Brands LLC",
+        "Amazon Leo",
+        "Sea Bags",
+        "Philips",
+        "Dataproducts",
+        "INNOVERA",
+        "Clover Imaging Group",
+        "earth rated",
+        "Toms of Maine",
+        "HanesBrands Inc.",
+        "DUDE Wipes"
+      ],
+      "scope": "Amazon",
+      "numberCount": 208
+    },
+    "novi": {
+      "totalCount": 0,
+      "fetched": 0,
+      "health": {
+        "missing": 0,
+        "distinct": 0,
+        "duplicateNumbers": 0,
+        "duplicateRows": 0,
+        "examples": []
+      },
+      "companies": [],
+      "scope": "Novi",
+      "numberCount": 0
+    }
+  },
+  "pass": 31,
+  "fail": 2,
+  "warn": 0,
+  "info": 4,
+  "rows": [
+    {
+      "id": "data.internal.admin",
+      "name": "Internal tile API as admin",
+      "status": "PASS",
+      "notes": "totalCount=5702, fetched=5702 over 29 pages"
+    },
+    {
+      "id": "data.internal.analyst",
+      "name": "Internal tile API as analyst",
+      "status": "PASS",
+      "notes": "totalCount=5702, fetched=5702 over 29 pages"
+    },
+    {
+      "id": "data.internal.admin-eq-analyst",
+      "name": "Admin and Analyst see the identical certificate set",
+      "status": "PASS",
+      "notes": "admin=5527 analyst=5527; admin-only=[] analyst-only=[]"
+    },
+    {
+      "id": "data.public",
+      "name": "Public tile API (anonymous)",
+      "status": "PASS",
+      "notes": "totalCount=963, fetched=963"
+    },
+    {
+      "id": "data.public.subset-of-internal",
+      "name": "Public set is a subset of the internal set",
+      "status": "PASS",
+      "notes": "no leak"
+    },
+    {
+      "id": "data.public.narrower-than-internal",
+      "name": "Public count is narrower than internal (visibility window)",
+      "status": "PASS",
+      "notes": "public=963 internal=5702"
+    },
+    {
+      "id": "data.scoped.external",
+      "name": "External tile API as external (scope: Sika Corporation)",
+      "status": "PASS",
+      "notes": "totalCount=30, fetched=30, distinct companies=1"
+    },
+    {
+      "id": "data.scoped.external.companies",
+      "name": "Distinct companies visible to external",
+      "status": "INFO",
+      "notes": "Sika Corporation"
+    },
+    {
+      "id": "data.scoped.external2",
+      "name": "External tile API as external2 (scope: MAPEI)",
+      "status": "PASS",
+      "notes": "totalCount=21, fetched=21, distinct companies=1"
+    },
+    {
+      "id": "data.scoped.external2.companies",
+      "name": "Distinct companies visible to external2",
+      "status": "INFO",
+      "notes": "MAPEI"
+    },
+    {
+      "id": "data.scoped.amazon",
+      "name": "External tile API as amazon (scope: Amazon)",
+      "status": "PASS",
+      "notes": "totalCount=208, fetched=208, distinct companies=35"
+    },
+    {
+      "id": "data.scoped.amazon.companies",
+      "name": "Distinct companies visible to amazon",
+      "status": "INFO",
+      "notes": "Tractive, Inc. | Westlake Dimex | The Procter & Gamble Company | Spectrum Brands Holdings, Inc. | Clover Environmental Solutions, LLC | The Estée Lauder Companies | X-SENSE | Glad | eero, an Amazon Company | Haleon UK Trading Limited | Bemis Manufacturing Company | Deciem Inc. | Haleon US Holdings LLC | Essity | Guhl Ikebana GmbH | Kao Germany GmbH | IRIS USA, Inc. | General Mills, Inc. | Lansinoh Laboratories, Inc. | Sonos | Alfred Kärcher SE & Co. KG | Brugman & Gevers B.V. | Henkel | Reynolds Consumer Products LLC | Kenvue Brands LLC …+10"
+    },
+    {
+      "id": "data.scoped.novi",
+      "name": "External tile API as novi (scope: Novi)",
+      "status": "PASS",
+      "notes": "totalCount=0, fetched=0, distinct companies=0"
+    },
+    {
+      "id": "data.scoped.novi.companies",
+      "name": "Distinct companies visible to novi",
+      "status": "INFO",
+      "notes": ""
+    },
+    {
+      "id": "data.isolation.external-vs-external2",
+      "name": "company isolation: external (Sika Corporation) vs external2 (MAPEI)",
+      "status": "PASS",
+      "notes": "external=30 external2=21 shared=0 | only-external=30 only-external2=21"
+    },
+    {
+      "id": "data.isolation.amazon-vs-novi",
+      "name": "partner isolation: amazon (Amazon) vs novi (Novi)",
+      "status": "PASS",
+      "notes": "amazon=208 novi=0 shared=0 | only-amazon=208 only-novi=0"
+    },
+    {
+      "id": "data.scoped.external.single-company",
+      "name": "external sees only Sika Corporation",
+      "status": "PASS",
+      "notes": "distinct companies = 1: Sika Corporation"
+    },
+    {
+      "id": "data.scoped.external2.single-company",
+      "name": "external2 sees only MAPEI",
+      "status": "PASS",
+      "notes": "distinct companies = 1: MAPEI"
+    },
+    {
+      "id": "data.certnumber.internal.populated",
+      "name": "internal: every row carries a certificateNumber",
+      "status": "PASS",
+      "notes": "rows=5702, blank/null numbers=0"
+    },
+    {
+      "id": "data.certnumber.internal.unique",
+      "name": "internal: certificate numbers are unique",
+      "status": "FAIL",
+      "notes": "137 numbers shared by 312 rows (distinct=5527, rows=5702) e.g. 26-0166x3, 26-0168x3, 26-0169x2, 26-0170x2, 26-0174x2, 26-0175x2, 26-0182x4, 26-0184x2, 25-0077x3, 25-0079x3"
+    },
+    {
+      "id": "data.certnumber.internal.not-bare-id",
+      "name": "internal: certificateNumber is not a bare integer Id",
+      "status": "PASS",
+      "notes": "0 of 5527 look like bare integers"
+    },
+    {
+      "id": "data.certnumber.public.populated",
+      "name": "public: every row carries a certificateNumber",
+      "status": "PASS",
+      "notes": "rows=963, blank/null numbers=0"
+    },
+    {
+      "id": "data.certnumber.public.unique",
+      "name": "public: certificate numbers are unique",
+      "status": "FAIL",
+      "notes": "8 numbers shared by 20 rows (distinct=951, rows=963) e.g. 26-0184x2, 26-0182x4, 26-0175x2, 26-0174x2, 26-0170x2, 26-0169x2, 26-0168x3, 26-0166x3"
+    },
+    {
+      "id": "data.certnumber.public.not-bare-id",
+      "name": "public: certificateNumber is not a bare integer Id",
+      "status": "PASS",
+      "notes": "0 of 951 look like bare integers"
+    },
+    {
+      "id": "data.certnumber.external-sika.populated",
+      "name": "external-sika: every row carries a certificateNumber",
+      "status": "PASS",
+      "notes": "rows=30, blank/null numbers=0"
+    },
+    {
+      "id": "data.certnumber.external-sika.unique",
+      "name": "external-sika: certificate numbers are unique",
+      "status": "PASS",
+      "notes": "0 numbers shared by 0 rows (distinct=30, rows=30)"
+    },
+    {
+      "id": "data.certnumber.external-sika.not-bare-id",
+      "name": "external-sika: certificateNumber is not a bare integer Id",
+      "status": "PASS",
+      "notes": "0 of 30 look like bare integers"
+    },
+    {
+      "id": "data.certnumber.amazon.populated",
+      "name": "amazon: every row carries a certificateNumber",
+      "status": "PASS",
+      "notes": "rows=208, blank/null numbers=0"
+    },
+    {
+      "id": "data.certnumber.amazon.unique",
+      "name": "amazon: certificate numbers are unique",
+      "status": "PASS",
+      "notes": "0 numbers shared by 0 rows (distinct=208, rows=208)"
+    },
+    {
+      "id": "data.certnumber.amazon.not-bare-id",
+      "name": "amazon: certificateNumber is not a bare integer Id",
+      "status": "PASS",
+      "notes": "0 of 208 look like bare integers"
+    },
+    {
+      "id": "data.paging.internal_admin",
+      "name": "internal_admin: totalCount agrees with rows served",
+      "status": "PASS",
+      "notes": "totalCount=5702 rows walked=5702"
+    },
+    {
+      "id": "data.paging.internal_analyst",
+      "name": "internal_analyst: totalCount agrees with rows served",
+      "status": "PASS",
+      "notes": "totalCount=5702 rows walked=5702"
+    },
+    {
+      "id": "data.paging.public",
+      "name": "public: totalCount agrees with rows served",
+      "status": "PASS",
+      "notes": "totalCount=963 rows walked=963"
+    },
+    {
+      "id": "data.paging.external",
+      "name": "external: totalCount agrees with rows served",
+      "status": "PASS",
+      "notes": "totalCount=30 rows walked=30"
+    },
+    {
+      "id": "data.paging.external2",
+      "name": "external2: totalCount agrees with rows served",
+      "status": "PASS",
+      "notes": "totalCount=21 rows walked=21"
+    },
+    {
+      "id": "data.paging.amazon",
+      "name": "amazon: totalCount agrees with rows served",
+      "status": "PASS",
+      "notes": "totalCount=208 rows walked=208"
+    },
+    {
+      "id": "data.paging.novi",
+      "name": "novi: totalCount agrees with rows served",
+      "status": "PASS",
+      "notes": "totalCount=0 rows walked=0"
+    }
+  ]
+}

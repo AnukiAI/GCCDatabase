@@ -20,12 +20,39 @@ their copy actually said, so a later change can be assessed against what each pa
 |---|---|---|---|---|---|---|---|
 | _(none yet)_ | | | | | | | Guide not yet issued to any partner |
 
+## Artifacts cleaned for client review — 2026-08-24
+
+The three sendable files carried the internal scaffolding baked into the generated output, not just
+into the HTML source. **The Amazon guide v1.2 was already clean; the partner template was not.** Its
+PDF and DOCX both printed the red `INTERNAL — REMOVE BEFORE SENDING` banner on page 1, named
+**DEF-345** three times, and exposed `CertificatesController.cs` line numbers, `PublicStatuses`, the
+internal status name *Client Approved - Paid* and `localhost:5101`.
+
+Removed 2026-08-24 from `PARTNER_API_INTEGRATION_GUIDE.html` and re-rendered to PDF/DOCX:
+
+| Block | Disposition |
+|---|---|
+| Page-1 "Internal — remove before sending" | **Rewritten** as a client-facing *How to use this template* box. The instructions were genuinely useful to whoever fills the template; the internal references were not. |
+| §2 "Internal — verify on production, then delete" (DEF-345) | **Deleted.** The decision it was waiting on is made — 200/hour — and the verification requirement now lives in this log instead, where it belongs. |
+| §4 "Internal — confirm scope, then delete" (source paths, CR-035) | **Deleted.** Fully internal; the open question it raised is tracked as CR-035 and in `2026-08-24-client-questions-partner-api.md`. |
+| §10 onboarding step 2 | **Reworded** — cited DEF-345 by number in a table the partner reads. |
+
+Verified after regeneration: zero hits for DEF-345 / CR-035 / `CertificatesController` / `localhost` /
+`PublicStatuses` / *Client Approved* / *Republished* across all three files, and **no live API key** in
+any of them (all `gcc_partner_` occurrences are format examples). The 6 `[PARTNER NAME]` placeholders
+are **deliberate** — it is a template.
+
+PDFs are rendered with headless Chrome from the HTML (`Skia/PDF`, matching how the originals were
+made), so the HTML remains the single source and the PDF must be re-rendered after any edit — do not
+hand-edit the PDF.
+
 ## Before issuing a copy
 
-1. **Confirm DEF-345 is deployed** and the guide's §2 BLOCKED block has been deleted. Until then the
-   server throttles partner keys at 100/hr regardless of what the panel says.
+1. **Confirm DEF-345 is deployed** and the §2 rate-limit figure has been verified against the live
+   server. Until then it throttles partner keys at 100/hr regardless of what the panel says. The
+   in-document warning has been removed, so **this log is now the only place that gate is recorded.**
 2. Fill every `[HIGHLIGHTED PLACEHOLDER]`, including all seven rows of *Your Connection*.
-3. Resolve or delete every red TBD block.
+3. Delete the page-1 *How to use this template* box.
 4. Verify the stated rate limit against the key actually issued — `PartnerApiKeys.RateLimitPerHour`
    (NULL = the configured platform default, currently 200/hr; it is **not** unlimited).
 5. Verify the stated endpoint scope against that key's `AllowedEndpoints`. A key restricted to a subset
@@ -49,3 +76,9 @@ Relevant pending changes that would trigger a re-issue:
 - **CR-036** — certification standard version. Additive field; would change §4's field table. Note the
   frozen-baseline contract test reports any added field as a contract change — re-baseline deliberately.
 - **DEF-345** — partner rate limiting. Fixed locally, **not yet deployed**; gates the first issuance.
+
+**Rate limit — decided internally 2026-08-24 (Shawn): 200/hour stands, as both guides already state.**
+No code change needed; `Program.cs:460` already sets `PartnerApiKeyLimit = 200`. Sent to the client for
+confirmation alongside CR-035 and CR-036 in `2026-08-24-client-questions-partner-api.md`. Step 4 above
+is therefore a *verification* against the issued key, not an open decision — but §2's internal block
+still requires seeing `X-RateLimit-Limit: 200` come back from the live server before it is deleted.

@@ -94,6 +94,25 @@ namespace GCCWebApp.Models.Import
         public HashSet<string> ProvidedColumns { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
         public string CertificateNumber { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The row left Certificate # blank, so the number is minted at APPLY time rather than
+        /// coming from the file — matching what /Certificate/Create already does when the analyst
+        /// leaves Number blank.
+        ///
+        /// Assignment is deliberately deferred out of preview: preview and apply are separated by
+        /// however long the analyst spends reading the page, and a number reserved at preview time
+        /// would either be taken by a concurrent create or leave a gap in the sequence if the import
+        /// were cancelled. The preview therefore shows "(auto-assign)" rather than a number it
+        /// cannot honour.
+        /// </summary>
+        public bool WillAutoAssignNumber { get; set; }
+
+        /// <summary>Certificate # for display: the file's value, or the auto-assign placeholder.</summary>
+        public string DisplayCertificateNumber =>
+            WillAutoAssignNumber && string.IsNullOrWhiteSpace(CertificateNumber)
+                ? "(auto-assign)"
+                : CertificateNumber;
         public string CompanyName { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public string CertificationType { get; set; } = string.Empty;

@@ -1,0 +1,117 @@
+{
+  "phaseId": "04-create-edit",
+  "base": "https://gccwebapp.com",
+  "startedAt": "2026-08-31T03:45:30.998Z",
+  "finishedAt": "2026-08-31T03:45:50.088Z",
+  "runId": "2026-08-31_mtgp3xx0",
+  "marker": "ZZ_RegressionFixture_2026-08-31_mtgp3xx0",
+  "createdNumber": "26-0482",
+  "pass": 17,
+  "fail": 0,
+  "warn": 0,
+  "info": 0,
+  "rows": [
+    {
+      "id": "crud.create.company-products",
+      "name": "Company selection loads its products (AJAX)",
+      "status": "PASS",
+      "notes": "3M -> 5 products"
+    },
+    {
+      "id": "crud.create",
+      "name": "Analyst creates a certificate",
+      "status": "PASS",
+      "notes": "landed /Certificate/CertificateInternalView/26-0482 in 2595ms; number=26-0482"
+    },
+    {
+      "id": "crud.create.autonumber",
+      "name": "Certificate number auto-generated (Number left blank)",
+      "status": "PASS",
+      "notes": "generated \"26-0482\" (expected NN-NNNN form)"
+    },
+    {
+      "id": "crud.create.persisted",
+      "name": "Created certificate is readable through the internal API",
+      "status": "PASS",
+      "notes": "found 26-0482"
+    },
+    {
+      "id": "crud.create.location",
+      "name": "Location field persisted",
+      "status": "PASS",
+      "notes": "expected \"ZZ_RegressionFixture_2026-08-31_mtgp3xx0\", got \"ZZ_RegressionFixture_2026-08-31_mtgp3xx0\""
+    },
+    {
+      "id": "crud.create.certresults",
+      "name": "Certification Results persisted (client requirement)",
+      "status": "PASS",
+      "notes": "expected \"Regression probe 87.5% reduction\", got \"Regression probe 87.5% reduction\""
+    },
+    {
+      "id": "crud.create.status",
+      "name": "Status persisted as Draft",
+      "status": "PASS",
+      "notes": "got \"Draft\""
+    },
+    {
+      "id": "crud.create.pdf",
+      "name": "Uploaded PDF is linked to the certificate",
+      "status": "PASS",
+      "notes": "pdfPath=uploads/certificates/26-0482_20260831_034537.pdf"
+    },
+    {
+      "id": "crud.create.draft-not-public",
+      "name": "Draft certificate is not visible anonymously",
+      "status": "PASS",
+      "notes": "not public"
+    },
+    {
+      "id": "crud.edit.loads",
+      "name": "Edit form loads for 26-0482",
+      "status": "PASS",
+      "notes": "url=/Certificate/Edit/26-0482"
+    },
+    {
+      "id": "crud.edit.prefill",
+      "name": "Edit form prefills stored values",
+      "status": "PASS",
+      "notes": "Location=\"ZZ_RegressionFixture_2026-08-31_mtgp3xx0\" CertificationResults=\"Regression probe 87.5% reduction\""
+    },
+    {
+      "id": "crud.edit.persisted",
+      "name": "Edit persisted",
+      "status": "PASS",
+      "notes": "expected \"ZZ_RegressionFixture_2026-08-31_mtgp3xx0_EDITED\", got \"ZZ_RegressionFixture_2026-08-31_mtgp3xx0_EDITED\" (3846ms)"
+    },
+    {
+      "id": "crud.edit.certresults",
+      "name": "Certification Results edit persisted",
+      "status": "PASS",
+      "notes": "expected \"Regression probe 91.2% reduction (edited)\", got \"Regression probe 91.2% reduction (edited)\""
+    },
+    {
+      "id": "crud.edit.no-duplicate",
+      "name": "Edit did not create a second certificate",
+      "status": "PASS",
+      "notes": "search for 26-0482 returns 1 rows"
+    },
+    {
+      "id": "crud.delete.analyst-denied",
+      "name": "Analyst cannot reach certificate Delete (AdminOnly)",
+      "status": "PASS",
+      "notes": "HTTP 302 location=https://gccwebapp.com/Account/AccessDenied?ReturnUrl=%2FCertificate%2FDelete%2F26-0482"
+    },
+    {
+      "id": "crud.delete",
+      "name": "Admin deletes fixture 26-0482",
+      "status": "PASS",
+      "notes": "POST 200; still present=false"
+    },
+    {
+      "id": "crud.teardown",
+      "name": "Fixture removed from the test environment",
+      "status": "PASS",
+      "notes": "clean"
+    }
+  ]
+}

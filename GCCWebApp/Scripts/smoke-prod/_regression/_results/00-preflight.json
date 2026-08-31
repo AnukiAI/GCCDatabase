@@ -1,0 +1,132 @@
+{
+  "phaseId": "00-preflight",
+  "base": "https://gccwebapp.com",
+  "startedAt": "2026-08-31T03:31:11.693Z",
+  "finishedAt": "2026-08-31T03:31:35.333Z",
+  "gate": {
+    "mode": "cookie",
+    "detail": "302 -> /__gate?returnUrl=%2F"
+  },
+  "perAccount": {
+    "admin": {
+      "landed": "/Certificate/CertificateTileViewInternal",
+      "loginMs": 10717
+    },
+    "analyst": {
+      "landed": "/Certificate/CertificateTileViewInternal",
+      "loginMs": 2556
+    },
+    "external": {
+      "landed": "/Certificate/CertificateTileViewExternal",
+      "loginMs": 2335
+    },
+    "external2": {
+      "landed": "/Certificate/CertificateTileViewExternal",
+      "loginMs": 2347
+    },
+    "amazon": {
+      "landed": "/Certificate/CertificateTileViewExternal",
+      "loginMs": 2487
+    },
+    "novi": {
+      "landed": "/Certificate/CertificateTileViewExternal",
+      "loginMs": 2391
+    }
+  },
+  "pass": 13,
+  "fail": 0,
+  "warn": 0,
+  "info": 0,
+  "rows": [
+    {
+      "id": "pre.gate-mode",
+      "name": "Gate mode detected: cookie",
+      "status": "PASS",
+      "notes": "302 -> /__gate?returnUrl=%2F"
+    },
+    {
+      "id": "pre.login.admin",
+      "name": "test.admin (Admin) authenticates",
+      "status": "PASS",
+      "notes": "landed /Certificate/CertificateTileViewInternal in 10717ms",
+      "landed": "/Certificate/CertificateTileViewInternal",
+      "ms": 10717
+    },
+    {
+      "id": "pre.landing.admin",
+      "name": "test.admin lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "expected /Certificate/CertificateTileViewInternal, got /Certificate/CertificateTileViewInternal"
+    },
+    {
+      "id": "pre.login.analyst",
+      "name": "test.analyst (Analyst) authenticates",
+      "status": "PASS",
+      "notes": "landed /Certificate/CertificateTileViewInternal in 2556ms",
+      "landed": "/Certificate/CertificateTileViewInternal",
+      "ms": 2556
+    },
+    {
+      "id": "pre.landing.analyst",
+      "name": "test.analyst lands on /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "expected /Certificate/CertificateTileViewInternal, got /Certificate/CertificateTileViewInternal"
+    },
+    {
+      "id": "pre.login.external",
+      "name": "test.external (External) authenticates",
+      "status": "PASS",
+      "notes": "landed /Certificate/CertificateTileViewExternal in 2335ms",
+      "landed": "/Certificate/CertificateTileViewExternal",
+      "ms": 2335
+    },
+    {
+      "id": "pre.landing.external",
+      "name": "test.external lands on /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": "expected /Certificate/CertificateTileViewExternal, got /Certificate/CertificateTileViewExternal"
+    },
+    {
+      "id": "pre.login.external2",
+      "name": "test.external2 (External) authenticates",
+      "status": "PASS",
+      "notes": "landed /Certificate/CertificateTileViewExternal in 2347ms",
+      "landed": "/Certificate/CertificateTileViewExternal",
+      "ms": 2347
+    },
+    {
+      "id": "pre.landing.external2",
+      "name": "test.external2 lands on /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": "expected /Certificate/CertificateTileViewExternal, got /Certificate/CertificateTileViewExternal"
+    },
+    {
+      "id": "pre.login.amazon",
+      "name": "test.amazon (Partner) authenticates",
+      "status": "PASS",
+      "notes": "landed /Certificate/CertificateTileViewExternal in 2487ms",
+      "landed": "/Certificate/CertificateTileViewExternal",
+      "ms": 2487
+    },
+    {
+      "id": "pre.landing.amazon",
+      "name": "test.amazon lands on /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": "expected /Certificate/CertificateTileViewExternal, got /Certificate/CertificateTileViewExternal"
+    },
+    {
+      "id": "pre.login.novi",
+      "name": "test.novi (Partner) authenticates",
+      "status": "PASS",
+      "notes": "landed /Certificate/CertificateTileViewExternal in 2391ms",
+      "landed": "/Certificate/CertificateTileViewExternal",
+      "ms": 2391
+    },
+    {
+      "id": "pre.landing.novi",
+      "name": "test.novi lands on /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": "expected /Certificate/CertificateTileViewExternal, got /Certificate/CertificateTileViewExternal"
+    }
+  ]
+}

@@ -233,7 +233,7 @@
                         }
                         @if (hasFile)
                         {
-                            <div class="@downloadClass" title="@downloadTitle" onclick="downloadCertificate('@GetFormattedCertificateNumber()')">
+                            <div class="@downloadClass" title="@downloadTitle" onclick="downloadCertificate('@GetFormattedCertificateNumber()', @Model.Certificate.Id)">
                                 <i class="fas fa-download"></i>
                             </div>
                         }
@@ -261,12 +261,20 @@
 <script>
     // QC #168: fetch + toast pattern (matches tile view) so a missing PDF surfaces as a clean
     // toast instead of opening a new tab that renders the raw NotFound response body.
-    window.downloadCertificate = async function(certificateNumber) {
+    // DEF-369: the number alone no longer identifies a certificate (CR-038 allows several to share
+    // one). This page already knows exactly which certificate it rendered, so it passes that id
+    // through — otherwise a visitor who correctly reached certificate 1632 would still download
+    // 1633's PDF from this button, which is the defect one step further along.
+    window.downloadCertificate = async function(certificateNumber, certificateId) {
         if (!certificateNumber) {
             return;
         }
         try {
-            const response = await fetch(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`);
+            const numericId = Number(certificateId);
+            const url = numericId > 0
+                ? `/Certificate/Download/${encodeURIComponent(certificateNumber)}?cid=${numericId}`
+                : `/Certificate/Download/${encodeURIComponent(certificateNumber)}`;
+            const response = await fetch(url);
             if (!response.ok) {
                 if (typeof showToast === 'function') {
                     showToast('Certificate PDF not available', 'error');
@@ -282,13 +290,19 @@
                     filename = filenameMatch[1].replace(/['"]/g, '');
                 }
             }
-            const url = window.URL.createObjectURL(blob);
+            // NOT `url` — that name is taken by the request URL above, at this same function
+            // scope. Declaring it twice is a *parse-time* SyntaxError, which kills the whole
+            // inline <script> block, so downloadCertificate and openImageZoom were never
+            // defined and both buttons on this page did nothing at all. (DEF-369 introduced
+            // the first `url`; this second one had been here all along inside a function that
+            // previously had no other. Found live 2026-08-25.)
+            const blobUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
+            a.href = blobUrl;
             a.download = filename;
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
+            window.URL.revokeObjectURL(blobUrl);
             document.body.removeChild(a);
         } catch (error) {
             if (typeof showToast === 'function') {

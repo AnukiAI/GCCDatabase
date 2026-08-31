@@ -14,6 +14,7 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const H = require('../../_security/_lib/security-harness');
+const { readJsonc } = require('../../_lib/read-jsonc');
 
 const FIXTURE_MARKER = 'ZZ_SmokeFixture_CRUD';
 
@@ -26,7 +27,10 @@ function connString() {
   if (env) return env;
   // __dirname = Scripts/smoke-prod/_crud/_lib -> up 4 to the app root.
   const cfgPath = path.resolve(__dirname, '..', '..', '..', '..', 'appsettings.Development.json');
-  return JSON.parse(fs.readFileSync(cfgPath, 'utf8')).ConnectionStrings.DefaultConnection;
+  // readJsonc, not JSON.parse: appsettings files are JSONC and this one carries `//` comments.
+  // A strict parse threw before any assertion ran, and the suite reported 0 PASS / 5 FAIL — five
+  // write paths apparently broken, when nothing had been read at all. See _lib/read-jsonc.js.
+  return readJsonc(cfgPath).ConnectionStrings.DefaultConnection;
 }
 
 function sqlcmdArgs() {

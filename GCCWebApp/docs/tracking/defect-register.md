@@ -10545,3 +10545,1081 @@ limit, no inconsistency — left alone.
 **Verification.** `dotnet build` — 0 errors. Server-side hard cap in `web.config`
 (`maxAllowedContentLength="104857600"`, 100MB) is unchanged and unrelated; it bounds the whole
 request, not the certificate PDF.
+---
+
+### DEF-369 — CR-038 fallout: a certificate number that belongs to several certificates resolves to only ONE of them, so every sibling tile opens the same page and serves the same PDF (175 certificates have no URL at all)
+
+- **Date:** 2026-08-23
+- **Severity:** **HIGH — public-facing, client-reported, and it misrepresents certification.** A visitor who clicks four different products on the public tile view lands on the same certificate and downloads the same PDF. That is a certification record showing the wrong product.
+- **Status:** **OPEN — root cause confirmed and measured, not yet fixed.**
+- **QC Ref:** Client email 2026-08-23, duplicate-cert-number spot check. Reporter: client (Carly), via Shawn.
+  Verbatim: *"they all are pulling the same PDF, which cannot be the case… they are all going to the Thunder Flat preview page, which cannot be the case. They must go to their own listing."*
+- **Bucket:** Bug.
+
+**The client reported two symptoms. They are ONE defect.** The PDF is not mislinked — the page is
+simply the wrong certificate, and it then correctly serves *its own* PDF. Fixing the routing fixes
+both. Nothing needs to change in the data.
+
+**Root cause — the public URL is keyed on a value that CR-038 made non-unique.**
+
+| Layer | Code | Behaviour |
+|---|---|---|
+| Tile link | `wwwroot/js/certificate-tile-view.js:1122,1134` | `/Certificate/CertificateSingleView/${certificateNumber}` — **number only, no id** |
+| Action | `Controllers/CertificateController.cs:219` | `CertificateSingleView(string id)` → `GetCertificateByNumberAsync(id)` |
+| Repository | `Repositories/CertificateRepository.cs` | `PickOneByNumber(...)` = `OrderByDescending(EffectiveDate).ThenByDescending(Id)` then `FirstOrDefaultAsync()` |
+
+`PickOneByNumber` is deterministic, so it always returns the *same* winner. Before CR-038 the
+number was unique and this was correct. CR-038 deliberately dropped that uniqueness for 137
+historical numbers **without changing the routing that depended on it.** The controller comment
+still reads *"Only look up by certificate number (not integer ID) - per requirement"* — that
+requirement predates CR-038 and is now in direct conflict with it.
+
+**Blast radius — measured on TEST 2026-08-23, not estimated:**
+
+| Metric | Value |
+|---|---|
+| Numbers used by more than one certificate | 137 |
+| Certificates sharing a number | 312 |
+| **Certificates with NO reachable public URL** | **175** |
+| Of those, publishable **and** valid today | **12**, across **8** numbers |
+| Duplicate-number certs holding a PDF | 310 of 312 |
+| **Distinct PDF paths among those 310** | **310** |
+
+**310 distinct PDFs for 310 certificates — the data is correct.** Every certificate has its own
+file. This is purely a routing defect.
+
+**The client's example, `26-0182` (Regupol America) — 4 certificates, 3 invisible:**
+
+| Id | Product | PDF | URL |
+|---|---|---|---|
+| 1633 | Thunder Flat | `26-0182_20260818_160233_4a743377.pdf` | **REACHABLE** |
+| 1632 | Impacta ProBase | `26-0182_20260818_160233.pdf` | unreachable |
+| 1631 | REGUPOL 6510S | `26-0182_20260818_160232_0d34ac31.pdf` | unreachable |
+| 1630 | REGUPOL sonus core | `26-0182_20260818_160232.pdf` | unreachable |
+
+All four are `Client Approved - Paid`, effective 2026-05-01, expiring 2027-04-30 — all four *should*
+be publicly visible. Three have no address.
+
+**Why the tile view still shows four tiles.** The list query returns rows per certificate, so the
+grid is right; only the per-tile *link* collapses. This is why it looks like a PDF-linking bug from
+the outside — the list proves the four exist, then every link goes to one of them.
+
+**Fix — needs a decision, because the naive fix breaks a stated requirement.**
+- **(a) Disambiguate only when needed.** Keep `/CertificateSingleView/{number}` as the canonical,
+  shareable URL; tiles append an id (`?cid=1632`) which is honoured when present and ignored when
+  the number is unique. Existing links and any shared/printed URL keep working, and the ambiguous
+  case gains an exact address. **Recommended.**
+- **(b) Disambiguation page.** A number with several certificates renders a chooser. Honest, but it
+  puts an extra click in front of a public verification flow and changes what a shared link does.
+- **(c) Re-key public URLs on Id.** Cleanest model, worst blast radius — breaks every shared link
+  and contradicts the "look up by number" requirement outright. Not recommended without the client
+  explicitly retiring that requirement.
+
+**Do NOT "fix" this by changing `PickOneByNumber`'s ordering.** Any ordering still returns exactly
+one certificate; it would only change *which* three are invisible.
+
+**Also check when fixing (not yet verified):** `Certificate/Verify/{number}` (the public
+verification redirect, `CertificateController.cs:289`) resolves the same way and will have the same
+defect; the Amazon partner API must be confirmed unaffected — it projects per certificate row, but
+that has not been re-tested since this was found ([[feedback_amazon_api_immutable]]).
+
+**FIXED 2026-08-24 (built + tested, NOT deployed) — option (a), and the scope was much larger than this entry first recorded.**
+
+The original write-up named 4 routes. Sweeping every caller of `GetCertificateByNumberAsync` found
+**seven** collapsing entry points, and the two most serious were not in the client's report at all:
+
+| Route | What it did on a shared number | Severity |
+|---|---|---|
+| `CertificateSingleView` | showed a sibling's page | public, reported |
+| `Download` | **downloaded a sibling's PDF** — the client's actual complaint; a separate path that never touches the detail page | public, reported |
+| `DownloadByNumber` | third download entry point, same collapse | public |
+| `CertificateInternalView` | analyst could not open 175 certificates | internal |
+| `CertificateExternalView` | same, for company/partner users | external |
+| `Edit` (GET) | **loaded a sibling for editing — a correction to one product saved onto another** | ⚠️ writes |
+| `Delete` / `DeleteConfirmed` | **deleted a sibling.** No soft-delete exists (DEF-288 parked), so permanent | 🔴 destroys |
+
+**`Delete` is the one that matters most.** Deleting "Impacta ProBase" would have destroyed
+"Thunder Flat" — irreversibly, with the audit trail recording the wrong record. It was never
+reported because nobody had tried it on one of the 137 shared numbers yet.
+
+**Implementation.** Optional `cid` on all seven actions. The number is still required and still
+matched; `cid` only selects *which* certificate of a shared number. **A mismatch returns 404 and
+never falls back to the number** — a silent fallback would recreate the exact defect. New
+`GetCertificateByNumberAndIdAsync` + `CountCertificatesByNumberAsync`; the single-view Include chain
+was extracted to `WithSingleViewIncludes` so the two lookups cannot drift.
+
+Client-side: every tile entry point in the public, internal and external views now passes
+`cert.id` (all three APIs already returned it), plus the download/edit/delete buttons on all three
+detail pages. The shareable **"Database Listing URL"** appends `?cid=` **only when the number is
+actually shared** (`SharesCertificateNumber`), so the short URL is preserved for the ~5,390
+certificates with unique numbers. Bare number-only URLs still resolve exactly as before.
+
+**Verification.** `dotnet build` 0 errors · `node --check` clean on all three tile scripts ·
+new `DEF369_DuplicateCertificateNumberTests` — 9 tests, all pass, covering all four siblings
+resolving to their own PDF and the mismatch-returns-null rule. Full suite **87 failed / 818**;
+measured baseline on a clean tree is **87 failed / 809** — the same 87 pre-existing failures, plus
+the 9 new passing. **No regressions.** Those 87 are pre-existing and NOT investigated here.
+
+**Dead files deliberately left alone:** `wwwroot/js/certificateTileViewExternal.js` and
+`wwwroot/js/certificates.js` build the same URLs but are referenced by no view — changing unused
+code would only add risk. If either is ever wired up it must carry `cid`.
+
+**~~Still NOT verified~~ — SUPERSEDED 2026-08-24/25. Both open items are now closed:** Gate 4's
+contract diff has been run (localhost with this build, and the deployed test site) — **CONTRACT
+UNCHANGED** on both. End-to-end browser verification has been run on localhost and **found a defect
+this entry originally claimed was fixed** — see the follow-up below.
+
+---
+
+#### DEF-369 follow-up (2026-08-25) — `DownloadByNumber` accepted `cid` and threw it away
+
+**The fix above was incomplete on one of the three download entry points**, and the incompleteness
+was invisible from the outside: the route returned HTTP 200 with a valid PDF for every `cid`. It was
+simply always the *same* PDF.
+
+`CertificateController.cs` resolved the correct sibling and then discarded it at the last step:
+
+```csharp
+var certificate = cid.HasValue
+    ? await _certificateRepository.GetCertificateByNumberAndIdAsync(number, cid.Value)
+    : await _certificateRepository.GetCertificateByNumberAsync(number);
+...
+return await Download(certificate.Number);   // <-- id dropped; Download re-runs the number-only lookup
+```
+
+**Measured before the fix** — `26-0182`, four siblings, four different files on disk:
+
+| Request | sha256 (first 12) |
+|---|---|
+| `DownloadByNumber?number=26-0182&cid=3741` | `82890eb803d8` |
+| `…&cid=3742` | `82890eb803d8` |
+| `…&cid=3743` | `82890eb803d8` |
+| `…&cid=3744` | `82890eb803d8` |
+
+All four identical, and identical to what the bare number resolves to (Thunder Flat). The action is
+`[AllowAnonymous]`, so this was the public path.
+
+**Fix:** `return await Download(certificate.Number, certificate.Id);` — passing the id of the record
+this action already resolved *and status-checked*, rather than forwarding `cid`, so the two lookups
+cannot diverge even on the number-only path. **After:** the same four requests return four distinct
+PDFs, byte-identical to what `Download` returns for each sibling.
+
+**Why the original verification missed it.** The 9 unit tests cover the repository lookup, which was
+never wrong. The bug lived in one controller line that discarded a correct result. **A test at the
+layer below the defect cannot see it** — this needed a request through the actual route, comparing
+bytes across siblings.
+
+**Regression test built:** `Scripts/smoke-prod/def369-cid-disambiguation.js` — **55 assertions, all
+passing** against localhost 2026-08-25. Each check names the certificate it expects *and* the
+siblings it must not see, because "the page loaded" and "four downloads succeeded" were both true
+throughout the broken period. Coverage: public single view per sibling · bare-number back-compat ·
+mismatched and nonexistent `cid` → 404 with no fallback · `Verify` redirect preserves `cid` ·
+`Download` and `DownloadByNumber` each yield four distinct real PDFs (magic-byte checked) ·
+internal view per sibling · `Edit` bound to the requested id, and in a real browser the correct
+product **selected** in the AJAX-filled dropdown (the [[feedback_dropdown_filtered_subset_drops_stored_value]]
+risk — clean) · `Edit`/`Delete` with a foreign id → 404 · the tile API returns four distinct ids ·
+and no rendered tile handler is left number-only.
+
+**Three traps in writing that suite, all of which produced false results first:**
+1. `DownloadByNumber`'s parameter is `number`, but the default route is `{controller}/{action}/{id?}` —
+   a path segment binds to `id`, leaving `number` null and returning **404**. Four 404s read as a
+   broken endpoint and nearly hid the real defect. It must be called with an explicit query string.
+2. Searching the raw Edit HTML for a sibling's product name reported a **data leak that does not
+   exist**: `#ProductId` is AJAX-filled and empty server-side, and the *company* dropdown contains an
+   option literally named `Regupol® Sonus™ HS; Thunder Flat`. Assert the selected option in a browser.
+3. The tile search box is an autocomplete over company / product / certification type and **does not
+   match certificate numbers**, so driving it with `26-0182` correctly returns nothing. The client
+   half is asserted from the tile API plus the rendered handlers instead.
+
+**Amazon contract re-checked after this change:** 7 passed / 0 failed, CONTRACT UNCHANGED.
+DEF369 unit tests: 9/9 pass.
+
+**Linked:** CR-038 (the change that created the condition) · [[feedback_scoping_check_adjacent_endpoints]] — the same "list is right, detail is wrong" shape as DEF-103/164/198/204/205.
+
+---
+
+### DEF-370 — Public certificate search: first request after an app-pool idle recycle is slow (client reported 5–66s); warm requests measured at ~0.5s
+
+- **Date:** 2026-08-23
+- **Severity:** Medium (perception/usability on the public site; no data impact). The public tile view is the client's shop window.
+- **Status:** **OPEN — partially characterised. Warm path measured and healthy; the slow path is NOT yet reproduced at the reported magnitude.**
+- **QC Ref:** Client email 2026-08-23. Reporter: client (Carly), via Shawn.
+  Verbatim: *"when I went to search the number in the search bar in public view it took 5-66 seconds for the certs to filter which is too long. Please confirm you will be enhancing the performance and responsiveness."*
+- **Bucket:** Bug (performance).
+
+**Measured against the live test site 2026-08-23 — every figure below is an observation, not a model.**
+
+| Request | Timing |
+|---|---|
+| `/api/certificate-tiles?search=26-0182` — very first call | **5.14s** |
+| same, immediately repeated | 0.59s |
+| five *fresh* certificate numbers, never queried before | 0.46s – 0.65s |
+| the same five repeated | 0.45s – 0.71s |
+| `/autocomplete?term=` (3 terms) | 0.33s – 0.50s |
+| `/filters` | 0.68s |
+
+**The query is not the problem.** A previously-unseen search term is as fast as a repeated one
+(~0.5s), which rules out per-term plan compilation. The single 5.14s reading was the **first call
+of the session** — i.e. the cold path.
+
+**Most likely cause: the app pool idles out, and the next visitor pays the cold start.**
+`EfQueryWarmupService` (DEF-234) warms the tile query, but **only at application start**, on a
+background task. After an idle recycle the first request is served *while* warm-up is still running,
+so that visitor pays full EF model build + JIT + plan compile. DEF-234 measured that same cold path
+at **23.1s**; the client's 66s is plausible for a cold start contending with other page-load fetches.
+`web.config` sets `hostingModel="inprocess"` and specifies **no** `startMode`, `idleTimeout` or
+preload — those are app-pool settings in Plesk, not in this file.
+
+**Honest gap: 66s is UNREPRODUCED.** I saw 5.1s once and never got near 66s. Do not tell the client
+it is "just cold start" as though it were established — the right next step is to force a recycle
+and time the genuine first request, and to check whether anything else (a large `pageSize`, a
+filter combination, mobile network) can be slow on a warm app.
+
+**Candidate fix (config, not code):** set the app pool to **Always Running** with `idleTimeout=0`
+and enable Application Initialization / preload in Plesk, so the app never goes cold. Cheap, no
+deploy required. ⚠️ **Do not implement by adding `<applicationInitialization>` to `web.config`** —
+this server rejects web.config additions and it cost a full outage on 2026-08-18
+([[feedback_verify_handler_active_after_deploy]], DEF-363). Make the change in the Plesk app-pool UI
+and verify by timing a request after a forced recycle.
+
+**Distinct from DEF-255**, which is `/Product/GetProducts` (admin Product Management, a full-table
+load) and from **DEF-234**, which added the warm-up this defect shows is insufficient across
+recycles.
+
+
+---
+
+### DEF-371 — Gate 4's Amazon contract diff reported "CONTRACT CHANGED" for a slow response, having compared nothing
+
+- **Date:** 2026-08-24
+- **Severity:** High (false deploy blocker on the one contract the client cannot afford noise about)
+- **Status:** **FIXED — verified by the failure re-occurring and now being reported correctly**
+- **QC Ref:** Found while running Gate 4 to close the verification DEF-369 left open. Reporter: internal.
+- **Bucket:** Bug (test tooling).
+
+**What happened.** `Scripts/smoke-prod/amazon-contract-diff.js` requested
+`/api/v1/certificates/gs1?pageSize=100` with a 60s Playwright timeout. The request exceeded it, the
+throw landed in the outer `catch`, that `catch` incremented the shared `fail` counter, and the run
+printed:
+
+```
+FATAL: apiRequestContext.get: Timeout 60000ms exceeded.
+=== Amazon contract diff: 1 passed, 1 failed ===
+CONTRACT CHANGED - review diffs above.
+```
+
+**There were no diffs above.** Not one field of one endpoint was ever compared. The script's own
+header comment already warns about precisely this shape of false result for the cookie gate; the
+timeout path had the same defect and no guard.
+
+**Why it matters more than a flaky test.** Per [[feedback_amazon_api_immutable]] the
+`/api/v1/certificates*` shape is frozen and this script is the mechanical proof of that. A
+"CONTRACT CHANGED" verdict is the signal that would stop a deploy and, if believed, trigger a
+partner conversation. Producing that verdict from a request that never returned is the worst
+available failure mode: it is indistinguishable in the output from a real breach.
+
+**Fix.** A timeout is now its own outcome, counted separately from `fail`:
+
+- per-request timeout raised to 180s, overridable with `REQ_TIMEOUT_MS`
+- a timed-out endpoint is retried once, then reported as
+  `TIMEOUT <name> - NOT a contract result; nothing was compared.`
+- the run ends `INCONCLUSIVE` with **exit 3** - distinct from 0 (unchanged) and 1 (changed) - and
+  states explicitly that **Gate 4 is not satisfied**. Unverified, never mistaken for either verdict.
+- every endpoint now prints its elapsed time on success, so a degrading cold path is visible in
+  normal output rather than only when it crosses the timeout.
+
+**Verification - the fix was proven by the original failure happening again.** On the very next run
+the same endpoint took **119.1s**, and the output was
+`PASS GS1 list: live -> 200 - status 200 in 119.1s` followed by `CONTRACT UNCHANGED`, exit 0. The
+condition that previously produced a false breach now produces a correct verdict plus a visible
+timing.
+
+**Gate 4 is GREEN on both targets, measured 2026-08-24:**
+
+| Target | GS1 list | GS1 single | Standard list | Verdict |
+|---|---|---|---|---|
+| localhost:5101 (with the DEF-369 build) | 119.1s | 0.4s | 1.3s | 7 passed / 0 failed - CONTRACT UNCHANGED |
+| https://gccwebapp.com (deployed) | **1.1s** | 0.2s | 0.7s | 7 passed / 0 failed - CONTRACT UNCHANGED |
+
+This closes the item DEF-369 left open ("the Amazon partner API has not been re-checked since this
+was found... Gate 4's contract diff must be run before deploy"). It has now been run, with the
+DEF-369 changes in the build, and the contract is unchanged.
+
+**The 119s is LOCAL and is NOT a product defect - do not report it to the client.** The deployed
+test environment serves the identical query over the identical 5,702-certificate dataset in **1.1s**,
+a ~108x difference, which locates the cost in the local SQL Server instance and not in the
+application, the query, or the migrated data. Nor does it corroborate **DEF-370**: that defect's
+warm public-search figures on the live site were ~0.5s and remain so. Two slow numbers measured on
+different machines are not evidence of one problem.
+
+**Lesson.** *A test that cannot reach its subject must say so, not vote.* Any assertion harness
+needs a third outcome between pass and fail - **inconclusive** - or every infrastructure hiccup is
+laundered into a substantive finding about the code. This is the same root shape as the cookie-gate
+false positive already documented in this script and as DEF-341's false security regression:
+[[feedback_verify_deployed_asset_not_symptom]].
+
+**Files:** `Scripts/smoke-prod/amazon-contract-diff.js` (`node --check` clean; run end-to-end
+against both targets).
+
+---
+
+### DEF-372 — `GET /Certificate/Delete/{number}` returns HTTP 500 for every certificate: the view does not exist
+
+- **Date:** 2026-08-25
+- **Severity:** Low (latent — the action is unreachable from the UI today; no data impact)
+- **Status:** **OPEN — not fixed. Found incidentally; deliberately not fixed in the DEF-369 change.**
+- **QC Ref:** Found while building the DEF-369 regression suite. Reporter: internal.
+- **Bucket:** Bug.
+
+`CertificateController.Delete(string number, int? cid)` (the GET confirmation action, `[Authorize(Policy = "AdminOnly")]`)
+builds a `CertificateDetailsViewModelSimple` and returns `View(model)`. There is no
+`Views/Certificate/Delete.cshtml`, so every request ends in:
+
+```
+System.InvalidOperationException: The view 'Delete' was not found.
+```
+
+Reproduced on localhost for all four siblings of `26-0182`; it is not certificate-specific — the
+view is absent for every number. **This predates DEF-369** and is unrelated to it: the action never
+had a view.
+
+**Why nobody has hit it.** All three delete buttons POST to `DeleteConfirmed` via `fetch` — the
+`.gcc-modal-*` confirmation flow ([[feedback_one_modal_design_gcc_modal]]) — and never navigate to
+the GET route: `CertificateExternalView.cshtml:427`, `CertificateInternalView.cshtml:506`,
+`Edit.cshtml:1055`. The GET action is effectively dead code that answers 500 to anyone who types the
+URL, or follows an old link or bookmark, while holding Admin rights.
+
+**Note the interaction with DEF-369, because it makes the 500 read as a security control when it is
+not:** a *mismatched* `cid` returns a correct 404 — that check runs before `View()` — while a
+*correct* `cid` returns 500. Refusal looks healthy and success looks broken, which is precisely
+backwards and would mislead anyone triaging from status codes alone.
+
+**Two options, both cheap — needs a decision, not investigation:** add the missing confirmation view,
+or delete the GET action outright since nothing routes to it. Removing it is the smaller surface,
+but only after confirming no external bookmark or documentation points at
+`/Certificate/Delete/{number}`. **The destructive POST path is unaffected and was deliberately never
+exercised during this verification.**
+
+---
+
+### DEF-373 — Gate 9 blocked the deploy on a TempData key that IS read: two false positives, one hiding the other
+
+- **Date:** 2026-08-25
+- **Severity:** High (false deploy blocker — the gate is a documented hard stop)
+- **Status:** **FIXED — both faults corrected; gate re-run GREEN with selftest 9/9**
+- **QC Ref:** Found running Gate 9 before building the 2026-08-25 bundle. Reporter: internal.
+- **Bucket:** Bug (test tooling).
+
+`node Scripts/smoke-prod/_static/run-all.js` returned **RED-FAIL** with one blocker:
+
+```
+[tempdata-pairing] "2FAMethod" is written 2x but NEVER read
+```
+
+It is read — `AccountController.cs:1316`, `TempData.Peek("2FAMethod")`, inside
+`SetTwoFactorMethodViewData()`, which supplies the DEF-367 instruction text. Two independent faults
+in `tempdata-pairing.js` combined to hide it, and **fixing the first exposed the second**:
+
+**Fault 1 — L3 was unreachable dead code.** L1 (FAIL, "provable orphan") tested
+`w.length > 0 && consuming.length === 0` and then `continue`d. L3 (WARN, "only ever read via Peek")
+tested `w.length > 0 && consuming.length === 0 && rd.length > 0` — a strict **subset** of L1's
+condition, evaluated *after* it. So no Peek-only key could ever reach L3, and every one was reported
+as a deploy-blocking orphan. The collector had always recorded Peek reads (`PEEK_RE`); the verdict
+logic discarded them. L1 now additionally requires `rd.length === 0`.
+
+**Fault 2 — the leak check only scanned action bodies.** With L1 corrected, L2 then failed with
+*"…and NOTHING in AccountController does either"*, because it iterates `targetCtrl.actions` — public
+action methods and their views. `SetTwoFactorMethodViewData()` is a **private helper**, so its read
+was invisible. Extracting shared logic into a helper is ordinary refactoring and must not convert a
+correctly-paired key into a provable orphan. A whole-controller-source fallback now runs before
+`orphan` is asserted, and downgrades to **WARN**, never to `ok` — a whole-file hit proves a consumer
+*exists*, not that it is *reachable*, which is the same distinction the check already draws.
+
+**After:** `23P / 0F / 13W => GREEN-WITH-WARNINGS`, exit 0, selftest **9 ok / 0 failed**. The two
+former blockers are now warnings that name exactly where the read lives.
+
+**Lesson — the same shape as DEF-371, two days running.** A checker that cannot see a construct must
+not vote against it. Note also that fixing one false positive revealed a second one behind it: the
+first fault was *masking* the second, so a single green run after a single fix would have been
+misleading. **Re-run to green; do not assume one fix cleared the class.**
+
+---
+
+### DEF-374 — The CRUD gate reported five broken write paths without executing a single assertion
+
+- **Date:** 2026-08-25
+- **Severity:** High (false deploy blocker; and it silently disabled Gate 8 for ~12 days)
+- **Status:** **FIXED — gate re-run GREEN, 39 PASS / 0 FAIL**
+- **QC Ref:** Found running the deterministic deploy gate before the 2026-08-25 bundle. Reporter: internal.
+- **Bucket:** Bug (test tooling).
+
+`node Scripts/smoke-prod/_crud/run-all.js` reported **0 PASS / 5 FAIL** — every write path
+(certificate, tag, company, product, user) apparently broken. The real error, once read:
+
+```
+Expected property name or '}' in JSON at position 888 (line 34 column 5)
+```
+
+`_crud/_lib/write-harness.js` read `appsettings.Development.json` with **`JSON.parse`**. That file is
+**JSONC** — .NET's configuration provider accepts `//` comments and this project uses them heavily.
+The file gained a DEF-286 comment block at line 34 on **2026-08-13**, and from that moment the
+harness threw while resolving the connection string, *before running any assertion*. Gate 8 has
+therefore been dark for roughly twelve days while presenting as five failing write paths.
+
+**Fix:** shared `Scripts/smoke-prod/_lib/read-jsonc.js` (`readJsonc` / `stripJsonComments`), used by
+the harness. Placed in `_lib/` rather than copied per suite, per the rule that a private copy of a
+shared helper is how DEF-341's false security regression happened — `_views/cert-state-matrix.js:78`
+has the identical `JSON.parse` and should adopt it too (**not yet changed**).
+
+**The stripper is deliberately string-aware, and must stay that way.** A naive
+`replace(/\/\/.*$/gm, '')` destroys the file it is meant to read: `"Url": "http://localhost:5101"`
+contains `//` inside a string literal, so blanking from there leaves an unterminated string.
+Verified after the fix that the connection string parses **and** `Kestrel:Endpoints:Http:Url` still
+reads `http://localhost:5101`.
+
+**After:** `39P / 0F / 0W / 0B => GREEN` — exactly the count the checklist documents for this gate.
+**The write paths were never broken.** A failure to read configuration was rendered as five
+substantive findings about the application, which is the same defect class as DEF-371 and DEF-373:
+**a harness with no "could not run" state converts its own breakage into evidence about the code.**
+
+### DEF-375 — Certificate detail page: duplicate `const url` killed the whole inline script, so Download and Zoom did nothing
+
+- **Date:** 2026-08-25
+- **Severity:** **Critical** (public-facing; every certificate detail page; shipped to the test environment)
+- **Status:** **FIXED — verified in a real browser, 7/7, including a real click producing a real PDF**
+- **QC Ref:** Reported by Shawn immediately after the 2026-08-25 deploy — "download is not working" on
+  `/Certificate/CertificateSingleView/26-0475?cid=3155`. Reporter: client.
+- **Bucket:** Bug (regression, introduced by DEF-369).
+
+**Regression introduced by the DEF-369 fix.** In `Views/Certificate/CertificateSingleView.cshtml`,
+`window.downloadCertificate` gained a request URL:
+
+```js
+const url = numericId > 0 ? `/Certificate/Download/...?cid=${numericId}` : `...`;  // added by DEF-369
+...
+const url = window.URL.createObjectURL(blob);                                      // already there
+```
+
+Both at the **same function scope**. The pre-existing code used an early-return guard
+(`if (!response.ok) return;`) rather than an `if (response.ok) { ... }` block, so the second
+declaration was **not** nested in its own scope the way the tile-view copies are.
+
+A duplicate `const` is a **parse-time** SyntaxError:
+
+```
+SyntaxError: Identifier 'url' has already been declared   (CertificateSingleView:249)
+```
+
+so the browser discarded the **entire inline `<script>` block**. Blast radius was wider than
+reported: `downloadCertificate`, `openImageZoom` and `closeImageZoom` were all left undefined, so
+**both the Download and the Zoom buttons did nothing at all** on every certificate detail page — no
+network request, no error toast, no feedback of any kind.
+
+**Why every existing check passed it.** Nothing server-side can see this defect. The endpoint
+returned a correct 837 KB PDF; the markup rendered the button with the correct arguments
+(`downloadCertificate('26-0475', 3155)`); the DEF-369 suite's 55 assertions all passed. The page is
+only broken once a **JavaScript engine parses it**. The DEF-369 suite drove HTTP request contexts and
+asserted on markup, so it proved the button was *rendered correctly* and never that it *worked*.
+
+**Fix:** rename the blob object URL to `blobUrl` (`CertificateSingleView.cshtml`). One variable.
+
+**Scope checked, not assumed:** `node --check` on all three tile-view JS files — clean (their second
+`const url` sits inside an `if (response.ok) {` block, a legal nested scope).
+`CertificateExternalView` and `CertificateInternalView` use a separate `cidQuery` variable and inline
+the URL into `fetch()`, so they declare `url` only once. **Only `CertificateSingleView` collided.**
+
+**Regression test added:** `Scripts/smoke-prod/_views/single-view-script-block.js` — loads the page in
+a real browser and asserts (a) no page-level JS error, (b) every function named by a rendered
+`onclick` is actually callable, and (c) clicking Download produces bytes starting `%PDF`. It
+reproduced the defect before the fix and passes 7/7 after. Run it against any view whose behaviour
+lives in an inline script block.
+
+**Lesson:** a syntax error anywhere in an inline script block silently disables *every* handler in
+that block, not just the function that was edited. Adding a variable to an existing function is not
+a local change.
+
+---
+
+### DEF-376 — Amazon partner tile view showed certificates ~2 months before their effective date (DEF-358 residual gap)
+
+- **Date:** 2026-08-26
+- **Severity:** **High** — partner-facing. Amazon saw two certificates staged for 2026-10-21 on 2026-08-25, and could download their PDFs.
+- **Status:** **FIXED — verified end-to-end on localhost as a real Partner user, 2026-08-26.** Not deployed.
+- **QC Ref:** none — found by the full-regression run (`docs/tracking/status-testing-report-2026-08-25.md`, finding F-2). **Reporter:** Anuki (internal).
+- **Bucket:** Bug.
+
+**Symptom.** For a Partner (Amazon) account the tile view returned **210** certificates while the
+same account's CSV export returned **208**. The two extra rows were `26-0441` and `26-0442`
+(X-SENSE, Client Approved - Paid, **effective 2026-10-21**, expiring 2027-10-20) — both not yet
+effective on the run date.
+
+**Cause.** DEF-358 scoped the not-yet-effective gate to "anonymous public + the partner/Amazon
+surface". It was wired into the v1 partner API (all 9 gate sites) and, by DEF-359, into the Active
+Product Identifiers export. `Models/CertificateVisibility.cs` records that
+`CertificateTileExternalApiController` was excluded **deliberately** — correct for the External /
+owning-company role, which must keep seeing its own upcoming certificates. But that controller
+**also serves the Partner role**, and the exclusion was applied to the whole controller when it
+should only ever have covered the External branch.
+
+Corroboration: DEF-359's own note records the Amazon partner API's verified-clean set as **208
+rows** — exactly what the export returns. The tile view was the outlier, not the export.
+
+**Fix.** `Controllers/Api/CertificateTileExternalApiController.cs`, Partner branch only:
+
+```csharp
+query = query.WhereEffectiveDateReached();
+```
+
+plus the matching guard on the download action, so a Partner cannot pull the PDF by id even once the
+tile stops listing it:
+
+```csharp
+if (userRole == "Partner" && CertificateVisibility.IsNotYetEffective(certificate))
+    return BadRequest(new { error = "Certificate is not available for download" });
+```
+
+Lower bound only, same reasoning as DEF-359: `CertificateExpirationService` flips Status to Expired
+on a daily sweep, so the upper bound is already carried by the `PublicStatuses` filter. Reuses the
+shared helper rather than restating the date rule (the DEF-357 lesson).
+
+**Verified** on localhost against the dev clone, signed in as a real Partner user scoped to Amazon:
+tile population **208** (was 210), `26-0441` and `26-0442` absent, **zero** not-yet-effective rows,
+tile count now equal to the export count, and `GET /api/CertificateTileExternal/4538/download`
+(26-0441) returns **400 "Certificate is not available for download"**. External/company behaviour
+unchanged.
+
+---
+
+### DEF-377 — Certificate CSV export returned HTTP 400 for any caller whose scope contains no certificates
+
+- **Date:** 2026-08-26
+- **Severity:** **Moderate** — client-visible. A partner with no associated certificates got an error instead of an empty file.
+- **Status:** **FIXED — verified on localhost 2026-08-26.** Not deployed.
+- **QC Ref:** none — full-regression finding F-3. **Reporter:** Anuki (internal).
+- **Bucket:** Bug.
+
+**Symptom.** `test.novi` requesting `/Certificate/ExportCertificates?format=csv` received
+**HTTP 400**, `text/plain`, *"No data to export or export failed"*.
+
+**Cause.** `CertificateService.ExportCertificatesAsync` returned `null` both when the result set was
+empty **and** from its catch block, so the controller could not tell "your scope is empty" from "the
+export threw" — and mapped both to 400. Two faults in one: an empty scope is a legitimate answer,
+and a server-side fault must not be reported as a client error. Same misreading as DEF-350/DEF-360.
+
+**Fix.** An empty set now flows into `GenerateCsvExport`, which emits the header row before it
+iterates, so the caller gets a valid header-only CSV. `null` now means failure only, and
+`CertificateController` returns **500** for it instead of 400.
+
+**Verified** on localhost: an export filtered to match nothing returns **HTTP 200**, `text/csv`,
+exactly one line (the header). Separately confirmed that a genuine SQL execution timeout on the same
+endpoint now surfaces as **500**, not 400 — which is the behaviour DEF-360 asked for.
+
+---
+
+### DEF-378 — Certificate import rejected a blank Certificate #, while the Create form auto-numbered one
+
+- **Date:** 2026-08-26
+- **Severity:** **Moderate** — two write paths disagreed, and the constraint was undiscoverable until the import was refused.
+- **Status:** **FIXED — verified end-to-end through the import UI on localhost 2026-08-26.** Not deployed.
+- **QC Ref:** none — full-regression finding F-4. Behaviour confirmed with Shawn 2026-08-26: *"the import should auto number on the import. The only time that is not is when we do the initial data migration."* **Reporter:** Anuki (internal).
+- **Bucket:** Bug.
+
+**Symptom.** A CSV row with a blank Certificate # was rejected with *"Certificate Number is
+required"* and blocked the whole import (`Cannot Apply Import`), while `/Certificate/Create` mints a
+number when the analyst leaves Number blank. The import template annotates Status with *"defaults to
+Draft if blank"* and marked nothing on Certificate #.
+
+**Fix.** Three parts, in `Services/Import/CertificateImportService.cs`:
+
+1. A blank Certificate # sets `WillAutoAssignNumber` instead of raising a validation error, and the
+   existing-certificate lookup is short-circuited for such rows (they are new by definition).
+2. `CreateCertificateAsync` mints the number via
+   `ICertificateRepository.GenerateNextCertificateNumberAsync()` at **apply** time, not preview —
+   preview and apply are separated by however long the analyst reads the page, so a number reserved
+   early would be taken by a concurrent create or leave a gap on cancel. The repository method is
+   reused rather than reimplemented so the DEF-322 fix (4-digit space only) and the QC #218
+   year-rollover behaviour cannot drift.
+3. **The grouping trap.** Rows were grouped by certificate number to support multi-ASIN rows, so
+   every blank-numbered row collapsed into one group and only `group.First()` survived — two blank
+   rows imported as ONE certificate. The key is now a tuple carrying the row index for blank rows,
+   which cannot collide with a real number however the file is formatted.
+
+A number supplied in the file still wins — which is how the **initial data migration** keeps the
+client's existing certificate numbers. The preview renders `(auto-assign)` where the file left the
+number blank.
+
+**Consequence, accepted:** a row that leaves Certificate # blank cannot take part in multi-ASIN
+grouping (no shared key to group on). To attach several product IDs to one imported certificate,
+give it a number in the file.
+
+**Verified** on localhost through the real upload → preview → apply path: a 2-row file with both
+numbers blank previews as **2 new / 0 errors** showing `(auto-assign)`, applies, and produces
+**`26-0482` and `26-0483` — two DISTINCT numbers**. Unit tests added for auto-assign, distinctness,
+and supplied-number preservation; suite unchanged at 87 pre-existing failures, 733 passing (was 731).
+
+---
+
+### DEF-379 — Product import template was downloadable by External and Partner users
+
+- **Date:** 2026-08-26
+- **Severity:** **Low** — no data disclosed (headers only), but it offers an import affordance to roles that cannot import.
+- **Status:** **FIXED — verified on localhost 2026-08-26.** Not deployed.
+- **QC Ref:** none — full-regression finding F-5. **Reporter:** Anuki (internal).
+- **Bucket:** Bug.
+
+**Symptom.** `/Product/DownloadProductImportTemplate` returned **HTTP 200 / text/csv** to
+`test.external`, `test.external2`, `test.amazon` and `test.novi`.
+
+**Cause.** `ProductController` carries a class-level `[Authorize(Policy = "ExternalAccess")]` and
+this action added no further attribute, while the matching `ImportProducts` action **is**
+`AnalystOrAdmin`. Cuts against the rule that External users get no Add/Edit affordances. The
+certificate import template was already gated correctly; only the product one was not.
+
+**Fix.** `[Authorize(Policy = "AnalystOrAdmin")]` on the action.
+
+**Verified** on localhost: Admin still receives the CSV (200); an unauthenticated caller is bounced
+to `/Account/Login` (302).
+
+---
+
+### DEF-380 — `GET /Certificate/Delete/{number}` returns HTTP 500: the Delete view was never created
+
+- **Date:** 2026-08-26
+- **Severity:** **Low** — the working delete path is the modal + POST, so no user flow is blocked. But it is a reachable Admin route that 500s.
+- **Status:** **OPEN — found, not fixed** (outside the fix scope agreed 2026-08-26).
+- **QC Ref:** none — found incidentally while cleaning up regression fixtures. **Reporter:** Anuki (internal).
+- **Bucket:** Bug.
+
+**Symptom.** `GET /Certificate/Delete/26-0482` (Admin) throws:
+
+```
+System.InvalidOperationException: The view 'Delete' was not found. The following locations were searched:
+/Views/Certificate/Delete.cshtml
+/Views/Shared/Delete.cshtml
+```
+
+`Views/Certificate/` contains no `Delete.cshtml`. The `Delete(string number, int? cid)` GET action
+(`Controllers/CertificateController.cs:1723`, `[Authorize(Policy = "AdminOnly")]`) returns a view
+that does not exist.
+
+**Why it has gone unnoticed.** Deletion in the UI goes through `AdminCore.showConfirmation()` and a
+POST to `DeleteConfirmed`, per the project's modal-then-toast rule — the GET confirmation page is
+never linked. It is effectively orphaned server-side code.
+
+**Suggested fix:** delete the orphaned GET action, or add the view. Deleting the action is the
+smaller change and matches how the feature actually works.
+
+---
+
+### DEF-381 — Public tile view repeats the previous batch on every infinite scroll
+
+- **Date:** 2026-08-28
+- **Severity:** **High** — blocked the client's data-validation review. The public certificate list
+  could not be read past the first 50 records, so the count reconciliation could not be completed.
+- **Status:** **FIXED** — `wwwroot/js/certificate-tile-view.js`. Verified on localhost:5101.
+- **QC Ref:** none — reported directly by the client, 2026-08-28. **Reporter:** client.
+- **Bucket:** Bug.
+
+**Symptom (client's words).** "It keeps restarting with the same certs as you progressively scroll
+in tile view… when it reloads a new batch as you hit the bottom of the current, it just repeats the
+prior." Present sorted and unsorted, signed in and signed out, and unaffected by clearing the cache.
+
+**Root cause — client-side rendering, not the database and not the API.**
+`renderCertificates(append)` built its HTML from the entire accumulated `state.certificates` array
+and then appended that to the grid:
+
+```js
+const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
+if (append) { grid.insertAdjacentHTML('beforeend', html); }   // appends ALL of them
+```
+
+So batch 2 drew certs 1-100 underneath the existing 1-50, batch 3 drew 1-150 under that, and so on.
+Tiles grew quadratically — roughly 10,000 DOM nodes for 963 certificates — which is what made the
+page feel like it was reloading itself.
+
+**Fix.** Track the newest batch (`state.pendingAppend = uniqueNew`) and render only that on append.
+This is the pattern `certificate-tile-view-external.js` and `-internal.js` already used correctly
+(`newCerts.map(...)`); only the public script was wrong, which is why the internal and external tile
+views never showed the fault.
+
+**Evidence the database and API were never at fault.** Walked the live public API end to end
+(`/api/certificate-tiles`, offset 0→963, batch 50): 963 rows returned, 963 distinct, **zero**
+duplicates, across `cert-number-newest`, `cert-number-oldest` and `company-az`. The repository sort
+already carries its `.ThenBy(c => c.Id)` tiebreaker (DEF-166/234), so page boundaries are stable.
+
+**Why cache-clearing could not have helped.** The view loads the script with
+`asp-append-version="true"` (`Views/Certificate/CertificateTileView.cshtml:257`), so the URL carries
+a content hash and the browser already had the current file.
+
+**Regression test:** `Scripts/smoke-prod/_regression/08-tile-scroll-dupes.js` — asserts on the DOM
+(tiles rendered vs. distinct tiles) rather than on the API, because the API was returning clean data
+throughout; a test at the API layer cannot see this defect (same lesson as DEF-369). Confirmed
+falsifiable: against the unfixed script it reports 300 tiles / 150 distinct after two scrolls; against
+the fix, 4 scrolls, every tile unique.
+
+---
+
+### DEF-382 — Public tile API: unaligned `offset` silently rounds down, re-serving rows and hiding the tail
+
+- **Date:** 2026-08-28
+- **Severity:** **Medium** — latent when found (the client always advanced by a full batch), but it
+  is the failure mode that would have made DEF-381 permanent rather than cosmetic.
+- **Status:** **FIXED** — client asked for it in the same cycle as DEF-381 rather than deferring.
+- **QC Ref:** none — found while diagnosing DEF-381. **Reporter:** Anuki (internal).
+- **Bucket:** Bug.
+
+**Symptom.** `GET /api/certificate-tiles?offset=90&limit=50` returned rows 51-100, not 91-140.
+Every offset that was not an exact multiple of the limit rounded **down** to the start of its page.
+At the tail, `offset=956` of 963 returned 13 rows instead of 7.
+
+**Root cause.** `CertificateTilesApiController` converted the offset back into a page number by
+integer division — `Page = (actualOffset / actualLimit) + 1` — and `CertificateRepository` then did
+`Skip((Page - 1) * PageSize)`. An offset only survives that round trip when it is a multiple of the
+page size; the remainder was discarded.
+
+**Why it mattered even though it was unreachable.** The public tile script advances `offset` by the
+count of **unique** rows it received, not by the batch size. So a single duplicate from any cause
+would move it onto an unaligned offset, and from that point the rounding would keep re-serving rows
+it had already shown — the list could never reach its end. DEF-381 produced duplicates; had the
+client's dedupe not been in front of it, these two defects would have compounded into a permanent
+lock-up rather than a display fault.
+
+**Fix.** Added `CertificateSearchFilter.Skip` (nullable) as an exact row offset that overrides the
+page arithmetic; the repository uses `filter.Skip ?? ((filter.Page - 1) * filter.PageSize)`. Null is
+the default, so every existing page-based caller is byte-for-byte unchanged. The public controller
+now sets `Skip = actualOffset` and keeps `Page` only so the echoed value stays meaningful.
+
+**Not affected:** `CertificateTileInternalApiController` already did `.Skip(actualOffset)` directly
+against the query and only used the integer division for the cosmetic `page` field in its response.
+`CertificateTileExternalApiController` takes no `offset` parameter at all. Both were checked rather
+than assumed — the pattern looked copy-pasted.
+
+**Regression test:** `Scripts/smoke-prod/_regression/09-offset-paging.js` — builds a reference
+ordering from aligned pages, then asserts unaligned offsets (37, 75, 90, 123, 149) return exactly
+`reference[offset .. offset+limit]`, plus an unaligned tail read. Confirmed falsifiable: against the
+unfixed controller all five report the reference index they rounded down to.
+
+**Method note.** The first "fixed" run of this test still failed. `Copy-Item` restored the source
+file with its *original* timestamp, which was older than the compiled DLL, so the incremental build
+was a no-op and reported `0 Error(s)` without recompiling. Compare source vs. assembly timestamps
+before trusting a rebuild — a clean build log is not evidence the code in it changed.
+
+---
+
+### DEF-383 — Certification Results: the value `1` displayed as "1%" when it means 100%
+
+- **Date:** 2026-08-30
+- **Severity:** **High** — wrong data on the public site and on the Amazon partner feed. 86 publicly
+  visible certificates reported the *worst* possible result instead of the best; 11 reach Amazon,
+  who use this field for a pass threshold.
+- **Status:** **FIXED** — code + persisted computed column + migration. Client asked for the fix.
+- **QC Ref:** none — raised by the client at a meeting, 2026-08-30. **Reporter:** client.
+- **Bucket:** Bug.
+
+**Symptom.** Certificates whose result is recorded as `1` rendered as **"1%"**. The client reported
+it as ".23 showing instead of 23%"; investigating the field surfaced this larger, adjacent fault.
+
+**Nothing regressed — the rule never handled its own boundary.** `git log -S` confirms
+`number >= 0 && number < 1` was present in the **first commit** that created
+`Extensions/DisplayFormatters.cs`. The field is free text, so the rule has to guess whether a number
+is a fraction (`0.86`) or an already-whole percentage (`100`); the guess was "below 1 means a
+fraction", which is right for every value in the data **except exactly 1**.
+
+It only became visible when the client's real data was migrated in. The earlier validation cases
+recorded under DEF-275 were `0.17`, `100`, `17%` and `Pass` — the boundary itself was never tested,
+and the pre-migration test set had far fewer rows.
+
+**Why `1` means 100%, established rather than assumed.** Every distinct stored value was enumerated
+(not sampled — per [[feedback_enumerate_dont_sample_populations]]):
+
+| Value | Certs | Note |
+|---|---|---|
+| `0.01` | 6 | **1% already has its own representation** |
+| `0.02` … `0.99` | ~700 | continuous fraction scale |
+| `1` | **106** | most common value in the field |
+| `100%` | 59 | explicit sign, passes through |
+| `Silver` / `Gold` / `+Vantage Vinyl Verified` | 28 | non-numeric, unchanged |
+
+There is **no value anywhere between 1 and 100**. If `1` meant one percent it would collide with the
+`0.01` already used for that, and the 106 best results in the dataset would be recorded as the worst.
+
+**Fix — two halves that must move together.** The displayed percentage and the numeric sort are
+written in two different languages and shared the same wrong boundary:
+
+1. `DisplayFormatters.FormatCertificationResults` — `number < 1` → `number <= 1`.
+2. `Certificates.CertificationResultsNumeric`, the **persisted computed column** that drives the
+   numeric sort (`ApplicationDbContext`) — same boundary change, which requires a migration
+   (`20260830221518_DEF383FixCertResultsPercentBoundary`: drop index → drop column → re-add computed
+   → recreate index; `Down` restores `< 1`).
+
+Fixing only the formatter would have been worse than leaving it: the 106 certificates would display
+"100%" while sorting to the bottom as though they were 1%. Verified on dev after applying the
+migration — raw `1` now computes to `100.0000`, `0.99` → `99`, `0.01` → `1`, `Silver` → NULL.
+
+**⚠️ This changes partner-visible values.** `FormatCertificationResults` feeds `/api/v1/certificates`
+(Cert Results was returned to partner surfaces by client decision — see CR at
+`change-request-register.md:637`). **86** publicly visible certificates change from `"1%"` to
+`"100%"`, **11** of them on Amazon. The response *shape* is unchanged, so
+[[feedback_amazon_api_immutable]] is not breached, but Gate 4's contract diff will show value
+changes and that is expected, not a failure. Amazon reportedly threshold-checks this field, so the
+current behaviour is actively harmful — it under-reports the strongest certificates.
+
+**Regression test:** `GCCWebApp.Api.Tests/Unit/Services/DisplayFormattersTests.cs` — 24 cases
+covering the boundary (`1` → `100%`, `0.99` → `99%`, `0.01` → `1%`, `100` → `100%`), pass-through of
+`%`-bearing and non-numeric values, and a guard asserting the displayed percentage and the computed
+sort value agree, so the C# and T-SQL halves cannot drift apart silently.
+
+**Method note — `dotnet ef` and stale builds.** `migrations add --no-build` produced an **empty**
+migration, because it diffs against the *compiled* model and the context edit had not been built in.
+Separately, `migrations remove --force` attempted to revert against the dev database and failed on
+`IX_Certificates_Number`. **No damage** — the revert rolled back, and the index is a *filtered*
+unique index (`WHERE AllowsDuplicateNumber = 0`) from CR-038, which is why 137 duplicate-number
+groups coexist with it. Verified history, index definition and column all intact afterwards. Do not
+use `--force` on `migrations remove`; delete the scaffolded files by hand and rebuild instead.
+
+---
+
+### DEF-384 — 2FA recovery codes: "Copy All" and "Download as Text" emitted only HALF of every code
+
+- **Date:** 2026-08-30
+- **Severity:** **High** — this is an account-recovery backup. A user who saved the downloaded file
+  as their fallback has an unusable one, and would find that out only when locked out.
+- **Status:** **FIXED** — `Views/Account/ShowRecoveryCodes.cshtml`.
+- **QC Ref:** none — reported by the client at a meeting, 2026-08-30 ("the copy code button doesn't
+  copy the whole code"). **Reporter:** client.
+- **Bucket:** Bug.
+
+**Symptom.** Recovery codes displayed correctly on screen as `A1B2-C3D4`, but Copy All and Download
+as Text both produced `A1B2-` — the first four characters and a trailing dash.
+
+**Root cause — the same expression written in two languages that disagree about the second argument.**
+The page renders each code with Razor and copies it with JavaScript:
+
+```
+displayed (C#): code.Substring(0, 4) + '-' + code.Substring(4, 4)   ->  "A1B2-C3D4"
+copied    (JS): code.substring(0, 4) + '-' + code.substring(4, 4)   ->  "A1B2-"
+```
+
+`String.Substring` in C# is `(startIndex, LENGTH)`. `String.prototype.substring` in JavaScript is
+`(startIndex, END index)`. So `substring(4, 4)` is an **empty string** — start and end are the same
+position. The calls look identical, which is exactly why the screen and the clipboard could disagree
+without anyone noticing: the visible output was always right.
+
+**Fix.** `code.substring(4)` — to the end of the string — rather than `substring(4, 8)`, so the
+helper cannot drift if the code length in `EnhancedTwoFactorService.GenerateRecoveryCode()` ever
+changes from 8. One helper, used by **both** Copy All and Download as Text, so both are fixed.
+
+**Scope checked, not assumed.** `formatCode` is defined once and this is the only occurrence of the
+pattern in `Views/` or `wwwroot/js/` — grepped for `substring(4, 4)` / `substr(4` across both.
+
+**Regression test:** `Scripts/smoke-prod/_regression/10-recovery-code-format.js` — **extracts** the
+`formatCode` function from the view and **executes** it, rather than grepping the source for the
+expected text, because this is a behavioural defect and a source-shape assertion would pass on
+anything that merely looks right ([[feedback_test_below_the_defect_layer]]). Asserts the formatted
+value and, separately, that stripping the dashes returns the original code, so no character can be
+lost. Confirmed falsifiable: against the original expression all three cases fail with `A1B2-`.
+
+**Operational note — the stored codes were never wrong.** Only the copy/download output was
+truncated, so nothing needs regenerating server-side. But **anyone who already saved their recovery
+codes from this page holds an incomplete copy** and should re-copy them after deploy. Worth telling
+the UAT testers, since they are the people most likely to have enrolled in 2FA recently.
+
+**Related — the "Trust this device for 30 days" checkbox.** Tracked and fixed as **DEF-385** below.
+
+> **Correction to an earlier note in this entry.** It previously said `TrustDevice` had "zero
+> occurrences in any `.cs` file". That was wrong — the grep was case-sensitive and the parameter is
+> `trustDevice`. The value *was* read (`AccountController.Verify2FA`), just not for what the label
+> promises. Corrected in DEF-385.
+
+---
+
+### DEF-385 — "Trust this device for 30 days" did not suppress the 2FA challenge
+
+- **Date:** 2026-08-30
+- **Severity:** **Medium** — no security exposure; the site was *more* strict than advertised. But
+  the control lied about what it did, and the client was challenged on every single sign-in.
+- **Status:** **FIXED** — new `TrustedDevices` table + service + migration.
+- **QC Ref:** none — reported by the client at a meeting, 2026-08-30 ("if she checks the box for
+  'allow access for 30 days' it is still prompting her for 2FA every time"). **Reporter:** client.
+- **Bucket:** Bug (a control that does not do what its label says).
+
+**Root cause.** The checkbox was wired, but to the wrong thing. `Verify2FA` received `trustDevice`
+and used it only here:
+
+```csharp
+await SignInUser(email, role, rememberMe || trustDevice);
+```
+
+That widens the **authentication cookie's** lifetime — it keeps you signed in longer. It has nothing
+to do with the second factor, so any fresh sign-in was challenged again. There was no trusted-device
+concept anywhere in the system: no storage, no token, no check on the login path.
+
+**What was built.**
+
+| Piece | |
+|---|---|
+| `Models/TrustedDevice.cs` | one row per trusted browser — hash, expiry, last used, revocation |
+| `Services/TrustedDeviceService.cs` | issue / validate / revoke |
+| Migration `20260830230201_DEF385AddTrustedDevices` | `TrustedDevices` table, FK cascade, `(TokenHash, UserId)` index |
+| `AccountController` | issues the cookie after a verified second factor; checks it on login; revokes on password change |
+| `EnhancedTwoFactorService`, `AdminService` | revoke when 2FA is disabled or reset |
+
+**Security model — stated explicitly, because this class of feature is easy to get wrong.**
+
+- **Second factor only.** The password is still required every time. A stolen cookie on its own is
+  worthless; it only removes the 2FA step for someone who *already* has the correct password.
+- **The raw token is never stored.** 256 bits from a CSPRNG, kept as a SHA-256 hash — the same
+  reasoning as the recovery codes. A database read cannot be turned into a usable cookie. (SHA-256
+  with no work factor is right *here* and would be wrong for a password: there is no dictionary to
+  attack against 256 random bits.)
+- **Bound to the account.** The lookup matches `TokenHash` **and** `UserId`, so a browser trusted for
+  one user does not skip 2FA for another user signing in from it. Proven, not asserted — see the
+  round-trip test's step 4.
+- **Expiry is enforced server-side** against the stored row. The cookie carries an expiry too, but a
+  cookie lifetime is a client-side hint the client may ignore, so the decision does not rest on it.
+- **Cookie flags:** `HttpOnly`, `Secure`, `SameSite=Lax`, `IsEssential`.
+- **Revoked on password reset (both paths), on 2FA disable, and on admin 2FA reset.** Every
+  password-change and 2FA-disable site was found by grep rather than assumed — `AccountController`
+  ×2, `EnhancedTwoFactorService` ×1, `AdminService` ×2 ([[feedback_scoping_check_adjacent_endpoints]]).
+  Revoked rows are kept, not deleted, so the audit trail survives.
+- Trust is issued **only** after a second factor has actually been verified — never on the password
+  step. `_regression/11-trust-device.js` asserts that negative directly.
+
+**Verification — request level, because that is where the defect lived.**
+`_regression/12-trust-device-roundtrip.js` drives the client's exact scenario against a local
+instance: sign in → challenged; verify with the box ticked → cookie issued; drop every cookie except
+the trust cookie and sign in again → **not** challenged; then the same cookie on a *different*
+account → still challenged. All four pass.
+
+That test carries its own control: steps 1 and 3 are identical requests differing **only** by the
+presence of `GCC.TrustedDevice`, so a vacuous pass is not possible. The service unit tests
+(`TrustedDeviceServiceTests`, 14 cases) would have passed against the old code too — the old code
+never called a service at all — which is exactly the [[feedback_test_below_the_defect_layer]] trap.
+
+**Test data hygiene.** The round-trip needs a real TOTP secret, so scratch secrets were enrolled on
+two **dev** accounts and both restored to their snapshot afterwards (verified: 2FA off, method
+Email, secret NULL, `TrustedDevices` emptied). The `2fatest` fixture was deliberately not touched —
+it is the only account with 2FA on and other checks depend on that.
+
+**Deliberately NOT built** (say so rather than let it look finished): there is no "your trusted
+devices" management screen. `DeviceLabel` is captured so one can be added, and the revoke-all paths
+already exist, but a user cannot currently see or individually revoke a device. Worth a CR if the
+client wants it.
+
+---
+
+### DEF-386 — The shipped `apply-migrations.sql` could not be run: EF emits unparseable `EXEC(CONCAT(...))`
+
+- **Date:** 2026-08-30
+- **Severity:** **Medium** — a deploy-tooling defect. No runtime impact, but Gate 7's documented
+  procedure ("apply migrations before recycling the app pool") failed at the first statement.
+- **Status:** **FIXED** in `Scripts/deploy.ps1`; bundle rebuilt and the shipped script proven to run.
+- **QC Ref:** none — hit while applying DEF-383/DEF-385 to the test environment by hand.
+  **Reporter:** Anuki (internal).
+- **Bucket:** Bug.
+
+**Symptom.** Running the bundle's `migrations\apply-migrations.sql` against the test database:
+
+```
+Msg 102, Level 15, State 1  Incorrect syntax near 'CONCAT'.
+```
+
+**Root cause.** For a computed column inside an `--idempotent` script, EF Core emits:
+
+```sql
+EXEC(CONCAT(CAST(N'ALTER TABLE [Certificates] ADD [CertificationResultsNumeric] AS ' AS nvarchar(max)), nchar(13), ...));
+```
+
+`EXECUTE (string)` accepts a literal, a variable, or `+` concatenation — **not a function call**.
+Confirmed against the server directly: `EXEC(CONCAT(N'SELECT ', N'1'))` fails identically, and
+because it is a **parse** error it happens before execution, so `TRY/CATCH` cannot catch it and the
+whole script aborts at statement one.
+
+**This was already half-known, and I should have read the tool before diagnosing.** `deploy.ps1`'s
+`-FromMigration` parameter documents this exact failure in its own comment — it exists so a
+from-scratch script does not replay the 2026-05-12 `AddCertificationResultsNumeric` block.
+
+**But `-FromMigration` alone would not have saved this deploy.** That flag excludes *already-applied*
+migrations; DEF-383 alters the very same computed column, so its own block emits a fresh
+`EXEC(CONCAT(...))` no matter where the script starts. The general repair was needed.
+
+**Fix.** `deploy.ps1` post-processes the generated script, rewriting each occurrence into the
+documented parseable form and aborting the build if any survive:
+
+```
+EXEC(CONCAT( <args> ));   ->   DECLARE @efSqlN nvarchar(max) = CONCAT( <args> ); EXEC(@efSqlN);
+```
+
+Verified against the live server before trusting it: the rewritten form executes and returns its
+row. `verify-bundle.py` now asserts **zero** `EXEC(CONCAT(` in every future bundle, fatally.
+
+**A second, separate limitation — not fixed, and not fixable by rewriting.** A full from-scratch
+idempotent script still cannot run against an already-migrated database: SQL Server **binds every
+guarded block before `IF NOT EXISTS` can skip it**, so the `ChangeUserCompanyToFreeText` block fails
+with `Invalid column name 'UserCompanyId'` — a column that migration itself dropped. That is what
+`-FromMigration` is for, and this bundle was rebuilt with it. **Keep using it for deploys to an
+existing database.** A bundle intended to bootstrap a *fresh* database needs the full script instead;
+the two cannot be the same file.
+
+**Method note.** The first attempt at the `deploy.ps1` fix would not parse. The cause is worth
+recording because it is the PowerShell/UTF-8 hazard in a new form: the file has **no BOM**, so
+PS 5.1 reads it as CP1252, and a UTF-8 em-dash (`E2 80 94`) ends in byte `0x94` = U+201D — a smart
+quote, **which PowerShell accepts as a string delimiter**. Inside a quoted string that silently
+unbalances the block. Em-dashes in *comments* are harmless (a comment ends at the newline), which is
+why the file's existing ones are fine. Never put one inside a quoted string in a `.ps1`.
+
+### DEF-387 — Creating a user fails with "Error saving user. Please try again.", which is the one message in the system that carries no reason
+
+- **Date:** 2026-08-31
+- **Severity:** Medium (error reporting). The create is correctly refused; the fault is that the
+  admin — and the person diagnosing it — are told nothing actionable.
+- **Status:** **FIXED 2026-08-31 (built, pending deploy).** Reported on the **test environment**
+  (gccwebapp.com).
+- **QC Ref:** none — reported by the client. Reporter: Shawn. *"error saving user. when I try to
+  create a new user"*.
+- **Bucket:** UX (error reporting) + Bug (missing AJAX header).
+- **Predicted by DEF-366.** Its closing note recorded this exact fallback as "a second, independent
+  way for a real reason to be swallowed", left unchanged because it had not yet fired. It has now.
+
+**Finding.** That string exists in exactly one place: the `catch` around `await response.json()` in
+`wwwroot/js/userManagement.js` (`handleFormSubmit`). It can only be reached when the response is
+**not JSON** — and every failure path in `AdminController.CreateUser` returns JSON, including its own
+`catch` (`AdminController.cs:147-150`). So the response never came from the action.
+
+Two things rewrite an admin POST into non-JSON, and the page was exposed to both because its
+`fetch()` did not send `X-Requested-With: XMLHttpRequest`:
+
+| Cause | What the browser actually received |
+|-------|------------------------------------|
+| `[ValidateAntiForgeryToken]` rejects a stale token (`AdminController.cs:120`) | 400 → `UseStatusCodePages` (`Program.cs:737-740`) redirects to `/Account/Login?error=session_expired`; `fetch` follows it and hands back the **login page HTML** |
+| Auth cookie expired | cookie `OnRedirectToLogin` (`Program.cs:322-336`) redirects for the same reason — the JSON-401 branch is gated on `X-Requested-With` |
+
+Both are ordinary, likely states for this page. The anti-forgery token is stamped into
+`UserManagement.cshtml:7` at render time and its cookie is `SameSite=Strict`
+(`Program.cs:419-428`), so a long-open Users tab, or signing in again in another tab, is enough.
+The whole tail of the response — status, body, reason — was discarded, so nothing distinguished
+"your token expired" from "the database rejected the insert".
+
+**Fix — make the failure name itself. Three changes, all in `userManagement.js`:**
+- Both save fetches (create **and** update) now send `X-Requested-With: XMLHttpRequest`. This is the
+  app's existing convention, not a new one: `Program.cs:326` and `:731` both branch on it. With the
+  header, a 400 stays a 400 and an expired cookie returns the JSON 401 the handler already writes,
+  instead of an HTML page.
+- New `readJsonResponse(response)` reads the body once and, when it is not JSON, throws a message
+  naming the real condition: expired security token (400), expired session (401/403, or a followed
+  redirect to `/Account/Login`), otherwise the literal status with a pointer to the server log.
+- The `catch` now shows `error.message` rather than a fixed string.
+
+**What this does and does not settle.** It does not yet name the root cause on the test environment
+— nobody has the response that was actually returned. It guarantees the next attempt reports it on
+screen instead of discarding it. The stale-token path is the leading candidate on the evidence; a
+500 remains possible and would now surface as *"the server returned HTTP 500 … Check the server
+log."*
+
+**Deliberately not changed.** `deleteUser` (`userManagement.js:665-667`) has the identical
+swallowing `catch`, as does `wwwroot/js/admin/userManagement.js` (not referenced by any view —
+`UserManagement.cshtml:360` loads `~/js/userManagement.js` only). Neither was reported; both are
+recorded here rather than changed speculatively.
+
+- **Files:** `wwwroot/js/userManagement.js` (two headers, new `readJsonResponse`, `catch` message).
+  No server-side change.

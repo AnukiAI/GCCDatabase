@@ -244,6 +244,46 @@ if (-not (Test-Path $migrationSqlPath)) {
     Write-Error "ABORT: dotnet ef returned success but no script was produced at $migrationSqlPath."
     exit 1
 }
+# --- DEF-386: repair EF's EXEC(CONCAT(...)), which SQL Server cannot parse ---
+# For a computed column inside an --idempotent script, EF emits:
+#     EXEC(CONCAT(CAST(N'ALTER TABLE ... ADD [Col] AS ' AS nvarchar(max)), nchar(13), ...));
+# T-SQL's EXECUTE(string) accepts a literal, a variable, or '+' concatenation — but NOT a
+# function call. So the shipped script fails with "Incorrect syntax near 'CONCAT'", and because
+# that is a PARSE error it happens before anything runs and TRY/CATCH cannot see it.
+# Found 2026-08-30 while applying DEF-383 to the test environment by hand.
+#
+# The rewrite below is behaviour-preserving: assign the same CONCAT expression to a variable and
+# EXEC the variable, which is the documented, parseable form.
+$sqlText = [System.IO.File]::ReadAllText($migrationSqlPath)
+$concatCount = ([regex]'EXEC\(CONCAT\(').Matches($sqlText).Count
+if ($concatCount -gt 0) {
+    # NOTE: plain ASCII hyphen, deliberately. This file has no BOM, so PowerShell 5.1 reads it as
+    # CP1252; a UTF-8 em-dash (E2 80 94) then ends with byte 0x94 = U+201D, a smart quote, which
+    # PowerShell accepts as a STRING DELIMITER. Inside a string that silently unbalances the block
+    # and the script fails to parse. Em-dashes in comments are harmless (a comment ends at the
+    # newline) which is why the existing ones above are fine. Never put one inside a quoted string.
+    Write-Host "  Repairing $concatCount EXEC(CONCAT(...)) statement(s) - see DEF-386" -ForegroundColor Yellow
+    # EXEC(CONCAT( <args> ));  ->  DECLARE @efSqlN nvarchar(max) = CONCAT( <args> ); EXEC(@efSqlN);
+    # Built with plain concatenation of single-quoted strings on purpose: an interpolated
+    # "@efSql$(...)" is a PowerShell parse error, because '@' followed by a subexpression is not
+    # a string the 5.1 parser accepts. Counter makes each DECLARE unique within its batch.
+    $script:efIdx = 0
+    $efEvaluator = {
+        param($m)
+        $script:efIdx++
+        $v = '@efSql' + $script:efIdx
+        'DECLARE ' + $v + ' nvarchar(max) = CONCAT(' + $m.Groups['args'].Value + '); EXEC(' + $v + ');'
+    }
+    $sqlText = [regex]::Replace($sqlText, 'EXEC\(CONCAT\((?<args>.*?)\)\);', $efEvaluator, [System.Text.RegularExpressions.RegexOptions]::Singleline)
+    [System.IO.File]::WriteAllText($migrationSqlPath, $sqlText, (New-Object System.Text.UTF8Encoding $false))
+
+    $remaining = ([regex]'EXEC\(CONCAT\(').Matches([System.IO.File]::ReadAllText($migrationSqlPath)).Count
+    if ($remaining -ne 0) {
+        Write-Error "ABORT: $remaining EXEC(CONCAT(...)) statement(s) survived the DEF-386 repair. The shipped script would fail to parse on the server."
+        exit 1
+    }
+}
+
 $migrationBytes = (Get-Item $migrationSqlPath).Length
 $migrationLines = (Get-Content $migrationSqlPath | Measure-Object -Line).Lines
 Write-Host "  Generated: $migrationSqlPath" -ForegroundColor Green

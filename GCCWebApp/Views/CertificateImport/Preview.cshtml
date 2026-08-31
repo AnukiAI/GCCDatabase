@@ -106,7 +106,7 @@
                                 var companyChange = row.Changes.FirstOrDefault(c => c.FieldName == GCCWebApp.Models.Import.FieldChange.CompanyFieldName);
                                 <tr>
                                     <td>@row.RowNumber</td>
-                                    <td><code>@row.CertificateNumber</code></td>
+                                    <td><code>@row.DisplayCertificateNumber</code></td>
                                     <td>@(string.IsNullOrEmpty(companyChange?.OldValue) ? "(empty)" : companyChange!.OldValue)</td>
                                     <td><i class="fas fa-arrow-right"></i></td>
                                     <td><strong>@(string.IsNullOrEmpty(companyChange?.NewValue) ? "(empty)" : companyChange!.NewValue)</strong></td>
@@ -329,7 +329,7 @@
                                 {
                                     <tr>
                                         <td>@row.RowNumber</td>
-                                        <td><code>@row.CertificateNumber</code></td>
+                                        <td><code>@row.DisplayCertificateNumber</code></td>
                                         <td>@row.CompanyName</td>
                                         <td>@row.ProductName</td>
                                         <td>@row.CertificationType</td>
@@ -367,7 +367,7 @@
                         <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #ffc107;">
                             <div class="card-header" style="background-color: #fff3cd;">
                                 <strong>Row @row.RowNumber:</strong>
-                                <code>@row.CertificateNumber</code> - @row.CompanyName / @row.ProductName
+                                <code>@row.DisplayCertificateNumber</code> - @row.CompanyName / @row.ProductName
                             </div>
                             <div class="card-body">
                                 <table class="table table-sm" style="margin-bottom: 0;">
@@ -438,7 +438,7 @@
                                     {
                                         <tr>
                                             <td>@row.RowNumber</td>
-                                            <td><code>@row.CertificateNumber</code></td>
+                                            <td><code>@row.DisplayCertificateNumber</code></td>
                                             <td>@row.CompanyName</td>
                                             <td>@row.ProductName</td>
                                         </tr>

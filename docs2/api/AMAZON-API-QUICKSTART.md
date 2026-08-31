@@ -5,6 +5,17 @@
 **Version:** 2.1
 **Date:** 2026-01-28
 
+> **Corrected 2026-08-25 — sample payload hosts.** The GS1 `id` values in the example responses below
+> now read `https://database.greencirclecertified.com/api/v1/...`. They previously mixed
+> `greencirclecertified.com` and `greencirclecertified.com/database` **within the same response**, which
+> could never occur: `id` is generated from the host the caller used, so every `id` in one response
+> shares a host. The path-based address was never activated and is retired. `agencyURL` is unchanged —
+> it is the certifying body's website, not an API host.
+>
+> **This is the older reference set.** For anything client- or partner-facing, use the current guides in
+> `docs2/exports/` (Amazon Developer Guide v1.2, Partner Integration Guide v1.1). This file has not been
+> reviewed against current rate-limit or certificate-status behaviour.
+
 ---
 
 ## Overview
@@ -110,13 +121,13 @@ curl -X GET "https://[domain]/api/v1/certificates/gs1?pageSize=100" \
     {
       "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
       "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
-      "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+      "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366",
       "type": "CertificationReport",
       "issueDate": "2024-01-15",
       "issuer": "Green Circle Certified",
       "products": [
         {
-          "id": "https://greencirclecertified.com/database/api/v1/certificates/gs1/24-0366/product",
+          "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366/product",
           "type": "Product",
           "gtin": null,
           "additionalTradeItemId": [
@@ -125,7 +136,7 @@ curl -X GET "https://[domain]/api/v1/certificates/gs1?pageSize=100" \
           "name": "Recycled Paper Towels",
           "description": "100% recycled paper towels",
           "certificationInfo": {
-            "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366/certification",
+            "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366/certification",
             "type": "CertificationDetails",
             "agency": "Green Circle Certified",
             "agencyURL": "https://www.greencirclecertified.com",

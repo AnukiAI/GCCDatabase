@@ -16,6 +16,7 @@
 //
 // Self-contained: admin-cookie login -> Amazon partner key -> cookie-free partner calls.
 const { chromium, request } = require('playwright');
+const { detectGateMode, passGate } = require('./_lib/test-env-gate');
 const fs = require('fs');
 const path = require('path');
 
@@ -23,6 +24,9 @@ const BASE = (process.env.BASE_URL || 'http://localhost:5101').replace(/\/$/, ''
 const SAMPLE_DIR = path.join(__dirname, '..', '..', 'docs', 'tracking', 'api-samples');
 
 let pass = 0, fail = 0;
+// Counted separately from `fail` on purpose: a request that never returned proves nothing about the
+// contract, and folding it into the failure count is what produced a false "CONTRACT CHANGED".
+let timeouts = 0;
 function check(name, ok, detail) {
   if (ok) { pass++; console.log(`  PASS  ${name}${detail ? '  — ' + detail : ''}`); }
   else { fail++; console.log(`  FAIL  ${name}${detail ? '  — ' + detail : ''}`); }
@@ -93,14 +97,46 @@ function diffShapes(baseline, live) {
 
 (async () => {
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ ignoreHTTPSErrors: true });
+
+  // The deployed test environment sits behind a COOKIE gate (`TestEnvironmentGate.Mode=Cookie`):
+  // every path 302s to /__gate. Without passing it first, `page.goto('/Account/Login')` lands on
+  // the gate form, `#Email` never appears, and this script reports **CONTRACT CHANGED** — a
+  // completely false result caused by never reaching the API at all. Reuse the shared helper
+  // rather than re-deriving it; a private copy is exactly how DEF-341's false security regression
+  // happened. On localhost the gate is absent, detectGateMode returns 'open', and this is a no-op.
+  // Both helpers take the Playwright `request` MODULE (they call request.newContext() themselves),
+  // not an already-created context.
+  let gateState;
+  const mode = await detectGateMode(request, BASE);
+  if (mode.mode === 'cookie') {
+    const gate = await passGate(request, BASE);
+    if (!gate.ok) {
+      console.log(`FATAL: could not pass the test-env gate — ${gate.detail}`);
+      console.log('This is a GATE failure, not a contract failure. Set GATE_PASS if it rotated.');
+      process.exit(2);
+    }
+    gateState = gate.state;
+    console.log(`  gate: passed cookie gate at ${BASE}`);
+  } else {
+    console.log(`  gate: ${mode.mode} (${mode.detail})`);
+  }
+
+  const ctx = await browser.newContext({ ignoreHTTPSErrors: true, storageState: gateState });
   const page = await ctx.newPage();
-  const partnerReq = await request.newContext({ ignoreHTTPSErrors: true }); // cookie-free = how Amazon calls
+  // Cookie-free of the APP's auth = how Amazon calls, but it still needs the gate cookie to
+  // reach the deployed host at all. The X-API-Key auth under test is unaffected by that cookie.
+  const partnerReq = await request.newContext({ ignoreHTTPSErrors: true, storageState: gateState });
 
   try {
     await page.goto(`${BASE}/Account/Login`, { waitUntil: 'domcontentloaded' });
-    await page.locator('#Email').fill('admin');
-    await page.locator('#Password').fill('TestPass123!');
+    // Credentials are overridable because the hardcoded pair is env-specific and silently
+    // wrong on one of the two targets: `admin` had its password reset on the TEST environment
+    // on 2026-08-19 (DEF-263 verification) and only Shawn knows the new value, while on the dev
+    // database it is unchanged. A failed login here does not announce itself — the page simply
+    // re-renders as HTTP 200 and the run fails later at "got Amazon partner key", which reads
+    // like a contract/API fault rather than a credential one. Use admin.uat against test.
+    await page.locator('#Email').fill(process.env.ADMIN_USER || 'admin');
+    await page.locator('#Password').fill(process.env.ADMIN_PASS || 'TestPass123!');
     await Promise.all([page.waitForLoadState('domcontentloaded'),
       page.locator('button[type="submit"]').first().click()]);
     await page.waitForTimeout(700);
@@ -112,10 +148,27 @@ function diffShapes(baseline, live) {
     const key = (await gen.json()).data.apiKey;
     check('setup: got Amazon partner key', !!key && key.startsWith('gcc_partner_'));
 
+    // A SLOW response must never be reported as a contract change. Measured on localhost against
+    // the migrated dataset (5,702 certs) on 2026-08-24: /certificates/gs1?pageSize=100 took 120.3s
+    // on its first call and 120.2s on an immediate repeat, then 2.4s once warm — while pageSize=50
+    // stayed at 0.6s throughout. At the old 60s timeout the request threw, the throw landed in the
+    // outer catch, and the run printed "CONTRACT CHANGED" having never compared a single field.
+    // That is a false deploy blocker on the one contract the client cannot afford noise about
+    // ([[feedback_amazon_api_immutable]]), so a timeout is now classified as its OWN outcome:
+    // retried once, then reported as INCONCLUSIVE with exit 3 — never as a contract verdict.
+    const REQ_TIMEOUT = Number(process.env.REQ_TIMEOUT_MS || 180000);
+
     const getLive = async (url) => {
-      const r = await partnerReq.get(`${BASE}${url}`, { headers: { 'X-API-Key': key, Accept: 'application/json' }, timeout: 60000 });
-      let body = null; try { body = await r.json(); } catch (e) {}
-      return { status: r.status(), body };
+      const started = Date.now();
+      try {
+        const r = await partnerReq.get(`${BASE}${url}`,
+          { headers: { 'X-API-Key': key, Accept: 'application/json' }, timeout: REQ_TIMEOUT });
+        let body = null; try { body = await r.json(); } catch (e) {}
+        return { status: r.status(), body, ms: Date.now() - started };
+      } catch (e) {
+        if (!/Timeout .*exceeded/i.test(e.message)) throw e;
+        return { status: 0, body: null, ms: Date.now() - started, timedOut: true };
+      }
     };
 
     const comparisons = [
@@ -125,8 +178,20 @@ function diffShapes(baseline, live) {
     ];
 
     for (const c of comparisons) {
-      const live = await getLive(c.url);
-      check(`${c.name}: live → 200`, live.status === 200, `status ${live.status}`);
+      let live = await getLive(c.url);
+      if (live.timedOut) {
+        // One retry, because the slow path above was reproducibly the FIRST execution of a given
+        // query shape. If the retry also times out the endpoint is genuinely unusable and that is
+        // a performance finding to report as such — not a shape verdict.
+        console.log(`  RETRY ${c.name}: timed out after ${(live.ms / 1000).toFixed(1)}s — retrying once`);
+        live = await getLive(c.url);
+      }
+      if (live.timedOut) {
+        timeouts++;
+        console.log(`  TIMEOUT ${c.name} — ${(live.ms / 1000).toFixed(1)}s, twice. NOT a contract result; nothing was compared.`);
+        continue;
+      }
+      check(`${c.name}: live → 200`, live.status === 200, `status ${live.status} in ${(live.ms / 1000).toFixed(1)}s`);
       if (live.status !== 200) continue;
 
       const baselineRaw = JSON.parse(fs.readFileSync(path.join(SAMPLE_DIR, c.baseline), 'utf8'));
@@ -152,7 +217,19 @@ function diffShapes(baseline, live) {
     await browser.close();
   }
 
-  console.log(`\n=== Amazon contract diff: ${pass} passed, ${fail} failed ===`);
-  console.log(fail ? 'CONTRACT CHANGED — review diffs above.' : 'CONTRACT UNCHANGED — Amazon receives the same structure as the April baseline.');
-  process.exit(fail ? 1 : 0);
+  console.log(`\n=== Amazon contract diff: ${pass} passed, ${fail} failed, ${timeouts} timed out ===`);
+  if (fail) {
+    console.log('CONTRACT CHANGED — review diffs above.');
+    process.exit(1);
+  }
+  if (timeouts) {
+    // Exit 3, distinct from both 0 and 1, so a caller (and Gate 4) can tell "the contract is fine"
+    // from "we could not find out". Treat this as UNVERIFIED — do not deploy on it.
+    console.log(`INCONCLUSIVE — ${timeouts} endpoint(s) timed out and were never compared.`);
+    console.log('This is a PERFORMANCE result, not a contract result. Warm the endpoint and re-run;');
+    console.log('raise REQ_TIMEOUT_MS if the cold path legitimately needs longer. Gate 4 is NOT satisfied.');
+    process.exit(3);
+  }
+  console.log('CONTRACT UNCHANGED — Amazon receives the same structure as the April baseline.');
+  process.exit(0);
 })();

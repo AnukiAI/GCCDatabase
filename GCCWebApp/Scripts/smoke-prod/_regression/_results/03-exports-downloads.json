@@ -1,0 +1,565 @@
+{
+  "phaseId": "03-exports-downloads",
+  "base": "https://gccwebapp.com",
+  "startedAt": "2026-08-31T03:34:49.047Z",
+  "finishedAt": "2026-08-31T03:35:23.816Z",
+  "exports": {
+    "anon": {
+      "rows": 963,
+      "header": [
+        "﻿Certificate #",
+        "Certification Type",
+        "Status",
+        "Company",
+        "Company Contact Email/URL",
+        "Contact URL",
+        "Product Name",
+        "Product Category",
+        "Product Type",
+        "Subcategory",
+        "Partner",
+        "Cert Results",
+        "Effective Date",
+        "Expiration Date",
+        "Location",
+        "Country",
+        "External Tag",
+        "ASIN",
+        "UPC",
+        "GTIN",
+        "EAN"
+      ],
+      "bytes": 441292,
+      "ms": 2530,
+      "numberCount": 951
+    },
+    "external": {
+      "rows": 30,
+      "header": [
+        "﻿Certificate #",
+        "Certification Type",
+        "Status",
+        "Company",
+        "Company Contact Email/URL",
+        "Contact URL",
+        "Product Name",
+        "Product Category",
+        "Product Type",
+        "Subcategory",
+        "Partner",
+        "Cert Results",
+        "Effective Date",
+        "Expiration Date",
+        "Location",
+        "Country",
+        "External Tag",
+        "ASIN",
+        "UPC",
+        "GTIN",
+        "EAN"
+      ],
+      "bytes": 8029,
+      "ms": 256,
+      "numberCount": 30
+    },
+    "external2": {
+      "rows": 21,
+      "header": [
+        "﻿Certificate #",
+        "Certification Type",
+        "Status",
+        "Company",
+        "Company Contact Email/URL",
+        "Contact URL",
+        "Product Name",
+        "Product Category",
+        "Product Type",
+        "Subcategory",
+        "Partner",
+        "Cert Results",
+        "Effective Date",
+        "Expiration Date",
+        "Location",
+        "Country",
+        "External Tag",
+        "ASIN",
+        "UPC",
+        "GTIN",
+        "EAN"
+      ],
+      "bytes": 5704,
+      "ms": 173,
+      "numberCount": 21
+    },
+    "amazon": {
+      "rows": 208,
+      "header": [
+        "﻿Certificate #",
+        "Certification Type",
+        "Status",
+        "Company",
+        "Company Contact Email/URL",
+        "Contact URL",
+        "Product Name",
+        "Product Category",
+        "Product Type",
+        "Subcategory",
+        "Partner",
+        "Cert Results",
+        "Effective Date",
+        "Expiration Date",
+        "Location",
+        "Country",
+        "External Tag",
+        "ASIN",
+        "UPC",
+        "GTIN",
+        "EAN"
+      ],
+      "bytes": 220311,
+      "ms": 1664,
+      "numberCount": 208
+    },
+    "novi": {
+      "rows": 0,
+      "header": [
+        "﻿Certificate #",
+        "Certification Type",
+        "Status",
+        "Company",
+        "Company Contact Email/URL",
+        "Contact URL",
+        "Product Name",
+        "Product Category",
+        "Product Type",
+        "Subcategory",
+        "Partner",
+        "Cert Results",
+        "Effective Date",
+        "Expiration Date",
+        "Location",
+        "Country",
+        "External Tag",
+        "ASIN",
+        "UPC",
+        "GTIN",
+        "EAN"
+      ],
+      "bytes": 285,
+      "ms": 93,
+      "numberCount": 0
+    },
+    "analyst": {
+      "rows": 5702,
+      "header": [
+        "﻿Certificate #",
+        "Certification Type",
+        "Cert Subcategories",
+        "Status",
+        "Company",
+        "Company Contact Email/URL",
+        "Contact URL",
+        "Product Name",
+        "Product Category",
+        "Product Type",
+        "Subcategory",
+        "Partner",
+        "Pathway",
+        "Cert Results",
+        "Effective Date",
+        "Expiration Date",
+        "Location",
+        "Country",
+        "External Tag",
+        "Internal Tag",
+        "ASIN",
+        "UPC",
+        "GTIN",
+        "EAN"
+      ],
+      "bytes": 1531265,
+      "ms": 4072,
+      "numberCount": 5527
+    },
+    "admin": {
+      "rows": 5702,
+      "header": [
+        "﻿Certificate #",
+        "Certification Type",
+        "Cert Subcategories",
+        "Status",
+        "Company",
+        "Company Contact Email/URL",
+        "Contact URL",
+        "Product Name",
+        "Product Category",
+        "Product Type",
+        "Subcategory",
+        "Partner",
+        "Pathway",
+        "Cert Results",
+        "Effective Date",
+        "Expiration Date",
+        "Location",
+        "Country",
+        "External Tag",
+        "Internal Tag",
+        "ASIN",
+        "UPC",
+        "GTIN",
+        "EAN"
+      ],
+      "bytes": 1531265,
+      "ms": 3699,
+      "numberCount": 5527
+    }
+  },
+  "pass": 57,
+  "fail": 0,
+  "warn": 0,
+  "info": 0,
+  "rows": [
+    {
+      "id": "exp.certcsv.anon.format",
+      "name": "anon: export is CSV",
+      "status": "PASS",
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-08-30-213452.csv; filename*=UTF-8''certificates-2026-08-30-213452.csv"
+    },
+    {
+      "id": "exp.certcsv.anon",
+      "name": "Certificate CSV export as anon",
+      "status": "PASS",
+      "notes": "963 rows, 21 cols, 431KB in 2530ms"
+    },
+    {
+      "id": "exp.certcsv.anon.has-certnumber",
+      "name": "anon: export carries a Certificate Number column",
+      "status": "PASS",
+      "notes": "column \"﻿Certificate #\" at index 0"
+    },
+    {
+      "id": "exp.certcsv.anon.internal-tag-column",
+      "name": "anon: Internal Tag column absent (DEF-128)",
+      "status": "PASS",
+      "notes": "not present"
+    },
+    {
+      "id": "exp.table.Active Product IDs.anon",
+      "name": "Active Product IDs as anon",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 401 content-type=application/json"
+    },
+    {
+      "id": "exp.table.Certificate import template.anon",
+      "name": "Certificate import template as anon",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.table.Product import template.anon",
+      "name": "Product import template as anon",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.certcsv.external.format",
+      "name": "external: export is CSV",
+      "status": "PASS",
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-08-30-213456.csv; filename*=UTF-8''certificates-2026-08-30-213456.csv"
+    },
+    {
+      "id": "exp.certcsv.external",
+      "name": "Certificate CSV export as external",
+      "status": "PASS",
+      "notes": "30 rows, 21 cols, 8KB in 256ms"
+    },
+    {
+      "id": "exp.certcsv.external.has-certnumber",
+      "name": "external: export carries a Certificate Number column",
+      "status": "PASS",
+      "notes": "column \"﻿Certificate #\" at index 0"
+    },
+    {
+      "id": "exp.certcsv.external.internal-tag-column",
+      "name": "external: Internal Tag column absent (DEF-128)",
+      "status": "PASS",
+      "notes": "not present"
+    },
+    {
+      "id": "exp.table.Active Product IDs.external",
+      "name": "Active Product IDs as external",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 403 content-type=application/json"
+    },
+    {
+      "id": "exp.table.Certificate import template.external",
+      "name": "Certificate import template as external",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.table.Product import template.external",
+      "name": "Product import template as external",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.certcsv.external2.format",
+      "name": "external2: export is CSV",
+      "status": "PASS",
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-08-30-213459.csv; filename*=UTF-8''certificates-2026-08-30-213459.csv"
+    },
+    {
+      "id": "exp.certcsv.external2",
+      "name": "Certificate CSV export as external2",
+      "status": "PASS",
+      "notes": "21 rows, 21 cols, 6KB in 173ms"
+    },
+    {
+      "id": "exp.certcsv.external2.has-certnumber",
+      "name": "external2: export carries a Certificate Number column",
+      "status": "PASS",
+      "notes": "column \"﻿Certificate #\" at index 0"
+    },
+    {
+      "id": "exp.certcsv.external2.internal-tag-column",
+      "name": "external2: Internal Tag column absent (DEF-128)",
+      "status": "PASS",
+      "notes": "not present"
+    },
+    {
+      "id": "exp.table.Active Product IDs.external2",
+      "name": "Active Product IDs as external2",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 403 content-type=application/json"
+    },
+    {
+      "id": "exp.table.Certificate import template.external2",
+      "name": "Certificate import template as external2",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.table.Product import template.external2",
+      "name": "Product import template as external2",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.certcsv.amazon.format",
+      "name": "amazon: export is CSV",
+      "status": "PASS",
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-08-30-213504.csv; filename*=UTF-8''certificates-2026-08-30-213504.csv"
+    },
+    {
+      "id": "exp.certcsv.amazon",
+      "name": "Certificate CSV export as amazon",
+      "status": "PASS",
+      "notes": "208 rows, 21 cols, 215KB in 1664ms"
+    },
+    {
+      "id": "exp.certcsv.amazon.has-certnumber",
+      "name": "amazon: export carries a Certificate Number column",
+      "status": "PASS",
+      "notes": "column \"﻿Certificate #\" at index 0"
+    },
+    {
+      "id": "exp.certcsv.amazon.internal-tag-column",
+      "name": "amazon: Internal Tag column absent (DEF-128)",
+      "status": "PASS",
+      "notes": "not present"
+    },
+    {
+      "id": "exp.table.Active Product IDs.amazon",
+      "name": "Active Product IDs as amazon",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 403 content-type=application/json"
+    },
+    {
+      "id": "exp.table.Certificate import template.amazon",
+      "name": "Certificate import template as amazon",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.table.Product import template.amazon",
+      "name": "Product import template as amazon",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.certcsv.novi.format",
+      "name": "novi: export is CSV",
+      "status": "PASS",
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-08-30-213508.csv; filename*=UTF-8''certificates-2026-08-30-213508.csv"
+    },
+    {
+      "id": "exp.certcsv.novi",
+      "name": "Certificate CSV export as novi",
+      "status": "PASS",
+      "notes": "0 rows, 21 cols, 0KB in 93ms"
+    },
+    {
+      "id": "exp.certcsv.novi.has-certnumber",
+      "name": "novi: export carries a Certificate Number column",
+      "status": "PASS",
+      "notes": "column \"﻿Certificate #\" at index 0"
+    },
+    {
+      "id": "exp.certcsv.novi.internal-tag-column",
+      "name": "novi: Internal Tag column absent (DEF-128)",
+      "status": "PASS",
+      "notes": "not present"
+    },
+    {
+      "id": "exp.table.Active Product IDs.novi",
+      "name": "Active Product IDs as novi",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 403 content-type=application/json"
+    },
+    {
+      "id": "exp.table.Certificate import template.novi",
+      "name": "Certificate import template as novi",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.table.Product import template.novi",
+      "name": "Product import template as novi",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.certcsv.analyst.format",
+      "name": "analyst: export is CSV",
+      "status": "PASS",
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-08-30-213515.csv; filename*=UTF-8''certificates-2026-08-30-213515.csv"
+    },
+    {
+      "id": "exp.certcsv.analyst",
+      "name": "Certificate CSV export as analyst",
+      "status": "PASS",
+      "notes": "5702 rows, 24 cols, 1495KB in 4072ms"
+    },
+    {
+      "id": "exp.certcsv.analyst.has-certnumber",
+      "name": "analyst: export carries a Certificate Number column",
+      "status": "PASS",
+      "notes": "column \"﻿Certificate #\" at index 0"
+    },
+    {
+      "id": "exp.certcsv.analyst.internal-tag-column",
+      "name": "analyst: Internal Tag column present (DEF-128)",
+      "status": "PASS",
+      "notes": "found: Internal Tag"
+    },
+    {
+      "id": "exp.table.Active Product IDs.analyst",
+      "name": "Active Product IDs as analyst",
+      "status": "PASS",
+      "notes": "expected a file, got HTTP 200 content-type=text/csv"
+    },
+    {
+      "id": "exp.table.Certificate import template.analyst",
+      "name": "Certificate import template as analyst",
+      "status": "PASS",
+      "notes": "expected a file, got HTTP 200 content-type=text/csv"
+    },
+    {
+      "id": "exp.table.Product import template.analyst",
+      "name": "Product import template as analyst",
+      "status": "PASS",
+      "notes": "expected a file, got HTTP 200 content-type=text/csv"
+    },
+    {
+      "id": "exp.certcsv.admin.format",
+      "name": "admin: export is CSV",
+      "status": "PASS",
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-08-30-213522.csv; filename*=UTF-8''certificates-2026-08-30-213522.csv"
+    },
+    {
+      "id": "exp.certcsv.admin",
+      "name": "Certificate CSV export as admin",
+      "status": "PASS",
+      "notes": "5702 rows, 24 cols, 1495KB in 3699ms"
+    },
+    {
+      "id": "exp.certcsv.admin.has-certnumber",
+      "name": "admin: export carries a Certificate Number column",
+      "status": "PASS",
+      "notes": "column \"﻿Certificate #\" at index 0"
+    },
+    {
+      "id": "exp.certcsv.admin.internal-tag-column",
+      "name": "admin: Internal Tag column present (DEF-128)",
+      "status": "PASS",
+      "notes": "found: Internal Tag"
+    },
+    {
+      "id": "exp.table.Active Product IDs.admin",
+      "name": "Active Product IDs as admin",
+      "status": "PASS",
+      "notes": "expected a file, got HTTP 200 content-type=text/csv"
+    },
+    {
+      "id": "exp.table.Certificate import template.admin",
+      "name": "Certificate import template as admin",
+      "status": "PASS",
+      "notes": "expected a file, got HTTP 200 content-type=text/csv"
+    },
+    {
+      "id": "exp.table.Product import template.admin",
+      "name": "Product import template as admin",
+      "status": "PASS",
+      "notes": "expected a file, got HTTP 200 content-type=text/csv"
+    },
+    {
+      "id": "exp.scope.anon",
+      "name": "anon: export row count matches what the role can see",
+      "status": "PASS",
+      "notes": "export=963 rows, tile API totalCount=963, delta=0"
+    },
+    {
+      "id": "exp.scope.external",
+      "name": "external: export row count matches what the role can see",
+      "status": "PASS",
+      "notes": "export=30 rows, tile API totalCount=30, delta=0"
+    },
+    {
+      "id": "exp.scope.external2",
+      "name": "external2: export row count matches what the role can see",
+      "status": "PASS",
+      "notes": "export=21 rows, tile API totalCount=21, delta=0"
+    },
+    {
+      "id": "exp.scope.amazon",
+      "name": "amazon: export row count matches what the role can see",
+      "status": "PASS",
+      "notes": "export=208 rows, tile API totalCount=208, delta=0"
+    },
+    {
+      "id": "exp.scope.novi",
+      "name": "novi: export row count matches what the role can see",
+      "status": "PASS",
+      "notes": "export=0 rows, tile API totalCount=0, delta=0"
+    },
+    {
+      "id": "exp.scope.analyst",
+      "name": "analyst: export row count matches what the role can see",
+      "status": "PASS",
+      "notes": "export=5702 rows, tile API totalCount=5702, delta=0"
+    },
+    {
+      "id": "exp.scope.admin",
+      "name": "admin: export row count matches what the role can see",
+      "status": "PASS",
+      "notes": "export=5702 rows, tile API totalCount=5702, delta=0"
+    },
+    {
+      "id": "exp.scope.external-vs-external2",
+      "name": "Company exports do not overlap",
+      "status": "PASS",
+      "notes": "external=30 external2=21 shared=0"
+    }
+  ]
+}

@@ -12148,3 +12148,929 @@ Different asset, no inconsistency.
 client's own headings (Certificate Number, Product Identifiers, Time Out, Character Limits, Import
 Files, Import Template), 5 tables, generated from HTML via Word COM. Client-facing tone; no DEF
 numbers, no file paths, "client" not names.
+
+---
+
+## 2026-08-21 — Client ASIN validation: the numbers reconcile, 21,034 of 21,034
+
+**What the client reported.** Preliminary ASIN validation against the 2026-08-18 load (confirmed:
+they are validating 08-18, nothing loaded since). Method: sort Product Management most-to-least
+ASINs, search each company name, total the ASINs, compare to the master list. Five companies came
+back short — Philips 2,870 vs 2,019 · Estée 3,252 vs 1,847 · Kohler 1,959 vs 1,051 · P&G 2,264 vs
+1,240 · Clover 3,179 vs 67 + 1,202.
+
+**Nothing is missing.** `master rows = DB rows + collapsed + invalid` closes for all 36 companies,
+**21,034 of 21,034 source rows**. New script
+`Scripts/data-ops/2026-08-21-asin-per-company-reconciliation.py` (exit 0), output
+`_reconciliation/asin-per-company-2026-08-21.csv`.
+
+| Company | Master | DB rows | Collapsed | Invalid | Sum |
+|---|---|---|---|---|---|
+| Estée Lauder | 3,525 | 1,854 | 1,671 | 0 | 3,525 |
+| Clover Environmental | 3,179 | 2,176 | 1,003 | 0 | 3,179 |
+| Philips | 2,870 | 2,019 | 842 | 9 | 2,870 |
+| Procter & Gamble | 2,264 | 1,240 | 1,024 | 0 | 2,264 |
+| Kohler | 1,959 | 1,959 | 0 | 0 | 1,959 |
+
+**Root cause — three counting units, not data loss.**
+
+- **Master list** is a flat row list: one row per marketing name per ASIN per certificate.
+- **Database** holds one row per (CertificateId, Type, Value) — UNIQUE index, migration
+  `20260420171817_FixProductIdUniqueIndex_PerCertificate`. Same ASIN twice on one cert becomes one row.
+- **The page** dedupes *again* by type+value **within each product line item**
+  (`wwwroot/js/admin/productManagement.js`, "Deduplicate by type+value"). So the company total a
+  reviewer reaches is neither the record count nor the distinct-ASIN count — it depends on how that
+  company's certs happen to be spread across line items.
+
+That third rule is why the client's five numbers arrived in **two different units**: Philips 2,019
+and P&G 1,240 are DB row counts; Kohler 1,051 and Estée 1,847 are distinct-ASIN counts. They were
+not counting wrong — one screen gave two answers.
+
+**Kohler is the proof.** Zero collapse (its list never repeats an ASIN on the same cert), and master
+= DB **row for row at 1,959**. A load that had dropped anything could not match exactly.
+
+**Clover — the client's instinct was right, and there were two more than they found.** The master
+files everything under Clover Environmental Solutions; the DB follows the company recorded on each
+certificate. Four, not two: Clover Imaging Group 1,202 · INNOVERA 883 · Clover Environmental
+Solutions 67 · Dataproducts 24 = **2,176**, plus 1,003 collapsed = 3,179. Searching "Clover" can
+only ever find two of them. Open question for the client: group by their master's parent company, or
+by the company on the certificate (what we did)?
+
+**Genuinely actionable — 2 for the client, 1 decision we already made for them.**
+
+1. **9 rows never loaded — the only ones in the whole migration** — all Philips: eight literal
+   `TO BE CHECKED` (24-1633, 24-1634) and one 9-char ASIN `08FDWPMP6` (23-1046). The loader rejected
+   them correctly; source-data fix on the client side.
+2. **1,564 product names dropped.** Of 4,791 collapsed rows, 3,227 were exact duplicates (harmless)
+   and **1,564 carried a different marketing name** — we kept the first by spreadsheet row order
+   because something had to win. e.g. 23-0753 / B00L1GHHV2 kept the long Amazon listing title and
+   dropped "DUDE Wipes 48ct Fragrance Free". Client should ratify; every discarded name is recorded
+   in `asin-reconciliation-collapsed.csv`, so a reload is reversible.
+3. **Master company-name hygiene:** `X-SENSE`/`X-Sense` and `Block Inc.`/`Block Inc. ` (trailing
+   space) split one company into two buckets. Nets to zero, but keeps making totals look wrong.
+
+Minor: client's Estée master figure of 3,252 looks like a transposition of the actual 3,525.
+
+**No DEF row** — the code is correct and no data was lost; the 9 rejects are source defects.
+Consistent with "Data Issue ≠ Defect".
+
+**Candidate CR (kept out of the client email deliberately).** Product Management should state which
+ASIN figure it is showing, or show a plain distinct-ASIN count per company. A careful reviewer got
+two different units off one screen — that is a UX defect in the counting affordance, not a misread.
+Answer the validation question first; raise the CR on its own.
+
+**Lesson.** The 2026-08-18 reconciliation already proved 0 missing / 0 extra — but **per
+certificate**, and the client counts **per company**. A correct artifact answering the wrong axis is
+indistinguishable from having no artifact at all. Reconcile along the axis the client will actually
+count on. Second: keying both sides by the master's company-per-certificate is what turned Clover
+from an apparent 2,109-row hole into an exact match — company naming had to be removed as a variable
+before any total meant anything.
+
+**Deliverables.** `docs/tracking/2026-08-21-client-email-asin-validation-response.md` +
+`2026-08-21-client-letter-asin-validation-response.docx` (internal notes stripped by the converter,
+verified absent), attach `_reconciliation/asin-per-company-2026-08-21.csv`.
+
+
+---
+
+## 2026-08-23 — ASIN record-level verification (every value, both directions) + CR-040
+
+**Ask.** Client, after the 08-21 count reconciliation: *"I'm still concerned the ASINs are not
+correct"* — wanted a log of every record and its ASINs compared to the import sheets. Also directed:
+raise the Product Management counting CR.
+
+**Why the 08-21 answer was not enough, and this is the reusable lesson.** The counts reconciled
+exactly and that still did not settle it — correctly, because **a reconciling count is not evidence
+of correct values.** Two sides can agree on 11 and 11 while holding eleven different ASINs. When a
+client says "still concerned" after a clean total, they are asking for a *different kind* of
+evidence, not a louder version of the same one. Go to value level.
+
+**Built.** `Scripts/data-ops/2026-08-23-asin-record-log.py` — one row per `(certificate, type,
+value)` in the UNION of the client's master list and a live test dump, verdict on each. Deliberately
+a **second, independently written** implementation of what `2026-08-18-asin-reconciliation.py`
+checks, so agreement is not an artefact of one script's logic. Plus
+`2026-08-23-cert-company-dump.ps1` (mandatory `-Target`, because both existing certificate dumps
+default to **dev** — the 08-17 trap).
+
+**Result — fresh dumps from TEST 2026-08-23, not the 08-18 snapshot:**
+
+| Verdict | Count |
+|---|---|
+| OK (present both sides) | 16,234 |
+| MISSING_FROM_DB | **0** |
+| EXTRA_IN_DB | **0** |
+| CERT_NOT_IN_DB | **0** |
+| INVALID_IN_SOURCE | 3 distinct values = 9 spreadsheet rows |
+
+Certificates whose ASIN set differs: **0 of 158** that carry ASINs. Master and DB both land on the
+same 158 certificates. Product names: 15,925 exact, 309 whitespace-only, **0 differing in content**.
+
+**Two self-inflicted false alarms, both worth remembering.**
+
+1. **309 "name mismatches" were whitespace.** The source has runs of double spaces that the load
+   collapses. Comparing raw text made 309 rows look wrong. Compare on normalised text and report the
+   raw result in its own column — never let a spacing difference render as a content difference.
+2. **A `" | "` joiner corrupted my own comparison.** I joined multiple master names with `" | "`, but
+   product names *contain* `" | "` ("...HP 902XL | Black, Cyan, Magenta, Yellow 4 Pack XL"), so the
+   column could not be split back apart and 8 identical rows read as different. **Never pick a
+   delimiter without checking the data for it.** Now joined with a newline.
+
+Both were mine, not the migration's. Note the shape: **the first pass of a verification script
+produces false positives, and those must be run to ground before reporting** — a "0 missing but 309
+name mismatches" headline would have amplified exactly the anxiety it was meant to settle.
+
+**Also corrected: I cited the wrong file to Shawn on 08-21.** I explained the counting behaviour from
+`wwwroot/js/admin/productManagement.js` (`/Admin/ProductManagement`). The page the client actually
+uses is **`/Product/Management`** (`Views/Shared/_Layout.cshtml:180`), fed by
+`Controllers/ProductController.cs::GetProducts()`. Same behaviour, different file — and it changes
+which file a fix touches. Root cause of the slip: I grepped for a page by *name* and stopped at the
+first plausible match, without checking the nav for which one is actually linked. **Four**
+product-management surfaces exist (`Product/Management`, `ManagementAlt`, `ManagementV2`,
+`Admin/ProductManagement`); only the first is in the nav.
+
+**CR-040 raised** (register high-water re-grepped before AND after append; no duplicate headers).
+Product Management "IDs" column should state which figure it shows. The count is
+`.Distinct()` **per product line item** over all that product's certificates
+(`ProductController.cs::GetProducts`), summed by the reader — neither the record count nor the
+company's distinct ASINs, and which one it resembles depends on how certs spread across line items.
+
+**Measured against test 2026-08-23 — all six client figures reproduce exactly from that rule:**
+
+| Company | Line items | PAGE | DB rows | Client said |
+|---|---|---|---|---|
+| Philips | 7 | 2,019 | 2,019 | 2,019 |
+| Estée Lauder | 1 | 1,847 | 1,854 | 1,847 |
+| P&G | 15 | 1,240 | 1,240 | 1,240 |
+| Clover Imaging | 2 | 1,202 | 1,202 | 1,202 |
+| Kohler | 2 | 1,051 | 1,959 | 1,051 |
+| Clover Environmental | 3 | 67 | 67 | 67 |
+
+Kohler and Estée are where PAGE ≠ DB rows, and they are exactly the two the client reported in the
+"distinct" unit. **Diagnosis measured, not inferred** — this is the difference between "I think the
+page dedupes" and a table that reproduces every number they sent.
+
+**Deliverables.** `_reconciliation/_asin_record_log/` (`asin-record-log.csv` 16,237 rows ·
+`asin-record-log-exceptions.csv` 3 · `asin-percert-summary.csv` 5,527) · fresh dumps
+`loaded-productids-TEST-20260823.csv`, `loaded-certs-companies-TEST.csv` · CR-040 in the register ·
+client email + docx updated with the record-level section (leaks re-verified absent, 4 tables).
+
+**No DEF row** — no code defect and no data loss; the 9 rejects are source-data errors and the
+loader rejected them correctly.
+
+
+---
+
+## 2026-08-23 (later) — "21,034 vs 16,000, why?" — row-by-row mapping, and 29 certificates that never loaded
+
+**The question that exposed the gap in my own artefacts.** Shawn: *"there are 21034 ASINS listed in
+this spreadsheet but we only have 16000 or so in the database. why. Did you generate the 1 to 1
+mapping in a spreadsheet to what is in the database?"*
+
+**No, I had not — and this is the reusable lesson.** Both prior scripts
+(`2026-08-18-asin-reconciliation.py`, `2026-08-23-asin-record-log.py`) key on
+`(certificate, type, value)` and therefore emit ~16,237 rows. **Proving "0 missing" against a
+16,237-row list says nothing about spreadsheet rows 16,238–21,034.** The artefact answered a
+question adjacent to the one being asked, and repeating "it reconciles" louder was never going to
+close it. When someone quotes a raw source-row count back at you, the answer has to be **keyed on
+their unit — the source row** — not on yours.
+
+**Built `2026-08-23-asin-row-mapping.py`** → `_reconciliation/_asin_record_log/migration-row-mapping.xlsx`.
+One row per SOURCE row, all 21,034, each with its disposition. Tabs: Summary · All Rows (21,034) ·
+Duplicates (4,791) · Not Loaded (9) · Certificates (5,731) · Certificates Not Loaded (29).
+
+**The answer, closing exactly:**
+
+```
+21,034 spreadsheet rows
+-  4,791 rows repeating an ASIN already on the SAME certificate
+-      9 rows whose value is not a valid ASIN
+=  16,234 loaded   == CertificateProductIds row count, measured
+```
+
+The sheet holds only **14,301 distinct ASIN values** in total, so 21,034 was never a count of ASINs
+under any definition — it counts NAME rows. Worked example, checkable in one lookup: **certificate
+23-1046 lists ASIN B0BWKBKD9S fourteen times**, thirteen of them with the identical name
+"SHAVER S7000". A UNIQUE index on `(CertificateId, Type, Value)` permits one.
+
+**Which row "won" is evidence, not assumption:** the kept row is the one whose product name matches
+what the database actually stored. **16,237 of 16,237 keys resolved that way, 0 fallbacks** — so for
+every pair the DB name matches a real source row.
+
+**⚠️ THE REAL FINDING — 29 certificates in the source are not in the database.** Mapping the OTHER
+import sheet (`GCC Database Migration_Certs_8.12.26V2.xlsx`) row by row: 5,731 source rows → 5,702
+loaded. All 29 are in `quarantine-incomplete-rows.csv` from the 08-18 transform — required fields
+empty (Product Name / Effective Date / Expiration Date), 0 unexplained. So the loader behaved
+correctly and logged it.
+
+**But it was never surfaced to the client.** It is not in the 08-18 migration-complete email. 27 are
+Expired; **2 are `Client Approved - Paid`** — `23-0358` and `25-0351`, both Sofidel America Corp.,
+both missing only an Expiration Date. Those are live, paid certificates the client expects to see
+and which are simply absent. Now section 4c of the client email, flagged in the internal notes as
+the part not to cut for length.
+
+**Lesson — a quarantine file is not a disclosure.** The transform did everything right: it refused
+incomplete rows and wrote them to a named CSV. Then the gates passed, the numbers matched *the
+post-quarantine source count*, and nobody read the file. **A reconciliation that starts from the
+filtered input can never report what the filter removed.** Any count that begins downstream of a
+quarantine step must state the quarantine in the same breath, or it silently launders a real gap
+into a clean total. Note `transform-summary.csv` shows `SourceRows 1024 / Emitted 1024 /
+Quarantined 0` for the Active List — the 1,024 is already net of the 2 removed, which is exactly how
+the gap stayed invisible.
+
+**Also:** the master workbooks were locked (open in Excel) — `PermissionError`. Copy to scratchpad
+and read the copy; do not ask the user to close a file to unblock a read.
+
+**No DEF row** — no code defect. The 29 are source-data gaps and the loader rejected them by design.
+The reportable failure was ours in not surfacing them, which is a process gap, not a defect.
+
+**Deliverables.** `Scripts/data-ops/2026-08-23-asin-row-mapping.py` (exit 0, fails if any row is
+unaccounted for OR a certificate is absent with no recorded reason) ·
+`_reconciliation/_asin_record_log/migration-row-mapping.xlsx` · client email + docx updated with
+section 4c and a subject line that now names the 29.
+---
+
+## 2026-08-24 — API documentation status; rate limit settled at 200/hr; CR-035/036 to client
+
+**Asked:** what is the status of the API documentation; then — the rate limit should be 200/hr as the
+documentation states, add as a question to the client along with CR-035 and CR-036; and does the
+template and the Amazon guide carry the `database.greencirclecertified.com` subdomain for production
+rather than the `/database` path.
+
+**Status found.** Two client-facing documents in different states:
+
+- **Amazon Developer Guide** — issued. What Amazon actually holds is **v1.0/v1.1**, which carries the
+  retired `/database` path *and* the live production API key in plaintext. v1.2 corrects both but is
+  **drafted, not sent** (`2026-08-14-amazon-host-change-note.md`, status Draft).
+- **Partner API Integration Guide v1.1** (generic) — written 2026-08-14, **issued to nobody**. The
+  issuance log has zero rows. Not sendable: 10 unfilled placeholders and one red TBD/BLOCKED block.
+
+Blocking issuance: **DEF-345** (fixed on localhost 2026-08-10, not deployed). CR-035 and CR-036 do not
+block issuance but would force a **re-issue** to anyone already holding a copy.
+
+**Subdomain question — answered yes, with a real caveat.** Both current documents use
+`https://database.greencirclecertified.com/api/v1` and explicitly retire
+`greencirclecertified.com/database` as never-activated. **But those are the unsent revisions.** The
+`/database` form is still in the circulated PDFs, and it also survives in sample-payload `"id"` values
+across the older doc set (`docs2/api/*`, `AMAZON_API_DATA_EXAMPLES.html`, `AMAZON_API_QUICKSTART.html`).
+Those are stale examples, not the base-URL statement — triage item, not acted on.
+
+**Rate limit — decided: 200/hour stands.** Worth recording *why* no build followed: `Program.cs:460`
+already sets `PartnerApiKeyLimit = 200`. The `2000` in `ApiRateLimitingMiddleware.cs:186` is a class
+default that startup overrides and that never applies. DEF-345 was never a wrong *number* — the
+limiter ran ~10 middleware before authentication, so `context.User` was empty, every partner branch was
+unreachable, and traffic fell through to the anonymous 100/hr bucket keyed by IP. **A documented value
+can be correct and still describe dead code.** Confirming 200 costs nothing to build; it costs a
+verification after deploy.
+
+**Lesson — "what do the docs say" is two questions.** What the current file says, and what the
+recipient is holding. Here they differ on both the endpoint and a live credential, and only the second
+question has consequences. A document set that is correct in the repo and wrong in the partner's inbox
+reads as *done* on every check that looks at the repo.
+
+**Deliverables.** `docs/tracking/2026-08-24-client-questions-partner-api.md` (three decisions: confirm
+200/hr; CR-035 status-as-value — led with "proceed at all?" since Confidential disclosure and a ninth
+workflow state are client calls, not API changes; CR-036 standard version — led with "does GCC version
+its standards?", which may close it for free). Pointers added to the issuance log and to the CR-035 /
+CR-036 status lines in the register.
+
+
+---
+
+## 2026-08-24 — Gate 4 closed on the DEF-369 build; a test that voted "CONTRACT CHANGED" without comparing anything
+
+**Picking up the thread.** The working tree held a full day of unlogged work: **DEF-369** (duplicate
+certificate numbers — seven endpoints resolved by number alone, so download served a sibling's PDF,
+Edit loaded a sibling for editing, and **Delete would have permanently destroyed the wrong record**;
+fixed with an optional `cid` and a 404-on-mismatch rule) and **DEF-370** (public search slowness,
+still OPEN and still unreproduced at the reported magnitude). DEF-369's register entry named its own
+open item: *the Amazon contract diff must be run before deploy.* No result existed in
+`Scripts/smoke-prod/_results/`. That was the thread.
+
+**Gate 4 is now GREEN on both targets, and this is the deliverable of the session:**
+
+| Target | GS1 list | GS1 single | Standard list | Verdict |
+|---|---|---|---|---|
+| localhost:5101, **with the DEF-369 build** | 119.1s | 0.4s | 1.3s | 7 passed / 0 failed — CONTRACT UNCHANGED |
+| https://gccwebapp.com (deployed) | 1.1s | 0.2s | 0.7s | 7 passed / 0 failed — CONTRACT UNCHANGED |
+
+`dotnet build` 0 errors beforehand. The DEF-369 changes touch only single-certificate lookups, and
+the contract diff confirms mechanically that Amazon's three response shapes are byte-for-byte
+structurally identical to the frozen April baselines.
+
+**⚠️ The finding — DEF-371. The gate script reported a contract breach it had never measured.**
+The first run printed:
+
+```
+FATAL: apiRequestContext.get: Timeout 60000ms exceeded.
+=== Amazon contract diff: 1 passed, 1 failed ===
+CONTRACT CHANGED — review diffs above.
+```
+
+There were no diffs above. The request timed out at 60s, the throw landed in the outer `catch`, and
+that `catch` incremented the same `fail` counter a real shape difference would have. **Not one field
+of one endpoint was ever compared.** The verdict that stops a deploy — and would start a partner
+conversation — was manufactured by a request that never returned, and is indistinguishable in the
+output from a genuine breach.
+
+Fixed by giving a timeout its own outcome: retried once, reported as
+`TIMEOUT <name> — NOT a contract result; nothing was compared.`, and exited **3** — distinct from 0
+(unchanged) and 1 (changed) — stating that Gate 4 is *not satisfied*. Timings now print on every
+success, so a degrading path is visible in normal output instead of only when it crosses the limit.
+
+**The fix was proven by the original failure recurring.** The very next run hit the same endpoint at
+**119.1s** and produced `PASS ... status 200 in 119.1s` → `CONTRACT UNCHANGED`, exit 0.
+
+**Lesson — a test that cannot reach its subject must say so, not vote.** Any assertion harness needs
+a third outcome between pass and fail. Without **inconclusive**, every infrastructure hiccup is
+laundered into a substantive finding about the code. Note this script *already* carried a comment
+warning about exactly this shape for the cookie gate; the timeout path had the identical defect and
+no guard. Fixing one instance of a failure mode does not fix the mode — the guard has to be
+structural, which is why it now lives in the exit code rather than in a comment.
+
+**And the correction I had to make on myself, before writing anything down.** The 119.1s looked like
+a serious client-facing performance defect on the Amazon partner API — the endpoint Amazon actually
+polls, taking two minutes on a real-sized dataset. It is not. The deployed test environment serves
+**the identical query over the identical 5,702-certificate dataset in 1.1s** — a ~108x gap that
+locates the cost in my local SQL Server instance, not in the application, the query, or the migrated
+data. One extra measurement on the client's environment was the difference between a filed defect
+and a fact ([[feedback_diagnose_on_clients_environment]] again — second time this pattern has been
+caught, and it cost one command).
+
+It also does **not** corroborate DEF-370. That defect's warm figures on the live public site were
+~0.5s and still are. Two slow numbers measured on different machines are not evidence of one
+problem, and stapling them together would have made DEF-370 look diagnosed when it is still open and
+still unreproduced at 66s.
+
+**Deliverables.** `Scripts/smoke-prod/amazon-contract-diff.js` hardened (`node --check` clean, run
+end-to-end against both targets) · **DEF-371** appended to the register (high-water re-grepped after
+the append — single header, no collision) · Gate 4 evidence recorded above.
+
+**Still NOT verified — do not claim these.** DEF-369 has had no browser or test-environment
+verification; it is built, unit-tested (9 tests) and now contract-checked, nothing more. Its `cid`
+behaviour on the three tile views and the seven endpoints has not been clicked through by anyone.
+DEF-370 remains OPEN with its 66s report unreproduced; the candidate fix is still a **Plesk app-pool
+setting, never a `web.config` edit** (that route caused the 2026-08-18 outage).
+---
+
+## 2026-08-24 — API guides cleaned for sending; gccwebapp/`/database`/subdomain untangled
+
+**Asked:** does the documentation cover the planned 14 Aug subdomain approach — wanting to send the
+Amazon PDF and the partner template, updated first. Preceded by: *"greencirclecertified.com/database —
+we still have this for the test environment, did we change it for test? I didn't think we did."*
+
+**The premise needed correcting, gently.** `/database` was never the test environment. Test is and
+always was `gccwebapp.com`. `/database` was the *planned production* address and was never activated.
+Three distinct things had collapsed into two in conversation:
+
+| | Address | State |
+|---|---|---|
+| Test (live) | `gccwebapp.com` | untouched by any of this |
+| Production (planned Apr) | `greencirclecertified.com/database` | never activated |
+| Production (planned 14 Aug) | `database.greencirclecertified.com` | not live, awaiting DNS |
+
+It reads as still-current because it **flip-flopped** — `shipped-2026-04.md:28` records moving
+subdomain→path in April, and 14 Aug moved path→subdomain back. The August decision never swept the
+internal references, leaving 13 places still naming `/database` as production, including
+`pre-deploy-agent-checklist.md:11` and `full-spectrum-test-prompt.md:17`.
+
+**Lesson — a reversed decision leaves more residue than a new one.** A first-time decision writes into
+empty space. A reversal has to find and overwrite everything the previous one wrote, and whatever it
+misses now actively contradicts the truth rather than merely being absent. The tell was the client
+asking about a URL she was half-remembering correctly from the *superseded* decision.
+
+**The real find: internal scaffolding was in the generated artifacts, not just the HTML.** The Amazon
+guide v1.2 was clean. The partner template was not — its PDF *and* DOCX printed
+`INTERNAL — REMOVE BEFORE SENDING` on page 1, named **DEF-345** three times, and exposed
+`CertificatesController.cs:173,201`, `PublicStatuses`, the internal status *Client Approved - Paid*,
+and `localhost:5101`. One command away from being emailed out.
+
+**I nearly missed it.** My first sweep grepped `"Internal —"` with an em dash and returned 0 for both
+PDFs — I reported them clean. `pdftotext` renders that label uppercase with a double hyphen
+(`INTERNAL --`), so the pattern could not match. Re-checked case-insensitively on the bare word and
+got 8 hits. **A zero from a grep is only as trustworthy as the assumption that the pattern survived
+the extraction.** When the answer is "nothing found" and the stakes are disclosure, vary the pattern
+before believing it.
+
+**Also cost a cycle:** `grep -c` returning `0` exits **non-zero**, which silently short-circuited a
+`cmd && cmd && chrome` chain — the copy never ran and I diagnosed a stale PDF from the previous
+attempt as a render failure. Two wasted calls. Do not put `grep -c` in an `&&` chain.
+
+**Disposition.** Page-1 block *rewritten* client-facing rather than deleted (its instructions were
+genuinely useful to whoever fills the template; only the internal references were not); the DEF-345
+and source-path blocks deleted outright, their content already captured in the issuance log and
+CR-035. The verification gate the deleted block carried — confirm `X-RateLimit-Limit: 200` on the live
+server before issuing — now exists **only** in the issuance log, which is noted there explicitly.
+
+**Verified after regeneration:** zero hits across all three files for DEF-345 / CR-035 /
+CertificatesController / localhost / PublicStatuses / Client Approved / Republished, and **no live API
+key** (all `gcc_partner_` occurrences are format examples). 6 `[PARTNER NAME]` placeholders remain by
+design. PDFs re-rendered with headless Chrome (`Skia/PDF`), matching how the originals were produced —
+HTML stays the single source.
+
+**Still open, flagged not fixed:** CORS `AllowedOrigins` has no `database.greencirclecertified.com`
+(blocks browser-origin calls at cutover); the test-gate comment in `appsettings.Production.json:49`
+(×5 copies) still instructs the operator to disable the gate when `/database` goes live — a host that
+will now never exist, so the gate would stay on at real production.
+---
+
+## 2026-08-24 — CORS origin + test-gate comment fixed; my "cutover blocker" claim was wrong
+
+**Asked:** fix the CORS origins and the test gate comment (both flagged earlier today).
+
+**Done, in `appsettings.Production.json` and the byte-identical `deployment-drops/staging/` copy:**
+added `https://database.greencirclecertified.com` to `AllowedOrigins` (now 5), and rewrote the
+test-gate comment to name the subdomain instead of the retired `/database` path, with a note that the
+app is not path-mounted so that address could never have served the API. Both validated through a
+JSONC parser that respects strings — a naive `//` comment stripper corrupts every `https://` URL in
+the file.
+
+**Correction — I had overstated the CORS finding.** I told Shawn the missing origin "blocks
+browser-origin calls at cutover." It does not. `AllowedOrigins` lists the origins of **pages allowed
+to call this app from a browser**, not the hosts the app runs on. The app serves its own UI and its
+own `/api` from a single host, so the UI's calls are **same-origin and never consult the list**; and
+partners call server-to-server with `X-API-Key`, which sends no `Origin` header, so CORS does not
+apply to them either. The entry that actually does work is `greencirclecertified.com` — the marketing
+site, a different server — and it was already present. The addition is **defensive**, only mattering
+if UI and API are ever split across hosts. Kept it, and wrote the accurate rationale into the config
+comment so the next reader is not misled the way I was.
+
+**Lesson — "X is missing from the allow-list" is not the same as "X is blocked."** I pattern-matched
+a config list against a new hostname and inferred an outage without asking what the list actually
+gates. Checking took two greps: is `UseCors` scoped to `/api`, and does any UI JS call an absolute
+cross-host URL (it does not — all relative). **Before calling something a cutover blocker, trace one
+real request through it.** A wrong blocker is expensive in a different way from a missed one: it
+buys work that was never needed and lends false confidence that the real risks were surveyed.
+
+**Also:** both files are **gitignored** (`.gitignore:45` and `:13`) because the prod config carries the
+DB password and JWT key — correctly, given DEF-363. Consequence worth holding onto: **these edits do
+not travel with a clone or a code deploy.** They exist only in this working copy and the staging drop,
+and are not recoverable from git if overwritten. Config changes here have to be re-applied by hand on
+the target, or they silently revert.
+
+**Not touched, still stale:** `pre-deploy-agent-checklist.md:11` and `full-spectrum-test-prompt.md:17`
+still name `greencirclecertified.com/database` as the production URL. Same class of residue, outside
+what was asked.
+---
+
+## 2026-08-24 — swept the two stale production-URL docs
+
+**Asked:** sweep `pre-deploy-agent-checklist.md` and `full-spectrum-test-prompt.md`.
+
+Both now name `database.greencirclecertified.com` as the production host, each with a short note that
+the path-based `greencirclecertified.com/database` was never activated and cannot work (no
+`UsePathBase` in the app). The checklist's version adds a general rule: **if you find `/database` named
+as the production URL in any doc, it is stale, not a second environment** — the misreading that
+started this thread.
+
+**Deliberately left the mention IN, rather than deleting it.** A reversed decision is not corrected by
+erasing the old value; whoever finds the old address in a partner PDF or an April doc still needs to
+learn what it was and why it is dead. Naming it as retired answers that. Deleting it just recreates
+the confusion the next time someone finds it elsewhere.
+
+**Residual after the sweep — 15 hits, and most SHOULD stay:**
+
+| Category | Files | Verdict |
+|---|---|---|
+| Retirement notes I wrote | prod config (+staging copy), the two swept docs | correct — deliberate |
+| The 08-14 client/Amazon drafts | `2026-08-14-amazon-host-change-note.md`, `…-client-message-integration-guides.md` | correct — announcing the change is their purpose |
+| Historical records | `shipped-2026-04.md`, `cutover-2026-05-01.md`, `full-spectrum-qa-review-2026-05-01.md`, `deployment-drops/EMERGENCY-gate-off/`, `HOTFIX-config/` | leave — a shipped log records what shipped; rewriting it falsifies the record |
+| **Genuinely stale and live** | `AMAZON_TIMELINE_PROPOSAL.md:186` (client-facing, asserts the URL is "already confirmed"), `docs2/api/AMAZON-API-QUICKSTART.md:119`, `docs2/api/PARTNER-API-TESTING-GUIDE.md:590` (sample payload `"id"` values) | flagged, not swept — outside what was asked |
+
+**Lesson — a grep count is not a defect count.** 15 hits looked like 15 things to fix; 12 are correct
+and 3 are real. Categorise by *what the mention is doing* — asserting current truth, announcing a
+change, or recording history — before treating any of them as work.
+---
+
+## 2026-08-24 — corrected the Amazon timeline proposal's production-URL risk row
+
+**Asked:** fix the `AMAZON_TIMELINE_PROPOSAL.md:186` line I had flagged as stale and client-facing.
+
+**Reading it changed how I fixed it.** The file is a **dated client deliverable** — *"Prepared by Anuki
+Consulting, Date: April 15, 2026, Prepared for: GreenCircle Certified"* — which puts it in the same
+category as `shipped-2026-04.md`, the one I had just argued should not be rewritten. Editing the cell
+in place would have quietly changed what Anuki told the client in April.
+
+**So: struck the row rather than replacing it,** and added a dated update note below the table giving
+the correct host, why the path-based address could never have worked, and — the part that matters for
+a *risk register* — that the risk assessment itself still stands, because only the host changes and
+every path, parameter, header and response shape is unchanged. A reader now sees both what was said
+and what is true, and cannot act on the stale value either way.
+
+**Lesson — "is this stale?" and "may I rewrite it?" are separate questions.** I flagged this line as
+stale from a grep hit without opening the file, and recommended fixing it. The content was indeed
+stale; the *document* turned out to be one whose value is that it records a particular date. Check
+what a file **is** before deciding how to correct it — a dated deliverable gets a correction appended,
+never an edit in place. I had the right rule ten minutes earlier and nearly broke it on the next file
+because I recommended the fix before reading the header.
+
+**Verified:** the old URL appears nowhere else in that document. Remaining known-stale `/database`
+references are the two sample-payload `"id"` values in `docs2/api/AMAZON-API-QUICKSTART.md:119` and
+`PARTNER-API-TESTING-GUIDE.md:590` — cosmetic, still untouched.
+
+
+---
+
+## 2026-08-25 — DEF-369 verified end-to-end, and the verification found the fix was incomplete
+
+**The point of this entry: the browser verification was worth doing, and it was worth doing even
+though the change was already built, reviewed and unit-tested with 9 passing tests.** It found a
+live defect on a public route that all of that had missed.
+
+**`DownloadByNumber` accepted `cid` and threw it away.** The action resolved the correct sibling,
+then delegated as `Download(certificate.Number)` — dropping the id at the last step, so `Download`
+re-ran the number-only lookup and returned whichever sibling the shared-number rule picks. Measured
+on `26-0182`: `cid=3741/3742/3743/3744` all returned the byte-identical PDF (`sha 82890eb803d8`,
+Thunder Flat's). The route is `[AllowAnonymous]`. **Every request returned HTTP 200 with a valid
+PDF** — from the outside the fix looked like it worked.
+
+Fixed as `Download(certificate.Number, certificate.Id)` — passing the record this action already
+resolved and status-checked, rather than forwarding `cid`, so the two lookups cannot diverge even on
+the number-only path. After: four distinct PDFs, byte-matching what `Download` returns per sibling.
+
+**Why 9 passing unit tests did not catch it.** They cover the repository lookup, which was never
+wrong. The bug was one controller line discarding a correct result. **A test at the layer below the
+defect cannot see it.** The proof had to be a request through the real route comparing bytes across
+siblings — which is exactly the [[feedback_verify_through_client_click_path]] lesson arriving again,
+now with a concrete cost attached.
+
+**Regression suite built:** `Scripts/smoke-prod/def369-cid-disambiguation.js` — **55 assertions, 0
+failures.** Every check names the certificate it expects AND the siblings it must not see, because
+"the page loaded" and "four downloads succeeded" were both true for the entire broken period. A test
+asserting only success would have passed before the fix.
+
+**Three false results I produced before getting a true one — worth recording, because each looked
+like a defect and none was:**
+
+1. **Four 404s that looked like a broken endpoint.** `DownloadByNumber`'s parameter is `number`, but
+   the default route is `{controller}/{action}/{id?}`, so a path segment binds to `id` and leaves
+   `number` null. Had I stopped at "DownloadByNumber is 404", the real defect underneath would have
+   shipped.
+2. **A data leak that did not exist.** Searching the raw Edit HTML for a sibling's product name
+   "found" Thunder Flat on every page — it is an option label in the *company* dropdown
+   (`Regupol® Sonus™ HS; Thunder Flat`). And the product `<select>` is AJAX-filled, so it is empty
+   server-side and the certificate's own product name is legitimately absent. In a real browser all
+   four preselect correctly — no [[feedback_dropdown_filtered_subset_drops_stored_value]] repeat.
+   **Same lesson as the `" | "` joiner on 08-23: never choose a needle without checking the data for
+   it.**
+3. **A client-side check that could never pass.** The tile search box is an autocomplete over
+   company / product / certification type and does not match certificate numbers, so `26-0182`
+   correctly returns nothing. Asserted from the tile API (four distinct ids) plus the rendered
+   handlers (no handler left number-only) instead.
+
+**Also found, and NOT fixed — DEF-372.** `GET /Certificate/Delete/{number}` returns 500 for every
+certificate: `Views/Certificate/Delete.cshtml` does not exist. Pre-existing, unrelated to DEF-369,
+and unreachable from the UI because all three delete buttons POST to `DeleteConfirmed`. Logged with
+two cheap options and left for a decision rather than fixed inside an unrelated change
+([[feedback_only_requested_changes]]). Note the shape it presents: a *mismatched* cid returns a
+correct 404 while a *correct* cid returns 500 — refusal looks healthy, success looks broken.
+
+**Verified state after the change:** `dotnet build` 0 errors · DEF369 unit tests 9/9 · DEF-369
+regression suite 55/55 · Amazon contract diff 7/7 **CONTRACT UNCHANGED** (re-run after the controller
+edit) · Gate 4 also green against the deployed test site.
+
+**Still NOT verified:** everything here is localhost against `GCCDatabase_Dev`. The DEF-369 change is
+**not deployed** — the test environment still serves the collapsed behaviour, including the
+`DownloadByNumber` defect fixed today. Nothing was committed; the working tree holds the changes.
+---
+
+## 2026-08-25 — sample-payload hosts fixed; the "2 cosmetic values" were 5, and inconsistent
+
+**Asked:** fix the two sample payload `id` values in `docs2/api/AMAZON-API-QUICKSTART.md` and
+`PARTNER-API-TESTING-GUIDE.md`.
+
+**It was not two values, and not cosmetic.** Opening the files showed the `/database` hit was one of
+several `id` values in the same JSON-LD response, and the *siblings disagreed with it*:
+
+| Line | Value |
+|---|---|
+| quickstart :113 | `greencirclecertified.com/api/v1/...` |
+| quickstart :119 | `greencirclecertified.com/**database**/api/v1/...` |
+| quickstart :128 | `greencirclecertified.com/api/v1/...` |
+
+**That payload could never have come off the wire.** The GS1 `id` is generated from the host the
+caller used, so every `id` in one response necessarily shares a host. A partner writing a parser
+against this sample would conclude the product `id` sits on a different host from its parent
+certificate. The stale hostname was the lesser half of the problem; the *inconsistency* was the real
+one, and grepping for `/database` could only ever have found half of it. Five values corrected across
+the two files, not two.
+
+**Lesson — grep finds the token you knew about, not the defect.** I had triaged these as "cosmetic,
+~5 min" from a grep hit twice now without opening the file. Both times the file held something the
+pattern could not express: first that `AMAZON_TIMELINE_PROPOSAL.md` was a dated deliverable, now that
+the neighbouring lines contradicted the one that matched. **Read the block around a hit before
+sizing the fix.**
+
+**Guarded the edit rather than trusting the replace order.** `.../database/api/v1` contains
+`.../api/v1` as a prefix-adjacent form, so a bare replace in the wrong order leaves a stray
+`/database`. Script asserts afterwards that no `/database` survives, and that the count of
+`www.greencirclecertified.com` is unchanged — `agencyURL` is the certifying body's **website**, not an
+API host, and must not be swept up. Both assertions passed.
+
+**Also added** a dated correction note to each file pointing readers to the current guides in
+`docs2/exports/`, and stating plainly that these two have *not* been reviewed against current
+rate-limit or certificate-status behaviour — the trap that made this set dangerous rather than merely
+old.
+
+**Sweep now closed.** Every remaining `greencirclecertified.com/database` occurrence repo-wide is
+either (a) a deliberate "retired, do not reinstate" note, (b) one of the 08-14 drafts announcing the
+change, or (c) a dated historical record. **None asserts it as the current URL.** Two dated May-1
+artifacts (`cutover-2026-05-01.md`, `full-spectrum-qa-review-2026-05-01.md`) still carry it unmarked —
+historical, left alone, though the cutover doc's curl commands would fail if anyone copied them.
+
+
+---
+
+## 2026-08-25 (later) — Deployment bundle built, and three gates were lying
+
+**Bundle: `deployment-drops/GCCWebApp-deploy-20260825-1448.zip` — 61.1 MB, 341 entries.** Built with
+the canonical `Scripts/deploy.ps1 -SkipUploadsBackupPrompt -FromMigration 20260814195931_CR038_AllowDuplicateCertificateNumbers`
+(Release, PleskTestEnvironment). Release build **0 errors**. Generated `apply-migrations.sql` is
+**0 lines of DDL** — today's changes add no migration, so **Gate 7 does not fire**.
+
+**Hygiene — all PASS, 0 entries each:** `DataProtectionKeys`, `appsettings.Development.json`,
+`appsettings.Secrets.json`, `appsettings.Test.json`, `Api.Tests`, `wwwroot/uploads`,
+`App_Data/uploads`, `Scripts/`, `docs/`, `docs2/`, `.env`, `db-backups`. The DataProtectionKeys line
+is the one that matters most ([[feedback_never_bundle_devkeys_and_devconfig]] — dev keys ship
+*unencrypted*); confirmed absent.
+
+**Content verified in the zip, not assumed:** `GetCertificateByNumberAndIdAsync`,
+`CountCertificatesByNumberAsync`, `SharesCertificateNumber` all present in the in-zip DLL; control
+marker `zzz_not_a_real_marker` correctly ABSENT.
+
+**A marker that was absent without the fix being absent.** `certificate-tile-view.js` (the PUBLIC
+tile view) has no `withCid` helper, unlike the internal and external ones — it builds `?cid=` inline
+in three places (single view, download, edit). Checking for the helper NAME would have reported the
+public view as unfixed. This is the DEF-344 lesson exactly: **verify the behaviour, not the
+literal.** Confirmed by reading the three constructions.
+
+**Then the gates. Three of the four were reporting things that were not true.**
+
+| Gate | Reported | Actually |
+|---|---|---|
+| 9 static | RED-FAIL, `"2FAMethod"` never read | It is read at `AccountController.cs:1316` — **DEF-373** |
+| 8 CRUD | 0 PASS / 5 FAIL, every write path broken | Never ran an assertion — **DEF-374** |
+| 3 security | exit 1 | 36 PASS / **0 FAIL** / 5 BLOCKED — a dev-DB data gap |
+| 4 contract | PASS | genuinely PASS, 7/7 CONTRACT UNCHANGED |
+
+**DEF-373 — two false positives, the first hiding the second.** L1 ("provable orphan", FAIL) tested
+`consuming.length === 0` and `continue`d, while L3 ("only ever Peek'd", WARN) tested a strict
+**subset** of that condition afterwards — so **L3 was unreachable dead code** and every Peek-only key
+was reported as a deploy blocker. Fixing L1 then exposed L2, which scans only `targetCtrl.actions`
+and so cannot see a read inside a **private helper** — it stated outright that "NOTHING in
+AccountController" reads the key. Both fixed; gate GREEN, selftest 9/9. **One fix would have looked
+like the answer and would not have been.**
+
+**DEF-374 — the gate could not read its own configuration.** `write-harness.js` parsed
+`appsettings.Development.json` with `JSON.parse`; that file is **JSONC**, and a DEF-286 comment block
+landed at line 34 on **2026-08-13**. Since then Gate 8 has been dark, presenting as five broken write
+paths. Fixed with a shared, **string-aware** `_lib/read-jsonc.js` — naive comment-stripping would
+have eaten `"Url": "http://localhost:5101"` and produced an unterminated string. After: **39 PASS /
+0 FAIL**, the exact count the checklist documents. The write paths were never broken.
+
+**The through-line, third day running (DEF-371 → 373 → 374): a harness with no "could not run" state
+converts its own breakage into evidence about the code.** Every one of these presented as a
+confident, specific, deploy-blocking finding about the application. Two of them would have sent
+someone hunting a bug that did not exist; DEF-374 additionally *hid* a working gate for twelve days.
+**Read HOW a gate failed before acting on WHAT it said** ([[feedback_verification_scripts_default_to_wrong_env]]).
+
+**Owed before upload — not blockers I can clear from here:**
+- **Gate 0:** back up the server's `wwwroot/uploads/` before extracting ([[feedback_backup_uploads_before_deploy]]).
+- **Security 5 BLOCKED:** the CR-171 partner test users (`iso.partner@amazon.com`, `iso.perry.novi@…`,
+  `iso.pam.wayfair@…`, `iso.pip.other@…`, `iso.pru.multi@…`) do not exist in `GCCDatabase_Dev`, so
+  partner-isolation asserts nothing locally. **0 FAIL is not the same as verified** — restore that
+  fixture data or waive it explicitly in the checklist.
+- **Gates 11 + 12** run AFTER the upload: close-out (`Scripts/deploy/close-out.js`) and the email
+  banner + a real password reset. Gate 12 is not optional — `MockEmailService` fails silently and
+  `TestConnectionAsync()` always returns true.
+- The bundle carries DEF-369 + DEF-372's context but **no shipped-log entry yet** — that is written
+  when it actually ships, per Gate 11.
+
+**Not committed.** Everything remains in the working tree ([[feedback_no_commits]]). The zip was
+published FROM the working tree, which is what Gate 9's `MODIFIED` warning requires — a bundle built
+from a clean checkout of HEAD would silently drop DEF-343, DEF-344 and today's work.
+
+---
+
+## 2026-08-25 — Post-deploy: DEF-375, and two symptoms that were not what they looked like
+
+Shawn deployed the 2026-08-25 bundle and reported two failures on the test environment:
+*"authenticator is not working and download is not working in public view."*
+
+### What the download turned out to be — DEF-375, my own regression
+
+Diagnosis order mattered here, and my first three readings were all wrong:
+
+1. `/appsettings.Production.json` returned **HTTP 200** — I flagged a live secret leak. **False.**
+   Every path returns 200, including `/web.config` and `/GCCWebApp.dll`: the test-environment gate
+   answers everything with a 200 HTML page. I had read the status code without the body. This is
+   exactly DEF-319's recorded lesson and I walked into it anyway.
+2. Data-protection key ring instability — **tested and disproved** (a gate cookie minted and reused
+   cleanly over 36s).
+3. Playwright `httpCredentials` "authenticated" me — **it did not.** Those credentials are only sent
+   after a 401, and the gate issues a 302, so every measurement in that pass was the gate page
+   again. The tell was `/js/certificate-tile-view.js` reporting `len=2534` — gate HTML, not the 65 KB
+   file.
+
+Only after asserting *"am I actually past the gate?"* before measuring did real data appear: the
+server was **completely healthy**. Six certificates returned six **distinct** real PDFs; every file
+route (`Download`, `DownloadByNumber`, `ViewCertificateFile`, `ViewCertificateImage`) correct; all
+three tile JS files byte-identical to the local build. The deploy was clean.
+
+The defect only existed in a browser. Loading the exact page Shawn named and inspecting the live DOM:
+
+```
+downloadFnType: "undefined"      // while the button renders onclick="downloadCertificate('26-0475', 3155)"
+SyntaxError: Identifier 'url' has already been declared   (CertificateSingleView:249)
+```
+
+My DEF-369 change added `const url` to a function that already declared `const url` further down for
+the blob object URL, at the same scope. A duplicate `const` is a **parse-time** error, so the whole
+inline `<script>` block was discarded — taking `openImageZoom` and `closeImageZoom` down with it.
+**Download and Zoom were both dead on every certificate detail page.** Full write-up: DEF-375.
+
+**The uncomfortable part:** the DEF-369 suite I built for exactly this defect passed 55/55 while the
+page was broken in production. It drove HTTP request contexts and asserted on rendered markup, so it
+proved the button was *rendered correctly* — never that it *ran*. The layer lesson from
+`feedback_test_below_the_defect_layer` repeated one level up: I moved the tests up to the route and
+the defect moved up to the parser.
+
+New check: `Scripts/smoke-prod/_views/single-view-script-block.js` — real browser, asserts no page
+JS error, asserts every function named by a rendered `onclick` is callable, and clicks Download and
+requires `%PDF` bytes. Reproduced the defect before the fix; 7/7 after.
+
+### What the authenticator turned out to be — not a regression
+
+`AccountController.cs` is byte-identical to the deployed commit, so 2FA logic did not move in this
+bundle. The test database explains it:
+
+| Account | 2FA | Secret | Method | Consequence |
+|---|---|---|---|---|
+| `2fatest` | on | **none** | TOTP | `Resolve2FARequirementAsync` downgrades to an **emailed** code — an authenticator app can never work for it |
+| `admin` | on | 32-char | TOTP | **requires** the authenticator app, with no email fallback |
+
+Clock skew DB-vs-local: **33 ms**, so not time drift. Which account was used decides whether this is
+"working as designed, wrong expectation" or "locked out of admin". Left for Shawn — clearing a
+secret touches a real account.
+
+### Carried forward
+
+- Never report a status code from a gated environment without asserting the body is not the gate.
+- A syntax error anywhere in an inline script block disables *every* handler in that block. Adding a
+  variable to an existing function is not a local change.
+- Rendering-level assertions cannot see execution-level defects.
+
+---
+
+## 2026-08-28 — "the DB keeps restarting with the same certs" (DEF-381)
+
+Client reported the public tile view repeating batches as you scroll, blocking the review that was
+trying to reconcile 964 shown against 982 expected. Reported as a database problem.
+
+**It was not the database, and it was not the API.** Walked the live public API end to end: 963 rows,
+963 distinct, zero duplicates, on three different sorts. The defect was one line of client-side
+rendering — `renderCertificates(append)` rendered the whole accumulated array and appended it, so
+each scroll re-drew everything loaded so far beneath what was already on screen.
+
+The tell was in the client's own report and I nearly walked past it: *"clearing cache did not fix
+it."* That was offered as "so it must be the server", and it is actually the opposite — the script
+is loaded with `asp-append-version="true"`, so a cache clear could never have changed anything. The
+symptom the user attributes to a layer is not evidence about that layer.
+
+Two counts, both real, and worth keeping separate:
+
+| Question | Answer |
+|---|---|
+| Why does the screen repeat? | DEF-381, rendering. Fixed. |
+| Why 963 and not 982? | 979 certs are in a public status; 16 are staged ahead of their effective date (DEF-358, working as designed). None are hidden by expiry. |
+
+963 + 16 = 979, not 982. The remaining 3 are unexplained and I did not invent an explanation —
+asked the client where 982 came from rather than reverse-engineering a number to match.
+
+### Carried forward
+
+- "Clearing the cache didn't help" is evidence *against* a caching cause, not evidence for a
+  server-side one. Read the disconfirming half of a user's report.
+- Duplicate rows on screen do not imply duplicate rows from the query. Check the render path before
+  the sort/pagination path — the DOM is where the duplication was.
+- When three sibling scripts implement the same behaviour and one misbehaves, diff them against each
+  other first. The external and internal tile scripts already had the correct append; the fix was
+  bringing the public one in line, not inventing anything.
+- A count question and a display question can arrive in the same sentence and share no cause.
+
+---
+
+## 2026-08-30 — Full regression against gccwebapp.com, and why fixed defects keep coming back
+
+**Ask.** Full regression on the test environment; confirm previously-fixed defects are still fixed;
+answer why regression testing is not catching what a sprint breaks.
+
+### What the site actually does
+
+~380 assertions executed against `https://gccwebapp.com`. Everything that could run, ran.
+
+| Suite | Result |
+|---|---|
+| 00 preflight (6 role accounts) | 13 P / 0 F |
+| 01 RBAC matrix | 168 P / 0 F |
+| 02 data scoping | 31 P / **2 F** (stale assertion — see below) |
+| 03 exports + downloads | 57 P / 0 F |
+| 04 create / edit / delete | **17 P / 0 F** on re-run (first run's 2 F were a test race) |
+| 05 performance | 19 P / 0 F |
+| 06 import | 14 P / 0 F / 1 W |
+| 08 tile scroll dupes (DEF-381) | PASS |
+| 09 offset paging (DEF-382) | PASS |
+| 10 recovery-code format (DEF-384) | PASS |
+| smoke.js (post-deploy) | 30 / 30 |
+| static gate | 23 P / 0 F / 13 W |
+| DEF-369 live (written this session) | 9 P / 0 F |
+
+**No product defect was found on gccwebapp.com.** All four failures reported by the suite were
+faults in the tests, not in the application.
+
+**DEF-369 is confirmed fixed on the client's environment**, which the register did not establish —
+its entry still reads `OPEN` and `built + tested, NOT deployed`, and the shipped regression script
+hardcodes localhost ids so it had never been pointed at the client's site. Verified live across 10
+siblings on 3 shared numbers (26-0182, 26-0166, 26-0168): each sibling renders its own detail page,
+each downloads its **own** PDF (sha256-compared, magic-byte checked), and a foreign `cid` returns
+404 with no fallback. This was the client's loudest complaint and it is genuinely resolved.
+
+### Why regressions still escape — five findings, none of them "we don't have tests"
+
+1. **Traceability.** 303 register entries, ~280 fixed. Only **19** are guarded by a named check in a
+   maintained suite. The rest rely on broad behavioural suites with no link back to the defect, so
+   nothing tells you which fix a red test protects — or that a fix has no test at all.
+
+2. **The suites cannot reach the client's environment.** `_security/` (the P0 gate), `_views/`,
+   `_crud/`, and `_regression/07,11,12` are localhost-only. `_security/` additionally hardcodes
+   Basic-auth credentials and the accounts `admin`/`analyst`/`external`, which do not exist on TEST.
+   Pointed at gccwebapp.com it does not fail — it **crashes** waiting for `#Email`, because the
+   cookie gate intercepts first. The P0 security gate has never run against the site the client uses.
+
+3. **The gate that does run cries wolf.** 100% of this run's failures were noise:
+   - `02` asserts certificate numbers are unique. **CR-038 deliberately removed that rule.** It
+     reports 137 numbers / 312 rows every single time — a permanent red that means nothing.
+   - `04` waits a blind 1500 ms after the Edit submit, then reads back. The save takes ~3.8 s
+     remotely, so it intermittently reports "Edit does not persist" on a working app. Instrumented,
+     the POST returns 302 and the value persists.
+   A gate with a standing false red is a gate people stop reading.
+
+4. **Fixed ≠ shipped.** The static gate finds **8 fixed defects not in the client's hands**, and
+   **DEF-343 and DEF-344 exist only in the working tree** — they are not on the server at all.
+   DEF-343's exposure is currently latent (enumerated all 14 in-use certification types against the
+   18 the Edit dropdown offers: zero missing), but it arms the moment a child type is assigned or a
+   type is deactivated.
+
+5. **The register cannot be read as a status source.** 101 entries still say "pending deploy" for
+   work that shipped; DEF-369 says OPEN while being fixed and live. Nobody can tell from the
+   register what is actually running.
+
+### Carried forward
+
+- "We have regression testing" and "regression testing runs against what the client sees" are
+  different claims. Check which environment a suite can actually reach before trusting it.
+- A test that has always been red is worse than no test: it trains everyone to ignore the colour.
+- Before filing a product defect from a suite failure, instrument the failing step. Two of two
+  "product defects" this session were the test's own timing and a rule the client had changed.
+- A suite pinned to hardcoded ids from one environment silently stops testing when the data reloads.
+
+---
+
+## 2026-08-31 — "error saving user" (DEF-387)
+
+**Asked:** *"error saving user. when I try to create a new user"* — on the test environment
+(gccwebapp.com).
+
+**What it turned out to be.** That sentence is not a symptom of the create failing. It is the
+symptom of the create's *reason* being discarded. `wwwroot/js/userManagement.js` wrapped
+`await response.json()` in a `try/catch` whose entire output was the fixed string *"Error saving
+user. Please try again."* — so any response that is not JSON lands there with nothing attached.
+Since every failure path in `AdminController.CreateUser` returns JSON, reaching that `catch` proves
+the response never came from the action.
+
+**Root cause of the non-JSON response: a missing header.** The admin `fetch()` did not send
+`X-Requested-With: XMLHttpRequest`. This app branches on that header in two places
+(`Program.cs:326`, `Program.cs:731`) precisely so AJAX callers get JSON instead of a login
+redirect. Without it, an expired anti-forgery token (400) or an expired auth cookie both get
+rewritten into the `/Account/Login` **HTML page**, which `fetch` follows transparently — and
+`response.json()` then throws on a page that returned 200.
+
+**Fixed:** header added to both save fetches, a `readJsonResponse()` helper that names the real
+condition, and a `catch` that shows it. `DEF-387` filed.
+
+### Carried forward
+
+- **This was predicted and left.** DEF-366 closed on 2026-08-20 with an explicit note that this
+  same fallback was "a second, independent way for a real reason to be swallowed", recorded
+  "rather than speculatively changed" because it had not fired yet. It fired eleven days later and
+  cost a support round-trip. When a diagnosis already names the next failure, a two-line fix then
+  is cheaper than the report later.
+- **A generic error string is a diagnostic dead end, and it is worth grepping for.** The fastest
+  step here was finding that the reported words existed at exactly one line in the codebase. Error
+  text that appears once is a precise locator; error text that appears everywhere is not. Prefer
+  the former when writing it.
+- **`response.json()` without a content-type check is a latent bug in any authenticated page**, not
+  just this one. The same swallow still exists in `deleteUser` and in the unused
+  `wwwroot/js/admin/userManagement.js`. Recorded in DEF-387, not changed — they were not reported.
+- **Confirm the environment before diagnosing.** Localhost would very likely not have reproduced
+  this: the token/cookie expiry window that triggers it is a property of a long-lived session on
+  the deployed site.

@@ -1,0 +1,807 @@
+<title>GCC Regression Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  /* ---- Light palette: complete token set on bare :root ---- */
+  :root {
+    --ground:      #ffffff;
+    --surface:     #f4f6fa;
+    --surface-2:   #e9edf4;
+    --line:        #d5dce7;
+    --line-soft:   #e6ebf2;
+    --ink:         #101a2b;
+    --ink-2:       #35435c;
+    --muted:       #64728a;
+    --accent:      #1f4e8c;
+    --accent-soft: #e8eefa;
+    --ok:          #2c6f47;
+    --ok-soft:     #e4f0e8;
+    --warn:        #99631a;
+    --warn-soft:   #f8eeda;
+    --crit:        #a8302a;
+    --crit-soft:   #fae7e5;
+    --shadow:      0 1px 2px rgba(16,26,43,.06), 0 8px 24px rgba(16,26,43,.05);
+
+    --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --body:    "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono:    "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+
+  /* ---- Dark: redefine tokens only. Guarded so an explicit light choice wins. ---- */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0c1220;
+      --surface:     #131c2e;
+      --surface-2:   #1b2639;
+      --line:        #2a3750;
+      --line-soft:   #202b40;
+      --ink:         #e8edf6;
+      --ink-2:       #b8c4d8;
+      --muted:       #8492ab;
+      --accent:      #7aa8e6;
+      --accent-soft: #16233a;
+      --ok:          #6fc191;
+      --ok-soft:     #14261c;
+      --warn:        #dfae62;
+      --warn-soft:   #2a2114;
+      --crit:        #e88a82;
+      --crit-soft:   #2c1614;
+      --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #0c1220;
+    --surface:     #131c2e;
+    --surface-2:   #1b2639;
+    --line:        #2a3750;
+    --line-soft:   #202b40;
+    --ink:         #e8edf6;
+    --ink-2:       #b8c4d8;
+    --muted:       #8492ab;
+    --accent:      #7aa8e6;
+    --accent-soft: #16233a;
+    --ok:          #6fc191;
+    --ok-soft:     #14261c;
+    --warn:        #dfae62;
+    --warn-soft:   #2a2114;
+    --crit:        #e88a82;
+    --crit-soft:   #2c1614;
+    --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 3rem 0 1.25rem;
+    margin-bottom: 2.5rem;
+  }
+  .eyebrow {
+    font-family: var(--display);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 .85rem;
+  }
+  .masthead h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.06;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    margin: 0 0 1.1rem;
+  }
+  .runmeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem 2rem;
+    font-family: var(--display);
+    font-size: .82rem;
+    color: var(--muted);
+    margin: 0;
+  }
+  .runmeta b { color: var(--ink-2); font-weight: 600; }
+  .runmeta code { font-family: var(--mono); font-size: .8rem; color: var(--ink-2); }
+
+  /* ---------- Verdict ---------- */
+  .verdict {
+    background: var(--ok-soft);
+    border: 1px solid var(--ok);
+    border-left-width: 5px;
+    border-radius: 3px;
+    padding: 1.25rem 1.4rem;
+    margin-bottom: 2.25rem;
+  }
+  .verdict p { margin: 0; }
+  .verdict p + p { margin-top: .7rem; }
+  .verdict strong { color: var(--ok); font-family: var(--display); font-weight: 700; }
+
+  /* ---------- Scoreboard ---------- */
+  .score {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 3rem;
+  }
+  .score div { background: var(--surface); padding: 1.15rem 1.2rem; }
+  .score .n {
+    font-family: var(--display);
+    font-size: 2.15rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    display: block;
+  }
+  .score .k {
+    font-family: var(--display);
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-top: .45rem;
+  }
+  .score .pass .n { color: var(--ok); }
+  .score .fail .n { color: var(--crit); }
+  .score .warn .n { color: var(--warn); }
+
+  /* ---------- Sections ---------- */
+  section { margin-bottom: 3.5rem; }
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.42rem;
+    letter-spacing: -.01em;
+    text-wrap: balance;
+    margin: 0 0 .35rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+  .sublede {
+    color: var(--muted);
+    font-size: .95rem;
+    margin: 0 0 1.5rem;
+    max-width: 62ch;
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.02rem;
+    letter-spacing: .01em;
+    margin: 2rem 0 .6rem;
+  }
+  p { max-width: 68ch; }
+  p, ul, ol { margin: 0 0 1rem; }
+  ul, ol { padding-left: 1.15rem; max-width: 68ch; }
+  li { margin-bottom: .4rem; }
+  a { color: var(--accent); }
+  code {
+    font-family: var(--mono);
+    font-size: .855em;
+    background: var(--surface-2);
+    padding: .1em .38em;
+    border-radius: 2px;
+  }
+  strong { font-weight: 600; }
+
+  /* ---------- Tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 0 0 1.25rem; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: .9rem;
+    min-width: 30rem;
+  }
+  th, td {
+    text-align: left;
+    padding: .6rem .8rem;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: .7rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); }
+  tbody tr:last-child td { border-bottom: none; }
+  .zero { color: var(--ok); font-weight: 600; }
+  .nonzero { color: var(--crit); font-weight: 600; }
+
+  /* Meter cell for the perf table */
+  .meter {
+    display: block;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--accent);
+    opacity: .55;
+    min-width: 2px;
+  }
+
+  /* ---------- Findings ---------- */
+  .finding {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--muted);
+    border-radius: 3px;
+    padding: 1.3rem 1.45rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  .finding.crit { border-left-color: var(--crit); }
+  .finding.warn { border-left-color: var(--warn); }
+  .finding.info { border-left-color: var(--accent); }
+  .finding.ok   { border-left-color: var(--ok); }
+
+  .fhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: .55rem .8rem; margin-bottom: .8rem; }
+  .fid {
+    font-family: var(--mono);
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--ground);
+    background: var(--ink-2);
+    padding: .18rem .45rem;
+    border-radius: 2px;
+  }
+  .finding.crit .fid { background: var(--crit); }
+  .finding.warn .fid { background: var(--warn); }
+  .finding.info .fid { background: var(--accent); }
+  .finding.ok   .fid { background: var(--ok); }
+  .ftitle {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.06rem;
+    letter-spacing: -.005em;
+    flex: 1 1 18rem;
+    margin: 0;
+  }
+  .chip {
+    font-family: var(--display);
+    font-size: .66rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: .22rem .5rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .chip.crit { background: var(--crit-soft); color: var(--crit); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.info { background: var(--accent-soft); color: var(--accent); }
+  .chip.ok   { background: var(--ok-soft);   color: var(--ok); }
+  .chip.fixed { background: var(--ok); color: var(--ground); }
+  .finding.resolved { border-left-color: var(--ok); opacity: .92; }
+  .finding.resolved .fid { background: var(--ok); }
+  .fixnote {
+    background: var(--ok-soft);
+    border-left: 3px solid var(--ok);
+    padding: .7rem .95rem;
+    margin-top: 1rem;
+    font-size: .93rem;
+    border-radius: 2px;
+  }
+  .fixnote b {
+    font-family: var(--display);
+    font-size: .68rem; font-weight: 600; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ok);
+    display: block; margin-bottom: .25rem;
+  }
+  .finding p:last-child, .finding .tablewrap:last-child, .finding ul:last-child { margin-bottom: 0; }
+
+  .rec {
+    border-top: 1px dashed var(--line);
+    margin-top: 1rem;
+    padding-top: .85rem;
+    font-size: .93rem;
+  }
+  .rec b {
+    font-family: var(--display);
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: .25rem;
+  }
+
+  /* ---------- Callout ---------- */
+  .callout {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-left-width: 5px;
+    border-radius: 3px;
+    padding: 1.3rem 1.45rem;
+    margin-bottom: 1.5rem;
+  }
+  .callout > :last-child { margin-bottom: 0; }
+
+  /* ---------- Code block ---------- */
+  pre {
+    font-family: var(--mono);
+    font-size: .82rem;
+    line-height: 1.65;
+    background: var(--surface-2);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    margin: 0 0 1.15rem;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  pre .c { color: var(--muted); }
+
+  /* ---------- Gaps list ---------- */
+  ol.gaps { counter-reset: g; list-style: none; padding-left: 0; max-width: 68ch; }
+  ol.gaps li {
+    counter-increment: g;
+    position: relative;
+    padding-left: 2.3rem;
+    margin-bottom: .75rem;
+  }
+  ol.gaps li::before {
+    content: counter(g);
+    position: absolute;
+    left: 0; top: .12em;
+    font-family: var(--mono);
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: grid;
+    place-items: center;
+  }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-top: 1.25rem;
+    color: var(--muted);
+    font-size: .85rem;
+  }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Status Testing Report · Full Regression</p>
+    <h1>GreenCircle Database — TEST environment regression</h1>
+    <p class="runmeta">
+      <span><b>Target</b> <code>https://gccwebapp.com</code></span>
+      <span><b>Run</b> 25–26 Aug 2026</span>
+      <span><b>Dataset</b> migrated client data, loaded 18 Aug 2026</span>
+      <span><b>By</b> Anuki (internal)</span>
+    </p>
+  </header>
+
+  <div class="verdict">
+    <p><strong>The application is functionally sound.</strong> Access control, the write path, and
+    performance are clean. All nine failures are data-scoping or data-quality issues, not broken features.</p>
+    <p><strong>Nothing found blocks continued UAT.</strong> Two items should be resolved before the client
+    sees the Amazon partner surface.</p>
+    <p><strong>Update, 26 Aug — all five findings actioned.</strong> F-2 to F-5 are fixed, built clean, and
+    verified end to end on localhost through the real HTTP path; F-1's premise turned out to be wrong and is
+    corrected below. Logged as <strong>DEF-376 to DEF-379</strong>, plus <strong>DEF-380</strong> found during
+    cleanup. Nothing is deployed yet.</p>
+  </div>
+
+  <div class="score">
+    <div><span class="n">324</span><span class="k">Checks run</span></div>
+    <div class="pass"><span class="n">308</span><span class="k">Passed</span></div>
+    <div class="fail"><span class="n">9</span><span class="k">Failed</span></div>
+    <div class="warn"><span class="n">1</span><span class="k">Warning</span></div>
+    <div><span class="n">7</span><span class="k">Phases</span></div>
+  </div>
+
+  <section>
+    <h2>Fix status</h2>
+    <p class="sublede">Added 26 August. Every fix was re-checked through the surface a user touches,
+    not just at the unit layer &mdash; DEF-369 shipped with nine green unit tests and a broken controller.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>Finding</th><th>Outcome</th><th>DEF</th><th>Verified how</th></tr></thead>
+        <tbody>
+          <tr><td><code>F-1</code></td><td>Gate password rotation</td><td><span class="chip info">Premise corrected</span></td><td>&mdash;</td><td>No code change needed &mdash; see the finding</td></tr>
+          <tr><td><code>F-2</code></td><td>Amazon tile view leaked 2 not-yet-effective certs</td><td><span class="chip fixed">Fixed</span></td><td><code>DEF-376</code></td><td>Real Partner user: <b>208</b> tiles (was 210), both certs gone, download returns 400</td></tr>
+          <tr><td><code>F-3</code></td><td>Empty-scope export returned HTTP 400</td><td><span class="chip fixed">Fixed</span></td><td><code>DEF-377</code></td><td>Empty-filter export returns 200 <code>text/csv</code>, header row only</td></tr>
+          <tr><td><code>F-4</code></td><td>Import rejected a blank Certificate #</td><td><span class="chip fixed">Fixed</span></td><td><code>DEF-378</code></td><td>Real upload &rarr; preview &rarr; apply: two blank rows &rarr; <code>26-0482</code> + <code>26-0483</code>, distinct</td></tr>
+          <tr><td><code>F-5</code></td><td>Product import template reachable by External</td><td><span class="chip fixed">Fixed</span></td><td><code>DEF-379</code></td><td>Admin 200; anonymous 302 to login</td></tr>
+          <tr><td><code>F-6</code></td><td>Novi has no cert associations</td><td><span class="chip info">Open</span></td><td>&mdash;</td><td>Data gap &mdash; seed rows on TEST</td></tr>
+          <tr><td><code>F-7</code></td><td>Duplicate cert numbers</td><td><span class="chip ok">Tracked</span></td><td><code>DEF-369</code></td><td>&mdash;</td></tr>
+          <tr><td>&mdash;</td><td><code>GET /Certificate/Delete/{number}</code> returns 500 &mdash; the view was never created</td><td><span class="chip warn">Open</span></td><td><code>DEF-380</code></td><td>Found while cleaning up fixtures</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>Not deployed.</strong> All four code fixes are in the working tree. <code>dotnet build</code> is
+    clean; the unit suite shows <strong>87 failures before and after</strong> (all pre-existing, mostly
+    integration tests needing a live server) with passing count <strong>731 &rarr; 733</strong> from three new
+    import tests. Re-run phases 1&ndash;3 and 6 against gccwebapp.com after the next deploy to confirm them there.</p>
+  </section>
+
+  <section>
+    <h2>Results by phase</h2>
+    <p class="sublede">Seven phases, run in sequence against the live test environment. Both write
+    phases created only their own fixtures and removed them afterwards.</p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Phase</th><th>Covers</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Warn</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>0</b> · Preflight</td><td>Gate mode, 6 role logins, landing pages</td><td class="num">13</td><td class="num zero">0</td><td class="num">0</td></tr>
+          <tr><td><b>1</b> · RBAC matrix</td><td>24 routes × 7 roles</td><td class="num">168</td><td class="num zero">0</td><td class="num">0</td></tr>
+          <tr><td><b>2</b> · Data &amp; scoping</td><td>Populations, isolation pairs, cert-number integrity</td><td class="num">31</td><td class="num nonzero">2</td><td class="num">0</td></tr>
+          <tr><td><b>3</b> · Exports &amp; downloads</td><td>CSV exports and templates per role, scoping</td><td class="num">47</td><td class="num nonzero">6</td><td class="num">0</td></tr>
+          <tr><td><b>4</b> · Create / edit / delete</td><td>Full write round-trip through the UI</td><td class="num">17</td><td class="num zero">0</td><td class="num">0</td></tr>
+          <tr><td><b>5</b> · Performance</td><td>11 pages + 8 APIs, 5 samples each</td><td class="num">19</td><td class="num zero">0</td><td class="num">0</td></tr>
+          <tr><td><b>6</b> · Import</td><td>Template → upload → preview → apply → verify</td><td class="num">13</td><td class="num nonzero">1</td><td class="num">1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>What passed — and what that actually proves</h2>
+    <p class="sublede">A pass count is only worth what the assertion behind it demanded.</p>
+
+    <h3>Access control — 168 of 168</h3>
+    <p>Every one of 24 routes was requested by all seven callers: anonymous, External ×2, Partner ×2,
+    Analyst, Admin. Public routes served anonymously; every External-, Analyst- and Admin-gated route
+    bounced everyone below its policy to <code>/Account/Login</code> or <code>/Account/AccessDenied</code>
+    and served 200 to those at or above it. No route leaked, and no route over-blocked.</p>
+
+    <h3>Isolation — proven by pairing, not by counting</h3>
+    <p><code>test.external</code> (Sika Corporation) and <code>test.external2</code> (MAPEI) were each
+    walked to exhaustion and their certificate-number <em>sets</em> compared in both directions:
+    30 vs 21, <strong>zero shared</strong>, each seeing exactly one distinct company name. Same for the
+    Amazon / Novi partner pair. A matching count would have survived a scoping bug; a set comparison
+    does not.</p>
+    <p>Analyst and Admin see the identical internal population — 5,702 rows, zero rows exclusive to
+    either. The anonymous population (964) is a strict <em>subset</em> of the internal one, with no
+    certificate visible publicly that is absent internally.</p>
+
+    <h3>The write path works end to end</h3>
+    <p>As Analyst, through the real form: create → auto-numbered <code>26-0482</code> → PDF uploaded and
+    linked → read back through the API → Draft correctly <em>not</em> publicly visible → Edit form
+    prefilled with stored values → edit persisted → no duplicate row created → Delete correctly refused
+    to the Analyst → deleted as Admin → fixture removed. The optional <strong>Certification Results</strong>
+    field round-tripped correctly on both create and edit.</p>
+
+    <h3>Performance — 19 of 19 within budget, most by an order of magnitude</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Surface</th><th class="num">Median</th><th class="num">Budget</th><th>Headroom</th></tr></thead>
+        <tbody>
+          <tr><td>Public tile view</td><td class="num">149 ms</td><td class="num">3,000 ms</td><td><span class="meter" style="width:5%"></span></td></tr>
+          <tr><td>Internal tile view (Analyst)</td><td class="num">159 ms</td><td class="num">4,000 ms</td><td><span class="meter" style="width:4%"></span></td></tr>
+          <tr><td>Certificate Create form</td><td class="num">379 ms</td><td class="num">5,000 ms</td><td><span class="meter" style="width:8%"></span></td></tr>
+          <tr><td>Dashboard</td><td class="num">475 ms</td><td class="num">6,000 ms</td><td><span class="meter" style="width:8%"></span></td></tr>
+          <tr><td>Internal tile API — deep page (50)</td><td class="num">144 ms</td><td class="num">3,000 ms</td><td><span class="meter" style="width:5%"></span></td></tr>
+          <tr><td>Search API (<code>search=sika</code>)</td><td class="num">356 ms</td><td class="num">3,000 ms</td><td><span class="meter" style="width:12%"></span></td></tr>
+          <tr><td><b>Full CSV export</b> — 5,702 rows / 1.5&nbsp;MB</td><td class="num">3,759 ms</td><td class="num">15,000 ms</td><td><span class="meter" style="width:25%"></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Deep pagination costs nothing over page 1, which means the <code>AsSplitQuery()</code> work from
+    DEF-166/234 is holding. Cold start on an idle app pool adds roughly 0.3–0.9&nbsp;s on first hit,
+    then settles.</p>
+
+    <h3>Confirmed on screen</h3>
+    <p>Browser-driven checks confirmed the role contracts visually: internal tiles show
+    <strong>certificate numbers</strong> (26-0441, 26-0330…), <strong>not database IDs</strong>; the
+    External user's certificate page has <strong>no Add Certificate, Import or Template buttons</strong>;
+    and the External user's Product Management table has <strong>no Actions column</strong>, ending at
+    the IDs column.</p>
+  </section>
+
+  <section>
+    <h2>Findings</h2>
+    <p class="sublede">Seven findings. Numbered because the triage table at the end refers back to them.</p>
+
+    <article class="finding info">
+      <div class="fhead">
+        <span class="fid">F-1</span>
+        <h3 class="ftitle" style="margin:0">Test-environment gate password rotation never took effect</h3>
+        <span class="chip info">Premise corrected</span>
+      </div>
+      <p>The 17 Aug rotation to <code>GreenCircle-Test-2026</code> is <strong>not live</strong>. That value
+      returns <strong>401</strong>; the pre-rotation <code>Cert-Test-Access-2026!</code> still opens the gate.</p>
+      <div class="fixnote"><b>Corrected 26 August — the impact claim here was wrong</b>
+      This originally said all 46 scripts had been rotated and were therefore failing at the gate. They had
+      not been: <strong>92 files under <code>Scripts/</code> already carry the working
+      <code>Cert-Test-Access-2026!</code></strong>, and the only file with the non-working value was the
+      <code>regression-lib.js</code> written during this run. <strong>The existing suite was never
+      broken.</strong> The rotation exists in intent only — it reached neither the deployed config nor the
+      scripts.</div>
+      <p>A deliberately-wrong password returns a clean <code>401 "Incorrect password"</code>, proving CSRF,
+      data protection and the compare path are all healthy. The configured value simply is not the one
+      running. <code>TestEnvironmentGateMiddleware</code> binds its options once in the constructor and is a
+      singleton, so <strong>an app-pool recycle is required</strong> — editing the JSON alone does nothing.
+      The DEF-363 recovery may also have restored the older <code>appsettings.Production.json</code>.</p>
+      <p class="rec"><b>Decision</b>The rotation is deliberately <strong>deferred</strong> while UAT users are
+      mid-test. The regression lib was pinned to the live value instead. When the rotation does happen it needs
+      an app-pool recycle as well as the config edit, because the middleware binds its options once in the
+      constructor and is a singleton.</p>
+    </article>
+
+    <article class="finding resolved">
+      <div class="fhead">
+        <span class="fid">F-2</span>
+        <h3 class="ftitle" style="margin:0">Amazon partner tile view shows two certificates ~2 months before their effective date</h3>
+        <span class="chip fixed">Fixed &middot; DEF-376</span>
+      </div>
+      <p><strong>The finding most worth acting on before the client demos the partner surface.</strong></p>
+      <p>For <code>test.amazon</code>, the tile view returns <strong>210</strong> certificates while the CSV
+      export returns <strong>208</strong>. The two extra rows are:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Cert #</th><th>Company</th><th>Status</th><th>Effective</th><th>Expires</th></tr></thead>
+          <tbody>
+            <tr><td><code>26-0441</code></td><td>X-SENSE</td><td>Client Approved - Paid</td><td><strong>2026-10-21</strong></td><td>2027-10-20</td></tr>
+            <tr><td><code>26-0442</code></td><td>X-SENSE</td><td>Client Approved - Paid</td><td><strong>2026-10-21</strong></td><td>2027-10-20</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Both are <strong>not yet effective</strong> — the run date is 25 Aug 2026.</p>
+      <p>DEF-358 established that the not-yet-effective gate applies to <em>anonymous public plus the
+      partner/Amazon surface</em>. It was wired into the v1 partner API (all nine gate sites) and, by
+      DEF-359, into the Active Product Identifiers export.
+      <code>Models/CertificateVisibility.cs</code> records that
+      <code>CertificateTileExternalApiController</code> was excluded <em>deliberately</em> — correct for the
+      External / owning-company role, which should see its own upcoming certs. But that controller
+      <strong>also serves the Partner role</strong>, which should not.</p>
+      <p>The evidence lines up exactly: DEF-359's own note records the Amazon partner API's clean set as
+      <strong>208 rows</strong> — the same 208 the export returns today. The tile view is the outlier.</p>
+      <ul>
+        <li>Query filter — <code>CertificateTileExternalApiController</code> ~line 222: tests publishable status + expiration, no effective date.</li>
+        <li>Download gate — same controller, line 717: same omission.</li>
+        <li>By contrast <code>CertificateController.cs:2392</code> <em>does</em> gate <code>Partner</code> on <code>IsNotYetEffective</code>.</li>
+      </ul>
+      <div class="fixnote"><b>Fixed &mdash; DEF-376</b>
+      <code>query.WhereEffectiveDateReached()</code> now runs in the Partner branch only, with a matching
+      <code>IsNotYetEffective</code> guard on the download action so the PDF cannot be pulled by id either.
+      Lower bound only, same reasoning as DEF-359. External/company behaviour is unchanged.
+      <br><br><strong>Verified</strong> on localhost signed in as a real Partner user scoped to Amazon: tile
+      population <strong>208</strong> (was 210), <code>26-0441</code> and <code>26-0442</code> absent, zero
+      not-yet-effective rows, tile count now equal to the export count, and the download of
+      <code>26-0441</code> returns <strong>400 &ldquo;Certificate is not available for download&rdquo;</strong>.</div>
+    </article>
+
+    <article class="finding resolved">
+      <div class="fhead">
+        <span class="fid">F-3</span>
+        <h3 class="ftitle" style="margin:0">Novi partner's certificate export returns HTTP 400</h3>
+        <span class="chip fixed">Fixed &middot; DEF-377</span>
+      </div>
+      <p><code>test.novi</code> requesting <code>/Certificate/ExportCertificates?format=csv</code> receives
+      <strong>HTTP 400</strong>, <code>text/plain</code>, <em>"No data to export or export failed"</em>.</p>
+      <p>A partner with zero associated certificates should get an empty CSV (header row only) or a
+      friendly empty state — not a client-error status with a message that conflates <em>nothing to
+      export</em> with <em>the export failed</em>. This is the same broad-catch anti-pattern already
+      called out on <code>ExportController.cs:227</code> under DEF-359 and DEF-360.</p>
+      <div class="fixnote"><b>Fixed &mdash; DEF-377</b>
+      An empty result set now flows into the CSV generator, which writes the header before it iterates, so the
+      caller gets a valid header-only file. <code>null</code> now means failure only, and the controller
+      returns <strong>500</strong> for it rather than 400.
+      <br><br><strong>Verified</strong> on localhost: an export filtered to match nothing returns
+      <strong>200</strong>, <code>text/csv</code>, exactly one line. A genuine SQL execution timeout on the
+      same endpoint was separately observed to surface as <strong>500</strong> &mdash; which is the behaviour
+      DEF-360 asked for.</div>
+    </article>
+
+    <article class="finding resolved">
+      <div class="fhead">
+        <span class="fid">F-4</span>
+        <h3 class="ftitle" style="margin:0">Import rejects a blank Certificate #, while the Create form auto-numbers one</h3>
+        <span class="chip fixed">Fixed &middot; DEF-378</span>
+      </div>
+      <p>Two write paths disagree about the same field:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Path</th><th>Blank Certificate #</th></tr></thead>
+          <tbody>
+            <tr><td><code>/Certificate/Create</code></td><td><strong>Auto-numbers.</strong> Verified — generated <code>26-0482</code>.</td></tr>
+            <tr><td>CSV import</td><td><strong>Rejects.</strong> <em>"Certificate Number is required"</em>, whole import blocked.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The import template annotates the Status column with <em>"defaults to Draft if blank"</em> but marks
+      nothing on Certificate #, so an analyst has no way to know it is mandatory until the import is
+      refused. Auto-numbering is an original requirement.</p>
+      <div class="fixnote"><b>Fixed &mdash; DEF-378 &middot; import now auto-numbers</b>
+      A blank Certificate # is no longer an error; the number is minted at <em>apply</em> time (not preview,
+      which would reserve a number the analyst might never use) via the same repository method the Create form
+      uses, so the DEF-322 four-digit rule and the year-rollover behaviour cannot drift.
+      <br><br>A third bug surfaced while fixing it: rows were grouped by certificate number to support
+      multi-ASIN rows, so <strong>every blank-numbered row collapsed into one group</strong> and two blank rows
+      imported as ONE certificate. The grouping key is now a tuple carrying the row index for blank rows.
+      <br><br><strong>A number supplied in the file still wins</strong> &mdash; which is how the initial data
+      migration keeps the client&rsquo;s existing numbers. Accepted trade: a blank-numbered row cannot take
+      part in multi-ASIN grouping, since there is no shared key to group on.
+      <br><br><strong>Verified</strong> through the real upload &rarr; preview &rarr; apply path: a two-row file
+      with both numbers blank previews as <strong>2 new / 0 errors</strong> showing
+      <code>(auto-assign)</code>, applies, and produces <strong><code>26-0482</code> and
+      <code>26-0483</code> &mdash; two distinct numbers</strong>.</div>
+    </article>
+
+    <article class="finding resolved">
+      <div class="fhead">
+        <span class="fid">F-5</span>
+        <h3 class="ftitle" style="margin:0">Product import template is downloadable by External and Partner users</h3>
+        <span class="chip fixed">Fixed &middot; DEF-379</span>
+      </div>
+      <p><code>/Product/DownloadProductImportTemplate</code> returned <strong>HTTP 200 / text/csv</strong> to
+      <code>test.external</code>, <code>test.external2</code>, <code>test.amazon</code> and
+      <code>test.novi</code>. <code>ProductController</code> carries a class-level
+      <code>[Authorize(Policy = "ExternalAccess")]</code> and this action adds no further attribute, while
+      the matching <code>ImportProducts</code> action <em>is</em> <code>AnalystOrAdmin</code>.</p>
+      <p>No data leaks — it is an empty column-header template. But it hands an import affordance to roles
+      that cannot import, which cuts against the "External users get no Add/Edit affordances" rule. The
+      certificate import template is correctly gated; only the product one is not.</p>
+      <div class="fixnote"><b>Fixed &mdash; DEF-379</b>
+      <code>[Authorize(Policy = "AnalystOrAdmin")]</code> added to the action.
+      <strong>Verified</strong> on localhost: Admin still receives the CSV (200); an unauthenticated caller is
+      bounced to <code>/Account/Login</code> (302).</div>
+    </article>
+
+    <article class="finding info">
+      <div class="fhead">
+        <span class="fid">F-6</span>
+        <h3 class="ftitle" style="margin:0">Novi has zero certificate associations anywhere in the database</h3>
+        <span class="chip info">Data / coverage</span>
+      </div>
+      <p>Across all 5,702 certificates the partner field holds only <strong>Amazon (244)</strong> and
+      <strong>blank (5,458)</strong>. No certificate is associated with Novi, Wayfair or Other.</p>
+      <p>This is why <code>test.novi</code> sees nothing, and it is <strong>correct behaviour given the
+      data</strong> — partner scoping runs the certificate-level association first, so a partner with no
+      associations reaches nobody. A data gap, not a code defect.</p>
+      <p>The consequence is a <strong>test-coverage hole</strong>: the Novi path is entirely unexercised, so
+      the Amazon/Novi pair currently proves only "Amazon sees Amazon" and "Novi sees nothing" — it cannot
+      prove Novi is correctly denied <em>Amazon's</em> rows.</p>
+      <p class="rec"><b>Recommendation</b>Seed a handful of Novi associations on TEST to close the gap.</p>
+    </article>
+
+    <article class="finding ok">
+      <div class="fhead">
+        <span class="fid">F-7</span>
+        <h3 class="ftitle" style="margin:0">Duplicate certificate numbers are live on TEST</h3>
+        <span class="chip ok">Already DEF-369</span>
+      </div>
+      <p>137 certificate numbers are shared by 312 rows (5,702 rows → 5,527 distinct).
+      <strong>Eight of those numbers, covering 20 rows, are publicly visible.</strong> Examples:
+      <code>26-0182</code> ×4, <code>26-0166</code> ×3, <code>26-0168</code> ×3.</p>
+      <p>312 − 137 = <strong>175 surplus rows</strong>, matching DEF-369's "175 certificates have no URL at
+      all" exactly. This is the known migration blocker, confirmed live rather than a new defect.</p>
+      <p class="rec"><b>Action</b>None — recorded as regression evidence that it survived the migration.
+      No new DEF needed.</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Open question for the client</h2>
+    <p class="sublede">Not a defect. Flagged because the numbers are dramatic enough that the client will ask.</p>
+    <div class="callout">
+      <h3 style="margin-top:0">Should an External (owning-company) user see their own expired certificates?</h3>
+      <p>Today they cannot. Sika Corporation has <strong>574</strong> certificates in the database;
+      <code>test.external</code> sees <strong>30</strong>. MAPEI has <strong>313</strong>;
+      <code>test.external2</code> sees <strong>21</strong>.</p>
+      <p>That is as-coded and deliberate — <code>CertificateTileExternalApiController</code> filters External
+      users to publishable statuses <em>and</em> unexpired. Given the status profile below, the effect is
+      that a company sees roughly 5% of its own record.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Status</th><th class="num">Count</th><th class="num">Share</th></tr></thead>
+          <tbody>
+            <tr><td>Expired</td><td class="num">4,682</td><td class="num">82.1%</td></tr>
+            <tr><td>Client Approved - Paid</td><td class="num">980</td><td class="num">17.2%</td></tr>
+            <tr><td>Client Approved - Confidential</td><td class="num">40</td><td class="num">0.7%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>DEF-358's scope note says External users keep seeing <em>upcoming</em> certificates because
+      "a company needs to know its cert is queued". The same reasoning arguably applies to its expired
+      history. This is a requirements decision that should be made rather than discovered.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Coverage gaps</h2>
+    <p class="sublede">Stated plainly, so the pass rate is not read as more than it is.</p>
+    <ol class="gaps">
+      <li><strong>Import reassignment / overwrite acknowledgement paths.</strong> These rewrite existing client rows; exercising them needs a CR, not a smoke run.</li>
+      <li><strong>Import Undo.</strong> The batch id is not scrapeable from the History page markup, so undo was not fired. Cleanup fell through to the Admin-delete backstop, which succeeded.</li>
+      <li><strong>Partner API v1 contract diff.</strong> Requires a live partner API key; not run here. Gate 4 of the pre-deploy checklist covers it via <code>amazon-contract-diff.js</code>.</li>
+      <li><strong>The certification-type picker widget.</strong> Its native <code>&lt;select&gt;</code> is <code>display:none</code>, so the field was set programmatically. The picker's own click behaviour was not exercised.</li>
+      <li><strong>Two-factor authentication.</strong> All six role accounts have 2FA off by design; the <code>2fatest</code> fixture was not used.</li>
+      <li><strong>Bulk PDF download / ZIP.</strong> Deliberately skipped — bulk sweeps have killed the app pool before.</li>
+      <li><strong>Browser-side DOM assertions.</strong> The Chrome extension lacks read permission for <code>gccwebapp.com</code>, so in-browser verification was screenshot-based. All DOM-level assertions came from the headless run.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Triage &mdash; and what happened to each</h2>
+    <p class="sublede">All five were actioned on 26 August. F-6, F-7 and DEF-380 remain open.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>Finding</th><th>Status</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td><code>F-1</code></td><td>Gate password rotation</td><td><span class="chip info">Premise corrected</span></td><td>Rotation deferred during UAT</td></tr>
+          <tr><td><code>F-2</code></td><td>Amazon tile view leaked 2 not-yet-effective certs</td><td><span class="chip fixed">Fixed</span></td><td>DEF-376 &mdash; verified locally</td></tr>
+          <tr><td><code>F-3</code></td><td>Empty-scope export returned HTTP 400</td><td><span class="chip fixed">Fixed</span></td><td>DEF-377 &mdash; verified locally</td></tr>
+          <tr><td><code>F-4</code></td><td>Import now auto-numbers a blank Certificate #</td><td><span class="chip fixed">Fixed</span></td><td>DEF-378 &mdash; verified locally</td></tr>
+          <tr><td><code>F-5</code></td><td>Product import template reachable by External</td><td><span class="chip fixed">Fixed</span></td><td>DEF-379 &mdash; verified locally</td></tr>
+          <tr><td><code>F-6</code></td><td>Novi has no cert associations</td><td><span class="chip info">Open</span></td><td>Seed a few rows on TEST</td></tr>
+          <tr><td><code>F-7</code></td><td>Duplicate cert numbers</td><td><span class="chip ok">Tracked</span></td><td>Already DEF-369</td></tr>
+          <tr><td>&mdash;</td><td><code>GET /Certificate/Delete/{number}</code> returns 500</td><td><span class="chip warn">Open</span></td><td>DEF-380 &mdash; orphaned action, view never created</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>How to re-run</h2>
+    <p class="sublede">Scripts live in <code>Scripts/smoke-prod/_regression/</code>. Preflight is a hard
+    gate — run it first, because grading a gate page produces confident nonsense.</p>
+<pre><code>cd Scripts/smoke-prod
+node _regression/00-preflight.js         <span class="c"># gate + 6 role logins — run first</span>
+node _regression/01-rbac-matrix.js       <span class="c"># 24 routes x 7 roles</span>
+node _regression/02-data-scoping.js      <span class="c"># populations + isolation pairs</span>
+node _regression/03-exports-downloads.js
+node _regression/04-create-edit.js       <span class="c"># WRITES a fixture cert, deletes it in finally</span>
+node _regression/06-import.js            <span class="c"># WRITES one imported row, deletes it in finally</span>
+node _regression/05-performance.js</code></pre>
+    <p>Results land as JSON in <code>_regression/_results/</code>; artifacts — CSV exports, the fixture PDF,
+    failure screenshots — in <code>_regression/_artifacts/</code>. Environment overrides:
+    <code>BASE_URL</code>, <code>GATE_PASS</code>, <code>REG_PASSWORD</code>, and
+    <code>REG_HEADLESS=0</code> to watch it run.</p>
+    <p>Both write phases create only <code>ZZ_RegressionFixture_*</code> / <code>ZZ_RegressionImport_*</code>
+    rows and remove them in a <code>finally</code> block. If teardown ever fails, the run prints
+    <strong>MANUAL CLEANUP REQUIRED</strong> with the certificate number.
+    <strong>Both fixtures were confirmed removed on this run.</strong></p>
+  </section>
+
+  <footer>
+    <p>Full write-up with per-check detail: <code>docs/tracking/status-testing-report-2026-08-25.md</code>.
+    Raw per-phase results: <code>Scripts/smoke-prod/_regression/_results/*.json</code>.</p>
+  </footer>
+
+</div>

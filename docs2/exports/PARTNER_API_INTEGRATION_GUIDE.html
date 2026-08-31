@@ -65,24 +65,35 @@ pre code { background: none; padding: 0; }
 <div class="confidential">CONFIDENTIAL &mdash; For authorized <span class="fill">[PARTNER NAME]</span> integration personnel only</div>
 
 <div class="tbd">
-    <span class="tbd-label">Internal &mdash; remove before sending</span>
-    This is the generic partner template. Before issuing to a partner: (1) fill every
-    <span class="fill">[HIGHLIGHTED PLACEHOLDER]</span>, (2) resolve or delete every red TBD block,
-    (3) confirm the &sect;4 validity model suits this partner's use case &mdash; badging works with it,
-    claim validation may not. &sect;8 supplier/parent-company is settled: none is held, so none is sent.
+    <span class="tbd-label">How to use this template &mdash; delete this box before issuing</span>
+    This is the generic partner guide. It is complete except for the values that differ per partner.
+    Before sending it to a partner:
     <br><br>
-    <strong>Settled since the last revision:</strong> the production host is
+    <strong>1. Fill every <span class="fill">[HIGHLIGHTED PLACEHOLDER]</span>.</strong> These are the
+    partner name, and the seven rows of the <em>Your Connection</em> panel in &sect;2 &mdash; rate limit,
+    permitted endpoints, key expiry and so on. Check each value against the API key actually issued to
+    that partner rather than copying it from a previous partner's guide: a key restricted to a subset of
+    endpoints returns <code>403</code> on the others, and &sect;3 documents the full set.
+    <br><br>
+    <strong>2. Confirm the &sect;4 validity model suits their use case.</strong> The API reports validity
+    by whether a certificate is returned at all, not by a status value. That works for badging
+    &mdash; displaying a current certification &mdash; but may not be sufficient for claim validation,
+    where a partner needs to distinguish "expired" from "never existed". &sect;4 states this plainly; make
+    sure the partner has read it before they build against it.
+    <br><br>
+    <strong>3. Never paste a live API key into this document.</strong> Keys are delivered separately by
+    secure channel (see &sect;2). This document is circulated by email and forwarded internally by
+    partners; a key printed in it is a key you will have to rotate.
+    <br><br>
+    <strong>4. Record the issue in the internal issuance log</strong>, including the rate limit and
+    endpoint scope this partner's copy states. If that behaviour later changes, the log is the only way
+    to know whose copy became wrong.
+    <br><br>
+    <strong>The base URL is not a placeholder.</strong> The production host is
     <code>database.greencirclecertified.com</code> &mdash; a dedicated subdomain, because the application
-    cannot be hosted on the same server as the WordPress site. The former
-    <code>greencirclecertified.com/database</code> path is retired and was never activated. The base URL is
-    the same for every partner, so it is no longer a placeholder; only the key, rate limit, scope and
-    expiry under <em>Your Connection</em> vary per partner.
-    <br><br>
-    The rate limit in &sect;2 is settled at 200/hour. <strong>DEF-345 is fixed but not yet deployed</strong>
-    &mdash; confirm the fix is live on production before issuing this guide to anyone (see the red block in
-    &sect;2).
-    <strong>Never paste a live API key into this document</strong> &mdash; keys are delivered separately
-    by secure channel (see &sect;2).
+    cannot be hosted on the same server as the main website. The former
+    <code>greencirclecertified.com/database</code> path is retired and was never activated. It is the same
+    for every partner; only the key, rate limit, scope and expiry vary.
 </div>
 
 <div class="toc">
@@ -218,17 +229,6 @@ rather than 60 minutes after your first call. Exceeding the limit returns <code>
 <code>Retry-After</code> header. Read <code>X-RateLimit-Remaining</code> and pace accordingly rather than
 retrying into the limit.</p>
 
-<div class="tbd">
-    <span class="tbd-label">Internal &mdash; verify on production, then delete</span>
-    <strong>DEF-345 is fixed but not yet deployed.</strong> The limiter previously ran before
-    authentication, so partner keys were throttled as anonymous traffic at 100 requests/hour bucketed by
-    IP address rather than by key &mdash; and that is what <code>X-RateLimit-Limit</code> returned. The fix
-    was made and verified on localhost:5101 on 2026-08-10, but <strong>has not shipped to
-    production</strong>. Before issuing this guide, call the production API with a partner key and confirm
-    <code>X-RateLimit-Limit: 200</code> comes back; until that is verified, the 200/hour figure above is a
-    target rather than observed behaviour. Delete this block once confirmed on production.
-</div>
-
 <h2 id="endpoints">3. API Endpoints</h2>
 
 <p>Base URL: <code>https://database.greencirclecertified.com/api/v1</code></p>
@@ -285,25 +285,6 @@ URL. Your scope is stated under <a href="#your-connection">Your Connection</a>.<
         <strong>Parameters:</strong> <code>productId</code> (required), <code>type</code> (optional &mdash;
         GTIN, UPC, EAN, MPN, SKU, ASIN, ISBN; omit to search all types)<br>
         <strong>Example:</strong> <code>/certificates/search/productid?productId=00012345678901&amp;type=GTIN</code>
-    </div>
-</div>
-
-<div class="endpoint-card">
-    <div class="endpoint-header"><span class="tag tag-get">GET</span> <code>/certificates/search</code></div>
-    <div class="endpoint-body">
-        Search certificates by free-text term and/or date ranges.<br>
-        <strong>Parameters:</strong> <code>term</code>, <code>effectiveDateFrom</code>,
-        <code>effectiveDateTo</code>, <code>expirationDateFrom</code>, <code>expirationDateTo</code>,
-        plus pagination parameters
-    </div>
-</div>
-
-<div class="endpoint-card">
-    <div class="endpoint-header"><span class="tag tag-get">GET</span> <code>/certificates/expiring</code></div>
-    <div class="endpoint-body">
-        List certificates expiring within a given window &mdash; useful for scheduling revalidation of
-        claims before they lapse.<br>
-        <strong>Parameters:</strong> <code>days</code> (default 30), plus pagination parameters
     </div>
 </div>
 
@@ -383,23 +364,6 @@ expired state it leaves the API entirely rather than appearing with an expired s
 observe a status change that will never arrive; re-pull on your schedule and treat anything that has
 dropped out as no longer certified.</p>
 
-<div class="tbd">
-    <span class="tbd-label">Internal &mdash; confirm scope, then delete</span>
-    <strong>This documents current behaviour (active-only), which is option (a) of the original open
-    decision.</strong> Internally: the filter is <code>CertificateStatusHelper.PublicStatuses</code> =
-    {<em>Client Approved - Paid</em>, <em>Republished</em>} applied at
-    <code>Controllers/Api/v1/CertificatesController.cs:173,201</code> for lists and <code>:388,442</code>
-    for single lookups; the literal <code>"Active"</code> is set at <code>:251,315</code>. Eight internal
-    states exist and none of them is "revoked."
-    <br><br>
-    If this partner's use case is <em>claim validation</em> rather than badging, confirm that
-    presence/absence is sufficient for them. Novi's guidance, for example, asks for
-    <strong>Valid / Expired / Revoked-or-invalid</strong> as distinct values &mdash; which this contract
-    cannot supply. That is raised as <strong>CR-035</strong> (proposed, not built): it changes the response
-    filter, the frozen <code>/api/v1/certificates*</code> shape, and &mdash; because no "revoked" state
-    exists &mdash; potentially the 8-state workflow itself, so it needs client decisions and Amazon
-    sign-off. Do not promise a partner anything beyond the table above until CR-035 is resolved.
-</div>
 
 <h3>Product Identifier Fields (within <code>productIds[]</code>)</h3>
 
@@ -748,7 +712,7 @@ no partner endpoint projects them.</p>
     <thead><tr><th style="width:8%">Step</th><th style="width:46%">Action</th><th>Owner</th></tr></thead>
     <tbody>
         <tr><td>1</td><td>Confirm which certificates are in scope for this partner and tag them to the partner account in the GCC Database</td><td>GCC</td></tr>
-        <tr><td>2</td><td>Confirm presence/absence validity (&sect;4) is sufficient for this partner's use case &mdash; a claim-validation partner may need Valid/Expired/Revoked as distinct values, which requires a change request. Rate limit is settled at 200/hour, but verify <strong>DEF-345</strong> has shipped or the server will not honour it</td><td>GCC</td></tr>
+        <tr><td>2</td><td>Confirm the presence/absence validity model (&sect;4) is sufficient for this partner's use case &mdash; a claim-validation partner may need Valid / Expired / Revoked as distinct values, which is not part of the current contract. Confirm the rate limit stated in &sect;2 against the key being issued</td><td>GCC</td></tr>
         <tr><td>3</td><td>Issue a test API key against the GCC test environment, with representative test data</td><td>GCC</td></tr>
         <tr><td>4</td><td>Validate the integration end to end against test data &mdash; pull, paginate, parse, download PDFs</td><td>Partner</td></tr>
         <tr><td>5</td><td>Confirm field mapping and any gaps against your internal data model</td><td>Partner</td></tr>

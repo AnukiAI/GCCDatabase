@@ -113,8 +113,13 @@ namespace GCCWebApp.Controllers.Api
                     ExcludeNotYetEffectiveByDate = true, // DEF-358: and not certs staged ahead of their effective date
                     SortBy = MapSortBy(finalSort),
                     SortDescending = finalSort == "cert-number-newest" || finalSort == "company-za" || finalSort == "product-za" || finalSort == "cert-type-za" || finalSort == "location-za" || finalSort == "country-za",
+                    // DEF-381: Page is kept only so the value stays meaningful to anything that
+                    // reads it; Skip is what actually drives the query. Deriving the offset from
+                    // Page here lost the remainder — offset=90/limit=50 became Skip(50), which
+                    // re-served rows already shown and made the tail of the list unreachable.
                     Page = Math.Max(1, (actualOffset / actualLimit) + 1),
-                    PageSize = actualLimit
+                    PageSize = actualLimit,
+                    Skip = actualOffset
                 };
 
                 // Parse filter arrays - handle multiple parameter names

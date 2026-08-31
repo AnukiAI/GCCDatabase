@@ -1,0 +1,118 @@
+{
+  "phaseId": "06-import",
+  "base": "https://gccwebapp.com",
+  "startedAt": "2026-08-31T03:37:46.490Z",
+  "finishedAt": "2026-08-31T03:38:06.300Z",
+  "runId": "2026-08-31_mtgotzi1",
+  "marker": "ZZ_RegressionImport_2026-08-31_mtgotzi1",
+  "importedNumber": "26-9966",
+  "batchId": null,
+  "pass": 14,
+  "fail": 0,
+  "warn": 1,
+  "info": 2,
+  "rows": [
+    {
+      "id": "imp.template",
+      "name": "Import template downloads as CSV",
+      "status": "PASS",
+      "notes": "HTTP 200, 24 columns"
+    },
+    {
+      "id": "imp.template.states",
+      "name": "Template documents all 8 workflow states",
+      "status": "PASS",
+      "notes": "all 8 present"
+    },
+    {
+      "id": "imp.fixture",
+      "name": "One-row import CSV built from an existing company/product combo",
+      "status": "INFO",
+      "notes": "company=\"X-SENSE\" type=\"Certified Energy Savings\" product=\"Smoke and carbon monoxide combination detectors\""
+    },
+    {
+      "id": "imp.autonumber-parity",
+      "name": "Import auto-numbers a blank Certificate # (parity with the Create form)",
+      "status": "PASS",
+      "notes": "blank number accepted and auto-assigned"
+    },
+    {
+      "id": "imp.upload",
+      "name": "CSV upload reaches the Preview step",
+      "status": "PASS",
+      "notes": "landed /CertificateImport/Upload"
+    },
+    {
+      "id": "imp.preview.classification",
+      "name": "Preview classifies the row as 1 new certificate with 0 errors",
+      "status": "PASS",
+      "notes": "total=1 new=1 modified=0 errors=0 cannotApply=false"
+    },
+    {
+      "id": "imp.preview.importId",
+      "name": "Preview carries an importId for Apply",
+      "status": "PASS",
+      "notes": "7cba1cd2-a4a0-4b22-b502-978275f7dc19"
+    },
+    {
+      "id": "imp.apply",
+      "name": "Import applies",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "imp.apply.persisted",
+      "name": "Imported certificate is readable through the internal API",
+      "status": "PASS",
+      "notes": "number=26-9966 location=\"ZZ_RegressionImport_2026-08-31_mtgotzi1\""
+    },
+    {
+      "id": "imp.apply.number",
+      "name": "Imported certificate keeps the number given in the CSV",
+      "status": "PASS",
+      "notes": "sent \"26-9966\", stored \"26-9966\""
+    },
+    {
+      "id": "imp.apply.certresults",
+      "name": "Cert Results column imported",
+      "status": "PASS",
+      "notes": "got \"Imported by regression run\""
+    },
+    {
+      "id": "imp.apply.location",
+      "name": "Location column imported",
+      "status": "PASS",
+      "notes": "got \"ZZ_RegressionImport_2026-08-31_mtgotzi1\""
+    },
+    {
+      "id": "imp.apply.status",
+      "name": "Status column imported as Draft",
+      "status": "PASS",
+      "notes": "got \"Draft\""
+    },
+    {
+      "id": "imp.history",
+      "name": "Import appears in History with its reason",
+      "status": "PASS",
+      "notes": "batch reason found"
+    },
+    {
+      "id": "imp.undo",
+      "name": "Undo removes the imported certificate",
+      "status": "WARN",
+      "notes": "batchId not discoverable from the History page markup"
+    },
+    {
+      "id": "imp.coverage.gap",
+      "name": "Reassignment / overwrite acknowledgement paths",
+      "status": "INFO",
+      "notes": "NOT exercised — those paths rewrite existing client rows and need a CR, not a smoke run"
+    },
+    {
+      "id": "imp.teardown",
+      "name": "Imported fixture removed from the test environment",
+      "status": "PASS",
+      "notes": "clean"
+    }
+  ]
+}

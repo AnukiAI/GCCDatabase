@@ -124,9 +124,7 @@ curl -X GET "http://localhost:5101/api/v1/certificates" \
 | `/api/v1/certificates` | GET | List certificates with pagination | Yes |
 | `/api/v1/certificates/{id}` | GET | Get certificate by database ID | Yes |
 | `/api/v1/certificates/number/{number}` | GET | Get certificate by number (e.g., 24-0366) | Yes |
-| `/api/v1/certificates/search` | GET | Advanced search with filters | Yes |
 | `/api/v1/certificates/search/productid` | GET | Search by ASIN/UPC/GTIN | Yes |
-| `/api/v1/certificates/expiring` | GET | Get expiring certificates | Yes |
 | `/api/v1/certificates/{id}/download` | GET | Download certificate PDF | Yes |
 
 ### 4.2 Query Parameters
@@ -161,7 +159,6 @@ curl -X GET "http://localhost:5101/api/v1/certificates" \
 | AMZ-004 | Download certificate PDF | GET /certificates/24-0366/download | Critical |
 | AMZ-005 | Verify CertificationResults field present | All endpoints | Critical |
 | AMZ-006 | Pagination with large result sets | GET /certificates?pageSize=100&pageNumber=1 | High |
-| AMZ-007 | Filter by status (Active only) | GET /certificates/search?status=Active | High |
 | AMZ-008 | Search by UPC | GET /certificates/search/productid?productId=012345678901&type=UPC | Medium |
 
 ### 5.2 Amazon Field Requirements
@@ -446,7 +443,6 @@ $results += Test-Endpoint "List with ProductIds" "$BaseUrl/api/v1/certificates?i
 $results += Test-Endpoint "Certificate by ID" "$BaseUrl/api/v1/certificates/1" 200
 $results += Test-Endpoint "Certificate by Number" "$BaseUrl/api/v1/certificates/number/24-0001" 200
 $results += Test-Endpoint "Search by ASIN" "$BaseUrl/api/v1/certificates/search/productid?productId=B08TEST&type=ASIN" 200
-$results += Test-Endpoint "Expiring Certificates" "$BaseUrl/api/v1/certificates/expiring?days=30" 200
 $results += Test-Endpoint "Invalid ID" "$BaseUrl/api/v1/certificates/999999" 404
 
 # Summary
@@ -500,7 +496,6 @@ test_endpoint "Get by Number" "$BASE_URL/api/v1/certificates/number/24-0001" "20
 
 # Search
 test_endpoint "Product ID Search" "$BASE_URL/api/v1/certificates/search/productid?productId=TEST123" "200"
-test_endpoint "Expiring" "$BASE_URL/api/v1/certificates/expiring?days=30" "200"
 
 # Error cases
 test_endpoint "Not Found ID" "$BASE_URL/api/v1/certificates/999999" "404"

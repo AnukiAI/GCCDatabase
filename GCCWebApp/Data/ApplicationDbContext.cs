@@ -18,6 +18,9 @@ namespace GCCWebApp.Data
         public DbSet<Product> Products { get; set; }
         public DbSet<User> Users { get; set; }
 
+        // DEF-385: browsers a user has chosen to trust, so 2FA is not re-challenged for 30 days.
+        public DbSet<TrustedDevice> TrustedDevices { get; set; }
+
         // Certificate related entities
         public DbSet<CertificationType> CertificationTypes { get; set; }
         public DbSet<CustomField> CustomFields { get; set; }
@@ -105,12 +108,17 @@ namespace GCCWebApp.Data
                 // See Certificate.CertificationResultsNumeric for the why. Matches DisplayFormatters
                 // logic so the sort order tracks what users see. NULL when the raw value isn't parseable
                 // — non-numeric values fall out of the numeric sort dimension.
+                //
+                // DEF-383: the `<= 1` boundary MUST match DisplayFormatters.FormatCertificationResults.
+                // It was `< 1` here and there, so the 106 certificates stored as `1` sorted as 1 while
+                // meaning 100. Changing this SQL rewrites a PERSISTED computed column, so it needs a
+                // migration that drops the index, drops the column, and re-adds both.
                 entity.Property(e => e.CertificationResultsNumeric)
                     .HasComputedColumnSql(@"
                         CASE
                           WHEN [CertificationResults] IS NULL OR [CertificationResults] = N'' THEN NULL
                           WHEN [CertificationResults] LIKE N'%[%]%' THEN TRY_CAST(REPLACE([CertificationResults], N'%', N'') AS DECIMAL(18,4))
-                          WHEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) < 1 THEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) * 100
+                          WHEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) <= 1 THEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) * 100
                           ELSE TRY_CAST([CertificationResults] AS DECIMAL(18,4))
                         END", stored: true);
                 entity.HasIndex(e => e.CertificationResultsNumeric);
@@ -452,6 +460,25 @@ namespace GCCWebApp.Data
                 // Composite indexes
                 entity.HasIndex(e => new { e.Status, e.IsActive });
                 entity.HasIndex(e => new { e.IsActive, e.CreatedAt });
+            });
+
+            // DEF-385: trusted devices (the "Trust this device for 30 days" 2FA option).
+            modelBuilder.Entity<TrustedDevice>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TokenHash).HasMaxLength(64).IsRequired();
+
+                // The lookup is always (TokenHash, UserId) together — a token must belong to the
+                // account being signed in, so a device trusted for one user cannot skip 2FA for
+                // another on the same browser. Indexed as a pair to match that query exactly.
+                entity.HasIndex(e => new { e.TokenHash, e.UserId });
+                entity.HasIndex(e => e.UserId);
+
+                // Cascade: a deleted user's trusts must not outlive the account.
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Role configuration

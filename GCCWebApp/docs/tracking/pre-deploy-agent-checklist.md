@@ -8,7 +8,13 @@
 > It is called "Production" only because `ASPNETCORE_ENVIRONMENT=Production` is set in
 > `web.config`, which is what makes the app load `appsettings.Production.json` and use SQL Server
 > instead of the dev database. **The word is a config-file name, not a statement about who the
-> users are.** The real production URL (`greencirclecertified.com/database`) is not live yet.
+> users are.** The real production URL (`database.greencirclecertified.com`) is not live yet.
+>
+> **That host is a dedicated subdomain, decided 2026-08-14.** The earlier path-based address
+> `greencirclecertified.com/database` was published in the Amazon developer guide v1.0–v1.1 but was
+> **never activated**, and is retired — the app is not path-mounted (there is no `UsePathBase`
+> anywhere), so it could not have served that address without a code change. If you find `/database`
+> named as the production URL in any doc, it is stale, not a second environment.
 >
 > Everything below follows from that, and each line has cost time at least once:
 >
@@ -317,9 +323,407 @@ They can disagree — a deploy that extracted the DLL but not `wwwroot` is a rea
 
 ## Deploy gate results log
 
+### `GCCWebApp-deploy-20260830-2245.zip` — **DEPLOYED to gccwebapp.com 2026-08-31, post-deploy verified**
+
+> ## ✅ DEPLOYED AND VERIFIED ON THE LIVE TEST SITE
+>
+> Every claim below was checked against **gccwebapp.com** after the upload, through the gate, not
+> inferred from the build.
+>
+> | Check | Result |
+> |---|---|
+> | **DEF-381** deployed tile JS carries the fix | `pendingAppend` present; old whole-array append **absent** (66,713 bytes served) |
+> | **DEF-381** real browser, 4 scrolls | `+50, +50, +50, +50` — 250 tiles, **250 distinct**, count matches. **Intern unblocked.** |
+> | **DEF-382** unaligned offsets on live API | 37 / 75 / 90 / 123 / 149 + unaligned tail — all return the exact rows |
+> | **DEF-383** cert `25-0261` (stored `1`) | renders **`100%`** (was `1%`) |
+> | **DEF-385** trust-device round trip on live | challenged → trust issued → **second sign-in skipped** → other account still challenged |
+> | **DEF-363** `/appsettings.Production.json` | **404** (also `/appsettings.json`, `/web.config`) |
+> | **Gate 4** Amazon contract diff | **7P / 0F — `CONTRACT UNCHANGED`** |
+> | **Gate 9** static integrity | **23P / 0F / 13W — GREEN-WITH-WARNINGS**, exit 0 |
+>
+> **Correction to this record's own earlier prediction.** It said Gate 4's diff "will show value
+> changes" from DEF-383. It did not, and the prediction was wrong about what the gate measures:
+> `amazon-contract-diff.js` compares response **structure** against the April baseline, not values.
+> The 1% → 100% change for 11 Amazon certs is real, but this gate is not what would surface it.
+>
+> **DEF-384 was not exercised through the UI.** Reaching `ShowRecoveryCodes` means generating a real
+> account's recovery codes, which rotates them. It is proven by the byte-level in-zip check (fix
+> present, half-code expression absent) plus the fact that DEF-382/383/385 — all behaviours that
+> exist only in this build — are confirmed live, so the deployed assembly is demonstrably this one.
+> Stated as inference, not as a click-path test.
+>
+> **Test-data hygiene.** The DEF-385 live check needed a real TOTP challenge, so scratch secrets were
+> enrolled on `test.novi` and `test.amazon` and **both restored immediately** (verified: 2FA off,
+> method Email, secret NULL, their `TrustedDevices` rows deleted). Confirmed afterwards that
+> `2fatest` (still on) and `admin` (still on) were untouched, along with every other account.
+>
+> **Gate 12 — outbound email: ✅ PASS. Delivery CONFIRMED in the inbox 2026-08-31.**
+>
+> A 2FA code sent at 03:59:16 UTC arrived at shawnmwest@gmail.com and was confirmed received. Mail
+> is **LIVE**, not `MockEmailService`: the server-only `appsettings.Secrets.json` SMTP overlay
+> survived the deploy intact. (Code value deliberately not recorded here — it is a credential, even
+> an expired one. The pending challenge was left to expire rather than completed.)
+>
+> The reasoning below is kept because it is the method, and it is what makes the PASS meaningful
+> rather than assumed:
+>
+> Sent by signing in as `2fatest` (2FA on, no TOTP secret, so it downgrades to an emailed code) to
+> **shawnmwest@gmail.com**. Chosen over a password-reset deliberately: it persists no account state —
+> no reset token, no password change, no 2FA change.
+>
+> **The HTTP response alone does NOT prove delivery — never record it as if it does.**
+> `Program.cs:650` states it plainly: the `MockEmailService` fallback is *"completely silent at
+> runtime… the UI still reports success"*. A dead mail path and a working one are indistinguishable
+> over HTTP — which is exactly how a dead one hid here for months (DEF-263). The PASS above rests on
+> the inbox, not on the 200.
+>
+> **The two authorities, neither of which is reachable remotely:**
+> 1. **The inbox** — a 6-digit code timestamped as above.
+> 2. **The startup banner in the server's stdout log** — `Email: LIVE via <host>:<port> … as
+>    <username>` versus `Email: DISABLED (MockEmailService) — SmtpSettings missing …`. This banner
+>    exists for precisely this question; read it in Plesk if the code does not arrive.
+>
+> **Prior reasoning that the overlay survived** (supporting, not conclusive): `appsettings.Secrets.json`
+> is **not in the bundle** — verified 0 occurrences by `verify-bundle.py` — so extracting the zip
+> cannot have overwritten or removed the server's copy.
+>
+> **Still open after this deploy:**
+> - **Tell UAT testers** anyone who already saved 2FA recovery codes should re-copy them (DEF-384).
+> - **Tracking gap surfaced by Gate 9:** `DEF-343` and `DEF-344` shipped in this bundle from the
+>   working tree but have no shipped-log row, and 101 register entries still say "pending deploy"
+>   for defects already delivered. Stale text, not a deploy risk — but the register overstates what
+>   is outstanding.
+
+---
+
+### `GCCWebApp-deploy-20260830-2245.zip` — as built, gated + content-verified 2026-08-30
+
+> ## ✅ GATE 7 IS DONE — the database has ALREADY been migrated. Do not run any SQL.
+>
+> Both migrations were applied to `gccwebap_certificates` by hand on **2026-08-30**, at the client's
+> request, ahead of the upload. Verified on the target afterwards:
+>
+> | Check | Result |
+> |---|---|
+> | `__EFMigrationsHistory` high-water | `20260830230201_DEF385AddTrustedDevices` |
+> | `CertificationResults = '1'` sort value | **100.0000** (was `1.0000`) — 106 certs |
+> | `0.01` sort value | `1.0000` — now correctly distinct from `1` |
+> | `Silver` / `Gold` | `NULL` — still outside the numeric sort |
+> | `TrustedDevices` | table created, 3 indexes, 0 rows |
+> | Raw `CertificationResults` data | **988 populated, unchanged** — no business data touched |
+>
+> This bundle's `migrations\apply-migrations.sql` was therefore generated with
+> `-FromMigration 20260830230201_DEF385AddTrustedDevices`, so its schema section is **empty** by
+> design and it contains only the idempotent CR-171 backfill. It was executed against the target as
+> a final check and returned **exit 0, 0 rows affected** — a clean no-op. Running it again is safe
+> and unnecessary.
+>
+> Rollback, if ever needed: `deployment-drops/ROLLBACK-DEF383-DEF385.sql` (drops `TrustedDevices`,
+> restores the `< 1` computed column, removes both history rows).
+
+**Between the SQL and the upload there is a deliberate, harmless inconsistency:** the database now
+sorts `1` as 100 while the *currently deployed* code still displays it as "1%". Uploading this
+bundle resolves it. Nothing is broken in the meantime.
+
+Content markers **21 / 21** (three negative controls). Hygiene ALL PASS. Unit suite 87 failed /
+771 passed — 87 unchanged baseline.
+
+**Contains DEF-381, 382, 383, 384, 385, 386.** Everything below about the Amazon value change
+(DEF-383), the recovery-code re-copy (DEF-384) and the post-deploy trusted-device check (DEF-385)
+still applies.
+
+> ⚠️ **DEF-386 — read before the next deploy that carries a migration.** The `--idempotent` script
+> EF generates is **not runnable as shipped** unless `deploy.ps1` repairs it (it now does) *and* it
+> is scoped with `-FromMigration <target high-water>`. Two independent reasons:
+> 1. EF emits `EXEC(CONCAT(...))` for computed columns, which SQL Server cannot parse. `deploy.ps1`
+>    now rewrites these and `verify-bundle.py` fails the bundle if any survive.
+> 2. Even repaired, a from-scratch script **binds every guarded block before `IF NOT EXISTS` can
+>    skip it**, so blocks referencing since-dropped columns fail (`Invalid column name
+>    'UserCompanyId'`). Only `-FromMigration` avoids that. A bundle meant to bootstrap a *fresh*
+>    database needs the full script instead — the two cannot be the same file.
+
+---
+
+### `GCCWebApp-deploy-20260830-2132.zip` — built 2026-08-30 (**SUPERSEDED by `20260830-2245` — its migration script could not be run, see DEF-386**)
+
+Adds **DEF-385** ("Trust this device for 30 days" now actually suppresses the next 2FA challenge).
+Hygiene ALL PASS; content markers **24 / 24**, including three negative controls. Unit suite
+**87 failed / 771 passed** — 87 is the unchanged baseline; the +38 over the original 733 are the new
+DEF-383 (24) and DEF-385 (14) tests.
+
+**TWO migrations in this bundle now**, both in `migrations\apply-migrations.sql`:
+
+| Migration | What it does |
+|---|---|
+| `20260830221518_DEF383FixCertResultsPercentBoundary` | rebuilds the `CertificationResultsNumeric` computed column |
+| `20260830230201_DEF385AddTrustedDevices` | **new `TrustedDevices` table** + FK to `Users` (cascade) + `(TokenHash, UserId)` index |
+
+Gate 7 applies. Run the script **before** recycling the app pool.
+
+**DEF-385 is a new authentication path, so it deserves a deliberate post-deploy check** rather than
+being assumed from a green build. On the test environment, with a 2FA-enabled account: sign in, tick
+the box, verify; then sign out and sign in again — the second sign-in must not challenge. It is
+exercised locally by `_regression/12-trust-device-roundtrip.js`, which also proves a device trusted
+for one account does **not** skip 2FA for another.
+
+No new secrets, no config keys, no change to `appsettings.Production.json` required.
+
+Everything below about the Amazon value change (DEF-383) and the recovery-code re-copy (DEF-384)
+still applies.
+
+---
+
+### `GCCWebApp-deploy-20260830-1847.zip` — built 2026-08-30 (**SUPERSEDED by `20260830-2132` — missing DEF-385**)
+
+Identical to `20260830-1833` plus **DEF-384** (2FA recovery codes copied/downloaded at half length).
+Hygiene ALL PASS; content markers **19 / 19**, including a negative control proving the half-code
+expression is gone from the compiled view. `20260830-1833` was never uploaded — ignore it.
+
+**Tell the UAT testers after deploy:** anyone who already saved their 2FA recovery codes from that
+page holds an incomplete copy and should re-copy them. The stored codes were always correct — only
+the copy/download output was truncated — so nothing needs regenerating server-side.
+
+Everything below about the schema migration and the Amazon value change still applies.
+
+---
+
+### `GCCWebApp-deploy-20260830-1833.zip` — built 2026-08-30 (**SUPERSEDED by `20260830-1847` — missing DEF-384**)
+
+**⚠️ THIS BUNDLE CONTAINS A SCHEMA MIGRATION — the first one in this run of bundles.**
+`20260830221518_DEF383FixCertResultsPercentBoundary` rebuilds the `CertificationResultsNumeric`
+persisted computed column (drop index → drop column → re-add computed → recreate index). **Gate 7 is
+NO LONGER N/A.** Apply `migrations\apply-migrations.sql` **before** recycling the app pool. Note the
+test environment has `AutoMigrateOnStartup=true` ([[feedback_test_env_auto_migrates]]), so it would
+apply itself on startup anyway — run it deliberately rather than letting that happen unobserved.
+
+| | |
+|---|---|
+| Size / entries | 61.1 MB / 341 |
+| Hygiene | **ALL PASS** — 0 DataProtectionKeys, 0 dev/secrets config, 0 uploads, 0 `Scripts/`, 0 `docs/` |
+| Content markers | **17 / 17 PASS**, including three negative controls |
+| Unit suite | 87 failed / 757 passed — 87 is the unchanged baseline, +24 are the new DEF-383 tests |
+
+**Delta over `20260828-1258`:** DEF-383 only (Certification Results `1` displayed as "1%" when it
+means 100%). Carries everything from the previous bundles, none of which were uploaded.
+
+> **⚠️ DEF-383 changes partner-visible VALUES.** 86 publicly visible certificates change from `"1%"`
+> to `"100%"`; **11 of them reach Amazon**, who threshold-check this field. The response *shape* is
+> unchanged so the immutable-contract rule is not breached, but **Gate 4's contract diff will show
+> value differences and that is expected** — do not read it as a failure, and do not "fix" it back.
+> This is the one item in the bundle that warrants telling the client before it goes live.
+
+> **`dotnet ef` traps hit while building this** — both worth avoiding next time:
+> `migrations add --no-build` silently produced an **empty** migration (it diffs the *compiled*
+> model, and the context edit had not been built in). And `migrations remove --force` tried to
+> revert against the dev database, failing on `IX_Certificates_Number`. **No damage** — it rolled
+> back, and that index is a *filtered* unique index (`WHERE AllowsDuplicateNumber = 0`) from CR-038,
+> which is why 137 duplicate-number groups coexist with it. Verified history, index and column
+> intact. Delete scaffolded migration files by hand and rebuild; never `--force` the remove.
+
+---
+
+### `GCCWebApp-deploy-20260828-1258.zip` — built, gated + content-verified 2026-08-28 (**SUPERSEDED by `20260830-1833` — missing DEF-383**)
+
+**Supersedes `20260827-0636`, which must NOT be uploaded** — it carries the pre-DEF-381 tile script
+and would re-ship the lazy-loading fault that is currently blocking the client's data review.
+
+| | |
+|---|---|
+| Size / entries | 61.1 MB / 341 |
+| in-zip `GCCWebApp.dll` sha256 | `91A63928F2FE51060F6E134A8C503BBFD279547EAFACF4ACAE5DB823DE4A3ECD` |
+| Hash chain | in-zip sha256 **==** `bin/Release/net8.0/win-x64/publish/GCCWebApp.dll` sha256 (exact match) |
+| Hygiene | **ALL PASS** — 0 DataProtectionKeys, 0 dev/secrets config, 0 uploads, 0 `Scripts/`, 0 `docs/` |
+| Content markers | **13 / 13 PASS**, including two negative controls and a nonsense-marker control |
+| Unit suite | 87 failed / 733 passed — **identical to the pre-change baseline**, no regression |
+
+**Delta over what is live:** DEF-381 (public tile view repeated the previous batch on every
+infinite scroll) and DEF-382 (unaligned `offset` rounded down, hiding the tail of the list). Both
+carry the DEF-376/377/378/379 payload from `20260827-0636`, which was never uploaded.
+
+**Both fixes verified by executing the shipped artifact**, not just by grepping it: the Release
+publish output was run on `:5102` against `GCCDatabase_Dev` (never the client's DB — verified) and
+both regression scripts passed against that instance.
+
+- `_regression/09-offset-paging.js` — unaligned offsets 37/75/90/123/149 + unaligned tail: PASS
+- `_regression/08-tile-scroll-dupes.js` — 4 scrolls, every rendered tile unique: PASS
+
+Both were confirmed **falsifiable first**: against the unfixed code, 09 reports the reference index
+each offset rounded down to, and 08 reports 300 tiles / 150 distinct after two scrolls.
+
+> ⚠️ **A clean build log is not evidence the code in it changed.** The first "fixed" run of 09 still
+> failed. `Copy-Item` had restored the source file with its *original* timestamp — older than the
+> compiled DLL — so the incremental build was a no-op and still printed `0 Error(s)`. Compare source
+> vs. assembly `LastWriteTime` before trusting a rebuild.
+
+> ⚠️ **`Set-Content -Encoding utf8` corrupted em-dashes in a `.cs` file** during that same revert
+> (`— ` became `â€" `). The mojibake hazard already documented for markdown applies to source files
+> too. Restored from a byte-exact `Copy-Item` backup; verified 0 U+FFFD and 12 intact em-dashes.
+
+**Still owed at upload time** (not run, not assumed green):
+- Gate 0 — back up the server's `wwwroot/uploads/` before extracting.
+- Gate 4 — `amazon-contract-diff.js` must print `CONTRACT UNCHANGED`. Still fires: the bundle
+  carries DEF-376, which touches a partner surface. Needs a live partner key.
+- Gate 9 — `_static/run-all.js`.
+- Gates 11 / 12 — post-deploy close-out and outbound-email check.
+- DEF-363 re-check — `/appsettings.Production.json` must **not** return 200 after extract.
+- Re-run `_regression/` 08 and 09 against gccwebapp.com once live.
+
+> `deploy.ps1` again wrote a `DataProtectionKeys/` folder into the project root while generating the
+> migration script (1 file). Confirmed **not** in the zip. Delete it locally; do not let it reach a
+> bundle (the 2026-08-17 bundle shipped 5 of these unencrypted).
+
+---
+
+### `GCCWebApp-deploy-20260827-0636.zip` — built, gated + content-verified 2026-08-27 (**SUPERSEDED by `20260828-1258` — do NOT upload: pre-DEF-381 tile script**)
+
+**Built** via canonical `Scripts/deploy.ps1 -SkipUploadsBackupPrompt` (Release, PleskTestEnvironment).
+**61.1 MB, 341 entries**, `GCCWebApp.dll` **6,484,992 B**, sha256 `a75fb887943d1e7269534509a43f9939ffeff4f3e7251587bf218a8fe254c98f`. Release build clean: **0 errors**.
+No `-FromMigration`: Gate 7 was checked against the target DB first and nothing is owed (below).
+
+> ### ⚠️ This log is NOT a record of what is live — 20 bundles are missing from it
+>
+> `deployment-drops/` holds **22** zips; only two of the ones after 2026-08-07 appear anywhere in this
+> file. Everything built between **2026-08-17 and 2026-08-25** — including `20260825-1448.zip`, which
+> post-dates the deploy DEF-375 was raised against — has **no entry here at all**. So the previous
+> "THIS IS THE ONE TO UPLOAD" marker on `20260807-1312` was three weeks stale, and a delta stated
+> against it would be fiction. (A second stale marker was still sitting on the July `20260720-2332`
+> bundle; both are corrected.)
+>
+> **The delta below is therefore stated against the live site as measured, not against a log entry.**
+
+**Delta — measured against the deployed site, 2026-08-25/26:** four fixes for defects that were
+**observed live on gccwebapp.com** during the full-regression run, not inferred from a previous bundle
+(`docs/tracking/status-testing-report-2026-08-25.md`). Each was reproduced against the deployed
+environment before it was fixed — **DEF-376** (Amazon partner tile view showed
+two certificates ~2 months before their effective date; DEF-358 residual gap), **DEF-377** (certificate
+CSV export returned HTTP 400 for any caller whose scope is empty), **DEF-378** (import rejected a blank
+Certificate # while the Create form auto-numbers one; includes a multi-ASIN grouping bug that would
+have merged several blank rows into one certificate), **DEF-379** (product import template downloadable
+by External/Partner users).
+
+Files: `Controllers/Api/CertificateTileExternalApiController.cs`, `Controllers/CertificateController.cs`,
+`Controllers/ProductController.cs`, `Services/CertificateService.cs`,
+`Services/Import/CertificateImportService.cs`, `Models/Import/CertificateImportModels.cs`,
+`Views/CertificateImport/Preview.cshtml`.
+
+> **Not in this bundle, deliberately:** DEF-369 (duplicate certificate numbers — data, not code),
+> DEF-380 (`GET /Certificate/Delete/{number}` 500s, orphaned action), and the F-6 Novi data gap.
+
+**No migration owed — verified against the TARGET DB, not from memory.** Repo migration tail and the
+test DB's `__EFMigrationsHistory` are both at **`20260814195931_CR038_AllowDuplicateCertificateNumbers`**.
+None of this bundle's changes touch an entity or the DbContext. **Gate 7 does not fire.**
+
+> The generated `migrations/apply-migrations.sql` is 3,042 lines / 114 KB, but it is the *full*
+> idempotent script (**321** `IF NOT EXISTS … __EFMigrationsHistory` guards), so every migration in it
+> no-ops on this target. The appended `CR-171-partner-backfill.sql` is likewise idempotent
+> (`NOT EXISTS` guards on both inserts). **Running it is unnecessary and safe; skipping it is also
+> safe.** Note the test environment has `Database:AutoMigrateOnStartup: true`, so the app would apply
+> anything outstanding itself on the next pool recycle.
+
+#### In-zip content verification
+
+Markers asserted against the **in-zip bytes**, with a control that must be present and a nonsense
+marker that must be absent, plus negative controls proving the *old* behaviour is gone.
+
+> **Method note — literals need UTF-16.** A .NET assembly keeps type/member names in the `#Strings`
+> heap as UTF-8 but **string literals in the `#US` heap as UTF-16LE**. The first pass searched
+> literals as ASCII and reported DEF-377's new message ABSENT for a change that had shipped. Every
+> marker is now tested in **both** encodings (`Scripts/deploy/verify-bundle.py`). This is the same
+> class of trap as the DEF-344 note on the bundle below.
+
+| Change | Marker | Result |
+|---|---|---|
+| *control* | `CertificateController` | **PRESENT** ✔ method valid |
+| *control* | `zzz_not_a_real_marker_zzz` | **ABSENT** ✔ no false positives |
+| DEF-376 | `WhereEffectiveDateReached` (list query gate) | **PRESENT** |
+| DEF-376 | `IsNotYetEffective` (download gate) | **PRESENT** |
+| DEF-377 | `Export failed. Please try again` (new 500 message) | **PRESENT** |
+| DEF-377 | `No data to export or export failed` (old 400 message) | **ABSENT** ✔ negative control |
+| DEF-378 | `WillAutoAssignNumber` | **PRESENT** |
+| DEF-378 | `DisplayCertificateNumber` | **PRESENT** |
+| DEF-378 | `(auto-assign)` | **PRESENT** |
+| DEF-378 | `Certificate Number is required` (old rejection) | **ABSENT** ✔ negative control |
+
+**Executed the shipped artifact.** In-zip `GCCWebApp.dll` sha256 **==** `bin/Release/net8.0/win-x64/publish/GCCWebApp.dll`
+sha256 (exact match), and that publish output was run on `:5102` against `GCCDatabase_Dev`:
+
+| Fix | Evidence on the Release artifact |
+|---|---|
+| DEF-377 | Export filtered to match nothing → **HTTP 200, `text/csv`, exactly 1 line** (header only). Previously 400. |
+| DEF-379 | `/Product/DownloadProductImportTemplate` with no session → **denied**. |
+
+> **Running the published exe over plain HTTP hits two Production-config guards**, both harness
+> artifacts rather than deploy risks, recorded so the next person does not chase them: the test-env
+> gate is **enabled** (`EnvironmentName=Production` loads `appsettings.Production.json`) so every path
+> 302s to `/__gate` until the password is posted; and `Antiforgery.Cookie.SecurePolicy = Always` makes
+> **any form POST throw** over `http://`, which is why the admin login could not be completed on
+> `:5102`. The real deploy is HTTPS. DEF-376/378 and DEF-379's admin-positive case were verified
+> end-to-end on the debug build from this identical source tree during the regression run, and the
+> DLL hash proves the zip carries that build.
+>
+> **Safety check while doing this:** confirmed via `Get-NetTCPConnection` that the process held **no
+> connection to `68.71.129.120`** (the test DB) — the `ConnectionStrings__DefaultConnection` override
+> to the dev DB took effect. No client data was touched.
+
+#### Hygiene — all PASS
+
+**0 entries** for each of: **`DataProtectionKeys`**, loose `key-*.xml`, `appsettings.Development.json`,
+`appsettings.Secrets.json`, `appsettings.Test.json`, test projects, `wwwroot/uploads/`,
+`App_Data/uploads/`, `Scripts/`, `docs/`, `docs2/`. In-zip `appsettings.json` (3,684 B) contains **no**
+dev DB credential and no `GCCDatabase_Dev` reference. (1 `.pdb` ships — as in prior bundles.)
+
+The DataProtectionKeys result is the load-bearing one: the **2026-08-17** bundle shipped **5** key files
+unencrypted. `deploy.ps1` writes keys into the project root while generating the migration script, so
+this is not a theoretical check — it is re-run every time.
+
+> **Pre-existing exposure that ships in this bundle (not introduced by it):** in-zip `appsettings.json`
+> still carries the plaintext Gmail app password (19 chars) — **DEF-263** /
+> [[security-plaintext-gmail-credential]]. In every bundle to date; does not block this deploy.
+
+> **Gate password — no lockout risk.** In-zip `appsettings.Production.json` carries
+> `TestEnvironmentGate.Password = Cert-Test-Access-2026!`, which **is the value currently live**. The
+> 2026-08-17 rotation to `GreenCircle-Test-2026` was never applied to the deployed config *or* the
+> scripts (see the F-1 correction in the status report), and per Shawn it stays deferred while UAT
+> users are testing. So the extract preserves the working password rather than changing it.
+
+#### Gate assessment
+
+| Gate | Fires? | Result | Evidence / rationale |
+|------|--------|--------|----------------------|
+| 0 — Uploads backup | Yes | **DEPLOY-TIME — OWED** | Built with `-SkipUploadsBackupPrompt`; server-side backup **not** done. In-zip upload entries: 0. |
+| 1 — UI / Design-Guide | Yes (`Preview.cshtml`) | **REASONED** | Four `<code>` cells swap `@row.CertificateNumber` for `@row.DisplayCertificateNumber`, which renders the same string except where the file left it blank (then `(auto-assign)`). No markup, CSS, label, container or `<h1>` change; no native dialog. Full `ux-design-compliance` review not re-run. |
+| 2 — Cross-role + responsive | Yes (partner surface) | **PARTIAL — functionally verified, not swept** | The DEF-376 change was verified as a real Partner user (208 tiles, both future-dated certs absent, download refused) and the import path through the real UI. The 4-login × 5-viewport Playwright + AxeCore sweep was **not** run. |
+| 3 — Data-scoping & endpoints | Yes (scoping changed) | **VERIFIED — by targeted regression, not `deploy-gate.js`** | The 2026-08-25 run scored **168/168** on the RBAC matrix (24 routes × 7 roles) and proved company/partner isolation by comparing key **sets** in both directions. DEF-376 narrows a partner's population; re-verified after the fix. `_security/run-all.js` was **not** run — it defaults to `analyst`/`external` logins that do not exist on the dev DB (ISS-001). |
+| 4 — Partner API contract | **Yes** (`Api/` controller changed) | **⚠️ NOT RUN — OWED** | `amazon-contract-diff.js` needs a live partner API key and was not run. **DEF-376 changes a partner-facing surface**, so this gate genuinely fires. Mitigation: the change is confined to `CertificateTileExternalApiController` (the *web tile* API), and the v1 partner API (`Controllers/Api/v1/`) is untouched — it already applied this gate at all 9 sites under DEF-358. **Run it before or immediately after upload.** |
+| 5 — Traceability audit | Yes (always) | **VERIFIED** | DEF-376–379 appended to the register with symptom/cause/fix/verification; DEF-380 logged as OPEN. Status report updated with a §2a fix table and an explicit correction of the F-1 claim. |
+| 6 — Performance / EF | Yes (query changed) | **REASONED + measured pre-change** | DEF-376 adds one `WHERE EffectiveDate <= @today` to an already-filtered partner query — no new join or include. The regression measured the partner tile API at **110 ms median** before the change. No cold-start timing re-run after. |
+| 7 — Pending migration → prod | **No** | **N/A — nothing owed** | Target DB `__EFMigrationsHistory` high-water == repo tail `20260814195931_CR038_AllowDuplicateCertificateNumbers`, queried live. Generated script is fully guarded (321 guards) and no-ops. |
+| 8 — CRUD write-path | Yes (import write path) | **VERIFIED — by targeted regression** | Create→edit→delete round-trip green (17/17) on the test env during the run; the import write path re-verified after the DEF-378 fix through upload→preview→apply, producing **two distinct** auto-assigned numbers. `_crud/run-all.js` not run (needs `sqlcmd` against the dev DB plus the missing role logins). |
+| 9 — Static integrity | Yes (always) | **NOT RUN — OWED** | `_static/run-all.js` not run for this bundle. |
+| 10 — Config resolves to a row | Yes (always) | **VERIFIED** | `Audit:SystemUserEmail` = `swest@anukiconsulting.com` read from the **in-zip** `appsettings.json`; in-zip `appsettings.Production.json` does not override it. Probed the **target** DB: returns exactly `1 \| admin \| swest@anukiconsulting.com \| active`. |
+
+**Unit tests:** `dotnet build` clean. Suite **87 failures before and after** the change (all pre-existing —
+mostly integration tests needing a live server), passing count **731 → 733** from three new import tests
+covering auto-assign, distinctness, and supplied-number preservation.
+
+**Net:** built, hygiene-clean, and content-verified with negative controls. Every fix is provably inside
+the zip, and two of the four are proven by **executing the shipped Release assembly**. Two mechanical
+gates were not run and are stated as owed rather than assumed green.
+
+**Still owed — do not skip silently:**
+- **Gate 0 (at upload):** zip the server's `wwwroot/uploads/` before extracting.
+- **Gate 4 (partner contract):** run `amazon-contract-diff.js` — it must print `CONTRACT UNCHANGED`. This bundle touches a partner surface.
+- **Gate 9 (static integrity):** run `_static/run-all.js`.
+- **Gate 11 (post-deploy close-out)** and **Gate 12 (outbound email still works)** — both run after the upload.
+- **DEF-363 re-check:** after the extract, confirm `https://gccwebapp.com/appsettings.Production.json` does **NOT** return 200. This bundle ships `web.config`, and the last time that handler went inactive the config file (DB password, JWT key, gate password) was served publicly.
+- **⚠️ This deploy overwrites `web.config` and `appsettings.Production.json`.** `appsettings.Secrets.json` is a separate server-only file and is **not** in the zip, so the SMTP credential survives — but Gate 12 confirms it rather than assuming.
+- **Re-run the regression against gccwebapp.com after the deploy** (`_regression/` phases 1–3 and 6). DEF-376–379 were verified on localhost; they have not been confirmed on the deployed environment.
+
+---
+
 Per-bundle record of gate outcomes. Be precise: **VERIFIED** = mechanically run/checked; **N/A** = gate does not fire for this changeset (with the scope reason); **REASONED** = firing gate not run through its full agent/script, assessed by scope+diff instead (a conscious call, not a silent skip); **DEPLOY-TIME** = a manual step owed at upload, not at bundle time.
 
-### `GCCWebApp-deploy-20260807-1312.zip` — built, gated + content-verified 2026-08-07 (**supersedes `20260804-2230` and all earlier — THIS IS THE ONE TO UPLOAD**)
+### `GCCWebApp-deploy-20260807-1312.zip` — built, gated + content-verified 2026-08-07 (**SUPERSEDED — and by more than one bundle: ~20 unlogged zips were built between this and `20260827-0636`. Do not treat this entry as the previous live state.**)
 
 **Built** via canonical `Scripts/deploy.ps1 -SkipUploadsBackupPrompt -FromMigration 20260721015555_WidenStatusHistoryCertificateNumber` (Release, PleskTestEnvironment). 60.5 MB, **338 entries**, `GCCWebApp.dll` 6,358,016 B. Release build clean: **0 errors**.
 
@@ -538,7 +942,7 @@ No `appsettings.Development.json` / `.Test.json`, no `GCCWebApp.Api.Tests`, **ze
 
 ---
 
-### `GCCWebApp-deploy-20260720-2332.zip` — assessed 2026-07-21 (**supersedes 2204 / 2137 / 2037 / 1408 / all earlier — THIS IS THE ONE TO UPLOAD**)
+### `GCCWebApp-deploy-20260720-2332.zip` — assessed 2026-07-21 (**SUPERSEDED — this line said "THIS IS THE ONE TO UPLOAD" long after two newer bundles existed; corrected 2026-08-27**)
 
 **Why rebuilt:** carries **DEF-315** — partner CSV export identifier-column misalignment (ASIN values landing under the UPC/GTIN headers). Client-reported as a cosmetic `=`/`"`; was actually silent data corruption in a partner deliverable.
 

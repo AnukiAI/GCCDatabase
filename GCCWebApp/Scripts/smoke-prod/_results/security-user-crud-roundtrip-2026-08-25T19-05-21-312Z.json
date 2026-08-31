@@ -1,0 +1,19 @@
+{
+  "specId": "user-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 0,
+  "fail": 1,
+  "warn": 0,
+  "blocked": 0,
+  "total": 1,
+  "results": [
+    {
+      "id": "user.error",
+      "name": "spec ran without throwing",
+      "status": "FAIL",
+      "notes": "Expected property name or '}' in JSON at position 888 (line 34 column 5)"
+    }
+  ],
+  "finishedAt": "2026-08-25T19:05:21.312Z"
+}

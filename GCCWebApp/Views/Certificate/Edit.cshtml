@@ -1050,7 +1050,9 @@
             if (!confirmed) return;
 
             try {
-                const response = await fetch(`/Certificate/Delete/${encodeURIComponent(certificateNumber)}`, {
+                // DEF-369: @Model.Id is the certificate this Edit page loaded. Without it a delete
+                // on a shared number resolves to a sibling, and the delete is permanent.
+                const response = await fetch(`/Certificate/Delete/${encodeURIComponent(certificateNumber)}?cid=@Model.Id`, {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',

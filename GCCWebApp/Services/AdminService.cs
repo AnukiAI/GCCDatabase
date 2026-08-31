@@ -3235,6 +3235,11 @@ namespace GCCWebApp.Services
                 user.TwoFactorSecret = null;
                 user.RecoveryCodes = null;
 
+                // DEF-385: trusted devices exist only to skip 2FA, so they die with it. Especially
+                // here — an admin resetting a user's 2FA is usually responding to a lost or
+                // compromised device, which is exactly when a lingering bypass would be worst.
+                await RevokeTrustedDevicesForUserAsync(user.Id, "2FA was reset by an administrator");
+
                 await _context.SaveChangesAsync();
 
                 await _auditService.LogAuditEventAsync(
@@ -3261,6 +3266,9 @@ namespace GCCWebApp.Services
 
                 // Disable 2FA
                 user.TwoFactorEnabled = false;
+
+                // DEF-385: as above — a trusted device is a 2FA bypass, so it cannot outlive 2FA.
+                await RevokeTrustedDevicesForUserAsync(user.Id, "2FA was disabled by an administrator");
 
                 await _context.SaveChangesAsync();
 
@@ -3326,6 +3334,31 @@ namespace GCCWebApp.Services
                 buffer[i] = alphabet[RandomNumberGenerator.GetInt32(alphabet.Length)];
             }
             return new string(buffer);
+        }
+
+        /// <summary>
+        /// DEF-385: marks every live trusted device for a user as revoked. Deliberately does NOT
+        /// call SaveChangesAsync — the caller saves, so the revocation commits in the same
+        /// transaction as the 2FA change that triggered it.
+        /// </summary>
+        private async Task RevokeTrustedDevicesForUserAsync(int userId, string reason)
+        {
+            var now = DateTime.UtcNow;
+            var active = await _context.Set<TrustedDevice>()
+                .Where(d => d.UserId == userId && d.RevokedAt == null)
+                .ToListAsync();
+
+            foreach (var d in active)
+            {
+                d.RevokedAt = now;
+                d.RevokedReason = reason;
+            }
+
+            if (active.Count > 0)
+            {
+                _logger.LogInformation("Revoked {Count} trusted device(s) for user {UserId}: {Reason}",
+                    active.Count, userId, reason);
+            }
         }
     }
 }

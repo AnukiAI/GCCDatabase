@@ -379,7 +379,7 @@
                         }
                         @if (hasFile)
                         {
-                            <div class="@downloadClass" title="@downloadTitle" onclick="downloadCertificate('@GetFormattedCertificateNumber()')">
+                            <div class="@downloadClass" title="@downloadTitle" onclick="downloadCertificate('@GetFormattedCertificateNumber()', @Model.Certificate.Id)">
                                 <i class="fas fa-download"></i>
                             </div>
                         }
@@ -395,7 +395,16 @@
 
             <!-- Database Listing URL -->
             @{
-                var verifyUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/Certificate/Verify/{GetFormattedCertificateNumber()}";
+                // DEF-369: this is the "Database Listing URL" the client copies, prints and shares as
+                // proof of certification. CR-038 lets several certificates share a number, so the
+                // bare form resolves to whichever sibling the shared-number rule picks — meaning the
+                // published link for 175 certificates pointed at a DIFFERENT product's listing.
+                // The disambiguator is appended only when the number is actually shared, so the
+                // clean, short URL is preserved for the overwhelming majority.
+                var verifyBase = $"{Context.Request.Scheme}://{Context.Request.Host}/Certificate/Verify/{GetFormattedCertificateNumber()}";
+                var verifyUrl = Model.SharesCertificateNumber
+                    ? $"{verifyBase}?cid={Model.Certificate.Id}"
+                    : verifyBase;
             }
             <div class="detail-section" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #dee2e6;">
                 <div class="certificate-field">
@@ -410,13 +419,13 @@
                 <div class="certificate-internal-actions" style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px; padding: 15px 0;">
                     @if (Model.CanEdit)
                     {
-                        <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@GetFormattedCertificateNumber()')">
+                        <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@GetFormattedCertificateNumber()', @Model.Certificate.Id)">
                             <i class="fas fa-edit"></i>
                         </div>
                     }
                     @if (Model.CanDelete)
                     {
-                        <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@GetFormattedCertificateNumber()')">
+                        <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@GetFormattedCertificateNumber()', @Model.Certificate.Id)">
                             <i class="fas fa-trash"></i>
                         </div>
                     }
@@ -464,16 +473,20 @@
     });
 
     // Make certificate action functions available globally for this page
-    window.editCertificate = function(certificateNumber) {
+        window.editCertificate = function(certificateNumber, certificateId) {
         if (!certificateNumber) {
             console.error('Certificate number is missing');
             return;
         }
         // Use certificate number (e.g., "24-1605") instead of ID for URL
-        window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
+        const editCid = Number(certificateId) > 0 ? `?cid=${Number(certificateId)}` : '';
+        window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}${editCid}`;
     };
 
-    window.deleteCertificate = async function(certificateNumber) {
+        // DEF-369: pass the id of the certificate this page is showing. Delete is permanent
+    // (no soft-delete, DEF-288), and where several certificates share a number the
+    // number-only lookup would have deleted a sibling instead of the one on screen.
+    window.deleteCertificate = async function(certificateNumber, certificateId) {
         if (!certificateNumber) {
             console.error('Certificate number is missing');
             return;
@@ -489,7 +502,8 @@
 
         if (confirmed) {
             try {
-                const response = await fetch(`/Certificate/Delete/${encodeURIComponent(certificateNumber)}`, {
+                const delCid = Number(certificateId) > 0 ? `?cid=${Number(certificateId)}` : '';
+                const response = await fetch(`/Certificate/Delete/${encodeURIComponent(certificateNumber)}${delCid}`, {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
@@ -515,13 +529,17 @@
         }
     };
 
-    window.downloadCertificate = async function(certificateNumber) {
+        // DEF-369: CR-038 allows several certificates to share one number, so this page passes
+    // the id of the certificate it actually rendered. Without it the buttons fall back to
+    // the number and resolve to a sibling — the same wrong-certificate defect one step on.
+    window.downloadCertificate = async function(certificateNumber, certificateId) {
         if (!certificateNumber) {
             AdminCore.showNotification('Certificate number is missing', 'error');
             return;
         }
         try {
-            const response = await fetch(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`);
+            const cidQuery = Number(certificateId) > 0 ? `?cid=${Number(certificateId)}` : '';
+            const response = await fetch(`/Certificate/Download/${encodeURIComponent(certificateNumber)}${cidQuery}`);
             if (response.ok) {
                 const blob = await response.blob();
                 let filename = `Certificate_${certificateNumber}.pdf`;

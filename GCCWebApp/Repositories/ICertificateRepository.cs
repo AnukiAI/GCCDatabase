@@ -18,6 +18,27 @@ namespace GCCWebApp.Repositories
         Task<Certificate?> GetCertificateByNumberAsync(string certificateNumber);
 
         /// <summary>
+        /// DEF-369: resolve a certificate by number AND a specific id.
+        ///
+        /// CR-038 allows several certificates to share one number, so
+        /// <see cref="GetCertificateByNumberAsync"/> can only ever return one of them and the rest
+        /// have no address at all. This overload takes the id the caller already knows.
+        ///
+        /// The number is still required and still matched: the id alone is NOT trusted as a key.
+        /// That keeps the public contract "a URL identifies a certificate number" intact, and stops
+        /// a mismatched id from being used to reach a certificate whose number was not requested.
+        /// Returns null when the pair does not match, rather than falling back to the number — a
+        /// silent fallback would reintroduce exactly the wrong-certificate bug this fixes.
+        /// </summary>
+        Task<Certificate?> GetCertificateByNumberAndIdAsync(string certificateNumber, int certificateId);
+
+        /// <summary>
+        /// DEF-369: how many certificates share this number? Used to decide whether a bare
+        /// number-only URL is ambiguous, so the view can tell the visitor there are siblings.
+        /// </summary>
+        Task<int> CountCertificatesByNumberAsync(string certificateNumber);
+
+        /// <summary>
         /// CR-038: true when no certificate holds this number (optionally ignoring one id, for edits).
         /// Checks ALL certificates including the grandfathered duplicates — the filtered unique index
         /// cannot see those, so this is what stops a new certificate reusing an issued number.
@@ -92,6 +113,21 @@ namespace GCCWebApp.Repositories
         public bool SortDescending { get; set; } = true;
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 10;
+
+        /// <summary>
+        /// DEF-381: exact row offset, for callers that page by offset rather than by page number.
+        /// When set, it overrides the <see cref="Page"/>/<see cref="PageSize"/> arithmetic entirely.
+        ///
+        /// Why this exists: an offset can only be expressed as a page number when it is an exact
+        /// multiple of the page size. `(offset / pageSize) + 1` silently rounds DOWN otherwise, so
+        /// offset=90 with pageSize=50 became page 2 => Skip(50), re-serving rows 51-90 and skipping
+        /// the rows the caller actually asked for. The public tile view pages by offset and advances
+        /// by the count of *unique* rows it received, so a single duplicate from any cause would put
+        /// it permanently on a wrong offset and it could never reach the tail of the list.
+        ///
+        /// Null (the default) keeps the original page-based behaviour for every existing caller.
+        /// </summary>
+        public int? Skip { get; set; }
         
         // Additional filter properties for API
         public List<string>? CertificationTypeNames { get; set; }

@@ -1,0 +1,111 @@
+{
+  "base": "http://localhost:5101",
+  "runId": "mtawq5v4",
+  "pass": 13,
+  "fail": 3,
+  "blocked": 1,
+  "rows": [
+    {
+      "id": "setup.login",
+      "name": "Signed in as admin.uat",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "setup.warmup",
+      "name": "Application warmed",
+      "status": "PASS",
+      "notes": "1560ms"
+    },
+    {
+      "id": "F-3.status",
+      "name": "Empty-scope export returns 200 with a CSV, not 400",
+      "status": "FAIL",
+      "notes": "HTTP 500 content-type=text/plain; charset=utf-8"
+    },
+    {
+      "id": "F-3.header-only",
+      "name": "Empty-scope export is header-only",
+      "status": "FAIL",
+      "notes": "1 line(s); first=\"Export failed. Please try again or contact support if it per\""
+    },
+    {
+      "id": "F-5.admin-allowed",
+      "name": "Admin can still download the product import template",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "F-5.anon-denied",
+      "name": "Anonymous cannot download the product import template",
+      "status": "PASS",
+      "notes": "HTTP 302 location=http://localhost:5101/Account/Login?ReturnUrl=%2FProduct%2FDownloadProductImportTemplate"
+    },
+    {
+      "id": "F-4.preview-accepts-blank",
+      "name": "Preview accepts a blank Certificate # (no longer an error)",
+      "status": "PASS",
+      "notes": "errors=0 cannotApply=false"
+    },
+    {
+      "id": "F-4.preview-two-rows",
+      "name": "Two blank rows stay TWO new certificates (multi-ASIN grouping)",
+      "status": "PASS",
+      "notes": "total=2 new=2"
+    },
+    {
+      "id": "F-4.preview-placeholder",
+      "name": "Preview shows \"(auto-assign)\" for the blank number",
+      "status": "PASS",
+      "notes": "placeholder rendered=true"
+    },
+    {
+      "id": "F-4.preview-applyable",
+      "name": "Apply form is offered",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "F-4.apply",
+      "name": "Import applies",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "F-4.two-certificates",
+      "name": "Both rows became certificates",
+      "status": "PASS",
+      "notes": "found 2: 26-0482, 26-0483"
+    },
+    {
+      "id": "F-4.numbers-assigned",
+      "name": "Both received a generated NN-NNNN number",
+      "status": "PASS",
+      "notes": "26-0482, 26-0483"
+    },
+    {
+      "id": "F-4.numbers-distinct",
+      "name": "The two numbers are DISTINCT",
+      "status": "PASS",
+      "notes": "2 rows -> 2 distinct"
+    },
+    {
+      "id": "F-2.partner-user",
+      "name": "Create a temporary Partner user",
+      "status": "PASS",
+      "notes": "zz.fixverify.mtawq5v4"
+    },
+    {
+      "id": "F-2",
+      "name": "Partner not-yet-effective gate",
+      "status": "BLOCKED",
+      "notes": "partner user could not sign in"
+    },
+    {
+      "id": "teardown.certificates",
+      "name": "Imported fixtures removed",
+      "status": "FAIL",
+      "notes": "MANUAL CLEANUP REQUIRED: 26-0482, 26-0483"
+    }
+  ]
+}

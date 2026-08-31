@@ -62,8 +62,18 @@
 <script>
     var recoveryCodes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(codes));
 
+    // DEF-384: this returned a HALF code — "A1B2-" instead of "A1B2-C3D4".
+    //
+    // The block above renders the same code with Razor: @@code.Substring(0, 4)-@@code.Substring(4, 4).
+    // C# String.Substring is (startIndex, LENGTH), so that is 4 characters from index 4 — correct.
+    // JavaScript String.substring is (startIndex, END index), so substring(4, 4) is an EMPTY string.
+    // Identical-looking calls, different second argument, so the screen showed the full code while
+    // the clipboard and the downloaded file both silently lost the second half.
+    //
+    // substring(4) — to the end — rather than substring(4, 8), so this cannot drift if the code
+    // length in EnhancedTwoFactorService.GenerateRecoveryCode() ever changes from 8.
     function formatCode(code) {
-        return code.substring(0, 4) + '-' + code.substring(4, 4);
+        return code.substring(0, 4) + '-' + code.substring(4);
     }
 
     function copyAllCodes() {

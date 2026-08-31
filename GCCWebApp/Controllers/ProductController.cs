@@ -900,6 +900,12 @@ namespace GCCWebApp.Controllers
         /// Download sample CSV template for product import
         /// </summary>
         [HttpGet]
+        // The class-level policy is ExternalAccess, which let External and Partner users download an
+        // import template for an action they cannot perform — ImportProducts is AnalystOrAdmin. No
+        // data leaked (headers only), but it offered an import affordance to roles that get no
+        // Add/Edit affordances anywhere else. Matches the certificate import template, which was
+        // already gated this way.
+        [Authorize(Policy = "AnalystOrAdmin")]
         public IActionResult DownloadProductImportTemplate()
         {
             // Headers only — no sample data rows. 6 columns matching the Add New Product modal

@@ -455,7 +455,7 @@
         const location = formatLocation(cert.location, cert.country);
         
         return `
-            <tr class="certificate-row" data-id="${cert.id}" onclick="viewCertificateDetails('${cert.certificateNumber}')">
+            <tr class="certificate-row" data-id="${cert.id}" onclick="viewCertificateDetails('${cert.certificateNumber}', ${cert.id})">
                 <td class="cert-number">${escapeHtml(cert.certificateNumber)}</td>
                 <td class="company-name">${escapeHtml(cert.companyName)}</td>
                 <td class="product-name">${escapeHtml(cert.productName)}</td>
@@ -466,13 +466,13 @@
                 <td class="location">${location}</td>
                 <td class="partner">${partnerBadge}</td>
                 <td class="actions">
-                    <button class="btn-icon" title="View Details" aria-label="View details for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); viewCertificateDetails('${cert.certificateNumber}')">
+                    <button class="btn-icon" title="View Details" aria-label="View details for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); viewCertificateDetails('${cert.certificateNumber}', ${cert.id})">
                         <i class="fas fa-eye" aria-hidden="true"></i>
                     </button>
-                    <button class="btn-icon" title="Edit Certificate" aria-label="Edit certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}')">
+                    <button class="btn-icon" title="Edit Certificate" aria-label="Edit certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}', ${cert.id})">
                         <i class="fas fa-edit" aria-hidden="true"></i>
                     </button>
-                    <button class="btn-icon" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
+                    <button class="btn-icon" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}', ${cert.id})">
                         <i class="fas fa-download" aria-hidden="true"></i>
                     </button>
                 </td>
@@ -494,7 +494,7 @@
                  data-company="${cert.companyName}" 
                  data-country="${cert.country}"
                  data-status="${cert.status}"
-                 onclick="viewCertificateDetails('${cert.certificateNumber}')">
+                 onclick="viewCertificateDetails('${cert.certificateNumber}', ${cert.id})">
                 <div class="card-header">
                     <div class="header-row">
                         <div class="certificate-category">${escapeHtml(cert.certificationType)}</div>
@@ -537,13 +537,13 @@
                     ` : ''}
                 </div>
                 <div class="card-actions">
-                    <div class="action-icon download" title="Download PDF" role="button" tabindex="0" aria-label="Download PDF for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')" onkeypress="if(event.key==='Enter'||event.key===' '){event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')}">
+                    <div class="action-icon download" title="Download PDF" role="button" tabindex="0" aria-label="Download PDF for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}', ${cert.id})" onkeypress="if(event.key==='Enter'||event.key===' '){event.stopPropagation(); downloadCertificate('${cert.certificateNumber}', ${cert.id})}">
                         <i class="fas fa-download" aria-hidden="true"></i>
                     </div>
-                    <div class="action-icon external" title="View Details" role="button" tabindex="0" aria-label="View details for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); viewCertificate('${cert.certificateNumber}')" onkeypress="if(event.key==='Enter'||event.key===' '){event.stopPropagation(); viewCertificate('${cert.certificateNumber}')}">
+                    <div class="action-icon external" title="View Details" role="button" tabindex="0" aria-label="View details for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); viewCertificate('${cert.certificateNumber}', ${cert.id})" onkeypress="if(event.key==='Enter'||event.key===' '){event.stopPropagation(); viewCertificate('${cert.certificateNumber}', ${cert.id})}">
                         <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                     </div>
-                    <div class="action-icon edit" title="Edit Certificate" role="button" tabindex="0" aria-label="Edit certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}')" onkeypress="if(event.key==='Enter'||event.key===' '){event.stopPropagation(); editCertificate('${cert.certificateNumber}')}">
+                    <div class="action-icon edit" title="Edit Certificate" role="button" tabindex="0" aria-label="Edit certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}', ${cert.id})" onkeypress="if(event.key==='Enter'||event.key===' '){event.stopPropagation(); editCertificate('${cert.certificateNumber}', ${cert.id})}">
                         <i class="fas fa-edit" aria-hidden="true"></i>
                     </div>
                 </div>
@@ -1262,7 +1262,7 @@
 
 
     // Certificate actions - uses certificate NUMBER (not ID) per requirement
-    window.viewCertificateDetails = function(certificateNumber) {
+    window.viewCertificateDetails = function(certificateNumber, certificateId) {
         if (!certificateNumber) {
             console.error('Certificate number is missing');
             showToast('Error: Certificate number not found', 'error');
@@ -1270,21 +1270,31 @@
         }
         // Encode URI to handle certificate numbers with special chars like "24-0366"
         // Opens in new window so user doesn't lose their place in the tile view
-        window.open(`/Certificate/CertificateInternalView/${encodeURIComponent(certificateNumber)}`, '_blank');
+        window.open(withCid(`/Certificate/CertificateInternalView/${encodeURIComponent(certificateNumber)}`, certificateId), '_blank');
     };
 
-    function viewCertificate(certificateNumber) {
+    // DEF-369: append the certificate id when we have it.
+    // CR-038 allows several certificates to share one number, so the number alone stopped
+    // identifying a record: one certificate was reachable and its siblings silently resolved to it.
+    // The path stays the certificate NUMBER (unchanged, still shareable); `cid` disambiguates and
+    // is inert where the number is unique.
+    function withCid(url, certificateId) {
+        const id = Number(certificateId);
+        return id > 0 ? `${url}?cid=${id}` : url;
+    }
+
+    function viewCertificate(certificateNumber, certificateId) {
         if (!certificateNumber) {
             console.error('Certificate number is missing');
             return;
         }
         // Encode URI to handle certificate numbers with special chars like "24-0366"
-        window.open(`/Certificate/CertificateInternalView/${encodeURIComponent(certificateNumber)}`, '_blank');
+        window.open(withCid(`/Certificate/CertificateInternalView/${encodeURIComponent(certificateNumber)}`, certificateId), '_blank');
     }
 
-    function editCertificate(certificateNumber) {
+    function editCertificate(certificateNumber, certificateId) {
         // Use certificate number (e.g., "24-1605") instead of ID for URL
-        window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
+        window.location.href = withCid(`/Certificate/Edit/${encodeURIComponent(certificateNumber)}`, certificateId);
     }
 
     window.viewCertificate = viewCertificate;
@@ -1294,13 +1304,13 @@
     // Download certificate via fetch so we can show an in-page toast on failure
     // instead of navigating the user to a 404 in a new tab. Mirrors the public
     // view pattern (`certificate-tile-view.js`).
-    async function downloadCertificate(certificateNumber) {
+    async function downloadCertificate(certificateNumber, certificateId) {
         if (!certificateNumber) {
             showToast('Certificate number is required', 'error');
             return;
         }
         try {
-            const response = await fetch(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`);
+            const response = await fetch(withCid(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, certificateId));
 
             if (response.ok) {
                 const blob = await response.blob();
@@ -1829,19 +1839,19 @@
         const eanCount = countIds(ean);
 
         return `
-            <div class="table-body-row" data-cert-id="${cert.id}" data-cert-number="${escapeHtml(certNumber)}" role="row" onclick="viewCertificateDetails('${certNumber}')">
+            <div class="table-body-row" data-cert-id="${cert.id}" data-cert-number="${escapeHtml(certNumber)}" role="row" onclick="viewCertificateDetails('${certNumber}', ${cert.id})">
                 <div class="table-body-cell tc-select" role="gridcell">
                     <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" aria-label="Select certificate ${escapeHtml(certNumber)}" onclick="event.stopPropagation()">
                 </div>
                 <div class="table-body-cell tc-actions" role="gridcell">
                     <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="event.stopPropagation(); editCertificate('${certNumber}')" title="Edit Certificate" aria-label="Edit certificate ${escapeHtml(certNumber)}">
+                        <button class="action-btn edit-btn" onclick="event.stopPropagation(); editCertificate('${certNumber}', ${cert.id})" title="Edit Certificate" aria-label="Edit certificate ${escapeHtml(certNumber)}">
                             <i class="fas fa-edit" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn download-btn" onclick="event.stopPropagation(); downloadCertificate('${certNumber}')" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(certNumber)}">
+                        <button class="action-btn download-btn" onclick="event.stopPropagation(); downloadCertificate('${certNumber}', ${cert.id})" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(certNumber)}">
                             <i class="fas fa-download" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="event.stopPropagation(); viewCertificateNewTab('${certNumber}')" title="Open in New Tab" aria-label="Open certificate ${escapeHtml(certNumber)} in new tab">
+                        <button class="action-btn view-btn" onclick="event.stopPropagation(); viewCertificateNewTab('${certNumber}', ${cert.id})" title="Open in New Tab" aria-label="Open certificate ${escapeHtml(certNumber)} in new tab">
                             <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                         </button>
                     </div>

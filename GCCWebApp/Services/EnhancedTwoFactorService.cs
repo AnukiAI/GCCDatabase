@@ -609,6 +609,14 @@ namespace GCCWebApp.Services
                 user.TwoFactorEnabled = false;
                 user.TwoFactorMethod = "Email"; // Fallback to email
                 user.TwoFactorSecret = null; // Clear the secret
+
+                // DEF-385: turning 2FA off retires the trusted devices that existed only to skip it.
+                // Left behind, they would silently re-authorise a 2FA bypass if the user later
+                // re-enabled 2FA. Done inline with _context rather than by injecting
+                // ITrustedDeviceService, to avoid changing this service's constructor and the test
+                // call sites that build it.
+                await RevokeTrustedDevicesForUserAsync(user.Id, "2FA was disabled");
+
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation($"TOTP disabled for user {userId}");
@@ -760,6 +768,31 @@ namespace GCCWebApp.Services
 
             var codes = System.Text.Json.JsonSerializer.Deserialize<List<string>>(user.RecoveryCodes);
             return codes?.Count ?? 0;
+        }
+
+        /// <summary>
+        /// DEF-385: marks every live trusted device for a user as revoked. Does NOT call
+        /// SaveChangesAsync — the caller saves, so the revocation lands in the same transaction as
+        /// the change that triggered it and the two cannot half-apply.
+        /// </summary>
+        private async Task RevokeTrustedDevicesForUserAsync(int userId, string reason)
+        {
+            var now = DateTime.UtcNow;
+            var active = await _context.Set<TrustedDevice>()
+                .Where(d => d.UserId == userId && d.RevokedAt == null)
+                .ToListAsync();
+
+            foreach (var d in active)
+            {
+                d.RevokedAt = now;
+                d.RevokedReason = reason;
+            }
+
+            if (active.Count > 0)
+            {
+                _logger.LogInformation("Revoked {Count} trusted device(s) for user {UserId}: {Reason}",
+                    active.Count, userId, reason);
+            }
         }
 
         private static string GenerateRecoveryCode()

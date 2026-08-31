@@ -353,7 +353,7 @@ namespace GCCWebApp.Migrations
                     b.Property<decimal?>("CertificationResultsNumeric")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("decimal(18,4)")
-                        .HasComputedColumnSql("\r\n                        CASE\r\n                          WHEN [CertificationResults] IS NULL OR [CertificationResults] = N'' THEN NULL\r\n                          WHEN [CertificationResults] LIKE N'%[%]%' THEN TRY_CAST(REPLACE([CertificationResults], N'%', N'') AS DECIMAL(18,4))\r\n                          WHEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) < 1 THEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) * 100\r\n                          ELSE TRY_CAST([CertificationResults] AS DECIMAL(18,4))\r\n                        END", true);
+                        .HasComputedColumnSql("\r\n                        CASE\r\n                          WHEN [CertificationResults] IS NULL OR [CertificationResults] = N'' THEN NULL\r\n                          WHEN [CertificationResults] LIKE N'%[%]%' THEN TRY_CAST(REPLACE([CertificationResults], N'%', N'') AS DECIMAL(18,4))\r\n                          WHEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) <= 1 THEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) * 100\r\n                          ELSE TRY_CAST([CertificationResults] AS DECIMAL(18,4))\r\n                        END", true);
 
                     b.Property<int>("CertificationTypeId")
                         .HasColumnType("int");
@@ -1845,6 +1845,55 @@ namespace GCCWebApp.Migrations
                     b.ToTable("Tags");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.TrustedDevice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedFromIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("DeviceLabel")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RevokedReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TokenHash", "UserId");
+
+                    b.ToTable("TrustedDevices");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -2436,6 +2485,17 @@ namespace GCCWebApp.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("GCCWebApp.Models.TrustedDevice", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PartnerUser", b =>

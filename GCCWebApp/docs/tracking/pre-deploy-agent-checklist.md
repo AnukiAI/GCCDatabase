@@ -323,7 +323,58 @@ They can disagree — a deploy that extracted the DLL but not `wwwroot` is a rea
 
 ## Deploy gate results log
 
+### `GCCWebApp-deploy-20260831-1628.zip` — **BUILT 2026-08-31, verified, NOT uploaded**
+
+Built from the **working tree** (not a clean checkout of HEAD) specifically to replace
+`20260830-2245`, which had become a downgrade — see the 🚫 block on that entry below. 61.1 MB,
+337 published files.
+
+**The problem it solves.** Until this bundle existed, **no artifact on disk could recreate the live
+site**: it was the 2245 DLL plus two JS files hot-deployed after it. This one reproduces it.
+
+| Check | Result |
+|---|---|
+| `verify-bundle.py` hygiene | **ALL PASS** — 0 DataProtection keys, 0 `appsettings.Secrets.json`, 0 `appsettings.Development.json`, 0 `Scripts/`, 0 `docs/`, 0 uploads |
+| `verify-bundle.py` content markers | **failures: 0** — incl. DEF-384 present / half-code expression absent, DEF-385 service + migration + cookie literal, DEF-381 old whole-array append absent, DEF-386 no `EXEC(CONCAT(...))` |
+| **wwwroot vs working tree** | **167 / 167 identical, 0 differ** (the 2245 bundle was 165 / 167) |
+| Schema script | **0 lines, empty by design** — built `-FromMigration 20260830230201_DEF385AddTrustedDevices`, the target's high-water. Only the idempotent CR-171 backfill is appended. |
+
+**It is NOT byte-equivalent to the live site — it is live PLUS one fix.** Exactly one source file
+changed after the 2245 build: `Middleware/RequestResponseLoggingMiddleware.cs` (**DEF-388**, the
+duplicated HTTP verb in API log lines). Verified by mtime sweep over every `.cs`/`.cshtml` — one
+hit, nothing else. So uploading this bundle ships DEF-388 as well; that is a **logging-only** change
+with no user-facing behaviour, but it should be a decision, not a surprise.
+
+**Gate 7 — nothing to run.** The repo high-water equals the target's, so the schema section is
+empty. Do not hunt for SQL to execute.
+
+**Not yet run against this bundle:** Gates 1–6 and 8–10, and no upload has happened, so there is no
+Gate 11/12. It is a verified artifact, not a gated release.
+
 ### `GCCWebApp-deploy-20260830-2245.zip` — **DEPLOYED to gccwebapp.com 2026-08-31, post-deploy verified**
+
+> ## 🚫 DO NOT RE-UPLOAD THIS ZIP. It would regress DEF-387 and DEF-389.
+>
+> This bundle was built **before** two single-file JavaScript fixes that were hot-deployed to
+> gccwebapp.com later on 2026-08-31. It still contains the **pre-fix** copies of both, so extracting
+> it again would overwrite the live files and silently undo client-reported fixes:
+>
+> | File in the zip | Evidence it is the old copy | What re-uploading would undo |
+> |---|---|---|
+> | `wwwroot/js/userManagement.js` | 92,908 bytes; `X-Requested-With` **×0** (live: 93,344 bytes, **×5**) | **DEF-387** — "Error saving user" goes back to swallowing the real reason |
+> | `wwwroot/js/product-id-manager.js` | 107,843 bytes; `updateCount` ×8 / `totalCount` ×20 (live: 108,787 bytes, ×9 / ×23) | **DEF-389** — the product-identifier count stops updating as you add and remove |
+>
+> Checked file-by-file: **40 of the 42 JS files in the bundle are identical to the working tree; only these two differ.** So the zip is otherwise current — which is exactly what makes it dangerous, because a spot-check of any other file says "same" and reads like the whole bundle is safe.
+>
+> **The live site is a composite** and no single artifact reproduces it: the **DLL** from this bundle
+> plus **two JS files deployed after it**. That state is correct and verified — but it means
+> **there is no zip on disk that can recreate the current site.**
+>
+> **If a rebuild is ever needed, build a fresh bundle from the working tree — never re-extract this
+> one.** Both fixes are uncommitted working-tree changes, so a clean checkout of HEAD would also
+> miss them; Gate 9 already warns about exactly this ("1 defect exists ONLY in the working tree —
+> publish the bundle from THIS tree, not from a clean checkout of HEAD").
+
 
 > ## ✅ DEPLOYED AND VERIFIED ON THE LIVE TEST SITE
 >
@@ -346,7 +397,12 @@ They can disagree — a deploy that extracted the DLL but not `wwwroot` is a rea
 > `amazon-contract-diff.js` compares response **structure** against the April baseline, not values.
 > The 1% → 100% change for 11 Amazon certs is real, but this gate is not what would surface it.
 >
-> **DEF-384 was not exercised through the UI.** Reaching `ShowRecoveryCodes` means generating a real
+> **DEF-384 — UPDATE 2026-08-31: now confirmed through the UI by Shawn**, who re-tested the
+> reported symptom on the deployed site and reported it working. The note below records the
+> inference used before that, and is kept because the reasoning was sound and may be needed again
+> when a screen cannot be exercised without side effects.
+>
+> **DEF-384 was not exercised through the UI at deploy time.** Reaching `ShowRecoveryCodes` means generating a real
 > account's recovery codes, which rotates them. It is proven by the byte-level in-zip check (fix
 > present, half-code expression absent) plus the fact that DEF-382/383/385 — all behaviours that
 > exist only in this build — are confirmed live, so the deployed assembly is demonstrably this one.

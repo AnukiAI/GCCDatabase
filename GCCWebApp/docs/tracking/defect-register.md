@@ -11216,7 +11216,7 @@ smaller change and matches how the feature actually works.
 - **Date:** 2026-08-28
 - **Severity:** **High** — blocked the client's data-validation review. The public certificate list
   could not be read past the first 50 records, so the count reconciliation could not be completed.
-- **Status:** **FIXED** — `wwwroot/js/certificate-tile-view.js`. Verified on localhost:5101.
+- **Status:** **FIXED + DEPLOYED + VERIFIED LIVE 2026-08-31** — `wwwroot/js/certificate-tile-view.js`. Verified on localhost:5101, then on gccwebapp.com after the upload: the served file carries `pendingAppend` and the old whole-array append is **absent** (66,713 bytes), and a real browser scrolling four times returned `+50, +50, +50, +50` — 250 tiles, **250 distinct**. Shipped in `GCCWebApp-deploy-20260830-2245.zip`.
 - **QC Ref:** none — reported directly by the client, 2026-08-28. **Reporter:** client.
 - **Bucket:** Bug.
 
@@ -11264,7 +11264,7 @@ the fix, 4 scrolls, every tile unique.
 - **Date:** 2026-08-28
 - **Severity:** **Medium** — latent when found (the client always advanced by a full batch), but it
   is the failure mode that would have made DEF-381 permanent rather than cosmetic.
-- **Status:** **FIXED** — client asked for it in the same cycle as DEF-381 rather than deferring.
+- **Status:** **FIXED + DEPLOYED + VERIFIED LIVE 2026-08-31** — client asked for it in the same cycle as DEF-381 rather than deferring. Live check on the deployed API: unaligned offsets 37 / 75 / 90 / 123 / 149 and the unaligned tail all return the exact rows. Shipped in `GCCWebApp-deploy-20260830-2245.zip`.
 - **QC Ref:** none — found while diagnosing DEF-381. **Reporter:** Anuki (internal).
 - **Bucket:** Bug.
 
@@ -11312,7 +11312,7 @@ before trusting a rebuild — a clean build log is not evidence the code in it c
 - **Severity:** **High** — wrong data on the public site and on the Amazon partner feed. 86 publicly
   visible certificates reported the *worst* possible result instead of the best; 11 reach Amazon,
   who use this field for a pass threshold.
-- **Status:** **FIXED** — code + persisted computed column + migration. Client asked for the fix.
+- **Status:** **FIXED + DEPLOYED + VERIFIED LIVE 2026-08-31** — code + persisted computed column + migration. Client asked for the fix. The migration was applied to `gccwebap_certificates` by hand on 2026-08-30 ahead of the upload; live check afterwards: cert `25-0261` (stored `1`) renders **100%**. Shipped in `GCCWebApp-deploy-20260830-2245.zip`.
 - **QC Ref:** none — raised by the client at a meeting, 2026-08-30. **Reporter:** client.
 - **Bucket:** Bug.
 
@@ -11384,7 +11384,7 @@ use `--force` on `migrations remove`; delete the scaffolded files by hand and re
 - **Date:** 2026-08-30
 - **Severity:** **High** — this is an account-recovery backup. A user who saved the downloaded file
   as their fallback has an unusable one, and would find that out only when locked out.
-- **Status:** **FIXED** — `Views/Account/ShowRecoveryCodes.cshtml`.
+- **Status:** **FIXED + DEPLOYED + VERIFIED LIVE 2026-08-31** — `Views/Account/ShowRecoveryCodes.cshtml`, shipped in `GCCWebApp-deploy-20260830-2245.zip`. **Confirmed on gccwebapp.com through the real click path by Shawn, 2026-08-31**, who reported it working. That supersedes the earlier inference-only basis (byte-level in-zip check plus sibling fixes confirmed live), which is retained below only as the method used before a human had exercised the screen. This is now the strongest kind of evidence available for this defect: the client-reported symptom, re-tested by a person on the deployed site, and gone.
 - **QC Ref:** none — reported by the client at a meeting, 2026-08-30 ("the copy code button doesn't
   copy the whole code"). **Reporter:** client.
 - **Bucket:** Bug.
@@ -11438,7 +11438,7 @@ the UAT testers, since they are the people most likely to have enrolled in 2FA r
 - **Date:** 2026-08-30
 - **Severity:** **Medium** — no security exposure; the site was *more* strict than advertised. But
   the control lied about what it did, and the client was challenged on every single sign-in.
-- **Status:** **FIXED** — new `TrustedDevices` table + service + migration.
+- **Status:** **FIXED + DEPLOYED + VERIFIED LIVE 2026-08-31** — new `TrustedDevices` table + service + migration. Live round trip on gccwebapp.com: challenged → trust issued → **second sign-in skipped** → a different account on the same browser **still challenged**. Shipped in `GCCWebApp-deploy-20260830-2245.zip`. **Independently corroborated by Shawn on 2026-08-31**, who re-tested the reported symptom on the deployed site and confirmed the box now suppresses the challenge — so the fix is confirmed by both an automated round trip and the client click path.
 - **QC Ref:** none — reported by the client at a meeting, 2026-08-30 ("if she checks the box for
   'allow access for 30 days' it is still prompting her for 2FA every time"). **Reporter:** client.
 - **Bucket:** Bug (a control that does not do what its label says).
@@ -11513,7 +11513,7 @@ client wants it.
 - **Date:** 2026-08-30
 - **Severity:** **Medium** — a deploy-tooling defect. No runtime impact, but Gate 7's documented
   procedure ("apply migrations before recycling the app pool") failed at the first statement.
-- **Status:** **FIXED** in `Scripts/deploy.ps1`; bundle rebuilt and the shipped script proven to run.
+- **Status:** **FIXED 2026-08-30 — proven by the bundle it produced** — in `Scripts/deploy.ps1`; bundle rebuilt and the shipped script proven to run (exit 0, 0 rows affected, against `gccwebap_certificates`). This is **build tooling, so there is nothing server-side to deploy**: `GCCWebApp-deploy-20260830-2245.zip` is the artifact that evidences it.
 - **QC Ref:** none — hit while applying DEF-383/DEF-385 to the test environment by hand.
   **Reporter:** Anuki (internal).
 - **Bucket:** Bug.
@@ -11573,8 +11573,65 @@ why the file's existing ones are fine. Never put one inside a quoted string in a
 - **Date:** 2026-08-31
 - **Severity:** Medium (error reporting). The create is correctly refused; the fault is that the
   admin — and the person diagnosing it — are told nothing actionable.
-- **Status:** **FIXED 2026-08-31 (built, pending deploy).** Reported on the **test environment**
-  (gccwebapp.com).
+- **Status:** **FIXED + DEPLOYED + VERIFIED LIVE 2026-08-31.** Reported on, and shipped to, the
+  **test environment** (gccwebapp.com).
+- **Deploy:** single static asset — no build, no DLL, no migration, no app restart. Drop staged
+  at `deployment-drops/DEF-387-userManagement-js/`; overwrite `httpdocs\wwwroot\js\userManagement.js`.
+  md5 to ship `e0dc0cf35213d0661d2d90f682035c57`; live pre-deploy `f2a4a138a309…` (probed
+  2026-08-31). Deliberately **not** a full bundle — the working tree carries unrelated changes,
+  and DEF-361/DEF-363 were both full-bundle accidents. Verify with
+  `node Scripts/smoke-prod/whats-deployed.js --base https://gccwebapp.com`; that probe's `ASSETS`
+  list now includes this file, so the flip from `[DIFF]` to `[SAME]` is the proof.
+- **Deploy verified 2026-08-31, post-upload:** probe returned **8 same / 0 differ / 0
+  unreachable** — `/js/userManagement.js` flipped `[DIFF]` → `[SAME]`, i.e. the live file is
+  byte-identical (md5 `e0dc0cf35213d0661d2d90f682035c57`) to the fixed working-tree copy, and
+  every other asset was confirmed unchanged in the same pass. This is the asset itself, not
+  the symptom — see [[feedback_verify_deployed_asset_not_symptom]].
+- **Still open, deliberately:** the *original* root cause on test is **not** established and
+  now cannot be — the reason was discarded client-side at the time. Stale anti-forgery token
+  (400) is the leading candidate. The next occurrence will name itself on screen; that, not
+  this entry, closes the question.
+
+### DEF-388 — Every API request log line repeats the HTTP verb: "API Request: GET GET /api/certificate-tiles"
+
+- **Date:** 2026-08-31
+- **Severity:** Low (log legibility only). No user-facing effect, no behaviour change, no data
+  impact. Recorded because it actively misleads during diagnosis, which is when logs matter.
+- **Status:** **FIXED 2026-08-31 (built, Release, 0 errors) — NOT deployed. Requires a DLL.** Now carried in bundle `GCCWebApp-deploy-20260831-1628.zip`, built and verified 2026-08-31 but **not uploaded**. It is the only behavioural change in that bundle that is not already live.
+- **QC Ref:** none — surfaced while reading a test-environment log during the DEF-387 diagnosis.
+  Reporter: Shawn (pasted the log). Fix requested explicitly.
+- **Bucket:** Bug (logging).
+
+**Finding.** `IStructuredLoggingService.LogApiRequestAsync(endpoint, method, …)` takes the endpoint
+and the method as separate arguments and renders them with the template
+`"API Request: {Method} {Endpoint} returned {StatusCode} in {DurationMs}ms"`
+(`StructuredLoggingService.cs:194-203`). Both call sites in
+`RequestResponseLoggingMiddleware.cs` were folding the verb **into** the endpoint as well —
+`$"{request.Method} {request.Path}"` — so every line rendered the verb twice, and the structured
+`Endpoint` property (`LogContext.PushProperty("Endpoint", endpoint)`) carried the verb too, which
+would break any later filter or query written against that property.
+
+**Fix.** Both call sites pass `Path.Value ?? "/"`. Two lines, no signature change.
+
+**Checked and deliberately left alone — three similar-looking usages that are NOT this bug:**
+`LogPerformanceMetricAsync` (`:237`) takes a single *operation name*, for which verb+path is a good
+one and its template has no separate `{Method}`; `LogExceptionAsync` (`:265`) and
+`GlobalExceptionHandlingMiddleware.cs:46` take free-text *context* strings. None duplicates.
+
+**Also observed, NOT changed — the line that prompted the report reads worse than it is.** The
+request-side call passes `0` for status and `TimeSpan.Zero` deliberately ("not available yet"), so a
+normal request *start* logs as `returned 0 in 0ms`. That reads like a failure and isn't one; per
+`StructuredLoggingService.cs:187-189` status 0 maps to **Information**, not Error. (The pasted log
+showed it prefixed `fail:`, which the code cannot produce — that paste also read
+`GCCWebApp.Servicess`, so both are probably transcription artifacts.) Rewording it was not asked
+for and is a separate judgement call.
+
+**Deploy note — this one cannot ride a static drop.** Unlike DEF-387 it is C#, so it needs a
+rebuilt DLL. It must be folded into the next full bundle rather than shipped on its own: a DLL
+deploy today would also carry the pending 2026-08-30 batch (DEF-383/384/385) **and its database
+change**, which is not a decision that should fall out of a logging fix.
+
+- **Files:** `Middleware/RequestResponseLoggingMiddleware.cs` (two call sites).
 - **QC Ref:** none — reported by the client. Reporter: Shawn. *"error saving user. when I try to
   create a new user"*.
 - **Bucket:** UX (error reporting) + Bug (missing AJAX header).
@@ -11616,10 +11673,131 @@ screen instead of discarding it. The stale-token path is the leading candidate o
 500 remains possible and would now surface as *"the server returned HTTP 500 … Check the server
 log."*
 
-**Deliberately not changed.** `deleteUser` (`userManagement.js:665-667`) has the identical
-swallowing `catch`, as does `wwwroot/js/admin/userManagement.js` (not referenced by any view —
-`UserManagement.cshtml:360` loads `~/js/userManagement.js` only). Neither was reported; both are
-recorded here rather than changed speculatively.
+**Deliberately not changed at first pass.** `deleteUser` had the identical swallowing `catch`, as
+does `wwwroot/js/admin/userManagement.js` (not referenced by any view — `UserManagement.cshtml:360`
+loads `~/js/userManagement.js` only). Neither was reported, so both were recorded rather than
+changed speculatively.
+
+**Round 2, same day — `deleteUser` now fixed (client asked).** Same treatment: `X-Requested-With`
+header, `readJsonResponse()`, and `error.message` in the notification. It was the same defect in the
+same file with the same two triggers, and deleting a user is the operation where *"Please try
+again"* is worst advice — a stale token cannot be fixed by retrying, and the admin's natural next
+move is to retry a destructive action.
+
+`wwwroot/js/admin/userManagement.js` is **still** unchanged: no view loads it. It is dead code, and
+the right disposition is deletion, not repair — raised, not actioned.
+
+- **Round 2 artifact:** same single-file drop, md5 `9f4740162e8c292518467f8d77ef8fee`
+  (supersedes `e0dc0cf35213…`, which is what round 1 put on the server).
 
 - **Files:** `wwwroot/js/userManagement.js` (two headers, new `readJsonResponse`, `catch` message).
   No server-side change.
+
+---
+
+### DEF-389 — Edit page: "Showing N product ID(s)" count never refreshes after Add/Edit/Delete/Import
+
+- **Date:** 2026-08-31
+- **Severity:** Medium (UX / trust). No data loss — the product ID *is* written to the database
+  immediately. But the only on-screen tally silently disagrees with what was just saved, which reads
+  as "the add didn't take" and drove a report that the Edit page defers product IDs to the
+  certificate Save (it does not — see DEF-149/CR-018).
+- **Status:** **DEPLOYED to the test environment (gccwebapp.com) 2026-08-31 — verified live.** JS only, no DLL, no app-pool recycle. `wwwroot/js/product-id-manager.js`.
+- **QC Ref:** none — reported directly by Shawn, 2026-08-31, on the **test environment**
+  (gccwebapp.com): *"When adding a product ID manually when we saw one was missing, the Number of
+  products (Showing ## product ID(s)) did not increase. I had to save and then go back in to see
+  that it changed from 9 to 10 and took my new one."*
+- **Bucket:** Bug (UI state).
+
+**Symptom.** On `/Certificate/Edit/{number}` → Product Identifiers, adding a product ID through the
+modal POSTs to `/api/productids` and the row renders in the table, but the label beneath the table
+stays on the value it had at page load (9). Only a full page reload — which the reporter reached by
+saving the certificate and re-opening it — showed 10. Because the certificate Save appeared to be
+what "committed" the change, the behaviour read as the Create page's deferred-save semantics.
+
+**Root cause — two separate mistakes that compound.**
+
+1. **The refresh call was wired to an element that does not exist.** `updateCount()` writes only to
+   `#productIdCount`. Nothing renders that id — `grep -rn "productIdCount" Views/ wwwroot/js/`
+   returns exactly one hit, the `getElementById` call itself. So the method every mutation path
+   calls (add `:824`, edit `:894`, delete `:906`, bulk delete `:1147`, import `:1992`, and both
+   load paths `:180`/`:315`/`:339`) has always been a no-op.
+2. **The label the user actually reads is `#paginationInfo`**, written by `updatePaginationInfo()` —
+   and that had exactly **one** call site, `applyFilters():623`. No mutation path called it. So
+   after any add/edit/delete the label kept the value Razor rendered at page load
+   (`_ProductIdManager.cshtml`: `Showing @Model.Count product ID(s)`), which is why it only ever
+   corrected on a reload.
+
+**Secondary defect fixed in the same edit.** `updatePaginationInfo()` computed its total from
+`this.productIds.length`. Under CR-018 server-side paging (Edit page) that array holds **one page**,
+capped at `pageSize` (50) — not the certificate's total. On a certificate with more than 50 product
+IDs the first filter interaction would have flipped the label from the correct Razor total (e.g. 63)
+down to 50. It now reads `this.totalCount` when `serverPaged`, which is the server's count for the
+current query.
+
+**Fix.** `updateCount()` now delegates to `updatePaginationInfo()`, making it the single refresh
+entry point that every mutation path already calls; `updatePaginationInfo()` sources its numbers from
+`totalCount` in server-paged mode and from the in-memory arrays on the Create page. `#productIdCount`
+is left in place as a harmless optional target.
+
+**Not changed, deliberately.** The immediate-save behaviour itself is correct and was verified live
+before touching anything — the Edit page renders `data-certificate-id="3137"` (real cert Id, not 0)
+on gccwebapp.com and `4538` on localhost, the deployed `product-id-manager.js` is **byte-identical**
+to the repo copy (md5 `0e4307adec5607822f29fe71660390d4`), the DEF-149 "save immediately" info note
+renders, and `POST /api/productids` answers with field-level 400s on an empty payload. Nothing in the
+save path needed a change; the label was the whole defect.
+
+**Verification — automated, localhost:5101 / `GCCDatabase_Dev`, cert `26-0441` (12 product IDs), signed
+in as `admin.uat`.** Playwright, headless. Script:
+`…/scratchpad/def389-verify.js`. **10/10 passed:**
+
+| Assertion | Result |
+|---|---|
+| Baseline label reads | `Showing 12 product ID(s)` |
+| `POST /api/productids` on modal save | **HTTP 201** |
+| Label increments on Add, **no reload** | **12 → 13** |
+| Label agrees with the database | `api=13 label=13` |
+| `DELETE /api/productids/{id}` via the row trash icon | **HTTP 200** |
+| Label decrements on Delete, **no reload** | **13 → 12** |
+| With `pageSize` forced to 5 (3 pages over 12 rows) | `rows=5 totalCount=12` → label `Showing 12 product ID(s)` — the page-count regression is gone |
+| Dev database left clean | `start=12 end=12` |
+
+**Control run — the failure is falsifiable.** `def389-control.js` runs the identical flow with
+`updateCount()` monkey-patched in the browser back to its pre-fix body (writes only to
+`#productIdCount`). Result: `POST` **201**, row written (id 152815), **row visible in the table**,
+label **12 → 12**. That is the reported symptom exactly — saved, listed, and mis-counted — which
+confirms the label wiring was the whole defect and not incidental timing. Test row deleted, cert back
+to 12.
+
+**Still to check by hand (not covered by the script):** CSV import totals, bulk delete of a multi-row
+selection, and the `/Certificate/Create` page, where the label now counts up as rows are added in
+memory instead of staying blank until the certificate is saved.
+
+**DEPLOYED 2026-08-31 — single file, uploaded by Shawn to `<site root>/wwwroot/js/product-id-manager.js`.**
+No zip, no extract over the site root, so Gate 0 (uploads backup) did not apply and
+`wwwroot/uploads/` was never touched. No DLL, no config, no migration, no app-pool recycle.
+Cache-busting is automatic — the view tags the file with `asp-append-version`, so the `?v=` token is
+derived from file content and changed the moment the file did.
+
+**Post-deploy verification.**
+
+- **The asset.** `node Scripts/smoke-prod/whats-deployed.js` — before the upload:
+  `[DIFF] /js/product-id-manager.js live=0e4307adec56 tree=0f3d2d8f1216`, **8 same / 1 differ**.
+  After: `[SAME]`, **9 same / 0 differ / 0 unreachable — live wwwroot matches the working tree
+  exactly.** `wwwroot/js/product-id-manager.js` was added to that script's `ASSETS` list for this
+  deploy (the DEF-387 precedent), because a JS-only deploy is otherwise unverifiable.
+- **The behaviour, on the deployed page, read-only.** `…/scratchpad/def389-live-check.js` passed the
+  test-env gate, signed in as `admin.uat`, opened `/Certificate/Edit/26-0441` and asserted that the
+  **deployed** `updateCount` now contains a call to `updatePaginationInfo()`. It then drove the
+  label entirely in browser memory — bump `totalCount`, call `updateCount()`, restore — giving
+  `Showing 12 → 13 → 12`. **Zero writes to gccwebapp.com**: no add, no edit, no delete, no form
+  submit, so no client record was touched and no CR was required. (The script's write-guard flagged
+  5 requests; all five were Google Analytics beacons to `analytics.google.com` /
+  `stats.g.doubleclick.net`, not the app — the guard was scoped too broadly, not a real write.)
+- **Shawn confirmed working on the test environment**, 2026-08-31.
+
+**Gate 11 note.** `Scripts/deploy/close-out.js --ids=DEF-389` matched **nothing** — correctly. Its
+regexes key off *"pending deploy" / "not yet in a built zip"*, and this entry never used that
+wording, so there was no pending text to rewrite. The deployed state was recorded here directly.
+Worth knowing: **close-out only closes rows that were written in its expected pending phrasing** —
+an entry authored as "FIXED" straight through is invisible to it and will silently never be closed.

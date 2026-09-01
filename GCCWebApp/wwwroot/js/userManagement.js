@@ -644,16 +644,21 @@ class UserManagement {
         try {
             this.showLoading(true, 'Deleting user...');
             
+            // DEF-387: same swallow the save path had - see readJsonResponse(). Without
+            // X-Requested-With, a stale anti-forgery token (400) or an expired cookie (401)
+            // comes back as the /Account/Login HTML page and response.json() throws, so the
+            // admin is told "Please try again" for a condition retrying cannot fix.
             const response = await fetch(`/Admin/DeleteUser/${userId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                     'RequestVerificationToken': this.getAntiForgeryToken()
                 }
             });
-            
-            const result = await response.json();
-            
+
+            const result = await this.readJsonResponse(response);
+
             if (result.success) {
                 this.showNotification(result.message || 'User deleted successfully', 'success');
                 await this.loadUsers(); // Reload from server
@@ -664,7 +669,7 @@ class UserManagement {
             }
         } catch (error) {
             console.error('Error deleting user:', error);
-            this.showNotification('Error deleting user. Please try again.', 'error');
+            this.showNotification('Error deleting user: ' + (error.message || 'Please try again.'), 'error');
         } finally {
             this.showLoading(false);
         }

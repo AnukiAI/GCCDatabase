@@ -630,21 +630,33 @@ class ProductIdManager {
             // the visible page count.
             countElement.textContent = this.serverPaged ? this.totalCount : this.productIds.length;
         }
+
+        // DEF-389: the count the user actually reads is the "Showing N product ID(s)"
+        // line in #paginationInfo, NOT #productIdCount (which no view renders). Every
+        // mutation path — add, edit, delete, bulk delete, import, page load — already
+        // calls updateCount(), but updatePaginationInfo() was only ever called from
+        // applyFilters(). So on the Edit page an Add saved to the DB immediately and
+        // the row appeared, while the label kept the Razor-rendered page-load value
+        // (9) until a full reload. Refresh it here so the two can't drift.
+        this.updatePaginationInfo();
     }
 
     updatePaginationInfo() {
         const paginationInfo = document.getElementById('paginationInfo');
-        if (paginationInfo) {
-            const total = this.productIds.length;
-            const filtered = this.filteredProductIds.length;
+        if (!paginationInfo) return;
 
-            if (total === 0) {
-                paginationInfo.innerHTML = '';
-            } else if (filtered === total) {
-                paginationInfo.innerHTML = `<small>Showing ${total} product ID(s)</small>`;
-            } else {
-                paginationInfo.innerHTML = `<small>Showing ${filtered} of ${total} product ID(s)</small>`;
-            }
+        // DEF-389 / CR-018: in server-paged mode `productIds` holds at most one page
+        // (pageSize rows), so its length is not the certificate's total — totalCount
+        // is, and the server already applied filter+sort+page, so filtered === total.
+        const total = this.serverPaged ? this.totalCount : this.productIds.length;
+        const filtered = this.serverPaged ? this.totalCount : this.filteredProductIds.length;
+
+        if (total === 0) {
+            paginationInfo.innerHTML = '';
+        } else if (filtered === total) {
+            paginationInfo.innerHTML = `<small>Showing ${total} product ID(s)</small>`;
+        } else {
+            paginationInfo.innerHTML = `<small>Showing ${filtered} of ${total} product ID(s)</small>`;
         }
     }
 

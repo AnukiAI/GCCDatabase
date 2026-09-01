@@ -13057,6 +13057,16 @@ rewritten into the `/Account/Login` **HTML page**, which `fetch` follows transpa
 **Fixed:** header added to both save fetches, a `readJsonResponse()` helper that names the real
 condition, and a `catch` that shows it. `DEF-387` filed.
 
+**Deployed same day, verified as an asset not a symptom.** One static file, no build and no
+restart. `whats-deployed.js` was run *before* the upload to establish that the only stale asset on
+the server was the one being fixed (`live=f2a4a138a309 / tree=e0dc0cf35213`), and again after:
+**8 same / 0 differ**. The probe's `ASSETS` list did not previously include this file, so a JS-only
+deploy had no way of being verified at all — added.
+
+Note the deploy shape mattered: a full publish bundle would have carried ~40 unrelated working-tree
+changes to the test environment to fix one error message. DEF-361 and DEF-363 were both
+full-bundle accidents.
+
 ### Carried forward
 
 - **This was predicted and left.** DEF-366 closed on 2026-08-20 with an explicit note that this
@@ -13074,3 +13084,358 @@ condition, and a `catch` that shows it. `DEF-387` filed.
 - **Confirm the environment before diagnosing.** Localhost would very likely not have reproduced
   this: the token/cookie expiry window that triggers it is a property of a long-lived session on
   the deployed site.
+
+---
+
+## 2026-08-31 — DEF-389: the count, not the save
+
+**Reported (test environment, gccwebapp.com):** *"On Edit Certificate, the product Identifier is not
+being updated until the save."* The stated diagnosis was that Edit had inherited the Create page's
+deferred-save behaviour because the certificate does not exist yet.
+
+**What was actually happening:** the product ID saves immediately and always did. The
+*"Showing ## product ID(s)"* label under the table never refreshed, so it still read 9 after a 10th
+was added. Saving the certificate and re-opening it was simply a page reload, which is what made the
+number correct — and that made the save look like the thing that committed the row.
+
+### Carried forward
+
+- **The reported cause and the real cause were in different layers.** The report named the save
+  path; the defect was in a label. Checking the stated cause first was still right — it took four
+  cheap, non-mutating probes to *disprove* it (rendered `data-certificate-id`, the deployed JS md5,
+  the info note, a 400 from the live API on an empty payload) — but the fix would never have been
+  found from the save path. Ask what was *seen* before working from what was *concluded*.
+  Reinforces [[feedback_confirm_means_falsifiable]].
+- **A handler bound to an element id that no view renders fails silently forever.**
+  `updateCount()` has only ever written to `#productIdCount`, which nothing renders. Every mutation
+  path dutifully called it. Nothing errored, nothing logged, and the method looked correct at every
+  call site. `grep -rn "<id>" Views/ wwwroot/js/` returning **one** hit — the `getElementById` call
+  itself — is the tell, and it costs one command.
+- **Verifying the deployed asset paid off in the negative direction this time.** The deployed
+  `product-id-manager.js` was byte-identical to the repo copy (md5 `0e4307ad…`), which *ruled out*
+  the usual stale-bundle explanation early instead of confirming it. Same probe, opposite verdict —
+  worth running either way. See [[feedback_verify_deployed_asset_not_symptom]].
+- **Chrome could not reach `localhost:5101` again** (site-can't-be-reached while `curl` got 200), so
+  the whole diagnosis ran over `curl` against both localhost and, through the `/__gate` cookie, the
+  test environment. That worked well and was cheaper than the browser: it read the rendered HTML
+  attributes directly. The 2026-08-15 note saying Chrome now works on localhost is not reliable.
+- **A second defect was sitting behind the first.** `updatePaginationInfo()` counted
+  `productIds.length` — one page, capped at 50 — instead of `totalCount`, so any certificate with
+  more than 50 product IDs would have shown the wrong total the moment a filter was touched. Found
+  only because the fix required reading the method that was never being called.
+
+### Post-deploy, same day
+
+DEF-389 went to the test environment as a **single JS file**, uploaded by Shawn — there is no
+automated push in this repo (`PleskTestEnvironment.pubxml` is `WebPublishMethod=FileSystem`, and the
+`.env.plesk*` files are stale Docker/PostgreSQL artifacts from the rejected deploy path, not
+credentials for the live Windows host). Verified live: `whats-deployed.js` went from
+**8 same / 1 differ** to **9 same / 0 differ**, and a read-only check on the deployed Edit page
+confirmed the shipped `updateCount` now calls `updatePaginationInfo()`.
+
+- **A one-file deploy is a different shape from a bundle, and safer.** No zip, no extract over the
+  site root, so Gate 0 (uploads backup) genuinely did not apply and `wwwroot/uploads/` was never at
+  risk. DEF-388's fix sat in `Middleware/` and correctly stayed undeployed — it needs a DLL. Two
+  fixes finished the same day, one shipped, one held, with no bundling accident. Compare DEF-361 and
+  DEF-363, which were both full-bundle accidents.
+- **Add the file to `whats-deployed.js` ASSETS *before* the upload, not after.** It gives a
+  pre-upload baseline (`DIFF`, with both hashes) that turns the post-upload `SAME` into a real
+  before/after rather than an unfalsifiable green tick. Second time this has paid off; DEF-387 set
+  the precedent.
+- **A live behaviour check can be genuinely read-only.** Rather than adding a product ID to a real
+  client certificate on the test environment — which is a data change and would need a CR — the
+  check drove the label in browser memory only (bump `totalCount`, call `updateCount()`, restore).
+  It proved the deployed code path with **zero writes**. Reach for in-memory state manipulation
+  before reaching for a test record.
+- **Scope a write-guard to the app's own origin.** The check's guard flagged 5 "writes" that were
+  all Google Analytics beacons to third-party domains. A guard that cries wolf on analytics is one
+  you will learn to ignore on the run that matters.
+- **`close-out.js` only closes rows written in its expected pending phrasing.** Running it for
+  DEF-389 matched nothing, because the entry was authored as "FIXED …" rather than
+  "pending deploy". That is not a bug in the script, but it is a trap: **an entry that never says
+  "pending" can never be closed by the tool, and will quietly stay un-reconciled.** Either write the
+  pending wording it looks for, or record the deployed state by hand — but know which you are doing.
+
+---
+
+## 2026-08-31 — Client re-reported both 2FA items; both are already fixed, neither is deployed
+
+**Client report (verbatim, two items):**
+1. *"Save your recovery codes: When using Copy All and Download as Text it was missing the
+   letters/numbers after the dash."*
+2. *"When I select trust this device for 30 days its still making me use 2FA after every login
+   which is not accurate is it?"*
+
+**Finding: these are DEF-384 and DEF-385, both already FIXED in the repo on 2026-08-30 — and
+neither has shipped.** No code change was needed today.
+
+- DEF-384 — `Views/Account/ShowRecoveryCodes.cshtml`, `formatCode()` uses `substring(4)`.
+  Re-ran `Scripts/smoke-prod/_regression/10-recovery-code-format.js` today: **PASS**, all four
+  assertions including the strip-dashes round trip.
+- DEF-385 — `TrustedDevices` table + `TrustedDeviceService` + the check in `AccountController`
+  (`IsRequestFromTrustedDeviceAsync` at the login path, `IssueTrustedDeviceCookieAsync` after a
+  verified second factor). Checkbox `name="TrustDevice"` binds to `Verify2FA(… bool trustDevice)`
+  case-insensitively — wiring confirmed end to end.
+
+**Why she still sees both.** Last deploy to the test environment was **2026-08-20/21**
+(`ac7bb83`); both fixes are dated **2026-08-30**. `docs/tracking/shipped-2026-08.md` has **no**
+DEF-384 or DEF-385 entry — which is the cheapest, most honest deployed-state signal we have, and
+it read correctly here.
+
+**Lesson — a re-report is a deploy question before it is a code question.** Both items were
+answered in ~6 tool calls with no edits, because the first question asked was "is this in the
+shipped log?" rather than "where is this in the code?". A client testing gccwebapp.com can only
+ever see the last deployed build; a fix sitting in the working tree is invisible to her and will
+be re-reported as many times as she tests. Reinforces
+[[feedback_verify_deployed_asset_not_symptom]] from the other direction: the same rule that stops
+us claiming an undeployed fix is live also tells us, instantly, why a "still broken" report is
+not a new defect.
+
+**Deploy note when these do go out.** DEF-385 needs a **DLL + migration** (`20260830230201_DEF385AddTrustedDevices`);
+the test environment auto-migrates (`AutoMigrateOnStartup=true`). DEF-384 is a Razor view, so it is
+also inside the DLL — **neither is a wwwroot-only drop.** And per DEF-384's operational note,
+anyone who already saved their recovery codes holds a truncated copy and must re-copy them after
+the deploy.
+
+---
+
+## 2026-08-31 (later) — CORRECTION: DEF-384 and DEF-385 were already deployed. The record was wrong, not the deploy.
+
+**Asked:** *"deploy DEF-384 and DEF-385 to test"*.
+
+**Nothing was deployed, because both had already shipped** in
+`GCCWebApp-deploy-20260830-2245.zip`, uploaded to gccwebapp.com on **2026-08-31** and
+post-deploy verified — DEF-385 by a live trust-device round trip (challenged → trust issued →
+second sign-in skipped → a different account on the same browser still challenged), DEF-384 by
+byte-level in-zip check plus inference from the sibling fixes confirmed live. The deploy-gate
+results log at the bottom of `docs/tracking/pre-deploy-agent-checklist.md` records all of it.
+
+**This corrects the entry above it.** That entry concluded both fixes were undeployed and told
+the client so. It was wrong.
+
+**Why the earlier conclusion was wrong — a grep that could not have found what it was looking for.**
+It searched `shipped-2026-08.md` for the strings `DEF-384` and `DEF-385`, got nothing, and treated
+the silence as evidence of non-delivery. But the shipped log is **client-facing prose** and
+deliberately does not cite defect numbers in the body — the two fixes are in there, written as
+*"(2) The 2FA recovery-code 'Copy All' and 'Download as Text' buttons were only giving out half of
+each code"* and *"(3) 'Trust this device for 30 days' now actually works"*. **The absence of a
+token from a document that does not use that token proves nothing.** Compounding it, that row's
+*label* still read "Prepared 2026-08-30 — **not yet deployed**" and named the superseded bundle
+`20260830-2132`, so the one part of the row that is machine-readable actively asserted the wrong
+answer.
+
+**Lesson — a negative grep is only evidence if the document is known to use the term.** Before
+concluding "it isn't there", check that a *known-present* item is findable the same way. One grep
+for `DEF-387` (which IS cited, being a single-defect row) would have shown that some rows name
+their defect and others do not, and killed the inference on the spot. Sibling of
+[[feedback_equal_counts_are_not_the_same_rows]]: the shape of the answer looked conclusive and was
+not.
+
+**Second lesson — the authoritative deploy record was not where I looked.** Delivery state lives in
+**three** places that can disagree: the register `Status:` line, the shipped-log row label, and the
+**deploy gate results log** in `pre-deploy-agent-checklist.md`. Only the third is written *after*
+the upload against the live site. It is the one that was right, and it is the one I read last.
+**Read the gate results log first when the question is "is this live?"**
+
+**Root cause of the drift: Gate 11 close-out never ran for this bundle** — and could not have.
+`close-out.js --ids=DEF-381..386` dry-ran to **`(none matched)` on both the shipped log and the
+register**, exactly as the checklist's own warning predicts: the tool only rewrites rows phrased as
+*"pending deploy"*, and all six were authored as *"**FIXED** — …"*. This is the **third** time this
+trap has fired (DEF-389 first, now six at once). **An entry that never says "pending" is invisible
+to both the closer and the roll-up** — note that Gate 9's roll-up of 8 undeployed defects never
+listed any of DEF-381–386, so it offered no contradiction either.
+
+**Fixed by hand, since the tool refuses rather than guesses:**
+- Register `Status:` for **DEF-381, 382, 383, 384, 385, 386** now state deployed + how each was
+  verified. DEF-384 says plainly that it is inference, not a click-path test. DEF-386 is build
+  tooling and says there is nothing server-side to deploy at all.
+- `shipped-2026-08.md` — the two at-a-glance row labels re-stated as **Deployed 2026-08-31** against
+  bundle `20260830-2245`.
+
+**Independent evidence gathered before touching anything** (register text is a claim, not proof):
+`whats-deployed.js` → live `wwwroot` **9 same / 0 differ** against the working tree, including
+`product-id-manager.js` and `userManagement.js`, both modified locally — so the server is carrying
+today's tree, not the 2026-08-20 build.
+
+**A probe that failed, recorded because the failure is the useful part.** I tried to date the live
+DLL anonymously via DEF-383's marker — cert `25-0261` should render `100%` — and got **zero percent
+tokens on the page**: the public single view does not display Certification Results at all. The
+public surface is too narrow to date a DLL, and `whats-deployed.js`'s route marker is still keyed
+to the DEF-337 `DocumentController` removal, which cannot separate this build from the last several.
+**We currently have no cheap anonymous way to identify which DLL is live.** Worth fixing the next
+time a route is added or removed.
+
+**Still genuinely open (unchanged by any of this):** tell the UAT testers that anyone who saved 2FA
+recovery codes before 2026-08-31 holds a truncated copy and should re-copy them.
+
+---
+
+## 2026-08-31 (later still) — Located and content-verified the bundle
+
+**Asked:** *"where is the build? I don't see it in deployment drops"*.
+
+**It is there:** `deployment-drops/GCCWebApp-deploy-20260830-2245.zip` — 64,070,545 bytes,
+30 Aug 22:46, 341 entries. **My own earlier `ls deployment-drops/ | head` is what hid it** — the
+`2026083x` filenames sort last and the `head` cut them off, so my first look at that folder
+genuinely did not show it either.
+
+**Verified by content, not by filename** — a zip named for a bundle is not proof it *is* that bundle:
+
+| Marker (searched UTF-16, which is how .NET stores string literals) | Result |
+|---|---|
+| DEF-384 fixed `code.substring(0, 4) + '-' + code.substring(4)` | **present ×1** |
+| DEF-384 broken `code.substring(0, 4) + '-' + code.substring(4, 4)` | **absent** |
+| DEF-385 `GCC.TrustedDevice` cookie name | present ×2 |
+| DEF-385 `IsRequestFromTrustedDeviceAsync` | present ×3 |
+| DEF-385 `TrustedDevices` | present ×13 |
+| DEF-385 label `Trust this device` | present ×1 |
+
+**Two traps worth recording.**
+
+1. **Search UTF-16, not ASCII.** The first pass searched ASCII and returned **0** for every string
+   literal — `GCC.TrustedDevice`, `substring(0, 4)`, all of them — which reads exactly like "the
+   fix is not in the bundle". .NET keeps string literals in the `#US` heap as **UTF-16LE**; only
+   type and member names in `#Strings` are ASCII, which is why `TrustedDevices` (a type/table name)
+   *did* hit at 13 while the cookie literal hit 0. **An ASCII grep of a .NET assembly cannot see a
+   string literal, and its zero is meaningless.**
+
+2. **A correction to the deploy record's own wording.** It states the byte-level check found the
+   "half-code expression **absent**". Searched as a bare string, `substring(4, 4)` is **present
+   once** — in the JS *comment* that explains the bug, which Razor emits verbatim into the page.
+   The conclusion still holds and is now on firmer ground: the **full broken expression** is absent
+   and the **full fixed expression** is present ×1, dumped and read directly. **Assert the whole
+   expression, not a fragment that also occurs in prose about the fix** — a fragment check here
+   would have failed the bundle that is actually correct.
+
+**Not verified, and not claimed:** that the DLL *on the server* is byte-identical to this zip's.
+The live DLL cannot be downloaded, so that link still rests on the post-upload behavioural checks
+in the gate results log plus live `wwwroot` matching the working tree 9/9.
+
+---
+
+## 2026-08-31 (cont.) — Shawn caught it: the bundle is a regression trap, not just a stale artifact
+
+**Said:** *"but it needs the js files that we recently deployed"*. Correct, and it changes the
+answer materially.
+
+`GCCWebApp-deploy-20260830-2245.zip` was built **before** the two single-file JS hot-deploys that
+followed it the same day. It still carries the **pre-fix** copies:
+
+| File in the zip | Old (bundle) | Current (working tree = live) | Re-uploading would undo |
+|---|---|---|---|
+| `wwwroot/js/userManagement.js` | 92,908 B · `X-Requested-With` **×0** | 93,344 B · **×5** | **DEF-387** |
+| `wwwroot/js/product-id-manager.js` | 107,843 B · `updateCount` ×8 / `totalCount` ×20 | 108,787 B · ×9 / ×23 | **DEF-389** |
+
+**40 of the 42 JS files in the bundle are byte-identical to the working tree. Only these two
+differ.** That ratio is the hazard: any spot-check lands on one of the 40 and reports "same",
+which reads like the whole bundle is current.
+
+**The real finding — the live site is a COMPOSITE that no artifact on disk reproduces.** It is the
+DLL from bundle 2245 **plus two JS files deployed after it**. That state is correct and verified,
+but there is **no zip that can recreate it**. A rebuild must come from the working tree; a clean
+checkout of HEAD would also miss both, because both fixes are still uncommitted. Gate 9 says this
+already — *"1 defect exists ONLY in the working tree — publish the bundle from THIS tree, not from
+a clean checkout of HEAD"* — and I had read that line earlier in this same session without
+connecting it to the zip I was vouching for.
+
+**Lesson — verifying a bundle contains a fix is only half the question.** I checked "does 2245
+carry DEF-384/385?" and stopped at yes. The question that actually protects the client is **"what
+would this artifact UNDO if it were applied?"** A bundle is a full overwrite of everything it
+contains, so its *older* files matter as much as its newer ones. **Always diff the whole bundle
+against the current tree, not just the markers for the fix you are chasing** — the same reasoning
+as [[feedback_equal_counts_are_not_the_same_rows]] and
+[[feedback_never_bundle_devkeys_and_devconfig]] (what a bundle carries that you did not intend is
+the recurring failure mode here).
+
+**Also: hot-deploying single files creates this hazard by construction.** DEF-387 and DEF-389 were
+deployed as JS-only drops precisely because they needed no rebuild — cheap and correct at the time,
+but each one silently makes every existing zip a downgrade. **A single-file deploy should either be
+followed by a fresh bundle, or the superseded bundles marked do-not-reuse the same day.** Neither
+happened, and the trap sat armed for a day.
+
+**Recorded where it will actually be seen:** a 🚫 **DO NOT RE-UPLOAD** block at the top of the 2245
+deploy record in `docs/tracking/pre-deploy-agent-checklist.md`, with the byte counts and marker
+counts, so the next person reaching for that zip is stopped by evidence rather than by memory.
+
+**Nothing needs deploying.** Everything is already live and verified; this is a hazard note, not an
+outstanding fix.
+
+---
+
+## 2026-08-31 (cont.) — Rebuilt the bundle from the working tree: `GCCWebApp-deploy-20260831-1628.zip`
+
+**Asked:** *"rebuild a new zip to include everything"*.
+
+`pwsh -File Scripts/deploy.ps1 -SkipUploadsBackupPrompt -FromMigration 20260830230201_DEF385AddTrustedDevices`
+→ **61.1 MB, 337 published files, 0 build errors.**
+
+| Check | Result |
+|---|---|
+| `verify-bundle.py` hygiene | **ALL PASS** — 0 DataProtection keys, 0 `appsettings.Secrets.json`, 0 `appsettings.Development.json`, 0 `Scripts/`, 0 `docs/`, 0 uploads |
+| `verify-bundle.py` content markers | **failures: 0** |
+| **wwwroot vs working tree** | **167 / 167 identical, 0 differ** — the trap is closed (2245 was 165 / 167) |
+| Schema script | **0 lines** — empty by design; target already at the repo high-water |
+
+**The point of the rebuild, stated precisely:** before it, **no artifact on disk could recreate the
+live site** — live was the 2245 DLL plus two JS files hot-deployed afterwards. Now one exists.
+
+**But it is not "live in a zip" — it is live PLUS one fix, and that needed checking rather than
+assuming.** A rebuild from the working tree pulls in *whatever is in the working tree*, including
+uncommitted C#. An mtime sweep over every `.cs`/`.cshtml` newer than the 2245 build returned exactly
+one file: `Middleware/RequestResponseLoggingMiddleware.cs` — **DEF-388**, the duplicated HTTP verb
+in API log lines. Logging-only, no user-facing behaviour, but uploading this bundle ships it, and
+that should be Shawn's decision rather than a side effect. DEF-388's register Status now says which
+bundle carries it.
+
+**Lesson — "rebuild to include everything" includes things you did not think about.** The instinct
+was to verify the fixes I was chasing were present. The check that actually mattered ran the other
+way: **what is in this bundle that is NOT already live?** One mtime sweep answered it and turned an
+unnoticed extra into a stated one. Same shape as the trap it was built to fix
+([[feedback_bundle_ask_what_it_would_undo]]) — both are about the delta you did not go looking for.
+
+**Also worth recording: `verify-bundle.py` was already doing the DEF-384 check correctly.** It
+asserts the *full* half-code expression is absent, not the `substring(4, 4)` fragment — so the
+imprecision I flagged earlier was in the deploy record's **prose**, not in the tool. The tool would
+not have been fooled.
+
+**Two side effects of running the build, neither harmful:** it stopped the dev server on :5101
+(PID 35696) as designed, and `deployment-drops/staging/` was cleared and repopulated. Restart the
+local app before any localhost testing.
+
+**Status: built and verified, NOT uploaded.** Gates 1–6 and 8–10 have not been run against it, so
+it is a verified artifact, not a gated release. Nothing about the live site changed.
+
+---
+
+## 2026-08-31 (close) — Shawn confirmed BOTH 2FA fixes working on the live test site
+
+**Said:** *"I checked and it is working"* — clarified as **both** DEF-384 (recovery codes) and
+DEF-385 (trust this device), re-tested on gccwebapp.com through the real click path.
+
+**This closes the loop the session opened with.** The client re-reported both on 2026-08-30; both
+were already live by 2026-08-31; and a human has now re-tested the reported symptoms on the
+deployed site and found them gone.
+
+**The genuinely new evidence is DEF-384.** It was the one item in the whole batch that had **never
+been exercised through the UI** — reaching `ShowRecoveryCodes` regenerates a real account's codes,
+so it was deliberately left on inference (byte-level in-zip check plus sibling fixes confirmed
+live). That inference has now been replaced by the strongest evidence available for this defect:
+the client-reported symptom, re-tested by a person on the deployed site, gone. Register Status
+updated from *"stated as inference rather than a click-path test"* to **VERIFIED LIVE**, and the
+deploy record's matching caveat now carries the update while keeping the original reasoning — it
+will be needed again the next time a screen cannot be exercised without side effects.
+
+DEF-385 already had an automated live round trip; Shawn's check corroborates it independently, so
+it is now confirmed by both machine and click path.
+
+**Why I asked which one rather than recording "confirmed".** "It is working" was ambiguous across
+two defects with *very* different evidence standing — one already round-trip verified, one on
+inference alone. Recording the wrong one would have marked DEF-384 click-path verified on the
+strength of a trust-device test. One short question cost nothing and made the register true.
+Related: [[feedback_confirm_means_falsifiable]].
+
+**Nothing outstanding on these two.** Remaining from this thread, unchanged:
+- Tell UAT testers to re-copy any 2FA recovery codes saved before 2026-08-31.
+- `GCCWebApp-deploy-20260831-1628.zip` is built and verified but **not uploaded**; it carries
+  DEF-388 (logging only) as its sole delta from live. Shawn's call whether that ships.
+- `GCCWebApp-deploy-20260830-2245.zip` remains marked **DO NOT RE-UPLOAD**.

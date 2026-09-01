@@ -177,8 +177,12 @@ public class RequestResponseLoggingMiddleware
             RequestBody = requestBody
         };
 
+        // DEF-387: pass the PATH only. LogApiRequestAsync takes the method separately and
+        // renders "{Method} {Endpoint}", so folding the verb into the endpoint here produced
+        // "GET GET /api/certificate-tiles" in every log line, and put the verb into the
+        // structured "Endpoint" property too.
         await structuredLogger.LogApiRequestAsync(
-            $"{request.Method} {request.Path}",
+            request.Path.Value ?? "/",
             request.Method,
             0, // Status code not available yet
             TimeSpan.Zero, // Duration not available yet
@@ -218,8 +222,9 @@ public class RequestResponseLoggingMiddleware
             response.StatusCode, requestId, duration.TotalMilliseconds);
 
         // Use structured logging for detailed response logging
+        // DEF-387: path only - see the note on the request-side call above.
         await structuredLogger.LogApiRequestAsync(
-            $"{context.Request.Method} {context.Request.Path}",
+            context.Request.Path.Value ?? "/",
             context.Request.Method,
             response.StatusCode,
             duration,

@@ -53,6 +53,8 @@ const ASSETS = [
   'wwwroot/js/certificate-tile-view.js',
   'wwwroot/js/certificate-tile-view-internal.js',
   'wwwroot/js/certificate-tile-view-external.js',
+  'wwwroot/js/userManagement.js',            // DEF-387 - lets a JS-only deploy be verified
+  'wwwroot/js/product-id-manager.js',        // DEF-389 - same reason; JS-only, no DLL
   'wwwroot/css/certificatetileview.css',
   'wwwroot/css/certificate-autocomplete.css',
 ];

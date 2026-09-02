@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -120,7 +120,15 @@ namespace GCCWebApp.Models.Import
         public DateTime? EffectiveDate { get; set; }
         public DateTime? ExpirationDate { get; set; }
         public string? Location { get; set; }
+        /// <summary>Primary country — the first resolved entry of the Country cell.</summary>
         public string? Country { get; set; }
+        /// <summary>
+        /// CR-037: every country resolved from the Country cell, in file order. Populated during
+        /// validation; consumed by SyncCertificateCountries on create and update. Empty when the
+        /// cell was blank or nothing in it resolved — in the latter case Country still holds the
+        /// raw value so the analyst can see what to correct.
+        /// </summary>
+        public List<string> Countries { get; set; } = new();
         public string? Asin { get; set; }
         public string? Upc { get; set; }
         public string? Gtin { get; set; }

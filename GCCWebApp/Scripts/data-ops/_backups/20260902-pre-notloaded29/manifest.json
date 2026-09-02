@@ -1,0 +1,1023 @@
+﻿{
+    "TakenUtc":  "2026-09-02T13:21:00.9137864Z",
+    "Server":  "tcp:68.71.129.120,1533",
+    "Database":  "gccwebap_certificates",
+    "Login":  "GCC_adminxyz123",
+    "BackupType":  "logical-jsonl (no BACKUP DATABASE / VIEW DEFINITION permission on this login)",
+    "TableCount":  44,
+    "TotalRows":  41171,
+    "RestoreOrder":  [
+                         "dbo.__EFMigrationsHistory",
+                         "dbo.AmazonApiSettings",
+                         "dbo.AmazonSyncHistory",
+                         "dbo.ApiKeys",
+                         "dbo.CertificateAggregates",
+                         "dbo.Certificates_bak_CR019_20260608",
+                         "dbo.CertificationTypes",
+                         "dbo.CustomFields",
+                         "dbo.ETLAlerts",
+                         "dbo.ETLConfigurations",
+                         "dbo.ETLDataQualityIssues",
+                         "dbo.ETLLogEntries",
+                         "dbo.Partners",
+                         "dbo.Pathways",
+                         "dbo.Permissions",
+                         "dbo.ProductCategories",
+                         "dbo.Products_bak_CR019_20260608",
+                         "dbo.ProductTypes",
+                         "dbo.Roles",
+                         "dbo.Tags",
+                         "dbo.Users",
+                         "dbo.AuditHistory",
+                         "dbo.Companies",
+                         "dbo.CompanyUser",
+                         "dbo.GoogleAnalyticsSettings",
+                         "dbo.ImportBatches",
+                         "dbo.PartnerApiKeys",
+                         "dbo.PartnerUser",
+                         "dbo.PermissionRole",
+                         "dbo.Products",
+                         "dbo.ProductSubcategories",
+                         "dbo.ProductTag",
+                         "dbo.TrustedDevices",
+                         "dbo.UserRoles",
+                         "dbo.Certificates",
+                         "dbo.CertificateStatusHistory",
+                         "dbo.CertificateTag",
+                         "dbo.CustomFieldValues",
+                         "dbo.ProductIdentifiers",
+                         "dbo.CertificateCertificationTypeSubcategories",
+                         "dbo.CertificateDocuments",
+                         "dbo.CertificatePartners",
+                         "dbo.CertificateProductIds",
+                         "dbo.CertificateProductIdPartners"
+                     ],
+    "Tables":  [
+                   {
+                       "Table":  "dbo.__EFMigrationsHistory",
+                       "File":  "data/dbo.__EFMigrationsHistory.jsonl",
+                       "Rows":  37,
+                       "Columns":  [
+                                       "MigrationId",
+                                       "ProductVersion"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.AmazonApiSettings",
+                       "File":  "data/dbo.AmazonApiSettings.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "IsEnabled",
+                                       "SyncIntervalHours",
+                                       "AccessKeyId",
+                                       "SecretAccessKey",
+                                       "RefreshToken",
+                                       "Region",
+                                       "MarketplaceId",
+                                       "SyncProducts",
+                                       "SyncCertificates",
+                                       "SyncCompliance",
+                                       "WebhookUrl",
+                                       "LastSync",
+                                       "LastSyncStatus",
+                                       "RecordsSynced",
+                                       "LastError",
+                                       "CreatedAt",
+                                       "UpdatedAt",
+                                       "UpdatedBy"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.AmazonSyncHistory",
+                       "File":  "data/dbo.AmazonSyncHistory.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "Timestamp",
+                                       "Type",
+                                       "RecordsProcessed",
+                                       "RecordsSucceeded",
+                                       "RecordsFailed",
+                                       "Status",
+                                       "DurationSeconds",
+                                       "Message",
+                                       "ErrorDetails",
+                                       "TriggeredBy"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.ApiKeys",
+                       "File":  "data/dbo.ApiKeys.jsonl",
+                       "Rows":  3,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "Key",
+                                       "Description",
+                                       "IsActive",
+                                       "CreatedAt",
+                                       "LastUsedAt",
+                                       "ExpiresAt",
+                                       "CreatedBy",
+                                       "RateLimitPerMinute",
+                                       "RateLimitPerHour",
+                                       "RateLimitPerDay",
+                                       "AllowedIPs",
+                                       "AllowedOrigins",
+                                       "Scopes",
+                                       "KeyHash",
+                                       "MaxConcurrentRequests",
+                                       "RequireTLS",
+                                       "LastSecurityIncident",
+                                       "SecurityViolationCount",
+                                       "IsTemporarilyBlocked",
+                                       "BlockedUntil",
+                                       "UserAgent",
+                                       "RateLimit",
+                                       "SecurityViolations",
+                                       "LastViolationAt",
+                                       "LastViolationType",
+                                       "BlockReason",
+                                       "RequestCount",
+                                       "LastRotatedAt",
+                                       "Environment",
+                                       "UsageCostPerRequest"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.CertificateAggregates",
+                       "File":  "data/dbo.CertificateAggregates.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Period",
+                                       "PeriodDate",
+                                       "TotalCertificates",
+                                       "ActiveCertificates",
+                                       "ExpiredCertificates",
+                                       "ExpiringThisMonth",
+                                       "CertificatesByType",
+                                       "CertificatesByCountry",
+                                       "CertificatesByCompany",
+                                       "AverageValidityPeriod",
+                                       "CreatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.Certificates_bak_CR019_20260608",
+                       "File":  "data/dbo.Certificates_bak_CR019_20260608.jsonl",
+                       "Rows":  4,
+                       "Columns":  [
+                                       "Id",
+                                       "Number",
+                                       "Status",
+                                       "EffectiveDate",
+                                       "ExpirationDate",
+                                       "Location",
+                                       "Country",
+                                       "Asin",
+                                       "Upc",
+                                       "Gtin",
+                                       "Ean",
+                                       "CertificateFile",
+                                       "CertificateImagePath",
+                                       "Partner",
+                                       "CompanyId",
+                                       "ProductId",
+                                       "CertificationTypeId",
+                                       "CreatedBy",
+                                       "UpdatedBy",
+                                       "CreatedAt",
+                                       "UpdatedAt",
+                                       "CertificationResults",
+                                       "CertificationTypeSubcategoryId",
+                                       "PathwayId",
+                                       "ProductCategoryId",
+                                       "ProductSubcategoryId",
+                                       "ProductTypeId",
+                                       "CertificationResultsNumeric"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.CertificationTypes",
+                       "File":  "data/dbo.CertificationTypes.jsonl",
+                       "Rows":  37,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "AmazonCode",
+                                       "Description",
+                                       "IsActive",
+                                       "SortOrder",
+                                       "Level",
+                                       "ParentId"
+                                   ],
+                       "ComputedExcluded":  [
+                                                "NormalizedName"
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.CustomFields",
+                       "File":  "data/dbo.CustomFields.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "FieldType",
+                                       "IsRequired",
+                                       "IsVisible",
+                                       "IsPublic",
+                                       "SortOrder",
+                                       "Options",
+                                       "DefaultValue",
+                                       "ValidationRules",
+                                       "CertificateTypeId",
+                                       "Section",
+                                       "RoleVisibility"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.ETLAlerts",
+                       "File":  "data/dbo.ETLAlerts.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "AlertType",
+                                       "Message",
+                                       "Severity",
+                                       "CreatedAt",
+                                       "IsResolved",
+                                       "ResolvedAt",
+                                       "Context"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.ETLConfigurations",
+                       "File":  "data/dbo.ETLConfigurations.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "JobType",
+                                       "IsIncremental",
+                                       "LastRunTime",
+                                       "DataSources",
+                                       "Transformations",
+                                       "Destinations",
+                                       "Settings",
+                                       "IsActive",
+                                       "CronSchedule",
+                                       "CreatedAt",
+                                       "UpdatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.ETLDataQualityIssues",
+                       "File":  "data/dbo.ETLDataQualityIssues.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "IssueType",
+                                       "Description",
+                                       "FieldName",
+                                       "RecordId",
+                                       "ExpectedValue",
+                                       "ActualValue",
+                                       "Severity",
+                                       "DetectedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.ETLLogEntries",
+                       "File":  "data/dbo.ETLLogEntries.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "JobId",
+                                       "Timestamp",
+                                       "LogLevel",
+                                       "Message",
+                                       "Category",
+                                       "Properties"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.Partners",
+                       "File":  "data/dbo.Partners.jsonl",
+                       "Rows":  4,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "Description",
+                                       "Website",
+                                       "ContactInfo",
+                                       "Email",
+                                       "IsActive",
+                                       "IsDeleted",
+                                       "SortOrder",
+                                       "CreatedAt",
+                                       "UpdatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.Pathways",
+                       "File":  "data/dbo.Pathways.jsonl",
+                       "Rows":  6,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "Description",
+                                       "IsActive",
+                                       "IsDeleted",
+                                       "SortOrder",
+                                       "CreatedAt",
+                                       "UpdatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.Permissions",
+                       "File":  "data/dbo.Permissions.jsonl",
+                       "Rows":  22,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "Codename",
+                                       "Category",
+                                       "Description",
+                                       "IsActive",
+                                       "CreatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.ProductCategories",
+                       "File":  "data/dbo.ProductCategories.jsonl",
+                       "Rows":  9,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "Description",
+                                       "SortOrder",
+                                       "IsActive"
+                                   ],
+                       "ComputedExcluded":  [
+                                                "NormalizedName"
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.Products_bak_CR019_20260608",
+                       "File":  "data/dbo.Products_bak_CR019_20260608.jsonl",
+                       "Rows":  2,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "Description",
+                                       "Model",
+                                       "Sku",
+                                       "Upc",
+                                       "Asin",
+                                       "CategoryId",
+                                       "ProductTypeId",
+                                       "ProductSubcategoryId",
+                                       "CompanyId",
+                                       "IsActive",
+                                       "IsDeleted",
+                                       "CreatedAt",
+                                       "UpdatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.ProductTypes",
+                       "File":  "data/dbo.ProductTypes.jsonl",
+                       "Rows":  54,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "CategoryId",
+                                       "ParentId",
+                                       "Level",
+                                       "SortOrder",
+                                       "IsActive"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.Roles",
+                       "File":  "data/dbo.Roles.jsonl",
+                       "Rows":  5,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "Description",
+                                       "IsSystem",
+                                       "IsActive",
+                                       "CreatedAt",
+                                       "UpdatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.Tags",
+                       "File":  "data/dbo.Tags.jsonl",
+                       "Rows":  4,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "TagType",
+                                       "Description",
+                                       "IsActive"
+                                   ],
+                       "ComputedExcluded":  [
+                                                "NormalizedName"
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.Users",
+                       "File":  "data/dbo.Users.jsonl",
+                       "Rows":  21,
+                       "Columns":  [
+                                       "Id",
+                                       "Username",
+                                       "Email",
+                                       "Name",
+                                       "FullName",
+                                       "LastLoginAt",
+                                       "IsDeleted",
+                                       "DeletedAt",
+                                       "PasswordHash",
+                                       "Status",
+                                       "IsActive",
+                                       "IsStaff",
+                                       "IsSuperuser",
+                                       "RequirePasswordReset",
+                                       "LastLogin",
+                                       "PasswordChangedAt",
+                                       "FailedLoginAttempts",
+                                       "LockedUntil",
+                                       "TwoFactorSecret",
+                                       "TwoFactorEnabled",
+                                       "TwoFactorMethod",
+                                       "PhoneNumber",
+                                       "IsPhoneVerified",
+                                       "IsEmailVerified",
+                                       "RecoveryCodes",
+                                       "LastSecurityAudit",
+                                       "SecurityQuestions",
+                                       "MustChangePassword",
+                                       "MaxConcurrentSessions",
+                                       "AllowedIPs",
+                                       "RequirePasswordChange",
+                                       "PasswordExpiresAt",
+                                       "PasswordHistory",
+                                       "MaxPasswordHistory",
+                                       "CreatedAt",
+                                       "UpdatedAt",
+                                       "PasswordResetToken",
+                                       "PasswordResetTokenExpiry",
+                                       "UserCompany"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.AuditHistory",
+                       "File":  "data/dbo.AuditHistory.jsonl",
+                       "Rows":  158,
+                       "Columns":  [
+                                       "Id",
+                                       "EntityType",
+                                       "EntityId",
+                                       "EntityName",
+                                       "Action",
+                                       "FieldName",
+                                       "OldValue",
+                                       "NewValue",
+                                       "ChangedBy",
+                                       "ChangedByUsername",
+                                       "ChangedAt",
+                                       "IpAddress",
+                                       "UserAgent",
+                                       "ChangeSource",
+                                       "Reason",
+                                       "SessionId",
+                                       "Metadata",
+                                       "ImportBatchId"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.Companies",
+                       "File":  "data/dbo.Companies.jsonl",
+                       "Rows":  301,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "ContactInfo",
+                                       "Email",
+                                       "Website",
+                                       "Location",
+                                       "Country",
+                                       "IsActive",
+                                       "IsDeleted",
+                                       "CreatedAt",
+                                       "UpdatedAt",
+                                       "PartnerId"
+                                   ],
+                       "ComputedExcluded":  [
+                                                "NormalizedName"
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.CompanyUser",
+                       "File":  "data/dbo.CompanyUser.jsonl",
+                       "Rows":  2,
+                       "Columns":  [
+                                       "CompaniesId",
+                                       "UsersId"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.GoogleAnalyticsSettings",
+                       "File":  "data/dbo.GoogleAnalyticsSettings.jsonl",
+                       "Rows":  1,
+                       "Columns":  [
+                                       "Id",
+                                       "TrackingId",
+                                       "IsEnabled",
+                                       "CustomScript",
+                                       "AnonymizeIp",
+                                       "EnhancedLinkAttribution",
+                                       "DebugMode",
+                                       "CreatedAt",
+                                       "UpdatedAt",
+                                       "UpdatedBy"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.ImportBatches",
+                       "File":  "data/dbo.ImportBatches.jsonl",
+                       "Rows":  2,
+                       "Columns":  [
+                                       "Id",
+                                       "EntityType",
+                                       "FileName",
+                                       "TotalRows",
+                                       "NewCount",
+                                       "ModifiedCount",
+                                       "SkippedCount",
+                                       "UnchangedCount",
+                                       "ErrorCount",
+                                       "Status",
+                                       "ImportedBy",
+                                       "ImportedByUsername",
+                                       "CreatedAt",
+                                       "CompletedAt",
+                                       "IpAddress",
+                                       "ErrorMessage"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.PartnerApiKeys",
+                       "File":  "data/dbo.PartnerApiKeys.jsonl",
+                       "Rows":  12,
+                       "Columns":  [
+                                       "Id",
+                                       "PartnerId",
+                                       "ApiKey",
+                                       "Description",
+                                       "IsActive",
+                                       "CreatedAt",
+                                       "CreatedBy",
+                                       "ExpiresAt",
+                                       "LastUsedAt",
+                                       "RequestCount",
+                                       "RateLimitPerHour",
+                                       "AllowedEndpoints",
+                                       "Permissions",
+                                       "Notes",
+                                       "RevokedAt",
+                                       "RevokedBy"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.PartnerUser",
+                       "File":  "data/dbo.PartnerUser.jsonl",
+                       "Rows":  3,
+                       "Columns":  [
+                                       "PartnersId",
+                                       "UsersId"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.PermissionRole",
+                       "File":  "data/dbo.PermissionRole.jsonl",
+                       "Rows":  41,
+                       "Columns":  [
+                                       "PermissionsId",
+                                       "RolesId"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.Products",
+                       "File":  "data/dbo.Products.jsonl",
+                       "Rows":  3439,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "Description",
+                                       "Model",
+                                       "Sku",
+                                       "Upc",
+                                       "Asin",
+                                       "CategoryId",
+                                       "ProductTypeId",
+                                       "ProductSubcategoryId",
+                                       "CompanyId",
+                                       "IsActive",
+                                       "IsDeleted",
+                                       "CreatedAt",
+                                       "UpdatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+                                                "NormalizedName"
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.ProductSubcategories",
+                       "File":  "data/dbo.ProductSubcategories.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "Name",
+                                       "ProductTypeId",
+                                       "Description",
+                                       "SortOrder",
+                                       "IsActive"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.ProductTag",
+                       "File":  "data/dbo.ProductTag.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "ProductsId",
+                                       "TagsId"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.TrustedDevices",
+                       "File":  "data/dbo.TrustedDevices.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "UserId",
+                                       "TokenHash",
+                                       "CreatedAt",
+                                       "ExpiresAt",
+                                       "LastUsedAt",
+                                       "RevokedAt",
+                                       "RevokedReason",
+                                       "DeviceLabel",
+                                       "CreatedFromIp"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.UserRoles",
+                       "File":  "data/dbo.UserRoles.jsonl",
+                       "Rows":  21,
+                       "Columns":  [
+                                       "RolesId",
+                                       "UsersId"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.Certificates",
+                       "File":  "data/dbo.Certificates.jsonl",
+                       "Rows":  5702,
+                       "Columns":  [
+                                       "Id",
+                                       "Number",
+                                       "Status",
+                                       "EffectiveDate",
+                                       "ExpirationDate",
+                                       "Location",
+                                       "Country",
+                                       "Asin",
+                                       "Upc",
+                                       "Gtin",
+                                       "Ean",
+                                       "CertificateFile",
+                                       "CertificateImagePath",
+                                       "Partner",
+                                       "CompanyId",
+                                       "ProductId",
+                                       "CertificationTypeId",
+                                       "CreatedBy",
+                                       "UpdatedBy",
+                                       "CreatedAt",
+                                       "UpdatedAt",
+                                       "CertificationResults",
+                                       "CertificationTypeSubcategoryId",
+                                       "PathwayId",
+                                       "ProductCategoryId",
+                                       "ProductSubcategoryId",
+                                       "ProductTypeId",
+                                       "AllowsDuplicateNumber"
+                                   ],
+                       "ComputedExcluded":  [
+                                                "NormalizedCountry",
+                                                "NormalizedLocation",
+                                                "NormalizedNumber",
+                                                "CertificationResultsNumeric"
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.CertificateStatusHistory",
+                       "File":  "data/dbo.CertificateStatusHistory.jsonl",
+                       "Rows":  115,
+                       "Columns":  [
+                                       "Id",
+                                       "CertificateId",
+                                       "CertificateNumber",
+                                       "PreviousStatus",
+                                       "NewStatus",
+                                       "Reason",
+                                       "Notes",
+                                       "ChangedBy",
+                                       "ChangedByUsername",
+                                       "ChangedAt",
+                                       "IpAddress",
+                                       "UserAgent",
+                                       "ChangeSource",
+                                       "DurationInPreviousStatus",
+                                       "IsAutomatedTransition",
+                                       "WorkflowStep"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.CertificateTag",
+                       "File":  "data/dbo.CertificateTag.jsonl",
+                       "Rows":  412,
+                       "Columns":  [
+                                       "CertificatesId",
+                                       "TagsId"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.CustomFieldValues",
+                       "File":  "data/dbo.CustomFieldValues.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "CertificateId",
+                                       "FieldId",
+                                       "TextValue",
+                                       "NumberValue",
+                                       "DateValue",
+                                       "BooleanValue"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.ProductIdentifiers",
+                       "File":  "data/dbo.ProductIdentifiers.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "ProductId",
+                                       "IdentifierType",
+                                       "IdentifierValue",
+                                       "CreatedAt",
+                                       "UpdatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.CertificateCertificationTypeSubcategories",
+                       "File":  "data/dbo.CertificateCertificationTypeSubcategories.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "CertificateId",
+                                       "CertificationTypeSubcategoriesId"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.CertificateDocuments",
+                       "File":  "data/dbo.CertificateDocuments.jsonl",
+                       "Rows":  0,
+                       "Columns":  [
+                                       "Id",
+                                       "FileName",
+                                       "OriginalFileName",
+                                       "FilePath",
+                                       "ContentType",
+                                       "FileSize",
+                                       "FileHash",
+                                       "DocumentType",
+                                       "Description",
+                                       "Version",
+                                       "IsActive",
+                                       "IsPublic",
+                                       "IsVirusScanned",
+                                       "PassedVirusScan",
+                                       "VirusScanDate",
+                                       "CertificateId",
+                                       "UploadedBy",
+                                       "UploadedAt",
+                                       "UpdatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.CertificatePartners",
+                       "File":  "data/dbo.CertificatePartners.jsonl",
+                       "Rows":  244,
+                       "Columns":  [
+                                       "CertificatesId",
+                                       "PartnersId"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   },
+                   {
+                       "Table":  "dbo.CertificateProductIds",
+                       "File":  "data/dbo.CertificateProductIds.jsonl",
+                       "Rows":  16235,
+                       "Columns":  [
+                                       "Id",
+                                       "CertificateId",
+                                       "ProductIdType",
+                                       "ProductIdValue",
+                                       "Status",
+                                       "Partner",
+                                       "ProductName",
+                                       "ProductSku",
+                                       "Description",
+                                       "IsActive",
+                                       "IsPublic",
+                                       "DisplayOrder",
+                                       "CreatedBy",
+                                       "CreatedAt",
+                                       "UpdatedBy",
+                                       "UpdatedAt"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  true
+                   },
+                   {
+                       "Table":  "dbo.CertificateProductIdPartners",
+                       "File":  "data/dbo.CertificateProductIdPartners.jsonl",
+                       "Rows":  14275,
+                       "Columns":  [
+                                       "CertificateProductIdId",
+                                       "PartnersId"
+                                   ],
+                       "ComputedExcluded":  [
+
+                                            ],
+                       "HasIdentity":  false
+                   }
+               ],
+    "SchemaAuthority":  "create-schema.sql (generated from the sys catalog). The repo EF migration chain does NOT reproduce this schema -- Companies.PartnerId and CertificatePartners come from migration 20260127002958_AddPartnerIdToCompanies, which is applied on the server but missing from Migrations/."
+}

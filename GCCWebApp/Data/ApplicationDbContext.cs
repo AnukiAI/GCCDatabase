@@ -25,6 +25,7 @@ namespace GCCWebApp.Data
         public DbSet<CertificationType> CertificationTypes { get; set; }
         public DbSet<CustomField> CustomFields { get; set; }
         public DbSet<CustomFieldValue> CustomFieldValues { get; set; }
+        public DbSet<CertificateCountry> CertificateCountries { get; set; }
         public DbSet<CertificateDocument> CertificateDocuments { get; set; }
         public DbSet<CertificateProductId> CertificateProductIds { get; set; }
         public DbSet<CertificateStatusHistory> CertificateStatusHistory { get; set; }
@@ -599,6 +600,33 @@ namespace GCCWebApp.Data
                 .HasMany(c => c.Partners)
                 .WithMany(p => p.Certificates)
                 .UsingEntity(j => j.ToTable("CertificatePartners"));
+
+            // CR-037: Certificate-Country. A one-to-many onto a string join table rather than a
+            // many-to-many, because Country is not an entity (see CertificateCountry for why).
+            // Cascade delete so the join rows go with the certificate — and note the delete audit
+            // must capture these rows BEFORE SaveChanges, same as the other children (DEF-337).
+            modelBuilder.Entity<CertificateCountry>(entity =>
+            {
+                entity.ToTable("CertificateCountries");
+
+                entity.HasOne(cc => cc.Certificate)
+                    .WithMany(c => c.Countries)
+                    .HasForeignKey(cc => cc.CertificateId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // CR-187: same normalizer expression as Certificate.NormalizedCountry — one source
+                // of truth for normalization, never a second hand-rolled helper.
+                entity.Property(cc => cc.NormalizedCountry)
+                    .HasComputedColumnSql(SearchNormalizer.ToSqlExpression("[Country]"), stored: true);
+
+                // Drives the "does this country exist on the cert" filter across the tile APIs.
+                entity.HasIndex(cc => cc.Country);
+                entity.HasIndex(cc => cc.NormalizedCountry);
+
+                // A certificate lists a given country once. Guards the sync path against
+                // double-inserting when an edit resubmits an unchanged set.
+                entity.HasIndex(cc => new { cc.CertificateId, cc.Country }).IsUnique();
+            });
 
             // CR-171 Phase 2: CertificateProductId-Partner many-to-many (per-product partner sharing).
             // No inverse navigation on Partner — product-ID membership is read from the product-ID side.

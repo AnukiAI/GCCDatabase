@@ -1,0 +1,22 @@
+{"Id":1,"Name":"View Certificates","Codename":"certificate.view","Category":"Certificates","Description":"Can view certificates","IsActive":true,"CreatedAt":"2025-11-18T14:47:27.9000000"}
+{"Id":2,"Name":"Create Certificates","Codename":"certificate.create","Category":"Certificates","Description":"Can create new certificates","IsActive":true,"CreatedAt":"2025-11-18T14:47:27.9000000"}
+{"Id":3,"Name":"Edit Certificates","Codename":"certificate.edit","Category":"Certificates","Description":"Can edit existing certificates","IsActive":true,"CreatedAt":"2025-11-18T14:47:27.9000000"}
+{"Id":4,"Name":"Delete Certificates","Codename":"certificate.delete","Category":"Certificates","Description":"Can delete certificates","IsActive":true,"CreatedAt":"2025-11-18T14:47:27.9000000"}
+{"Id":5,"Name":"Manage Users","Codename":"admin.users","Category":"Administration","Description":"Can manage user accounts","IsActive":true,"CreatedAt":"2025-11-18T14:47:27.9000000"}
+{"Id":6,"Name":"View Reports","Codename":"data.reports","Category":"Data","Description":"Can view system reports","IsActive":true,"CreatedAt":"2025-11-18T14:47:27.9000000"}
+{"Id":8,"Name":"Export Data","Codename":"data.export","Category":"Data","Description":"Download CSV exports","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":9,"Name":"Import Data","Codename":"data.import","Category":"Data","Description":"Bulk import from CSV","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":10,"Name":"View Audit Logs","Codename":"data.audit","Category":"Data","Description":"System activity history","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":11,"Name":"Manage Roles","Codename":"admin.roles","Category":"Administration","Description":"Configure role permissions","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":12,"Name":"Manage Companies","Codename":"admin.companies","Category":"Administration","Description":"Partner/client companies","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":13,"Name":"Manage Tags","Codename":"admin.tags","Category":"Administration","Description":"Classification tags (internal and external)","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":14,"Name":"Manage Partners","Codename":"admin.partners","Category":"Administration","Description":"API keys \u0026 partner access","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":15,"Name":"API Read","Codename":"api.read","Category":"API Access","Description":"Read data via API","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":16,"Name":"API Write","Codename":"api.write","Category":"API Access","Description":"Create/update via API","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":17,"Name":"API Delete","Codename":"api.delete","Category":"API Access","Description":"Delete via API","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":18,"Name":"View Products","Codename":"products.view","Category":"Products","Description":"Browse product catalog","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4200000"}
+{"Id":19,"Name":"Manage Products","Codename":"products.manage","Category":"Products","Description":"Add/edit products","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4233333"}
+{"Id":20,"Name":"Manage Product Types","Codename":"products.types","Category":"Products","Description":"Categories \u0026 types","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4233333"}
+{"Id":21,"Name":"System Settings","Codename":"system.settings","Category":"System","Description":"Global configuration","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4233333"}
+{"Id":22,"Name":"Manage Cert Types","Codename":"system.certtypes","Category":"System","Description":"Certification types","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4233333"}
+{"Id":23,"Name":"Manage Custom Fields","Codename":"system.fields","Category":"System","Description":"Dynamic form fields","IsActive":true,"CreatedAt":"2026-01-27T08:50:04.4233333"}

@@ -545,7 +545,15 @@ IF (SELECT COUNT(*) FROM dbo.Certificates c WHERE c.Number IN (SELECT Number FRO
    <> (SELECT COUNT(*) FROM #Cert)
     SET @errmsg = 'certificate count does not match staging';
 -- CR-038: the exemption must cover exactly the duplicated rows and nothing else.
-IF (SELECT COUNT(*) FROM dbo.Certificates WHERE AllowsDuplicateNumber = 1)
+-- Scoped to THIS load's numbers, like the count assertion above it. Unscoped, the left
+-- side counted every flagged row in the table, which equals the load only when loading
+-- into an empty database. On an incremental top-up it also counts the rows a previous
+-- migration legitimately flagged, so the comparison can never balance and a correct load
+-- rolls back (hit 2026-09-02 loading the withheld 29 into the already-migrated test env:
+-- 29 rows, 0 duplicates among them, ~350 pre-existing flagged rows). Scoping is safe
+-- because the preflight aborts on any pre-existing certificate number, so the only rows
+-- carrying a #Cert number are the ones this load just inserted.
+IF (SELECT COUNT(*) FROM dbo.Certificates WHERE AllowsDuplicateNumber = 1 AND Number IN (SELECT Number FROM #Cert))
    <> (SELECT COUNT(*) FROM #Cert s WHERE s.Number IN (SELECT Number FROM #Cert GROUP BY Number HAVING COUNT(*) > 1))
     SET @errmsg = 'AllowsDuplicateNumber was not set on exactly the duplicated rows';
 IF EXISTS (SELECT 1 FROM dbo.Certificates WHERE Number IS NOT NULL AND NormalizedNumber IS NULL)

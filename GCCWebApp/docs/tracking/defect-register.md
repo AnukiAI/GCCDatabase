@@ -8620,7 +8620,24 @@ Part 1 also closes the same leak into `Views/Account/TwoFactorPreferences.cshtml
 
 **Why it matters.** CR-171 exists precisely so a certificate can carry several partners, and QC #171 is the client asking for the *template* to make multi-partner entry clear. An export that then reports one partner contradicts the feature they signed off on.
 
-**Deliberately not fixed in this batch.** Outside the agreed Batch 1 scope, and the export path is partner-scoped — DEF-198 hardened it against cross-partner leakage, so changing what the Partner column emits needs its own scoping review. **Also unresolved: what a partner-scoped caller should see.** Showing co-partners in an Amazon-scoped export would contradict [[feedback_partner_data_isolation]], so this likely needs a per-role answer (Admin/Analyst see every partner; a partner sees only itself) and possibly client sign-off. Needs its own triage.
+**Deliberately not fixed in this batch.** Outside the agreed Batch 1 scope, and the export path is partner-scoped — DEF-198 hardened it against cross-partner leakage, so changing what the Partner column emits needs its own scoping review.
+
+**CORRECTION 2026-09-02 — the "unresolved decision" on this row was never unresolved.** Earlier revisions of this entry (and the residual note on DEF-344) said the per-role output rule still needed client sign-off. It does not. The client answered it on **2026-06-17** in the CR-171 sign-off — `docs/tracking/CR-171-multipartner-visibility.md` §5 (UC2) and §6 Q1/Q2/Q5:
+
+| Viewer | Partner value they should see |
+|---|---|
+| Public (anonymous) | **none** |
+| Company user / external client | **all** associated partner names |
+| Analyst / Admin | **all** associated partner names |
+| **Partner login (UI) and partner API key** | **own partner only** — never a co-partner |
+
+§6 closing note is explicit: *"the only requester-scoped output path is the partner login (UI) + partner API key. Everyone else is binary."* So DEF-321 is **not blocked on the client** — it is unbuilt work with a signed-off spec. Do not re-ask; per [[feedback_qc_review_no_changes]] and the client's standing objection to re-litigating settled requirements, re-sending this question would read as spinning.
+
+**Remaining build scope (two surfaces, one rule).**
+1. `Services/CertificateService.cs:588` — CSV export projects `c.Partner`; must project the `Partners` collection, scoped to own-only when the caller is a partner principal.
+2. `Views/Certificate/CertificateExternalView.cshtml:29,94-96` — renders the denormalized `c.Partner` unscoped. **This view serves both audiences**, which is the only real subtlety: a *company/external* viewer must get all names, a *partner login* only its own. Branch on the principal, not on the view.
+
+The internal view (DEF-344) is already correct and needs no change.
 
 ---
 
@@ -9207,7 +9224,7 @@ DEF-316's validation was real and is still passing — it downloaded the file, i
 
 ### DEF-343 — Certification Type renders blank on Edit whenever the stored type is a child type; the required field then silently rewrites itself on save
 
-**Date:** 2026-08-07 | **Status:** Fixed (`Controllers/CertificateController.cs`) — **not yet deployed** | **Severity:** **High** — no data is lost today, but the next save of an affected certificate silently changes its certification type | **QC Ref:** new, 2026-08-07 (Reporter: client). **Found by:** client. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-07 | **Status:** **VERIFIED FIXED — shipped 2026-08-07 in `GCCWebApp-deploy-20260807-1312.zip`** (`Controllers/CertificateController.cs`; `BuildCertificationTypeOptions` asserted PRESENT in the in-zip DLL, checklist §in-zip content verification). **Client confirmed 2026-08-10**; **QC #244 closed 2026-09-02**. | **Severity:** **High** — no data is lost today, but the next save of an affected certificate silently changes its certification type | **QC Ref:** **QC #244** (`GCC DB QC Log2` row 253, opened 2026-08-07, *Date Closed – GCC Confirmed Fixed* 2026-08-10) — *“the Certification Type field was empty under the edit page”*. **Found by:** client. | **Reporter:** Anuki (internal).
 
 **Client report (verbatim).** *"When I went back to test a prior cert change the Certification Type field was empty under the edit page. Even though it's required and the preview had one listed. Please make sure data is staying (we had a similar issue prior with product types). The one I experienced with was 26-10090."*
 
@@ -9235,7 +9252,7 @@ The detail/preview page contradicts the Edit page because it reads the navigatio
 
 ### DEF-344 — Certificate detail/preview shows only the first partner; the second is stored correctly and visible everywhere else
 
-**Date:** 2026-08-07 | **Status:** Fixed (`Views/Certificate/CertificateInternalView.cshtml`) — **not yet deployed** | **Severity:** Major — under-reports partner associations on the certificate's own detail page | **QC Ref:** new, 2026-08-07 (Reporter: client). Same family as **DEF-321** (still open). **Found by:** client. | **Reporter:** Anuki (internal).
+**Date:** 2026-08-07 | **Status:** **CLOSED — client-verified 2026-08-10.** Fixed (`Views/Certificate/CertificateInternalView.cshtml`), deployed in bundle `20260807-1312`. Client re-tested 26-10091 plus several other multi-partner certs and confirmed all associated partners now render on the detail/preview page; also confirmed an Amazon partner login still sees only Amazon. | **Severity:** Major — under-reports partner associations on the certificate's own detail page | **QC Ref:** new, 2026-08-07 (Reporter: client). Same family as **DEF-321** (still open). **Found by:** client. | **Reporter:** Anuki (internal).
 
 **Client report (verbatim).** *"Under Admin login I added a second partner under a cert. Had Amazon, selected Novi too. Novi is not showing on preview page. When I go in to edit cert I can see both selected and it's on the tile listing. Cert 26-10091."*
 
@@ -9256,7 +9273,15 @@ Exactly [[feedback_column_exists_but_never_projected]] / [[feedback_denormalized
 
 **Scoped to the internal view on purpose.** `CertificateExternalView.cshtml:22,87-89` has the identical fault, but the right *output* there is not the same question — showing co-partners to an Amazon-scoped viewer would contradict [[feedback_partner_data_isolation]], and the per-role answer (Admin/Analyst see all; a partner sees only itself) is the **same unresolved decision that has DEF-321 parked**. Fixing it blind would risk a cross-partner leak in order to close a display bug. The client reported this under **Admin login**, which the internal view serves, so the reported defect is closed; the external view is deliberately deferred to the DEF-321 triage rather than guessed at.
 
-**Validation (2026-08-07).** `dotnet build` → **0 errors**; confirmed the edited view actually compiled by finding the new `partnerNames` local in the built `GCCWebApp.dll` (Razor compiles into the assembly, so "it built" alone would not have proven the view was exercised). DB evidence above is read-only. **Still needs a human look:** open 26-10091's detail page and confirm it reads `Amazon, Novi`.
+**Validation (2026-08-07).** `dotnet build` → **0 errors**; confirmed the edited view actually compiled by finding the new `partnerNames` local in the built `GCCWebApp.dll` (Razor compiles into the assembly, so "it built" alone would not have proven the view was exercised). DB evidence above is read-only.
+
+**Client verification (2026-08-10) — CLOSES THIS ROW.** Client re-tested on the test environment: *"Worked for this cert and added to a couple others and showing in all instances. Also logged into Amazon partner and that only showed Amazon listing which was accurate."* The human look this row was waiting on is done, across more than the one reported certificate.
+
+**Residual — tracked under DEF-321, not here.** The Amazon-login half passed for a coincidental reason: `CertificateExternalView.cshtml:29,94-96` still renders the denormalized `Certificates.Partner`, unscoped. On 26-10091 the denormalized primary *is* Amazon, so an Amazon caller reads correctly by luck. A **Novi** login opening the same certificate would see `Partner: Amazon` — a co-partner name shown to the wrong partner, the inverse of the reported defect. That is tracked on **DEF-321**, which also covers the CSV export. No new row opened — same fix, and splitting it would fragment the triage.
+
+**Not blocked on a client decision** (corrected 2026-09-02): the per-role rule was signed off by the client on 2026-06-17 in CR-171 §6 — partner logins see **their own partner only**; company/external/analyst/admin see **all**; public sees **none**. DEF-321 is unbuilt work against an agreed spec, not an open question.
+
+**Environment note (2026-09-02).** Cert **26-10091 no longer exists** on the test environment, and there are currently **0 multi-partner certificates** there — the 2026-08-18 go-live load replaced the certificate set (5,731 certs; 244 carry a partner association, **all of them Amazon**). This does not reopen DEF-344 — the client verified it against the data as it stood on 2026-08-10 — but the original test article is gone, so re-demonstrating either DEF-344 or the DEF-321 leak now requires creating a fresh two-partner certificate. A **Novi** login does exist (`shawnmwest+novi@gmail.com`), so the DEF-321 leak becomes reachable the moment anyone adds a second partner.
 
 ---
 
@@ -9723,7 +9748,7 @@ The audit row: `EntityType=Certificate`, `EntityId=5707`, `EntityName=26-0482`, 
 
 ### DEF-358 — Certificates were published before their effective date: every public and partner gate tested status + expiration only, never the effective date
 
-**Date:** 2026-08-17 | **Status:** **FIXED 2026-08-17 — build clean, 18/18 new unit tests green. Not deployed.** Stakeholder row in `shipped-2026-08.md`, logged as **"Prepared 2026-08-17 — not yet deployed"** (July's convention for prepared-but-unreleased work) — that row must be re-labelled with the deploy date and bundle name when this actually ships, since the shipped log is used as client receipts. | **Severity:** **Major** — the public database and the Amazon partner API both presented not-yet-in-force certificates as active certifications. 9 of 67 publicly-visible certs on the client's test environment were in that state, 6 of them partner-tagged and therefore going out over the API. | **QC Ref:** none. | **Found by / Reporter:** client via Shawn — *"the public database is showing certificates that have not yet hit their effective date… they should only be visible on the public side when it's within the certs effective and expiration period. Also, the same would be true for the passing of information through the API. I don't believe Amazon is validating the effective date has been met?"*
+**Date:** 2026-08-17 | **Status:** **CLOSED — fixed 2026-08-17, deployed to the test environment 2026-08-25 in `GCCWebApp-deploy-20260825-1448.zip`, and VERIFIED LIVE on gccwebapp.com 2026-09-02** (see the verification block at the end of this entry). The `shipped-2026-08.md` row has been re-labelled from "Prepared 2026-08-17 — not yet deployed" to its actual deploy date and bundle; it had been left stale for eight days, understating delivery in a log used as client receipts ([[feedback_deploy_state_read_gate_log_first]]). | **Severity:** **Major** — the public database and the Amazon partner API both presented not-yet-in-force certificates as active certifications. 9 of 67 publicly-visible certs on the client's test environment were in that state, 6 of them partner-tagged and therefore going out over the API. | **QC Ref:** none. | **Found by / Reporter:** client via Shawn — *"the public database is showing certificates that have not yet hit their effective date… they should only be visible on the public side when it's within the certs effective and expiration period. Also, the same would be true for the passing of information through the API. I don't believe Amazon is validating the effective date has been met?"*
 
 **The workflow this breaks.** Staging a certificate ahead of time is normal practice for the team: the cert is set to Client Approved - Paid while the effective date is still weeks out, so everything is ready when the date arrives. The application published it immediately instead.
 
@@ -9825,9 +9850,50 @@ branch, but an Analyst session was not driven.
 
 ---
 
+**VERIFIED LIVE ON THE CLIENT'S TEST ENVIRONMENT, 2026-09-02** — `Scripts/smoke-prod/def358-api-effective-date.js`
+(BASE_URL=https://gccwebapp.com, admin.uat). **18 assertions, 0 failures, 0 control failures.**
+
+Run because the client asked on 8/27 — having confirmed the public side was fixed — for confirmation
+that the API behaves the same way. Existing coverage could not answer that: all 25 cases in
+`DEF358_EffectiveDateVisibilityTests` exercise the `CertificateVisibility` **predicate**, and would
+stay green if a controller stopped calling it. That is exactly the DEF-369 shape
+([[feedback_test_below_the_defect_layer]]), so this asserts at the deployed HTTP layer, authenticated
+the way Amazon authenticates (`X-API-Key`, no app cookie).
+
+Ground truth from the internal grid as Admin: **244** Amazon-tagged certificates, **187** currently
+inside their window, **2** in a public status but not yet effective:
+
+| Cert # | Id | Status | Effective | Expires | Company |
+|---|---|---|---|---|---|
+| 26-0441 | 3137 | Client Approved - Paid | 2026-10-21 | 2027-10-20 | X-SENSE |
+| 26-0442 | 3138 | Client Approved - Paid | 2026-10-21 | 2027-10-20 | X-SENSE |
+
+**The partner feed returned exactly 187 — equal to the currently-effective count, and the two
+future-dated certs were absent.** Both were then withheld on every partner read route: by-number
+404, by-id 404, GS1 404, download 404.
+
+**Every negative carries a positive control**, because "404 everywhere" is also what a broken key, a
+stale gate cookie or a typo'd route produces ([[feedback_role_gated_404_is_not_absence]]). Three
+currently-effective Amazon certs (26-0310, 26-0263, 26-0264) were present in the feed and returned
+200 by-number on the same key in the same run. The script exits **3 = INCONCLUSIVE** rather than
+claiming success if those controls ever fail.
+
+**Data-independent cross-check.** `search?effectiveDateFrom=2026-09-03` returned **0 rows**: that
+filter and the DEF-358 lower bound are mutually exclusive iff the gate is live. Proven falsifiable
+in the same run by `effectiveDateFrom=2000-01-01`, which returned 100.
+
+Receipts: `docs/tracking/screenshots/def358-api/{run.log,receipt.json}`.
+
+*Not covered by this run:* the partner **tile view** (`CertificateTileExternalApiController`), which
+is DEF-376's surface, not this one. 26-0441/26-0442 are the same two certificates DEF-376 was raised
+against, so that entry's live state is worth confirming separately — its register status still reads
+"Not deployed" while `shipped-2026-08.md` records it going out on 2026-08-31.
+
+---
+
 ### DEF-359 — "Active Product Identifiers" export still used the pre-DEF-358 definition of "publicly live", so it exported identifiers for certificates the public site and Amazon API withhold
 
-**Date:** 2026-08-17 | **Status:** **FIXED 2026-08-17 — build clean (0 errors), verified end-to-end against the live export and independently against the database. Not deployed.** | **Severity:** **Moderate** — an internal file, but it discloses product identifiers for certificates that are deliberately not yet public, and it carries an `ID Partner` column naming Amazon. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal), while verifying DEF-358 on every surface.
+**Date:** 2026-08-17 | **Status:** **CLOSED — fixed 2026-08-17, deployed to the test environment 2026-08-25 in `GCCWebApp-deploy-20260825-1448.zip`, and VERIFIED LIVE on gccwebapp.com 2026-09-02** (see the verification block at the end of this entry). | **Severity:** **Moderate** — an internal file, but it discloses product identifiers for certificates that are deliberately not yet public, and it carries an `ID Partner` column naming Amazon. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal), while verifying DEF-358 on every surface.
 
 **How it was found.** DEF-358 was verified as correct on all three public surfaces (public tile API 965 = 981 − 16; public single view 404 for not-yet-effective with a 200 control on the same route; the Amazon partner API's full 208-row set clean). The scope note in `Models/CertificateVisibility.cs` records that `ExportController` was excluded **deliberately**, on the reasoning that internal Admin/Analyst users should keep seeing upcoming certificates. That reasoning holds for a staff-facing screen. It does not sit well with **this particular export**, whose own docstring defined its filter as *"parent cert is publicly live"* — a phrase DEF-358 had just redefined. Downloading the file and scanning it confirmed the divergence.
 
@@ -9878,6 +9944,34 @@ The two totals were **not** taken from the delta. The same two rules were run st
 
 ---
 
+**VERIFIED LIVE ON THE CLIENT'S TEST ENVIRONMENT, 2026-09-02** — `Scripts/smoke-prod/def359-active-pid-export-effective-date.js`
+(BASE_URL=https://gccwebapp.com, admin.uat). **6 assertions, 0 failures, 0 control failures.**
+
+`GET /Export/DownloadActiveProductIds` returned **HTTP 200, text/csv, 16,081 identifier rows**
+(matching the count the file declares in its own header). **Not one row carries a future effective
+date** — all 16,081 are in force today. The two certificates this defect was raised against
+contribute **0 rows** each, against 12 and 2 when it was found.
+
+**The assertion is blanket, not targeted.** The export writes each row's effective date in column 3
+as `yyyy-MM-dd`, so every row was checked rather than just looking for 26-0441/26-0442. That matters
+because the exposure scales with whatever happens to be staged — a targeted check would pass the
+day someone stages a different certificate ([[feedback_enumerate_dont_sample_populations]]).
+
+**Controls**, because a 0-row or malformed file would satisfy a "no future dates" check while proving
+nothing: the file returned >100 rows, all 16,081 effective dates parsed as real dates, and the parsed
+row count equals the total the file declares. A non-200 is reported as an export failure rather than
+a visibility verdict — DEF-360 is precisely the case where this route returns HTTP 400 for a
+server-side timeout.
+
+**Which bundle carried it — established from git, not inferred.** The fix was committed in `ac7bb83`
+(2026-08-21) *in the same commit as DEF-358* ("Migration to TEST, DEF-263 email, DEF-358 visibility,
+DEF-363 recovery"). Bundles are built from HEAD, so `20260825-1448` necessarily contained both.
+**`docs/tracking/2026-08-25-deployment-summary.md` §2 lists DEF-358 but omits DEF-359**, so that
+summary understates what actually shipped; the two could not have been separated.
+
+Receipts: `docs/tracking/screenshots/def359-pid-export/{run.log,receipt.json}`. The raw 4.2 MB CSV is deliberately **not** retained — it is live customer product identifiers, company names and partner columns, and does not belong in git. Re-run with `KEEP_CSV=1` to write it locally.
+
+---
 ### DEF-360 — Active Product Identifiers export times out at 30s on a cold cache and reports the failure as HTTP 400 "Error generating report"
 
 **Date:** 2026-08-17 | **Status:** **FIXED (mitigated + hardened) 2026-08-17 — build clean, export succeeds, output byte-identical. Not deployed. See "What is NOT proven" before closing.** | **Severity:** **Major at go-live volume** — a legitimate admin export fails on the first attempt after every deploy or app-pool recycle, and the error tells the operator nothing true. | **QC Ref:** none. | **Found by / Reporter:** Anuki (internal), while re-testing `DownloadActiveProductIds` after DEF-359.
@@ -10551,7 +10645,7 @@ request, not the certificate PDF.
 
 - **Date:** 2026-08-23
 - **Severity:** **HIGH — public-facing, client-reported, and it misrepresents certification.** A visitor who clicks four different products on the public tile view lands on the same certificate and downloads the same PDF. That is a certification record showing the wrong product.
-- **Status:** **OPEN — root cause confirmed and measured, not yet fixed.**
+- **Status:** **CLOSED — fixed 2026-08-24/25, deployed in `GCCWebApp-deploy-20260825-1448.zip`, and RE-VERIFIED LIVE on gccwebapp.com 2026-09-01** (see the verification block at the end of this entry). The header line below is left as originally written for the record.
 - **QC Ref:** Client email 2026-08-23, duplicate-cert-number spot check. Reporter: client (Carly), via Shawn.
   Verbatim: *"they all are pulling the same PDF, which cannot be the case… they are all going to the Thunder Flat preview page, which cannot be the case. They must go to their own listing."*
 - **Bucket:** Bug.
@@ -10735,6 +10829,54 @@ and no rendered tile handler is left number-only.
 DEF369 unit tests: 9/9 pass.
 
 **Linked:** CR-038 (the change that created the condition) · [[feedback_scoping_check_adjacent_endpoints]] — the same "list is right, detail is wrong" shape as DEF-103/164/198/204/205.
+
+---
+
+#### DEF-369 live re-verification on the client's environment (2026-09-01) — requirement restated by Shawn, no new work needed
+
+Shawn restated the requirement ("imported certs sharing a Cert # must have unique PDF and unique
+listing / preview pages — see 8/19 email, example 26-0182, not the only one"). Re-verified against
+**gccwebapp.com** (through the test-env gate), not against the register or localhost.
+
+`26-0182`, four siblings — detail page product and PDF sha256 (first 12), both download routes:
+
+| cid | Detail page | `Download` | `DownloadByNumber` |
+|---|---|---|---|
+| 1630 | REGUPOL sonus core | `50018280fd48` | `50018280fd48` |
+| 1631 | REGUPOL 6510S | `7a9d2d9f2616` | `7a9d2d9f2616` |
+| 1632 | Impacta ProBase | `126f3925cc47` | `126f3925cc47` |
+| 1633 | Thunder Flat | `82890eb803d8` | `82890eb803d8` |
+
+Four distinct pages, four distinct PDFs (`%PDF` magic bytes asserted), the two download routes
+agreeing per certificate. Bare number with no `cid` → Thunder Flat (intended back-compat).
+`?cid=99999` → **404**, so the no-silent-fallback rule holds in production code.
+
+**Beyond the client's example.** The public tile API returns **8 shared numbers / 20 records** for
+Regupol America — exactly the CR-038 figure given to the client. Spot-checked `26-0166` (3),
+`26-0168` (3) and `26-0184` (2): every sibling served a **distinct** PDF. 11 records across 4 numbers.
+
+**Deployed asset checked, not just behaviour.** `/js/certificate-tile-view.js` on the live site emits
+`?cid=` on both the single-view link and the download link, so the client's real click path from the
+tile grid is disambiguated — the fix is not reachable only by hand-typed URLs.
+
+**Correction to this entry, 2026-09-01 — "310 distinct PDFs" was a byte-level claim and it overstates the case.**
+Shawn spot-checked `20-0298` and `19-0281`. The pages and the report agree (both siblings of each
+number really do carry the same product), but opening the files shows the documents are not distinct.
+All 36 PDFs on the **20 numbers whose siblings share a product name** were downloaded and their
+page-1 text compared: **6 numbers are byte-identical files stored under two paths**
+(21-0014, 21-0321, 21-0382–21-0385); **7 are one document saved at two compressions**
+(19-0281, 19-0282, 19-0283, 19-0285, 19-0286, 20-0047, 20-0298 — e.g. 2.6 MB vs 315 KB, identical
+text); 6 share a product name but are genuinely different revisions; `21-0440` has no file at all.
+**13 numbers / 26 certificates hold the same document twice.** All expired, none public — the
+20-record public verification above is unaffected. These are CR-038 merge candidates, a client data
+decision, **not a routing defect**. The lesson is DEF-369's own, one layer up: a sha256 answers
+"same file", never "same certificate" — compare extracted text when the question is the document.
+Full list: `docs/tracking/duplicate-certificate-numbers-TEST-2026-09-01.csv` (`DocumentCheck` column).
+
+**What remains is a client decision, not a defect.** CR-038 decision #4 (2026-08-18 email) is still
+unanswered: should the public site *indicate* that a number is shared? Each sibling is now correct
+and distinct, but none says "this number is shared with 3 others". If the 8/19 email asked for that
+labelling it is new UI work and needs a CR — DEF-369 does not cover it.
 
 ---
 
@@ -11044,7 +11186,7 @@ a local change.
 
 - **Date:** 2026-08-26
 - **Severity:** **High** — partner-facing. Amazon saw two certificates staged for 2026-10-21 on 2026-08-25, and could download their PDFs.
-- **Status:** **FIXED — verified end-to-end on localhost as a real Partner user, 2026-08-26.** Not deployed.
+- **Status:** **CLOSED — fixed 2026-08-26, deployed to the test environment 2026-08-31 inside `GCCWebApp-deploy-20260830-2245.zip` (bundle 20260827-0636 was superseded and rolled forward, never uploaded on its own), and VERIFIED LIVE on gccwebapp.com 2026-09-02** — see the verification block at the end of this entry.
 - **QC Ref:** none — found by the full-regression run (`docs/tracking/status-testing-report-2026-08-25.md`, finding F-2). **Reporter:** Anuki (internal).
 - **Bucket:** Bug.
 
@@ -11090,6 +11232,57 @@ unchanged.
 
 ---
 
+**VERIFIED LIVE ON THE CLIENT'S TEST ENVIRONMENT, 2026-09-02** — `Scripts/smoke-prod/def376-partner-tile-effective-date.js`
+(BASE_URL=https://gccwebapp.com, driven as the real Partner user `test.amazon`). **12 assertions,
+0 failures, 0 control failures.**
+
+Run because DEF-358's own live verification the same day covered the **v1 partner API only**, which
+says nothing about this surface — a different controller holding its own copy of the decision, which
+is precisely how this defect arose ([[feedback_scoping_check_adjacent_endpoints]]).
+
+| Measure | Result |
+|---|---|
+| Amazon-tagged certificates (admin ground truth) | 244 |
+| Currently inside their validity window | 187 |
+| Public status but **not yet effective** | 2 — 26-0441, 26-0442 (X-SENSE, eff 2026-10-21) |
+| **Partner tile view returned** | **187** — equal to the currently-effective count |
+| Not-yet-effective rows listed in the tile view | **0** |
+
+Both future-dated certs were absent from the tile view and their PDFs refused with **HTTP 400**,
+matching the fix's intended `"Certificate is not available for download"`. The 210-vs-208 count
+mismatch that was the original symptom is gone: tile count now equals the currently-effective
+population exactly.
+
+**Positive controls in the same run:** 26-0310, 26-0263 and 26-0264 were all present in the tile
+view and downloaded **200** on the same session — without these, "absent and 400" is equally
+consistent with a broken login ([[feedback_role_gated_404_is_not_absence]]).
+
+**The External/company carve-out — stated precisely, because it was NOT behaviourally proven.**
+The risk in this fix is over-correction: gating the whole controller would silently stop a company
+seeing its own upcoming certificates, which the client explicitly asked for. That carve-out is
+**intact by construction** — `WhereEffectiveDateReached()` sits inside `if (userRole == "Partner")`
+and the `else if (userRole == "External")` branch applies no date filter at all, so the two cannot
+interact. **It is now also proven behaviourally** — `Scripts/smoke-prod/def376-carveout-external-fixture.js`,
+2026-09-02, 5 assertions, 0 failures. It could not be run at first because no test account owned a
+future-dated certificate (the environment holds only three: the two X-SENSE rows above plus
+`26-0330`, DuPont, eff 2026-09-11; `test.external` is Sika and `test.external2` is MAPEI). A fixture
+External account scoped to X-SENSE was created through `/Admin/CreateUser` — not by SQL, so it took
+the same validation, hashing and audit path as a real account — and it sees **6 certificates, all
+X-SENSE, including both `26-0441` and `26-0442`**.
+
+**That is the whole fix in one line: the same two certificates are invisible to Amazon and visible
+to X-SENSE.** Same controller, same data, opposite outcomes by role — which is what DEF-376 was
+supposed to achieve and what an over-correction would have destroyed.
+
+> **TO REVIEW — 2026-10-21.** The fixture proves the carve-out only while X-SENSE still owns a
+> future-dated cert. `26-0441`/`26-0442` come into force on **2026-10-21**, after which the script
+> reports **SKIPPED (exit 3)**, never a pass — so it cannot rot into a false green light, but it
+> stops protecting the carve-out. On or before that date, repoint it (`CARVEOUT_COMPANY=`) or stage
+> a cert against X-SENSE. Logged in `observations_log.md` 2026-09-02.
+
+Receipts: `docs/tracking/screenshots/def376-tile/{run.log,receipt.json}`.
+
+---
 ### DEF-377 — Certificate CSV export returned HTTP 400 for any caller whose scope contains no certificates
 
 - **Date:** 2026-08-26
@@ -11801,3 +11994,886 @@ regexes key off *"pending deploy" / "not yet in a built zip"*, and this entry ne
 wording, so there was no pending text to rewrite. The deployed state was recorded here directly.
 Worth knowing: **close-out only closes rows that were written in its expected pending phrasing** —
 an entry authored as "FIXED" straight through is invisible to it and will silently never be closed.
+
+---
+
+### DEF-390 — Idle session times out early (15–30 min, not 30) and the expiry warning is unreliable
+
+- **Date:** 2026-08-31
+- **Reporter:** Client (email, flagged *lower priority*): *"The session timeout of 30 mins is not
+  always followed, tends to be shorter. Not sure if navigating away from the browser page impacts
+  but it's def not following what was outlined in email for me (and sometimes i get alert and not
+  other times)."*
+- **Severity:** Low (annoyance). No data or access impact — unsaved form data was already being
+  preserved by `UnsavedChanges.saveToLocalStorage()` on the timeout path.
+
+**Root cause — two 30-minute clocks that never talked to each other.**
+
+| Clock | Where | Counts from |
+|-------|-------|-------------|
+| Server | `Program.cs:312-313` (`ExpireTimeSpan` 30 min, `SlidingExpiration` true) + `AccountController.cs:1362-1368` (`ExpiresUtc = UtcNow.AddMinutes(30)`) | last **HTTP request** |
+| Browser | `wwwroot/js/auth.js` (logout 30 min, warning 25 min) | last **mousemove / click / scroll** |
+
+*Why it ran short.* ASP.NET Core reissues a sliding cookie only once **more than half** the window
+has elapsed (`CookieAuthenticationHandler.CheckForRefresh`: refresh only when
+`timeRemaining < timeElapsed`). A request at minute 14 therefore renewed nothing and the ticket
+still died at minute 30 — 15 minutes later. The effective idle timeout was anywhere in the
+**15–30 minute** range depending on where the user's last request happened to land.
+
+*Why the warning was intermittent.* The warning fired off the browser clock while the logout could
+come from either clock, whichever tripped first:
+- Walked away, tab in foreground → JS timer reached 25 min → warning shown. ✅
+- Read a page while moving the mouse but not navigating → JS timer kept resetting so the warning
+  never armed, while the server cookie quietly expired → next click bounced to login, no warning.
+- **Tab backgrounded** (the client's own hunch, and correct) → Chrome throttles `setTimeout` in
+  background tabs and freezes them after a few minutes, so the warning and JS auto-logout fired
+  late or never while the server clock kept running → no warning.
+
+**Fix.**
+1. New `POST /Account/KeepAlive` (`AccountController.cs`). It **re-issues the cookie explicitly**
+   (`AuthenticateAsync` → `SignInAsync` with a fresh `IssuedUtc`/`ExpiresUtc`) rather than leaving it
+   to sliding expiration. That distinction is the crux: because sliding only refreshes past the
+   half-life, a ping at minute 5 of the window would renew *nothing* and the cookie would still die
+   at minute 30, leaving the browser counting a full 30 minutes from the last mousemove while the
+   server had as little as 10 minutes left — the original bug, merely narrowed from a 20-minute gap
+   to… still a 20-minute gap. Restarting the window at ping time pins server expiry to
+   *(last ping + 30 min)*; since the last ping always lands at or after the last user activity, the
+   server can never expire before the browser's own logout deadline. Persistent ("Remember Me")
+   cookies are skipped so a 14-day session is never downgraded to 30 minutes.
+   Deliberately **not** `[AllowAnonymous]`, so the global `AuthorizeFilter` makes an expired session
+   return 401 — the signal the client uses to stop guessing and hand over to
+   `/Account/SessionExpired`.
+2. `wwwroot/js/auth.js` — real user activity now produces a real HTTP request, at most once every
+   5 minutes and **only when there has been activity since the previous ping**, so an idle session
+   still expires on schedule. The ping follows the user; it does not keep dead sessions alive.
+3. Same file — timers are now **timestamp-based** (`Date.now()` vs. last activity, re-evaluated
+   every 30 s) instead of a chain of `setTimeout` calls, plus a `visibilitychange` re-check. A
+   throttled or frozen background tab now reaches the right conclusion the moment it is visible
+   again, however late its interval fires. This is what makes the warning deterministic.
+4. Same file — `AdminCore` is now guarded before use, so a page where `admin-core.js` failed to
+   load still times out instead of throwing and leaving the session running.
+
+Remember Me is unchanged: it still skips the idle logout entirely (14-day cookie) and now also
+skips the pings.
+
+**Timing margin — why the warning is now guaranteed.** Let *A* be the user's last activity.
+The browser warns at *A+25 min* and logs out at *A+30 min*. Activity at *A* sets
+`lastActivityAt > lastKeepAliveAt`, and that stays true until a ping fires; the 30-second tick sends
+one as soon as 5 minutes have passed since the previous ping. So a ping is guaranteed at some
+*P* ∈ *[A, A+5 min]*, and because every ping restarts the server window, server expiry is
+*P+30* ∈ *[A+30, A+35]*. Server expiry is therefore always ≥ the browser's own logout instant, so
+the warning at *A+25* is always reached first. Under the previous sliding-only behaviour the server
+could expire as early as *A+10* — 20 minutes before the browser thought it would.
+
+One ping is also sent 5 minutes after **every page load** even with no interaction at all, after
+which the cadence becomes activity-driven. That first ping is not optional: a page load that fell
+before the cookie's half-life refreshes nothing, so a page opened and then *read* without a single
+click would keep the same silent early expiry. It remains a *single* ping — once sent, the
+`lastActivityAt > lastKeepAliveAt` test is false without further input — so an abandoned tab still
+times out on schedule.
+
+**Verified on localhost:5101, 2026-08-31.** The root cause was *measured*, not inferred — one
+session, no other traffic, watching for `Set-Cookie: GCC.Auth` on the response:
+
+| Run | Build | Probe | `GCC.Auth` reissued | |
+|-----|-------|-------|---------------------|---|
+| Root cause | pre-fix (no explicit re-issue) | ping at **T+5 min** | **False** | before the half-life — renews nothing |
+| Root cause | pre-fix | ping at **T+16 min** | **True** | past the half-life — sliding finally fires |
+| Fix | post-fix | ping at **T+1 min** | **True** | window now restarts on every ping |
+| Fix (control) | post-fix | plain `GET /Dashboard`, same moment | **False** | proves the re-issue comes from `KeepAlive`, not from merely making a request |
+
+The pre-fix pair is the defect in one line: between minute 0 and minute 15 of its window the cookie
+was quietly running down while the browser believed it had a full 30 minutes in hand.
+
+Endpoint contract, both builds:
+- Anonymous `POST /Account/KeepAlive` **with** `X-Requested-With` → **HTTP 401**
+  `{"success":false,…,"errorCode":"UNAUTHORIZED"}`.
+- Anonymous **without** that header → **HTTP 200 carrying the login page**, which is precisely why
+  `auth.js` sends it (same trap as DEF-387 — a 401 arriving as HTML at 200 reads as success).
+- Authenticated → **HTTP 200** `{"success": true}`, `Cache-Control: no-store, no-cache,
+  must-revalidate`.
+- No `OnSigningIn` / `OnValidatePrincipal` handlers are registered on the cookie scheme
+  (`Program.cs:320`), so the re-issue writes the cookie and nothing else — no audit rows, no extra
+  DB work per ping.
+- `node --check wwwroot/js/auth.js` passes; `dotnet build` 0 errors (74 warnings, all pre-existing).
+
+**Not verified here — DEFERRED TO THE TEST DEPLOY (agreed 2026-09-01).** The end-to-end browser
+behaviour was reasoned from the timing analysis above, not sat through in a real browser. The table
+proves the server-side half only, and the client's actual complaint was half about the *alert*,
+which is entirely client-side. **Do not close this defect on the strength of the table.**
+
+Run on gccwebapp.com after the next deploy, signed in as `test.analyst` with Remember Me OFF
+(~35 min of wall clock for one full cycle):
+
+1. Sign in, leave the tab in the **foreground**, do not touch it → warning banner at **~25 min**,
+   auto-logout at **~30 min**. This is the case the client says works "sometimes".
+2. Sign in, move the mouse over the page every few minutes but **never navigate**, for 35+ min →
+   must stay signed in. Pre-fix this silently expired server-side with no warning. Confirm in
+   DevTools → Network that `POST /Account/KeepAlive` fires every ~5 min and returns 200.
+3. Sign in, **background the tab** for 35 min, then return → on focus the session must resolve
+   immediately (warning or logout), not sit there looking alive and then bounce on the next click.
+4. Sign in **with Remember Me ON**, idle 35 min → must NOT log out and must send NO pings.
+
+Deploy note: `wwwroot/js/auth.js` is cache-busted by `asp-append-version` (`_Layout.cshtml:342`), so
+a stale copy should not survive — but confirm the served asset actually changed rather than assuming
+it (cf. the "verify the deployed asset, not the symptom" lesson). Both files must ship together: the
+JS pings an endpoint that does not exist in the old DLL, and the new DLL is inert without the JS.
+
+**Not a factor (ruled out during diagnosis):** the duplicate `AddSession` registrations
+(`Program.cs:62` and `Extensions/SecurityServicesExtensions.cs:146`) both resolve to 30 min and the
+session cookie does not gate auth; `appsettings.Security.json` is never loaded; there is a single
+sign-in path (`AccountController.cs:1370`) and no other forced-logout trigger in middleware or JS.
+
+**RETRACTED (2026-09-01).** An earlier revision of this entry claimed `DataProtection:ApplicationName`
+was unset under the Production config and warned of mass logouts on deploy. **That was wrong** — it
+came from a truncated `grep -A6` window that stopped six lines short of the value. It *is* set:
+`appsettings.Production.json` → `"ApplicationName": "GCC-Production"`, read at `Program.cs:107` and
+again at `Extensions/SecurityServicesExtensions.cs:74` (whose `GCC-WebApp` default pins the
+discriminator even when the key is absent, e.g. on dev). No fix was needed and none was made.
+
+Chasing that retraction did surface a real, separate problem — see **DEF-391**.
+
+**Regression guard added 2026-09-01** — `Scripts/smoke-prod/_security/session-keepalive.js`,
+registered in `_security/run-all.js` so it runs as part of the P0 security gate. Eight assertions
+(K1-K8) covering the anonymous 401 signal, the 200 success body, the cookie re-issue, the
+`no-store` header, the Remember Me guard, and — per
+[[feedback_verify_deployed_asset_not_symptom]] — that the *served* `auth.js` still contains the
+client half. **8 PASS / 0 FAIL** on localhost.
+
+**The guard was itself proven, not just written.** A test that has only ever passed proves nothing,
+so the fix was temporarily reverted (the `SignInAsync` re-issue replaced with a no-op), rebuilt, and
+the spec re-run:
+
+```
+[PASS] K3 authenticated ping returns 200 with a success body   <- still green!
+[FAIL] K4 ping RE-ISSUES the auth cookie (the DEF-390 fix)
+7 PASS / 1 FAIL   exit 1
+```
+
+**K3 staying green is the whole point.** A reverted fix still answers `200 {"success":true}`, so any
+spec that only checked status and body would wave the regression straight through. K4 (re-issue) and
+K5 (a plain `GET /Dashboard` in the same session that must *not* re-issue) are the pair that make it
+detectable; K4 without the K5 control would pass on any request at all. Fix restored, 8/8 green.
+
+*Gotcha for anyone repeating this:* `Copy-Item`/`Move-Item` preserve `LastWriteTime`, so restoring a
+file from a backup leaves it **older** than the built DLL and `dotnet build` silently skips it — the
+first post-restore run still failed against a stale binary. Touch the file before rebuilding, and
+check the DLL is newer than the source rather than trusting "0 Error(s)".
+
+**LIVE ON TEST — verified on gccwebapp.com, 2026-09-02, after deploy.**
+
+*Deployed asset first* (per [[feedback_verify_deployed_asset_not_symptom]] — a working local build
+proves nothing about what is on the server):
+
+```
+GET /js/auth.js          HTTP 200, 12,429 bytes
+  /Account/KeepAlive ping        true
+  visibilitychange recheck       true
+  lastActivityAt (timestamp)     true
+  resetSessionTimeout (OLD)      false   <- the setTimeout chain is gone
+anon POST /Account/KeepAlive     HTTP 401   <- endpoint live, and still refuses anonymous
+```
+
+*Server contract, signed in as `test.analyst`* — the same falsifiable pair used locally, because
+K4 alone cannot tell the fix from ambient sliding behaviour:
+
+```
+K5 control  GET /Dashboard        HTTP 200   GCC.Auth reissued = false
+K4 ping     POST /Account/KeepAlive          GCC.Auth reissued = TRUE
+K3          HTTP 200 {"success":true}
+K6          Cache-Control: no-cache, no-store
+```
+
+Note the local `session-keepalive.js` spec **cannot** be pointed at test as-is: its remote path uses
+HTTP basic auth (`httpCredentials`), which predates the site's move to the cookie-based `/__gate`
+(2026-08-04). Remote runs need the gate flow from `_lib/test-env-gate.js` instead. Raised, not
+fixed — the checks above were run directly.
+
+**End-to-end browser behaviour — VERIFIED on gccwebapp.com, 2026-09-02. 8 PASS / 0 FAIL.**
+`Scripts/smoke-prod/_security/def390-browser-verify.js`, four concurrent sessions over 36 minutes
+against the live site (concurrent so it is one window, not four).
+
+| Case | Setup | Result |
+|---|---|---|
+| A | idle, foreground | warning **25.3m** → logout **30.3m**, warning first |
+| B | mouse activity, **never navigates** | signed in through 36m; **7 pings** at 5.1, 10.1, 15.1, 20.1, 25.1, 30.1, 35.6m |
+| C | tab hidden, foregrounded at 32m | resolved on return (already signed out — no silent bounce) |
+| D | Remember Me, idle | no logout; **0 pings** |
+
+**B is the client's actual complaint.** Reading a page while moving the mouse but not navigating
+used to reset the browser timer while the server cookie quietly expired, signing the user out with
+no warning. It now survives indefinitely, and the ping cadence shows why.
+**D is the guard against this fix** — the keep-alive must never touch a persistent 14-day cookie.
+
+Deliberately NOT in `run-all.js`: a 36-minute wall-clock test does not belong in a gate expected to
+finish in two minutes. Run it by hand after a deploy that touches session handling.
+
+**Run 1 reported 3 false FAILs, and the cause is worth keeping.** It detected logout by matching the
+destination URL against `/Account/Login|SessionExpired|CertificateTileView`. The app actually lands
+on the **site root** (`https://gccwebapp.com/`), so a real logout at 30.3m went unseen and the fix
+looked broken. Two hypotheses were tested and killed before the real one was found: showing the
+warning modal fires **no** tracked activity events (measured: `[]`, so it does not reset the idle
+clock), and `logoutForm.submit()` works normally with a modal overlay up. The detector now checks
+**authentication state** — `#logoutForm` renders only for a signed-in user, so its disappearance is
+the signal regardless of where the app redirects. See
+[[feedback_harness_never_fabricate_status]]: a test that reports a failure the product does not have
+costs as much as one that misses a real failure.
+
+*Incidental:* `AdminCore.showNotification(...,'warning')` routes to a **modal**, not a toast, and
+ignores `duration` — it stays until clicked (measured: still present after 13s). The `{duration:
+10000}` passed from `auth.js` does nothing. Not a defect; the warning is simply more insistent than
+"toast" implies. Also: `page.evaluate(() => AdminCore.showNotification(...))` **hangs** — the arrow
+returns the modal's Promise, which resolves only on a click. Use a braced body.
+
+- **Files:** `Controllers/AccountController.cs` (new `KeepAlive` action),
+  `wwwroot/js/auth.js` (idle-timeout block rewritten),
+  `Scripts/smoke-prod/_security/session-keepalive.js` (new regression guard),
+  `Scripts/smoke-prod/_security/run-all.js` (spec registered),
+  `Scripts/smoke-prod/_security/def390-browser-verify.js` (end-to-end browser check).
+
+---
+
+### DEF-391 — Certificate edits write NO audit record: `IAuditService` is injected into `CertificateController` and never called, so 153 client edits have no field-level trail
+
+- **Date:** 2026-09-01
+- **Severity:** **High** — this is a certification system; the certificate is the record of record. Five publicly-visible result percentages were changed and the application cannot say what they were changed from, only that the row changed.
+- **Status:** **FIXED 2026-09-01 — verified end-to-end on localhost against a real Edit POST. NOT deployed.**
+- **QC Ref:** Found while answering Shawn's question "did we change those values after the load, or did the client?" Reporter: internal (Anuki).
+- **Bucket:** Bug (audit/traceability gap).
+
+**What exists and what does not.**
+
+| Change to a certificate | Recorded? | Where |
+|---|---|---|
+| Status change (user-initiated, via Edit) | **yes** | `CertificateStatusHistory` — `CertificateController.cs:1460-1476` |
+| Status change (automated expiry) | **yes** | `CertificateStatusHistory` + an `AuditHistory` row, `ChangedByUsername='System'` |
+| Certificate CREATE / DELETE | **yes** | `AuditHistory`, whole entity as JSON in `OldValue`/`NewValue` |
+| **Any other field edit** — result percentage, certification type, dates, country, product | **NO** | nothing at all |
+
+`CertificateController` takes `IAuditService auditService` in its constructor (`:30`, `:44`) and
+**`grep "_auditService\." Controllers/CertificateController.cs` returns nothing** — the dependency is
+injected and never used. `Product`, `Company`, `Tag` and `User` edits DO go through `AuditService`;
+the certificate, the most important entity in the system, does not.
+
+**Measured on the TEST database 2026-09-01.** `AuditHistory` holds **138 rows total** since the
+2026-08-18 load. Of those, the Certificate rows are: 92 automated `Status` changes by `System`, and
+8 CREATE/DELETE rows for scratch certificates. **Zero UPDATE rows.** Meanwhile `Certificates` shows
+**153 certificates edited by a real user in the same window** (`UpdatedBy=99`,
+carly@greencirclecertified.com — 138 on 8/26, 13 on 8/27, 1 on 8/28, 1 on 9/1; plus 5 by
+`admin.uat`). Every one of those edits is invisible to the audit trail.
+
+**What it cost.** Answering "who changed these five percentages and from what" required: the
+`UpdatedBy` / `UpdatedAt` columns for *who* and *when*, plus a **spreadsheet dump taken on load day**
+(`2026-08-18-migration-verification-workbook.xlsx`, `Certificates` sheet) for *what*. Without that
+workbook the before-values would simply be gone. That is not an audit trail; it is a lucky backup.
+
+**Recoverable-by-luck, and only for 16 fields.** The workbook dump carries 16 columns, so the diff
+can only speak to those. Anything else the 153 edits touched — CSF attributes, company contact,
+certification subcategories, custom fields — cannot be reconstructed at all.
+
+**FIXED 2026-09-01 — two changes, and the second only became visible once the first one ran.**
+
+**1. `CertificateController.Edit` (POST) now audits.** A detached `AsNoTracking` snapshot is taken
+immediately after the certificate is loaded — *before* any of the ~350 lines below it mutate the
+entity — and `_auditService.LogEntityChangeAsync(..., AuditAction.Update, ...)` is called after
+`CompleteAsync`. The snapshot has to be detached: the tracked `certificate` is the same object the
+edits are applied to, so passing it as both old and new would compare a reference against itself and
+record "saved, nothing changed" on every edit. The call sits **after** the commit (a failed audit
+must never roll back a saved edit) and inside a try/catch that logs `AUDIT GAP` — silence is what
+this defect was.
+
+**2. `AuditService.ShouldSkipProperty` skipped only collection navigations, never reference ones.**
+The comment there has always read "Skip navigation properties, collections…" but the test was
+`IEnumerable`-based, so `Certificate.Company`, `.Product`, `.CertificationType` and
+`.ProductCategory` fell through into the diff. The first audited edit produced four junk rows
+reading `NewValue = "GCCWebApp.Models.Company"` — meaningless, and *false*, since the detached
+snapshot has null navigations while the tracked entity has them loaded. Added
+`IsSimpleAuditableType`: primitives, string, decimal, DateTime/Offset, TimeSpan, Guid, enums and
+their nullable forms are audited; everything else is a navigation. **Nothing is lost** — a reference
+navigation cannot change without its foreign key changing, and the FK is a scalar that is audited.
+This also silently affected Product, Company, Tag and User audits, which were writing the same junk.
+
+**Verification — a real POST through the real route, not a unit test** (the DEF-369 lesson: a test
+below the defect's layer cannot see it). Signed in as `admin.uat` on localhost:5101, replayed the
+Edit form for `25-0359` changing only the result:
+
+| | Before fix | After fix |
+|---|---|---|
+| `AuditHistory` rows for the certificate | **0** | **3** |
+| Content | — | `CertificationResults 0.66 → 0.42`, `CertificationResultsNumeric 66 → 42`, `ProductTypeId 65 → (blank)`, each with `admin.uat` / `Web UI` |
+| Junk navigation rows | 4 (first run, before change 2) | **0** |
+| **Re-save with an identical body** | — | **no new rows** — an open-and-save that changes nothing stays silent |
+
+The `ProductTypeId` row is an artifact of the scripted POST (that select is AJAX-filled, so the
+replay omitted it and the model bound null) — and it is a fair demonstration: the audit caught a
+field change the submitter did not intend, which is the entire point. Dev rows restored afterwards.
+
+**Regression check, measured against a real baseline rather than a remembered one.** `GCCWebApp.Tests`
+**24/24 pass**. `GCCWebApp.Api.Tests` is **89 failed / 769 passed / 858** with the change — and because
+change 2 edits shared audit code used by Product, Company, Tag and User, the 51 tests that actually
+touch `AuditService` were run **twice**: with the change (**4 failed / 47 passed**) and with
+`Services/Audit/AuditService.cs` reverted to HEAD (**4 failed / 47 passed — identical**). Those 4
+failures are pre-existing and none is caused by this change. The wider 89 were not individually
+triaged; the suite carries a long-standing failure population (~87 documented at DEF-369).
+
+**The CREATE path was fixed too (same day, on Shawn's instruction).** `CertificateController.Create`
+now writes a CREATE row. Placement matters: it sits at the **end** of the action, not after the first
+`SaveChanges`, because a certificate is assembled across several saves (DEF-193 file renames, product
+IDs, CR-037 countries, partners) and auditing earlier would snapshot a half-built record. A CREATE
+writes one row holding the whole entity as JSON — there is no "before" to diff — and the serializer
+strips navigation collections, so the attached product IDs and partners are not in it. What the row
+guarantees is that the certificate's existence, its author and its initial values are on the record.
+
+**Create verified the same way — a real POST through `/Certificate/Create` on localhost as
+`admin.uat`:** certificate `26-0482` (id 5711) created, and **exactly one audit row** appeared —
+`Action=CREATE`, 661 characters of entity JSON (`{"Id":5711,"Number":"26-0482",…,"Status":"Draft",
+"EffectiveDate":"2026-09-01T00:00:00",…}`), attributed to `admin.uat` / `Web UI`. The test
+certificate and its audit row were then removed; dev is back to 5,702 certificates.
+
+**The CSV import path was fixed third (same day, Shawn's instruction) — and it was NOT the gap it
+looked like.** The import already audits, thoroughly: `CertificateImportService` writes UPDATE and
+CREATE rows stamped with an `ImportBatchId` so CR-023 can undo a batch. The defect was in the
+*quality* of the "before" snapshot, which was a hand-written copy of 19 named fields:
+
+```csharp
+var oldCertificate = new Certificate { Id = …, Number = …, CompanyId = …, /* 16 more */ };
+```
+
+Two failure modes, and the register already carried one of each. **Forget a field and its change is
+invisible** — DEF-354 patched `ProductTypeId` in after the fact, and nothing stops the next added
+field being forgotten. **Every field NOT listed defaults to null/0 on the copy, so the diff reads it
+as a change from blank on every import row.** Replaced with the same detached `AsNoTracking` read
+used by Edit.
+
+**Measured, not asserted — the same one-row, one-column CSV import run against both versions:**
+
+| | Hand-built snapshot | `AsNoTracking` snapshot |
+|---|---|---|
+| Audit rows written | **9** | **3** |
+| Genuine | Location, (NormalizedLocation) | Location, NormalizedLocation, ProductId |
+| Phantom | `NormalizedNumber`, `NormalizedCountry`, `CertificationResultsNumeric`, `ProductCategoryId` blank→value | — |
+| **Phantom and alarming** | **`CertificateFile` and `CertificateImagePath` blank→path** — an audit row claiming the certificate's PDF and preview were attached by this import, when no file was touched. **`CreatedAt` 2026-09-01 → 2026-08-14**, reading as the creation date being rolled backwards. | — |
+
+Six of the nine old rows described changes that never happened, and two of those six were about the
+signed document. An audit trail that invents document changes is worse than none, because it will be
+believed. **CR-023 undo is unaffected** — `ApplyOldValueToCertificate` switches on the scalar fields
+it can restore and ignores everything else, so the extra fidelity can only help it.
+
+(The `ProductId` row in the new run is real and is an artifact of the *test's* minimal CSV: with no
+Category/Type/Subcategory columns, CR-186's split product identity resolved a different product row.
+Dev restored afterwards.)
+
+**The v1 API create/update were fixed fourth (same day, Shawn's instruction) — and fixing them
+surfaced a live mis-attribution bug in the audit service itself.**
+
+`Api/v1/CertificatesController.CreateCertificate` and `UpdateCertificate` wrote straight to the
+DbContext with no audit row — the same hole DEF-337 closed for the API delete. Both now call
+`LogEntityChangeAsync` through one private helper, `AuditApiChangeAsync`, with the update taking the
+same detached `AsNoTracking` snapshot before its assignments.
+
+**The bug that fixing them exposed — `ResolveActingUser` trusted an API key's id as a user id.**
+`ApiKeyAuthenticationHandler` sets `ClaimTypes.NameIdentifier` to **`validApiKey.Id`** — the API
+key's row id, not a `Users` row id (`PartnerApiKeyAuthenticationMiddleware` has the same shape).
+`ResolveActingUser` read that claim and returned it as the acting user, so an audit row from any
+API-key caller was written with **`ChangedBy` = the API key's id**, blaming whichever real person
+occupies that `Users` row. **This was already live on the API delete path**, which passes
+`userId: 0` and relies on the fallback DEF-337 added — a fallback the claim path was quietly
+jumping in front of. Amazon's production key is row 6.
+
+Fixed by detecting an API-key principal (an `api_key_id` or `partner_name` claim) and skipping the
+claim path, so those callers reach the configured service account (`Audit:SystemUserEmail`, set to
+`swest@anukiconsulting.com`). The caller supplies a descriptive username instead — `API key: Amazon
+Production` — so the row says *which key* acted without pretending a person did.
+
+**Verification, and its honest limit.** The v1 API **cannot be driven over HTTP on dev**:
+`PartnerApiKeyAuthenticationMiddleware` requires an API key joined to a partner, and the dev
+`ApiKeys` table has no partner link (the migration that added it is applied on the server but absent
+from `Migrations/` — the same gap `backup-testenv-db.ps1` documents), so every key returns 401
+*"API key not found"*. The two endpoints are therefore covered at the controller layer instead, by
+two new tests in `CertificatesControllerTests`:
+`UpdateCertificate_WritesAnAuditRow_WithTheStoredValueAsTheBefore` (asserts the "before" is the
+**stored** status, which is exactly what fails without the detached read) and
+`CreateCertificate_WritesACreateAuditRow`. **Both pass.** The audit-service behaviour underneath
+them is the same code already proven end-to-end over real HTTP by the Edit and import tests above.
+
+**Regression:** audit-touching subset now **4 failed / 49 passed** (was 4F/47P — the +2 are these new
+tests); the same 4 pre-existing failures. `GCCWebApp.Tests` 24/24.
+
+**The bulk endpoints were fixed fifth (same day, Shawn's instruction), closing the last gap.**
+`BulkCertificatesController.BulkCreate` and `BulkUpdate` wrote to the context with no audit row —
+so the one endpoint that can change **100 certificates in a single call** was also the one that left
+no record of it. (Bulk delete was already covered by DEF-337.) Both now audit per certificate through
+one `AuditBulkChangeAsync` helper, called **after** the batch's single `SaveChangesAsync`: a bulk
+call is one transaction, and a half-audited batch would be worse than an unaudited one. `BulkUpdate`
+collects `(before, after)` pairs as it goes, taking a detached read per row before the assignments.
+
+**Verified end-to-end over real HTTP — this controller uses the cookie scheme
+(`AnalystOrAdmin`), not an API key, so unlike the v1 endpoints it CAN be driven on dev.**
+`PUT /api/v1/certificates/bulk/update` with two certificates, signed in as `admin.uat`:
+
+| | Before | After |
+|---|---|---|
+| Audit rows | **0** | **2 — one per certificate** |
+| Content | — | `24-0144` and `24-0146`, each `Status: Expired → Draft`, `ChangeSource=API`, `Reason="Bulk API operation"` |
+| Attribution | — | `ChangedBy=22`, `admin.uat` / `admin@greencirclecertified.com` — the real signed-in user, correctly, since this path has one |
+
+Dev statuses restored and the test rows removed afterwards. `BulkCreate` uses the same helper and was
+not driven separately; the equivalent single-create call it mirrors was verified end-to-end above.
+
+**Test-harness note for anyone re-running this:** the endpoint binds the full `Certificate` entity,
+whose `Company`, `Product`, `CertificationType` — and `Product.Category` — navigations are
+`[Required]`. A payload carrying only foreign keys returns 400 with
+`"[0].Company": ["The Company field is required."]`, then `"[0].Product.Category"`. The whole graph
+has to be present.
+
+**Certificate write paths and their audit status, complete:**
+
+| Path | Audited | Verified how |
+|---|---|---|
+| UI create (`Certificate/Create`) | ✅ DEF-391 | real POST, 1 CREATE row |
+| UI edit (`Certificate/Edit`) | ✅ DEF-391 | real POST, 3 field rows, re-save silent |
+| UI delete | ✅ DEF-357 | pre-existing |
+| CSV import create + update | ✅ DEF-391 (snapshot fixed) | real upload+apply, 9 rows → 3 |
+| v1 API create + update | ✅ DEF-391 | controller tests (HTTP blocked on dev) |
+| v1 API delete | ✅ DEF-337 | pre-existing |
+| **Bulk create + update** | ✅ DEF-391 | **real PUT, 2 rows** |
+| Bulk delete | ✅ DEF-337 | pre-existing |
+
+**Regression, final:** audit-touching subset plus `CertificatesControllerTests` = **5 failed / 65
+passed / 70** — the same 4 pre-existing audit-subset failures plus the pre-existing
+`SearchCertificates_WithMultipleFilters` (a search response-shape assertion that touches no audit
+code). `GCCWebApp.Tests` 24/24. **Not deployed.**
+
+**Related:** the `Certificates.UpdatedBy` / `UpdatedAt` columns work correctly and are what made this
+answerable at all — do not "clean them up" as redundant. See also
+[[feedback_delete_audit_capture_joins]] (DEF-337), the same family: the audit is only as good as the
+paths that write to it.
+
+---
+
+### DEF-397 — User Guide §13.2 lists Product Category as Optional on the Add Product form; it is required
+
+- **Date:** 2026-09-02
+- **Severity:** **Minor** — documentation only, no code change. Client-facing: an analyst following the guide would expect to be able to save a product without a category and hit a validation stop instead.
+- **Status:** **FIXED 2026-09-02** — `docs/user-guide/GCC_USER_GUIDE.html` §13.2 now reads **Yes**.
+- **QC Ref:** none — reported directly by the client. **Reporter:** client.
+- **Bucket:** Bug (doc accuracy).
+
+**Symptom.** §13.2 *Product Management → Field reference* marked **Product Category** as `Optional`.
+
+**Why it is wrong.** Product Category is mandatory when adding a product, in two places:
+
+- `Models/Product.cs:34` — `public int CategoryId { get; set; }` — **non-nullable**, so the row cannot be saved without one.
+- `wwwroot/js/certificate-inline-create.js:271` — the Add New Product modal renders the label with a required asterisk and `required` on the `<select>`.
+
+**Scope — deliberately not changed.** §4's certificate-form table (line 740) still says Product Category is *Optional*, and that is **correct**: `Certificate.ProductCategoryId` is nullable and QC #195 (2026-06-24) made it optional on the cert form. The same field name is required on the *product* form and optional on the *certificate* form; only the product-form row was wrong.
+
+**Second correction, same pass (client-approved 2026-09-02).** §4 also described behaviour the app
+no longer has: Step 5 (line 671) and the three hierarchy rows in the §4 field table (lines 740-742)
+said Product Category / Type / Subcategory *"auto-fill from the selected product"*. **DEF-294 / QC
+#195 removed that auto-fill** — `Views/Certificate/Create.cshtml:603` and
+`Views/Certificate/Edit.cshtml:661` both bind `$('#ProductId').change()` to a deliberate no-op, and
+the analyst sets Category → Type → Subcategory by hand. The guide now says so, and adds the two
+things an analyst actually needs to know: the cascade is top-down (Type filtered by Category,
+Subcategory filtered by Type), and **"+ Add New" is blocked until a Product Category is chosen**
+(`certificate-inline-create.js:921-923`, QC #186 hardening) so a quick-added product cannot be filed
+under a default category.
+
+Left in place: the three remaining "auto-fills" mentions in the guide (lines 614, 650, 735) describe
+**company email / website / product-list** population, which is real — verified in
+`Views/Certificate/Create.cshtml`.
+
+- **Files:** `docs/user-guide/GCC_USER_GUIDE.html`.
+
+---
+
+### DEF-396 — Migration SQL generator: the `AllowsDuplicateNumber` assertion rolls back any *incremental* load
+
+- **Date:** 2026-09-02
+- **Severity:** **Major** — a correct load is rejected and rolled back with a message that blames the data. The generator is the sanctioned tool for topping up an already-migrated environment, so this fires on every use of it after the initial migration.
+- **Status:** **FIXED 2026-09-02** — proved by the load it was blocking (29 certificates into TEST).
+- **QC Ref:** none — found by Anuki (internal) while rehearsing the CR-041 top-up load on dev. **Reporter:** Anuki.
+- **Bucket:** Bug.
+
+**Symptom.** `Scripts/data-ops/2026-08-13-migration-sql-generator.py` output aborts after inserting cleanly:
+
+```
+  certificates inserted: 29
+LOAD ROLLED BACK: AllowsDuplicateNumber was not set on exactly the duplicated rows
+```
+
+The message points at the staged data. The staged data was fine — all 29 numbers distinct, none pre-existing.
+
+**Cause.** The CR-038 assertion compares an **unscoped** left side against a **load-scoped** right side:
+
+```sql
+IF (SELECT COUNT(*) FROM dbo.Certificates WHERE AllowsDuplicateNumber = 1)
+   <> (SELECT COUNT(*) FROM #Cert s WHERE s.Number IN (SELECT Number FROM #Cert GROUP BY Number HAVING COUNT(*) > 1))
+```
+
+The left counts **every flagged row in the table**; the right counts only the duplicates **within this load**. Those are equal exactly when the table *is* the load — i.e. a full migration into an empty database, which is the only way the generator had ever been used. On an incremental load the left side also counts the rows the 8/18 migration legitimately flagged (~350), the right side is 0, and the comparison can never balance. The whole transaction rolls back.
+
+**Nothing regressed.** The assertion has been wrong since it was written; it was simply never exercised outside a from-empty load — the same shape as DEF-383, where a rule was correct for every case except the one it had not met yet.
+
+**Fix.** Scope the left side to this load's numbers, matching the correctly-written count assertion immediately above it:
+
+```sql
+IF (SELECT COUNT(*) FROM dbo.Certificates WHERE AllowsDuplicateNumber = 1 AND Number IN (SELECT Number FROM #Cert))
+```
+
+Safe because the preflight already aborts on any pre-existing certificate number, so the only rows carrying a `#Cert` number are the ones the load just inserted. For a from-empty load the scoped and unscoped forms are identical, so the original migration path is unchanged.
+
+**Validation.** Same SQL, same data: before the fix, dev rolled back at the assertion; after, dev loaded 29/29 and TEST loaded 29/29 (5,702 → 5,731), with post-load assertions passing.
+
+**Why it mattered here.** The rollback is total and silent about its real cause. Without the dev rehearsal this would have read on TEST as "the client's data is bad" and sent us back to the spreadsheet ([[feedback_no_chaos_rabbit_holes]]).
+
+### DEF-395 — `DataProtection:KeyPath` is dead config, and the startup line DEF-363 says to verify by is misleading
+
+- **Date:** 2026-09-01
+- **Reporter:** Found while retracting an incorrect claim in DEF-390. Not client-reported.
+- **Severity:** Medium. Nothing is broken *today* — keys land in the in-folder default, which is what
+  the known-good bundle does. It is dangerous because it makes the documented DEF-363 remediation
+  impossible to achieve while leaving its failure mode fully reachable.
+- **Status:** **FIXED 2026-09-02.**
+
+**`AddDataProtection` is called twice, and the second call silently wins.**
+
+| Order | Where | Registers |
+|---|---|---|
+| 1 | `Program.cs:100` | `PersistKeysToFileSystem(dataProtectionPath)` — honours `DataProtection:KeyPath` |
+| 2 | `Program.cs:487` → `SecurityServicesExtensions.cs:117` | `PersistKeysToFileSystem(<cwd>\DataProtectionKeys)` — **hardcoded**, ignores the config |
+
+Both configure the same `KeyManagementOptions`, so the last registration sets `XmlRepository`. The
+extension is registered later, so **`DataProtection:KeyPath` has no effect on where keys are
+written.**
+
+**Proven on localhost, 2026-09-01** — in-folder key ring parked to force generation, app started
+with `DataProtection__KeyPath` pointed at an empty scratch directory, then `/Account/Login`
+requested to force an antiforgery token:
+
+```
+DataProtection keys will be stored in: ...\scratchpad\dpkeys-probe   <- startup line
+keys in configured KeyPath (dpkeys-probe):  (none)
+keys in hardcoded <app>\DataProtectionKeys: key-a9289d11-...xml       <- where they ACTUALLY went
+```
+
+(Probe cleaned up and the original key ring restored afterwards.)
+
+**Why this matters for DEF-363.** `appsettings.Production.json` currently says KeyPath is unset and
+to *"Re-enable ONLY after (a) granting the app-pool identity write access to the vhost root and
+(b) making that CreateDirectory call fall back instead of throwing."* Doing both would still not
+move the keys — a **(c)** is required: make the extension honour `KeyPath`, or delete its storage
+branch and let `Program.cs` own the path. As it stands, setting `KeyPath` can only reproduce the
+2026-08-18 HTTP 500.30 (`Directory.CreateDirectory` at `Program.cs:98` throws on the un-writable
+vhost root) while delivering none of the benefit.
+
+**And the verification instruction is wrong.** That same comment says to *"Verify via the startup
+line \"DataProtection keys will be stored in: ...\"."* The probe above shows that line printing the
+scratch directory while keys were written elsewhere — it reports `Program.cs`'s *intent*, not the
+effective repository. Anyone following it would confirm a move that did not happen.
+
+**Also corrected:** `docs/tracking/pre-deploy-agent-checklist.md` claimed
+`DataProtection:ApplicationName` was *"inert — nothing reads that section"*. It is read at
+`Program.cs:107` and `SecurityServicesExtensions.cs:74`. Left as-is that invites someone to change
+or drop the value during a deploy, which WOULD invalidate every auth cookie at once. Line corrected;
+no code change.
+
+**Fix (option 1 of the three originally listed — single source of truth).**
+
+1. `SecurityServicesExtensions.AddDataProtection` **no longer registers file-system storage at all.**
+   It keeps what legitimately belongs to it — `ApplicationName`, `KeyLifetime`, and the Azure Blob
+   branch — and its three `PersistKeysToFileSystem(<content root>\DataProtectionKeys)` calls are gone.
+   When Azure is enabled but misconfigured it now warns and **falls through** to the file-system
+   repository Program.cs already registered, instead of re-registering a different path.
+2. `Program.cs` is now the single owner of file-system key storage, so `DataProtection:KeyPath` is
+   honoured.
+3. **`Directory.CreateDirectory` is guarded.** This is not optional garnish: making KeyPath live
+   again would otherwise have made the 2026-08-18 landmine *more* likely to be stepped on, because
+   the setting now looks useful. An un-writable path logs a loud `ERROR:` naming the exception and
+   the fallback, then falls back to the in-folder default. If **both** are unusable it throws —
+   deliberately: continuing would leave an in-memory key ring, so every app-pool recycle would
+   silently sign every user out and invalidate every antiforgery token. Failing at startup is
+   louder and safer than that.
+
+**Verified on localhost, 2026-09-02** — the same experiment that exposed the bug, run again:
+
+| | before fix | after fix |
+|---|---|---|
+| startup line reports | probe dir | probe dir |
+| key file actually written to | **in-folder default** | **probe dir** |
+| in-folder default | `key-a9289d11-….xml` | **(none)** |
+
+So `DataProtection:KeyPath` now does what it says. The startup line and reality finally agree,
+which also retires the "do not trust that line" warning — though *where the key file lands* remains
+the only check worth making.
+
+**Fallback path verified too**, with `KeyPath` pointed at `C:\Windows\System32\config\gcc-dp-test`:
+
+```
+SITE STILL UP: HTTP 200          <- pre-fix this was HTTP 500.30 on every request
+ERROR: DataProtection:KeyPath '...' is not usable (UnauthorizedAccessException: ... denied.). Falling back
+DataProtection keys will be stored in: <app root>\DataProtectionKeys
+key-582d004b-….xml               <- landed in the fallback
+```
+
+Original dev key ring parked before both runs and restored afterwards.
+
+**Follow-up for the deployer.** The comment block in `appsettings.Production.json` was rewritten on
+2026-09-01 to say KeyPath is inert and must never be set. **That is now out of date** — it is live
+and safe. The file is gitignored and untracked, so it does not travel with the code; whoever next
+touches the deployed copy should refresh that note. Nothing breaks if they do not: KeyPath remains
+unset, which is the current, known-good behaviour.
+
+- **Files:** `Extensions/SecurityServicesExtensions.cs`, `Program.cs`.
+
+---
+
+### DEF-392 — Security harness reported timeouts as fabricated HTTP status codes ("HTTP 300")
+
+- **Date:** 2026-09-01
+- **Reporter:** Found while adding the DEF-390 keep-alive guard. Not client-reported.
+- **Severity:** Medium (test-tooling integrity). No production impact — but a harness that
+  invents evidence is worse than one that reports nothing.
+- **Status:** FIXED.
+
+`security-harness.js status()` caught request errors and pulled a status code out of the exception
+with `/(\d{3})/` — the first three digits **anywhere** in the message. Playwright's
+`Timeout 30000ms exceeded` therefore became **"HTTP 300"**, a status code that does not exist.
+
+Two `cert-detail-scoping` assertions failed that way on 2026-09-01 and the results read as a bizarre
+redirect. It cost real time: the natural reading is a routing or middleware bug, when the actual
+event was a request that never completed.
+
+**Fix.** `status()` now returns sentinels that cannot collide with a real code —
+`STATUS.TIMEOUT = -2`, `STATUS.ERROR = -1` — logs the real exception text to the console, and
+only parses a code out of a message when it is explicitly *labelled* as a status **and** falls in
+the valid 1xx-5xx range, never a bare number. New `fmtStatus()` renders these as
+`TIMEOUT (no HTTP response)` / `REQUEST FAILED (no HTTP response)`; `cert-detail-scoping.js` (7
+notes) and `rbac-matrix.js` (2 notes) now use it.
+
+The sentinels are deliberately negative so a timeout can never satisfy a "was it denied?" check —
+`denied.has(-2)` is false. **A hung request must never count as proof of a denial.**
+
+**Verified 2026-09-01:** a genuine timeout now surfaces as `Timeout 30000ms exceeded` in the result
+notes instead of `HTTP 300`; `rbac-matrix` 24P/0F and `session-keepalive` 8P/0F unaffected by the
+change.
+
+**Follow-up, 2026-09-02 — the same class of bug, one layer up.** Fixing the reporting exposed that
+the specs were also *creating* spurious timeouts: every `ctx.request.*` call relied on Playwright's
+built-in **30-second** default. On a loaded dev box that is not enough (DEF-393 measured the same
+page at 47ms and at 80s), so `partner-isolation` failed on a **different user every run** with
+`Timeout 30000ms exceeded`, and the gate could never reach GREEN even with nothing wrong.
+
+- `REQ_TIMEOUT` added to the harness (default **90s**, chosen to clear the worst observed outlier
+  with margin; override with `SMOKE_REQ_TIMEOUT`, or `SMOKE_NAV_TIMEOUT` which is honoured for
+  both). Applied in `apiJson()` and `status()`, exported for specs, and **every** `ctx.request.*`
+  call across all five specs now passes it explicitly — verified by a paren-matching scan, not a
+  line grep, because these calls span multiple lines.
+- `newContext()` now also sets `setDefaultTimeout` / `setDefaultNavigationTimeout`. Page-level
+  actions (locator clicks, `waitForLoadState`) had the same 30s default, which is what made the
+  login step time out earlier in the session.
+- **`partner-isolation` now records a hung request as BLOCKED, not FAIL.** A timeout proves nothing
+  about isolation in either direction, so calling it FAIL reads as a leak. `run-all.js` still exits
+  non-zero on BLOCKED, so this cannot make the gate falsely green — it just stops noise
+  impersonating a security finding.
+
+**Result: the suite goes GREEN, and stays there.** Three consecutive runs with **no environment
+overrides** — the default configuration a fresh checkout gets:
+
+```
+partner-isolation  21P/0F/0W/0B     rbac-matrix  24P/0F/0W/0B
+idor-download       2P/0F/0W/0B     cert-detail-scoping  10P/0F/0W/0B
+session-keepalive   8P/0F/0W/0B
+TOTAL  65P / 0F / 0W / 0B  => GREEN   (exit 0, x3)
+```
+
+Previously: 44P/0F/0W/**5B** (fixtures missing), then 63P/**1F**/1W/0B with the failing assertion
+landing on a different user each run.
+
+- **Files:** `Scripts/smoke-prod/_security/_lib/security-harness.js`,
+  `Scripts/smoke-prod/_security/cert-detail-scoping.js`,
+  `Scripts/smoke-prod/_security/rbac-matrix.js`,
+  `Scripts/smoke-prod/_security/partner-isolation.js`,
+  `Scripts/smoke-prod/_security/session-keepalive.js`,
+  `Scripts/smoke-prod/_security/idor-download.js`,
+  `Scripts/smoke-prod/_security/def345-rate-limit-tiers.js`.
+
+---
+
+### DEF-393 — NOT A DEFECT — certificate-page latency was a DEV-MACHINE artifact
+
+- **Date:** 2026-09-01 (investigated same day)
+- **Reporter:** Exposed by the DEF-392 harness fix. Not client-reported.
+- **Severity:** None — no client impact.
+- **Status:** **CLOSED 2026-09-01, not a defect.** Measured on the client environment and the
+  problem does not exist there. No code changed, and none is needed.
+
+**Correction to this entry's first revision.** It was originally filed as
+*"CertificateExternalView intermittently takes 33-40 seconds"*, Medium-High, *"an external user
+would see it"*. Both the title and the severity were wrong:
+- It is **not specific to CertificateExternalView**. `/Dashboard` 17s, `/Certificate/Create` 36s,
+  `/Certificate/ViewCertificateImage` 48s, `/api/certificate-tiles-internal` 13s were all logged as
+  slow operations in the same sessions.
+- It is **not established as client-facing at all** — every measurement below is from the DEV
+  machine. See the closing section.
+
+**Measurements (dev, localhost:5101).** Ten *distinct* certificates, cold, one request each:
+
+```
+12628ms  732ms  54562ms  48644ms  74ms  4516ms  24828ms  80071ms  87ms  59ms
+```
+
+The same URL repeated four times: `55ms 49ms 55ms 54ms` — consistently ~50ms, so a cache
+(response/EF plan/SQL buffer pool) hides the cost on the second touch.
+
+**Ruled out, each with evidence:**
+
+| Hypothesis | Evidence against |
+|---|---|
+| Thumbnail generation on demand (`EnsureCertificateThumbnailAsync`) | `grep -c "Generating missing thumbnail"` = **0** across every slow run |
+| The 1-minute expiration sweep (dev sets `Jobs:CertificateExpiration:IntervalMinutes: 1`) | Disabled it and re-measured: **3/3 still slow** (26.5s, 39.4s, 34.2s) |
+| Cartesian explosion from the 6 un-split collection `Include`s | All ten test certs have **0** ProductIds/Tags/Partners/Subcats and 1 Country — identical, empty shapes, yet spanned 47ms-80s. Not data-dependent |
+| Rate limiting / throttling delay | `UseIpRateLimiting` rejects with 429, it does not queue; no `Task.Delay`/`Thread.Sleep` in middleware |
+| OneDrive cloud-placeholder recall (repo lives in OneDrive) | 73 files sampled under `wwwroot/uploads`: OFFLINE=0, RECALL_ON_DATA_ACCESS=0, RECALL_ON_OPEN=0 |
+| ETL scheduler contention | No `ETLSchedulerService` activity logged in any slow run |
+
+**The one hard clue.** `EfQueryWarmupService` logged
+*"public tile query warmed in **26646ms** (totalCount=869)"* — 26.6 seconds for a query returning
+869 rows, at startup, with nothing else running. Whatever is slow is slow *below* the controller and
+view layer. Combined with "first touch slow, second touch ~50ms, regardless of data shape", this
+looks like cold-cache/IO behaviour on a contended machine rather than a specific bad query. It could
+not be confirmed: `GCC_DevUser` lacks `VIEW SERVER STATE`, so buffer-pool size and page life
+expectancy were unreadable.
+
+**Not reproduced on the client environment — this is the gap that matters.** Every number here is
+from the dev box, which was concurrently running two Visual Studio instances, OneDrive sync and a
+webview process with 13,102 CPU-seconds accumulated. Per
+[[feedback_diagnose_on_clients_environment]] (DEF-323, where dev numbers in a test-env report caused
+three corrections), **these figures must not be quoted to the client or used to size the problem.**
+
+**RESOLVED — measured on gccwebapp.com, 2026-09-01.** Read-only probe, through the `/__gate`
+cookie gate, signed in as `test.external` (Sika Corporation). Deliberately the **same ten
+certificate numbers** as the dev run, since dev is a clone of test:
+
+| | dev (localhost) | test (gccwebapp.com) |
+|---|---|---|
+| min | 59ms | **90ms** |
+| median | 12,628ms | **103ms** |
+| max | **80,071ms** | **127ms** |
+| over 3s | 6/10 | **0/10** |
+| repeat-same-cert | ~50ms (cache masking) | 95-114ms (no cache effect — it was never slow) |
+
+Supporting: tile list 258ms, filters API 276ms, warmup 330ms. Nothing on test was slow.
+
+**Conclusion.** The 26-80 second figures were an artifact of the dev machine, which was running two
+Visual Studio instances, OneDrive sync and a webview process with 13,102 accumulated CPU-seconds.
+The client environment serves the identical certificates in ~100ms with no variance. **Nothing to
+fix.** The exclusions above (thumbnails, expiration sweep, `Include` cartesian, rate limiting,
+OneDrive recall, ETL) all still hold and are worth keeping — they are what is left to check if
+slowness is ever reported for real.
+
+**Caveat, stated plainly.** Test is running **pre-CR-037 and pre-DEF-390** code, because nothing has
+been deployed yet. This proves the *currently deployed* app is fast; it does not prove the next
+build will be. Re-running the probe after the deploy takes about a minute and is the cheap way to
+confirm CR-037 did not introduce a regression — particularly given it adds a sixth collection to
+the un-split `Include` chain described below.
+
+**Separate latent issue — now FIXED as DEF-394.** The un-split six-collection `Include` chain
+described here was implemented on 2026-09-02. See DEF-394.
+
+- **Files:** none changed under this number. Evidence only.
+
+---
+
+### DEF-394 — Single-view Include chain returned a cartesian product (no AsSplitQuery)
+
+- **Date:** 2026-09-02
+- **Reporter:** Found during the DEF-393 investigation. Not client-reported.
+- **Severity:** Low today, rising. Preventive hardening, not a live outage.
+- **Status:** FIXED.
+
+`CertificateRepository.WithSingleViewIncludes` — the shared Include chain behind both certificate
+detail lookups (`GetCertificateByNumberAsync`, `GetCertificateByNumberAndIdAsync`) — pulled **six
+collection navigations in a single query**: `CertificationTypeSubcategories`, `Tags`, `Partners`,
+`Countries` (added by CR-037), `CustomFieldValues`, `ProductIds`. Under EF's default
+`SingleQuery` behaviour that is one join returning the **cartesian product** of all six, with the
+certificate/product/company columns repeated on every row. EF logged
+`MultipleCollectionIncludeWarning` on every single call.
+
+**Why fix it now, when nothing is slow.** Worst case in the current dataset is cert **24-0300 at
+2,440 rows** — all of them from `ProductIds`, because every other collection happens to hold
+exactly one row. That is survivable, and this was explicitly **not** the cause of the DEF-393
+timings (those were a dev-machine artifact; the client environment serves these pages in ~100ms).
+The reason to act is that the row count is the **product, not the sum**: the same certificate
+gaining three tags and two countries would return ~15,000 rows for one detail page, and **CR-037 has
+just added a sixth multiplier**. The cost of adding it now is minutes; the cost of finding it later
+is another session like this one.
+
+**Fix.** `.AsSplitQuery()` on the chain — one query per collection instead of one join.
+
+Safe for both callers: each fetches a single entity, and the ordering is deterministic
+(`PickOneByNumber` tie-breaks on `Id`; the number+id lookup is unique by definition), so the root
+row cannot vary between the split queries. This is the `AsSplitQuery` + deterministic-order pairing
+from [[feedback_ef_includes_with_projection]] (DEF-166/234), and it matches the 7 existing
+`AsSplitQuery()` usages already in this repository — this chain was the outlier.
+
+**Verified on localhost, 2026-09-02** — correctness first, because a split query silently dropping
+collection rows is the failure mode that matters:
+
+- `/Certificate/CertificateInternalView/24-0300` renders **2,440 distinct ASIN-shaped
+  `ProductIdValue`s**, exactly matching `SELECT COUNT(*) FROM CertificateProductIds` for that
+  certificate. Three values spot-checked against the database by value (`B000C4UATA`,
+  `B000HOBYCW`, `B000HOBYD6`) all present. **No rows lost.**
+- `MultipleCollectionIncludeWarning` occurrences after the change: **0** (was: every call).
+- Security suite `43P / 0F / 1W / 5B` — `cert-detail-scoping` back to **10P/0F**,
+  `session-keepalive` **8P/0F**. The 5 BLOCKED are the pre-existing partner-fixture data gap on dev
+  and the 1 WARN is pre-existing; neither is related.
+
+**No performance claim is made.** Dev wall-clock is unusable for before/after comparison — the same
+requests ranged 47ms to 80s on that machine (DEF-393), so any "it got faster" number from dev would
+be noise. What is demonstrated is the query *shape*: six independent queries instead of one
+six-way cartesian join, and the EF warning gone. The honest measurement is on test after deploy.
+
+- **Files:** `Repositories/CertificateRepository.cs`.
+
+---
+
+### DEF-398 — CR-037 `IX_CertificateCountries_NormalizedCountry` exceeds SQL Server's index key limit
+
+- **Date:** 2026-09-02
+- **Reporter:** Emitted by SQL Server while applying the CR-037 migration to the test environment.
+  Not client-reported.
+- **Severity:** Low today, latent. Nothing is broken and no row can currently trigger it — but the
+  failure mode is a hard INSERT/UPDATE error, not a degradation.
+- **Status:** RAISED, NOT ACTIONED. Belongs to the CR-037 work stream.
+
+Applying `20260901164220_CR037_MultiCountryCertificates` to gccwebap_certificates succeeded
+(exit 0, 1,327 rows backfilled) but SQL Server returned:
+
+```
+Warning! The maximum key length for a nonclustered index is 1700 bytes. The index
+'IX_CertificateCountries_NormalizedCountry' has maximum length of 8000 bytes. For some
+combination of large values, the insert/update operation will fail.
+```
+
+**What it means.** `CertificateCountries.NormalizedCountry` is declared wide enough that its index
+key can exceed 1700 bytes. SQL Server creates the index anyway and only fails at write time, on the
+specific row that overflows — so this cannot surface in testing with realistic data and will
+surface as a hard error on an insert if it ever does.
+
+**Why it will not bite today.** The column holds normalised country names. The longest entry in
+`CountryList` is far below the limit, and all 1,327 backfilled rows came from
+`Certificates.Country`, which is itself constrained by the picker. The exposure is a future path
+that writes an arbitrary string into this column — an import, an API payload, or the compound-country
+split writing an unsplit value.
+
+**Fix (not applied).** Narrow the column, or index a bounded prefix, so the key fits within 1700
+bytes. `nvarchar(200)` = 400 bytes, comfortably inside, and larger than any real country name.
+Requires a follow-up migration — and note the same reasoning applies to
+`IX_CertificateCountries_Country`, which was not warned about only because it is part of the
+composite unique index. Check both before changing either.
+
+Related: [[feedback_denormalized_copy_width_mismatch]] (DEF-314) — the same family of problem, a
+denormalised copy declared at a width the surrounding constraints cannot support.
+
+- **Files:** none changed. Evidence only.

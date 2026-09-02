@@ -66,7 +66,25 @@ public static class SecurityServicesExtensions
     }
 
     /// <summary>
-    /// Configures data protection with Azure Key Vault or local storage
+    /// Configures data protection.
+    ///
+    /// DEF-395: this method must NOT register file-system key storage. Program.cs already calls
+    /// AddDataProtection().PersistKeysToFileSystem(...) at the path resolved from
+    /// DataProtection:KeyPath, and ConfigureSecurityServices runs AFTER it (Program.cs:487 vs :100).
+    /// Both calls configure the same KeyManagementOptions, so whichever registers LAST sets
+    /// XmlRepository — and this one used to register a HARDCODED
+    /// &lt;content root&gt;\DataProtectionKeys, silently overriding the configured path.
+    ///
+    /// The effect was that DataProtection:KeyPath did nothing at all, while Program.cs:98 still
+    /// called Directory.CreateDirectory() on it with no try/catch — so setting it could only ever
+    /// crash startup (HTTP 500.30, the 2026-08-18 outage) and could never actually move the keys.
+    /// Proven 2026-09-01: with KeyPath pointed at an empty scratch directory the startup line
+    /// reported that directory while the key file was written to the in-folder default.
+    ///
+    /// What still belongs here: ApplicationName, KeyLifetime, and the Azure Blob branch. What does
+    /// not: anything that decides WHERE file-system keys live. When Azure is enabled but
+    /// misconfigured, the correct fallback is to leave Program.cs's file-system registration in
+    /// place, NOT to re-register a different path.
     /// </summary>
     private static IServiceCollection AddDataProtection(this IServiceCollection services, IConfiguration configuration)
     {
@@ -80,7 +98,8 @@ public static class SecurityServicesExtensions
             dataProtectionBuilder.SetDefaultKeyLifetime(lifetime);
         }
 
-        // Configure key storage
+        // Key storage: Azure Blob is the ONLY storage this method may register. File-system
+        // storage is owned by Program.cs so that DataProtection:KeyPath is honoured (DEF-395).
         var persistToAzure = configuration.GetValue<bool>("DataProtection:PersistKeysToAzureBlobStorage", false);
         if (persistToAzure)
         {
@@ -99,24 +118,18 @@ public static class SecurityServicesExtensions
                 }
                 catch (Exception ex)
                 {
-                    // Fall back to file system if Azure storage fails
-                    Console.WriteLine($"Warning: Azure blob storage configuration failed: {ex.Message}. Using file system instead.");
-                    var keysPath = Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys");
-                    dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+                    // Registering blob storage failed — say so loudly and fall through to the
+                    // file-system repository Program.cs already registered at the configured path.
+                    Console.WriteLine($"WARNING: Azure blob DataProtection failed ({ex.Message}). " +
+                                      "Falling back to the file-system key ring configured in Program.cs.");
                 }
             }
             else
             {
-                // Use file system if Azure is not properly configured
-                var keysPath = Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys");
-                dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+                Console.WriteLine("WARNING: DataProtection:PersistKeysToAzureBlobStorage is true but the " +
+                                  "connection string/container are missing or placeholders. Falling back to " +
+                                  "the file-system key ring configured in Program.cs.");
             }
-        }
-        else
-        {
-            // Use local file system in development
-            var keysPath = Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys");
-            dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
         }
 
         return services;

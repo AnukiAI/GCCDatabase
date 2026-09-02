@@ -45,6 +45,7 @@ async function run() {
     const resp = await ctx.request.post(H.BASE + '/Certificate/DownloadSelectedZip', {
       data: IDS,
       headers: { 'Content-Type': 'application/json' },
+      timeout: H.REQ_TIMEOUT,
     });
     const code = resp.status();
     let entryCount = null, sizeKB = null;

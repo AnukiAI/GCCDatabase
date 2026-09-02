@@ -4,6 +4,29 @@ Running log of **infrastructure / tooling / process** issues that are not produc
 
 ---
 
+### ISS-003 — Two QC-log backup copies are sitting in the client-facing OneDrive folder and will sync to SharePoint
+
+**Date:** 2026-09-02 | **Status:** **OPEN — awaiting Shawn's call** (move, delete, or leave). | **Severity:** Low — housekeeping. Nothing is broken and no data is at risk; the concern is that internal safety copies are visible in a folder the client's material lives in. | **Reporter:** Anuki (internal), raised while closing QC #244.
+
+**What is there.** Both in `…\LocalWest\Projects\GCC Database Solution\` (the OneDrive root for this project), alongside the live QC log:
+
+| File | State it captures |
+|---|---|
+| `Database QC Log_8.28.26_sw_Updates.BACKUP-20260902.xlsx` | before the QC #244 close-out |
+| `Database QC Log_8.28.26_sw_Updates.BACKUP-20260902-b.xlsx` | after the close-out, before the `A253` ID fix |
+
+~12.8 MB each (they carry the workbook's 159 embedded screenshots), so ~25 MB of duplicate sync traffic.
+
+**Why they exist.** Taken deliberately before writing to the QC log — that workbook holds 159 media files, 4 pivot tables and a pivot cache, so a bad write is expensive to undo. See the 2026-09-02 close-out entry in `observations_log.md`.
+
+**Why it is worth a decision rather than just deleting.** The folder is under `OneDrive - PointSolve Technology Inc`, so anything left there **syncs to SharePoint** and lands in the same place as client-facing material. `BACKUP-` filenames are self-explanatory and harmless, but they are our scaffolding, not a deliverable.
+
+**Options.** (a) delete both — the close-out is verified on disk and the workbook's 205 parts / 159 media / 4 pivot tables were confirmed intact, so they have served their purpose; (b) move to a local, non-synced scratch folder if a rollback window is wanted; (c) leave them. **Recommend (a)** once Shawn has eyeballed row 253.
+
+**Wider point worth settling once.** There is no agreed home for pre-edit backups of client documents — every one taken so far has landed next to the original inside OneDrive. One non-synced backup location would stop this recurring. Related: [[feedback_backup_uploads_before_deploy]].
+
+---
+
 ### ISS-002 — Partner API integration fixture returns an empty result set to every caller, so 49 integration tests cannot pass
 
 **Date:** 2026-08-04 | **Status:** **OPEN — deferred to after the current deploy** (Shawn, 2026-08-04). Test-infrastructure only; no product code implicated. | **Severity:** Medium-High (assurance) — the product is fine, but the automated proof of partner data isolation is unavailable in the .NET suite. | **Reporter:** Anuki (internal), during the 2026-08-04 full regression pass.

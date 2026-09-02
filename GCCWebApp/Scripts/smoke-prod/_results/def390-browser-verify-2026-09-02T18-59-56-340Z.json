@@ -1,0 +1,79 @@
+{
+  "base": "https://gccwebapp.com",
+  "user": "test.analyst",
+  "runMinutes": 2,
+  "state": {
+    "A": {
+      "pings": [],
+      "loggedOutAt": null,
+      "warnAt": null
+    },
+    "B": {
+      "pings": [],
+      "loggedOutAt": null,
+      "warnAt": null
+    },
+    "C": {
+      "pings": [],
+      "loggedOutAt": null,
+      "warnAt": null,
+      "resolvedOnReturn": null
+    },
+    "D": {
+      "pings": [],
+      "loggedOutAt": null,
+      "warnAt": null
+    }
+  },
+  "results": [
+    {
+      "id": "A.warn",
+      "name": "idle foreground: warning at ~25 min",
+      "status": "FAIL",
+      "notes": "warned at nullm (expect 25 ±3)"
+    },
+    {
+      "id": "A.logout",
+      "name": "idle foreground: logged out at ~30 min",
+      "status": "FAIL",
+      "notes": "logged out at nullm (expect 30 ±3)"
+    },
+    {
+      "id": "A.order",
+      "name": "warning came BEFORE logout",
+      "status": "FAIL",
+      "notes": "warn nullm vs logout nullm"
+    },
+    {
+      "id": "B.alive",
+      "name": "active-but-not-navigating: still signed in",
+      "status": "PASS",
+      "notes": "survived 2m of activity without navigating — this is the case that was silently broken"
+    },
+    {
+      "id": "B.pings",
+      "name": "active session sent keep-alive pings",
+      "status": "FAIL",
+      "notes": "0 pings at m"
+    },
+    {
+      "id": "C.resolved",
+      "name": "backgrounded tab resolves on return (no silent bounce)",
+      "status": "FAIL",
+      "notes": "tab looked alive after its deadline"
+    },
+    {
+      "id": "D.alive",
+      "name": "Remember Me: NOT logged out",
+      "status": "PASS",
+      "notes": "still signed in at 2m"
+    },
+    {
+      "id": "D.nopings",
+      "name": "Remember Me: sent NO keep-alive pings",
+      "status": "PASS",
+      "notes": "0 pings (expect 0)"
+    }
+  ],
+  "finishedAt": "2026-09-02T18:59:56.417Z"
+}

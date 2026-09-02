@@ -1,0 +1,33 @@
+{
+  "base": "https://gccwebapp.com",
+  "businessToday": "2026-09-02",
+  "ranAt": "2026-09-02T15:40:59.631Z",
+  "truth": {
+    "amazonTotal": 244,
+    "currentCount": 187,
+    "future": [
+      {
+        "id": 3137,
+        "number": "26-0441",
+        "status": "Client Approved - Paid",
+        "effectiveDate": "2026-10-21",
+        "expirationDate": "2027-10-20",
+        "company": "X-SENSE"
+      },
+      {
+        "id": 3138,
+        "number": "26-0442",
+        "status": "Client Approved - Paid",
+        "effectiveDate": "2026-10-21",
+        "expirationDate": "2027-10-20",
+        "company": "X-SENSE"
+      }
+    ]
+  },
+  "feedCount": 187,
+  "results": {
+    "pass": 18,
+    "fail": 0,
+    "controlFailures": 0
+  }
+}

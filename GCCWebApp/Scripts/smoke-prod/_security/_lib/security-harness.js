@@ -26,6 +26,15 @@ const ALLOW_REMOTE = process.env.SMOKE_ALLOW_REMOTE === '1';
 const PWD = process.env.SEC_PWD || 'TestPass123!';
 const NAV_TIMEOUT = parseInt(process.env.SMOKE_NAV_TIMEOUT || '60000', 10);
 
+// Timeout for API/request calls. Playwright's built-in default is 30s, which is NOT enough on a
+// loaded dev box: DEF-393 measured the same certificate page at 47ms one moment and 80s the next,
+// purely from machine contention. That made `partner-isolation` fail intermittently on a DIFFERENT
+// user each run with "Timeout 30000ms exceeded" - noise that looked like a security failure and
+// stopped the gate ever reaching green. 90s covers the worst observed outlier with margin while
+// staying bounded; raise it with SMOKE_REQ_TIMEOUT (or SMOKE_NAV_TIMEOUT, honoured for both).
+const REQ_TIMEOUT = parseInt(
+  process.env.SMOKE_REQ_TIMEOUT || process.env.SMOKE_NAV_TIMEOUT || '90000', 10);
+
 // Basic-auth for the test-env gate on remote targets (no-op on localhost).
 const REMOTE_USER = process.env.SMOKE_REMOTE_USER || '';
 const REMOTE_PASS = process.env.SMOKE_REMOTE_PASS || '';
@@ -60,12 +69,16 @@ function guardRemote() {
   }
 }
 
-function newContext(browser) {
-  return browser.newContext({
+async function newContext(browser) {
+  const ctx = await browser.newContext({
     ignoreHTTPSErrors: true,
     viewport: { width: 1440, height: 900 },
     ...(HTTP_CREDENTIALS ? { httpCredentials: HTTP_CREDENTIALS } : {}),
   });
+  // Page-level actions (locator clicks, waitForLoadState) default to 30s too - same problem.
+  ctx.setDefaultTimeout(NAV_TIMEOUT);
+  ctx.setDefaultNavigationTimeout(NAV_TIMEOUT);
+  return ctx;
 }
 
 // Log in via the real login form. Returns { ok, page }. ok=false means bounced to /Account/Login.
@@ -87,7 +100,7 @@ async function login(ctx, emailOrRole, pwd = PWD) {
 // GET a JSON API endpoint through the context (carries the login cookie). Normalizes the
 // tile-API response shape ({totalCount|TotalCount, certificates|Certificates}).
 async function apiJson(ctx, apiPath) {
-  const r = await ctx.request.get(BASE + apiPath, { headers: { Accept: 'application/json' } });
+  const r = await ctx.request.get(BASE + apiPath, { headers: { Accept: 'application/json' }, timeout: REQ_TIMEOUT });
   let j = null;
   try { j = await r.json(); } catch { /* non-JSON */ }
   return {
@@ -98,16 +111,44 @@ async function apiJson(ctx, apiPath) {
   };
 }
 
+// Sentinels for "no HTTP response was received". Deliberately OUTSIDE the 100-599 range so they
+// can never be compared equal to a real status code, and so a timeout can never satisfy a
+// "was it denied?" check — a hung request is not proof of a denial.
+const STATUS = { TIMEOUT: -2, ERROR: -1 };
+
+// Render a status (or sentinel) for a result note.
+function fmtStatus(code) {
+  if (code === STATUS.TIMEOUT) return 'TIMEOUT (no HTTP response)';
+  if (code === STATUS.ERROR) return 'REQUEST FAILED (no HTTP response)';
+  return `HTTP ${code}`;
+}
+
 // Raw GET returning status only (for RBAC negative-path checks). maxRedirects:0 so a login
 // redirect surfaces as 302 rather than being followed to a 200 login page.
-async function status(ctx, urlPath) {
+//
+// On any error this returns a STATUS sentinel, never a fabricated code. The previous version
+// regex-matched the FIRST THREE DIGITS of the exception message, so Playwright's
+// "Timeout 30000ms exceeded" was reported as "HTTP 300" — a status that does not exist. Two
+// cert-detail-scoping assertions failed that way on 2026-09-01 and the output read as a bizarre
+// redirect, sending the reader hunting for a routing bug instead of the hung request that was
+// actually there. A test harness that invents evidence is worse than one that reports nothing.
+async function status(ctx, urlPath, opts = {}) {
   try {
-    const r = await ctx.request.get(BASE + urlPath, { maxRedirects: 0 });
+    const r = await ctx.request.get(BASE + urlPath, { maxRedirects: 0, timeout: REQ_TIMEOUT, ...opts });
     return r.status();
   } catch (e) {
-    // Some Playwright versions throw on 3xx with maxRedirects:0 — extract the code if present.
-    const m = /(\d{3})/.exec(e.message || '');
-    return m ? parseInt(m[1], 10) : -1;
+    const msg = ((e && e.message) || String(e)).split(/\r?\n/)[0];
+    if (/timeout/i.test(msg)) {
+      console.log(`    ! ${urlPath} -> TIMEOUT: ${msg}`);
+      return STATUS.TIMEOUT;
+    }
+    // Some Playwright versions throw on 3xx with maxRedirects:0. Accept a code ONLY when the
+    // message explicitly labels it as a status AND it is a valid 1xx-5xx value — never a bare
+    // number that happens to appear in the text.
+    const m = /status(?:\s*code)?\D{0,4}([1-5]\d{2})\b/i.exec(msg);
+    if (m) return parseInt(m[1], 10);
+    console.log(`    ! ${urlPath} -> REQUEST FAILED: ${msg}`);
+    return STATUS.ERROR;
   }
 }
 
@@ -153,8 +194,8 @@ function summarize(specId, url, results) {
 }
 
 module.exports = {
-  chromium, BASE, PWD,
+  chromium, BASE, PWD, REQ_TIMEOUT, NAV_TIMEOUT,
   ROLE_USERS, PARTNER_USERS, ALL_PARTNERS,
-  guardRemote, newContext, login, apiJson, status, scanLeaks,
+  guardRemote, newContext, login, apiJson, status, STATUS, fmtStatus, scanLeaks,
   makeRecorder, summarize,
 };

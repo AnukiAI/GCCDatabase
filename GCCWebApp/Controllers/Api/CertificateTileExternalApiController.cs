@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Extensions;
@@ -174,7 +174,9 @@ namespace GCCWebApp.Controllers.Api
                             c.Product.NormalizedName!.Contains(nq) ||
                             c.Product.Category.NormalizedName!.Contains(nq) ||
                             (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)), tagIds);
+                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
+                            // CR-037: secondary countries are searchable too.
+                            c.Countries.Any(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq)), tagIds);
                     }
                 }
 
@@ -225,7 +227,10 @@ namespace GCCWebApp.Controllers.Api
                 if (!string.IsNullOrWhiteSpace(country))
                 {
                     var countries = country.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => countries.Contains(c.Country));
+                    // CR-037: membership, not equality against the primary. Applied to the already
+                    // partner/company-scoped query, so this widens which countries match — never
+                    // which certificates the caller can reach.
+                    query = query.Where(c => c.Countries.Any(cc => countries.Contains(cc.Country)));
                 }
 
                 // Apply tags filter - EXTERNAL TAGS ONLY for external users
@@ -264,6 +269,12 @@ namespace GCCWebApp.Controllers.Api
                         ProductSubcategory = c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : ""),
                         c.Location,
                         c.Country,
+                        // CR-037: primary first so the lead shown value equals the sort key.
+                        CountryNames = c.Countries
+                            .OrderByDescending(cc => cc.Country == c.Country)
+                            .ThenBy(cc => cc.Country)
+                            .Select(cc => cc.Country)
+                            .ToList(),
                         // DEF-261: order external tags ascending so the lead shown value == the .Min()
                         // sort key (display-vs-sort parity with the internal view; QC #157 "consistent
                         // across the application").
@@ -302,7 +313,8 @@ namespace GCCWebApp.Controllers.Api
                     c.ProductType,
                     c.ProductSubcategory,
                     c.Location,
-                    c.Country,
+                    // CR-037: comma-joined, same treatment as Partner below.
+                    Country = c.CountryNames.Count > 0 ? string.Join(", ", c.CountryNames) : c.Country,
                     c.ExternalTags,
                     c.PdfPath,
                     // CR-171: partner callers see only their own association; company/internal see all.
@@ -633,12 +645,20 @@ namespace GCCWebApp.Controllers.Api
                         .OrderBy(c => c.name)
                         .ToListAsync(),
 
+                    // CR-037: drawn from the join rows so a country that is only ever secondary
+                    // still offers a filter option. Still off baseQuery, so the option list stays
+                    // scoped to what this caller may see — a partner must not learn which countries
+                    // appear on other partners' certificates.
                     countries = (await baseQuery
-                        .Select(c => c.Country)
+                        .SelectMany(c => c.Countries)
+                        .Select(cc => cc.Country)
                         .Where(c => !string.IsNullOrEmpty(c))
                         .Distinct()
                         .ToListAsync())
-                        .OrderBy(c => c == "United States" ? 0 : 1)
+                        // Pinned country comes from CountryList so the facet list and the Create/Edit
+                        // picker cannot drift apart. In-memory ordering (the query is already
+                        // materialised), so the constant needs no EF translation.
+                        .OrderBy(c => c == CountryList.PinnedCountry ? 0 : 1)
                         .ThenBy(c => c)
                         .ToList(),
 

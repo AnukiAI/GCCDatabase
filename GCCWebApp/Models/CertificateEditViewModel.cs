@@ -50,9 +50,23 @@ namespace GCCWebApp.Models
         [MaxLength(175)]
         public string? Location { get; set; }
 
+        /// <summary>
+        /// The primary country. Kept as a single value: it is the sort key, the CSV column and the
+        /// value the non-partner API projects. The POST handler sets it from the first entry of
+        /// <see cref="Countries"/>, so nothing binds it directly from the form any more.
+        /// </summary>
         [Display(Name = "Country")]
         [MaxLength(100)]
         public string? Country { get; set; }
+
+        /// <summary>
+        /// CR-037: every country on the certificate, comma-separated, in picker order. The first
+        /// entry becomes <see cref="Country"/>. This is what the multi-select posts — the same
+        /// hidden-CSV-field shape <see cref="PartnerIds"/> uses, so the form has one convention for
+        /// multi-value fields rather than two.
+        /// </summary>
+        [Display(Name = "Countries")]
+        public string? Countries { get; set; }
 
         [Display(Name = "ASIN")]
         public string? Asin { get; set; }
@@ -137,6 +151,22 @@ namespace GCCWebApp.Models
                 yield return new ValidationResult(
                     "Expiration Date must be after the Effective Date.",
                     new[] { nameof(ExpirationDate) });
+            }
+
+            // CR-037: reject countries the picker could not have produced. The field is optional, so
+            // blank is fine — but a value that resolves to nothing is named back to the user rather
+            // than dropped, which is how "Atlantis" ended up stored as a country.
+            if (!string.IsNullOrWhiteSpace(Countries))
+            {
+                CountryList.ParseMany(Countries, out var unresolvedCountries);
+                if (unresolvedCountries.Count > 0)
+                {
+                    yield return new ValidationResult(
+                        unresolvedCountries.Count == 1
+                            ? $"\"{unresolvedCountries[0]}\" is not a recognized country. Choose one from the list."
+                            : $"These are not recognized countries: {string.Join(", ", unresolvedCountries)}. Choose from the list.",
+                        new[] { nameof(Countries) });
+                }
             }
         }
     }

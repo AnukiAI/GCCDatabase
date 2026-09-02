@@ -1,0 +1,43 @@
+{
+  "specId": "partner-isolation",
+  "base": "http://localhost:5101",
+  "url": "/api/CertificateTileExternal",
+  "pass": 0,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 5,
+  "total": 5,
+  "results": [
+    {
+      "id": "iso.partner@amazon.com.login",
+      "name": "login (Amazon)",
+      "status": "BLOCKED",
+      "notes": "login bounced — user missing from local DB? restore CR-171 test data"
+    },
+    {
+      "id": "iso.perry.novi@example.com.login",
+      "name": "login (Novi)",
+      "status": "BLOCKED",
+      "notes": "login bounced — user missing from local DB? restore CR-171 test data"
+    },
+    {
+      "id": "iso.pam.wayfair@example.com.login",
+      "name": "login (Wayfair)",
+      "status": "BLOCKED",
+      "notes": "login bounced — user missing from local DB? restore CR-171 test data"
+    },
+    {
+      "id": "iso.pip.other@example.com.login",
+      "name": "login (Other)",
+      "status": "BLOCKED",
+      "notes": "login bounced — user missing from local DB? restore CR-171 test data"
+    },
+    {
+      "id": "iso.pru.multi@example.com.login",
+      "name": "login (Amazon+Novi)",
+      "status": "BLOCKED",
+      "notes": "login bounced — user missing from local DB? restore CR-171 test data"
+    }
+  ],
+  "finishedAt": "2026-09-02T02:45:03.926Z"
+}

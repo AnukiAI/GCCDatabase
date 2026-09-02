@@ -1,0 +1,93 @@
+{
+  "base": "https://gccwebapp.com",
+  "user": "test.analyst",
+  "runMinutes": 36,
+  "state": {
+    "A": {
+      "pings": [
+        5.1
+      ],
+      "loggedOutAt": 30.3,
+      "warnAt": 25.3,
+      "logoutUrl": "https://gccwebapp.com/"
+    },
+    "B": {
+      "pings": [
+        5.1,
+        10.1,
+        15.1,
+        20.1,
+        25.1,
+        30.1,
+        35.6
+      ],
+      "loggedOutAt": null,
+      "warnAt": null
+    },
+    "C": {
+      "pings": [
+        5.2
+      ],
+      "loggedOutAt": 30.3,
+      "warnAt": 25.3,
+      "resolvedOnReturn": true,
+      "logoutUrl": "https://gccwebapp.com/"
+    },
+    "D": {
+      "pings": [],
+      "loggedOutAt": null,
+      "warnAt": null
+    }
+  },
+  "results": [
+    {
+      "id": "A.warn",
+      "name": "idle foreground: warning at ~25 min",
+      "status": "PASS",
+      "notes": "warned at 25.3m (expect 25 ±3)"
+    },
+    {
+      "id": "A.logout",
+      "name": "idle foreground: logged out at ~30 min",
+      "status": "PASS",
+      "notes": "logged out at 30.3m (expect 30 ±3)"
+    },
+    {
+      "id": "A.order",
+      "name": "warning came BEFORE logout",
+      "status": "PASS",
+      "notes": "warn 25.3m vs logout 30.3m"
+    },
+    {
+      "id": "B.alive",
+      "name": "active-but-not-navigating: still signed in",
+      "status": "PASS",
+      "notes": "survived 36m of activity without navigating — this is the case that was silently broken"
+    },
+    {
+      "id": "B.pings",
+      "name": "active session sent keep-alive pings",
+      "status": "PASS",
+      "notes": "7 pings at 5.1, 10.1, 15.1, 20.1, 25.1, 30.1, 35.6m"
+    },
+    {
+      "id": "C.resolved",
+      "name": "backgrounded tab resolves on return (no silent bounce)",
+      "status": "PASS",
+      "notes": "warning or logout on foreground"
+    },
+    {
+      "id": "D.alive",
+      "name": "Remember Me: NOT logged out",
+      "status": "PASS",
+      "notes": "still signed in at 36m"
+    },
+    {
+      "id": "D.nopings",
+      "name": "Remember Me: sent NO keep-alive pings",
+      "status": "PASS",
+      "notes": "0 pings (expect 0)"
+    }
+  ],
+  "finishedAt": "2026-09-02T20:22:43.765Z"
+}

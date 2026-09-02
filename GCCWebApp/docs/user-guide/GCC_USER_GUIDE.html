@@ -668,7 +668,9 @@
     </ul>
 
     <h4>Step 5 — Product and product hierarchy</h4>
-    <p>Pick the <strong>Product Name</strong> from the list loaded for the chosen company. The Product Category, Product Type, and Product Subcategory below it will auto-fill from the product's stored hierarchy. You can override any of them, or leave them blank if the product isn't yet categorized.</p>
+    <p>Pick the <strong>Product Name</strong> from the list loaded for the chosen company. The <strong>Product Category</strong>, <strong>Product Type</strong>, and <strong>Product Subcategory</strong> below it do <em>not</em> fill in from the product you picked &mdash; you set them yourself, top down: choose a Category, and the Type list loads filtered by it; choose a Type, and the Subcategory list loads filtered by that. Leave any of them blank if the certificate doesn't need them.</p>
+    <p>This is deliberate. The product's own stored hierarchy used to be copied onto the certificate, which meant a mis-filed product quietly pushed its wrong category onto every certificate written against it. The analyst now decides what the certificate carries, and the product record is left untouched.</p>
+    <p><em>One exception, on the way in:</em> if you use <strong>+ Add New</strong> to create a product from this form, pick the <strong>Product Category</strong> first. The Add Product button is blocked until you do (<em>"Select a Product Category above before adding a new product."</em>), so the new product is filed under the same category the certificate will carry rather than under a default.</p>
 
     <h4>Step 6 — Dates and status</h4>
     <ul>
@@ -737,9 +739,9 @@
             <tr><td><strong>Certification Type</strong></td><td class="req">Yes</td><td>Dropdown of parent certification types (USDA Organic, ECOCERT, B-Corp, etc.). Searchable. Driven by the Certification Types admin page.</td></tr>
             <tr><td><strong>Certificate Subcategories</strong></td><td class="opt">Optional</td><td>Multi-select. Populates with subcategories of the parent type you chose above. Selections appear as removable pills.</td></tr>
             <tr><td><strong>Product Name</strong></td><td class="req">Yes</td><td>Dropdown of products for the selected company. Searchable. Disabled until a Company is picked. Inline "+ Add New" creates a new product attached to the current company.</td></tr>
-            <tr><td><strong>Product Category</strong></td><td class="opt">Optional</td><td>Auto-fills from the selected product. Top level of the 3-level product hierarchy.</td></tr>
-            <tr><td><strong>Product Type</strong></td><td class="opt">Optional</td><td>Auto-fills from the selected product. Filtered by the Product Category.</td></tr>
-            <tr><td><strong>Product Subcategory</strong></td><td class="opt">Optional</td><td>Auto-fills from the selected product. Filtered by the Product Type.</td></tr>
+            <tr><td><strong>Product Category</strong></td><td class="opt">Optional</td><td>Set by the analyst &mdash; <strong>not</strong> copied from the selected product. Top level of the 3-level product hierarchy. On the Edit form the certificate's own saved value loads. Must be chosen before "+ Add New" will create a product.</td></tr>
+            <tr><td><strong>Product Type</strong></td><td class="opt">Optional</td><td>Set by the analyst &mdash; <strong>not</strong> copied from the selected product. List is filtered by the Product Category, so pick that first.</td></tr>
+            <tr><td><strong>Product Subcategory</strong></td><td class="opt">Optional</td><td>Set by the analyst &mdash; <strong>not</strong> copied from the selected product. List is filtered by the Product Type, so pick that first.</td></tr>
             <tr><td><strong>Effective Date</strong></td><td class="req">Yes</td><td>Date the certificate becomes valid. Date picker.</td></tr>
             <tr><td><strong>Expiration Date</strong></td><td class="req">Yes</td><td>Date the certificate stops being valid. Must be on or after Effective Date. System auto-expires when this date passes.</td></tr>
             <tr><td><strong>Status</strong></td><td class="req">Yes</td><td>Initial workflow state. Defaults to <em>Draft</em>. The full 8-state lifecycle is documented in §8. Move through other states via the workflow controls on the certificate detail page after save.</td></tr>
@@ -1312,7 +1314,7 @@
         <tbody>
             <tr><td><strong>Company</strong></td><td class="req">Yes</td><td>The company this product belongs to. Cannot be changed after creation.</td></tr>
             <tr><td><strong>Product Name</strong></td><td class="req">Yes</td><td>How the product appears throughout the platform.</td></tr>
-            <tr><td><strong>Product Category</strong></td><td class="opt">Optional</td><td>Top level of the 3-level hierarchy (§14).</td></tr>
+            <tr><td><strong>Product Category</strong></td><td class="req">Yes</td><td>Top level of the 3-level hierarchy (§14).</td></tr>
             <tr><td><strong>Product Type</strong></td><td class="opt">Optional</td><td>Middle level. Filtered by Category.</td></tr>
             <tr><td><strong>Product Subcategory</strong></td><td class="opt">Optional</td><td>Bottom level. Filtered by Type.</td></tr>
         </tbody>

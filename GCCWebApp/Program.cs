@@ -89,13 +89,54 @@ builder.Services.AddDistributedMemoryCache();
 // Set DataProtection:KeyPath to somewhere outside the deployed folder. A relative value is
 // resolved against the content root, so "..\\DataProtectionKeys" puts it alongside the app
 // folder rather than inside it. Leaving it unset preserves the old in-folder behaviour.
+//
+// DEF-395 (2026-09-02) — KeyPath ACTUALLY WORKS AS OF THIS FIX. It previously did nothing:
+// SecurityServicesExtensions.AddDataProtection ran later (Program.cs:487) and re-registered a
+// hardcoded <content root>\DataProtectionKeys, overriding whatever was resolved here, while the
+// CreateDirectory call below still threw on an un-writable path. Setting KeyPath could therefore
+// only ever crash startup and never move the keys. The extension no longer registers file-system
+// storage; this block is now the single owner of it.
+//
+// Because the setting is live again, the directory creation is guarded. An un-writable KeyPath
+// (the 2026-08-18 outage: the app-pool identity could not write to the vhost root) must NOT take
+// the site down with HTTP 500.30 on every request. It falls back to the in-folder default — the
+// known-good behaviour — and says so loudly, because a silent fallback would put the key ring
+// somewhere the operator did not intend.
 var configuredKeyPath = builder.Configuration["DataProtection:KeyPath"];
+var inFolderKeyPath = Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys");
 var dataProtectionPath = string.IsNullOrWhiteSpace(configuredKeyPath)
-    ? Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys")
+    ? inFolderKeyPath
     : (Path.IsPathRooted(configuredKeyPath)
         ? configuredKeyPath
         : Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), configuredKeyPath)));
-Directory.CreateDirectory(dataProtectionPath);
+
+try
+{
+    Directory.CreateDirectory(dataProtectionPath);
+}
+catch (Exception ex)
+{
+    Console.WriteLine(
+        $"ERROR: DataProtection:KeyPath '{dataProtectionPath}' is not usable ({ex.GetType().Name}: {ex.Message}). " +
+        $"Falling back to '{inFolderKeyPath}'. Grant the app-pool identity write access to the configured " +
+        "path, or unset DataProtection:KeyPath to silence this. Keys written to the in-folder default are " +
+        "inside the directory IIS watches (see the DEF-363 note above).");
+    dataProtectionPath = inFolderKeyPath;
+    try
+    {
+        Directory.CreateDirectory(dataProtectionPath);
+    }
+    catch (Exception fallbackEx)
+    {
+        // Neither location is writable. Let this one throw: continuing would hand every user a
+        // key ring that lives only in memory, so every app-pool recycle would silently sign
+        // everyone out and invalidate every antiforgery token. Failing at startup is louder.
+        Console.WriteLine($"FATAL: fallback DataProtection path '{dataProtectionPath}' is also unusable.");
+        throw new InvalidOperationException(
+            $"No writable DataProtection key path. Tried '{configuredKeyPath}' and '{inFolderKeyPath}'.",
+            fallbackEx);
+    }
+}
 
 var dataProtectionBuilder = builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))

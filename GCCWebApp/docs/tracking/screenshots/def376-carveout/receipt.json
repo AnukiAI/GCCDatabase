@@ -1,0 +1,31 @@
+{
+  "base": "https://gccwebapp.com",
+  "businessToday": "2026-09-02",
+  "ranAt": "2026-09-02T16:10:50.220Z",
+  "company": "X-SENSE",
+  "truth": {
+    "companyCerts": 10,
+    "futureCerts": [
+      {
+        "number": "26-0441",
+        "effectiveDate": "2026-10-21"
+      },
+      {
+        "number": "26-0442",
+        "effectiveDate": "2026-10-21"
+      }
+    ]
+  },
+  "fixture": {
+    "email": "shawnmwest+xsense@gmail.com",
+    "companyId": 299,
+    "created": true
+  },
+  "results": {
+    "tileCount": 6,
+    "futureVisible": 2,
+    "pass": 5,
+    "fail": 0,
+    "controlFailures": 0
+  }
+}

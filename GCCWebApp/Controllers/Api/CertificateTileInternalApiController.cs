@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Extensions;
@@ -135,7 +135,10 @@ namespace GCCWebApp.Controllers.Api
                             c.Product.NormalizedName!.Contains(nq) ||
                             c.Product.Category.NormalizedName!.Contains(nq) ||
                             (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)), tagIds);
+                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
+                            // CR-037: without this, searching a country finds certificates where it
+                            // is the primary but misses those where it is the second country.
+                            c.Countries.Any(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq)), tagIds);
                     }
                 }
 
@@ -186,7 +189,10 @@ namespace GCCWebApp.Controllers.Api
                 if (!string.IsNullOrWhiteSpace(country))
                 {
                     var countries = country.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => countries.Contains(c.Country));
+                    // CR-037: match if the country exists ANYWHERE on the certificate, not just as
+                    // the primary. Ticking "Canada" must return a US-primary cert that also lists
+                    // Canada — that is the whole point of multi-country.
+                    query = query.Where(c => c.Countries.Any(cc => countries.Contains(cc.Country)));
                 }
 
                 // Apply tags filter
@@ -255,6 +261,13 @@ namespace GCCWebApp.Controllers.Api
                         ProductSubcategory = c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : ""),
                         c.Location,
                         c.Country,
+                        // CR-037: full country set. Primary first so the displayed lead value equals
+                        // the sort key (sorting stays on c.Country) — the DEF-248/DEF-259 alignment.
+                        CountryNames = c.Countries
+                            .OrderByDescending(cc => cc.Country == c.Country)
+                            .ThenBy(cc => cc.Country)
+                            .Select(cc => cc.Country)
+                            .ToList(),
                         // DEF-261 (QC #157, client 6/10): the tag columns showed multiple tags in
                         // insertion order while the column sorted by an arbitrary FirstOrDefault tag, so
                         // the leading shown value wasn't the sort key — read as "External Tag not sorting."
@@ -348,7 +361,10 @@ namespace GCCWebApp.Controllers.Api
                     c.ProductType,
                     c.ProductSubcategory,
                     c.Location,
-                    c.Country,
+                    // CR-037: comma-joined, exactly as Partner renders below. The cell wraps rather
+                    // than truncating, so nothing is hidden. Falls back to the denormalized primary
+                    // for rows predating the backfill.
+                    Country = c.CountryNames.Count > 0 ? string.Join(", ", c.CountryNames) : c.Country,
                     c.ExternalTags,
                     c.InternalTags,
                     // Combine ProductIds list with legacy field fallback.
@@ -588,12 +604,18 @@ namespace GCCWebApp.Controllers.Api
                         .Select(c => new { c.id, c.name })
                         .ToListAsync(),
 
-                    countries = (await _context.Certificates
-                        .Where(c => !string.IsNullOrEmpty(c.Country))
-                        .Select(c => c.Country!)
+                    // CR-037: sourced from the join table so a country that is only ever a
+                    // SECOND country still appears as a filter option. Reading primaries alone
+                    // would offer a filter set that cannot match everything the filter now finds.
+                    countries = (await _context.CertificateCountries
+                        .Where(cc => cc.Country != "")
+                        .Select(cc => cc.Country)
                         .Distinct()
                         .ToListAsync())
-                        .OrderBy(c => c == "United States" ? 0 : 1)
+                        // Pinned country comes from CountryList so the facet list and the Create/Edit
+                        // picker cannot drift apart. In-memory ordering (the query is already
+                        // materialised), so the constant needs no EF translation.
+                        .OrderBy(c => c == CountryList.PinnedCountry ? 0 : 1)
                         .ThenBy(c => c)
                         .ToList(),
 

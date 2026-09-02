@@ -1,0 +1,6 @@
+{"Id":1,"Name":"Energy usage reduction","Description":null,"IsActive":true,"IsDeleted":false,"SortOrder":1,"CreatedAt":"2026-02-13T00:55:48.9744072","UpdatedAt":"2026-02-13T00:55:48.9744079"}
+{"Id":2,"Name":"Onsite fossil fuel usage reduction","Description":null,"IsActive":true,"IsDeleted":false,"SortOrder":2,"CreatedAt":"2026-02-13T00:55:48.9765666","UpdatedAt":"2026-02-13T00:55:48.9765675"}
+{"Id":3,"Name":"Renewable electricity usage","Description":null,"IsActive":true,"IsDeleted":false,"SortOrder":3,"CreatedAt":"2026-02-13T00:55:48.9765698","UpdatedAt":"2026-02-13T00:55:48.9765698"}
+{"Id":4,"Name":"test","Description":"","IsActive":true,"IsDeleted":true,"SortOrder":0,"CreatedAt":"2026-02-20T00:05:01.5711195","UpdatedAt":"2026-02-20T00:05:05.4814717"}
+{"Id":5,"Name":"testtest","Description":"","IsActive":true,"IsDeleted":true,"SortOrder":0,"CreatedAt":"2026-02-20T00:05:10.9400197","UpdatedAt":"2026-02-20T00:05:20.7073030"}
+{"Id":6,"Name":"Carly test","Description":"","IsActive":true,"IsDeleted":true,"SortOrder":0,"CreatedAt":"2026-03-13T15:47:14.8329717","UpdatedAt":"2026-03-13T15:47:41.8197661"}

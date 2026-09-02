@@ -149,6 +149,10 @@ namespace GCCWebApp.Models
         // Many-to-many relationships
         public ICollection<Tag> Tags { get; set; } = new List<Tag>();
         public ICollection<Partner> Partners { get; set; } = new List<Partner>(); // Multi-partner support
+
+        // CR-037: full set of associated countries, primary included. Country above stays the
+        // denormalized primary (sort key, CSV column, non-partner API projection).
+        public ICollection<CertificateCountry> Countries { get; set; } = new List<CertificateCountry>();
         public ICollection<CustomFieldValue> CustomFieldValues { get; set; } = new List<CustomFieldValue>();
         
         // Document relationships

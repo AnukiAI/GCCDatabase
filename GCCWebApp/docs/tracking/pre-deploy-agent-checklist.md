@@ -23,7 +23,7 @@
 > | `appsettings.Production.json` | the **test** environment's config — the only one that ships |
 > | `ConnectionStrings:DefaultConnection` in it | the **test** DB (`gccwebap_certificates` @ `68.71.129.120,1533`) |
 > | `Jwt:Issuer` / `Audience` = `GCCWebApp-Production` | test-environment tokens |
-> | `DataProtection:ApplicationName` = `GCC-Production` | inert — nothing reads that section |
+> | `DataProtection:ApplicationName` = `GCC-Production` | **live — do not change or drop it.** Read at `Program.cs:107` and `SecurityServicesExtensions.cs:74`; it pins the key-ring discriminator, so altering it invalidates every auth cookie at once. (`DataProtection:KeyPath` in the same section *is* inert — DEF-391.) |
 > | "deploying to production" in any note | deploying to **test** |
 >
 > **Consequences that are easy to get wrong:**
@@ -1218,3 +1218,89 @@ code whose DEF-358 half passed a full gate sweep earlier the same day, plus DEF-
 which have not had a UI or cross-role pass. **This is a knowingly incomplete gate run, accepted to
 restore access to the test environment.** Gates 1, 2 and 8 should run before the client is asked
 to retest.
+
+---
+
+## Deploy record — 2026-09-01 · `GCCWebApp-deploy-20260901-1745.zip` · **CANDIDATE, NOT UPLOADED**
+
+**Artifact:** `C:\gccpub_out\GCCWebApp-deploy-20260901-1745.zip` — 457 entries, 111.2 MB.
+**Target:** TEST (gccwebapp.com). **Built from:** branch `ci-regression` working tree, `dotnet publish -c Release`.
+
+> ⚠️ **This bundle is NOT only the audit work. It carries every uncommitted change in the tree**, and
+> a zip is a full overwrite. The DLL is one artifact — CR-037 cannot be excluded without reverting
+> its files and rebuilding.
+
+**What ships:**
+
+| Item | Status before this bundle |
+|---|---|
+| **DEF-391** — certificate audit trail (UI create/edit, CSV import snapshot, v1 API create/update, bulk create/update, API-key mis-attribution) | fixed today, never deployed |
+| **CR-037** — multi-country certificates, **including a schema migration** | BUILT 2026-09-01, verified on dev, never deployed — *another terminal's work* |
+| **DEF-390** — session-timeout keep-alive (`auth.js`, `AccountController`) | fixed, never deployed |
+| Assorted tile-API / export / import / view changes in the same tree | mixed |
+
+**⚠️ Schema change, and it applies itself.** `20260901164220_CR037_MultiCountryCertificates` creates
+`CertificateCountries`. TEST has `AutoMigrateOnStartup=true`, so **it will apply on the first
+app-pool recycle after extraction**, whether or not the bundled SQL is run by hand. Verified against
+the live test DB 2026-09-01: last applied is `20260830230201_DEF385AddTrustedDevices` and
+`CertificateCountries` is **ABSENT**.
+
+### Gate results
+
+| Gate | Fires? | Result | Evidence |
+|---|---|---|---|
+| 0 — back up server uploads | yes | **NOT DONE — manual, must precede extraction** | — |
+| 1 — UI / design guide | yes | not run | — |
+| 2 — cross-role + responsive | yes | not run | — |
+| 3 — data scoping | yes | not run | — |
+| 4 — **Amazon contract** | yes (`Api/v1/CertificatesController` changed) | **PASS — 7 passed / 0 failed, `CONTRACT UNCHANGED`** | `amazon-contract-diff.js` vs the April baselines; GS1 list, GS1 single, standard list all "identical structure" |
+| 5 — traceability | yes | partial — DEF-391 and CR-037 both carry register entries | — |
+| 6 — performance / EF | yes | not run | — |
+| 7 — **pending migration** | **yes** | **PASS — validated 2026-09-01.** Script bundled at `migrations/apply-migrations.sql`, covering DEF-383, DEF-385 (already applied → idempotent no-ops) and CR-037. | See the validation run below. |
+| 8 — CRUD write paths | yes | **PASS warm — 40P / 0F** (31 tag/company/product/user + 9 cert) | first run showed 1F: a 30s `page.goto` timeout on a cold app pool, not an assertion. Re-run warm: cert round-trip 9P/0F including create→edit→delete with net-zero row counts |
+| 9 — static integrity / bundle hygiene | yes | **PASS — 0 failures** | `verify-bundle.py`: no DataProtection keys, no dev/test config, no Scripts/docs/uploads; all required files present; all content markers PRESENT including the 7 new DEF-391 / CR-037 markers |
+| 10 — config points at data | yes | not run | — |
+| 11/12 — post-deploy | after upload | pending | — |
+
+### Two traps hit while building this, recorded so the next build skips them
+
+1. **MAX_PATH silently truncated the bundle.** Built from the session scratchpad (~180-char root),
+   `os.walk` listed the deepest `wwwroot/lib/jquery-validation*` files but `zipfile.write` raised
+   `WinError 3` on them: **374 entries instead of 456 — 82 files missing, including the client-side
+   validation libraries — and the zip looked healthy.** Publish to a short path (`C:\gccpub`) and
+   write the zip to `C:\gccpub_out`.
+2. **DEF-386 recurred exactly as documented.** EF's `--idempotent` output wrapped the DEF-383
+   computed column in `EXEC(CONCAT(...))`, which SQL Server cannot parse — a *parse* error, so it
+   kills the whole script before any `IF NOT EXISTS` guard runs. Rewritten to
+   `DECLARE @def386_sql1 nvarchar(max) = CONCAT(…); EXEC(@def386_sql1);`. The verifier caught it;
+   there is **no `Scripts/deploy/deploy.ps1`** in the repo doing this rewrite, despite Gate 9's note
+   saying there is — it has to be done by hand each time or that script needs writing.
+
+### Gate 7 validation run — 2026-09-01
+
+Gate 7 asks for the script to be proven on a database at the target's schema state, not on dev
+(dev already has `CertificateCountries`, so its guards would skip the real `CREATE` path — the
+exact blind spot the gate warns about). Built a throwaway DB instead and brought it to the test
+environment's **exact** migration state with `dotnet ef database update
+20260830230201_DEF385AddTrustedDevices`.
+
+| Step | Result |
+|---|---|
+| Start state | `CertificateCountries` **ABSENT**, last applied `20260830230201_DEF385AddTrustedDevices` — identical to live TEST |
+| `sqlcmd -I -b -i apply-migrations.sql` | **exit 0** |
+| Table created | `CertificateCountries` **PRESENT** — `Id`, `CertificateId`, `Country nvarchar(100)`, `NormalizedCountry` |
+| Indexes | `PK_CertificateCountries`, unique `IX_CertificateCountries_CertificateId_Country`, `IX_..._Country`, `IX_..._NormalizedCountry` |
+| History row | `20260901164220_CR037_MultiCountryCertificates` inserted |
+| **Idempotent re-run** | **exit 0, clean no-op** |
+| Throwaway DB | dropped afterwards |
+| **Live TEST DB** | **untouched** — re-checked after the run: `CertificateCountries` still ABSENT, last migration unchanged |
+
+`-I` was used deliberately (`QUOTED_IDENTIFIER ON`) — without it this codebase's computed columns
+hit the Msg 1934 half-apply trap.
+
+**Index-width warning, noted and CLOSED — not an action.** The run emits *"the maximum key length
+for a nonclustered index is 1700 bytes. The index `IX_CertificateCountries_NormalizedCountry` has
+maximum length of 8000 bytes."* **Shawn's call, 2026-09-01: the width stays.** CR-037 allows an
+unlimited number of countries per certificate, and a cap risks truncation — which is the DEF-314
+failure the `CertificateCountry` model comment already cites. The same warning class is documented
+as expected for CR-187. **Do not "fix" this by narrowing the column.**

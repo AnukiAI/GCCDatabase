@@ -1,0 +1,139 @@
+{
+  "specId": "partner-isolation",
+  "base": "http://localhost:5101",
+  "url": "/api/CertificateTileExternal",
+  "pass": 21,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 21,
+  "results": [
+    {
+      "id": "iso.partner@amazon.com.login",
+      "name": "login (Amazon)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "iso.partner@amazon.com.list",
+      "name": "external tile list scoped+non-empty",
+      "status": "PASS",
+      "notes": "HTTP 200, total=188, returned=188"
+    },
+    {
+      "id": "iso.partner@amazon.com.no-leak",
+      "name": "no co-partner leak (forbid Novi/Other/Wayfair)",
+      "status": "PASS",
+      "notes": "clean"
+    },
+    {
+      "id": "iso.partner@amazon.com.export-scope",
+      "name": "export CSV rows <= tile scope",
+      "status": "PASS",
+      "notes": "csv rows=188 vs tile scope=188"
+    },
+    {
+      "id": "iso.perry.novi@example.com.login",
+      "name": "login (Novi)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "iso.perry.novi@example.com.list",
+      "name": "external tile list scoped+non-empty",
+      "status": "PASS",
+      "notes": "HTTP 200, total=1, returned=1"
+    },
+    {
+      "id": "iso.perry.novi@example.com.no-leak",
+      "name": "no co-partner leak (forbid Amazon/Other/Wayfair)",
+      "status": "PASS",
+      "notes": "clean"
+    },
+    {
+      "id": "iso.perry.novi@example.com.export-scope",
+      "name": "export CSV rows <= tile scope",
+      "status": "PASS",
+      "notes": "csv rows=1 vs tile scope=1"
+    },
+    {
+      "id": "iso.pam.wayfair@example.com.login",
+      "name": "login (Wayfair)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "iso.pam.wayfair@example.com.list",
+      "name": "external tile list scoped+non-empty",
+      "status": "PASS",
+      "notes": "HTTP 200, total=1, returned=1"
+    },
+    {
+      "id": "iso.pam.wayfair@example.com.no-leak",
+      "name": "no co-partner leak (forbid Amazon/Novi/Other)",
+      "status": "PASS",
+      "notes": "clean"
+    },
+    {
+      "id": "iso.pam.wayfair@example.com.export-scope",
+      "name": "export CSV rows <= tile scope",
+      "status": "PASS",
+      "notes": "csv rows=1 vs tile scope=1"
+    },
+    {
+      "id": "iso.pip.other@example.com.login",
+      "name": "login (Other)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "iso.pip.other@example.com.list",
+      "name": "external tile list scoped+non-empty",
+      "status": "PASS",
+      "notes": "HTTP 200, total=1, returned=1"
+    },
+    {
+      "id": "iso.pip.other@example.com.no-leak",
+      "name": "no co-partner leak (forbid Amazon/Novi/Wayfair)",
+      "status": "PASS",
+      "notes": "clean"
+    },
+    {
+      "id": "iso.pip.other@example.com.export-scope",
+      "name": "export CSV rows <= tile scope",
+      "status": "PASS",
+      "notes": "csv rows=1 vs tile scope=1"
+    },
+    {
+      "id": "iso.pru.multi@example.com.login",
+      "name": "login (Amazon+Novi)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "iso.pru.multi@example.com.list",
+      "name": "external tile list scoped+non-empty",
+      "status": "PASS",
+      "notes": "HTTP 200, total=189, returned=189"
+    },
+    {
+      "id": "iso.pru.multi@example.com.no-leak",
+      "name": "no co-partner leak (forbid Other/Wayfair)",
+      "status": "PASS",
+      "notes": "clean"
+    },
+    {
+      "id": "iso.pru.multi@example.com.own-visible",
+      "name": "multi-partner sees all own partners",
+      "status": "PASS",
+      "notes": "both present"
+    },
+    {
+      "id": "iso.pru.multi@example.com.export-scope",
+      "name": "export CSV rows <= tile scope",
+      "status": "PASS",
+      "notes": "csv rows=189 vs tile scope=189"
+    }
+  ],
+  "finishedAt": "2026-09-02T13:25:16.994Z"
+}

@@ -386,5 +386,72 @@ namespace GCCWebApp.Models
         /// <summary>True if the value resolves to a known country. Blank is NOT valid — callers that
         /// allow an empty country must check for blank themselves, since Country is optional.</summary>
         public static bool IsKnown(string? value) => TryResolve(value, out _);
+
+        /// <summary>
+        /// The country pinned to the top of every country picker. Most GreenCircle certificates are
+        /// United States, so burying it in the alphabetical run costs a scroll on the common case.
+        /// </summary>
+        public const string PinnedCountry = "United States";
+
+        /// <summary>
+        /// Client request 2026-09-01: the order country pickers render in — <see cref="PinnedCountry"/>
+        /// first, then everything else A-Z. This is the same convention the certificate tile filter
+        /// panels already apply to their country facets, so the form and the filter list now agree
+        /// rather than each having its own order.
+        ///
+        /// Deliberately a SEPARATE list rather than a re-sort of <see cref="Countries"/>: that list is
+        /// the canonical A-Z source and also feeds <c>CanonicalByNormalized</c>, and its comment
+        /// documents it as alphabetical. This one is for display only.
+        /// </summary>
+        public static readonly List<string> DisplayOrder =
+            Countries.OrderBy(c => c == PinnedCountry ? 0 : 1)
+                     .ThenBy(c => c, StringComparer.Ordinal)
+                     .ToList();
+
+        /// <summary>
+        /// CR-037: parses a delimited multi-country string into canonical spellings, preserving the
+        /// order given. The <b>first</b> entry is the primary country — it is what
+        /// <see cref="Certificate.Country"/> keeps, and therefore what the grid sorts by and the CSV
+        /// exports, so caller-supplied order is meaningful and must not be re-sorted here.
+        ///
+        /// Accepts both ',' and '|' so one parser serves the form (comma, from the picker) and CSV
+        /// import (pipe, the DEF-316 Partner convention) — the same dual-delimiter tolerance
+        /// SyncCertificatePartnersAsync already applies. Values that resolve to nothing are returned
+        /// separately rather than dropped: silently discarding an unrecognised country is how
+        /// "Atlantis" reached the Country column in the first place.
+        /// </summary>
+        /// <param name="raw">Delimited country string, or null/blank for none.</param>
+        /// <param name="unresolved">Entries that matched no known country, in the order seen.</param>
+        /// <returns>Canonical country names, de-duplicated, in caller order.</returns>
+        public static List<string> ParseMany(string? raw, out List<string> unresolved)
+        {
+            var resolved = new List<string>();
+            unresolved = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(raw)) return resolved;
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var part in raw.Split(new[] { ',', '|' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var candidate = part.Trim();
+                if (candidate.Length == 0) continue;
+
+                if (TryResolve(candidate, out var canonical))
+                {
+                    if (seen.Add(canonical)) resolved.Add(canonical);
+                }
+                else
+                {
+                    unresolved.Add(candidate);
+                }
+            }
+
+            return resolved;
+        }
+
+        /// <summary>Convenience overload for callers that have already validated, or that treat an
+        /// unrecognised entry as simply absent.</summary>
+        public static List<string> ParseMany(string? raw) => ParseMany(raw, out _);
     }
 }

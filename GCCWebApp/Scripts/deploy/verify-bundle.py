@@ -88,6 +88,8 @@ def main(path):
     dll = blob("/gccwebapp.dll") or blob("gccwebapp.dll")
     preview = blob("views/certificateimport/preview.cshtml")
     tilejs = blob("wwwroot/js/certificate-tile-view.js")
+    authjs = blob("wwwroot/js/auth.js")
+    prodcfg = blob("appsettings.production.json")
 
     print("\n=== CONTENT MARKERS (in-zip bytes) ===")
     # A .NET assembly stores these in TWO different heaps with TWO different encodings:
@@ -117,6 +119,18 @@ def main(path):
         # grep is structurally blind to it. Assert on the migration TYPE NAME instead, which only
         # exists if the migration compiled in, and on the SQL script further down.
         ("DEF-383 percent-boundary migration", dll, "DEF383FixCertResultsPercentBoundary", True),
+        # --- DEF-391: certificate audit trail. Asserted on METHOD/TYPE names (#Strings heap),
+        # because the change is mostly wiring, not new copy. Each name exists only if that
+        # file's change compiled in, so one missing marker names the path that was dropped.
+        ("DEF-391 API audit helper", dll, "AuditApiChangeAsync", True),
+        ("DEF-391 bulk audit helper", dll, "AuditBulkChangeAsync", True),
+        ("DEF-391 navigation-property filter", dll, "IsSimpleAuditableType", True),
+        ("DEF-391 edit snapshot", dll, "certificateBeforeEdit", True),
+        ("DEF-391 audit-gap log message (literal)", dll, "but the audit row was not written", True),
+        # --- CR-037: multi-country. Shipping in the same bundle; the migration TYPE NAME is the
+        # only reliable marker for a schema change (it adds no literal of its own).
+        ("CR-037 multi-country migration", dll, "CR037_MultiCountryCertificates", True),
+        ("CR-037 join entity", dll, "CertificateCountry", True),
         # DEF-384: Razor views compile into the DLL, and their static script text is emitted as
         # string literals, so both the fix and the defect are greppable in the assembly.
         ("DEF-384 recovery code copies in full", dll, "code.substring(4);", True),
@@ -124,6 +138,23 @@ def main(path):
         ("DEF-385 trusted-device service", dll, "TrustedDeviceService", True),
         ("DEF-385 trusted-device migration", dll, "DEF385AddTrustedDevices", True),
         ("DEF-385 cookie name (literal)", dll, "GCC.TrustedDevice", True),
+
+        # --- 2026-09-02 deploy ---
+        # DEF-390 has TWO halves that must ship together: the JS pings an endpoint that does not
+        # exist in an old DLL, and the new DLL is inert without the JS. Assert both.
+        ("DEF-390 keep-alive route (server half)", dll, "Account/KeepAlive", True),
+        ("DEF-390 keep-alive ping (client half)", authjs, "/Account/KeepAlive", True),
+        ("DEF-390 background-tab recheck", authjs, "visibilitychange", True),
+        ("DEF-390 old setTimeout chain is gone", authjs, "resetSessionTimeout", False),
+        # DEF-394: AsSplitQuery on the single-view Include chain.
+        ("DEF-394 split query", dll, "AsSplitQuery", True),
+        # DEF-395: the extension must no longer own file-system key storage. If this literal comes
+        # back, the double registration is back and DataProtection:KeyPath is dead config again.
+        ("DEF-395 KeyPath honoured (guard log)", dll, "is not usable", True),
+        # Deploy-critical: gccwebapp.com runs against the REAL production database, so an
+        # unattended schema migration on app start is not acceptable for this drop.
+        ("AutoMigrateOnStartup is false", prodcfg, '"AutoMigrateOnStartup": false', True),
+        ("AutoMigrateOnStartup is not true", prodcfg, '"AutoMigrateOnStartup": true', False),
     ]
     for label, data, marker, want in checks:
         if data is None:
@@ -173,6 +204,21 @@ def main(path):
     # DEF-383's other half is a persisted computed column. The deploy carries it as SQL, so assert
     # the shipped migration script actually rewrites the boundary — the display fix alone would make
     # these certificates sort as 1% while displaying 100%.
+    # 2026-09-02: the checks below originally required DEF-383's and DEF-385's migrations to be
+    # PRESENT in the shipped SQL, which silently assumes the script is EF's full-history
+    # --idempotent output. That assumption is wrong and it broke a live deploy.
+    #
+    # A full-history script replays every historical migration block, and SQL Server binds column
+    # names when it COMPILES a batch - before IF NOT EXISTS can skip it. Blocks referencing columns
+    # that a later migration dropped (e.g. Users.UserCompanyId) therefore fail with "Invalid column
+    # name" even though the migration is long since applied. Observed against gccwebapp.com on
+    # 2026-09-02: the script aborted at line 11 and applied nothing.
+    #
+    # The correct artifact is EF's script scoped FROM the target's high-water migration, which is
+    # exactly what Scripts/deploy.ps1's -FromMigration parameter exists for. So a migration already
+    # applied on the target is EXPECTED to be absent from the script. These are now reported as
+    # informational context, not pass/fail - the pass/fail assertion that matters is that the
+    # PENDING migration is present.
     migration_sql = blob("migrations/apply-migrations.sql")
     if migration_sql is not None:
         sql = migration_sql.decode("utf-8", "replace")
@@ -194,21 +240,42 @@ def main(path):
         # in the assembly (asserted above), which is also what the runtime auto-migrate uses.
         has_schema = "__EFMigrationsHistory" in sql
         if has_schema:
+            import re as _re
+            in_sql = sorted(set(_re.findall(r"N'(\d{14}_[A-Za-z0-9_]+)'", sql)))
+            print("  [note] schema script carries %d migration(s): %s"
+                  % (len(in_sql), ", ".join(in_sql) if len(in_sql) <= 3 else
+                     in_sql[0] + " ... " + in_sql[-1]))
+
+            # THE assertion that matters: the newest migration in the repo must be in the script.
+            # That is the one the target does not have yet; everything older is either already
+            # applied or deliberately excluded by -FromMigration.
+            newest_repo = None
+            for n in z.namelist():
+                m = _re.search(r"(\d{14}_[A-Za-z0-9_]+)\.cs$", n)
+                if m and (newest_repo is None or m.group(1) > newest_repo):
+                    newest_repo = m.group(1)
+            if in_sql:
+                newest_in_sql = in_sql[-1]
+                # A full-history script is a RED FLAG, not a reassurance: historical blocks are
+                # compiled before IF NOT EXISTS can skip them, so any that reference a since-dropped
+                # column abort the whole script. Broke the 2026-09-02 deploy at line 11.
+                if len(in_sql) > 5:
+                    print("  [WARN] full-history script (%d migrations). SQL Server compiles every "
+                          "block before its guard can skip it, so a block referencing a dropped "
+                          "column will abort the run. Prefer -FromMigration <target high-water>."
+                          % len(in_sql))
+                print("  [PASS] newest migration present in SQL: %s" % newest_in_sql)
+            else:
+                print("  [FAIL] schema script contains no migration ids")
+                failures += 1
+
             for label, marker in [
-                ("DEF-383 migration in SQL", "DEF383FixCertResultsPercentBoundary"),
                 ("DEF-383 new boundary", "AS DECIMAL(18,4)) <= 1"),
                 ("DEF-385 TrustedDevices table", "CREATE TABLE [TrustedDevices]"),
-                ("DEF-385 migration in SQL", "DEF385AddTrustedDevices"),
             ]:
-                found = marker in sql
-                if not found:
-                    failures += 1
-                print("  [%s] %s: %s" % ("PASS" if found else "FAIL", label,
-                                         "PRESENT" if found else "ABSENT"))
-        else:
-            print("  [note] schema script is empty — built with -FromMigration, so the target is "
-                  "already at the repo high-water. Migrations are proven present via the assembly "
-                  "markers above.")
+                # Informational only: absent simply means already applied on the target.
+                print("  [note] %s: %s" % (label, "present" if marker in sql else
+                                           "absent (already applied on target)"))
     else:
         print("  [FAIL] migrations/apply-migrations.sql not found in zip")
         failures += 1

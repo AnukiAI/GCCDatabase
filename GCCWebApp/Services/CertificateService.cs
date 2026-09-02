@@ -592,6 +592,11 @@ namespace GCCWebApp.Services
                 .Include(c => c.Pathway)
                 .Include(c => c.Tags)
                 .Include(c => c.ProductIds)
+                // CR-037: the export's Country column lists every country, not just the
+                // denormalized primary. Safe to add to this single-query pull despite the
+                // DEF-253 note below — a certificate has one to three countries, so the
+                // cartesian multiplier is negligible next to ProductIds (up to 1,000) and Tags.
+                .Include(c => c.Countries)
                 // DEF-253 NOTE: tried .AsSplitQuery() here and it REGRESSED — the export is an
                 // unfiltered full-table pull with no pagination, so N split queries each re-scanning
                 // ProductIds/Tags/Subcats for ALL certs (incl. the 1000-ProductId seed cert) timed out
@@ -626,7 +631,20 @@ namespace GCCWebApp.Services
                 EffectiveDate = c.EffectiveDate,
                 ExpirationDate = c.ExpirationDate,
                 Location = c.Location ?? "",
-                Country = c.Country ?? "",
+                // CR-037: every country the certificate carries, not just the denormalized
+                // primary. Both exports (CSV and XLSX) read this one property, so this is the
+                // only place it has to be assembled.
+                //
+                // SEPARATOR IS ", " ON PURPOSE — it is what CountryList.ParseMany splits on
+                // (',' and '|'), so an exported file still round-trips through the certificate
+                // importer. Using "; " would look tidier and would silently break that round trip:
+                // ParseMany does NOT split on ';', so "United States; Canada" comes back as one
+                // unresolvable country. Same trap as DEF-346, where the Product ID export used a
+                // pipe under a heading that told the reader to use commas.
+                //
+                // The primary leads, then the rest alphabetically, so the column stays stable
+                // between exports and still reads primary-first.
+                Country = BuildCountryList(c),
                 ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name)),
                 InternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name)),
                 Asin = GetProductIdValues(c, "ASIN"),
@@ -634,6 +652,37 @@ namespace GCCWebApp.Services
                 Gtin = GetProductIdValues(c, "GTIN"),
                 Ean = GetProductIdValues(c, "EAN")
             }).ToList();
+        }
+
+        /// <summary>
+        /// CR-037: the certificate's countries as one export cell — primary first, then the rest
+        /// alphabetically, comma-separated so the file round-trips through CountryList.ParseMany.
+        ///
+        /// Falls back to the denormalized <c>Certificate.Country</c> when the join rows are empty.
+        /// That is not defensive padding: the CertificateCountries backfill only covers rows that
+        /// had a country at migration time, and any certificate whose join rows were never written
+        /// would otherwise export a BLANK country where it used to show one. A silent blank in a
+        /// client's export is worse than an incomplete list.
+        /// </summary>
+        private static string BuildCountryList(Certificate c)
+        {
+            var all = c.Countries?
+                .Select(x => x.Country)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? new List<string>();
+
+            if (all.Count == 0) return c.Country ?? "";
+
+            var primary = c.Country?.Trim();
+            var ordered = all
+                .OrderByDescending(x => !string.IsNullOrEmpty(primary)
+                                        && string.Equals(x, primary, StringComparison.OrdinalIgnoreCase))
+                .ThenBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return string.Join(", ", ordered);
         }
 
         private static string GetProductIdValues(Certificate c, string type)
@@ -1034,6 +1083,12 @@ namespace GCCWebApp.Services
                                    x => x.Id.ToString());
                 await CollectAsync(_context.CustomFieldValues.Where(x => x.CertificateId == id),
                                    x => x.Id.ToString());
+                // CR-037: country join rows are a real FK child with ON DELETE CASCADE, so they
+                // belong in this group rather than the skip-navigation group below. Without the
+                // capture, deleting a multi-country certificate silently loses every country but
+                // the denormalized primary, and a restore would come back single-country.
+                await CollectAsync(_context.CertificateCountries.Where(x => x.CertificateId == id),
+                                   x => x.Id.ToString(), x => x.Country);
 
                 // DEF-337 (completion): the four collections above are FK children with a real
                 // CertificateId column. A certificate ALSO sits in three many-to-many join

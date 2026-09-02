@@ -118,8 +118,11 @@ hashing and audit path as a real account. **All share the password `GccTest2026!
 | `test.external2` | shawnmwest+external2@gmail.com | External | **MAPEI** (313 certs) | TileViewExternal |
 | `test.amazon` | shawnmwest+amazon@gmail.com | Partner | **Amazon** | TileViewExternal |
 | `test.novi` | shawnmwest+novi@gmail.com | Partner | **Novi** | TileViewExternal |
+| *(email login only)* | shawnmwest+xsense@gmail.com | External | **X-SENSE** (10 certs, **2 not yet effective**) | TileViewExternal |
 
 All six verified to sign in and land on the correct role page, 2026-08-20.
+
+The **X-SENSE** row was added 2026-09-02 for the DEF-376 carve-out check and is the odd one out: it has no short username (sign in with the email) and it exists for one reason — it is the only External account that owns a **future-dated** certificate (`26-0441`/`26-0442`, effective 2026-10-21), which is what makes it possible to prove a company still sees its own *upcoming* certs while Amazon cannot. **It stops being able to prove that on 2026-10-21**, when those certs come into force — see the review note in `observations_log.md`.
 
 **The pairs are the point.** `test.external` / `test.external2` sit on different companies and
 `test.amazon` / `test.novi` on different partners, because a single scoped account can only ever
@@ -163,11 +166,28 @@ The password is unchanged — `TestPass123!` still works. An analyst/external lo
 with *"Invalid email or password"* because **the account is absent**, not because the hash rotated.
 Don't burn time re-trying passwords; check `Users` first.
 
-**Consequence for the test suites:** `Scripts/smoke-prod/_lib/smoke-template.js` (lines 62-64) and
-`Scripts/smoke-prod/_security/` default to `analyst` / `external` / `admin`, all `TestPass123!`. Only
-the `admin` row can authenticate against dev today, so any role-scoping or RBAC smoke that needs a
-real Analyst or External session cannot run there until those users are recreated. Nothing to fix in
-the scripts — it is a data gap in the database.
+**Consequence for the test suites — PARTLY RESOLVED 2026-09-02.** The claim above that dev holds
+only two users is **out of date**. `analyst` and `external` do authenticate against dev today
+(`cert-detail-scoping` signs in as both), and the five CR-171 **partner** fixtures were restored on
+2026-09-02 by running `Scripts/ci/seed-e2e.sql` against `GCCDatabase_Dev`. Dev now has **10 users**.
+
+That seed is idempotent, transactional and additive: its only DELETEs are scoped to its own fixture
+markers (`Certificates.Number LIKE '98-9%'`, `Products`/`Companies` named `ZZ_CI_%`, and its five
+fixture emails), all of which matched **zero** rows beforehand. Real certificate count was 5,702
+before and 5,702 after — 7 synthetic `98-900x` certs were added alongside. Re-run it any time the
+partner specs report BLOCKED:
+
+```
+sqlcmd -C -S ANUKI01 -d GCCDatabase_Dev -U GCC_DevUser -P <pw> -I -b -i Scripts/ci/seed-e2e.sql
+```
+
+Fixture partner users (password `TestPass123!`, copied from `admin`'s hash by the seed):
+`partner@amazon.com` → Amazon · `perry.novi@example.com` → Novi ·
+`pam.wayfair@example.com` → Wayfair · `pip.other@example.com` → Other ·
+`pru.multi@example.com` → **Amazon + Novi** (the multi-partner case — the one that can prove a
+co-partner leak).
+
+With those present `partner-isolation` runs its full 21 assertions instead of reporting 5 BLOCKED.
 
 **Posting the login form programmatically** (curl / `Invoke-WebRequest` / smoke scripts): the field is
 named **`Email`**, not `Username` — but it accepts **either** a username or an email

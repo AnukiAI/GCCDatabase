@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using GCCWebApp.Models;
 using GCCWebApp.Data;
@@ -24,7 +24,7 @@ namespace GCCWebApp.Services
                 new FilterOption { FilterType = "CertificationType", Text = "Certification Types", Count = await _context.CertificationTypes.CountAsync() },
                 new FilterOption { FilterType = "ProductCategories", Text = "Product Categories", Count = await _context.ProductCategories.CountAsync() },
                 new FilterOption { FilterType = "Companies", Text = "Companies", Count = await _context.Companies.CountAsync() },
-                new FilterOption { FilterType = "Countries", Text = "Countries", Count = await _context.Certificates.Where(c => !string.IsNullOrEmpty(c.Country)).Select(c => c.Country).Distinct().CountAsync() },
+                new FilterOption { FilterType = "Countries", Text = "Countries", Count = await _context.CertificateCountries.Where(cc => cc.Country != "").Select(cc => cc.Country).Distinct().CountAsync() }, // CR-037
                 new FilterOption { FilterType = "Status", Text = "Status", Count = await _context.Certificates.Select(c => c.Status).Distinct().CountAsync() }
             };
 
@@ -78,18 +78,21 @@ namespace GCCWebApp.Services
                         break;
 
                     case "countries":
-                        var countryCerts = _context.Certificates
-                            .Where(c => !string.IsNullOrEmpty(c.Country));
+                        // CR-037: enumerate the JOIN rows, not the primaries. A certificate that
+                        // lists three countries contributes to all three counts, so the number beside
+                        // each checkbox matches what ticking it actually returns.
+                        var countryCerts = _context.CertificateCountries
+                            .Where(cc => cc.Country != "");
 
                         // CR-187: normalize BEFORE grouping (the group key is the raw country string,
-                        // which has no computed column). Filter certs on NormalizedCountry first.
+                        // which has no computed column). Filter on NormalizedCountry first.
                         if (!string.IsNullOrWhiteSpace(searchTerm))
                         {
                             var nq = SearchNormalizer.Normalize(searchTerm);
-                            countryCerts = countryCerts.Where(c => c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq));
+                            countryCerts = countryCerts.Where(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq));
                         }
 
-                        var countryQuery = countryCerts.GroupBy(c => c.Country);
+                        var countryQuery = countryCerts.GroupBy(cc => cc.Country);
 
                         options = await countryQuery
                             .Select(g => new FilterOption
@@ -184,9 +187,11 @@ namespace GCCWebApp.Services
         {
             try
             {
-                return await _context.Certificates
-                    .Where(c => !string.IsNullOrEmpty(c.Country))
-                    .GroupBy(c => c.Country)
+                // CR-037: counted off the join rows so secondary countries appear and the counts
+                // agree with the membership filter.
+                return await _context.CertificateCountries
+                    .Where(cc => cc.Country != "")
+                    .GroupBy(cc => cc.Country)
                     .Select(g => new FilterOption
                     {
                         Value = g.Key ?? string.Empty,

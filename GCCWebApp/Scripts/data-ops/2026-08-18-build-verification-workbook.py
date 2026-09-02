@@ -113,6 +113,19 @@ print(f"pid recon : {pid_dir}")
 recon_summary = read_csv(os.path.join(recon_dir, "reconciliation-summary.csv"))
 mismatches    = read_csv(os.path.join(recon_dir, "reconciliation-mismatches.csv"))
 loaded_certs  = read_csv(os.path.join(recon_dir, "loaded-certificates-TEST-final.csv"))
+# The 4 certificates that carry product identifiers but NO partner. Produced straight from the
+# database (see observations 2026-09-01): the client asked "where can I see the 4 referenced?"
+# and could not, because the workbook stated the COUNT in prose and never listed the rows, and
+# no site filter can express "has identifiers AND has no partner" -- 5,458 certificates have no
+# partner, so filtering on that alone returns thousands.
+nopartner     = read_csv(os.path.join(recon_dir, "certificates-no-partner.csv"))
+# Partner COVERAGE, as distinct from identifier volume. The "no partner" tab above can only
+# surface certificates that carry identifiers, because that is its predicate -- so it reports 4
+# while 683 active certificates in total carry no partner. Shawn, 2026-09-01: state the lens or
+# the reader takes the subset for the population.
+covmatrix     = read_csv(os.path.join(recon_dir, "partner-coverage-matrix.csv"))
+nopartner_all = read_csv(os.path.join(recon_dir, "active-certs-no-partner.csv"))
+amazon_noids  = read_csv(os.path.join(recon_dir, "active-amazon-certs-no-identifiers.csv"))
 quarantined   = read_csv(os.path.join(transform_dir, "quarantine-incomplete-rows.csv")) if transform_dir else []
 missing_db    = read_csv(os.path.join(verify_dir, "missing-from-database.csv")) if verify_dir else []
 extra_db      = read_csv(os.path.join(verify_dir, "extra-in-database.csv")) if verify_dir else []
@@ -381,6 +394,52 @@ sheet(wb, "ASINs",
       widths=[40, 16, 46])
 
 # ---- Documents
+# ---- Certificates carrying identifiers but no partner (the "untagged" row on ASINs, itemised)
+if nopartner:
+    ws = sheet(wb, "No Partner",
+               ["Certificate", "Company", "Status", "Effective", "Expiration",
+                "Product identifiers", "Partner on certificate", "Reaches Amazon today",
+                "Why", "View on site"],
+               [[r.get("CertificateNumber", ""), r.get("Company", ""), r.get("Status", ""),
+                 r.get("EffectiveDate", ""), r.get("ExpirationDate", ""),
+                 int(r.get("ProductIdentifiers") or 0), r.get("PartnerOnCertificate", ""),
+                 r.get("ReachesAmazonToday", ""), r.get("Why", ""), r.get("ViewOnSite", "")]
+                for r in nopartner],
+               widths=[14, 30, 24, 12, 12, 18, 20, 20, 74, 62])
+    for r in range(2, len(nopartner) + 2):
+        ws.cell(row=r, column=7).fill = WARN_FILL   # partner column - the thing to decide
+        ws.cell(row=r, column=8).fill = BAD_FILL    # not reaching Amazon
+
+# ---- Partner coverage: the lens behind the "No Partner" tab, stated explicitly
+if covmatrix:
+    sheet(wb, "Partner Coverage",
+          ["Partner on certificate", "Product identifiers", "Certificate status", "Certificates"],
+          [[r.get("Partner on certificate", ""), r.get("Product identifiers", ""),
+            r.get("Certificate status", ""), int(r.get("Certificates") or 0)] for r in covmatrix],
+          widths=[24, 20, 20, 14])
+
+if nopartner_all:
+    sheet(wb, "Active - No Partner",
+          ["Certificate", "Company", "Status", "Effective", "Expiration",
+                "Product identifiers", "Partner on certificate", "View on site"],
+          [[r.get("CertificateNumber",""), r.get("Company",""), r.get("Status",""),
+                 r.get("EffectiveDate",""), r.get("ExpirationDate",""),
+                 int(r.get("ProductIdentifiers") or 0), r.get("PartnerOnCertificate",""),
+                 r.get("ViewOnSite","")]
+                for r in nopartner_all],
+          widths=[14, 34, 24, 12, 12, 18, 20, 62])
+
+if amazon_noids:
+    sheet(wb, "Amazon - No Identifiers",
+          ["Certificate", "Company", "Status", "Effective", "Expiration",
+                "Product identifiers", "Partner on certificate", "View on site"],
+          [[r.get("CertificateNumber",""), r.get("Company",""), r.get("Status",""),
+                 r.get("EffectiveDate",""), r.get("ExpirationDate",""),
+                 int(r.get("ProductIdentifiers") or 0), r.get("PartnerOnCertificate",""),
+                 r.get("ViewOnSite","")]
+                for r in amazon_noids],
+          widths=[14, 34, 24, 12, 12, 18, 20, 62])
+
 sheet(wb, "Documents",
       ["Measure", "Value", "Note"],
       [["Document/certificate pairs linked", 5474, ""],
@@ -462,6 +521,10 @@ readme = [
     ["Duplicate Numbers", "Every number held by more than one certificate."],
     ["ASINs", "Product identifiers reconciled in both directions. The 'untagged' row means the "
               "certificate carries no partner, so no partner receives it."],
+    ["No Partner", "The certificates behind the ASINs 'untagged' row - identifiers that reach no partner."],
+    ["Partner Coverage", "Every certificate by partner, identifiers and status - the whole picture in one grid."],
+    ["Active - No Partner", "All 683 active certificates that carry no partner, not only those with identifiers."],
+    ["Amazon - No Identifiers", "Active certificates associated with Amazon that carry no product identifiers."],
     ["Documents", "Certificate document and preview attachment results."],
     ["Product ID Fields", "Product name and partner tag on each ASIN, checked against your files."],
     ["Name Conflicts", "ASINs your list holds more than once with a different product name each "

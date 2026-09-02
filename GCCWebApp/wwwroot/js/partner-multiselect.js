@@ -1,4 +1,10 @@
-/**
+﻿/**
+ * Checkbox multi-select dropdown.
+ *
+ * Originally built for Partner(s); CR-037 reused it verbatim for Country so the two fields are the
+ * same control rather than two lookalikes. Only the wording is parameterised — the markup, classes
+ * and inline styles are shared, which is what actually guarantees they render identically.
+ *
  * Partner(s) multi-select dropdown.
  *
  * Replaces the native `<select multiple size="4">` (Ctrl-click) Partner(s) control on the
@@ -16,10 +22,23 @@
 (function () {
     'use strict';
 
-    function initPartnerMultiselect(selectId, hiddenId) {
+    // Wording only. Defaults are the original Partner strings, so the existing Partner call site
+    // behaves exactly as before when it passes no labels.
+    const DEFAULT_LABELS = {
+        field: 'Partner(s)',
+        placeholder: 'Select partner(s)...',
+        searchPlaceholder: 'Search partners...',
+        searchLabel: 'Search partners',
+        noMatch: 'No partner found matching',
+        noneAvailable: 'No partners available'
+    };
+
+    function initPartnerMultiselect(selectId, hiddenId, labels) {
         const select = document.getElementById(selectId);
         if (!select || select.dataset.checkboxDropdownInit) return;
         select.dataset.checkboxDropdownInit = 'true';
+
+        const L = Object.assign({}, DEFAULT_LABELS, labels || {});
 
         const formGroup = select.closest('.form-group');
         if (!formGroup) return;
@@ -37,7 +56,7 @@
         trigger.setAttribute('aria-haspopup', 'listbox');
         trigger.setAttribute('aria-expanded', 'false');
         trigger.setAttribute('aria-controls', selectId + '-partner-panel');
-        trigger.setAttribute('aria-label', 'Partner(s)');
+        trigger.setAttribute('aria-label', L.field);
         trigger.style.cssText = `
             display: flex; justify-content: space-between; align-items: center;
             padding: 10px 12px; border: 1px solid #ced4da; border-radius: 4px;
@@ -45,7 +64,7 @@
             transition: border-color 0.2s; gap: 10px;
         `;
         trigger.innerHTML = `
-            <span class="partner-multiselect-selected" style="color: #6c757d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Select partner(s)...</span>
+            <span class="partner-multiselect-selected" style="color: #6c757d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${L.placeholder}</span>
             <i class="fas fa-chevron-down" style="color: #6c757d; font-size: 12px; transition: transform 0.2s; flex-shrink: 0;"></i>
         `;
 
@@ -68,9 +87,9 @@
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.className = 'partner-multiselect-search';
-        searchInput.placeholder = 'Search partners...';
+        searchInput.placeholder = L.searchPlaceholder;
         searchInput.setAttribute('autocomplete', 'off');
-        searchInput.setAttribute('aria-label', 'Search partners');
+        searchInput.setAttribute('aria-label', L.searchLabel);
         searchInput.style.cssText = `
             width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;
             font-size: 14px; outline: none;
@@ -142,7 +161,7 @@
                 noResult.setAttribute('aria-selected', 'false');
                 noResult.setAttribute('aria-disabled', 'true');
                 noResult.style.cssText = 'padding: 10px 16px; color: #6c757d; font-style: italic; font-size: 14px;';
-                noResult.textContent = filterLower ? `No partner found matching "${filter}"` : 'No partners available';
+                noResult.textContent = filterLower ? `${L.noMatch} "${filter}"` : L.noneAvailable;
                 optionsContainer.appendChild(noResult);
             }
         }
@@ -163,12 +182,12 @@
                 span.textContent = names.join(', ');
                 span.style.color = '#333';
                 span.title = names.join(', ');
-                trigger.setAttribute('aria-label', 'Partner(s): ' + names.join(', '));
+                trigger.setAttribute('aria-label', L.field + ': ' + names.join(', '));
             } else {
-                span.textContent = 'Select partner(s)...';
+                span.textContent = L.placeholder;
                 span.style.color = '#6c757d';
                 span.title = '';
-                trigger.setAttribute('aria-label', 'Partner(s)');
+                trigger.setAttribute('aria-label', L.field);
             }
         }
 
@@ -235,9 +254,23 @@
     }
 
     window.initPartnerMultiselect = initPartnerMultiselect;
+    // Neutral alias — the control is not partner-specific any more.
+    window.initCheckboxMultiselect = initPartnerMultiselect;
 
     function boot() {
         initPartnerMultiselect('partnerSelect', 'partnersHidden');
+
+        // CR-037: Country uses the SAME control as Partner, deliberately. Both fields are optional
+        // multi-selects on this form, so anything less than the identical component reads as two
+        // different widgets doing the same job. Only the wording differs.
+        initPartnerMultiselect('countrySelect', 'countriesHidden', {
+            field: 'Country',
+            placeholder: 'Select country(s)...',
+            searchPlaceholder: 'Search countries...',
+            searchLabel: 'Search countries',
+            noMatch: 'No country found matching',
+            noneAvailable: 'No countries available'
+        });
     }
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot);

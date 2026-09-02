@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Extensions;
 using GCCWebApp.Models;
@@ -124,6 +124,24 @@ namespace GCCWebApp.Repositories
         /// DEF-369: the single-view Include chain, shared by the number-only and number+id
         /// lookups. Extracted so the two can never drift — a detail page that loads different
         /// navigation properties depending on which URL form was used would be its own defect.
+        ///
+        /// DEF-393: this chain pulls SIX collection navigations — CertificationTypeSubcategories,
+        /// Tags, Partners, Countries (added by CR-037), CustomFieldValues and ProductIds. Under
+        /// EF's default SingleQuery behaviour that is one join returning the CARTESIAN PRODUCT of
+        /// all six, with the certificate/product/company columns repeated on every row. EF logs
+        /// MultipleCollectionIncludeWarning on every call for exactly this reason.
+        ///
+        /// Worst case in the current dataset is cert 24-0300 at 2,440 rows — all from ProductIds,
+        /// because every other collection happens to hold one row. That is survivable today, which
+        /// is precisely why this is worth fixing now rather than later: the row count is the
+        /// PRODUCT, not the sum, so the same certificate gaining three tags and two countries would
+        /// return ~15,000 rows for one detail page. CR-037 has just added a sixth multiplier.
+        ///
+        /// AsSplitQuery issues one query per collection instead. Safe for both callers here: each
+        /// fetches a single entity, and the ordering is deterministic (PickOneByNumber tie-breaks on
+        /// Id, and the number+id lookup is unique by definition), so the root row cannot vary
+        /// between the split queries. Matches the existing AsSplitQuery usage elsewhere in this
+        /// repository and the DEF-166/234 precedent.
         /// </summary>
         private static IQueryable<Certificate> WithSingleViewIncludes(IQueryable<Certificate> query) =>
             query
@@ -138,10 +156,12 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.ProductSubcategory)
                 .Include(c => c.Tags)
                 .Include(c => c.Partners)
+                .Include(c => c.Countries) // CR-037 — feeds the Edit picker and the detail views
                 .Include(c => c.CustomFieldValues)
                     .ThenInclude(cfv => cfv.Field)
                 .Include(c => c.ProductIds)
-                .Include(c => c.Pathway);
+                .Include(c => c.Pathway)
+                .AsSplitQuery();
 
         public async Task<Certificate?> GetCertificateByNumberAsync(string certificateNumber)
         {
@@ -188,7 +208,9 @@ namespace GCCWebApp.Repositories
                            c.Company.NormalizedName!.Contains(nq) ||
                            c.Product.NormalizedName!.Contains(nq) ||
                            (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                           (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)), tagIds)
+                           (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
+                           // CR-037: secondary countries are searchable too, not just the primary.
+                           c.Countries.Any(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq)), tagIds)
                 .ToListAsync();
         }
 
@@ -328,7 +350,9 @@ namespace GCCWebApp.Repositories
                         c.Product.NormalizedName!.Contains(nq) ||
                         c.CertificationType.NormalizedName!.Contains(nq) ||
                         (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                        (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)), tagIds);
+                        (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
+                        // CR-037: secondary countries are searchable too, not just the primary.
+                        c.Countries.Any(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq)), tagIds);
                 }
             }
 
@@ -422,7 +446,9 @@ namespace GCCWebApp.Repositories
                 query = query.Where(c => c.CertificationType != null && EF.Constant(filter.CertificationTypeNames).Contains(c.CertificationType.Name));
 
             if (filter.Countries != null && filter.Countries.Any())
-                query = query.Where(c => c.Country != null && EF.Constant(filter.Countries).Contains(c.Country));
+                // CR-037: match if the country exists anywhere on the certificate, not only as the
+                // denormalized primary.
+                query = query.Where(c => c.Countries.Any(cc => EF.Constant(filter.Countries).Contains(cc.Country)));
 
             if (filter.CompanyIds != null && filter.CompanyIds.Any())
                 query = query.Where(c => EF.Constant(filter.CompanyIds).Contains(c.CompanyId));
@@ -508,6 +534,7 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.CertificationType)
                 .Include(c => c.Tags)
                 .Include(c => c.Partners)
+                .Include(c => c.Countries) // CR-037
                 .AsSplitQuery()
                 // DEF-381: honour an exact row offset when the caller supplied one. Offset-based
                 // callers cannot round-trip through a page number unless the offset happens to be a
@@ -568,7 +595,9 @@ namespace GCCWebApp.Repositories
             // CR-187: normalized match (case/punctuation/whitespace insensitive).
             var nq = SearchNormalizer.Normalize(country);
             return await _dbSet
-                .Where(c => c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq))
+                // CR-037: match against every associated country, not just the primary.
+                .Where(c => (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
+                            c.Countries.Any(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq)))
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -894,9 +923,10 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<string>> GetDistinctCountriesAsync()
         {
-            var countries = await _dbSet
-                .Where(c => c.Country != null && c.Country.Trim() != "")
-                .Select(c => c.Country!)
+            // CR-037: every country that appears on any certificate, primary or not.
+            var countries = await _context.CertificateCountries
+                .Where(cc => cc.Country.Trim() != "")
+                .Select(cc => cc.Country)
                 .Distinct()
                 .OrderBy(c => c)
                 .ToListAsync();

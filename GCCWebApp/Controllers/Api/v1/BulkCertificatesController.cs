@@ -28,14 +28,53 @@ namespace GCCWebApp.Controllers.Api.v1
         // audited and capture cascade children exactly as single deletes do.
         private readonly GCCWebApp.Services.ICertificateService _certificateService;
 
+        // DEF-391: bulk create and bulk update wrote to the context with no audit row, so the
+        // one endpoint that can change 100 certificates in a single call was also the one that
+        // left no record of it. Delete was already covered (DEF-337, above).
+        private readonly GCCWebApp.Services.Audit.IAuditService _auditService;
+
         public BulkCertificatesController(
             ApplicationDbContext context,
             ILogger<BulkCertificatesController> logger,
-            GCCWebApp.Services.ICertificateService certificateService)
+            GCCWebApp.Services.ICertificateService certificateService,
+            GCCWebApp.Services.Audit.IAuditService auditService)
         {
             _context = context;
             _logger = logger;
             _certificateService = certificateService;
+            _auditService = auditService;
+        }
+
+        /// <summary>
+        /// DEF-391: one audit write for the bulk endpoints, per certificate.
+        ///
+        /// Called AFTER the single SaveChangesAsync that commits the whole batch — a bulk call
+        /// is one transaction, and a half-audited batch would be worse than an unaudited one.
+        /// Failures are logged, never thrown: a partner or analyst must not receive a 500 for a
+        /// batch that actually committed.
+        /// </summary>
+        private async Task AuditBulkChangeAsync(
+            string action, Certificate? before, Certificate after)
+        {
+            try
+            {
+                await _auditService.LogEntityChangeAsync(
+                    after.Id.ToString(),
+                    after.Number,
+                    action,
+                    before,
+                    after,
+                    0,                                   // resolved from the principal / service account
+                    User?.Identity?.Name ?? "Bulk API",
+                    reason: "Bulk API operation",
+                    changeSource: AuditChangeSource.API);
+            }
+            catch (Exception auditEx)
+            {
+                _logger.LogError(auditEx,
+                    "AUDIT GAP: certificate {Number} (id {Id}) was changed by a bulk {Action} but the audit row was not written",
+                    after.Number, after.Id, action);
+            }
         }
 
         [HttpPost("create")]
@@ -115,6 +154,12 @@ namespace GCCWebApp.Controllers.Api.v1
             if (successfulCertificates.Any())
             {
                 await _context.SaveChangesAsync();
+
+                // DEF-391: audit after the save, when every row has its assigned Id.
+                foreach (var created in successfulCertificates)
+                {
+                    await AuditBulkChangeAsync(AuditAction.Create, null, created);
+                }
             }
 
             result.TotalProcessed = certificates.Count;
@@ -156,6 +201,11 @@ namespace GCCWebApp.Controllers.Api.v1
 
             var result = new BulkOperationResult();
 
+            // DEF-391: (stored state before the edit, entity after the edit) per row, so the
+            // audit can be written once the batch commits. Kept as pairs rather than audited
+            // inline because the SaveChangesAsync below is what makes any of it real.
+            var auditPairs = new List<(Certificate Before, Certificate After)>();
+
             foreach (var certificate in certificates)
             {
                 try
@@ -189,6 +239,12 @@ namespace GCCWebApp.Controllers.Api.v1
                         continue;
                     }
 
+                    // DEF-391: detached read of the stored row BEFORE the assignments below.
+                    // existingCert is tracked, so it cannot be its own "before".
+                    var beforeUpdate = await _context.Certificates
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(c => c.Id == certificate.Id);
+
                     existingCert.Number = certificate.Number;
                     existingCert.ProductId = certificate.ProductId;
                     existingCert.CompanyId = certificate.CompanyId;
@@ -197,6 +253,11 @@ namespace GCCWebApp.Controllers.Api.v1
                     existingCert.ExpirationDate = certificate.ExpirationDate;
                     existingCert.Status = certificate.Status;
                     existingCert.UpdatedAt = DateTime.UtcNow;
+
+                    if (beforeUpdate != null)
+                    {
+                        auditPairs.Add((beforeUpdate, existingCert));
+                    }
 
                     result.Successful.Add(certificate.Number);
                 }
@@ -216,6 +277,12 @@ namespace GCCWebApp.Controllers.Api.v1
             }
 
             await _context.SaveChangesAsync();
+
+            // DEF-391: one audit row per changed field, per certificate, after the commit.
+            foreach (var (before, after) in auditPairs)
+            {
+                await AuditBulkChangeAsync(AuditAction.Update, before, after);
+            }
 
             result.TotalProcessed = certificates.Count;
             result.SuccessCount = result.Successful.Count;

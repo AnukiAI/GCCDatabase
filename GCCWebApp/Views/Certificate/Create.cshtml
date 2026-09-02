@@ -288,19 +288,31 @@
                         <span asp-validation-for="Location" class="text-danger" role="alert"></span>
                     </div>
 
+                    @{
+                        // CR-037: multi-country. Same markup as Partner(s) above, and at runtime the
+                        // SAME control: partner-multiselect.js upgrades both <select multiple> elements
+                        // into the checkbox dropdown (with its own search box). Sharing the component,
+                        // rather than imitating it, is what keeps the two fields looking identical.
+                        var selectedCountries = (Model.Countries ?? "")
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(x => x.Trim())
+                            .Where(x => x.Length > 0)
+                            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    }
                     <div class="form-group">
-                        <label asp-for="Country">Country</label>
-                        <select asp-for="Country" class="form-control" id="countrySelect">
-                            <option value="">Select country...</option>
+                        <label for="countrySelect">Country <span class="text-muted" style="font-size: 12px;">(Optional - Multiple)</span></label>
+                        <select id="countrySelect" class="form-control" multiple size="4" aria-label="Select one or more countries">
                             @if (ViewBag.Countries != null)
                             {
                                 foreach (var country in (List<string>)ViewBag.Countries)
                                 {
-                                    <option value="@country">@country</option>
+                                    <option value="@country" selected="@(selectedCountries.Contains(country) ? "selected" : null)">@country</option>
                                 }
                             }
                         </select>
-                        <span asp-validation-for="Country" class="text-danger" role="alert"></span>
+                        <input type="hidden" asp-for="Countries" id="countriesHidden" />
+                        <small class="form-text text-muted">Select one or more countries the product was made or tested in.</small>
+                        <span asp-validation-for="Countries" class="text-danger" role="alert"></span>
                     </div>
                 </div>
 
@@ -456,7 +468,6 @@
     <script>
         var certTypeSearch = new SearchableSelect('#CertificationTypeId', { placeholder: 'Search certification types...' });
         var productCategorySearch = new SearchableSelect('#ProductCategoryId', { placeholder: 'Search product categories...' });
-        new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });
         // Company and Product dropdowns are handled by certificate-inline-create.js (createCustomDropdown)
         // which provides search + "Add New" functionality. Do NOT also wrap them with SearchableSelect.
     </script>
@@ -467,6 +478,23 @@
             var sel = document.getElementById('partnerSelect');
             var hidden = document.getElementById('partnersHidden');
             if (!sel || !hidden) return;
+            function sync() {
+                hidden.value = Array.from(sel.selectedOptions).map(function (o) { return o.value; }).join(',');
+            }
+            sel.addEventListener('change', sync);
+            sync(); // capture any server-side pre-selection on load
+        })();
+    </script>
+
+    <script>
+        // CR-037: same pattern as the partner sync above — keep the hidden Countries field (a
+        // comma-separated list of country NAMES; no entry in CountryList contains a comma) in step
+        // with the multi-select.
+        (function () {
+            var sel = document.getElementById('countrySelect');
+            var hidden = document.getElementById('countriesHidden');
+            if (!sel || !hidden) return;
+
             function sync() {
                 hidden.value = Array.from(sel.selectedOptions).map(function (o) { return o.value; }).join(',');
             }

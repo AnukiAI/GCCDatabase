@@ -1,0 +1,35 @@
+{
+  "base": "https://gccwebapp.com",
+  "businessToday": "2026-09-02",
+  "ranAt": "2026-09-02T15:49:48.664Z",
+  "truth": {
+    "amazonTotal": 244,
+    "currentCount": 187,
+    "future": [
+      {
+        "id": 3137,
+        "number": "26-0441",
+        "effectiveDate": "2026-10-21",
+        "company": "X-SENSE"
+      },
+      {
+        "id": 3138,
+        "number": "26-0442",
+        "effectiveDate": "2026-10-21",
+        "company": "X-SENSE"
+      }
+    ]
+  },
+  "carveOut": {
+    "exercised": true,
+    "total": 23,
+    "futureVisible": 0,
+    "sample": []
+  },
+  "tileCount": 187,
+  "results": {
+    "pass": 12,
+    "fail": 0,
+    "controlFailures": 0
+  }
+}

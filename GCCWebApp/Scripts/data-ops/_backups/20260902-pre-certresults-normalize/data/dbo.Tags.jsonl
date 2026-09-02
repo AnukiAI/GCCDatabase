@@ -1,0 +1,4 @@
+{"Id":1,"Name":"APR","TagType":"external","Description":"APR compliant","IsActive":true}
+{"Id":2,"Name":"LEED","TagType":"external","Description":"LEED eligibility","IsActive":true}
+{"Id":35,"Name":"PL/BE","TagType":"internal","Description":"Private Label or Brand Extension","IsActive":true}
+{"Id":1041,"Name":"Gensler GPS","TagType":"external","Description":"Cert eligible for Gensler GPS (e.g., CSF labels that product fall into approved product categories)","IsActive":true}

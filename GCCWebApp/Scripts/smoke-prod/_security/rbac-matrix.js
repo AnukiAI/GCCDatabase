@@ -85,10 +85,10 @@ async function run() {
       let pass, notes;
       if (row.expect === 'deny') {
         pass = denied;
-        notes = `HTTP ${code} (expect deny 401/403/302)` + (pass ? '' : ' — ⚠ NOT DENIED');
+        notes = `${H.fmtStatus(code)} (expect deny 401/403/302)` + (pass ? '' : ' — ⚠ NOT DENIED');
       } else {
         pass = code === 200;
-        notes = `HTTP ${code} (expect allow 200)`;
+        notes = `${H.fmtStatus(code)} (expect allow 200)`;
       }
       // A denied-when-should-allow is a WARN (functional/test-data), NOT a security FAIL.
       // A allowed-when-should-deny is a security FAIL (the dangerous direction).

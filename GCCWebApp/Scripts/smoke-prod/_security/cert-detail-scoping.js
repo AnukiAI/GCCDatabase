@@ -88,7 +88,7 @@ async function run() {
     if (ownCert) {
       const s = await pageStatus(extCtx, `/Certificate/CertificateExternalView/${ownCert}`);
       record('detail.A1.ext-own-200', `external -> ExternalView(${ownCert})`,
-        s === 200 ? 'PASS' : 'FAIL', `HTTP ${s} (expect 200)`);
+        s === 200 ? 'PASS' : 'FAIL', `${H.fmtStatus(s)} (expect 200)`);
       const internalTags = await countInternalTags(ext.page, `/Certificate/CertificateExternalView/${ownCert}`);
       record('detail.A2.ext-no-internal-tags', 'external detail hides internal tags',
         internalTags === 0 ? 'PASS' : 'FAIL', `.tag.internal count=${internalTags} (expect 0)`);
@@ -101,7 +101,7 @@ async function run() {
       const s = await pageStatus(extCtx, `/Certificate/CertificateExternalView/${foreignCert}`);
       record('detail.A3.ext-foreign-404', `external -> ExternalView(${foreignCert}) [other company]`,
         s === 404 ? 'PASS' : 'FAIL',
-        `HTTP ${s} (expect 404)` + (s === 200 ? ' — ⚠ CROSS-COMPANY DETAIL LEAK' : ''));
+        `${H.fmtStatus(s)} (expect 404)` + (s === 200 ? ' — ⚠ CROSS-COMPANY DETAIL LEAK' : ''));
     } else {
       record('detail.A3.ext-foreign', 'foreign public cert available for scoping test', 'WARN',
         'no foreign public-status cert of another company found in dataset');
@@ -113,7 +113,7 @@ async function run() {
     if (publicCert) {
       const s = await pageStatus(anonCtx, `/Certificate/CertificateSingleView/${publicCert}`);
       record('detail.A4.anon-public-200', `anon -> SingleView(${publicCert})`,
-        s === 200 ? 'PASS' : 'FAIL', `HTTP ${s} (expect 200)`);
+        s === 200 ? 'PASS' : 'FAIL', `${H.fmtStatus(s)} (expect 200)`);
       const internalTags = await countInternalTags(anonPage, `/Certificate/CertificateSingleView/${publicCert}`);
       record('detail.A5.anon-no-internal-tags', 'public single view hides internal tags',
         internalTags === 0 ? 'PASS' : 'FAIL', `.tag.internal count=${internalTags} (expect 0)`);
@@ -124,7 +124,7 @@ async function run() {
       const s = await pageStatus(anonCtx, `/Certificate/CertificateSingleView/${nonPublicCert}`);
       record('detail.A6.anon-nonpublic-404', `anon -> SingleView(${nonPublicCert}) [non-public status]`,
         s === 404 ? 'PASS' : 'FAIL',
-        `HTTP ${s} (expect 404)` + (s === 200 ? ' — ⚠ NON-PUBLIC CERT EXPOSED TO PUBLIC' : ''));
+        `${H.fmtStatus(s)} (expect 404)` + (s === 200 ? ' — ⚠ NON-PUBLIC CERT EXPOSED TO PUBLIC' : ''));
     } else {
       record('detail.A6.anon-nonpublic', 'non-public cert available for status-gate test', 'WARN',
         'all certs are public status — cannot test the gate');
@@ -135,14 +135,14 @@ async function run() {
       const denied = new Set([302, 401, 403]);
       const se = await pageStatus(extCtx, `/Certificate/CertificateInternalView/${ownCert}`);
       record('detail.A7.ext-internal-denied', `external -> InternalView(${ownCert})`,
-        denied.has(se) ? 'PASS' : 'FAIL', `HTTP ${se} (expect 302/401/403)` + (se === 200 ? ' — ⚠ EXTERNAL REACHED INTERNAL VIEW' : ''));
+        denied.has(se) ? 'PASS' : 'FAIL', `${H.fmtStatus(se)} (expect 302/401/403)` + (se === 200 ? ' — ⚠ EXTERNAL REACHED INTERNAL VIEW' : ''));
       const sa = await pageStatus(anonCtx, `/Certificate/CertificateInternalView/${ownCert}`);
       record('detail.A8.anon-internal-denied', `anon -> InternalView(${ownCert})`,
-        denied.has(sa) ? 'PASS' : 'FAIL', `HTTP ${sa} (expect 302/401/403)`);
+        denied.has(sa) ? 'PASS' : 'FAIL', `${H.fmtStatus(sa)} (expect 302/401/403)`);
       // ---- P1 : positive control — admin CAN reach the internal view ----
       const sp = await pageStatus(adminCtx, `/Certificate/CertificateInternalView/${ownCert}`);
       record('detail.P1.admin-internal-200', `admin -> InternalView(${ownCert})`,
-        sp === 200 ? 'PASS' : 'WARN', `HTTP ${sp} (expect 200)`);
+        sp === 200 ? 'PASS' : 'WARN', `${H.fmtStatus(sp)} (expect 200)`);
     }
 
     await anonCtx.close();

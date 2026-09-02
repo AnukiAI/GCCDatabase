@@ -1,4 +1,4 @@
-@model GCCWebApp.Models.CertificateDetailsViewModelSimple
+﻿@model GCCWebApp.Models.CertificateDetailsViewModelSimple
 @{
     ViewData["Title"] = "Certificate Details - Internal";
     ViewData["BodyClass"] = "certificate-single-view";
@@ -11,6 +11,14 @@
     var company = Model.Certificate?.Company?.Name ?? "—";
     var productName = Model.Certificate?.Product?.Name ?? "—";
     var productType = Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "—";
+
+    // CR-037: all associated countries, primary first, comma-joined.
+    var allCountries = Model.Certificate?.Countries != null && Model.Certificate.Countries.Any()
+        ? string.Join(", ", Model.Certificate.Countries
+            .OrderByDescending(cc => cc.Country == Model.Certificate.Country)
+            .ThenBy(cc => cc.Country)
+            .Select(cc => cc.Country))
+        : Model.Certificate?.Country;
 
     // Format certificate number as YY-####
     string GetFormattedCertificateNumber()
@@ -147,17 +155,18 @@
                         }
                         <div class="certificate-location">
                             <i class="fas fa-map-marker-alt"></i>
-                            @if (!string.IsNullOrEmpty(Model.Certificate?.Location) && !string.IsNullOrEmpty(Model.Certificate?.Country))
+                            @* CR-037: allCountries lists every country, not just the primary. *@
+                            @if (!string.IsNullOrEmpty(Model.Certificate?.Location) && !string.IsNullOrEmpty(allCountries))
                             {
-                                <text>@Model.Certificate.Location, @Model.Certificate.Country</text>
+                                <text>@Model.Certificate.Location, @allCountries</text>
                             }
                             else if (!string.IsNullOrEmpty(Model.Certificate?.Location))
                             {
                                 @Model.Certificate.Location
                             }
-                            else if (!string.IsNullOrEmpty(Model.Certificate?.Country))
+                            else if (!string.IsNullOrEmpty(allCountries))
                             {
-                                @Model.Certificate.Country
+                                @allCountries
                             }
                             else
                             {

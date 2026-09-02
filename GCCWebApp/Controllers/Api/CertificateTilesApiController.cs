@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
@@ -204,7 +204,13 @@ namespace GCCWebApp.Controllers.Api
                     effectiveDate = c.EffectiveDate.ToString("yyyy-MM-dd"),
                     expirationDate = c.ExpirationDate.ToString("yyyy-MM-dd"),
                     location = c.Location,
-                    country = c.Country,
+                    // CR-037: comma-joined, primary first so the lead value matches the sort key.
+                    country = c.Countries.Count > 0
+                        ? string.Join(", ", c.Countries
+                            .OrderByDescending(cc => cc.Country == c.Country)
+                            .ThenBy(cc => cc.Country)
+                            .Select(cc => cc.Country))
+                        : c.Country,
                     status = c.Status,
                     isExpired = c.ExpirationDate != null && c.ExpirationDate < businessToday,
                     isExpiringSoon = c.ExpirationDate != null && c.ExpirationDate <= businessToday.AddDays(30) && c.ExpirationDate >= businessToday,
@@ -384,12 +390,18 @@ namespace GCCWebApp.Controllers.Api
                         .OrderBy(c => c.name)
                         .ToListAsync(),
 
+                    // CR-037: from the join rows, still off baseQuery so public visibility gating
+                    // (DEF-358) continues to bound which countries are offered.
                     countries = (await baseQuery
-                        .Select(c => c.Country)
+                        .SelectMany(c => c.Countries)
+                        .Select(cc => cc.Country)
                         .Where(c => !string.IsNullOrEmpty(c))
                         .Distinct()
                         .ToListAsync())
-                        .OrderBy(c => c == "United States" ? 0 : 1)
+                        // Pinned country comes from CountryList so the facet list and the Create/Edit
+                        // picker cannot drift apart. In-memory ordering (the query is already
+                        // materialised), so the constant needs no EF translation.
+                        .OrderBy(c => c == CountryList.PinnedCountry ? 0 : 1)
                         .ThenBy(c => c)
                         .ToList(),
 

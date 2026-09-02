@@ -12,7 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SPECS = ['partner-isolation', 'rbac-matrix', 'idor-download', 'cert-detail-scoping'];
+const SPECS = ['partner-isolation', 'rbac-matrix', 'idor-download', 'cert-detail-scoping', 'session-keepalive'];
 const RESULTS_DIR = path.join(__dirname, '..', '_results');
 
 (async () => {

@@ -1,0 +1,25 @@
+{
+  "specId": "cert-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 1,
+  "fail": 1,
+  "warn": 0,
+  "blocked": 0,
+  "total": 2,
+  "results": [
+    {
+      "id": "crud.pre",
+      "name": "clonable combo + count snapshot",
+      "status": "PASS",
+      "notes": "company=27 product=3441 cat=1 type=- sub=- certType=3 | products=3440 certs=5702"
+    },
+    {
+      "id": "crud.error",
+      "name": "spec ran without throwing",
+      "status": "FAIL",
+      "notes": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5101/Certificate/Create\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    }
+  ],
+  "finishedAt": "2026-09-01T21:42:01.794Z"
+}

@@ -57,7 +57,7 @@ async function run() {
 
         // 4. EXPORT scope — CSV distinct cert count must not exceed the tile scope.
         const csv = await ctx.request.get(H.BASE + '/Certificate/ExportCertificates?format=csv',
-          { headers: { Accept: 'text/csv' } });
+          { headers: { Accept: 'text/csv' }, timeout: H.REQ_TIMEOUT });
         if (csv.status() === 200) {
           const text = await csv.text();
           const lines = text.split(/\r?\n/).filter((l) => l.trim());
@@ -71,7 +71,12 @@ async function run() {
             `export HTTP ${csv.status()} (endpoint may be gated for this role)`);
         }
       } catch (e) {
-        record(`iso.${u.email}.error`, 'spec ran without throwing', 'FAIL', e.message);
+        // A hung request proves nothing about isolation either way, so it must NOT be recorded as
+        // FAIL — that reads as a leak. BLOCKED is the honest verdict ("could not run"), and
+        // run-all.js still exits non-zero on BLOCKED so the gate cannot go green on it.
+        // DEF-393: on a loaded box this fired on a different user every run.
+        const st = /timeout/i.test(e.message || '') ? 'BLOCKED' : 'FAIL';
+        record(`iso.${u.email}.error`, 'spec ran without throwing', st, e.message);
       } finally {
         await ctx.close();
       }

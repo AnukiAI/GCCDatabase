@@ -1,0 +1,157 @@
+{
+  "specId": "rbac-matrix",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 24,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 24,
+  "results": [
+    {
+      "id": "rbac.public./Certificate/CertificateTileViewExternal",
+      "name": "public -> /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.public./Certificate/CertificateTileViewInternal",
+      "name": "public -> /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.public./Dashboard/Index",
+      "name": "public -> /Dashboard/Index",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.public./Certificate/Create",
+      "name": "public -> /Certificate/Create",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.public./Admin/UserManagement",
+      "name": "public -> /Admin/UserManagement",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.public./Product/Management",
+      "name": "public -> /Product/Management",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.public./api/CertificateTileExternal?page=1&pageSize=5",
+      "name": "public -> /api/CertificateTileExternal?page=1&pageSize=5",
+      "status": "PASS",
+      "notes": "HTTP 401 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.public./Certificate/CertificateTileView",
+      "name": "public -> /Certificate/CertificateTileView",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect allow 200)"
+    },
+    {
+      "id": "rbac.external./Certificate/CertificateTileViewExternal",
+      "name": "external -> /Certificate/CertificateTileViewExternal",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect allow 200)"
+    },
+    {
+      "id": "rbac.external./Certificate/CertificateTileViewInternal",
+      "name": "external -> /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.external./Certificate/Create",
+      "name": "external -> /Certificate/Create",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.external./Dashboard/Index",
+      "name": "external -> /Dashboard/Index",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.external./Product/Management",
+      "name": "external -> /Product/Management",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect allow 200)"
+    },
+    {
+      "id": "rbac.external./Admin/UserManagement",
+      "name": "external -> /Admin/UserManagement",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.analyst./Certificate/CertificateTileViewInternal",
+      "name": "analyst -> /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect allow 200)"
+    },
+    {
+      "id": "rbac.analyst./Dashboard/Index",
+      "name": "analyst -> /Dashboard/Index",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect allow 200)"
+    },
+    {
+      "id": "rbac.analyst./Certificate/Create",
+      "name": "analyst -> /Certificate/Create",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect allow 200)"
+    },
+    {
+      "id": "rbac.analyst./Product/Management",
+      "name": "analyst -> /Product/Management",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect allow 200)"
+    },
+    {
+      "id": "rbac.analyst./Admin/UserManagement",
+      "name": "analyst -> /Admin/UserManagement",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.analyst./Admin/RoleManagement",
+      "name": "analyst -> /Admin/RoleManagement",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.analyst./Admin/Partners",
+      "name": "analyst -> /Admin/Partners",
+      "status": "PASS",
+      "notes": "HTTP 302 (expect deny 401/403/302)"
+    },
+    {
+      "id": "rbac.admin./Admin/UserManagement",
+      "name": "admin -> /Admin/UserManagement",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect allow 200)"
+    },
+    {
+      "id": "rbac.admin./Certificate/CertificateTileViewInternal",
+      "name": "admin -> /Certificate/CertificateTileViewInternal",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect allow 200)"
+    },
+    {
+      "id": "rbac.admin./Dashboard/Index",
+      "name": "admin -> /Dashboard/Index",
+      "status": "PASS",
+      "notes": "HTTP 200 (expect allow 200)"
+    }
+  ],
+  "finishedAt": "2026-09-02T17:31:58.903Z"
+}

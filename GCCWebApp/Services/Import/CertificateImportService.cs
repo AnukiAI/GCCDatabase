@@ -1,4 +1,4 @@
-using CsvHelper;
+﻿using CsvHelper;
 using CsvHelper.Configuration;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
@@ -1392,9 +1392,28 @@ namespace GCCWebApp.Services.Import
             // value is kept as-supplied so the analyst can see what to correct.
             if (!string.IsNullOrWhiteSpace(row.Country))
             {
-                if (CountryList.TryResolve(row.Country, out var canonicalCountry))
+                // CR-037: the cell may now carry several countries, pipe- or comma-separated. The
+                // single-value paths below are unchanged: one resolvable value yields a one-item
+                // list whose first entry is the canonical spelling, and a cell where NOTHING
+                // resolves still falls through to the tolerant raw-value branch.
+                var resolvedCountries = CountryList.ParseMany(row.Country, out var unresolvedCountries);
+
+                if (resolvedCountries.Count > 0)
                 {
-                    row.Country = canonicalCountry;
+                    row.Countries = resolvedCountries;
+                    row.Country = resolvedCountries[0]; // primary = first listed
+
+                    if (unresolvedCountries.Count > 0)
+                    {
+                        // Partially resolved: take what we understood, name what we did not. Still a
+                        // warning, not an error — dropping a certificate over one bad fragment is
+                        // worse than loading it with the good countries attached.
+                        row.Warnings.Add(
+                            $"Country: kept {string.Join(", ", resolvedCountries)}; " +
+                            $"could not match {string.Join(", ", unresolvedCountries.Select(u => $"'{Truncate(u, 40)}'"))} " +
+                            "against the standard country list. Correct it on the certificate afterwards, " +
+                            "or fix the source file and re-upload.");
+                    }
                 }
                 else
                 {
@@ -1884,6 +1903,9 @@ namespace GCCWebApp.Services.Import
             _context.Certificates.Add(certificate);
             await _context.SaveChangesAsync();
 
+            // CR-037: populate the cert-level country join rows from the resolved Country cell.
+            SyncCertificateCountries(certificate, row.Countries);
+
             // CR-171: populate the cert-level Partners (M2M) from the (possibly pipe/comma-delimited)
             // Partner cell, and normalize the denormalized primary to the first matched partner.
             await SyncCertificatePartnersAsync(certificate, row.Partner);
@@ -1923,6 +1945,37 @@ namespace GCCWebApp.Services.Import
         // CR-171: resolve a (possibly pipe/comma-delimited) Partner cell into the cert-level Partners
         // (M2M) collection and normalize the denormalized primary to the first matched name.
         // "None"/blank → no partner tags. Requires cert.Partners loaded for the update path.
+        /// <summary>
+        /// CR-037: replaces a certificate's country join rows from the resolved import list and
+        /// re-derives the denormalized primary. Mirrors SyncCertificatePartnersAsync below.
+        ///
+        /// Runs on create AND update — an import that refreshed only the primary would leave the
+        /// join rows describing the previous load, and the country filter would then return stale
+        /// matches for every re-imported certificate.
+        /// </summary>
+        private void SyncCertificateCountries(Certificate cert, List<string> countries)
+        {
+            cert.Countries.Clear();
+
+            if (countries == null || countries.Count == 0)
+            {
+                // Nothing resolved. Leave cert.Country alone — validation deliberately keeps an
+                // unrecognised value visible on the certificate so an analyst can correct it.
+                return;
+            }
+
+            foreach (var name in countries)
+            {
+                cert.Countries.Add(new CertificateCountry
+                {
+                    CertificateId = cert.Id,
+                    Country = name
+                });
+            }
+
+            cert.Country = countries[0];
+        }
+
         private async Task SyncCertificatePartnersAsync(Certificate cert, string? partnerCsv)
         {
             var names = (partnerCsv ?? string.Empty)
@@ -1961,6 +2014,11 @@ namespace GCCWebApp.Services.Import
                 .Include(c => c.CertificationType)
                 .Include(c => c.Tags)
                 .Include(c => c.Partners) // CR-171: re-sync cert-level partners from the import
+                // CR-037: required, not cosmetic. SyncCertificateCountries clears this collection
+                // before re-adding; without the Include it arrives empty, the old rows survive, and
+                // the re-inserts collide with the unique (CertificateId, Country) index — so a
+                // re-import would fail to update countries at all.
+                .Include(c => c.Countries)
                 .FirstOrDefaultAsync(c => c.Id == row.ExistingCertificateId!.Value);
 
             if (certificate == null)
@@ -1968,28 +2026,29 @@ namespace GCCWebApp.Services.Import
                 throw new InvalidOperationException($"Certificate not found: {row.CertificateNumber}");
             }
 
-            // Capture old state for audit
-            var oldCertificate = new Certificate
-            {
-                Id = certificate.Id,
-                Number = certificate.Number,
-                CompanyId = certificate.CompanyId,
-                ProductId = certificate.ProductId,
-                CertificationTypeId = certificate.CertificationTypeId,
-                Status = certificate.Status,
-                EffectiveDate = certificate.EffectiveDate,
-                ExpirationDate = certificate.ExpirationDate,
-                Location = certificate.Location,
-                Country = certificate.Country,
-                Asin = certificate.Asin,
-                Upc = certificate.Upc,
-                Gtin = certificate.Gtin,
-                Ean = certificate.Ean,
-                Partner = certificate.Partner,
-                CertificationResults = certificate.CertificationResults,
-                PathwayId = certificate.PathwayId,
-                ProductTypeId = certificate.ProductTypeId // DEF-354: capture the old value so the audit diff is right
-            };
+            // Capture old state for audit.
+            //
+            // DEF-391: this was a hand-written copy of 19 named fields. Two failure modes, and the
+            // register already carries one of each:
+            //   • Forget a field and its change is invisible — DEF-354 was exactly that, patching
+            //     ProductTypeId in after the fact. Every field added to Certificate from now on
+            //     would need remembering here, and nothing enforces it.
+            //   • Every field NOT listed defaults to null/0 on the copy, so the diff reads it as a
+            //     change from blank on every single import row — CertificateFile, CreatedAt,
+            //     CreatedBy, CsfAttributes and the persisted Normalized* columns all produced
+            //     phantom audit rows that nothing had touched.
+            //
+            // A detached AsNoTracking read of the same row solves both: it is the real prior state
+            // of every scalar, so nothing is missed and nothing is invented. AsNoTracking is what
+            // makes it a snapshot — a tracked read would return the same instance the assignments
+            // below mutate, and old would equal new on every field.
+            //
+            // CR-023 undo is unaffected: ApplyOldValueToCertificate switches on the scalar field
+            // names it can restore and ignores anything else, so extra fidelity here can only help
+            // it, never confuse it.
+            var oldCertificate = await _context.Certificates
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == certificate.Id);
 
             // Apply updates
             if (row.CompanyId.HasValue) certificate.CompanyId = row.CompanyId.Value;
@@ -2024,6 +2083,8 @@ namespace GCCWebApp.Services.Import
             if (Provided(nameof(Certificate.Upc))) certificate.Upc = row.Upc;
             if (Provided(nameof(Certificate.Gtin))) certificate.Gtin = row.Gtin;
             if (Provided(nameof(Certificate.Ean))) certificate.Ean = row.Ean;
+            if (Provided(nameof(Certificate.Country)))
+                SyncCertificateCountries(certificate, row.Countries); // CR-037 (sets denorm + join rows)
             if (Provided(nameof(Certificate.Partner)))
                 await SyncCertificatePartnersAsync(certificate, row.Partner); // CR-171 (sets denorm + M2M)
             if (Provided(nameof(Certificate.CertificationResults)))

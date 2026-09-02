@@ -1,0 +1,54 @@
+{"Id":1,"Name":"Additives","CategoryId":1,"ParentId":null,"Level":1,"SortOrder":1,"IsActive":true}
+{"Id":2,"Name":"Metal Alloys","CategoryId":1,"ParentId":null,"Level":1,"SortOrder":2,"IsActive":true}
+{"Id":4,"Name":"Plastics","CategoryId":1,"ParentId":null,"Level":1,"SortOrder":4,"IsActive":true}
+{"Id":5,"Name":"Apparel","CategoryId":2,"ParentId":null,"Level":1,"SortOrder":1,"IsActive":true}
+{"Id":6,"Name":"Bags and Accessories","CategoryId":2,"ParentId":null,"Level":1,"SortOrder":2,"IsActive":true}
+{"Id":7,"Name":"Jewelry","CategoryId":2,"ParentId":null,"Level":1,"SortOrder":3,"IsActive":true}
+{"Id":24,"Name":"Appliances","CategoryId":4,"ParentId":null,"Level":1,"SortOrder":1,"IsActive":true}
+{"Id":25,"Name":"Baby Products","CategoryId":4,"ParentId":null,"Level":1,"SortOrder":2,"IsActive":true}
+{"Id":26,"Name":"Cleaning Supplies","CategoryId":4,"ParentId":null,"Level":1,"SortOrder":3,"IsActive":true}
+{"Id":27,"Name":"Furniture","CategoryId":4,"ParentId":null,"Level":1,"SortOrder":4,"IsActive":true}
+{"Id":28,"Name":"Health and Beauty","CategoryId":4,"ParentId":null,"Level":1,"SortOrder":5,"IsActive":true}
+{"Id":29,"Name":"Home Goods","CategoryId":4,"ParentId":null,"Level":1,"SortOrder":6,"IsActive":true}
+{"Id":30,"Name":"Office Supplies (non-electronic)","CategoryId":4,"ParentId":null,"Level":1,"SortOrder":7,"IsActive":true}
+{"Id":31,"Name":"Personal Protective Equipment","CategoryId":4,"ParentId":null,"Level":1,"SortOrder":8,"IsActive":true}
+{"Id":32,"Name":"Pet Products","CategoryId":4,"ParentId":null,"Level":1,"SortOrder":9,"IsActive":true}
+{"Id":33,"Name":"Security \u0026 Safety","CategoryId":4,"ParentId":null,"Level":1,"SortOrder":10,"IsActive":true}
+{"Id":34,"Name":"Card Readers","CategoryId":5,"ParentId":null,"Level":1,"SortOrder":1,"IsActive":true}
+{"Id":35,"Name":"Electronic Accessories","CategoryId":5,"ParentId":null,"Level":1,"SortOrder":2,"IsActive":true}
+{"Id":36,"Name":"Microelectronics","CategoryId":5,"ParentId":null,"Level":1,"SortOrder":3,"IsActive":true}
+{"Id":37,"Name":"Printers and Printer Cartridges","CategoryId":5,"ParentId":null,"Level":1,"SortOrder":4,"IsActive":true}
+{"Id":38,"Name":"Animal Products","CategoryId":6,"ParentId":null,"Level":1,"SortOrder":1,"IsActive":true}
+{"Id":39,"Name":"Beverages","CategoryId":6,"ParentId":null,"Level":1,"SortOrder":2,"IsActive":true}
+{"Id":40,"Name":"Food","CategoryId":6,"ParentId":null,"Level":1,"SortOrder":3,"IsActive":true}
+{"Id":41,"Name":"Fragrance and Flavor","CategoryId":6,"ParentId":null,"Level":1,"SortOrder":4,"IsActive":true}
+{"Id":42,"Name":"Medical Devices","CategoryId":7,"ParentId":null,"Level":1,"SortOrder":1,"IsActive":true}
+{"Id":43,"Name":"Paper","CategoryId":8,"ParentId":null,"Level":1,"SortOrder":1,"IsActive":true}
+{"Id":44,"Name":"Plastic","CategoryId":8,"ParentId":null,"Level":1,"SortOrder":2,"IsActive":true}
+{"Id":45,"Name":"Other","CategoryId":8,"ParentId":null,"Level":1,"SortOrder":3,"IsActive":true}
+{"Id":46,"Name":"HDPE","CategoryId":1,"ParentId":4,"Level":2,"SortOrder":1,"IsActive":true}
+{"Id":47,"Name":"LDPE","CategoryId":1,"ParentId":4,"Level":2,"SortOrder":2,"IsActive":true}
+{"Id":48,"Name":"LLDPE","CategoryId":1,"ParentId":4,"Level":2,"SortOrder":3,"IsActive":true}
+{"Id":49,"Name":"PET","CategoryId":1,"ParentId":4,"Level":2,"SortOrder":4,"IsActive":true}
+{"Id":50,"Name":"PP","CategoryId":1,"ParentId":4,"Level":2,"SortOrder":5,"IsActive":true}
+{"Id":51,"Name":"PVC","CategoryId":1,"ParentId":4,"Level":2,"SortOrder":6,"IsActive":true}
+{"Id":61,"Name":"Minerals","CategoryId":1,"ParentId":null,"Level":0,"SortOrder":3,"IsActive":true}
+{"Id":62,"Name":"Adhesives and Sealants","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":63,"Name":"Ceramics and Tile","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":64,"Name":"Coatings","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":65,"Name":"Concrete and Concrete Materials","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":66,"Name":"Doors, Door Hardware, and Accessories","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":67,"Name":"Fiberglass Mats","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":68,"Name":"Flooring","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":69,"Name":"Grout and Mortar","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":70,"Name":"HVAC","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":71,"Name":"Insulation","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":72,"Name":"Moisture Control","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":73,"Name":"Plumbing and Accessories","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":74,"Name":"Roofing","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":75,"Name":"Wallcoverings and Interior Wall Finishes","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":76,"Name":"Windows, Parts, and Accessories","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":77,"Name":"Wiring and Cable","CategoryId":11,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}
+{"Id":84,"Name":"Wood","CategoryId":1,"ParentId":null,"Level":0,"SortOrder":5,"IsActive":true}
+{"Id":85,"Name":"PS","CategoryId":1,"ParentId":4,"Level":2,"SortOrder":6,"IsActive":true}
+{"Id":95,"Name":"Textiles","CategoryId":1,"ParentId":null,"Level":0,"SortOrder":0,"IsActive":true}

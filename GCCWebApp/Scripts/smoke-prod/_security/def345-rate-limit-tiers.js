@@ -26,6 +26,7 @@ const SPEC = 'def345-rate-limit-tiers';
 async function limits(ctx, extraHeaders = {}) {
   const r = await ctx.request.get(H.BASE + API, {
     headers: { Accept: 'application/json', ...extraHeaders },
+    timeout: H.REQ_TIMEOUT,
   });
   const h = r.headers();
   return {

@@ -38,15 +38,21 @@ namespace GCCWebApp.Controllers.Api.v1
         private readonly ILogger<CertificatesController> _logger;
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly GCCWebApp.Services.ICertificateService _certificateService;
+        // DEF-391: the v1 create and update endpoints wrote straight to the context with no
+        // audit row, the same hole DEF-337 closed for delete. Delete already routes through
+        // the service; these two now audit here.
+        private readonly GCCWebApp.Services.Audit.IAuditService _auditService;
 
         public CertificatesController(
             ApplicationDbContext context,
             ILogger<CertificatesController> logger,
             IWebHostEnvironment hostingEnvironment,
-            GCCWebApp.Services.ICertificateService certificateService)
+            GCCWebApp.Services.ICertificateService certificateService,
+            GCCWebApp.Services.Audit.IAuditService auditService)
         {
             _context = context;
             _logger = logger;
+            _auditService = auditService;
             // DEF-337 (completion): deletes route through the service so the API cannot bypass
             // the audit + cascade-capture the UI path performs.
             _certificateService = certificateService;
@@ -496,6 +502,12 @@ namespace GCCWebApp.Controllers.Api.v1
                 _context.Certificates.Add(certificate);
                 await _context.SaveChangesAsync();
 
+                // DEF-391: audit the create. userId 0 is deliberate — an API-key caller has no
+                // Users row, so AuditService resolves the configured service account
+                // (Audit:SystemUserEmail) and records the key's name as the actor.
+                await AuditApiChangeAsync(
+                    AuditAction.Create, certificate.Id, certificate.Number, null, certificate);
+
                 var createdCertificate = await _context.Certificates
                     .Include(c => c.Product)
                     .Include(c => c.Company)
@@ -532,6 +544,13 @@ namespace GCCWebApp.Controllers.Api.v1
                 if (existingCertificate == null)
                     return NotFoundResponse($"Certificate with ID {id} not found");
 
+                // DEF-391: detached snapshot of the stored row BEFORE the assignments below.
+                // FindAsync returns a tracked entity, so without this second, no-tracking read
+                // the audit diff would compare the mutated object against itself.
+                var certificateBeforeUpdate = await _context.Certificates
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == id);
+
                 // Check if certificate number is being changed to an existing one
                 if (existingCertificate.Number != certificate.Number)
                 {
@@ -554,6 +573,11 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 await _context.SaveChangesAsync();
 
+                // DEF-391: audit the field-level diff, after the commit.
+                await AuditApiChangeAsync(
+                    AuditAction.Update, id, existingCertificate.Number,
+                    certificateBeforeUpdate, existingCertificate);
+
                 var updatedCertificate = await _context.Certificates
                     .Include(c => c.Product)
                     .Include(c => c.Company)
@@ -566,6 +590,47 @@ namespace GCCWebApp.Controllers.Api.v1
             {
                 _logger.LogError(ex, "Error updating certificate {CertificateId}", id);
                 return HandleError(ex, $"Failed to update certificate {id}");
+            }
+        }
+
+        /// <summary>
+        /// DEF-391: one audit call for both v1 write endpoints.
+        ///
+        /// The acting user is passed as 0 on purpose. An API-key caller has no Users row, so
+        /// AuditService falls back to the service account named by Audit:SystemUserEmail; the
+        /// key's own name is carried in the username so the row still says WHICH caller did it
+        /// (e.g. "API key: Amazon Production"). If that setting is unset the audit is refused
+        /// and logged as a gap rather than written against an arbitrary user.
+        ///
+        /// Never throws: an audit failure must not turn a committed write into a 500 for a
+        /// partner. It is logged loudly instead.
+        /// </summary>
+        private async Task AuditApiChangeAsync(
+            string action, int certificateId, string? certificateNumber,
+            Certificate? before, Certificate? after)
+        {
+            try
+            {
+                var keyName = User?.FindFirst("api_key_name")?.Value
+                              ?? User?.FindFirst("partner_name")?.Value
+                              ?? User?.Identity?.Name;
+
+                await _auditService.LogEntityChangeAsync(
+                    certificateId.ToString(),
+                    certificateNumber,
+                    action,
+                    before,
+                    after,
+                    0,
+                    string.IsNullOrWhiteSpace(keyName) ? "API" : $"API key: {keyName}",
+                    reason: null,
+                    changeSource: AuditChangeSource.API);
+            }
+            catch (Exception auditEx)
+            {
+                _logger.LogError(auditEx,
+                    "AUDIT GAP: certificate {Id} was changed via the v1 API ({Action}) but the audit row was not written",
+                    certificateId, action);
             }
         }
 

@@ -20,6 +20,8 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
         private readonly Mock<ILogger<CertificatesController>> _loggerMock;
         private readonly Mock<IWebHostEnvironment> _envMock;
         private readonly Mock<GCCWebApp.Services.ICertificateService> _certificateServiceMock;
+        // DEF-391: the v1 create/update endpoints now write an audit row.
+        private readonly Mock<GCCWebApp.Services.Audit.IAuditService> _auditServiceMock;
         private readonly CertificatesController _controller;
 
         public CertificatesControllerTests()
@@ -38,8 +40,18 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
                 .Setup(s => s.DeleteCertificateAsync(It.IsAny<int>(), It.IsAny<string>(),
                                                      It.IsAny<int>(), It.IsAny<string?>()))
                 .ReturnsAsync(true);
+            // DEF-391: create/update audit their changes. The mock records the calls without
+            // needing a database, and returning 0 keeps the controller's happy path unchanged.
+            _auditServiceMock = new Mock<GCCWebApp.Services.Audit.IAuditService>();
+            _auditServiceMock
+                .Setup(a => a.LogEntityChangeAsync(
+                    It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(),
+                    It.IsAny<Certificate?>(), It.IsAny<Certificate?>(),
+                    It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string?>(),
+                    It.IsAny<string?>(), It.IsAny<System.Guid?>()))
+                .ReturnsAsync(0);
             _controller = new CertificatesController(_context, _loggerMock.Object, _envMock.Object,
-                _certificateServiceMock.Object);
+                _certificateServiceMock.Object, _auditServiceMock.Object);
 
             // Set up HttpContext for the controller
             var httpContext = new DefaultHttpContext();
@@ -248,6 +260,84 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
 
             // Assert
             result.Should().BeOfType<OkObjectResult>();
+        }
+
+        // ---- DEF-391: the v1 write endpoints must leave an audit trail ----------------
+        //
+        // These sit at the controller layer because that is where the defect was: the endpoints
+        // wrote straight to the DbContext and never called the audit service. The v1 API cannot
+        // be driven over HTTP in dev (PartnerApiKeyAuthenticationMiddleware requires an API key
+        // joined to a partner, and the dev ApiKeys table has no partner link), so the call is
+        // asserted here instead.
+
+        [Fact]
+        public async Task UpdateCertificate_WritesAnAuditRow_WithTheStoredValueAsTheBefore()
+        {
+            // Arrange
+            const int certificateId = 1;
+            var storedStatus = (await _context.Certificates.FindAsync(certificateId))!.Status;
+
+            var updatedCertificate = new Certificate
+            {
+                Id = certificateId,
+                Number = "CERT-AUDIT-001",
+                ProductId = 1,
+                CompanyId = 1,
+                CertificationTypeId = 1,
+                EffectiveDate = DateTime.UtcNow,
+                Status = "Expired"
+            };
+
+            // Act
+            await _controller.UpdateCertificate(certificateId, updatedCertificate);
+
+            // Assert — an UPDATE row, and the "before" it diffs against is the STORED state,
+            // not the incoming payload and not the same tracked instance that was just mutated.
+            // Without the detached AsNoTracking read, before.Status would already read "Expired"
+            // and the diff would be empty — the defect this guards.
+            _auditServiceMock.Verify(a => a.LogEntityChangeAsync(
+                certificateId.ToString(),
+                It.IsAny<string?>(),
+                AuditAction.Update,
+                It.Is<Certificate?>(before => before != null && before.Status == storedStatus),
+                It.Is<Certificate?>(after => after != null && after.Status == "Expired"),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                AuditChangeSource.API,
+                It.IsAny<System.Guid?>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateCertificate_WritesACreateAuditRow()
+        {
+            // Arrange
+            var certificate = new Certificate
+            {
+                Number = "CERT-AUDIT-NEW-001",
+                ProductId = 1,
+                CompanyId = 1,
+                CertificationTypeId = 1,
+                EffectiveDate = DateTime.UtcNow,
+                ExpirationDate = DateTime.UtcNow.AddYears(1),
+                Status = "Draft"
+            };
+
+            // Act
+            await _controller.CreateCertificate(certificate);
+
+            // Assert — CREATE carries no "before"; the whole entity goes in as the new state.
+            _auditServiceMock.Verify(a => a.LogEntityChangeAsync(
+                It.IsAny<string>(),
+                "CERT-AUDIT-NEW-001",
+                AuditAction.Create,
+                null,
+                It.Is<Certificate?>(after => after != null && after.Number == "CERT-AUDIT-NEW-001"),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                AuditChangeSource.API,
+                It.IsAny<System.Guid?>()), Times.Once);
         }
 
         [Fact]

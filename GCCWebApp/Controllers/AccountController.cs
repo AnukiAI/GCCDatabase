@@ -330,6 +330,64 @@ namespace GCCWebApp.Controllers
             return RedirectToAction("Login", new { error = "session_expired" });
         }
 
+        /// <summary>
+        /// Keep-alive ping for the idle-session timer in wwwroot/js/auth.js.
+        ///
+        /// The app has two independent 30-minute clocks: the auth cookie
+        /// (Program.cs — ExpireTimeSpan 30 min, SlidingExpiration true) counts from the last HTTP
+        /// request, while the browser timer counts from the last mousemove/click/scroll. They never
+        /// agreed, so a user who read a page for 20 minutes without navigating was signed out with
+        /// no warning, and because sliding expiration only reissues the cookie once MORE than half
+        /// the window has elapsed, the effective idle timeout landed anywhere between 15 and 30
+        /// minutes rather than a flat 30.
+        ///
+        /// This endpoint exists so the browser can turn real user activity into a real HTTP request.
+        /// auth.js calls it at most once every 5 minutes and ONLY when there has been activity since
+        /// the previous ping, so an idle session still expires normally — the ping tracks the user,
+        /// it does not keep dead sessions alive.
+        ///
+        /// It RE-ISSUES the cookie explicitly rather than relying on sliding expiration to do it.
+        /// That is the whole point, and it is not redundant: sliding expiration only refreshes past
+        /// the half-life, so a ping at minute 5 of the window would leave the cookie expiring at
+        /// minute 30 regardless. The browser clock would then still be counting a full 30 minutes
+        /// from the user's last mousemove while the server had as little as 10 minutes left — the
+        /// original bug, merely narrowed. Restarting the window at ping time pins the server expiry
+        /// to (last ping + 30 min); because the last ping always lands at or after the last user
+        /// activity, the server can never expire BEFORE the browser's own logout, so the 5-minute
+        /// warning is always reached first.
+        ///
+        /// Persistent ("Remember Me") cookies are left alone — rewriting one with a 30-minute
+        /// expiry would silently downgrade a 14-day session. auth.js does not ping in that mode
+        /// anyway; this is the belt to its braces.
+        ///
+        /// Deliberately NOT [AllowAnonymous]: the global AuthorizeFilter (Program.cs) makes an
+        /// expired session return 401 here, which is the signal auth.js uses to stop guessing and
+        /// send the user to the login page. No antiforgery token is required — there is no global
+        /// AutoValidateAntiforgeryToken filter, and the endpoint mutates no application state.
+        /// </summary>
+        [HttpPost]
+        [Route("Account/KeepAlive")]
+        public async Task<IActionResult> KeepAlive()
+        {
+            Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+            Response.Headers["Pragma"] = "no-cache";
+
+            var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            if (result.Succeeded && result.Principal != null && result.Properties?.IsPersistent != true)
+            {
+                var properties = result.Properties ?? new AuthenticationProperties();
+                properties.IssuedUtc = DateTimeOffset.UtcNow;
+                properties.ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30);
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    result.Principal,
+                    properties);
+            }
+
+            return Json(new { success = true });
+        }
+
         private async Task<IActionResult> PerformLogout()
         {
             var userEmail = HttpContext.Session.GetString("UserEmail");

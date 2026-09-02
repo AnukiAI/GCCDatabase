@@ -548,6 +548,39 @@ namespace GCCWebApp.Migrations
                     b.ToTable("CertificateAggregates");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.CertificateCountry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CertificateId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NormalizedCountry")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("nvarchar(450)")
+                        .HasComputedColumnSql("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE([Country], N' ', N''), NCHAR(9), N''), NCHAR(10), N''), NCHAR(13), N''), N'™', N''), N'®', N''), N'©', N''), N'℠', N''), N'°', N''), N'-', N''), N'–', N''), N'—', N''), N'_', N''), N'.', N''), N',', N''), N':', N''), N';', N''), N'!', N''), N'?', N''), N'''', N''), N'‘', N''), N'’', N''), N'`', N''), N'\"', N''), N'“', N''), N'”', N''), N'(', N''), N')', N''), N'[', N''), N']', N''), N'{', N''), N'}', N''), N'/', N''), N'\\', N''), N'|', N''), N'&', N''), N'+', N''), N'*', N''), N'@', N''), N'#', N''), N'~', N''), N'^', N''), N'=', N''), N'<', N''), N'>', N''), N'%', N''))", true);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Country");
+
+                    b.HasIndex("NormalizedCountry");
+
+                    b.HasIndex("CertificateId", "Country")
+                        .IsUnique();
+
+                    b.ToTable("CertificateCountries", (string)null);
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.CertificateDocument", b =>
                 {
                     b.Property<int>("Id")
@@ -2275,6 +2308,17 @@ namespace GCCWebApp.Migrations
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.CertificateCountry", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.Certificate", "Certificate")
+                        .WithMany("Countries")
+                        .HasForeignKey("CertificateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Certificate");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.CertificateDocument", b =>
                 {
                     b.HasOne("GCCWebApp.Models.Certificate", "Certificate")
@@ -2560,6 +2604,8 @@ namespace GCCWebApp.Migrations
 
             modelBuilder.Entity("GCCWebApp.Models.Certificate", b =>
                 {
+                    b.Navigation("Countries");
+
                     b.Navigation("CustomFieldValues");
 
                     b.Navigation("Documents");

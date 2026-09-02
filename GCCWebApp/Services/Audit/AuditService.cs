@@ -237,7 +237,23 @@ namespace GCCWebApp.Services.Audit
                 return (userId, string.IsNullOrWhiteSpace(username) ? "unknown" : username);
 
             var principal = _httpContextAccessor.HttpContext?.User;
-            if (principal?.Identity?.IsAuthenticated == true)
+
+            // DEF-391: an API-key principal must NOT be read for a user id.
+            // ApiKeyAuthenticationHandler sets ClaimTypes.NameIdentifier to the **API key's** Id
+            // (`validApiKey.Id`), and PartnerApiKeyAuthenticationMiddleware does the same shape
+            // with partner claims. Neither is a Users row id — but the claim path below cannot
+            // tell them apart, so it would happily write ChangedBy = <api key id> and blame
+            // whichever real person happens to occupy that row. Amazon's production key is row 6;
+            // an API delete would have been recorded against user 6.
+            //
+            // Skipping the claim path here sends API-key callers to the configured service
+            // account below, which is exactly what DEF-337 added that fallback for. The caller
+            // still supplies a descriptive username (e.g. "API key: Amazon Production"), so the
+            // row says which key acted without pretending a person did.
+            var isApiKeyPrincipal = principal?.HasClaim(c => c.Type == "api_key_id") == true
+                                    || principal?.HasClaim(c => c.Type == "partner_name") == true;
+
+            if (principal?.Identity?.IsAuthenticated == true && !isApiKeyPrincipal)
             {
                 var claim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
                             ?? principal.FindFirst("sub")
@@ -652,10 +668,45 @@ namespace GCCWebApp.Services.Audit
             if (typeof(System.Collections.IEnumerable).IsAssignableFrom(prop.PropertyType) && prop.PropertyType != typeof(string))
                 return true;
 
+            // DEF-391: skip REFERENCE navigation properties too (Certificate.Company,
+            // .Product, .CertificationType, …). The comment above always claimed navigation
+            // properties were skipped, but only collections were — a single-entity reference
+            // is not IEnumerable, so it fell through to the diff. Two consequences, both seen
+            // on the first audited certificate edit:
+            //   1. The value is meaningless. There is no sensible ToString() on an entity, so
+            //      the row recorded literally "GCCWebApp.Models.Company".
+            //   2. It reports changes that did not happen. The "before" snapshot is loaded
+            //      AsNoTracking without Includes, so its navigations are null while the tracked
+            //      entity's are populated — null vs object compares unequal on every save.
+            // Nothing is lost by skipping them: a reference navigation cannot change without
+            // its foreign key changing, and the FK (CompanyId, ProductId, …) is a scalar that
+            // IS audited. The FK row is the meaningful record of the change.
+            if (!IsSimpleAuditableType(prop.PropertyType))
+                return true;
+
             if (AuditSkipFields.Contains(prop.Name))
                 return true;
 
             return false;
+        }
+
+        /// <summary>
+        /// True for the value-like types worth recording in an audit row: primitives, string,
+        /// decimal, dates/times, Guid and enums (nullable forms included). Everything else is a
+        /// navigation or complex property — see the note in <see cref="ShouldSkipProperty"/>.
+        /// </summary>
+        private static bool IsSimpleAuditableType(Type type)
+        {
+            var t = Nullable.GetUnderlyingType(type) ?? type;
+
+            return t.IsPrimitive
+                || t.IsEnum
+                || t == typeof(string)
+                || t == typeof(decimal)
+                || t == typeof(DateTime)
+                || t == typeof(DateTimeOffset)
+                || t == typeof(TimeSpan)
+                || t == typeof(Guid);
         }
 
         /// <summary>

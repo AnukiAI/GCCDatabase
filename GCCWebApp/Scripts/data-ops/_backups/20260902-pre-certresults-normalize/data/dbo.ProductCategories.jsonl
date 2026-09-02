@@ -1,0 +1,9 @@
+{"Id":1,"Name":"Chemicals and Raw Materials","Description":"Chemical compounds, metals, minerals, and plastic resins","SortOrder":1,"IsActive":true}
+{"Id":2,"Name":"Clothing, Apparel, and Fabrics","Description":"Apparel, accessories, jewelry, and textile products","SortOrder":2,"IsActive":true}
+{"Id":4,"Name":"Consumer Products","Description":"Household goods, appliances, and consumer items","SortOrder":4,"IsActive":true}
+{"Id":5,"Name":"Electronics, Computers, and Accessories","Description":"Electronic devices, components, and accessories","SortOrder":5,"IsActive":true}
+{"Id":6,"Name":"Food and Beverage","Description":"Food, beverages, and flavoring products","SortOrder":6,"IsActive":true}
+{"Id":7,"Name":"Healthcare and Pharmaceutical","Description":"Medical devices and pharmaceutical products","SortOrder":7,"IsActive":true}
+{"Id":8,"Name":"Packaging","Description":"Paper, plastic, and other packaging materials","SortOrder":8,"IsActive":true}
+{"Id":11,"Name":"Construction / Building Products","Description":"","SortOrder":3,"IsActive":true}
+{"Id":15,"Name":"N/A","Description":"Use for facility-level certs or audits (non product specific)","SortOrder":8,"IsActive":true}

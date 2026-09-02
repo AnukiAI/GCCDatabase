@@ -1,8 +1,162 @@
 # CR-037 — Multiple countries per certificate (Country single-select → multi-select)
 
-**Status:** Proposed — not built. No code written.
+**Status:** **BUILT 2026-09-01** — on branch `ci-regression`, verified on dev, **not deployed**.
+Client has still never been shown or priced this CR.
+
+> **The §4 question below was answered by Shawn on 2026-09-01, in favour of building:**
+> *"The filtering on countries should allow for filtering if the country exists on the tile and the
+> countries should be visible on the tiles."*
+> That is the **filter** answer, not the display-only answer — so the CR did not retire, and the
+> full scope in §6 was implemented. §4 is kept below as the original decision record.
+>
+> The one question that remained at build time was how several countries render in the **100px**
+> tile column. Three options were rendered at true scale; Shawn chose **Option B — comma-join and
+> wrap, exactly matching the Partner column**, for one consistent rule across every multi-value
+> cell. Nothing truncates (the cell wraps by design); a 3-country row is just taller.
+>
+> Full implementation record, verification numbers and the two defects that testing caught are in
+> the CR-037 entry of `change-request-register.md`.
 **Raised:** 2026-08-13 (Anuki, from a client observation 2026-08-12)
 **Precedent:** [[CR-171]] (multi-select Partner) — same single→collection shape, one field over.
+
+---
+
+## 0. Truncation: why unlimited countries cannot overflow a column
+
+Raised by Shawn 2026-09-01: if countries are unlimited, does a long list get truncated?
+
+**No — and the storage shape is the reason.** Countries are stored **one per row** in
+`CertificateCountries`, never concatenated into a column. Selecting more countries adds more *rows*;
+it never lengthens a value. The column therefore only ever holds a single country name, and the
+longest name in the entire list is `Saint Vincent and the Grenadines` at **32 characters** against
+`nvarchar(100)` — a 3x headroom that is fixed and cannot be consumed by adding countries.
+
+The `nvarchar(200)` in the original question does not exist on these columns; verified against
+`GCCDatabase_Dev`:
+
+| Column | Actual type |
+|---|---|
+| `Certificates.Country` | `nvarchar(100)` — the denormalized primary, one name |
+| `CertificateCountries.Country` | `nvarchar(100)` — matches the source, per DEF-314 |
+| `Certificates.Location` | `nvarchar(175)` — free text, unrelated |
+
+**Proven at the extreme, not argued.** All **220** countries were saved onto certificate `25-8521`
+through the real Edit POST (a 2,143-character posted string):
+
+- 220 join rows stored, **0** rows at the 100-character limit
+- longest stored value still `Saint Vincent and the Grenadines`, intact at 32 chars
+- 1,924 characters of names + 219 separators = 2,143 — exactly what was posted, nothing lost
+- `NormalizedCountry` computed for all 220; primary correctly held at `United States`
+- read path returned all 220 (a 2,362-char cell) and the country filter still matched `Zimbabwe`,
+  the 220th member
+
+Test data reverted; dev back to 1,327 rows with 0 drift.
+
+The concatenated forms that do exist are all **transient** and bounded by nothing: the tile cell
+(runtime JSON), the CSV/XLSX export (a file), and the hidden form field (an HTTP POST body). None is
+a database column. The only cap worth noting is practical rather than structural — a cell listing
+dozens of countries would be unreadable long before it was a storage problem.
+
+---
+
+## 0b. Regression audit (2026-09-01) — every changed path exercised
+
+Prompted by Shawn: *"with such a late CR, I wanted to make sure we didn't introduce a bug."* The
+paths below had been changed but never actually run; each was then exercised end-to-end on dev.
+
+| Path | Result |
+|---|---|
+| Create certificate (form) | 3 join rows, primary = first posted, **0** orphan rows |
+| Edit save / reorder / clear | primary preserved when still selected, reassigned when removed, NULL when emptied |
+| All 220 countries on one cert | 220 rows, nothing truncated, filter still matched the 220th |
+| Detail views (single/internal/external) | all three render every country |
+| **CSV / XLSX export** | **BUG FOUND AND FIXED — see below** |
+| Import: create, pipe-delimited | `United States\|Canada\|Japan` → 3 rows, primary United States |
+| Import: unresolvable value | `Germany, Atlantis` → Germany kept, **Atlantis rejected**, warned not dropped silently |
+| Import: re-import (update) | 3 rows correctly **replaced** by 2, no duplicates, no unique-index violation |
+| Delete + audit | cascade removed the rows; audit captured all 3 as `CertificateCountry` rows with full payload |
+| Final dev integrity | 1,327 rows, 0 missing, 0 disagreeing, 0 orphaned, 0 unnormalized |
+
+### The bug this audit caught
+
+`ExportController` resolved countries from `cert.Countries`, but **none of the ~15 queries feeding
+its four report generators loaded that navigation**. The collection was therefore always empty and
+the fallback silently emitted only the denormalized primary — a CSV that looked correct and was
+quietly missing every secondary country. No error, no crash; exactly the kind of defect that reaches
+a client.
+
+Fixed by making `CountriesField` resolve from a lookup built once per export request straight from
+the join table, instead of trusting every caller to remember an `Include`. Adding fifteen Includes
+would have fixed today and regressed the first time a sixteenth query was added.
+
+**This was the third instance of the same root cause in this CR** — the Edit POST
+(`GetByIdAsync`, no Includes) and the import update path (`UpdateCertificateAsync`) had it too.
+Where a collection navigation drives behaviour, verify the query that loads it; a missing `Include`
+degrades silently to the single denormalized value rather than failing.
+
+### Not a defect (recorded so it is not re-investigated)
+
+`/Certificate/Delete/{number}` (GET) returns **500 — "The view 'Delete' was not found"**.
+Pre-existing and unrelated: `Views/Certificate/Delete.cshtml` has never existed in git history, and
+the real UI deletes through a modal + POST. The POST half works.
+
+### Partner isolation — tested under real Partner logins (2026-09-01)
+
+The country facets and filter were the one place this CR could plausibly leak data, since both now
+read the join table. Two Partner accounts were created on dev (`cr037.amazon` -> Amazon, 244
+associated certs; `cr037.novi` -> Novi, 0) and driven through the external tile API.
+
+The test is **discriminating**, which matters: 12 country values exist only on non-Amazon
+certificates (Wales, Belize, Sweden, France, Spain, Singapore, Colombia, Portugal, Poland and three
+malformed multi-value strings). A scoped account that merely *sees* its own data proves nothing —
+there has to be something it must be denied.
+
+| Check | Result |
+|---|---|
+| Amazon facet list vs. DB-computed Amazon set | **21 = 21**, 0 missing, 0 extra (compared as sets, both directions) |
+| Non-Amazon countries leaked into Amazon's facets | **NONE** of the 12 |
+| Amazon filtering on Wales / Belize / Sweden / France / Spain / Singapore / Colombia / Portugal / Poland | **0 certificates each** |
+| Amazon filtering on Japan / Mexico / Germany / United States | 1 / 3 / 20 / 104 — scope intact, not over-restricted |
+| Novi (0 associated certs) | **0** countries offered; sees none of Amazon's |
+
+Scoping works because the cert-level partner filter runs on `baseQuery` *before* the country
+`SelectMany`, so widening which countries match never widens which certificates are reachable.
+
+**Two false alarms during this test, both harness bugs — recorded so they are not re-chased:**
+a set comparison that split the facet list on `;` shredded the legitimate value `"Hungary; Germany"`
+into two entries and reported a spurious mismatch; and counting `@($json.certificates).Count` in
+PowerShell 5.1 returns **1** for an empty array, which briefly looked like a nine-country data leak.
+`totalCount` from the response is the authoritative count — the real answer was 0 every time.
+
+Test users and all test data removed; dev back to 4 users, 1,327 join rows, 0 orphans.
+
+### External (company-scoped) isolation — tested 2026-09-01
+
+External users are the other half of the umbrella, and they scope by **company** rather than partner,
+so the partner result does not carry over. A test user was created on dev against **CertainTeed
+Insulation Group** (92 certificates, only 3 distinct countries — leaving **30** country values that
+belong solely to other companies and must never appear).
+
+| Check | Result |
+|---|---|
+| Facets vs. DB-computed company set | **3 = 3** — `Canada`, `United States`, `United States, Canada`; 0 missing, 0 extra |
+| Any of the 30 other-company countries leaked | **NONE** |
+| Filtering Germany / Japan / China / Mexico / Wales / France / Poland / Hungary / Italy / Turkey | **0 certificates each** |
+| Filtering United States / Canada | 8 / 4 — own scope intact, not over-restricted |
+| Detail page, own company (`25-8760`) | HTTP 200 |
+| Detail page, another company (`25-8477`, Philips) | **HTTP 404** — denied, and non-disclosing |
+
+Baseline for this user is 18 certificates rather than 92 because external callers also pass the
+DEF-358 publish/validity gate; that is expected, and it confirms the country filter composes with
+visibility gating rather than bypassing it.
+
+All three scoped roles therefore verified: **Partner** (Amazon/Novi), **External** (company), and the
+anonymous public API. Test users and data removed; dev back to 4 users, 1,327 join rows, 0 orphans
+in `CertificateCountries`, `CompanyUser` and `PartnerUser`.
+
+### Still not covered
+
+Deployment to the test environment and a contract-diff re-run there.
 
 ---
 

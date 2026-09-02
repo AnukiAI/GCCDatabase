@@ -1,0 +1,37 @@
+{"Id":3,"Name":"Carbon Footprint Reduction","AmazonCode":"CFR","Description":"Carbon footprint reduction certification","IsActive":true,"SortOrder":3,"Level":1,"ParentId":null}
+{"Id":4,"Name":"Certified Energy Savings","AmazonCode":"greencircle_energy_savings","Description":"Energy savings certification","IsActive":true,"SortOrder":4,"Level":1,"ParentId":null}
+{"Id":5,"Name":"Certified Environmental Facts","AmazonCode":"CEF","Description":"Environmental impact certification","IsActive":true,"SortOrder":5,"Level":1,"ParentId":null}
+{"Id":6,"Name":"Certified Sustainability Facts","AmazonCode":"CSF","Description":"Comprehensive sustainability certification","IsActive":true,"SortOrder":6,"Level":1,"ParentId":null}
+{"Id":7,"Name":"Certified Water Savings","AmazonCode":"CWS","Description":"Water savings certification","IsActive":true,"SortOrder":7,"Level":1,"ParentId":null}
+{"Id":8,"Name":"Closed Loop Product","AmazonCode":"CLP","Description":"Closed loop product certification","IsActive":true,"SortOrder":8,"Level":1,"ParentId":null}
+{"Id":9,"Name":"Dematerialization","AmazonCode":"DEM","Description":"Dematerialization certification","IsActive":true,"SortOrder":9,"Level":1,"ParentId":null}
+{"Id":10,"Name":"Greenhouse Gas (GHG) Verification","AmazonCode":"GHG","Description":"GHG verification","IsActive":true,"SortOrder":10,"Level":1,"ParentId":null}
+{"Id":11,"Name":"GreenCircle Audited","AmazonCode":"GCA","Description":"GreenCircle audited certification","IsActive":true,"SortOrder":11,"Level":1,"ParentId":null}
+{"Id":12,"Name":"Life Cycle Assessment (LCA) Optimized","AmazonCode":"LCA","Description":"LCA optimized certification","IsActive":true,"SortOrder":12,"Level":1,"ParentId":null}
+{"Id":13,"Name":"Material Ingredient Reporting","AmazonCode":"MIV","Description":"Manufacturer inventory verification","IsActive":true,"SortOrder":13,"Level":1,"ParentId":null}
+{"Id":15,"Name":"Recycled Content","AmazonCode":"greencircle_recycled_content","Description":"Recycled content certification","IsActive":true,"SortOrder":15,"Level":1,"ParentId":null}
+{"Id":17,"Name":"Sustainable Energy Practices","AmazonCode":"greencircle_sustainable_energy_practices","Description":"Sustainable energy practices","IsActive":true,"SortOrder":17,"Level":1,"ParentId":null}
+{"Id":18,"Name":"Sustainable Manufacturing Practices","AmazonCode":"SMP","Description":"Sustainable manufacturing practices","IsActive":true,"SortOrder":18,"Level":1,"ParentId":null}
+{"Id":19,"Name":"Waste Diversion from Landfill","AmazonCode":"WDL","Description":"Waste diversion from landfill certification","IsActive":true,"SortOrder":19,"Level":1,"ParentId":null}
+{"Id":20,"Name":"Waste System Audit","AmazonCode":"WSA","Description":"Waste system audit (Level 2 under Waste Diversion)","IsActive":true,"SortOrder":20,"Level":2,"ParentId":19}
+{"Id":24,"Name":"+Vantage Vinyl Verified","AmazonCode":"VVV","Description":"+Vantage Vinyl verified certification","IsActive":true,"SortOrder":21,"Level":1,"ParentId":null}
+{"Id":71,"Name":"Closed Loop Product","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":6,"Level":2,"ParentId":6}
+{"Id":72,"Name":"Dematerialization","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":10,"Level":2,"ParentId":6}
+{"Id":73,"Name":"Recycled Content","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":32,"Level":2,"ParentId":6}
+{"Id":78,"Name":"Waste Diversion from Landfill","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":40,"Level":2,"ParentId":6}
+{"Id":82,"Name":"Material Ingredient Reporting","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":27,"Level":2,"ParentId":6}
+{"Id":84,"Name":"Certified Energy Savings","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":4,"Level":2,"ParentId":6}
+{"Id":88,"Name":"Life Cycle Assessment (LCA) Optimized","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":25,"Level":2,"ParentId":6}
+{"Id":90,"Name":"Sustainable Energy Practices","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":33,"Level":2,"ParentId":6}
+{"Id":95,"Name":"Certified Water Savings","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":5,"Level":2,"ParentId":6}
+{"Id":115,"Name":"Waste Diversion Event","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":0,"Level":2,"ParentId":19}
+{"Id":116,"Name":"Carbon Footprint Reduction","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":0,"Level":2,"ParentId":6}
+{"Id":117,"Name":"Recyclable Material","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":0,"Level":2,"ParentId":6}
+{"Id":118,"Name":"Sustainable Manufacturing Practices","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":0,"Level":2,"ParentId":6}
+{"Id":119,"Name":"Product Optimization: Carbon Footprint Reduction","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":0,"Level":1,"ParentId":null}
+{"Id":120,"Name":"Recyclable Material","AmazonCode":null,"Description":"","IsActive":true,"SortOrder":0,"Level":1,"ParentId":null}
+{"Id":126,"Name":"Biodegradable","AmazonCode":null,"Description":null,"IsActive":false,"SortOrder":41,"Level":1,"ParentId":null}
+{"Id":127,"Name":"Biobased","AmazonCode":null,"Description":null,"IsActive":false,"SortOrder":42,"Level":1,"ParentId":null}
+{"Id":128,"Name":"Renewable Resource Content","AmazonCode":null,"Description":null,"IsActive":false,"SortOrder":43,"Level":1,"ParentId":null}
+{"Id":129,"Name":"Verified Health Product Declaration","AmazonCode":null,"Description":null,"IsActive":false,"SortOrder":44,"Level":1,"ParentId":null}
+{"Id":130,"Name":"Unspecified","AmazonCode":null,"Description":"Placeholder for migrated certificates whose original certification type is not in the system. Deactivated — not selectable for new certificates.","IsActive":false,"SortOrder":9999,"Level":1,"ParentId":null}

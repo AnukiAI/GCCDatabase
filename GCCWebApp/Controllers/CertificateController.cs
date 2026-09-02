@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
@@ -405,7 +405,7 @@ namespace GCCWebApp.Controllers
                 ViewBag.Partners = await _context.Partners.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
 
                 // Load countries
-                ViewBag.Countries = CountryList.Countries;
+                ViewBag.Countries = CountryList.DisplayOrder; // United States first, then A-Z
 
                 return View(model);
             }
@@ -552,7 +552,8 @@ namespace GCCWebApp.Controllers
                         EffectiveDate = model.EffectiveDate.Value,
                         ExpirationDate = model.ExpirationDate.Value,
                         Location = model.Location,
-                        Country = model.Country,
+                        // CR-037: set by SyncCertificateCountries from the first selected country.
+                        Country = CountryList.ParseMany(model.Countries).FirstOrDefault(),
                         Asin = model.Asin,
                         Upc = model.Upc,
                         Gtin = model.Gtin,
@@ -659,6 +660,11 @@ namespace GCCWebApp.Controllers
                         _logger.LogInformation("Added {Count} product IDs to certificate {Number}", model.ProductIds.Count, certificate.Number);
                     }
 
+                    // CR-037: multi-country. Runs after the certificate has an Id so the join rows
+                    // carry a valid FK.
+                    await SyncCertificateCountriesAsync(certificate, model.Countries);
+                    await _unitOfWork.CompleteAsync();
+
                     // Handle Partners (multi-partner support)
                     if (!string.IsNullOrWhiteSpace(model.PartnerIds))
                     {
@@ -756,6 +762,47 @@ namespace GCCWebApp.Controllers
                     await _productIdService.SyncProductIdStatusesForCertificateAsync(certificate.Id);
 
                     _logger.LogInformation("Certificate {Number} created by user {UserId}", certificate.Number, GetCurrentUserId());
+
+                    // DEF-391 (create half): record the CREATE in the audit trail.
+                    //
+                    // Placed here, at the end, rather than straight after the first save: the
+                    // certificate is assembled across several SaveChanges above (files may be
+                    // renamed, product IDs, countries and partners are attached afterwards), so
+                    // auditing earlier would snapshot a half-built record. By this point the
+                    // certificate is complete and its Id is assigned.
+                    //
+                    // A CREATE writes one row holding the whole entity as JSON, not a field diff —
+                    // there is no "before" to compare against. Navigation collections are stripped
+                    // by the serializer, which is why the product IDs and partners attached above
+                    // do not appear in it; they carry their own audit rows where those paths are
+                    // audited. What this row guarantees is that a certificate's existence, its
+                    // author and its initial values are on the record.
+                    try
+                    {
+                        var creatingUserId = GetCurrentUserId();
+                        var creatingUsername = User?.FindFirst("Name")?.Value
+                            ?? User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                            ?? (creatingUserId.HasValue ? $"User#{creatingUserId}" : "System");
+
+                        await _auditService.LogEntityChangeAsync(
+                            certificate.Id.ToString(),
+                            certificate.Number,
+                            AuditAction.Create,
+                            (Certificate?)null,
+                            certificate,
+                            creatingUserId ?? 0,
+                            creatingUsername,
+                            reason: null,
+                            changeSource: AuditChangeSource.WebUI);
+                    }
+                    catch (Exception auditEx)
+                    {
+                        // The certificate exists and is committed; never undo that over an audit
+                        // failure. Log loudly — an unrecorded create is the same class of gap.
+                        _logger.LogError(auditEx,
+                            "AUDIT GAP: certificate {Number} (id {Id}) was created but the audit row was not written",
+                            certificate.Number, certificate.Id);
+                    }
 
                     // Handle "Save & Add Another" action
                     if (action == "saveAndAddAnother")
@@ -904,6 +951,15 @@ namespace GCCWebApp.Controllers
                     ExpirationDate = certificate.ExpirationDate,
                     Location = certificate.Location,
                     Country = certificate.Country,
+                    // CR-037: primary first so the picker restores the analyst's own order and the
+                    // first chip still matches the stored primary. Falls back to the denormalized
+                    // Country for rows that predate the backfill.
+                    Countries = certificate.Countries?.Any() == true
+                        ? string.Join(",", certificate.Countries
+                            .OrderByDescending(cc => cc.Country == certificate.Country)
+                            .ThenBy(cc => cc.Id)
+                            .Select(cc => cc.Country))
+                        : certificate.Country,
                     Asin = certificate.Asin,
                     Upc = certificate.Upc,
                     Gtin = certificate.Gtin,
@@ -994,7 +1050,7 @@ namespace GCCWebApp.Controllers
                 }
 
                 // Load countries
-                ViewBag.Countries = CountryList.Countries;
+                ViewBag.Countries = CountryList.DisplayOrder; // United States first, then A-Z
 
                 return View(model);
             }
@@ -1072,6 +1128,17 @@ namespace GCCWebApp.Controllers
                 if (ModelState.IsValid)
                 {
                     var certificate = await _certificateRepository.GetByIdAsync(id);
+
+                    // DEF-391: snapshot the row BEFORE anything below mutates it, so the audit
+                    // write at the end of this action has a real "from" value to diff against.
+                    // AsNoTracking is what makes it a snapshot — the tracked `certificate` above
+                    // is the same object the edits are applied to, so without a detached copy
+                    // old and new are the identical reference and every field compares equal
+                    // (the audit would record the save and no changes, which is worse than none).
+                    var certificateBeforeEdit = await _context.Certificates
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(c => c.Id == id);
+
                     if (certificate == null)
                     {
                         return NotFound();
@@ -1157,7 +1224,9 @@ namespace GCCWebApp.Controllers
                     certificate.EffectiveDate = model.EffectiveDate.Value;
                     certificate.ExpirationDate = model.ExpirationDate.Value;
                     certificate.Location = model.Location;
-                    certificate.Country = model.Country;
+                    // CR-037: certificate.Country is derived from the country set — see
+                    // SyncCertificateCountries below. Do not assign it from model.Country here;
+                    // the form no longer posts a single country.
                     certificate.Asin = model.Asin;
                     certificate.Upc = model.Upc;
                     certificate.Gtin = model.Gtin;
@@ -1280,6 +1349,11 @@ namespace GCCWebApp.Controllers
                             }
                         }
                     }
+
+                    // CR-037: multi-country. Must run on update too, not just create — otherwise the
+                    // join rows keep describing the certificate as first saved and the country filter
+                    // returns stale matches.
+                    await SyncCertificateCountriesAsync(certificate, model.Countries);
 
                     // Handle Partners (multi-partner support)
                     if (!string.IsNullOrWhiteSpace(model.PartnerIds))
@@ -1456,6 +1530,51 @@ namespace GCCWebApp.Controllers
 
                     await _certificateRepository.UpdateAsync(certificate);
                     await _unitOfWork.CompleteAsync();
+
+                    // DEF-391: write the field-level audit trail for this edit.
+                    //
+                    // Until now IAuditService was injected into this controller and never called,
+                    // so a certificate edit left NO record of what changed — only Certificates
+                    // .UpdatedBy/.UpdatedAt (who and when) and, for status alone,
+                    // CertificateStatusHistory. Reconstructing five changed result percentages on
+                    // the test environment needed a spreadsheet dump taken on load day, because
+                    // the before-values existed nowhere in the application. Products, companies,
+                    // tags and users were all audited; the certificate — the record of record —
+                    // was not.
+                    //
+                    // Placed AFTER CompleteAsync deliberately: the audit describes a change that
+                    // is already committed, so a failure here must never roll the edit back. The
+                    // service writes one row per changed field and returns 0 when nothing
+                    // differs, so an open-and-save with no edits stays silent rather than
+                    // logging a phantom change.
+                    try
+                    {
+                        var auditedFields = await _auditService.LogEntityChangeAsync(
+                            certificate.Id.ToString(),
+                            certificate.Number,
+                            AuditAction.Update,
+                            certificateBeforeEdit,
+                            certificate,
+                            actingUserId ?? 0,
+                            actingUsername,
+                            reason: null,
+                            changeSource: AuditChangeSource.WebUI);
+
+                        if (auditedFields > 0)
+                        {
+                            _logger.LogInformation(
+                                "Audit: {Count} field(s) recorded for certificate {Number} edited by {User}",
+                                auditedFields, certificate.Number, actingUsername);
+                        }
+                    }
+                    catch (Exception auditEx)
+                    {
+                        // Never fail a saved edit because the audit write failed — but say so
+                        // loudly, because a silent gap here is exactly what DEF-391 was.
+                        _logger.LogError(auditEx,
+                            "AUDIT GAP: certificate {Number} (id {Id}) was updated but the audit row was not written",
+                            certificate.Number, certificate.Id);
+                    }
 
                     // CR-015: always cascade — picks up status changes AND newly added/replaced product IDs.
                     // Cheap when no-op (only writes rows where stored status drifts from derived value).
@@ -2365,6 +2484,67 @@ namespace GCCWebApp.Controllers
                 foreach (var p in matched) pid.Partners.Add(p);
                 pid.Partner = matched.FirstOrDefault()?.Name ?? pid.Partner;
             }
+        }
+
+        /// <summary>
+        /// CR-037: replaces a certificate's country set from the comma-separated form value and
+        /// re-derives the denormalized primary.
+        ///
+        /// Called on create <b>and</b> on update. Skipping the update half is the CR-171 mistake this
+        /// deliberately avoids: the join rows then describe whatever the certificate looked like when
+        /// it was first saved, and the country filter quietly returns stale results.
+        ///
+        /// Country order is the analyst's order — the first entry becomes <see cref="Certificate.Country"/>,
+        /// which is the grid's sort key and the CSV column, so it is never re-sorted here.
+        /// </summary>
+        private async Task SyncCertificateCountriesAsync(Certificate certificate, string? countriesCsv)
+        {
+            var countries = CountryList.ParseMany(countriesCsv);
+
+            // Delete the existing rows through the CONTEXT, not through certificate.Countries.
+            //
+            // The Edit POST loads its certificate with _certificateRepository.GetByIdAsync(id),
+            // which applies no Includes — so the navigation collection arrives empty even when the
+            // certificate has join rows in the database. Clearing it would therefore delete nothing
+            // while the inserts below collided with the unique (CertificateId, Country) index, and
+            // the edit would silently fail to save any country change. Querying the table directly
+            // makes this correct whichever way the caller loaded the certificate.
+            var existing = await _context.CertificateCountries
+                .Where(cc => cc.CertificateId == certificate.Id)
+                .ToListAsync();
+
+            if (existing.Count > 0)
+            {
+                _context.CertificateCountries.RemoveRange(existing);
+            }
+
+            // Keep the tracked navigation in step for anything reading it later in this request.
+            certificate.Countries.Clear();
+
+            foreach (var name in countries)
+            {
+                _context.CertificateCountries.Add(new CertificateCountry
+                {
+                    CertificateId = certificate.Id,
+                    Country = name
+                });
+            }
+
+            // Primary: keep the existing one if it is still selected, otherwise take the first entry.
+            //
+            // This matters because the field is a <select multiple> (matching the Partner field), and
+            // selectedOptions comes back in the list's ALPHABETICAL order, not the order the analyst
+            // clicked. Without this, adding Canada to a United States certificate would silently make
+            // Canada the primary — and the primary is the grid's sort key and the CSV column, so the
+            // row would move in a country sort as a side effect of an unrelated edit. Existing
+            // certificates therefore keep the primary they already had unless it is actually removed.
+            //
+            // Cleared to null when every country is removed, so an emptied field does not leave the
+            // old primary stranded in the column.
+            var previousPrimary = certificate.Country;
+            certificate.Country = countries.FirstOrDefault(c =>
+                                      string.Equals(c, previousPrimary, StringComparison.OrdinalIgnoreCase))
+                                  ?? countries.FirstOrDefault();
         }
 
         private bool FileAccessAllowed(Certificate certificate, out string denyReason)

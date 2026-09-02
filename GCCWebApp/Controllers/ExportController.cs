@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using GCCWebApp.Models;
 using GCCWebApp.Repositories;
 using GCCWebApp.Services.Performance;
@@ -701,7 +701,7 @@ namespace GCCWebApp.Controllers
 
             foreach (var cert in certificates)
             {
-                csv.AppendLine($"{CsvField(cert.Number)},{CsvField(cert.Status)},{CsvField(cert.Company?.Name)},{CsvField(cert.Product?.Name)},{CsvField(cert.CertificationType?.Name)},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{CsvField(cert.Location)},{CsvField(cert.Country)}");
+                csv.AppendLine($"{CsvField(cert.Number)},{CsvField(cert.Status)},{CsvField(cert.Company?.Name)},{CsvField(cert.Product?.Name)},{CsvField(cert.CertificationType?.Name)},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{CsvField(cert.Location)},{CsvField(CountriesField(cert))}");
             }
 
             return csv.ToString();
@@ -800,7 +800,7 @@ namespace GCCWebApp.Controllers
                     worksheet.Cell(row, 7).Value = cert.ExpirationDate;
                     worksheet.Cell(row, 7).Style.DateFormat.Format = "yyyy-MM-dd";
                     worksheet.Cell(row, 8).Value = cert.Location ?? "";
-                    worksheet.Cell(row, 9).Value = cert.Country ?? "";
+                    worksheet.Cell(row, 9).Value = CountriesField(cert); // CR-037
                     row++;
                 }
 
@@ -1030,6 +1030,53 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// CR-037: lazily-built CertificateId -> countries lookup, scoped to one export request.
+        /// See <see cref="CountriesField"/> for why the export does not rely on the navigation.
+        /// </summary>
+        private Dictionary<int, List<string>>? _countryLookup;
+
+        /// <summary>
+        /// CR-037: every country on the certificate as a pipe-delimited list, primary first.
+        ///
+        /// Pipe rather than comma follows the DEF-316 Partner precedent — inside a CSV a comma-joined
+        /// multi-value cell has to be quoted to survive, and the import parser accepts both, so pipe
+        /// round-trips without depending on quoting.
+        ///
+        /// <b>Deliberately does not depend on <c>cert.Countries</c> being Include()d.</b> The four
+        /// report generators in this controller are fed by roughly fifteen different queries, none of
+        /// which loaded the collection. Relying on the navigation therefore produced a SILENT wrong
+        /// answer — the fallback quietly emitted only the primary country, so the export looked fine
+        /// and was simply missing data. Adding an Include to all fifteen would fix today and regress
+        /// the first time someone added a sixteenth query. The lookup is built once per request from
+        /// the join table (a few thousand short rows) and cannot be forgotten.
+        /// </summary>
+        private string CountriesField(Certificate cert)
+        {
+            // Use the navigation when a caller did load it — avoids the lookup entirely.
+            if (cert.Countries != null && cert.Countries.Count > 0)
+            {
+                return JoinCountries(cert.Countries.Select(cc => cc.Country), cert.Country);
+            }
+
+            _countryLookup ??= _context.CertificateCountries
+                .AsNoTracking()
+                .Select(cc => new { cc.CertificateId, cc.Country })
+                .ToList()
+                .GroupBy(x => x.CertificateId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Country).ToList());
+
+            return _countryLookup.TryGetValue(cert.Id, out var names)
+                ? JoinCountries(names, cert.Country)
+                : cert.Country ?? "";
+        }
+
+        /// <summary>Primary first, then the rest A-Z, pipe-delimited.</summary>
+        private static string JoinCountries(IEnumerable<string> names, string? primary) =>
+            string.Join(" | ", names
+                .OrderByDescending(n => n == primary)
+                .ThenBy(n => n, StringComparer.Ordinal));
+
         private string GenerateCertificateReportCsv(string reportTitle, List<Certificate> certificates)
         {
             var csv = new StringBuilder();
@@ -1041,7 +1088,7 @@ namespace GCCWebApp.Controllers
 
             foreach (var cert in certificates)
             {
-                csv.AppendLine($"{CsvField(cert.Number)},{CsvField(cert.Status)},{CsvField(cert.Company?.Name)},{CsvField(cert.Product?.Name)},{CsvField(cert.CertificationType?.Name)},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{CsvField(cert.Location)},{CsvField(cert.Country)}");
+                csv.AppendLine($"{CsvField(cert.Number)},{CsvField(cert.Status)},{CsvField(cert.Company?.Name)},{CsvField(cert.Product?.Name)},{CsvField(cert.CertificationType?.Name)},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{CsvField(cert.Location)},{CsvField(CountriesField(cert))}");
             }
 
             return csv.ToString();
@@ -1099,7 +1146,7 @@ namespace GCCWebApp.Controllers
                     worksheet.Cell(row, 7).Value = cert.ExpirationDate;
                     worksheet.Cell(row, 7).Style.DateFormat.Format = "yyyy-MM-dd";
                     worksheet.Cell(row, 8).Value = cert.Location ?? "";
-                    worksheet.Cell(row, 9).Value = cert.Country ?? "";
+                    worksheet.Cell(row, 9).Value = CountriesField(cert); // CR-037
                     row++;
                 }
 

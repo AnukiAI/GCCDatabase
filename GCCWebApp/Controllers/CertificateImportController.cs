@@ -1,4 +1,4 @@
-using GCCWebApp.Data;
+﻿using GCCWebApp.Data;
 using GCCWebApp.Models.Import;
 using GCCWebApp.Services.Import;
 using Microsoft.AspNetCore.Authorization;
@@ -460,10 +460,14 @@ namespace GCCWebApp.Controllers
             // so the previous pipe-based files keep importing; only the guidance changed. The
             // parenthetical is safe for header matching — GetFieldWithMapping falls back to a
             // "Partner " prefix match (see CertificateImportService.cs:129-157).
+            // CR-037: Country carries the same separator hint for the same reason — it is
+            // multi-value now, and the delimiter is what analysts get wrong. CountryList.ParseMany
+            // splits on both ',' and '|', so existing single-country files keep importing
+            // unchanged; only the guidance changed.
             var statusHint = "Status (Draft / Client Approved - Not Paid / Client Approved - Confidential / Client Approved - Paid / Hold / Expired / Republished / Expired - No Annual Verification — defaults to Draft if blank)";
             var templateCsv = "\"Certificate #\",\"Certification Type\",\"Cert Subcategories\"," +
                               $"\"{statusHint}\"," +
-                              "\"Company\",\"Company Email\",\"Company URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner (separate by comma)\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"";
+                              "\"Company\",\"Company Email\",\"Company URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner (separate by comma)\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country (separate by comma)\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"";
 
             // Prepend a UTF-8 BOM so Excel on Windows decodes the file as UTF-8 instead of
             // its default Windows-1252. Without the BOM, the em dash in the Status hint

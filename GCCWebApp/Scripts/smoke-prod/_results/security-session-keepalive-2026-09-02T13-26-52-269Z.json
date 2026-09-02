@@ -1,0 +1,61 @@
+{
+  "specId": "session-keepalive",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 8,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 8,
+  "results": [
+    {
+      "id": "K1",
+      "name": "anon ping (X-Requested-With) returns 401",
+      "status": "PASS",
+      "notes": "got 401"
+    },
+    {
+      "id": "K2",
+      "name": "anon ping never returns a success body",
+      "status": "PASS",
+      "notes": "status 302"
+    },
+    {
+      "id": "K5",
+      "name": "CONTROL: plain GET /Dashboard does not reissue GCC.Auth",
+      "status": "PASS",
+      "notes": "status 200, no GCC.Auth Set-Cookie (as expected)"
+    },
+    {
+      "id": "K3",
+      "name": "authenticated ping returns 200 with a success body",
+      "status": "PASS",
+      "notes": "status 200, body {\"success\":true} (as admin.uat)"
+    },
+    {
+      "id": "K4",
+      "name": "ping RE-ISSUES the auth cookie (the DEF-390 fix)",
+      "status": "PASS",
+      "notes": "GCC.Auth Set-Cookie present — the session window restarts at ping time"
+    },
+    {
+      "id": "K6",
+      "name": "ping response is not cacheable",
+      "status": "PASS",
+      "notes": "Cache-Control: no-cache,no-store"
+    },
+    {
+      "id": "K7",
+      "name": "served auth.js contains the keep-alive client half",
+      "status": "PASS",
+      "notes": "status 200, ping: true, visibilitychange: true"
+    },
+    {
+      "id": "K8",
+      "name": "ping does not downgrade a Remember Me cookie",
+      "status": "PASS",
+      "notes": "persistent cookie left untouched by the ping (expected)"
+    }
+  ],
+  "finishedAt": "2026-09-02T13:26:52.269Z"
+}

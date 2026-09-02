@@ -1,0 +1,47 @@
+{
+  "status": "BLOCKED",
+  "totals": {
+    "pass": 43,
+    "fail": 0,
+    "warn": 1,
+    "blocked": 5
+  },
+  "specs": [
+    {
+      "spec": "partner-isolation",
+      "pass": 0,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 5
+    },
+    {
+      "spec": "rbac-matrix",
+      "pass": 23,
+      "fail": 0,
+      "warn": 1,
+      "blocked": 0
+    },
+    {
+      "spec": "idor-download",
+      "pass": 2,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "cert-detail-scoping",
+      "pass": 10,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "session-keepalive",
+      "pass": 8,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    }
+  ],
+  "finishedAt": "2026-09-02T12:28:01.645Z"
+}

@@ -1,0 +1,127 @@
+{
+  "specId": "partner-isolation",
+  "base": "http://localhost:5101",
+  "url": "/api/CertificateTileExternal",
+  "pass": 18,
+  "fail": 1,
+  "warn": 0,
+  "blocked": 0,
+  "total": 19,
+  "results": [
+    {
+      "id": "iso.partner@amazon.com.login",
+      "name": "login (Amazon)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "iso.partner@amazon.com.error",
+      "name": "spec ran without throwing",
+      "status": "FAIL",
+      "notes": "apiRequestContext.get: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - → GET http://localhost:5101/api/CertificateTileExternal?page=1&pageSize=300\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36\u001b[22m\n\u001b[2m    - accept: application/json\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - cookie: __RequestVerificationToken=CfDJ8BrfGHgqIbtJnVG3nzQuF_Xow6es9zy-Q49-pSDnLeJc9OovsZqqw4qdya6HHm94y-8RjF2_vrf1q0L4YVyY5nmS1McN5e6fQ6pN2qWwRi1RRrJINshLvjnEzkhWOADv6wTV-sWbqh3KZsTWg1dvV68; GCC.Session=CfDJ8BrfGHgqIbtJnVG3nzQuF%2FXV%2BsLFl4%2FqLP%2FyUwUYtcUylS4MBW47hAKcgR61Cy3tJtVnuZU7lbSMeXGC9jzlKE%2FN18m%2BeCNNOyF2FVPY4nTrNreojrfXO%2Fl%2FiVynzak5LYP71y6I4j873t6ViKBBG2rXditTgldp%2BMgcjZ4wE%2BzO; GCC.Auth=CfDJ8BrfGHgqIbtJnVG3nzQuF_UTlVh-cVHzBNlSsZbi9SNY0gAlWVJZguaCAMpar30RMu-slQoCWmEcqaHu58FLwLt5eXiu6lfeFuXAv_JRxb170D9hFMsqcdE7SBvOQ4ELDQ7z3Z4Yz2j06hdF_IABXvftoeCK6P0xJpJN6BK53dI95YpiFxPSUkPT68QLUopb9_S7zk9Gr6FjghjbdvpxiXclnSB3BE43kMulXhL8VdsO5-FlMFEtMdSKgxVjCMQRHjIYJIUlcp0uAywJ7rjbn-Bwdecx0_LM3rxpdhdZOWNT3Goyvr0PaQCcRfvpLUkVF3tBoPfIBToELwQCCMriZO9AguxKHfdC4toBNVOoqhGoccfwmjx-GMy07eQ9nMz2n8yNhwCnJ1gqWNtd_0GmM9gzZF0GsLVwlDduJTOE_M6wuOmW-xqMxRwUjAgZcqStds428spJglnrTdJdLCc2-pNjGtEuIZxF-pHygmoXiIU2GhSBEOazOIM5BrBXFBCIdv6KYKLNNeqYOS0w8l950Qb-nBqcAdCbrVp0bIZMXCfxMc8FXZEeZvJ_Agd6DkQIG4i2MKOWn_13BidxTSUNNwHe3ryXMTfYCzUq_qXaZnHlAPnOVG-ESP-GhFGIDw-uK9ll9WLtNihwPH5sL2C_i37NeXtyVrXGlqyZtKTucX6EHH_dP4gHcVVnXGF8thWT1_sYn1OMYPLyoD_4Es9UVTDc_h378O_logYSxf1Lu7S9dJEu2SK8JEdvNUjeaERJhLhgk0t0MtUsX9xHaUqocHgs6b3EG7hyz4lnBzpJyh_I; _ga_16J12CPD8S=GS2.1.s1788354606$o1$g0$t1788354606$j60$l0$h385678591; _ga=GA1.1.1323819783.1788354607\u001b[22m\n"
+    },
+    {
+      "id": "iso.perry.novi@example.com.login",
+      "name": "login (Novi)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "iso.perry.novi@example.com.list",
+      "name": "external tile list scoped+non-empty",
+      "status": "PASS",
+      "notes": "HTTP 200, total=1, returned=1"
+    },
+    {
+      "id": "iso.perry.novi@example.com.no-leak",
+      "name": "no co-partner leak (forbid Amazon/Other/Wayfair)",
+      "status": "PASS",
+      "notes": "clean"
+    },
+    {
+      "id": "iso.perry.novi@example.com.export-scope",
+      "name": "export CSV rows <= tile scope",
+      "status": "PASS",
+      "notes": "csv rows=1 vs tile scope=1"
+    },
+    {
+      "id": "iso.pam.wayfair@example.com.login",
+      "name": "login (Wayfair)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "iso.pam.wayfair@example.com.list",
+      "name": "external tile list scoped+non-empty",
+      "status": "PASS",
+      "notes": "HTTP 200, total=1, returned=1"
+    },
+    {
+      "id": "iso.pam.wayfair@example.com.no-leak",
+      "name": "no co-partner leak (forbid Amazon/Novi/Other)",
+      "status": "PASS",
+      "notes": "clean"
+    },
+    {
+      "id": "iso.pam.wayfair@example.com.export-scope",
+      "name": "export CSV rows <= tile scope",
+      "status": "PASS",
+      "notes": "csv rows=1 vs tile scope=1"
+    },
+    {
+      "id": "iso.pip.other@example.com.login",
+      "name": "login (Other)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "iso.pip.other@example.com.list",
+      "name": "external tile list scoped+non-empty",
+      "status": "PASS",
+      "notes": "HTTP 200, total=1, returned=1"
+    },
+    {
+      "id": "iso.pip.other@example.com.no-leak",
+      "name": "no co-partner leak (forbid Amazon/Novi/Wayfair)",
+      "status": "PASS",
+      "notes": "clean"
+    },
+    {
+      "id": "iso.pip.other@example.com.export-scope",
+      "name": "export CSV rows <= tile scope",
+      "status": "PASS",
+      "notes": "csv rows=1 vs tile scope=1"
+    },
+    {
+      "id": "iso.pru.multi@example.com.login",
+      "name": "login (Amazon+Novi)",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "iso.pru.multi@example.com.list",
+      "name": "external tile list scoped+non-empty",
+      "status": "PASS",
+      "notes": "HTTP 200, total=189, returned=189"
+    },
+    {
+      "id": "iso.pru.multi@example.com.no-leak",
+      "name": "no co-partner leak (forbid Other/Wayfair)",
+      "status": "PASS",
+      "notes": "clean"
+    },
+    {
+      "id": "iso.pru.multi@example.com.own-visible",
+      "name": "multi-partner sees all own partners",
+      "status": "PASS",
+      "notes": "both present"
+    },
+    {
+      "id": "iso.pru.multi@example.com.export-scope",
+      "name": "export CSV rows <= tile scope",
+      "status": "PASS",
+      "notes": "csv rows=189 vs tile scope=189"
+    }
+  ],
+  "finishedAt": "2026-09-02T13:11:00.533Z"
+}

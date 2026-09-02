@@ -1,0 +1,47 @@
+{
+  "status": "RED-FAIL",
+  "totals": {
+    "pass": 40,
+    "fail": 3,
+    "warn": 1,
+    "blocked": 5
+  },
+  "specs": [
+    {
+      "spec": "partner-isolation",
+      "pass": 0,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 5
+    },
+    {
+      "spec": "rbac-matrix",
+      "pass": 23,
+      "fail": 0,
+      "warn": 1,
+      "blocked": 0
+    },
+    {
+      "spec": "idor-download",
+      "pass": 2,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "cert-detail-scoping",
+      "pass": 8,
+      "fail": 2,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "session-keepalive",
+      "pass": 7,
+      "fail": 1,
+      "warn": 0,
+      "blocked": 0
+    }
+  ],
+  "finishedAt": "2026-09-02T02:23:51.196Z"
+}

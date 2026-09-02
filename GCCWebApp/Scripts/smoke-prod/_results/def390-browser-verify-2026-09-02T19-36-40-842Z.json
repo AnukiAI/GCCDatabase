@@ -1,0 +1,90 @@
+{
+  "base": "https://gccwebapp.com",
+  "user": "test.analyst",
+  "runMinutes": 36,
+  "state": {
+    "A": {
+      "pings": [
+        5.2
+      ],
+      "loggedOutAt": null,
+      "warnAt": 25.4
+    },
+    "B": {
+      "pings": [
+        5.2,
+        10.7,
+        15.7,
+        20.7,
+        26.2,
+        31.2
+      ],
+      "loggedOutAt": null,
+      "warnAt": null
+    },
+    "C": {
+      "pings": [
+        5.3
+      ],
+      "loggedOutAt": null,
+      "warnAt": 25.4,
+      "resolvedOnReturn": false
+    },
+    "D": {
+      "pings": [],
+      "loggedOutAt": null,
+      "warnAt": null
+    }
+  },
+  "results": [
+    {
+      "id": "A.warn",
+      "name": "idle foreground: warning at ~25 min",
+      "status": "PASS",
+      "notes": "warned at 25.4m (expect 25 ±3)"
+    },
+    {
+      "id": "A.logout",
+      "name": "idle foreground: logged out at ~30 min",
+      "status": "FAIL",
+      "notes": "logged out at nullm (expect 30 ±3)"
+    },
+    {
+      "id": "A.order",
+      "name": "warning came BEFORE logout",
+      "status": "FAIL",
+      "notes": "warn 25.4m vs logout nullm"
+    },
+    {
+      "id": "B.alive",
+      "name": "active-but-not-navigating: still signed in",
+      "status": "PASS",
+      "notes": "survived 36m of activity without navigating — this is the case that was silently broken"
+    },
+    {
+      "id": "B.pings",
+      "name": "active session sent keep-alive pings",
+      "status": "PASS",
+      "notes": "6 pings at 5.2, 10.7, 15.7, 20.7, 26.2, 31.2m"
+    },
+    {
+      "id": "C.resolved",
+      "name": "backgrounded tab resolves on return (no silent bounce)",
+      "status": "FAIL",
+      "notes": "tab looked alive after its deadline"
+    },
+    {
+      "id": "D.alive",
+      "name": "Remember Me: NOT logged out",
+      "status": "PASS",
+      "notes": "still signed in at 36m"
+    },
+    {
+      "id": "D.nopings",
+      "name": "Remember Me: sent NO keep-alive pings",
+      "status": "PASS",
+      "notes": "0 pings (expect 0)"
+    }
+  ],
+  "finishedAt": "2026-09-02T19:36:40.891Z"
+}

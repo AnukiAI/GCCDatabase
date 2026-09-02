@@ -1,0 +1,13 @@
+{
+  "base": "https://gccwebapp.com",
+  "businessToday": "2026-09-02",
+  "ranAt": "2026-09-02T15:59:08.535Z",
+  "rowCount": 16081,
+  "leakingRows": 0,
+  "leakingSample": [],
+  "results": {
+    "pass": 6,
+    "fail": 0,
+    "controlFailures": 0
+  }
+}

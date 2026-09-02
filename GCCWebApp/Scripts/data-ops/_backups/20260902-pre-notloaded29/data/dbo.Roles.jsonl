@@ -1,0 +1,5 @@
+{"Id":1,"Name":"Admin","Description":"Full system access","IsSystem":true,"IsActive":true,"CreatedAt":"2025-11-18T14:47:27.9000000","UpdatedAt":"2026-05-13T05:40:56.3874902"}
+{"Id":2,"Name":"Analyst","Description":"Certificate management access","IsSystem":true,"IsActive":true,"CreatedAt":"2025-11-18T14:47:27.9000000","UpdatedAt":"2026-03-13T15:01:18.0071671"}
+{"Id":3,"Name":"External","Description":"External user access","IsSystem":true,"IsActive":true,"CreatedAt":"2025-11-18T14:47:27.9000000","UpdatedAt":"2025-11-18T14:47:27.9000000"}
+{"Id":4,"Name":"Public","Description":"Public read-only access","IsSystem":true,"IsActive":true,"CreatedAt":"2025-11-18T14:47:27.9000000","UpdatedAt":"2025-11-18T14:47:27.9000000"}
+{"Id":6,"Name":"Partner","Description":"Partner organization access - scoped to assigned partner data","IsSystem":true,"IsActive":true,"CreatedAt":"2026-05-01T12:36:59.6466667","UpdatedAt":"2026-05-01T12:36:59.6466667"}

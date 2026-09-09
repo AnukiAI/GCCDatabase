@@ -1,4 +1,23 @@
-﻿@{
+﻿@*
+    ============================================================================
+    DELIBERATELY PARKED — DO NOT DELETE, DO NOT WIRE UP.
+    ============================================================================
+    The client asked for this screen to be BUILT for a future implementation of
+    self-registration. It is intentionally NOT reachable: there is no controller
+    action that returns it and nothing links to it, so /Account/SignUp returns
+    404. That is the required state, not a bug.
+
+    It looks exactly like an orphan view to any "views with no action" cleanup
+    sweep, and it was very nearly removed on that basis (2026-09-04). If you are
+    here because a lint, an audit or an agent flagged this file as dead markup:
+    it is not. Leave it in place and leave it unreachable.
+
+    Adding an action, a route or a link to this view is a PRODUCT decision that
+    needs the client, not a tidy-up. Keep it styled and in step with the other
+    auth views so it is ready when self-registration is actually scheduled.
+    ============================================================================
+*@
+@{
     ViewData["Title"] = "Create Account";
     ViewData["BodyClass"] = "login-page";
     Layout = null;
@@ -19,7 +38,9 @@
             --auth-container-max-width: 1000px;
             --auth-container-min-height: 700px;
             --auth-logo-height: 200px;
-            --auth-left-gradient: linear-gradient(135deg, #4a7c23 0%, #447638 100%);
+            /* DEF-406: --auth-left-gradient override (#4a7c23 -> #447638) removed so this page
+               inherits the lighter sign-in gradient from auth.css (#92C83E -> #447638). The
+               sizing tokens above are genuine page-specific overrides and stay. */
             --auth-header-font-size: 28px;
         }
         .login-header { margin-bottom: 30px; }

@@ -117,17 +117,28 @@ namespace GCCWebApp.Controllers.Api
                 // (lowercase; trademark/punctuation/whitespace stripped) so "Product A" matches
                 // "Product™ A", "product-a", "Product:  A", etc. Stored side = persisted computed
                 // NormalizedX columns; input side = SearchNormalizer (same rule, cannot drift).
+                // DEF-409: hoisted so the paging step below can rank prefix matches first. Stays
+                // null when there is no usable search term, which is what makes the unsearched
+                // ordering provably identical to before.
+                string? rankQuery = null;
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     var nq = SearchNormalizer.Normalize(search);
                     if (!string.IsNullOrEmpty(nq))
                     {
+                        rankQuery = nq;
                         // DEF-366: the tag match is resolved as its own semi-join first rather than
                         // sitting in this OR, where SQL Server re-ran it per row of the joined
                         // result. This is the endpoint the internal tile view calls, and the one
                         // that took 7-8s per search after the 5,702-cert load. See
                         // Search/TagSearchMatch.cs.
                         var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
+                        // DEF-402: the CR-037 country clause used to sit in the OR below as
+                        // `c.Countries.Any(...)`, and cost 2.6-3.3s of a 3s query — 15x the whole
+                        // rest of it. Resolved as its own semi-join for the same reason tags are
+                        // (DEF-366), then OR'd back in as set membership. Countries are still fully
+                        // searchable, primary and secondary; row counts are unchanged.
+                        var countryIds = await TagSearchMatch.MatchingCountryCertificateIdsAsync(_context.Certificates, nq);
                         query = query.WhereMatchesSearch(c =>
                             c.NormalizedNumber!.Contains(nq) ||
                             c.CertificationType.NormalizedName!.Contains(nq) ||
@@ -135,10 +146,8 @@ namespace GCCWebApp.Controllers.Api
                             c.Product.NormalizedName!.Contains(nq) ||
                             c.Product.Category.NormalizedName!.Contains(nq) ||
                             (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
-                            // CR-037: without this, searching a country finds certificates where it
-                            // is the primary but misses those where it is the second country.
-                            c.Countries.Any(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq)), tagIds);
+                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)),
+                            TagSearchMatch.Union(tagIds, countryIds));
                     }
                 }
 
@@ -233,11 +242,12 @@ namespace GCCWebApp.Controllers.Api
                 // cert, hitting the 30s command timeout (intermittent 500s on the ASIN sort).
                 // Selecting only c.Id makes EF drop the Includes (no split queries) so the .Min()
                 // ORDER BY runs ONCE on a thin query; we then load full data for just this page.
-                var pagedIds = await ApplySorting(query, sortBy)
-                    .Skip(actualOffset)
-                    .Take(actualLimit)
-                    .Select(c => c.Id)
-                    .ToListAsync();
+                // DEF-409: certificates whose NUMBER starts with the query come first; the
+                // caller's sortBy still governs within each band. Applied HERE, on the id-only
+                // projection that is actually paged — putting it on the hydrate query below would
+                // do nothing at all while looking like it worked.
+                var pagedIds = await SearchRanking.PageIdsAsync(
+                    query, q => ApplySorting(q, sortBy), rankQuery, actualOffset, actualLimit);
 
                 // Hydrate the page with full Includes but NO expensive ORDER BY (filter by the page's
                 // IDs; AsSplitQuery stitches the collections by PK only now). The user-requested order
@@ -389,7 +399,7 @@ namespace GCCWebApp.Controllers.Api
                     Partner = string.Join(", ", c.PartnerNames),
                     c.CreatedAt,
                     c.UpdatedAt,
-                    CertificationResults = DisplayFormatters.FormatCertificationResults(c.CertificationResults),
+                    CertificationResults = c.CertificationResults,
                     c.PathwayName,
                     c.CertSubcategories,
                     c.CompanyUrl,
@@ -436,8 +446,12 @@ namespace GCCWebApp.Controllers.Api
                 var suggestions = new List<object>();
 
                 // Search certificate numbers
+                // DEF-409: prefix matches first. This list had NO ordering at all and takes only 5,
+                // so typing "23" returned five arbitrary rows containing "23" anywhere — 26-0623
+                // just as readily as 23-0456. Ranking is the entire fix for an autocomplete.
                 var certNumbers = await _context.Certificates
                     .Where(c => c.NormalizedNumber!.Contains(nq))
+                    .OrderByNumberRelevance(nq)
                     .Select(c => new {
                         value = c.Number,
                         label = c.Number,

@@ -8,6 +8,18 @@
 
 const { BASE, HEADLESS, session, makeRecorder, chromium } = require('./_lib/regression-lib');
 
+// CR-038 (2026-08-14) deliberately ended global uniqueness of certificate numbers: the client had
+// already issued 137 numbers to more than one certificate and those numbers cannot be changed, so
+// IX_Certificates_Number became a FILTERED unique index — HasFilter("[AllowsDuplicateNumber] = 0"),
+// Data/ApplicationDbContext.cs:87. Uniqueness is still enforced for every ordinary certificate.
+//
+// So "are the numbers unique?" is the wrong question and reported 2 permanent phantom FAILs. The
+// right question is "has a NEW duplicate appeared?" — and the tile APIs do not project
+// AllowsDuplicateNumber (verified: no controller or view model references it), so the flag cannot be
+// read back over HTTP. The grandfathered set is therefore frozen from the CR-038 evidence file and
+// compared as a SET, both directions: a duplicate outside it is drift and fails.
+const GRANDFATHERED = new Set(require('./_lib/cr038-grandfathered-numbers.json').numbers);
+
 const PAGE_SIZE = 200;
 
 // Walk a tile API to exhaustion. Sequential and modestly paged on purpose — the test box has died
@@ -50,12 +62,18 @@ function numberHealth(rows) {
     seen.set(String(n), (seen.get(String(n)) || 0) + 1);
   }
   const dupes = [...seen.entries()].filter(([, c]) => c > 1);
+  // Grandfathered (CR-038) vs. new. Only the second kind is a defect.
+  const unexpected = dupes.filter(([n]) => !GRANDFATHERED.has(n));
   return {
     missing,
     distinct: seen.size,
     duplicateNumbers: dupes.length,
     duplicateRows: dupes.reduce((s, [, c]) => s + c, 0),
     examples: dupes.slice(0, 10).map(([n, c]) => `${n}x${c}`),
+    grandfathered: dupes.length - unexpected.length,
+    unexpectedNumbers: unexpected.length,
+    unexpectedRows: unexpected.reduce((s, [, c]) => s + c, 0),
+    unexpectedExamples: unexpected.slice(0, 10).map(([n, c]) => `${n}x${c}`),
   };
 }
 
@@ -166,10 +184,15 @@ const diff = (a, b) => [...a].filter((x) => !b.has(x));
     const h = data[k].health;
     rec(`data.certnumber.${label}.populated`, `${label}: every row carries a certificateNumber`,
       h.missing === 0 ? 'PASS' : 'FAIL', `rows=${data[k].fetched}, blank/null numbers=${h.missing}`);
-    rec(`data.certnumber.${label}.unique`, `${label}: certificate numbers are unique`,
-      h.duplicateNumbers === 0 ? 'PASS' : 'FAIL',
-      `${h.duplicateNumbers} numbers shared by ${h.duplicateRows} rows (distinct=${h.distinct}, rows=${data[k].fetched})` +
-      (h.examples.length ? ` e.g. ${h.examples.join(', ')}` : ''));
+    rec(`data.certnumber.${label}.unique`, `${label}: no certificate number duplicates outside the CR-038 grandfathered set`,
+      h.unexpectedNumbers === 0 ? 'PASS' : 'FAIL',
+      `${h.unexpectedNumbers} unexpected duplicate numbers over ${h.unexpectedRows} rows` +
+      ` (total dupes ${h.duplicateNumbers}, of which ${h.grandfathered} grandfathered; distinct=${h.distinct}, rows=${data[k].fetched})` +
+      (h.unexpectedExamples.length ? ` e.g. ${h.unexpectedExamples.join(', ')}` : ''));
+    // Report the grandfathered count as INFO so the 137-number exception stays visible rather than
+    // silently absorbed — if it ever shrinks, someone edited migrated client history.
+    rec(`data.certnumber.${label}.grandfathered`, `${label}: CR-038 grandfathered duplicates present`,
+      'INFO', `${h.grandfathered} of the 137 known duplicate numbers appear in this population`);
     // A cert number that is merely the integer Id restated is the exact symptom chased before.
     const bareInts = [...data[k].numbers].filter((n) => /^\d+$/.test(String(n)));
     rec(`data.certnumber.${label}.not-bare-id`, `${label}: certificateNumber is not a bare integer Id`,

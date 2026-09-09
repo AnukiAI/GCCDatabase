@@ -352,7 +352,188 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 - **Detail doc:** `docs/tracking/CR-023-import-batch-undo.md`
 - **Status:** **Built + UI-validated locally — pending deploy.** Pre-prod; client approval still advisable before it's presented as a delivered feature.
 
-### CR-043 (proposed 2026-09-02) — Confidential certificates must reach the PI export and the partner/Amazon API
+### CR-045 (approved 2026-09-04, **BUILT 2026-09-08**) — `Certification Results` is a true free-text field: publish the stored value verbatim
+
+- **Source:** the client, via Shawn, 2026-09-04: *"the client wants it be a free text field. If they want the percentage they will add it. so everything on the data imports should match what they put in the cell."* Raised by Shawn on 2026-09-03 as the item to settle: *"it should just be an open text field and whatever is inputted is the value we want. But we need to talk about what this would do for all inputted data… And can't have the update break either."*
+- **This closes the item parked at the end of [CR-042](#cr-042-2026-09-02--normalise-stored-certificationresults-to-explicit-xx-strings-803-certificates).** CR-042 normalised every *existing* row to an explicit `XX%` string but explicitly left the display-time guess in place for *future* values. This CR removes the guess.
+- **What is actually wrong today.** `Extensions/DisplayFormatters.FormatCertificationResults` rewrites the field on the way out: numeric ≤ 1 → ×100 + `%`; numeric > 1 → append `%`. So an analyst who records something that is **not** a percentage has it silently published as one — `0.5` → `50%`, `85` → `85%`, `2` → `2%`. The field is documented in its own source comment as free text (`"Pass"`, `">50%"`, `"Silver"`), but only non-numeric values actually survive unmodified.
+- **Entry and import are already verbatim — only publication is not.** The CSV importer stores the cell as-typed (`CertificateImportService.cs:1212/1334`, no conversion anywhere) and Create/Edit assign the posted value directly (`CertificateController.cs:550/1222`). Nothing needs to change on the write path.
+
+- **Scope — 11 call sites strip the formatter, plus one migration:**
+
+  | Layer | File:line |
+  |---|---|
+  | CSV export (admin) | `Controllers/ExportController.cs:351` |
+  | CSV export (service) | `Services/CertificateService.cs:1398` |
+  | Internal tile API | `Controllers/Api/CertificateTileInternalApiController.cs:396` |
+  | External tile API | `Controllers/Api/CertificateTileExternalApiController.cs:330` |
+  | Partner/Amazon API v1 | `Controllers/Api/v1/CertificatesController.cs:306, 352, 1155, 1728, 1761` |
+  | Detail views | `Views/Certificate/CertificateInternalView.cshtml:192`, `CertificateExternalView.cshtml:143` |
+  | **Sort column (migration)** | `Data/ApplicationDbContext.cs:117–125` + `Models/Certificate.cs:71` |
+
+- **⚠️ The sort column MUST move in the same deploy.** `CertificationResultsNumeric` is a *persisted computed column* carrying the identical `<= 1 → ×100` guess, and it drives `cert-results` / `cert-results-za` sorting on both tile APIs. If display goes verbatim and the column does not, a future `0.5` displays as `0.5` and sorts as `50` — precisely the display/sort divergence **DEF-383** exists to prevent. The column keeps its `%`-strip (so `23%` still sorts as 23) and drops the ×100 branch only.
+- **✅ No existing row changes, and that is why this is safe now.** CR-042 already made stored value == published value for every populated row on TEST and DEV (0 bare numerics remaining; the 28 non-numeric survivors were never formatted). Publishing verbatim is therefore a **no-op on today's data** — no display change, no sort change, no export change, no change to the Amazon payload. CR-042 was the prerequisite that made this cheap; doing it in the other order would have rewritten 803 published values.
+- **⚠️ Read of *"should match what they put in the cell"* — no data is being reverted.** The source workbook cells are `0%`-formatted: the cell *holds* `0.23` and *displays* `23%`. What the client authored and sees is `23%`, which is what CR-042 wrote to the database, so the historical rows already satisfy this instruction and the client's own 8/26 ASIN corrections stay consistent with them. **Reverting the 803 rows to bare decimals is explicitly NOT in scope** — that would be a separate destructive CR and would contradict the client's visible source data. *Flagged to Shawn 2026-09-04 for confirmation; the code work is identical either way.*
+- **⚠️ Consequence being accepted — the safety net comes off.** The formatter has been silently correcting bare decimals on the way out. After this, a `0.23` that reaches the database (bad import, mistyped entry) publishes to the public database **and to Amazon** as `0.23`, not `23%`. That is the client's stated intent — *"whatever is inputted is the value we want"* — and is logged here so the trade is on file. Recommended mitigation (separate, optional): a soft warning in the import preview and on Create/Edit when a bare numeric ≤ 1 is entered — *"stored as `0.23`; did you mean `23%`?"* — which guards the door without overriding the analyst.
+- **Amazon contract.** The JSON key `certificationResults` and its type are unchanged, so `/api/v1/certificates*` is **not** re-shaped ([[feedback_amazon_api_immutable]]). Only future *values* can differ from what the formatter would have produced. Worth a heads-up to the partner contact rather than a contract re-baseline.
+- **Future data loads — the durable lesson.** Any subsequent migration script reading a `0%`-formatted Excel column must take the **displayed** value, not the raw cell value, or it will reintroduce bare decimals that nothing downstream will correct any more. `Scripts/data-ops/2026-09-03-batch2-load-BUILD.py` §4 already does this.
+- **Effort:** ≈ 0.5–1 day — the code change is mechanical; the cost is the migration plus regression across export, both tile APIs, the partner API and the two sort directions.
+- **Status:** **BUILT 2026-09-08 — verified on dev, pending deploy.** Estimate was logged before build per `docs/governance/change-request-process.md`; the actual came in at the low end of the 0.5–1 day range.
+
+#### CR-045 as built (2026-09-08)
+
+- **The formatter was DELETED, not disabled.** `Extensions/DisplayFormatters.cs` is gone, along with all
+  **12** call sites — the scope table said 11; the twelfth is `CertificateTileInternalApiController.cs:402`,
+  which the original count missed. Deleting rather than neutering is deliberate: a no-op formatter left in
+  place invites someone to re-add "just one" conversion at a single call site, and a field that means
+  different things on different surfaces is precisely how DEF-383 happened. The reasoning now lives on
+  `Certificate.CertificationResults` itself, where the next developer will actually look.
+- **The sort column moved in the same change**, as the CR required: migration
+  `20260908175939_CR045_CertificationResultsVerbatimSort` drops the `<= 1 → ×100` branch from
+  `CertificationResultsNumeric` and keeps the `%`-strip. Applied to `GCCDatabase_Dev` 2026-09-08.
+- **The "no-op on today's data" claim is now MEASURED, not asserted.** Enumerated on dev after the migration:
+  **1,102** populated rows — **1,071** already `%`-formatted, **31** non-numeric (NULL sort key, correctly
+  outside the numeric dimension), **0 bare numerics**. The removed branch was unreachable for every row in
+  the database, so not one sort position or published value changed. CR-042 is what made that true; running
+  these in the other order would have rewritten 803 published values.
+- **Test guard replaced, not dropped.** `DisplayFormattersTests` asserted the opposite rule and is gone;
+  `CR045_CertificationResultsVerbatimTests` replaces it and reads the computed-column SQL out of the EF model
+  to assert there is no `* 100`, that the `%`-strip survives, and that non-numerics still yield NULL.
+  **It failed against the pre-change column and passes after** — which is the only evidence that a guard
+  guards anything.
+- **Live verification on localhost/dev, 2026-09-08:** stored `23%` publishes as `23%` on the internal tile
+  API and the detail view; stored `30%` as `30%` on the external tile API. Re-runnable:
+  `Scripts/data-ops/2026-09-08-CR043-CR045-verify.py`.
+- **Files:** `Extensions/DisplayFormatters.cs` (deleted), `Models/Certificate.cs`,
+  `Data/ApplicationDbContext.cs`, `Migrations/20260908175939_CR045_*`,
+  `Controllers/Api/CertificateTileExternalApiController.cs`,
+  `Controllers/Api/CertificateTileInternalApiController.cs`,
+  `Controllers/Api/v1/CertificatesController.cs` (x4), `Controllers/ExportController.cs`,
+  `Services/CertificateService.cs`, `Views/Certificate/CertificateInternalView.cshtml`,
+  `Views/Certificate/CertificateExternalView.cshtml`.
+- **⚠️ Still open from the CR text:** the recommended soft warning on import preview / Create / Edit when a
+  bare numeric ≤ 1 is entered was **not** built — optional, separately scoped. Without it the safety net is
+  fully off, which is the client's stated intent.
+
+### CR-044 (executed 2026-09-03, retroactive authorisation requested) — Batch-2 migration: 3 in-place renewals + 2 reconstructed certificates
+
+- **Source:** the client's 2026-09-03 migration drop (`GCC Database Migration_Certs_9.3.26.xlsx`,
+  `GCC ASINs for DB Upload_9.3.26.xlsm`), forwarded by Shawn with a same-day deadline: *"If you are
+  able to have these uploaded by EOD today/Fri AM that would be awesome while I still have my intern
+  working."* Shawn's instruction on the two open decisions, 2026-09-03: *"Create the Certs for
+  26-0438 and 26-0439, the certificates are available on the production site"* and *"create the two
+  certs and then load the data."*
+- **Why CR, not routine data ops.** The bulk of the drop — 191 new certificates and 1,870 new
+  product identifiers — is ordinary additive migration and needs no CR. **Two parts of it do:**
+  1. **Three existing business records were UPDATED in place** (`25-0497`, `25-8163`, `25-8164`, all
+     GAF). Standing rule: an UPDATE or DELETE against a business record requires a formal CR
+     ([[feedback_data_changes_require_cr]]).
+  2. **Two certificates were created that the client did not supply in the sheet** (`26-0438`,
+     `26-0439`, both Philips). Creating a certificate record from evidence rather than from the
+     client's own upload file is a decision, not a transcription.
+- **Status:** **EXECUTED on the test environment 2026-09-03**, on Shawn's explicit instruction and
+  against the stated deadline. Client sign-off is **not** on record. This entry exists so the change
+  is priced and visible rather than absorbed ([[feedback_absorbed_cr_is_still_priced]]).
+
+**Part 1 — the three renewals.** The sheet carries these three as `Client Approved - Paid`,
+2026-08-01 → 2027-07-31. The database held them as `Expired`, 2025-08-01 → 2026-07-31. They are
+renewals of live records, not new certificates, and `Certificates.Number` is unique, so they could
+only be applied as an UPDATE.
+
+*The client's own production system was used as the tie-breaker*, not our reading of the sheet:
+`https://db.greencirclecertified.com/api/certificates`, fetched 2026-09-03, returns all three with
+the renewed dates. The spreadsheet is right and our database was stale. Only `Status`,
+`EffectiveDate`, `ExpirationDate` and `Location` were written; company, product, certification type
+and PDF links are untouched. The pre-change values are transcribed into `batch2-UNDO.sql`, so the
+reversal restores the original rather than whatever is current at the time.
+
+**Part 2 — the two reconstructed certificates.** 1,500 of the drop's 1,909 ASIN rows (79%) pointed
+at `26-0438` / `26-0439`, which existed in neither the database nor the certificate sheet. Every
+field was fetched or measured, none invented:
+
+| Field | Source |
+|---|---|
+| Number, company, product, certification type, effective/expiration, location | `db.greencirclecertified.com/api/certificates` ids 5923/5924, fetched 2026-09-03 |
+| Status = `Client Approved - Paid` | that API serves published certificates only |
+| Country = `Netherlands` | `CountryList` canonicalisation of the API's "Drachten, The Netherlands"; Location keeps the city, matching siblings `24-1633`/`24-1634` |
+| Product Category = Consumer Products | the API's `productType` |
+| Product Type = Health and Beauty / Baby Products | the sibling certificate carrying the SAME product name — the API has no Level-2 type |
+| Partner = Amazon, Pathway, Results = 100% | the ASIN sheet's own `amazonCode` / `pathway` / `certificationResults` columns |
+
+The join is evidenced, not assumed: `26-0439`'s ASIN product names read `E42-Comforting` and
+`24-1634`'s existing 276 product identifiers read `E42 - Comforting`; `26-0438`'s read
+`DF3-OneBlade Blades` against `24-1633` "One Grooming".
+
+**Two further judgement calls inside the same load, recorded here because they are also decisions:**
+
+- **Two company names were folded into existing records** rather than created:
+  `J&J MedTech Orthopedics` → existing `J&J MedTech Orthopaedics` (one-letter spelling variant of
+  the same brand), and `GAF Materials LLC` → existing `GAF` (six other rows in the *same sheet*
+  spell it `GAF`). Creating either would have split one client's certificates across two records
+  that then have to be merged by hand in the UI. One certificate each; reversible by reassigning
+  the certificate and deleting the company. Listed in `company-decisions.csv`.
+- **One product-taxonomy row was created:** `TPO` as a Level-2 child of `Plastics`. The client's own
+  "Field Options" sheet lists it as `1.4.9 TPO`, so the taxonomy is client-authorised; one
+  certificate uses it.
+
+- **Scope:** data only. No application code changed. `Scripts/data-ops/2026-09-03-batch2-load-BUILD.py`
+  (generator), `2026-09-03-batch2-VERIFY.py` (independent verification),
+  `_batch2_output/<stamp>/batch2-load.sql` + `batch2-UNDO.sql` + six audit CSVs.
+- **Partner API impact:** none to the contract. `amazon-contract-diff.js` run against gccwebapp.com
+  after the load: **7 passed, 0 failed, CONTRACT UNCHANGED**. Amazon now receives 1,870 additional
+  product identifiers across 12 certificates, which is the point of the drop.
+- **Effort:** ~6 hrs (analysis, generator, dev rehearsal, backup, load, verification, the PDF
+  retrieval below, and the write-up). **Absorbed** — logged for value, not invoiced separately.
+
+**Addendum, same day — the 96 certificate documents.** The drop carried no PDFs, so all 193
+certificates loaded with an empty `CertificateFile`. 96 of them were published on the client's own
+production database and were fetched from there and attached, via the application's own
+`POST /api/certificates/{number}/upload-pdf` (AdminOnly) rather than by hand-placing files as the
+August load did — the endpoint already resolves the physical path through `IUploadPathResolver`
+(DEF-286), renders the preview (DEF-262) and sets both columns in one transaction. 96/96 attached
+and verified byte-identical to what production served; no two certificates share a document or a
+preview across the whole 5,924-row table.
+
+This needs no separate CR — attaching a client's own published certificate to that certificate's
+record is the drop being completed, not a scope change — but it is recorded here because it
+**independently corroborates the two reconstructed certificates above.** `26-0438`'s own document
+reads *"Philips / Drachten, The Netherlands / Grooming / Sustainable Energy Practices / 100%
+Renewable Electricity Usage / Certification Number: 26-0438 / Certification Period: July 1, 2026 -
+July 7, 2027"* — every reconstructed field, confirmed by the certificate itself.
+
+Tools: `2026-09-03-batch2-pull-pdfs.py`, `2026-09-03-batch2-upload-pdfs.py`. Undo:
+`_batch2_pdfs/undo-<stamp>.sql` (clears the two columns; leaves the files, which are inert once
+unreferenced).
+
+#### CR-044 follow-up (2026-09-04) — the three renewals never received their `Certification Results`
+
+Found by `Scripts/data-ops/2026-09-04-certresults-audit.py` (verdict `DB_BLANK`, 3 rows) while
+auditing CR-045. The renewal path above moved only **Status / EffectiveDate / ExpirationDate /
+Location**, as documented — so the `Certification Results` value the client's sheet carries for
+`25-0497` / `25-8163` / `25-8164` was never written, and the field is empty on TEST.
+
+- **Not a defect.** The loader did exactly what it said it would; the field was outside the four it
+  moved ([[feedback_data_issue_vs_defect]]).
+- **The dates are fine — verified, because that was the first question asked.** All three rows on
+  TEST match the workbook exactly: `2026-08-01` → `2027-07-31`, `Client Approved - Paid`, and the
+  full multi-site `Location` string. **Nothing date-related is missing.**
+- **The value is the client's, not ours.** `Multiple` is the literal cell content for all three on
+  `Final Upload List 9.3.26`, read 2026-09-04. It is a **text** cell, so the sheet's `0%` number
+  format does not apply and no conversion is involved. `Multiple` is already an established stored
+  value — `26-0412` carries it today.
+- **Fix staged, not run:** `Scripts/data-ops/2026-09-04-cr044-gaf-renewal-certresults.sql` — 3 rows,
+  transactional, aborts unless exactly 3 match, refuses to overwrite a non-empty field, asserts the
+  sort column stays `NULL` (a non-numeric value must not produce a numeric sort key — DEF-383),
+  idempotent, with an UNDO block. **Awaiting Shawn's go-ahead** ([[feedback_data_changes_require_cr]]).
+
+#### CR-044 confirmation (2026-09-04) — the two reconstructed Philips certs, corroborated independently
+
+The CR-045 audit flagged `26-0438` / `26-0439` (`100%`) as having no source cell, because they came
+from the **ASIN** workbook rather than the certificate workbooks. Shawn confirmed 2026-09-04: *"The
+Phillips ones are updated based on current production."* That matches the reconstruction evidence
+recorded above, from a different direction — so the two certs are accounted for and need no action.
+
+### CR-043 (proposed 2026-09-02, answers received 2026-09-03, **BUILT 2026-09-08**) — Confidential certificates must reach the PI export and the partner/Amazon API
 
 - **Source:** the client, via Shawn, 2026-09-02, verbatim: *"It appears any certs marked 'Client Paid - Confidential' are not included in the PI export file (which I assume would also mean they would not go to Amazon). This is not accurate. They must be in export and go to Amazon when they are active since that is how they get badged. The Confidential piece is just for the public DB side to not show there. Make sure Client Paid - Approved, Client Paid - Confidential, and Republished statuses would all be in PI export and passed in API assuming within eff/exp date period."*
 - **Why CR, not a defect — we asked this exact question and were told the opposite.** On **2026-08-24**, `docs/tracking/2026-08-24-client-questions-partner-api.md` (CR-035) put it to the client in writing: *"Which certificate states become partner-visible, and under what label? **(Recommendation: Confidential stays hidden.)**"* and, more pointedly: *"**Client Approved – Confidential is paid-but-embargoed** — you deliberately chose to keep those private. Our recommendation is that Confidential stays hidden regardless of what else changes, but we need that stated rather than assumed."* The current behaviour is therefore the documented, deliberate position, flagged as an open decision and awaiting exactly this answer. The client is now stating it — **opposite to our recommendation**. That is a requirements change.
@@ -391,7 +572,96 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 - **Effort:** ≈ 0.5 day — the code change is small and mechanical; most of it is re-baselining the security regression suite and re-verifying partner isolation still holds with the wider set.
 - **Detail doc:** `docs/tracking/CR-043-confidential-in-pi-export-and-api.md` (full evidence, per-cert table, call-site list, test impact).
 - **Sent to client?** **No** — paste-ready QC log cells at `docs/tracking/qc-log-update-2026-09-02-CR043-confidential-pi-export.md`. **QC item # and Reporter still to be filled in** ([[feedback_def_entries_note_qc_id]]).
-- **Status:** **PROPOSED — NOT BUILT.** No code changed. Awaiting Shawn's go and the two answers above.
+- **Status:** **BUILT 2026-09-08 — verified on dev, pending deploy.** Both open questions were answered by
+  the client on 2026-09-03 (Q1 **Yes**, Q2 **Yes**), which settled the scope.
+
+#### CR-043 as built (2026-09-08)
+
+**The shape of the fix is the one the CR proposed** — a second status list, with `PublicStatuses` left
+untouched so the anonymous public database keeps hiding Confidential:
+
+```csharp
+BadgeableStatuses = { Client Approved - Paid, Client Approved - Confidential, Republished }
+```
+
+plus `IsBadgeable(status)`, the counterpart to `IsPubliclyVisible(status)`. Four `PublicStatuses` call sites
+remain and they are exactly the four public surfaces: `CertificateTilesApiController:111`,
+`CertificateVisibility.PubliclyLiveExpression`, `CertificateService`'s anonymous branch, and
+`EfQueryWarmupService`.
+
+**Q1 (Yes) turned out to be wider than the CR's call-site list.** The CR named the three v1-API External
+branches (212, 1128, 1544). But "a company signed in to its account" is primarily the **external tile
+controller**, not the v1 API — `CertificateTileExternalApiController` (5 filters) plus `CertificateService`'s
+External and Partner export branches. Those sat in the "unchanged" column and had to move, or the client
+would have answered Yes and seen no change on the screen they actually meant.
+
+**Q2 (Yes) reverses DEF-223.** `DashboardStatuses` regains Confidential. It is kept as a separate array from
+`BadgeableStatuses` even though the two are equal in value today — collapsing two questions into one array
+is the fault this CR exists to fix. Three Analyst/Admin reports in `ExportController`
+(`active-certificates`, `expiring-30-days`, `expiring-3-months`) were still on `PublicStatuses` and moved to
+`DashboardStatuses`: the same tile-vs-export disagreement DEF-200 fixed for the dashboard exports and missed
+here. The ETL `ActiveCertificates` tallies moved too — every one of them is a `Count()` over
+already-selected rows, never a visibility filter.
+
+**Two things the CR did not anticipate, both found by following the data rather than the call-site list:**
+
+1. **`FileAccessAllowed` had to become role-aware.** It gated PDFs and preview images through a single
+   `IsPubliclyVisible` check for every non-Admin role. Left alone, a Confidential certificate would appear
+   in the partner's feed and **404 on its own document** — which reads as a broken deploy, not a permissions
+   rule. Anonymous keeps `IsPubliclyVisible`; External and Partner get `IsBadgeable`. This is the adjacent
+   endpoint DEF-103/164/198/204/205 keep catching us on.
+2. **Product-identifier `Status` needed a data backfill.** `CertificateProductId.DeriveStatusFromCert`
+   (CR-015) is written **on save**, not computed, so identifiers on Confidential certs still read
+   `Inactive`. They would have shipped inside a file titled *Active Product Identifiers* and gone to Amazon
+   while the Product Identifiers grid labelled them inactive — a contradiction in front of the client.
+   `Scripts/data-ops/2026-09-08-CR043-productid-status-backfill.sql` fixes it: transactional, dry-run by
+   default, idempotent, and it asserts that identifiers on **non**-badgeable certificates are still
+   `Inactive` (equal counts would not have proved the JOIN did not spill). **420 rows across 13
+   certificates, committed on dev 2026-09-08. MUST run against TEST in the same release as the code.**
+
+**Measured on dev, enumerated not sampled:** 13 in-window Confidential certificates carry product
+identifiers — the 11 the client listed, plus `26-0473`/`26-0474` from later loads — and all 13 are
+Amazon-tagged.
+
+**Live verification, 11/11 PASS** (`Scripts/data-ops/2026-09-08-CR043-CR045-verify.py`):
+
+| Check | Result |
+|---|---|
+| Anonymous → all 13 Confidential certs | **404** (embargo intact) |
+| Anonymous → control public cert `23-0753` | **200** (the surface is alive, so those 404s mean something) |
+| PI export contains the 13 | **13/13**, 420 identifier rows, labelled `Client Approved - Confidential` |
+| PI export still excludes expired `23-0758` | **absent** — different cause, unchanged by this CR |
+| Amazon partner tile API | **13/13 visible** (totalCount 218) |
+| **Novi** partner tile API — the isolation control | **0/13**, totalCount 1 (non-empty, so the control is live) |
+
+The Amazon/Novi pairing is the point: widening a **status** set must never widen a **partner** set. An
+Amazon-only run showing more rows could not tell "correct" from "isolation broken". An earlier version of
+this probe read the wrong JSON field and returned 0 for *both* partners — a control that "passes" because
+nothing came back proves nothing, which is why the non-empty assertion is now in the script.
+
+**Security suite:** `partner-isolation.js` and `rbac-matrix.js` needed **no** re-baselining after all — they
+discover certificates dynamically and assert scoping, not a fixed status list. The CR's warning that they
+would "go red on purpose" was wrong, and that is the better outcome. `cert-detail-scoping.js`'s anonymous
+status-gate assertions are unaffected because the anonymous gate did not move.
+
+**.NET test suite: zero net-new failures**, established by diffing the failing-test set against a
+pre-change baseline rather than by reading a total. Two `QC_CertificateRepositoryTests` assertions were
+re-baselined on purpose — they *were* the DEF-223 assertions that Q2 reverses: `Active` 2 → 3,
+`CompaniesWithActiveCerts` 2 → 3, while `CertTypesWithActiveCerts` stays at 2 because the Confidential cert
+shares a type with an already-active one. That last one is the control showing the widening moved only what
+it should have.
+
+- **Files:** `Models/CertificateStatus.cs`, `Models/CertificateProductId.cs`,
+  `Controllers/ExportController.cs`, `Controllers/CertificateController.cs`,
+  `Controllers/Api/v1/CertificatesController.cs` (12 branches),
+  `Controllers/Api/CertificateTileExternalApiController.cs`, `Services/CertificateService.cs`,
+  `Services/FilterService.cs`, `Services/ETL/DataExtractor.cs`, `Services/ETL/DataTransformer.cs`,
+  `Scripts/data-ops/2026-09-08-CR043-productid-status-backfill.sql`.
+- **⚠️ Deploy note:** Amazon begins receiving certificates it has never seen (17 on test per the 2026-09-02
+  measurement, 13 on dev). Say so in the delivery note — and say plainly that `23-0758` is **expired** and
+  stays absent, because it has now been reported missing twice.
+- **Follow-up:** close `docs/qa/gap-report.md` **G12**, which records the same Confidential-scope drift being
+  tracked as a DEF instead of a CR back in May.
 
 ### CR-042 (2026-09-02) — Normalise stored `CertificationResults` to explicit `XX%` strings (803 certificates)
 
@@ -902,3 +1172,59 @@ A certificate in any other state is simply absent, and **absence is deliberately
 | **Total scope-change events through the project** | **~27** |
 
 The pattern: **only 3 of ~20 delivered scope changes were formally tracked as CRs.** The rest were absorbed as defect fixes or "build items" during the engagement. That's the structural process gap that explains the timeline overrun more cleanly than any single item.
+
+
+---
+
+### CR-046 (executed 2026-09-08, retroactive authorisation requested) — Six new certificate-subcategory options added to the taxonomy
+
+- **Source:** the client, via Shawn, 2026-09-08: *"it also appears none of the Certificate
+  Subcategories came over for the CSF listings… These never got marked in new DB"*, then, on the
+  75 pairs that could not be loaded without new taxonomy rows: *"for the 30 that repeats itself.
+  that is what the spreadsheet has"* and *"run part A and B on dev then test"*.
+- **Why CR, not routine data ops.** Loading the 381 links that already resolved (Part A) is ordinary
+  additive data repair and needs no CR. **Part B does**, because it added rows to
+  `dbo.CertificationTypes` — reference data that drives the **Create/Edit subcategory picker for
+  every certificate of those parent types**, not only the 74 being backfilled. An analyst opening
+  any Waste Diversion certificate now sees three subcategory options where there were two. That is a
+  visible change to how the application behaves, which is a CR even when the trigger is a data fix
+  ([[feedback_absorbed_cr_is_still_priced]]).
+- **Status:** **EXECUTED on dev and the test environment 2026-09-08**, on Shawn's explicit
+  instruction, after the SQL was generated and reviewed first at her request. Client sign-off is
+  **not** on record.
+
+**What was added** (Level 2, active, `SortOrder` = MAX+1 under the parent):
+
+| New option | Under parent type | Links unlocked |
+|---|---|---|
+| Waste Diversion from Landfill | Waste Diversion from Landfill (19) | 27 |
+| Carbon Footprint Reduction | Certified Environmental Facts (5) | 25 |
+| **Zero Waste to Landfill** | Waste Diversion from Landfill (19) | 20 |
+| Waste Diversion from Landfill | GreenCircle Audited (11) | 1 |
+| Sustainable Manufacturing Practices | Sustainable Manufacturing Practices (18) | 1 |
+| Waste Diversion from Landfill | Sustainable Manufacturing Practices (18) | 1 |
+
+*(dev additionally has `Carbon Footprint Reduction` under `Carbon Footprint Reduction` (3) — two
+certificates carry that type on dev but not on test.)*
+
+**Only one name is genuinely new to the system: "Zero Waste to Landfill".** The other five already
+existed as `CertificationTypes` rows; what was missing was that name under a *second* parent. The
+taxonomy already does this twelve times over — every one of Certified Sustainability Facts' twelve
+children duplicates a Level-1 type name. So five of the six follow the pattern the table is already
+built on, and Shawn's reasoning for accepting the thirty type-repeats was that the client's
+spreadsheet says so.
+
+**The open question this leaves.** The workbook column is headed *"Certificate Subcategories (for
+CSF and WD only)"*, but Waste Diversion's own two children are **Waste Diversion Event** and **Waste
+System Audit** — a different *kind* of subcategory from the sub-certifications hanging off CSF.
+Whether the client intends "Waste Diversion from Landfill" as a subcategory *of itself*, or was
+using the cell as shorthand for the certificate's type, is **not resolved** and was not guessed at:
+the rows were added because Shawn decided the spreadsheet is the instruction. If the client says it
+was shorthand, the 30 links and 4 of the 6 rows come back out — `partB-UNDO.sql` removes the links,
+and the taxonomy rows have guarded deletes ready (commented out, so nothing runs by accident).
+
+- **Undo:** `Scripts/data-ops/_subcat_backfill/20260908-104535/partB-UNDO.sql` (test),
+  `_subcat_backfill_dev/20260908-104410/partB-UNDO.sql` (dev). The taxonomy rows are deliberately
+  left in place by the UNDO: once an analyst picks one on some other certificate, deleting it would
+  take their data with it.
+- **Related:** DEF-411 (the data gap this served), DEF-412 (exports still do not project the field).

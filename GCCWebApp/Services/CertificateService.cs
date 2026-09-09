@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using GCCWebApp.Models;
 using GCCWebApp.Data;
@@ -45,11 +45,16 @@ namespace GCCWebApp.Services
 
                 // Apply search filters (includes tag matching)
                 // CR-187: normalized search against persisted computed columns.
+                // DEF-409: null unless there is a usable search term, which is what makes the
+                // unsearched ordering provably identical to before.
+                string? rankQuery = null;
                 if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
                 {
                     // DEF-366: tag ids resolved up front instead of as a correlated subquery inside
                     // the OR. See Search/TagSearchMatch.cs for the measurements.
                     var nq = SearchNormalizer.Normalize(request.Filters.SearchTerm);
+                    // DEF-409: remembered so the paging step below can rank prefix matches first.
+                    rankQuery = string.IsNullOrEmpty(nq) ? null : nq;
                     var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
                     query = query.WhereMatchesSearch(c =>
                         c.Company.NormalizedName!.Contains(nq) ||
@@ -64,7 +69,12 @@ namespace GCCWebApp.Services
 
                 if (request.Filters.Countries.Any())
                 {
-                    query = query.Where(c => request.Filters.Countries.Contains(c.Country ?? ""));
+                    // DEF-404: match the country ANYWHERE on the certificate, not only as the
+                    // denormalized primary. Certificate.Country holds one country; CR-037 put the
+                    // full set in CertificateCountries. Filtering the primary meant ticking
+                    // "Canada" missed a US-primary certificate that also lists Canada.
+                    var countryFilter = request.Filters.Countries.ToArray();
+                    query = query.Where(c => c.Countries.Any(cc => countryFilter.Contains(cc.Country)));
                 }
 
                 if (request.Filters.Statuses.Any())
@@ -84,25 +94,32 @@ namespace GCCWebApp.Services
                 }
 
                 // Apply sorting
-                query = request.Sort?.ToLower() switch
+                // DEF-409: the sort is a function of the query so it can be applied WITHIN each
+                // relevance band instead of across the whole result set.
+                Func<IQueryable<Certificate>, IQueryable<Certificate>> applySort = q => request.Sort?.ToLower() switch
                 {
-                    "newest" => query.OrderByDescending(c => c.EffectiveDate),
-                    "expiring" => query.OrderBy(c => c.ExpirationDate),
-                    "product-az" => query.OrderBy(c => c.Product.Name),
-                    "company-az" => query.OrderBy(c => c.Company.Name),
-                    "status" => query.OrderBy(c => c.Status),
-                    "type" => query.OrderBy(c => c.CertificationType.Name),
-                    "country" => query.OrderBy(c => c.Country),
-                    _ => query.OrderBy(c => c.Id)
+                    "newest" => q.OrderByDescending(c => c.EffectiveDate),
+                    "expiring" => q.OrderBy(c => c.ExpirationDate),
+                    "product-az" => q.OrderBy(c => c.Product.Name),
+                    "company-az" => q.OrderBy(c => c.Company.Name),
+                    "status" => q.OrderBy(c => c.Status),
+                    "type" => q.OrderBy(c => c.CertificationType.Name),
+                    "country" => q.OrderBy(c => c.Country),
+                    _ => q.OrderBy(c => c.Id)
                 };
 
-                // Get total count
-                var totalCount = await query.CountAsync();
+                // Get total count — ranking never changes it; no row enters or leaves the set.
+                var totalCount = await applySort(query).CountAsync();
+
+                // DEF-409: certificates whose NUMBER starts with the query come first, the caller's
+                // sort still governing within each band.
+                var pagedIds = await SearchRanking.PageIdsAsync(
+                    query, applySort, rankQuery,
+                    (request.Page - 1) * request.PageSize, request.PageSize);
 
                 // Apply pagination
                 var rawCertificates = await query
-                    .Skip((request.Page - 1) * request.PageSize)
-                    .Take(request.PageSize)
+                    .Where(c => pagedIds.Contains(c.Id))
                     .Select(c => new
                     {
                         Id = c.Id,
@@ -120,6 +137,12 @@ namespace GCCWebApp.Services
                     .ToListAsync();
 
                 // Apply client-side transformations
+                // DEF-409: filtering by id returns rows in arbitrary order — restore the ranked page.
+                var idOrder = pagedIds.Select((id, i) => new { id, i }).ToDictionary(x => x.id, x => x.i);
+                rawCertificates = rawCertificates
+                    .OrderBy(c => idOrder.TryGetValue(c.Id, out var i) ? i : int.MaxValue)
+                    .ToList();
+
                 var certificates = rawCertificates.Select(c => new CertificateCardModel
                 {
                     Id = c.Id,
@@ -176,11 +199,16 @@ namespace GCCWebApp.Services
 
                 // Apply search filters (includes tag matching)
                 // CR-187: normalized search against persisted computed columns.
+                // DEF-409: null unless there is a usable search term, which is what makes the
+                // unsearched ordering provably identical to before.
+                string? rankQuery = null;
                 if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
                 {
                     // DEF-366: tag ids resolved up front instead of as a correlated subquery inside
                     // the OR. See Search/TagSearchMatch.cs for the measurements.
                     var nq = SearchNormalizer.Normalize(request.Filters.SearchTerm);
+                    // DEF-409: remembered so the paging step below can rank prefix matches first.
+                    rankQuery = string.IsNullOrEmpty(nq) ? null : nq;
                     var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
                     query = query.WhereMatchesSearch(c =>
                         c.Company.NormalizedName!.Contains(nq) ||
@@ -195,7 +223,12 @@ namespace GCCWebApp.Services
 
                 if (request.Filters.Countries.Any())
                 {
-                    query = query.Where(c => request.Filters.Countries.Contains(c.Country ?? ""));
+                    // DEF-404: match the country ANYWHERE on the certificate, not only as the
+                    // denormalized primary. Certificate.Country holds one country; CR-037 put the
+                    // full set in CertificateCountries. Filtering the primary meant ticking
+                    // "Canada" missed a US-primary certificate that also lists Canada.
+                    var countryFilter = request.Filters.Countries.ToArray();
+                    query = query.Where(c => c.Countries.Any(cc => countryFilter.Contains(cc.Country)));
                 }
 
                 if (request.Filters.Statuses.Any())
@@ -215,25 +248,32 @@ namespace GCCWebApp.Services
                 }
 
                 // Apply sorting
-                query = request.Sort?.ToLower() switch
+                // DEF-409: the sort is a function of the query so it can be applied WITHIN each
+                // relevance band instead of across the whole result set.
+                Func<IQueryable<Certificate>, IQueryable<Certificate>> applySort = q => request.Sort?.ToLower() switch
                 {
-                    "newest" => query.OrderByDescending(c => c.EffectiveDate),
-                    "expiring" => query.OrderBy(c => c.ExpirationDate),
-                    "product-az" => query.OrderBy(c => c.Product.Name),
-                    "company-az" => query.OrderBy(c => c.Company.Name),
-                    "status" => query.OrderBy(c => c.Status),
-                    "type" => query.OrderBy(c => c.CertificationType.Name),
-                    "country" => query.OrderBy(c => c.Country),
-                    _ => query.OrderBy(c => c.Id)
+                    "newest" => q.OrderByDescending(c => c.EffectiveDate),
+                    "expiring" => q.OrderBy(c => c.ExpirationDate),
+                    "product-az" => q.OrderBy(c => c.Product.Name),
+                    "company-az" => q.OrderBy(c => c.Company.Name),
+                    "status" => q.OrderBy(c => c.Status),
+                    "type" => q.OrderBy(c => c.CertificationType.Name),
+                    "country" => q.OrderBy(c => c.Country),
+                    _ => q.OrderBy(c => c.Id)
                 };
 
-                // Get total count
-                var totalCount = await query.CountAsync();
+                // Get total count — ranking never changes it; no row enters or leaves the set.
+                var totalCount = await applySort(query).CountAsync();
+
+                // DEF-409: certificates whose NUMBER starts with the query come first, the caller's
+                // sort still governing within each band.
+                var pagedIds = await SearchRanking.PageIdsAsync(
+                    query, applySort, rankQuery,
+                    (request.Page - 1) * request.PageSize, request.PageSize);
 
                 // Apply pagination
                 var rawCertificates = await query
-                    .Skip((request.Page - 1) * request.PageSize)
-                    .Take(request.PageSize)
+                    .Where(c => pagedIds.Contains(c.Id))
                     .Select(c => new
                     {
                         Id = c.Id,
@@ -251,6 +291,12 @@ namespace GCCWebApp.Services
                     .ToListAsync();
 
                 // Apply client-side transformations
+                // DEF-409: filtering by id returns rows in arbitrary order — restore the ranked page.
+                var idOrder = pagedIds.Select((id, i) => new { id, i }).ToDictionary(x => x.id, x => x.i);
+                rawCertificates = rawCertificates
+                    .OrderBy(c => idOrder.TryGetValue(c.Id, out var i) ? i : int.MaxValue)
+                    .ToList();
+
                 var certificates = rawCertificates.Select(c => new CertificateCardModel
                 {
                     Id = c.Id,
@@ -461,17 +507,22 @@ namespace GCCWebApp.Services
             // DEF-198 (QC #182): scope by caller role BEFORE any user filters. Mirrors
             // Controllers/Api/CertificateTileExternalApiController.cs:97-138 — Partner sees only their
             // partner's certs, External sees only their companies' certs, both restricted to
-            // PublicStatuses. Without this, Partner login's CSV export leaked the entire DB.
+            // in-force statuses (BadgeableStatuses since CR-043). Without this, Partner login's
+            // CSV export leaked the entire DB.
             query = ApplyExportSecurityScope(query, request);
 
             // Apply filters
             // CR-187: normalized search against persisted computed columns.
+            // DEF-409: null unless there is a usable search term.
+            string? rankQuery = null;
             if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
             {
                 // DEF-366: tag ids resolved up front instead of as a correlated subquery inside the
                 // OR. Safe against the DEF-198 export scoping above: that scope is a separate
                 // AND'd Where, so a broader tag id set cannot widen what this export returns.
                 var nq = SearchNormalizer.Normalize(request.Filters.SearchTerm);
+                // DEF-409: remembered so the rows can be ranked below.
+                rankQuery = string.IsNullOrEmpty(nq) ? null : nq;
                 var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
                 query = query.WhereMatchesSearch(c =>
                     c.Company.NormalizedName!.Contains(nq) ||
@@ -481,9 +532,33 @@ namespace GCCWebApp.Services
             if (request.Filters.CertificationTypes.Any())
                 query = query.Where(c => request.Filters.CertificationTypes.Contains(c.CertificationType.Name));
             if (request.Filters.Countries.Any())
-                query = query.Where(c => request.Filters.Countries.Contains(c.Country ?? ""));
+            {
+                // DEF-404: this is the export, and it must return the same certificates the list
+                // the user just filtered showed them. The tile APIs and CertificateRepository:453
+                // match on CertificateCountries; this matched Certificate.Country, the primary
+                // only, so filtering by Canada listed 115 certificates and exported 107.
+                // Under-delivery, not a leak — but silent, which is worse to find.
+                //
+                // Kept as its own AND'd Where rather than folded into the search OR: that is
+                // exactly where the same clause cost 15x in DEF-402. As a standalone semi-join it
+                // is cheap.
+                var countryFilter = request.Filters.Countries.ToArray();
+                query = query.Where(c => c.Countries.Any(cc => countryFilter.Contains(cc.Country)));
+            }
             if (request.Filters.Statuses.Any())
                 query = query.Where(c => request.Filters.Statuses.Contains(c.Status));
+
+            // DEF-409: rank the export the same way the list ranks, so a user who filters, sees a
+            // ranked list and clicks Export gets the file in the order they were just looking at.
+            // DEF-404 is the precedent: a list and its own export disagreeing is a defect in itself.
+            //
+            // This method previously applied NO ordering at all, so CSV row order was whatever the
+            // query plan produced and could differ between two runs of the same export. Ordering
+            // here makes it deterministic for the first time, searched or not.
+            if (rankQuery != null)
+                query = query.OrderByNumberRelevance(rankQuery);
+            else
+                query = query.OrderBy(c => c.Number).ThenBy(c => c.Id);
 
             return await ProjectToExportRows(query);
         }
@@ -526,7 +601,7 @@ namespace GCCWebApp.Services
             if (string.Equals(role, "Partner", StringComparison.OrdinalIgnoreCase))
             {
                 // Partner web users see only certs tagged with their partner name(s)
-                // AND only certs in PublicStatuses. A Partner user with no partner
+                // AND only certs in BadgeableStatuses. A Partner user with no partner
                 // association returns an empty result (mirrors tile view line 113-114).
                 if (request.AllowedPartnerNames.Any())
                 {
@@ -543,12 +618,17 @@ namespace GCCWebApp.Services
                 }
                 // DEF-358: parity with the partner API — a cert that has not reached its effective
                 // date is not in force, so it must not appear in a partner's CSV either.
-                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status))
+                // CR-043: and "in force" is BadgeableStatuses, so a partner's CSV carries the same
+                // Confidential certs their API call now returns. List and export must agree — the
+                // DEF-404 lesson.
+                query = query.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status))
                              .WhereEffectiveDateReached();
             }
             else if (string.Equals(role, "External", StringComparison.OrdinalIgnoreCase))
             {
-                // External users see only certs from their assigned companies, restricted to PublicStatuses.
+                // External users see only certs from their assigned companies, restricted to in-force
+                // statuses. CR-043 Q1 (client, Yes): that includes the company's own Confidential
+                // certificates. Only the anonymous branch below stays on PublicStatuses.
                 if (request.AllowedCompanyIds.Any())
                 {
                     var allowedCompanies = request.AllowedCompanyIds;
@@ -558,7 +638,7 @@ namespace GCCWebApp.Services
                 {
                     query = query.Where(c => false);
                 }
-                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+                query = query.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status));
             }
             else if (string.Equals(role, "Public", StringComparison.OrdinalIgnoreCase))
             {
@@ -725,7 +805,9 @@ namespace GCCWebApp.Services
                         c.ExpirationDate,
                         c.Country,
                         CertificationTypeName = c.CertificationType.Name,
-                        IsPublic = CertificateStatusHelper.PublicStatuses.Contains(c.Status)
+                        // CR-043 Q2: internal "active" counts include Confidential. Named IsPublic
+                        // historically; it has only ever fed the activeCertificates tally below.
+                        IsPublic = CertificateStatusHelper.DashboardStatuses.Contains(c.Status)
                     })
                     .ToListAsync();
 
@@ -1373,7 +1455,7 @@ namespace GCCWebApp.Services
                     // DEF-295: Pathway — Admin/Analyst-only.
                     if (includeInternalTags) csv.Append($",{CsvCell(cert.Pathway)}");
                     // QC #201: Cert Results on every tier, percentage-formatted (DEF-287).
-                    csv.Append($",{CsvCell(GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(cert.CertificationResults) ?? "")}");
+                    csv.Append($",{CsvCell(cert.CertificationResults ?? "")}");
                     csv.Append($",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",{CsvCell(cert.Location)},{CsvCell(cert.Country)},{CsvCell(cert.ExternalTags)}");
                     if (includeInternalTags)
                     {

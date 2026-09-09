@@ -5367,6 +5367,16 @@ A Product can have `CategoryId = X` (real category) and `ProductTypeId = Y` wher
 - **Severity:** Medium (public-facing filter UX; affects discoverability)
 - **Status:** Fixed locally (pending deploy)
 - **Reporter:** Client — QC #169 (4/30/26): *"The public view is showing all cert types. And it's showing the CSF subcategories (WHICH IS WRONG). The subcategories are not meant to show up in this filter box."*
+
+> **⚠ CORRECTION 2026-09-09 (DEF-413):** the quoted sentence above is **not** in the QC
+> workbook. QC #169's actual client text (`Database QC Log_9.3.26_sw_updates.xlsx`, sheet
+> `GCC DB QC Log2`, row 174, cell S174) is only the zero-cert parity item and says nothing about
+> subcategories. The subcategory observation on that row is in **our** notes columns, not the
+> client's. The quote's only occurrences anywhere in this repo are this register and
+> `observations_log.md` — provenance unverified; it may be from an email or call. **Do not cite it
+> as QC #169's reporter text.** Left in place rather than rewritten so the May record stands.
+> The fix DEF-167 shipped is unaffected and still correct — only the attribution is wrong.
+> Full detail: the DEF-413 addendum at the end of this file.
 - **Related:** QC #128 (LEED filter shows certs without LEED tag), QC #149 (L2/L3 Product Category options don't filter) — likely same root cause family.
 
 **Direction (Shawn, 2026-05-11):** Level 1 should be visible only. Fix the data. **No parent-rollup logic** — if a cert is tagged at Level 2, that's a data bug to repair on the cert, not a code bug to accommodate in the filter.
@@ -12877,3 +12887,1744 @@ Related: [[feedback_denormalized_copy_width_mismatch]] (DEF-314) — the same fa
 denormalised copy declared at a width the surrounding constraints cannot support.
 
 - **Files:** none changed. Evidence only.
+
+---
+
+### DEF-399 — Internal certificate search takes 8–10 s, and gets SLOWER the fewer rows the term matches
+
+- **Date:** 2026-09-03
+- **Reporter:** Client (Shawn, forwarding the client's note with the 2026-09-03 migration drop):
+  *"when I was typing search terms in search field it was slower to return results then it was last
+  time I tested. Taking 10-12 seconds to come back with a record."*
+- **Severity:** High. It is on the primary daily path for analysts, it is a regression, and the
+  worst case is the most common one — typing a certificate number.
+- **Status:** REPRODUCED AND MEASURED, NOT FIXED. Mechanism identified in code; the fix is a real
+  piece of work and is scoped below rather than attempted.
+
+**Reproduced on the live test environment, signed in as an admin, 2026-09-03 after the batch-2
+load.** Median of 3 runs each, `GET /api/certificate-tiles-internal?search=<term>&page=1&pageSize=20`:
+
+| Search term | Rows matched | Median | Worst sample |
+|---|---:|---:|---:|
+| `a` | ~all | 1,442 ms | 2,891 ms |
+| `recycled` | many | 2,678 ms | 2,779 ms |
+| `gaf` | some | 3,802 ms | 3,886 ms |
+| `sika` | 1,132 | 4,322 ms | 4,783 ms |
+| `mapei` | 313 | 5,052 ms | 5,142 ms |
+| `26-0166` | 3 | **7,851 ms** | 7,905 ms |
+| `26-0636` | 1 | **8,386 ms** | 9,470 ms |
+| `zzzznomatch` | **0** | **10,468 ms** | **10,708 ms** |
+
+The client's "10-12 seconds" is exact, and the shape of the curve is the diagnosis: **the fewer
+rows a term matches, the slower the query gets.** That is the signature of a full scan that never
+short-circuits, not of a result set that is expensive to build.
+
+**Where it is NOT.** Autocomplete is fine — 95–173 ms for every term above, including
+`zzzznomatch`. The pages themselves are fine — `CertificateTileViewInternal` loads in 523 ms. The
+public tile endpoint is 3–4x faster than the internal one because it sees ~1,100 rows rather than
+5,924, which is why timing the public path makes this look like a sub-second operation. Measuring
+the wrong endpoint is the main way this defect hides.
+
+**Mechanism.** `CertificateService.cs:55-57` (also :186, :477) filters with `.Contains(nq)`, which
+EF Core translates to `LIKE '%nq%'`. A **leading wildcard is non-sargable** — SQL Server cannot
+seek an index, only scan it — so the `HasIndex` declarations on the CR-187 `NormalizedX` columns
+(`ApplicationDbContext.cs:132/222/246`) cannot be used, however many of them there are. The
+predicate is additionally OR'd across three joined tables (Company, Product, Certificate), which the
+optimiser handles badly.
+
+**It is a regression, and the row count is not the cause.** The same `search=sika` request measured
+**255 ms on 2026-08-31**. Between then and now the row count moved 5,702 → 5,731 → 5,924 (trivial),
+but the 2026-09-02 deploy landed in the gap, including CR-037 multi-country.
+
+### Both cheap explanations were TESTED and are WRONG — do not retry them
+
+**1. Stale statistics — TESTED 2026-09-03, DID NOT FIX IT.** The statistics were genuinely stale
+(`Companies` last updated 2026-08-03 believing 173 rows against an actual 320; `Certificates` and
+`Products` similarly behind), so this looked like the answer. `UPDATE STATISTICS ... WITH FULLSCAN`
+was run against `Certificates`, `Products`, `Companies`, `CertificateCountries`,
+`CertificateProductIds`, `CertificationTypes`, `ProductTypes` and `ProductCategories` — 1.5 seconds,
+no data touched — and the query was re-measured immediately:
+
+| Term | Before | After statistics update |
+|---|---:|---:|
+| `sika` | 4,322 ms | 4,464 ms |
+| `mapei` | 5,052 ms | 5,315 ms |
+| `26-0166` | 7,851 ms | 7,669 ms |
+| `26-0636` | 8,386 ms | 7,843 ms |
+| `zzzznomatch` | 10,468 ms | 7,786 ms |
+
+Within run-to-run noise. The statistics are now current, which is worth having on its own, but it is
+**not** this defect. Anyone picking this up should skip straight past it.
+
+**2. A new join on `CertificateCountries` — I RULED THIS OUT AND I WAS WRONG. See DEF-402.**
+Everything in this numbered point is a mistake, kept visible rather than deleted because the way it
+went wrong is the lesson: **I read a different file from the one I measured.** The endpoint timed
+above is `/api/certificate-tiles-internal`, served by `CertificateTileInternalApiController`. The
+predicate quoted below is from `CertificateService.cs`, which that endpoint does not use. The
+controller's own predicate **does** carry the CR-037 clause, and it turned out to be the entire
+cause — 15x the rest of the query. The original (wrong) reasoning follows:
+
+```csharp
+query = query.WhereMatchesSearch(c =>
+    c.Company.NormalizedName!.Contains(nq) ||
+    c.Product.NormalizedName!.Contains(nq) ||
+    c.NormalizedNumber!.Contains(nq), tagIds);
+```
+
+`CertificateCountries` is not in it. CR-037 is not the cause.
+
+### RESOLVED — cause found and fixed, see DEF-402
+
+**The `LIKE '%…%'` scans are not the problem, and the prefix-match fix below was unnecessary.**
+Shawn pushed back on it — *"are we sure the search results is the best solution? We can make search
+quicker?"* — and testing rather than defending it produced the actual answer.
+
+Measured directly against the test database: the whole 7-leg `LIKE '%…%'` predicate across
+Certificates + Companies + Products + CertificationTypes + ProductCategories runs in
+**173-197 ms**. 5,924 rows is small; a scan of it is cheap. Adding the CR-037 country clause as a
+correlated `EXISTS` takes the same query to **2,648-3,297 ms**.
+
+The certificate-number leg — the thing option (a) below proposed to change user-visible behaviour
+for — is part of the 195 ms, not the 3 seconds. It would have bought almost nothing and cost the
+client a behaviour change. **Superseded by DEF-402**, which fixes the real cause with no behaviour
+change at all.
+
+The options below are left for the record and should NOT be actioned:
+
+- ~~**(a) Make the certificate-number leg a prefix match.**~~ Wrong target; costs behaviour for no
+  meaningful gain.
+- **(b) Split the OR'd multi-table predicate into UNIONed queries.** Still theoretically available,
+  now unnecessary.
+- **(c) SQL Server full-text indexing.** Same — a real option if the data grows by an order of
+  magnitude, pointless at this size.
+
+Related: DEF-370 (public search slow on the FIRST request after an app-pool idle recycle — a
+different defect; that one is cold-start, this one is reproducible warm and every time).
+
+- **Files:** none changed. `Scripts/smoke-prod/2026-09-03-search-latency-probe.js` added as the
+  measurement, so the fix has something to be proved against.
+
+---
+
+### DEF-400 — One certificate has no preview image: its PDF is encrypted, so the thumbnail renderer cannot rasterise it
+
+- **Date:** 2026-09-03
+- **Reporter:** Shawn, on seeing "5,570 certificates with a PDF, 5,569 with a preview" — *"why is a
+  preview not there?"*
+- **Severity:** Low. One certificate, and the application degrades correctly.
+- **Status:** DIAGNOSED, NOT FIXED — the fix needs an unencrypted copy of the document from the
+  client. Not caused by the 2026-09-03 load.
+
+**It is exactly one certificate: `23-0971`** (Id 4496, Sofidel-era, `Client Approved -
+Confidential`, 2024-01-01 → 2026-12-31). It came in with the **August** load; all 96 documents
+attached on 2026-09-03 produced previews.
+
+| | |
+|---|---|
+| `CertificateFile` | `uploads/certificates/23-0971_20260818_155730.pdf` |
+| `CertificateImagePath` | **NULL** |
+| PDF served, signed in | HTTP 200, 310,996 bytes, real `%PDF-` |
+| PDF properties | **`/Encrypt` present** — the document is encrypted |
+
+**Cause.** The thumbnail step rasterises page 1 of the PDF. An encrypted PDF cannot be opened by
+the renderer without the password, so `GeneratePdfThumbnailAsync` fails, the upload path catches it
+(`CertificateController.cs:3663` — `LogWarning`, deliberately non-fatal so a preview failure never
+costs you the document) and `CertificateImagePath` stays NULL. The August linker recorded the same
+single failure and it was logged then as a "pre-existing renderer bug" with no cause attached; the
+cause is encryption.
+
+**Nothing is broken for a viewer.** `ViewCertificateImage` falls back to
+`wwwroot/img/certpreview.png` when the path is NULL (`CertificateController.cs:2431`) and returns
+it at HTTP 200 — verified byte-for-byte: the endpoint returned exactly 151,807 bytes, the size of
+that placeholder file. So the page shows a generic certificate graphic instead of a thumbnail of
+this certificate, and the **download still serves the real document**.
+
+**A trap worth recording.** Fetching this document anonymously returns **404**, which reads as "the
+file is missing". It is not: `23-0971` is `Client Approved - Confidential`, so the role gate
+(`FileAccessAllowed`, DEF-204/208) correctly hides it from anonymous callers, and a denied request
+and an absent file are the same response. Signed in as admin it is 200 and intact. This is the
+same shape as the 2026-08-18 sweep that "found" 4,655 missing PDFs
+([[feedback_role_gated_404_is_not_absence]]) — check file presence **authenticated**.
+
+### CORRECTION 2026-09-03 — a code fix CANNOT resolve this one
+
+An earlier revision of this entry offered "give the renderer an empty-password open attempt, which
+handles permissions-only encryption; it would probably resolve this one". **Tested — it would not.**
+The encryption dictionary is `/Filter /Standard /Length 256 /R 6` (AES-256, revision 6) and
+
+```
+pypdf: is_encrypted = True
+       decrypt('')  ->  0        (0 = failed; 1 = user password matched; 2 = owner password)
+```
+
+Zero means the empty string is not the user password. This is not permissions-only encryption with
+an open document — **a real user password is set**, so PDFium (which Docnet wraps,
+`FileUploadService.cs:508`), pypdf and every other reader are locked out identically. No change to
+the thumbnail service can render a page it cannot decrypt.
+
+### The encryption is the CLIENT'S, not ours
+
+`23-0971` is **HP, Inc. — "HP EvoCycle Toner Cartridge (colored)", LCA Optimized**, Boise ID. The
+file came from the credentialed portal pull (`GCCPortalPull/manifest.csv`), i.e. it is HP's own
+document as the client stored it. It is absent from the August public mirror (0 rows), consistent
+with `Client Approved - Confidential`. Nothing in our pipeline encrypted it.
+
+### The bigger question this exposes
+
+A password-protected certificate means **nobody who downloads it can open it** — not an analyst, not
+the client, not a partner. The missing thumbnail is the visible symptom; the document being
+unreadable is the actual condition. Whether HP locked it deliberately is a client question worth
+asking.
+
+**It IS a one-off — measured, and a false alarm avoided along the way.** A first pass grepped all
+5,671 local PDFs for the string `/Encrypt` and reported **4,759 of them (84%)**. That number is
+meaningless and was nearly reported as a finding. `/Encrypt` present does not mean a password is
+required: the overwhelmingly common case is **permissions-only** encryption with an EMPTY user
+password, which PDFium opens without complaint. Two independent checks confirm the real figure is 1:
+
+- A 60-file random sample tested with `decrypt('')`: **12** not encrypted, **48** encrypted but
+  opening on the empty password, **0** requiring a password.
+- Stronger still, the whole population answers itself — **5,569 of the 5,570 certificates that hold
+  a PDF produced a thumbnail**, which is only possible if PDFium decrypted and rendered each one.
+  `23-0971` is the single exception.
+
+The lesson is the one this register keeps relearning: a string match is not a mechanism check.
+
+### Fix options (revised)
+
+- **(a) Obtain an unencrypted copy** from the client / HP and re-upload. The only route that yields
+  a genuine thumbnail. Also fixes the download nobody can open.
+- **(b) Upload a substitute preview image.** `CertificateImagePath` can be set independently of the
+  PDF, and the controller already supports it — see DEF-401, which is why this cannot be done from
+  the UI today.
+- **(c) Leave it.** The placeholder is working as designed; the page does not break.
+
+- **Files:** none changed. Evidence only.
+
+
+---
+
+### DEF-401 — Certificate Edit accepts a preview-image upload that no form field exposes
+
+- **Date:** 2026-09-03
+- **Reporter:** Found while answering Shawn's question on DEF-400 — *"can I navigate to it in the
+  application to resolve the issue?"* The answer is no, and this is why.
+- **Severity:** Low, but it is the reason a trivially fixable data problem needs a developer.
+- **Status:** **FIXED — Edit deployed 2026-09-04; Create fixed 2026-09-05, deployed 2026-09-08.**
+  Edit shipped in `GCCWebApp-deploy-20260904-1750.zip`; the Create half was built 2026-09-05 on
+  Shawn's *"fix the create screen preview image field"*. *Corrected 2026-09-04 during the pre-deploy
+  sweep: this row still read "RAISED, NOT FIXED · Files: none changed" while
+  `Views/Certificate/Edit.cshtml` carried 83 lines of fix in the working tree. Gate 9's
+  `unshipped-fixes` could not see it — a row that never said "pending deploy" is invisible to that
+  check ([[feedback_closeout_cannot_close_rows_not_marked_pending]]).* **Create.cshtml is still
+  unfixed** — see below.
+
+`CertificateController.Edit` (POST) takes `IFormFile? certificateImage` (`:1073`) and handles it
+fully at `:1254` — `UploadImageAsync`, then `certificate.CertificateImagePath = uploadResult
+.FilePath`, with proper error handling into `ModelState`. The Create POST has the same parameter
+(`:461`) and the same handling (`:577`).
+
+**Neither view renders a file input for it.** The only `type="file"` control on either page is the
+PDF one:
+
+| View | File inputs present |
+|---|---|
+| `Views/Certificate/Edit.cshtml` | `:410` — `certificatePdf` only |
+| `Views/Certificate/Create.cshtml` | `:403` — `certificatePdf` only |
+
+`Edit.cshtml` does render an `<img id="certificateImagePreviewImg">` (`:308`) and a **hidden**
+`CertificateImagePath` (`:320`), so the page displays and round-trips the preview — it just gives
+nobody a way to supply one. The parameter is therefore always null in practice and the whole
+handler block is dead code.
+
+Same family as DEF-389 (a handler bound to an element id that does not exist): working server-side
+logic with nothing wired to reach it, which is invisible because it fails as silence rather than as
+an error.
+
+**Fix, on Edit only.** `Edit.cshtml` gains a `certificateImage` file input in an upload zone
+matching the PDF one, plus the click handler to open it. The handler is deliberately inline rather
+than in `certificate-create.js`: that file is shared with Create, which has no image field, and its
+`PdfUpload.init()` binds `#pdfUploadZone` only. Without the inline binding a mouse click on the zone
+would do nothing while the keyboard path worked — a half-working control, which is worse than none.
+
+**Verified against the POST it feeds** (re-checked 2026-09-04): the parameter at
+`CertificateController.cs:1073` and the handler at `:1254` do exist and do set
+`CertificateImagePath`, so the field now reaches live code rather than a stub.
+
+**The Create half — fixed 2026-09-05.** `Views/Certificate/Create.cshtml` now renders the same
+`certificateImage` upload zone, directly beneath the PDF one, with the same inline click handler and
+for the same reason: `certificate-create.js` is shared by both pages and its `PdfUpload.init()`
+binds `#pdfUploadZone` only, so without it a mouse click would do nothing while the keyboard path
+worked.
+
+**Labelled and worded differently from Edit, deliberately.** On Create it reads *"Preview Image
+(optional)"* with help text *"Leave empty and the preview is generated from the PDF above."* The
+preview normally IS generated from the PDF being uploaded in the same request — the field earns its
+place only when the analyst already knows that will fail: an encrypted document (DEF-400 / 23-0971),
+a corrupt file, a scan the renderer chokes on. Without it they must create the certificate, discover
+the blank preview, and then go and edit it.
+
+**Verified at 5 viewports (320/390/768/1440/1920), all passing:** the field renders, the **click**
+path opens the file dialog at every width, there is **zero** horizontal overflow, and the existing
+PDF upload zone is still intact beside it — asserted explicitly, since the new field sits next to it.
+Visual check at 768px confirms it sits inside the "Certificate PDF Document" section and matches the
+PDF zone's styling.
+
+**Verified against the POST it feeds:** `CertificateController.Create` takes `IFormFile?
+certificateImage` (`:461`) and handles it at `:577` — `UploadImageAsync`, then
+`certificate.CertificateImagePath = uploadResult.FilePath`. That handler had been unreachable since
+the page existed; it now has a field.
+
+- **Files:** `Views/Certificate/Edit.cshtml`, `Views/Certificate/Create.cshtml`.
+
+**Consequence.** Any certificate whose PDF cannot be rendered — encrypted like `23-0971`, corrupt,
+or a scan the renderer chokes on — can only get a preview through a developer or a direct database
+write. An analyst cannot fix it.
+
+**Fix.** Add a file input bound to `certificateImage` on Edit (and Create), matching the existing
+PDF control's pattern — hidden input plus styled trigger button, `accept="image/*"`. Server side is
+already done and already validated. Per the project's validation standard this needs Playwright
+screenshots at 5 viewports before it ships.
+
+
+
+---
+
+### DEF-402 — Certificate search is 8-10s because CR-037's country clause is a correlated EXISTS inside the search OR
+
+- **Date:** 2026-09-04
+- **Reporter:** Client, via Shawn — *"taking 10-12 seconds to come back with a record"* — then found
+  properly only because Shawn challenged the first answer: *"are we sure the search results is the
+  best solution? We can make search quicker?"*
+- **Severity:** High. Primary daily path for analysts, and a regression.
+- **Status:** **FIXED — deployed 2026-09-04** in `GCCWebApp-deploy-20260904-1750.zip`. Marker `MatchingCountryCertificateIdsAsync` asserted present in the shipped DLL.
+
+**This is DEF-366 happening a second time.** That defect existed because the *tag* match sat inside
+the search OR as a per-row correlated subquery. `Search/TagSearchMatch.cs` was written to pull it
+out into a semi-join. Three months later CR-037 added multi-country support and put the *country*
+match into the same OR in the same shape:
+
+```csharp
+c.Countries.Any(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq))
+```
+
+`CertificateCountries` is scanned once per certificate row — 5,924 × 1,563 evaluations.
+
+### Measurement (test database, median of 3, identical row counts)
+
+| Search term | 7 legs, no country clause | + correlated EXISTS (before) | + resolved id list (after) |
+|---|---:|---:|---:|
+| `zzzznomatch` | 195 ms | **2,648 ms** | 195 ms (clause omitted — 0 ids) |
+| `canada` | 173 ms | **3,297 ms** | 194 ms + 232 ms to resolve |
+| `sika` | 197 ms | **2,968 ms** | 197 ms (clause omitted — 0 ids) |
+
+`canada` returns **694 rows before and 694 after**. Nothing about what the search finds changes.
+
+The endpoint multiplies this further: `CountAsync()` plus `AsSplitQuery()` over four collection
+Includes means the filter is evaluated several times per request, which is how ~3 s of query becomes
+~8-10 s of API.
+
+### A false trail worth recording
+
+An intermediate test appeared to show the fix not working — the "after" column read 2,500 ms. That
+run resolved the ids into a `DECLARE @ids TABLE`, and a table variable carries a **cardinality
+estimate of 1**, which wrecks the plan on its own. Re-run with a literal `IN` list — which is what
+`EF.Constant` actually emits, per the DEF-328 convention this codebase already uses — it is 194 ms.
+**The measurement harness was the bug, not the fix.**
+
+### The fix
+
+`Search/TagSearchMatch.cs` gains `MatchingCountryCertificateIdsAsync` (mirroring the existing tag
+resolver) and `Union`, which merges the two id lists so callers keep passing a single set to the
+unchanged `WhereMatchesSearch`. The country clause comes out of the OR at all four search sites:
+
+| File | Path |
+|---|---|
+| `Controllers/Api/CertificateTileInternalApiController.cs` | internal tile view (the reported one) |
+| `Controllers/Api/CertificateTileExternalApiController.cs` | external/partner tile view |
+| `Repositories/CertificateRepository.cs` (×2) | `SearchCertificatesAsync`, paged search |
+
+**Deliberately NOT changed:** `CertificateRepository.GetCertificatesByCountryAsync` (:600). It has
+the same `EXISTS` but only two OR legs and no multi-table join, it is a dedicated lookup rather than
+the search path, and it was not measured. Worth a look, not worth bundling blind.
+
+### Still open
+
+- **Not verified end to end.** The gain is proven at the SQL level with matching row counts, and the
+  solution builds and passes the 24 existing search tests — but those cover `SearchNormalizer` only,
+  not query shape. The endpoint timing must be re-measured with
+  `Scripts/smoke-prod/2026-09-03-search-latency-probe.js` **after** deployment.
+- **The repeated-evaluation multiplier is untouched.** `CountAsync` + split-query collections
+  re-run the filter. Worth revisiting if post-deploy timings are still above ~1 s.
+
+- **Files:** `Search/TagSearchMatch.cs`, `Controllers/Api/CertificateTileInternalApiController.cs`,
+  `Controllers/Api/CertificateTileExternalApiController.cs`, `Repositories/CertificateRepository.cs`.
+
+
+---
+
+### DEF-403 — Three dashboard stat exports sorted by the wrong dimension; two produced identical files
+
+- **Date:** 2026-09-04
+- **Reporter:** Found by the export audit Shawn asked for — *"Test all exports in the application to
+  make sure there are not any other issues."* Not client-reported.
+- **Severity:** Low. The certificate SET is correct in every case; only the row order was wrong.
+- **Status:** **FIXED — deployed 2026-09-04** in `GCCWebApp-deploy-20260904-1750.zip`. **No in-DLL marker exists for this one** (see below) — confirm functionally with `Scripts/smoke-prod/2026-09-04-export-audit.py`.
+
+`ExportController.GetStatData` deliberately returns *the certificates behind a dashboard tile*, so
+the six "… with Active Certificates" exports legitimately share one certificate list and differ only
+by sort order. Three of them sorted by the wrong field:
+
+| Export | Sorted by (before) | Should sort by |
+|---|---|---|
+| Product **Categories** with Active Certificates | `CertificationType.Name` | product category |
+| Product **Types** with Active Certificates | `Product.Name` | product type |
+| Product **Subcategories** with Active Certificates | `Product.Category.Name` | product subcategory |
+
+**"Product Types" and "Products" were byte-identical apart from the title** — 168,303 vs 168,298
+bytes, the 5-byte difference being the description line. A user downloading two differently-labelled
+reports got the same file twice.
+
+Measured on the live test site before the fix — all six returned 980 rows, and the six files differed
+only in their first line.
+
+**Fix.** Each case now orders by its own dimension, preferring the certificate-level field and
+falling back to the product's — matching how `CertificateService.ProjectToExportRows` projects the
+same three columns, because a certificate may override its product's taxonomy and the order must
+reflect what the file shows. This matters: **4,349 certificates have a NULL cert-level
+`ProductCategoryId`** and rely on the fallback.
+
+**Redundant null-guards removed at the same time** (`c.CertificationType != null`,
+`c.Product != null`, `c.Product.Category != null`). Verified they excluded nothing before removing
+them rather than assuming: `CompanyId`, `ProductId`, `CertificationTypeId` and `Products.CategoryId`
+are all NOT NULL, and a query for rows violating any of them returns **0**.
+
+**Verified locally after the fix:** all five product/total stat exports return the same 982
+certificates with **five distinct row orders** — previously `product-types` and `products` shared
+one. Full export audit re-run: 47 checks, all pass.
+
+- **Files:** `Controllers/ExportController.cs`.
+
+---
+
+### The export audit itself — 2026-09-04
+
+`Scripts/smoke-prod/2026-09-04-export-audit.py` added. Exercises **every** download surface signed in
+and anonymous, and grades on the BODY, not the status code: CSV must start with a header row, XLSX
+must start with the `PK` ZIP magic. An HTML body at HTTP 200 is a fail — that is the shape a gate
+page or a login redirect takes (DEF-341).
+
+Covers: the certificate CSV export (all, filtered, and anonymous), active product identifiers, all
+12 dashboard stat types in CSV and Excel, all 5 table types, all 3 report types in both formats, and
+the import template — plus the DEF-128/295 role gating and the CR-037 country column.
+
+**A false alarm it produced first, worth recording.** Its first run reported four export endpoints
+returning HTTP 400 and I nearly logged them as defects. The `type` parameter is a **closed switch**,
+not free text — I had invented `total`, `certificates` and `all`. Every value is now transcribed from
+the switch statements, so a 400 from this script is now a real finding. **Inventing a parameter value
+and reporting the rejection as a bug is the same error class as measuring the wrong endpoint.**
+
+**Two things the audit confirmed are NOT problems:**
+- **The CR-037 country column already works in production.** `26-0636` exports
+  `'United States, China, Poland'`, and all 15 certificates split on 2026-09-03 export every country
+  they hold. The claim that exports show only the primary came from the 2026-09-01 split script's
+  doc comment, written *before* `CertificateService.BuildCountryList` existed. It was repeated into a
+  client letter without being verified against the deployed site. **It was stale, not true.**
+- The public tile search measured 21-29s locally versus 0.4-4s on the test site. That is the Debug
+  build on a dev machine, not a defect — and its predicate has no country clause, so DEF-402 does
+  not apply to it.
+
+**Noted, not actioned:** the public tile search (`CertificateService.GetCertificatesAsync`) searches
+company, product and certificate number only — **not location or country**, which the internal and
+external tile searches both do. Country is available there as a filter rather than a search term.
+Possibly deliberate; worth a client question rather than a silent change.
+
+---
+
+### DEF-404 — Filtering by country and exporting returns fewer certificates than the list just showed
+
+- **Date:** 2026-09-04
+- **Reporter:** Found while answering Shawn's question *"did we handle the export issue for country
+  list"* — the export COLUMN was already fixed (see the export audit above); the export FILTER was
+  not. Not client-reported.
+- **Severity:** **Medium.** Silent under-delivery, not a leak — the export never returns a
+  certificate the caller may not see. But the user filters the list, sees a count, clicks Export and
+  gets a smaller file with no warning, so the omission is invisible unless someone counts.
+- **Status:** **FIXED — deployed 2026-09-04** in `GCCWebApp-deploy-20260904-1750.zip`. **Confirmed live on the test site**: `?countries=Canada` now exports **115** rows against a tile `totalCount` of 115 — it read 107 vs 115 before the deploy.
+
+**The list and its own export disagree.** CR-037 gave a certificate many countries via
+`CertificateCountries`, with `Certificate.Country` kept as the denormalized *primary*. The tile APIs
+were moved onto the join table; the export's filter was not.
+
+| Path | Country filter predicate | File |
+|---|---|---|
+| Internal / external tile list | `c.Countries.Any(cc => countries.Contains(cc.Country))` | `Api/CertificateTileInternalApiController.cs:199` |
+| Cert list repository | `c.Countries.Any(cc => …Contains(cc.Country))` | `Repositories/CertificateRepository.cs:453` |
+| **CSV export** | `Filters.Countries.Contains(c.Country ?? "")` | `Services/CertificateService.cs:484` |
+| `/api/Certificates` (Analyst/Admin JSON) | `Filters.Countries.Contains(c.Country ?? "")` | `Services/CertificateService.cs:67` |
+
+**Measured on the deployed test site as `admin`, 2026-09-04** — not read off the code:
+
+```
+GET /api/certificate-tiles-internal?country=Canada   -> totalCount = 115
+GET /Certificate/ExportCertificates?countries=Canada -> 107 rows
+```
+
+The 8 missing certificates are exactly those holding Canada as a **non-primary** country:
+`25-8767`, `25-8768`, `25-8769`, `25-8770`, `25-8772`, `25-8774`, `25-0433`, `26-0646`.
+`26-0243`, whose primary *is* Canada, exports correctly. So the filter matches the primary only.
+
+**Fix applied.** All three predicates now match the join table, mirroring
+`CertificateTileInternalApiController:199`:
+
+```csharp
+var countryFilter = request.Filters.Countries.ToArray();
+query = query.Where(c => c.Countries.Any(cc => countryFilter.Contains(cc.Country)));
+```
+
+Kept as its own AND'd `Where` rather than folded into the search OR — that is exactly where the same
+clause cost 15x in DEF-402. As a standalone semi-join it is cheap: the filtered exports below run
+0.4-1.3s.
+
+`GetCertificatesByPartnerAsync:198` was fixed for consistency; **no controller calls it** (referenced
+only from `Services/IServices.cs:9`), so it changes no live surface.
+
+**Verified at the CONTROLLER layer, not below it** — nine green unit tests did not stop DEF-369, so
+the check drives the real endpoints and compares the export file against the tile list as SETS in
+both directions. Signed in as `admin.uat` on localhost:5101 against `GCCDatabase_Dev`:
+
+| Country | tile totalCount | export rows | set agreement | rows whose Country cell lacks it |
+|---|---|---|---|---|
+| Poland | 10 | 10 | AGREE | 0 |
+| China | 51 | 51 | AGREE | 0 |
+| Canada | 108 | 108 | AGREE | 0 |
+| United States | 1,212 | 1,212 | AGREE | 0 |
+
+Unfiltered export unchanged: HTTP 200, 5,931 rows (dev holds 5,931 certificates).
+
+**What the fix actually moves**, measured in SQL rather than inferred, old predicate vs new:
+
+| Country | OLD (primary only) | NEW (anywhere) | delta |
+|---|---|---|---|
+| Poland | 2 | 10 | **+8** |
+| China | 43 | 51 | **+8** |
+| Canada | 107 | 108 | +1 |
+| United States | 1,213 | 1,212 | **−1** |
+
+**Poland is the sharp case:** no certificate has Poland as its primary, so the old filter returned
+the 2 that did and missed 8 that list it second or third.
+
+**The −1 on United States is explained, and is dev-only.** It is not the fix dropping data: dev has
+**2 certificates carrying a Country with no `CertificateCountries` row at all** (`23-0358`,
+`25-0351`, both "United States"), which the new predicate cannot see, and **1** certificate
+(`26-0243`) that lists United States as a secondary, which it newly can. 1,213 − 2 + 1 = 1,212.
+**TEST has ZERO such orphans** — checked explicitly — so nothing is lost there. Also checked and
+zero on both: certificates whose primary is missing from their own join rows.
+
+**Why the orphan class does not need its own fix:** all three write paths maintain the join rows —
+`CertificateController.SyncCertificateCountriesAsync` on Create and Edit, and
+`Import/CertificateImportService.SyncCertificateCountries` on import (`:1907`, `:2087`). The two dev
+rows predate the CR-037 backfill. Worth a periodic assertion rather than code: a certificate with a
+Country and no join row is now invisible to every country filter, list and export alike.
+
+**Also noted while measuring, deliberately not changed:** the two endpoints spell the parameter
+differently — the export takes repeated `?countries=` (`List<string>`), the tile API takes
+pipe-delimited `?country=`. Passing the export's spelling to the tile API is silently ignored and
+returns the unfiltered 5,924, which is how a filter check can look like it passed.
+
+- **Files:** `Services/CertificateService.cs` (three sites: `:67`, `:203`, `:495`).
+- **Related:** CR-037, DEF-402, [[feedback_scoping_check_adjacent_endpoints]].
+
+---
+
+### DEF-405 — Reset-link expiry contradicted itself: the page said 24 hours, the email said 1 hour
+
+- **Date:** 2026-09-04
+- **Reporter:** Client QC, forgot-password row ("Anuki confirm forgot password works"), 9/3 note.
+  Client's image 116. *(QC # not stated in the note handed over — fill in from the QC log.)*
+- **Severity:** **Low-Medium.** No security exposure — the token really does die in an hour. But a
+  user who reads "24 hours", walks away and comes back is told the link is invalid, which reads as a
+  broken reset rather than a documented timeout.
+- **Status:** **FIXED — deployed 2026-09-04.**
+
+**The code is the authority and the email was right.** `AccountController.cs:525` sets
+`user.PasswordResetTokenExpiry = DateTime.UtcNow.AddHours(1)`, and validation at `:607` / `:654`
+requires `PasswordResetTokenExpiry > DateTime.UtcNow`. The email body already says
+*"This link expires in 1 hour."* (`AccountController.cs:547`). Only the confirmation page was wrong.
+
+| Surface | Said | File |
+|---|---|---|
+| Token lifetime (truth) | 1 hour | `Controllers/AccountController.cs:525` |
+| Reset email | 1 hour ✓ | `Controllers/AccountController.cs:547` |
+| **"Check Your Email" page** | **24 hours ✗** | `Views/Account/ForgotPasswordConfirmation.cshtml:77` |
+
+Changed the page to "1 hour". The email and the token lifetime were left alone — changing the code
+to 24 hours would have been a security-posture change nobody asked for.
+
+**Verified on localhost:5101, 2026-09-04** by POSTing the forgot-password form and reading the
+rendered DOM (not the source): `.security-notice p` → *"Reset links expire after 1 hour for your
+security"*.
+
+- **Files:** `Views/Account/ForgotPasswordConfirmation.cshtml`.
+- **Related:** DEF-209 (same email path), DEF-263.
+
+---
+
+### DEF-406 — Forgot Password / Reset Password used a darker green than sign-in, muddying the logo
+
+- **Date:** 2026-09-04
+- **Reporter:** Client QC, forgot-password row, 9/3 note. Client's image 117 — *"change the
+  background green to the lighter you use on signin. It's blending too much with logo."*
+- **Severity:** **Low (cosmetic).** Brand consistency + logo legibility.
+- **Status:** **FIXED — deployed 2026-09-04.**
+
+**Cause: a page-local `:root` override, not a theme decision.** `wwwroot/css/auth.css:16` defines the
+shared left-panel gradient as `#92C83E -> #447638` — the lighter lime the sign-in page renders.
+Three auth views re-declared `--auth-left-gradient` in their own inline `<style>` as
+`#4a7c23 -> #447638`, a darker olive that sits close to the logo's own green ring.
+
+| View | Before | After |
+|---|---|---|
+| `Views/Account/Login.cshtml` | (no override — inherits `#92C83E`) | unchanged |
+| `Views/Account/ForgotPassword.cshtml` | `#4a7c23 -> #447638` | override removed → inherits |
+| `Views/Account/ResetPassword.cshtml` | `#4a7c23 -> #447638` | override removed → inherits |
+| `Views/Account/ForgotPasswordConfirmation.cshtml` | (no override) | unchanged — already light |
+| `Views/Account/SignUp.cshtml` | `#4a7c23 -> #447638` | override removed → inherits (**parked page, unreachable by design — see below**) |
+
+The fix is a deletion, not a new colour: removing the local `:root` block lets the page inherit the
+one definition in `auth.css`, so sign-in and the reset flow can no longer drift apart again.
+
+**Scope note — I changed two screens, the client named one.** The note says "the forgot password
+reset screen". `ForgotPassword` and `ResetPassword` carried byte-identical overrides and sit either
+side of the same flow, so fixing only one would have left the flow inconsistent.
+
+**`SignUp.cshtml` was done afterwards on Shawn's instruction.** Only the `--auth-left-gradient` line
+was removed; the file's other `:root` entries (`--auth-container-max-width`,
+`--auth-container-min-height`, `--auth-logo-height`, `--auth-header-font-size`) are genuine
+page-specific *sizing* overrides and were kept. The change is not user-visible today and could not
+be verified in a browser, because `/Account/SignUp` returns **404**.
+
+**That 404 is correct and intended — CORRECTION, I initially logged this view as a dead orphan and
+proposed deleting it. That was wrong.** Per Shawn (2026-09-04): the client asked for the sign-up
+screen to be **built for a future implementation** of self-registration. It is deliberately parked —
+no action, no route, no link — and it must **stay in the repo and stay unreachable**. Nothing about
+it is a defect and it needs no follow-up.
+
+Because the file is indistinguishable from dead markup to any "views with no action" sweep, a
+`DELIBERATELY PARKED — DO NOT DELETE, DO NOT WIRE UP` header block was added to the top of
+`Views/Account/SignUp.cshtml` recording why. Keeping it styled in step with the other auth views —
+which is what the gradient fix does — is the point of parking it, so it is ready when
+self-registration is actually scheduled.
+
+**Verified on localhost:5101, 2026-09-04** — computed style of `.login-left`, read from the live DOM:
+
+```
+login   linear-gradient(135deg, rgb(146,200,62) 0%, rgb(68,118,56) 100%)
+forgot  linear-gradient(135deg, rgb(146,200,62) 0%, rgb(68,118,56) 100%)
+reset   linear-gradient(135deg, rgb(146,200,62) 0%, rgb(68,118,56) 100%)
+```
+
+All three now resolve to the same pair. Screenshots captured at 1440x900.
+
+After all three edits, `--auth-left-gradient` has exactly **one** definition in the codebase:
+`wwwroot/css/auth.css:16`. Confirmed with `grep -rn "auth-left-gradient" Views/ wwwroot/css/`.
+
+- **Files:** `Views/Account/ForgotPassword.cshtml`, `Views/Account/ResetPassword.cshtml`,
+  `Views/Account/SignUp.cshtml` (deliberately parked / unreachable by design).
+- **Related:** DEF-407 (same client note), `wwwroot/css/auth.css`.
+
+---
+
+### DEF-407 — "Access your sustainability certification database." removed from the Forgot Password screens
+
+- **Date:** 2026-09-04
+- **Reporter:** Client QC, forgot-password row, 9/3 note — *"On the Forgot Password screens on the
+  left side under logo remove the copy 'Access your sustainability certification database.'"*
+- **Severity:** **Low (copy change, client-directed).**
+- **Status:** **FIXED — deployed 2026-09-04.**
+
+Removed the `<p>` from all three screens in the flow, since the note says "screens" plural and the
+same line appeared on each:
+
+| View | Line |
+|---|---|
+| `Views/Account/ForgotPassword.cshtml` | 34 |
+| `Views/Account/ResetPassword.cshtml` | 34 |
+| `Views/Account/ForgotPasswordConfirmation.cshtml` | 47 |
+
+**Sign In was not touched.** It carries a different subtitle under the same `.login-brand` heading,
+and the client did not raise it — noting this because a `.login-brand p` count of 1 on Login is
+expected, not a missed edit.
+
+**Verified on localhost:5101, 2026-09-04** — `.login-brand p` element count read from the live DOM:
+`login = 1` (its own, different copy), `forgot = 0`, `reset = 0`.
+
+- **Files:** `Views/Account/ForgotPassword.cshtml`, `Views/Account/ResetPassword.cshtml`,
+  `Views/Account/ForgotPasswordConfirmation.cshtml`.
+- **Related:** DEF-406 (same client note), [[feedback_client_requested_labels_immutable]] — this is
+  the client *requesting* the copy change, so the rule is satisfied, not broken.
+
+---
+
+### DEF-408 — Regression phase 3 compares a fresh export against a stale phase-2 snapshot and reports 4 false FAILs
+
+- **Date:** 2026-09-04
+- **Reporter:** Found while investigating the 193-row export/tile delta Shawn asked about. Harness
+  defect, not an application defect. Not client-reported.
+- **Severity:** **Medium — it is a false-alarm generator on the P0 gate.** No application behaviour
+  is wrong. The cost is that the suite invents defects that then get chased.
+- **Status:** **FIXED.** Harness-only change; nothing to deploy. Verified by three runs, including two deliberately broken ones.
+
+`03-exports-downloads.js:129` reads the role populations it compares against out of
+`_results/02-data-scoping.json` **on disk**, and never checks how old that file is:
+
+```js
+const phase2Path = path.join(__dirname, '_results', '02-data-scoping.json');
+if (fs.existsSync(phase2Path)) { … const pop = p2.populations || {}; }
+```
+
+Run phase 3 on its own and it grades today's export against whenever phase 2 last ran. On
+2026-09-04 that was a **2026-09-03 17:51 UTC** snapshot taken *before* the batch-2 load, so all four
+scope checks failed:
+
+| Role | export (2026-09-04) | phase-2 snapshot (2026-09-03) | reported delta |
+|---|---|---|---|
+| admin / analyst | 5,924 | 5,731 | +193 |
+| anon | 968 | 871 | +97 |
+| amazon | 200 | 187 | +13 |
+
+**Every delta is zero when both sides are measured on the same day.** Confirmed three ways:
+`SELECT COUNT(*) FROM Certificates` on TEST returns **5,924**; the internal tile API paged live
+returns `totalCount=5924` over 5,924 distinct ids; and a re-run of phase 2 returns
+`public=968, amazon=200, external=23, external2=21, novi=0` — each matching its export exactly.
+**193 is the batch-2 load** (5,731 + 193 = 5,924), which is why it looked like a scoping bug.
+
+**The check's direction makes this worse, not just noisy.** It exists to catch an export that is
+*wider* than the role's population — a data breach. Comparing against an old, always-smaller
+snapshot makes it fire in the breach direction on nothing more than new certificates being loaded,
+which is the fastest way to teach everyone to ignore it.
+
+**Three failure modes, not one** — worth naming because the fix had to close all three:
+
+| # | Trigger | Old behaviour |
+|---|---|---|
+| 1 | phase-2 file is old | **False FAIL** — the four above |
+| 2 | a role's population is absent | `continue` — the check **vanished**, phase still reported 0 FAIL |
+| 3 | no phase-2 file at all | whole block skipped; seven per-role checks collapsed to **one WARN** |
+
+Mode 3 is the dangerous one. This check is **directional**: it exists to catch an export *wider*
+than the role's population — the DEF-198 breach class, a partner receiving every certificate in the
+DB. Crying wolf (mode 1) and quietly disappearing (modes 2 and 3) are both ways of losing the one
+signal that would catch a real leak.
+
+**Fix applied — phase 3 now measures the population itself.** A `POPULATION_API` map (same
+role→endpoint mapping phase 2 uses: public / `CertificateTileExternal` / internal) and a
+`fetchPopulation()` helper called **inside the session that just pulled that role's export**, so
+both numbers come from the same moment. `page=1&pageSize=1` is enough — `totalCount` is on page 1;
+the full row-set walk stays phase 2's job. The cross-phase file read is gone entirely, so there is
+nothing left to be stale, and `fetchPopulation` returns `{error}` rather than a number it did not
+read from a 200 body (DEF-392).
+
+Every role now reports an outcome: an unmeasurable population is **FAIL "NOT MEASURED"** with the
+reason, and a role whose export never arrived is **WARN "NOT RUN"**. Nothing is skipped. The note
+also now says which direction a delta went, naming the breach direction explicitly.
+
+**Verified three ways, two of them deliberately broken:**
+
+1. **Normal run** — 57 PASS / 0 FAIL, all seven scope checks delta=0.
+2. **Phase-2 results file deleted** — the scenario that used to collapse to a single WARN. All seven
+   checks still ran, all delta=0, 57 PASS / 0 FAIL. This is the proof the coupling is gone.
+3. **`novi`'s population endpoint pointed at `/api/ThisEndpointDoesNotExist`** — the role that used
+   to silently vanish now reports
+   `[FAIL] exp.scope.novi … NOT MEASURED — could not read this role's population: HTTP 404`,
+   and the phase reports 1 FAIL instead of a clean sweep. Reverted after the run; final state is
+   57 PASS / 0 FAIL.
+
+Same class as [[feedback_closeout_cannot_close_rows_not_marked_pending]] — a check that cannot run
+must say so, never stay quiet.
+
+**First confirmed by running the two phases back to back, 2026-09-04 17:20 UTC** — the same suite,
+the same site, the only change being that phase 2 ran immediately before phase 3 instead of a day
+earlier:
+
+```
+[02-data-scoping]      33 PASS / 0 FAIL
+[03-exports-downloads] 57 PASS / 0 FAIL
+  exp.scope.admin     export=5924  totalCount=5924  delta=0
+  exp.scope.analyst   export=5924  totalCount=5924  delta=0
+  exp.scope.anon      export= 968  totalCount= 968  delta=0
+  exp.scope.amazon    export= 200  totalCount= 200  delta=0
+```
+
+All seven scope checks are delta=0. Ordering the phases was only ever a workaround — the fix below
+removes the dependency, so phase 3 run alone (which is how it is run when someone is chasing an
+export question) now measures both sides itself.
+
+- **Files:** `Scripts/smoke-prod/_regression/03-exports-downloads.js` (header note, `POPULATION_API` + `fetchPopulation()`, the per-role capture, and the section-3 block).
+- **Related:** DEF-392 ([[feedback_harness_never_fabricate_status]]) — the harness reporting
+  something it did not measure.
+
+---
+
+### DEF-409 — Searching a year prefix buries the matching certificates on page 4: "23" shows 26-xxxx first
+
+- **Date:** 2026-09-04
+- **Reporter:** Shawn, immediately after the 2026-09-04 deploy — *"I just searched for 23 and 26 came up. that is wrong"*.
+- **Severity:** **Medium, and it reads as Critical to a user.** The result set is correct; the
+  ORDER is not. A search whose relevant hits start on page 4 is indistinguishable from a broken one.
+- **Status:** **FIXED — deployed 2026-09-05.** Built 2026-09-05 on Shawn's decision — *"yes rank first, do
+  all nine surfaces"*. Verified against `GCCDatabase_Dev` at the controller layer, 17 assertions.
+- **NOT caused by the 2026-09-04 deploy.** Checked before anything else, because the deploy
+  contained DEF-402, which rewrote part of the search. The number-matching predicate
+  (`c.NormalizedNumber!.Contains(nq)`) is **untouched** by that change — `git diff HEAD` over the
+  three search files returns nothing for `NormalizedNumber`. This is long-standing behaviour that
+  the new certificate volume has made visible.
+
+**Measured live on the test site as `admin`, walking the full result set — not the first page:**
+
+| | |
+|---|---|
+| `search=23` totalCount | **1,219** |
+| …of which ARE `23-xxxx` | **1,075 (88%)** |
+| …first `23-xxxx` appears at position | **67 of 1,219** — page 4 at the UI's 20/page |
+| noise, by prefix | `25-` 33 · `22-` 30 · `24-` 30 · `21-` 26 · `26-` 15 · `20-` 10 |
+| why rows matched | number substring 1,182 · product name 34 · both 3 · unattributed 0 |
+
+**So the filter is defensible and the sort is not.** `26-0623`, `26-0523`, `26-0323`, `26-0123` all
+genuinely contain "23" — in the *sequence* half, not the year half. Sorting is `newest` by default,
+so the 26-xxxx matches (this year's) float above every 23-xxxx match (three years old). The user
+sees three full pages of wrong-looking results and stops.
+
+**Typing the dash does not help.** `search=23-` returns the **identical 1,219** — `SearchNormalizer`
+strips punctuation from both sides, so `23-` and `23` normalize to the same token. There is
+currently no way for a user to express "the year part".
+
+**Options, cheapest first — this needs a decision, not a guess:**
+
+1. **Rank exact/prefix matches first.** Leave the result set alone; order rows whose
+   `NormalizedNumber` *starts with* the query above the rest, then apply the existing sort within
+   each band. `23` then opens on 23-xxxx while still finding `26-0623` further down. No behaviour is
+   removed. This is the option I would take.
+2. **Detect a bare 2-digit year and anchor it** — treat `23` as `23-%`. Sharpest results, but it
+   silently stops finding `26-0623`, which someone is probably relying on. A surprise in the other
+   direction.
+3. **Leave it and document it.** Defensible only if searching by number is rare, which the volume
+   of certificate-number traffic suggests it is not.
+
+**Do not fix this inside the search OR.** DEF-402 is the standing warning: a clause added there cost
+15x. Ranking belongs in the `OrderBy` that follows the filter, not in the predicate.
+
+- **Design doc:** `docs/tracking/DEF-409-search-ranking-design.md` — options, a 34-item edge-case
+  matrix, implementation shape (the sort switch has 33 branches, so a leading key cannot simply be
+  prepended), a 14-assertion test plan, and 4 open questions. Written 2026-09-04; **nothing
+  implemented.**
+- **Files (for the fix):** `Controllers/Api/CertificateTileInternalApiController.cs` (`:138`, `:444`),
+  `Repositories/CertificateRepository.cs` (`:209`, `:230`, `:351`), and the matching
+  `CertificateService` search paths.
+- **Related:** CR-187 (normalization is working as designed here), DEF-402.
+
+### DEF-409 — the fix as built (2026-09-05)
+
+**Decisions taken:** relevance outranks an explicitly chosen sort (the sort still governs *within*
+each band); all search surfaces, not just the one that was reported.
+
+**Surfaces: 10 changed, 1 deliberately not.** The design doc said "nine"; re-counting the grep it is
+**eleven** `NormalizedNumber.Contains` sites. Ten now rank. The eleventh, `FilterService.cs:250`,
+returns **only counts** (`Total` / `Active` / `Expired` / `Draft-Pending`) — it emits no rows, so
+there is nothing to order and ranking it would be noise. Called out rather than silently skipped.
+
+| File | Sites | Note |
+|---|---|---|
+| `Controllers/Api/CertificateTileInternalApiController.cs` | list + autocomplete | |
+| `Controllers/Api/CertificateTileExternalApiController.cs` | list + autocomplete | ranks after role scoping |
+| `Services/CertificateService.cs` | public tile, partner path, **export** | export ranked for list/export consistency (DEF-404's lesson) |
+| `Repositories/CertificateRepository.cs` | search, paged, advanced-filter | |
+| `Search/SearchRanking.cs` | **new** | the shared helper |
+| ~~`Services/FilterService.cs`~~ | — | counts only; **not applicable** |
+
+**Two bands, not three.** An "exact match" band would sort nothing: verified on the test database
+that **zero** stored normalized numbers are a strict prefix of a different one, so a full-number
+query already lands alone in the prefix band.
+
+**Implementation.** `SearchRanking.PageIdsAsync` pages across two banded queries, reusing each
+caller's existing sort *within* each band. Partitioning was chosen over prepending a sort key
+because `ApplySorting` is a 33-branch switch returning `IOrderedQueryable` — a leading key cannot be
+prepended, and rewriting 33 branches is where the risk would have been. Two consequences worth
+recording:
+
+- **The count is taken from the SORTED query, not the raw band.** One branch (`recently-issued`)
+  adds a `.Where()` inside the sort switch — a filter wearing a sort's clothing. Counting the raw
+  band would have overcounted it and the page boundary would then have skipped rows.
+- **Where a caller fetches rows by id, the ranked order is restored in memory afterwards.** Filtering
+  by id returns rows in whatever order the plan chose; the internal tile already did this, the
+  others now do too.
+
+**Two things fixed for free.** `CertificateRepository.SearchCertificatesAsync` and the CSV export
+had **no ordering at all** — their row order was whatever the query plan produced and could differ
+between two runs. Both are now deterministic.
+
+**Verified on dev, 17 assertions, all passing:**
+
+| | |
+|---|---|
+| search `23`, page 1 | every row `23-xxxx` (was: first `23-` at position 67) |
+| totalCount | **1,219, unchanged** — ranking does not filter |
+| `23-` | identical result set *and* order to `23` |
+| 6 pages walked across the band boundary | 120 rows, **0 repeats**, clean break |
+| `offset/limit` vs `page/pageSize` | identical |
+| autocomplete `23` | `23-0001 … 23-0005` (was arbitrary) |
+| `6H3` | the three odd-format certificates first |
+| `9` / `sika` (band empty) | still return their matches |
+| every sort contract, unsearched | newest/oldest/cert-number/company-az all still monotonic |
+| every sort contract, searched | holds *within* the top band |
+
+**Latency (Debug build on dev — 20-30x the test site; the comparison between rows is the point):**
+unsearched 861 ms · ranked `23` 1,045 ms · page 4 across the boundary 1,070 ms · **`sika` 1,545 ms**,
+which does not use the rank path at all. The ranking costs less than the search it rides on.
+Re-measure on the test site after deploy.
+
+- **Files:** `Search/SearchRanking.cs` (new), `Controllers/Api/CertificateTileInternalApiController.cs`,
+  `Controllers/Api/CertificateTileExternalApiController.cs`, `Services/CertificateService.cs`,
+  `Repositories/CertificateRepository.cs`.
+
+**Still open, unanswered from the design doc's four questions:** whether a company/product *prefix*
+should also outrank a mid-word match, and whether sequence-only search (`0971`) should rank. Both
+were left as designed — number prefix only.
+
+
+---
+
+### DEF-410 — "Trust this device for 30 days" never worked: the checkbox posts "on", which cannot bind to bool
+
+- **Date:** 2026-09-08
+- **Reporter:** Shawn — *"check if 2FA is re-prompting after signout - I don't think that is working
+  based on my testing."* Her testing was right.
+- **Severity:** **Medium-High.** A security feature that silently does nothing. Every 2FA user has
+  been re-challenged on every sign-in since DEF-385 shipped (2026-08-30), however often they ticked
+  the box, with no error and no way to tell.
+- **Status:** **FIXED — deployed 2026-09-08.**
+
+**Root cause, one attribute.** `Views/Account/2FAAuthenticate.cshtml:78` was hand-written:
+
+```html
+<input type="checkbox" id="TrustDevice" name="TrustDevice" />
+```
+
+A checkbox with no `value` posts the literal string **`on`** when ticked. ASP.NET Core binds `bool`
+through `TypeConverter`, which accepts `"true"`/`"false"` and **not** `"on"` — so
+`Verify2FA(string authCode, bool trustDevice = false)` received **false on every submit**.
+`IssueTrustedDeviceCookieAsync` (`AccountController.cs:1009-1011`) therefore never ran.
+
+**The contrast that proves it** — measured on the live test site, both checkboxes on the same visit:
+
+| Control | `value` attr | paired hidden | actually posts | binds? |
+|---|---|---|---|---|
+| Login "Remember me" | `"true"` | `"false"` | `["true","false"]` | **yes** |
+| 2FA "Trust this device" | *(none)* | *(none)* | `["on"]` | **no** |
+
+Remember Me works because it uses `asp-for`, and the tag helper emits both the `value="true"` and
+the paired hidden `false`. The 2FA one was written by hand and got neither.
+
+**Confirmed by the absence of every side effect it should have had.** On TEST:
+**0 rows in `TrustedDevices`** and **0 audit rows** matching trust/device/2FA — and the audit write
+sits immediately after the cookie append, so if the path had ever run even once there would be a
+row. The feature has never executed in production use.
+
+**Everything else in the chain was already correct**, which is why this survived review: the
+checkbox renders, is visible and enabled, carries `name="TrustDevice"`, and sits inside the form
+posting to `/Account/Verify2FA` (all verified live); `Verify2FA` calls
+`IssueTrustedDeviceCookieAsync` when `trustDevice` is true; the cookie is written with a 30-day
+`Expires`, `HttpOnly`, `Secure`, `SameSite=Lax`; `DefaultTrustDays = 30` matches the label; `Login`
+checks `IsRequestFromTrustedDeviceAsync` before challenging; and `PerformLogout` correctly does NOT
+delete the trusted-device cookie. **One missing attribute defeated all of it.**
+
+**Fix.** `value="true"` on the checkbox. No paired hidden is needed here: an unticked checkbox posts
+nothing and the parameter's default is already `false`.
+
+**Same family as DEF-401 and DEF-389** — working server-side logic with nothing able to reach it,
+failing as silence rather than as an error. The lesson those two share and this one sharpens: **a
+control that renders correctly is not a control that works.** The only proof is the value it posts.
+
+**Verified end to end on localhost, 6/6.** 2FA was temporarily enabled in dev with a known TOTP
+secret so the whole flow could be driven without needing an emailed code (all of it reverted after —
+config restored to `Enable2FA: false`, the user's 2FA flag and secret cleared, the fixture row
+deleted):
+
+| # | Assertion | Result |
+|---|---|---|
+| 1 | first sign-in is challenged for 2FA | PASS |
+| 2 | checkbox posts a bindable value | **`["true"]` — was `["on"]`** |
+| 3 | 2FA accepted with the box ticked | PASS |
+| 4 | trusted-device cookie issued | PASS — expires **2026-10-08**, i.e. 30 days |
+| 5 | sign-out keeps the trust cookie, clears auth | PASS |
+| 6 | **next sign-in SKIPS 2FA** | **PASS — the defect** |
+
+**A harness trap worth recording.** The first attempt reported steps 3-6 as failures, and that was
+the test, not the app: the six visible digit boxes are each `required`, so setting only the hidden
+`AuthCode` made the browser silently block the submit — no POST, and therefore no validation line in
+the log at all. **The absence of a log entry was the clue** that nothing had been submitted, rather
+than that something had been rejected. Typing the digits and letting the page's own JS assemble the
+hidden field fixed it, and all six then passed.
+
+- **Files:** `Views/Account/2FAAuthenticate.cshtml`.
+- **Related:** DEF-385 (built the feature), DEF-401, DEF-389.
+
+
+---
+
+### DEF-411 — Certificate subcategories have never been loaded: the "Cert Subcategories" column is blank for every certificate in the database
+
+**Found** 2026-09-08, while pre-flighting the batch-3 (2026-09-04) client drop. Not a regression —
+this has been true since the first migration.
+
+**Symptom.** The internal certificate tile view shows a **Cert Subcategories** column. It is empty
+for all 6,012 certificates, and sorting by it does nothing.
+
+**Cause — data, not code.** `dbo.CertificateCertificationTypeSubcategories` holds **0 rows**,
+measured on the test environment 2026-09-08. The application supports the field on both sides:
+
+| Layer | State |
+|-------|-------|
+| Model | `Certificate.CertificationTypeSubcategories` (`Models/Certificate.cs:139`), many-to-many |
+| Mapping | `ApplicationDbContext.cs:638-642`, join table `CertificateCertificationTypeSubcategories` |
+| Write | `CertificateController.cs:739` (Create) and `:1433-1445` (Edit) both maintain the links |
+| Read | `CertificateTileInternalApiController.cs:322` projects `CertSubcategories`; `:882` sorts on it |
+
+So a certificate created or edited **through the UI** gets its links. Every certificate in the
+database arrived by **migration**, and no loader has ever written the join rows — including batch 2,
+whose generator reads the same spreadsheet columns into `_cert_subcats` and then never emits them
+(`2026-09-03-batch2-load-BUILD.py:337`). The column has therefore been blank since day one.
+
+**The client has been supplying this data all along.** Their upload sheets carry it in repeated
+"Certificate Subcategories (for CSF and WD only)" columns — four in the 2026-09-03 drop, six in the
+2026-09-04 drop, which alone holds **140 values across 50 of its 88 certificates**.
+
+**Not fixed in batch 3, deliberately** (Shawn, 2026-09-08). Loading only the newest 88 would make
+them the single populated group in a table that is empty for the other 5,924, which reads as an
+anomaly rather than a fix. The batch-3 values are preserved in
+`Scripts/data-ops/_batch3_output/<stamp>/cert-subcategories-NOT-loaded.csv`, and
+`2026-09-08-batch3-VERIFY.py` check 11 asserts the table is still empty for those 88 — so the
+decision is evidenced and a later backfill has a dated before-state.
+
+**To close.** One backfill across every certificate whose source sheet carries the values. The
+lookup is already proven: all six distinct values in the 2026-09-04 sheet resolve to
+`CertificationTypes` rows by name, at both Level 1 and Level 2, so the backfill's only real design
+question is **which level to link** — the Level-2 child under Certified Sustainability Facts
+(Id 6) is almost certainly right, since these are subcategories *of* a certification type. Scope
+beyond the two recent drops depends on the client still holding the older source sheets.
+
+- **Files:** none changed. Data-only.
+- **Related:** [[feedback_column_exists_but_never_projected]] is the mirror image of this one — there
+  the projection was missing and the data was present; here the projection is correct and the data
+  was never loaded. Both render as an empty column.
+
+
+#### DEF-411 amended 2026-09-08 (same day) — measured scope, after the client reported it
+
+Shawn, 2026-09-08: *"it also appears none of the Certificate Subcategories came over for the CSF
+listings. The same looks to be true from all other exports as well. These never got marked in new
+DB."* Confirmed — and measuring it changed three things in the entry above.
+
+**1. Correction: batch 2 did not drop anything.** The entry above says batch 2's loader reads these
+columns and never emits them. The *code* statement is true, but its sheet
+("Final Upload List 9.3.26", 194 rows) has the four subcategory columns **completely empty** — 0
+populated values. Batch 2 had nothing to lose. The only drop that actually discarded values is
+batch 3's 140, which was a deliberate decision, not an oversight.
+
+**2. The backfill is bounded by source data, and it is much smaller than 6,012.** Every workbook we
+hold was profiled for these columns:
+
+| Source sheet | Rows | With subcategories |
+|---|---|---|
+| `Certs_8.12.26V2` → Active List 7.31.26 | 1,026 | **123** |
+| `Certs_8.12.26V2` → Expired List 2 - 8.11.26 | 356 | **54** |
+| `Certs_9.3.26` → Final Upload List 9.3.26 | 194 | 0 |
+| `Certs for Upload_9.4.26` → Missing to Add | 88 | **50** |
+| `Certs_8.12.26V2` → Expired List 1 - 4.9.26 | 4,349 | **column absent** |
+
+**227 distinct certificates, 456 (certificate, subcategory) pairs** — that is the whole population
+we can source. The ~4,350 older expired certificates have no subcategory column in any file we
+hold, so they are not backfillable without the client sending more.
+
+**3. Only 381 of the 456 pairs are loadable, and the blocker is the taxonomy, not the loader.**
+Validated against the rule the app itself enforces on Create/Edit
+(`CertificateController.cs:737`): a subcategory must be a `CertificationTypes` row whose
+**`ParentId` equals the certificate's own `CertificationTypeId`**. That settles the level question
+raised in the entry above — it is the Level-2 child, definitively.
+
+- **381 pairs on 153 certificates resolve cleanly.** All 381 sit under **Certified Sustainability
+  Facts** (Id 6), the only certification type with children (14 of them). By parent status:
+  273 Client Approved - Paid, 89 Expired, 19 Client Approved - Confidential.
+- **75 pairs do not resolve**, in four groups — none of them a loader problem:
+
+| Pairs | Certificate type | Subcategory | Why it fails |
+|---|---|---|---|
+| 27 | Waste Diversion from Landfill | Waste Diversion from Landfill | the WD row (Id 19) has **no children**; the WD child (Id 78) hangs off CSF |
+| 25 | Certified Environmental Facts | Carbon Footprint Reduction | CEF (Id 3) has **no children** |
+| 20 | Waste Diversion from Landfill | **Zero Waste to Landfill** | **that name is not in `CertificationTypes` at all** |
+| 3 | SMP ×2, GreenCircle Audited ×1 | SMP / WD | same shape — parent type has no children |
+
+The column header says *"for CSF and WD only"*, but **WD has no subcategory children in the
+database**, so half of what the header promises has nowhere to land. Whether to add those taxonomy
+rows (and whether "Zero Waste to Landfill" is a real subcategory or a synonym for the WD type) is a
+**client requirements question, not a data-ops call** — it is not guessed at here.
+
+---
+
+### DEF-412 — Server-side exports never project certificate subcategories at all
+
+**Found** 2026-09-08, alongside DEF-411, and it is a **separate fault with a separate fix**:
+DEF-411 is missing *data*, this is missing *code*. Backfilling DEF-411 alone would not put the
+field into these exports.
+
+`Controllers/ExportController.cs` references `ProductSubcategory` only — the product taxonomy, an
+entirely different field that happens to share a word. `CertificationTypeSubcategories` appears
+**nowhere** in it, so no server-side export has ever carried the column, populated or not.
+
+**The tile views are not affected the same way.** Their client-side CSV export already lists
+`certsub` among its columns (`wwwroot/js/certificate-tile-view-internal.js:1900`, and the external
+equivalent), fed by the `CertSubcategories` projection in
+`CertificateTileInternalApiController.cs:322`. Those exports have the column and would populate it
+the moment DEF-411's data lands. **So "missing from the exports" has two different causes depending
+on which export** — worth knowing before anyone concludes one fix covers both.
+
+- **Files:** `Controllers/ExportController.cs`.
+- **Related:** DEF-411 (the data), [[feedback_column_exists_but_never_projected]] (this is that
+  pattern exactly, on the export surface).
+
+
+#### DEF-411 CLOSED 2026-09-08 — backfilled on dev and test, 456/456
+
+Shawn, 2026-09-08: *"run part A and B on dev then test"*. Done, in that order, both
+environments verified independently.
+
+| | dev | test |
+|---|---|---|
+| Part A — links needing no taxonomy change | 381 | 381 |
+| Part B — new taxonomy rows | **7** | **6** |
+| Part B — links unlocked | 75 | 75 |
+| **Total links** | **456** | **456** |
+| Certificates carrying ≥1 subcategory | 227 | 227 |
+
+**Verification** (`2026-09-08-certsubcategory-VERIFY.py`, re-reads the workbooks rather than the
+loader's own audit CSVs, so it cannot inherit the loader's mistakes): link count matches source;
+the same pairs **compared as sets in both directions**, 0 either way; no duplicates; no links on
+certificates outside the source set; every new taxonomy row Level 2, active, with `NormalizedName`
+populated. Confirmed live through the app as well — the internal tile API's `certSubcategories`
+projection returns exactly the database's values for sampled certificates, so the column that was
+blank for the whole database now renders.
+
+**The check that mattered was durability, not the row count.** The join table has no constraint
+tying a subcategory to its certificate's type — all 456 links would have INSERTed happily either
+way. But Edit clears the collection and re-adds only what passes
+`ParentId == CertificationTypeId` (`CertificateController.cs:1433-1443`), and the picker never
+offers anything else (`Edit.cshtml:857`), so 75 of them would have been **silently deleted the first
+time anyone saved those certificates** — passing every row-count check in the meantime. That is why
+Part B creates the parent rows first and the verifier asserts `0 fragile links` rather than just a
+total.
+
+**dev needed 7 taxonomy rows where test needed 6**, because two certificates are typed
+`Carbon Footprint Reduction` (Id 3) on dev and `Certified Environmental Facts` (Id 5) on test. The
+environments genuinely differ on those two rows; the generator classifies against whichever database
+it targets, so each got the right set rather than a copied one.
+
+**Two bugs caught before they reached a database**, both by steps that exist to catch exactly this:
+1. *Reviewing the SQL before running it* (Shawn asked to see it first) — the `PRINT` lines embedded
+   the subcategory name via Python's `repr`, injecting raw single quotes that terminated the T-SQL
+   string literal early. It would have failed at parse.
+2. *The dev rehearsal* — `CertificationTypes.SortOrder` is NOT NULL with no default, so Part B
+   failed with `Cannot insert the value NULL into column 'SortOrder'`. Nothing was written; the fix
+   supplies `ISNULL(MAX(SortOrder) under that parent, 0) + 1`, matching the batch-2 loader.
+   `NormalizedName` is a **persisted computed column** and is deliberately NOT inserted.
+
+- **Files:** `Scripts/data-ops/2026-09-08-certsubcategory-backfill-BUILD.py`,
+  `2026-09-08-certsubcategory-VERIFY.py`, `_subcat_backfill/20260908-104535/` (test) and
+  `_subcat_backfill_dev/20260908-104410/` (dev) — each with `partA-links.sql`,
+  `partB-taxonomy.sql` and their UNDO scripts.
+- **Still open:** **DEF-412** — server-side exports do not project this field at all, so
+  `ExportController` output stays blank despite the data now being present. The tile-view CSV
+  exports are unaffected and now carry it.
+- **Not backfillable:** ~4,350 older expired certificates. No source workbook we hold has a
+  subcategory column for them; closing that needs more from the client.
+
+
+#### DEF-412 FIXED 2026-09-08 — certificate subcategories now projected by every server-side export
+
+Shawn, 2026-09-08: *"do the export fix too"*.
+
+**Fix.** A `Cert Subcategories` column added to all four server-side certificate export paths — the
+two CSV generators and the two Excel generators — fed by a new `CertSubcategoriesField(Certificate)`
+helper.
+
+**It deliberately does NOT rely on the navigation being `Include()`d.** This is the same trap
+`CountriesField` documents for CR-037 one screen above it: the report generators here are fed by
+many different queries and none of them load `CertificationTypeSubcategories`. Depending on the
+navigation would have produced the *silent* wrong answer — an empty cell reading as "this
+certificate has none" rather than an error — and adding an `Include` to every query both regresses
+the moment someone writes the next one and walks straight into the DEF-393 many-collections
+problem, which names this very collection. So the helper builds a `CertificateId -> names` lookup
+once per request and falls back to it whenever the navigation is absent.
+
+The join table has no `DbSet` (it is mapped with `UsingEntity`), so unlike `CountriesField` the
+lookup is projected through `Certificates.Select(c => c.CertificationTypeSubcategories...)` rather
+than read from the table directly.
+
+**Pipe-delimited, A-Z**, following the DEF-316 Partner and CR-037 Country precedent: a comma-joined
+multi-value cell inside a CSV survives only by quoting, and pipe round-trips without depending on it.
+
+**Verified against a real export, not just a build.** Built and run on port 5199 against the dev
+database (leaving the running dev server on 5101 alone), signed in as `admin.uat`, and all four
+downloads fetched and parsed:
+
+| Export | Format | Column | Rows | With subcategories |
+|---|---|---|---|---|
+| `DownloadReport?type=active-certificates` | CSV | index 9 of 10 | 1,024 | 150 |
+| `DownloadStat?type=total-active-certs` | CSV | index 9 of 10 | 1,021 | 150 |
+| `DownloadReport?type=active-certificates` | Excel | column 10 | 1,024 | 150 |
+| `DownloadStat?type=total-active-certs` | Excel | column 10 | 1,021 | 150 |
+
+150 rather than 227 because these are *active*-certificate reports; the remainder are expired, draft
+or confidential and correctly absent from them.
+
+- **Files:** `Controllers/ExportController.cs` (helper + 2 CSV headers + 2 CSV rows + 2 Excel header
+  cells + 2 Excel data cells + 2 border ranges).
+- **Not deployed.** Code change — it needs a build and deploy to reach the test environment. The
+  data (DEF-411) is already live there.
+- **Related:** DEF-411 (the data), CR-037/`CountriesField` (the pattern this copies), DEF-393
+  (why an `Include` was the wrong fix), DEF-316 (pipe delimiter precedent).
+
+**Clarification, same day — all 227 do export; the "150" was the wrong export to measure with.**
+Shawn, 2026-09-08: *"the 227 shouldn't be excluded"*. Checked against the live test environment
+rather than reasoned about: the **unfiltered certificate list** returns **227 of 227** certificates
+carrying subcategories — 0 missing, 0 extra, 0 value mismatches, across all 6,012 rows. Breakdown:
+150 Client Approved - Paid, 58 Expired, 19 Client Approved - Confidential.
+
+The 150 figure came from the two reports I happened to verify with — `active-certificates` and
+`total-active-certs` — which are **active-only by definition**, so the 58 Expired and 19
+Confidential are correctly outside their scope. That is those reports' purpose, not a subcategory
+problem, and widening them would break what they are for.
+
+Worth stating plainly because it is easy to misread: **`ExportController` has no all-certificates
+export and never did.** Its four entry points are scoped reports and statistic drill-downs
+(`DownloadStat`, `DownloadReport`, `DownloadTable`, `DownloadActiveProductIds`). The full-coverage
+export is the certificate list view's own CSV, fed by `/api/certificate-tiles-internal`, which
+already carried a `certsub` column and now has data behind it. If a server-side
+every-certificate-regardless-of-status export is wanted, that is a new endpoint, not a filter to
+relax.
+
+**The residual CSF gap, quantified 2026-09-08.** Shawn: *"what about the rest of the records? for
+CSF?"* Every certificate in the database was matched back to the source sheet(s) it appears in, and
+each sheet classified by whether it carries subcategory columns at all - so "missing" is split into
+two different asks rather than one number.
+
+**Certified Sustainability Facts: 334 certificates, 153 with subcategories, 181 without.**
+
+| Why the 181 have none | Count | Status |
+|---|---|---|
+| Source sheet has **no subcategory columns** - never supplied | **161** | all 161 **Expired** |
+| Source sheet **has** the columns, cells left **blank** | **20** | 17 Draft, 3 Confidential |
+
+**Not one `Client Approved - Paid` CSF certificate is missing its subcategories.** The 181 are
+entirely Expired, Draft or Confidential. Every live published CSF certificate that had data has it.
+
+The 161 trace to `Expired List 1 - 4.9.26` (4,349 rows), which has no subcategory columns in any
+form. That data was never sent and cannot be recovered from anything we hold.
+
+The 20 are the answerable ones, and **16 of them come from the 2026-09-03 batch**
+(`Final Upload List 9.3.26`): that sheet has all four subcategory columns present and **every one of
+its 194 rows empty**. A sheet that carries the columns and fills none of them looks more like a step
+missed during preparation than a deliberate "these have no subcategories" - worth asking the client
+before assuming either way. The other 4 are 3 from the 2026-09-04 drop and 1 from the Active List.
+
+**Other certification types are a separate question.** Waste Diversion has 47 of 245. Every other
+type has zero, which is expected rather than a gap - the client's own column is headed *"for CSF and
+WD only"*, so Recycled Content's 2,314 certificates and Material Ingredient Reporting's 1,557 are
+not supposed to carry subcategories at all. Nothing should be read into those zeros without asking.
+
+Full list: `scratchpad/CSF-without-subcategories.csv`, one row per certificate with its reason.
+
+**Expired certificates were never excluded - and the exhaustive source hunt, 2026-09-08.**
+Shawn: *"update the expired too. I don't want data missing just because you think expired shouldn't
+include it."*
+
+**Correcting the record: no status filter was ever applied to this backfill.** What is loaded on
+test, by status of the parent certificate:
+
+| Status | Certificates | Links |
+|---|---|---|
+| Client Approved - Paid | 150 | 321 |
+| **Expired** | **58** | **110** |
+| Client Approved - Confidential | 19 | 25 |
+| **Total** | **227** | **456** |
+
+Every expired certificate that had subcategory data in any source got it. The error was mine and it
+was editorial, not technical: having found 161 expired CSF certificates with no source data, I
+suggested chasing them "may not be worth their effort". **That is the client's call and Shawn's, not
+a filter for me to pre-apply in a recommendation.** Noted as a habit to avoid - report the gap, do
+not pre-decide whether it matters.
+
+**Then the assumption behind it was tested properly.** The claim "no source data exists" had only
+been checked against the three workbooks the client last sent. It has now been checked against
+**every workbook in the project and the client's production API**:
+
+* 13 workbooks, ~110 sheets - all five Database QC Logs (including the 13 MB
+  `9.3.26_sw_updates`, read via a copy because Excel held it open),
+  both migration verification workbooks, `Copy of product categories and csf attributes.xlsx`,
+  `GCC_Certificate_Import_Template`, `cleaned_cert_listing.xlsx`, the field-requirements workbooks.
+* `db.greencirclecertified.com/api/certificates` - **no subcategory field exists in the API at all**,
+  and it serves only the 1,010 published certificates.
+* Detection did not rely on headers alone: any column whose VALUES were drawn from the subcategory
+  vocabulary counted too, with the certificate-type column excluded so it could not masquerade.
+
+**Result: nothing recoverable. No source we hold carries a subcategory value for any certificate
+that currently lacks one.**
+
+Independent corroboration that the load is complete rather than merely consistent:
+`cleaned_cert_listing.xlsx / Active List 4.9.26` is an older, separately-produced file carrying 149
+certificates with subcategory values - **0 of them are missing from the database**. A file nobody
+used as a load source agrees we captured everything it had.
+
+**So the remaining 161 need the client, and only two questions can move them.** Both are genuine
+asks, neither pre-judged:
+1. The 2026-09-03 batch (`Final Upload List 9.3.26`, 194 rows) has the four subcategory columns
+   present and **every row empty** - was that intended, or missed during preparation? 16 CSF
+   certificates hang on the answer.
+2. `Expired List 1 - 4.9.26` (4,349 rows) has **no subcategory columns at all** - can the client
+   supply them for the 161 expired CSF certificates?
+
+**RESOLVED - the two "client questions" above are withdrawn. DEF-411 is fully closed, not
+partially.** Shawn, 2026-09-08: *"the information in the data spreadsheets is what they sent."*
+
+The spreadsheets ARE the client's complete submission. So the two questions raised above are not
+open items and should not be sent:
+
+* The 194 empty rows in `Final Upload List 9.3.26` are not a preparation slip - **those certificates
+  have no subcategories.**
+* The absent columns in `Expired List 1 - 4.9.26` are not a missing attachment - **those
+  certificates have no subcategories.**
+
+**Every subcategory value the client has ever sent us is loaded: 456 of 456, on both dev and test**,
+proven by set comparison in both directions rather than by matching counts. The 181 CSF certificates
+and 5,610 certificates overall that carry none carry none *because that is the client's data*, and
+the exhaustive 13-workbook / API search recorded above is what establishes that rather than an
+assumption.
+
+**The standing lesson** ([[feedback_client_spreadsheet_is_complete_submission]]): on this project an
+empty cell in a client workbook is an answer, not an omission. Two separate mistakes in this one
+thread came from not treating it that way - first pre-judging that expired records might not be
+worth chasing, then proposing a client round-trip for data the client had already fully supplied.
+Report what is absent; do not infer that absence means something was lost.
+
+**Nothing further is outstanding on DEF-411.** DEF-412 (the export column) remains built and
+awaiting a deploy.
+
+
+#### DEF-412 DEPLOYED and verified live 2026-09-09
+
+Shipped in `GCCWebApp-deploy-20260908-1607.zip` (which already contained the fix), **not** in the
+`-DEF412` bundle built for it — that one was superseded within hours and is marked do-not-deploy.
+
+Gate 11 on gccwebapp.com: `/appsettings.Production.json` → 404; sign-in OK; certificate detail
+renders; **`Cert Subcategories` present in the export at index 9 of 10, 169 of 1,063 rows
+populated.** Found the site returning 503 on every URL beforehand (stopped app pool, IIS answering
+rather than the app); Shawn restarted the pool. `CR045_CertificationResultsVerbatimSort` was already
+applied, so schema and code agree.
+
+**DEF-411 + DEF-412 + CR-046 are now delivered end to end** — the export proves it: `26-0249` comes
+out carrying `Zero Waste to Landfill`, a subcategory that did not exist in the system on 2026-09-07.
+
+
+---
+
+### DEF-413 — Certificate subcategories are not searchable or filterable on any surface
+
+- **Spec doc:** `docs/tracking/DEF-413-subcategory-filter-as-is-to-be.md` — As-Is / To-Be, the three pages, the exact per-file change, acceptance tests with real counts, effort. Written 2026-09-09; still specification only.
+
+- **Date raised:** 2026-09-09
+- **Severity:** Medium-High (client-reported; the field's stated purpose is unmet on public + login views)
+- **Status:** **DIAGNOSED — no code changed, awaiting Shawn's investigation + scope decision**
+- **Reporter:** Client, via Shawn, 2026-09-09
+- **QC log ID:** not yet assigned (reported by email, not through the QC log)
+- **May convert to CR-047** — see *"Is this a defect or a change?"* below. That call is Shawn's.
+
+**Client's words:**
+
+> The search functionality is not working for these. The intention for this additional field was to
+> have the certs with these show up when filtering. For example, if a client has a CSF cert and it
+> has Recycled Content and Waste Diversion cert subcategories selected — user selects 'Certified
+> Sustainability Facts' in filter option → CSF shows in filtered list; user selects 'Recycled
+> Content' → CSF shows; user selects 'Waste Diversion from Landfill' → CSF shows. This functionality
+> is the same for public and login views. I was pretty sure this was tested and working at one time.
+
+---
+
+#### What is actually wrong
+
+**Nothing in the application has ever matched on `Certificate.CertificationTypeSubcategories`.**
+All three tile surfaces filter on the *parent* certification type name only:
+
+| Surface | File:line | Predicate |
+|---|---|---|
+| Public (anonymous) | `Repositories/CertificateRepository.cs:468` | `EF.Constant(filter.CertificationTypeNames).Contains(c.CertificationType.Name)` |
+| External (logged-in company/partner) | `Controllers/Api/CertificateTileExternalApiController.cs:193` | `types.Contains(c.CertificationType.Name)` |
+| Internal (Analyst/Admin) | `Controllers/Api/CertificateTileInternalApiController.cs:158` | `types.Contains(c.CertificationType.Name)` |
+
+Free-text search does not cover it either. The `WhereMatchesSearch` predicate
+(`CertificateTileInternalApiController.cs:169-176` and its two siblings) ORs Number, **parent**
+CertificationType, Company, Product, Product Category, Location and Country, plus the tag and
+country semi-joins — no subcategory clause.
+
+The join table appears in the codebase **only** under `.Include()`, display projections
+(`CertSubcategories`), the `cert-sub` sort branch, and exports. It appears in **no `Where` anywhere**.
+Verified across `Controllers/`, `Services/`, `Repositories/`, `Search/`.
+
+**It was never built.** `git log -S "CertificationTypeSubcategories.Any" --all` returns four commits
+(2026-01-27 `fca5e51`/`c5c32bf`, 2026-03-24 `be2f4bf`/`048c27b`); every one is a *display or
+projection* use — the Edit-page `ViewBag.ExistingSubcategories` guard and the CSV
+`CertificationSubcategories` string-join. No filter predicate on this collection has existed in this
+repository at any point. So the client's recollection that it worked is not reproducible from the
+code history — see the next section for the most likely explanation of what she actually saw.
+
+Field history for context: single-value FK `CertificationTypeSubcategoryId` shipped 2025-12-16
+(`20251216221555_AddCertificationTypeSubcategoryId`); the multi-select M2M shipped 2026-01-27
+(`20260127183149_AddMultipleSubcategoriesToCertificate`). Both were built as capture-and-display.
+
+---
+
+#### Why it presents as a broken filter rather than a missing feature
+
+This is the part worth understanding before deciding anything.
+
+**Every Certified Sustainability Facts child name also exists as its own Level-1 certification type.**
+Enumerated on `GCCDatabase_Dev`, 2026-09-09 — 18 pairs where a Level-2 row's `Name` is also carried
+by some Level-1 row:
+
+```
+Carbon Footprint Reduction              under Carbon Footprint Reduction
+Carbon Footprint Reduction              under Certified Environmental Facts
+Carbon Footprint Reduction              under Certified Sustainability Facts
+Certified Energy Savings                under Certified Sustainability Facts
+Certified Water Savings                 under Certified Sustainability Facts
+Closed Loop Product                     under Certified Sustainability Facts
+Dematerialization                       under Certified Sustainability Facts
+Life Cycle Assessment (LCA) Optimized   under Certified Sustainability Facts
+Material Ingredient Reporting           under Certified Sustainability Facts
+Recyclable Material                     under Certified Sustainability Facts
+Recycled Content                        under Certified Sustainability Facts
+Sustainable Energy Practices            under Certified Sustainability Facts
+Sustainable Manufacturing Practices     under Certified Sustainability Facts
+Waste Diversion from Landfill           under Certified Sustainability Facts
+Waste Diversion from Landfill           under GreenCircle Audited
+Sustainable Manufacturing Practices     under Sustainable Manufacturing Practices
+Waste Diversion from Landfill           under Sustainable Manufacturing Practices
+Waste Diversion from Landfill           under Waste Diversion from Landfill
+```
+
+Both names in the client's example — **Recycled Content** and **Waste Diversion from Landfill** — are
+on that list. So the checkbox she is clicking **is present and clickable in the filter box**; it is
+the Level-1 type of the same name, offered by the DEF-167 dropdown query. Clicking it returns every
+certificate whose *type* is Recycled Content, and never the CSF certificate carrying Recycled Content
+as a subcategory.
+
+That is why this reads as *"the filter is broken"* rather than *"this filter option doesn't exist"* —
+and it is also the most plausible explanation for *"I was pretty sure this was tested and working."*
+Clicking "Recycled Content" has always returned a non-empty list. What it has never done is include
+the CSF certificates.
+
+---
+
+#### Data at stake
+
+`GCCDatabase_Dev`, 2026-09-09 — `CertificateCertificationTypeSubcategories`:
+**456 link rows across 227 distinct certificates.** None reachable by filter or search today.
+
+| Subcategory | Distinct certs |
+|---|---|
+| Waste Diversion from Landfill | 181 |
+| Recycled Content | 89 |
+| Sustainable Energy Practices | 67 |
+| Life Cycle Assessment (LCA) Optimized | 31 |
+| Carbon Footprint Reduction | 25 |
+| Sustainable Manufacturing Practices | 22 |
+| Zero Waste to Landfill | 20 |
+| Certified Energy Savings | 17 |
+| Recyclable Material | 4 |
+
+Most of this volume arrived **yesterday** via the DEF-411 backfill and CR-046, which is almost
+certainly why the client is raising it now: the field went from mostly-empty to 227 certificates
+populated, and the gap became visible.
+
+**Three subcategory names have no Level-1 twin**, so they are absent from the filter dropdown
+entirely and a predicate fix alone would not surface them:
+
+- **Waste Diversion Event** (under Waste Diversion from Landfill)
+- **Waste System Audit** (under Waste Diversion from Landfill)
+- **Zero Waste to Landfill** (under Waste Diversion from Landfill) — added yesterday by CR-046, 20 certs
+
+---
+
+#### DEF-167 / QC #169 — the prior decision this runs into
+
+**Note on the reference:** the relevant QC log item is **#169**, not #167. QC #167 is a different,
+unrelated item (*"Would the system eventually auto change the status to Expired too?"* — auto-expire
+timing, closed as DEF-171 plus an explainer in `docs/tracking/client-responses-2026-05-19.md`). The
+`167` in **DEF-167** is our defect number; its client source is **QC #169**. Easy to conflate.
+
+**DEF-167** (`defect-register.md:5364`, shipped 2026-05-11, `shipped-2026-05.md:971`):
+
+- **Client, QC #169 (4/30/26):** *"The public view is showing all cert types. And it's showing the CSF
+  subcategories (WHICH IS WRONG). The subcategories are not meant to show up in this filter box."*
+- The public tile filter pane was listing CSF's subcategories (Biobased Content, Closed Loop,
+  Embodied Carbon Disclosures, ~28 more) as their own checkboxes alongside the top-level types.
+- **Shawn's direction, 2026-05-11:** *"Level 1 should be visible only. Fix the data. **No parent-rollup
+  logic** — if a cert is tagged at Level 2, that's a data bug to repair on the cert, not a code bug to
+  accommodate in the filter."*
+- **Fix as shipped:** removed the child-emitting `foreach` from all three controllers; the dropdown
+  query became `.Where(ct => ct.IsActive && ct.ParentId == null && visibleCertTypeIds.Contains(ct.Id))`.
+  The `CertificationTypeNames` string-equality predicate was **deliberately left as-is**, with the
+  register recording: *"Level-2-tagged certs become un-filterable in the dropdown, which is the correct
+  outcome once data is repaired."*
+- QC #169's second sub-bullet (hide types with zero certs on public, to match login) was satisfied by
+  the same ship and closed 2026-05-12.
+
+**How the new request relates.** These are *not* the same thing, and the distinction decides whether
+this is a defect or a CR:
+
+| | DEF-167 (May, declined) | This request (Sept) |
+|---|---|---|
+| Direction of the roll-up | Cert tagged **at** Level 2 should be findable under its Level-1 **parent** | Cert tagged at Level 1 with Level-2 **subcategories** should be findable under those subcategory names |
+| What it changes | The meaning of a Level-1 checkbox for mis-tagged data | The meaning of a Level-1 checkbox for correctly-tagged data |
+| Dropdown contents | Was the whole complaint — subcategories removed | Unaffected for the client's stated example; every name in it is already a Level-1 row |
+
+So the client's worked example can be satisfied **without reversing DEF-167** — the dropdown stays
+Level-1-only and only the predicate broadens. Surfacing the three orphan names (incl. Zero Waste to
+Landfill) *would* reverse it, by putting Level-2 rows back into the box the client rejected in April.
+
+---
+
+#### Is this a defect or a change? — for Shawn to determine
+
+**Argues defect (DEF-413):** the multi-select subcategory field was requested and built for
+certificate classification; the client's stated intent is that it drive filtering; 227 certificates
+now carry data that no user-facing query can reach. The field is inert on every read path except
+display and export.
+
+**Argues change (CR-047):** no requirement in `docs/Final Req Docs/` has been located that specifies
+subcategory-based filtering; the predicate was never written, so nothing regressed; and DEF-167
+recorded an explicit decision **not** to add roll-up logic to this exact predicate. Broadening what a
+Level-1 checkbox matches is a change to shipped, client-validated filter semantics.
+
+**Recommendation:** keep the *predicate* work under **DEF-413** (the field not driving filtering is
+best read as an unmet purpose, and it does not contradict DEF-167's direction). If the decision is
+also to put the three orphan Level-2 names into the dropdown, raise that half as **CR-047**, because
+that specifically reverses a shipped client decision and should go back to the client for
+confirmation rather than being absorbed silently.
+
+---
+
+#### If/when it is built — implementation notes
+
+Three predicate sites (table above), plus optionally the three `WhereMatchesSearch` clauses.
+
+**Do not write the obvious inline `c.CertificationTypeSubcategories.Any(s => types.Contains(s.Name))`.**
+That is the same shape that cost 7-8s per search on tags (**DEF-366**) and 2.6-3.3s of a 3s query on
+CR-037 countries (**DEF-402**) at this row count — SQL Server re-runs the correlated subquery per row
+of the joined result. Both were fixed by resolving the match as its own semi-join first and OR-ing the
+id set back in. Follow `Search/TagSearchMatch.cs` (`MatchingCertificateIdsAsync` /
+`MatchingCountryCertificateIdsAsync`) and add a third method of the same shape.
+
+Also note the internal listing query already pulls six collection navigations and uses
+`.AsSplitQuery()` per DEF-393 / DEF-166 — do not add a seventh `Include` for this; the semi-join needs
+no navigation load.
+
+**Verification would need all three surfaces**, anonymously and as `test.external` / `test.analyst`,
+against the client's literal example: a CSF certificate carrying both Recycled Content and Waste
+Diversion from Landfill must appear under all three checkbox selections. Ground truth for picking a
+fixture cert is the 227-row set above.
+
+**Rough effort:** predicate only, all three surfaces, semi-join + verification ≈ 3-4 hrs. Adding
+free-text search ≈ +2 hrs. Dropdown change for the three orphan names ≈ +2 hrs and a client confirm.
+All figures need a deploy on top.
+
+- **Related:** DEF-167 / QC #169 (Level-1-only dropdown — the prior decision), DEF-411 (the data
+  backfill that made this visible), DEF-412 (export projection, fixed 2026-09-08), CR-046 (the six new
+  taxonomy rows, incl. Zero Waste to Landfill), DEF-366 + DEF-402 (the semi-join perf pattern).
+
+
+---
+
+#### DEF-413 ADDENDUM 2026-09-09 — QC #169 read from the workbook; the quote in DEF-167 is misattributed; and the original requirement specifies a FLAT filter list
+
+Shawn pasted the actual QC #169 row. It does not say what our DEF-167 entry claims it says. Read
+directly from `Database QC Log_9.3.26_sw_updates.xlsx`, sheet **`GCC DB QC Log2`**, **row 174**
+(the sheet is 268 rows, header row 5; sheet 1 stops before #165 — several dozen later items are
+filed under a repeated `#120`, the pattern already noted in `project_qc_log_pattern.md`):
+
+| Column | Value |
+|---|---|
+| ID | **169** |
+| Date Opened | 2026-04-30 |
+| 4-10 comments | **CR** |
+| Raised By | **Actual defect** |
+| Page (R174) | Filtering Public vs Login Views |
+| Date Closed (O174) | 2026-05-11 |
+| Current Status (Q174) | Complete |
+| Priority | Major |
+
+**The client's own words (cell S174), complete and verbatim:**
+
+> Under filters for Certification Type.
+>
+> The login view is only showing those with certs under those cert types. This is fine. (If there are
+> no certs with X its not showing that cert type as an option). I WOULD DO THE SAME FOR PUBLIC VIEW.
+>
+> B
+
+The cell genuinely ends at that trailing `B` — it is not truncated by Shawn's paste; the workbook
+holds nothing further. **The client's QC #169 text is entirely about the zero-cert parity item. It
+says nothing about subcategories.**
+
+**Where the subcategory observation actually lives.** On the same row, but in *our* columns, not the
+client's:
+
+- *(DateClosed-adjacent notes cell)*: **"OPEN - public shows all cert types incl. CSF subcategories;
+  should only show types with active certs (login is correct)"**
+- *(Current-Status notes cell)*: **"REQUIREMENTS Search Recs R11 (Cert Type), R36 (Company), R40
+  (Country) all explicitly say 'if 0 active, do not appear in public DB.' Login view follows this;
+  public view violates the rule by showing all types incl. CSF subcategories - build defect against
+  spec."**
+
+**Correction to the DEF-167 entry.** The sentence recorded there as the client's reporter quote —
+*"The public view is showing all cert types. And it's showing the CSF subcategories (WHICH IS WRONG).
+The subcategories are not meant to show up in this filter box."* — **is not in the QC workbook**, on
+row 169 or anywhere else. Its only occurrences anywhere in this repository are our own
+`defect-register.md` and `observations_log.md`. It may well be a real client utterance from an email
+or call in early May (the all-caps emphasis matches her style in S174), but **its provenance is
+unverified and it should not continue to be cited as QC #169's reporter text.** A correction note has
+been added at the DEF-167 entry; the original line is left in place rather than rewritten, so the
+record of what we believed in May stays intact.
+
+**What DEF-167 actually fixed is unchanged and still correct** — the dropdown was emitting Level-2
+taxonomy rows as their own checkboxes, and the parity item the client did raise (hide types with zero
+visible certs on public, to match login) was satisfied by the same ship. Only the attribution of the
+quote is wrong.
+
+---
+
+##### The requirements finding — this is the material one
+
+`docs/Final Req Docs/archive/Requirements.xlsx`, sheet **"Filter Sections"**, is the original
+specification of the filter pane. Its six columns are the facets as designed: **Certification Types**
+(A), Product Categories (C), Companies (E), Countries (G), Certificate Tags (I), Additional (K).
+
+Column A — the Certification Type filter options — is a **flat list of 15 names, with no hierarchy,
+no indentation and no parent/child distinction:**
+
+```
+Biobased                        Material Ingredient Reporting
+Carbon Footprint Reduction      Recyclable Material
+Certified Energy Savings        Recycled Content
+Certified Environmental Facts   Renewable Resource Content
+Certified Sustainability Facts  Waste Diversion from Landfill
+Certified Water Savings
+Closed Loop Product
+Dematerialization
+GreenCircle Audited
+LCA Optimized
+```
+
+**Certified Sustainability Facts and its subcategory names sit side by side as peer options** —
+Recycled Content, Waste Diversion from Landfill, Carbon Footprint Reduction, Certified Energy
+Savings, Certified Water Savings, Closed Loop Product, Dematerialization, LCA Optimized, Material
+Ingredient Reporting and Recyclable Material are all CSF children in today's taxonomy, and all ten
+appear in that list alongside CSF itself. That is precisely the shape the client is describing.
+
+**Confirmed against the live taxonomy** (`GCCDatabase_Dev`, 2026-09-09): all 15 spec names exist as
+**Level-1** rows today. Two are `IsActive = 0` (Biobased, Renewable Resource Content) and so are
+correctly excluded by the dropdown's `IsActive` guard, consistent with R11's zero-active rule.
+
+**So the dropdown conforms to the spec; only the predicate does not.** Every option the requirement
+calls for is in the box. What is missing is that selecting one of them matches on
+`CertificationType.Name` alone, so a CSF certificate carrying Recycled Content as a subcategory is
+not returned under "Recycled Content".
+
+**Honest caveat on how much this proves.** The "Filter Sections" sheet is a **pivot-table extract**
+(the cells `Row Labels`, `(blank)` and `Grand Total` are present; the count column is empty in the
+saved file). So the 15 names are most likely the distinct certification-type values found in the
+source data at the time, not a hand-authored statement of intended filter semantics. It establishes
+that **the filter was specified as one flat list of these names with no parent/child distinction** —
+it does **not**, on its own, prove the client expected roll-up from a subcategory to its parent
+certificate. It is strong supporting evidence for her stated intent, not a decisive requirement
+clause. No requirement text anywhere in `docs/Final Req Docs/` has been found that addresses
+subcategory-based matching either way.
+
+---
+
+##### Revised defect-vs-change recommendation
+
+The earlier recommendation stands and is now better supported, with one correction to its reasoning:
+
+- The argument *"DEF-167 recorded an explicit decision not to add roll-up logic to this predicate"*
+  is **weaker than first stated**. That direction was given against a complaint whose reporter quote
+  we cannot substantiate, and it addressed the opposite direction of roll-up (Level-2-tagged cert →
+  found under its Level-1 parent). It does not speak to this request.
+- The argument *"no requirement specifies subcategory filtering"* is **also weaker**. The original
+  filter spec is a flat list in which CSF and its subcategory names are peers, and the client's
+  expectation matches that shape.
+
+**Recommendation: DEF-413 as a defect, predicate work only.** The dropdown already matches the spec
+and needs no change for the client's worked example.
+
+**One caveat worth putting to the client before building.** Under a flat list, "Recycled Content" as
+a filter option would come to mean two things at once: *certificates whose type is Recycled Content*
+**and** *CSF certificates carrying Recycled Content as a subcategory*. That is what she asked for,
+and it is what the flat spec implies — but it is a widening of what that checkbox returns and worth
+one sentence of confirmation rather than an assumption. **Note also that QC #169 was itself filed
+under `4-10 comments = CR`**, so the client's own log has treated work on this filter as change
+rather than defect before.
+
+The three orphan Level-2 names (Waste Diversion Event, Waste System Audit, Zero Waste to Landfill)
+remain out of scope for DEF-413 and would still need **CR-047** — none of them appears in the
+requirement's flat list, and adding them does put Level-2 rows back into the dropdown.
+
+**Evidence trail for this addendum:** QC row read from
+`Database QC Log_9.3.26_sw_updates.xlsx` sheet `GCC DB QC Log2` row 174 (copied to a scratch path and
+parsed with openpyxl; the original is locked open in Excel and cannot be read in place). Requirements
+read from `docs/Final Req Docs/archive/Requirements.xlsx` sheet `Filter Sections`. Taxonomy
+enumerated from `GCCDatabase_Dev`.
+
+
+#### DEF-413 REPRODUCED LIVE 2026-09-09 — the "nothing came back" symptom is DEF-413, not a second bug
+
+Shawn, testing: *"I clicked on the 3 checkboxes and it filtered data. When I searched for Recycled
+content it gave me a different number and then when I closed one the tags, nothing came back."*
+
+Reproduced against `/api/certificate-tiles` on localhost:5101, anonymous, dev data. A SQL model of
+the same predicates returns identical as-is figures, so the to-be column is trustworthy:
+
+| Step | Action | As-Is | To-Be |
+|---|---|---|---|
+| A | 3 checkboxes: CSF + Recycled Content + Waste Diversion | **607** | 609 |
+| B | A + search `recycled content` | **458** | **526** |
+| C | remove the Recycled Content checkbox, search still active | **0** | **68** |
+| D | C without the search term | 149 | 151 |
+| E | search alone | 458 | 526 |
+
+Only removing the **Recycled Content** chip yields 0; removing CSF or Waste Diversion leaves 458.
+
+**Mechanism.** Search and the type filter are independent `.Where()` calls and therefore AND. The
+measurements prove the search leg resolves to exactly the type=Recycled Content set:
+`search ∩ {RC,WD} = 458` and `search ∩ {CSF,RC} = 458` force `search ⊆ RC-typed`, and
+`|search| = 458 = |RC-typed|` makes them equal. Removing the Recycled Content checkbox leaves a
+filter (CSF + Waste Diversion) that excludes every member of that set — the intersection is
+necessarily empty. The 68 rows that should have been there are the publicly-visible CSF certificates
+carrying Recycled Content as a **subcategory**, including `25-8071`.
+
+**No front-end defect.** Chip removal, query-string building and the infinite-scroll offset all
+behave correctly; the empty page is the honest result of an empty intersection. No JS change needed.
+
+**This closes open decision #3 (search leg in or out) as IN.** A filter-only fix would move step C
+from 0 to 68 but leave step B wrong, and would create a new inconsistency in which the checkbox finds
+the CSF certificates while typing the same words into the search box does not. The ≈ 3-3.5 hr
+filter-only variant is withdrawn. Detail: §6a of
+`docs/tracking/DEF-413-subcategory-filter-as-is-to-be.md`.

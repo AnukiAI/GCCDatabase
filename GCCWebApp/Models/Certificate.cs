@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GCCWebApp.Models
@@ -62,14 +62,38 @@ namespace GCCWebApp.Models
         [MaxLength(100)]
         public string? Partner { get; set; } = "None"; // Partner program: Amazon, Novi, None
 
+        // Optional: test results/scores for partner requirements (e.g. Amazon threshold verification).
+        //
+        // CR-045 (client, 2026-09-04): this is a TRUE FREE-TEXT FIELD. Whatever an analyst types is
+        // what publishes — to the screen, the CSV exports, the tile APIs and the Amazon partner
+        // feed — with no interpretation. "Pass", "Silver", ">50%", "23%" and "0.23" all survive
+        // verbatim. Client's words: *"it should just be an open text field and whatever is inputted
+        // is the value we want."*
+        //
+        // DO NOT REINTRODUCE A DISPLAY FORMATTER. Extensions/DisplayFormatters.cs used to rewrite
+        // this field on the way out (numeric <= 1 → x100 + "%", numeric > 1 → append "%"), which
+        // silently turned a non-percentage into one. It was deleted by CR-045, not disabled — if
+        // formatting reappears at one call site and not the others, the field means different
+        // things on different surfaces, which is how DEF-383 happened.
+        //
+        // The cost of that decision, accepted knowingly: a mistyped `0.23` now publishes as "0.23"
+        // rather than being quietly corrected to "23%". The write path was always verbatim (the CSV
+        // importer and Create/Edit store the value as typed); only publication was not.
+        //
+        // Loading data from a client workbook? Those cells carry the Excel number format `0%`, so
+        // the cell DISPLAYS 23% while HOLDING 0.23. Read the displayed value — nothing downstream
+        // corrects it any more. See CR-042 (the 803-row normalisation this depends on).
         [MaxLength(1000)]
-        public string? CertificationResults { get; set; } // Optional: Test results/scores for partner requirements (e.g., Amazon threshold verification)
+        public string? CertificationResults { get; set; }
 
-        // DEF-181: persisted computed column that normalizes CertificationResults to a numeric percentage
-        // so sorting orders values the way users intuitively read them. Raw values are mixed format
-        // (e.g. "95%", "100", "0.69") and lex sort produced unintuitive output ("95%" > "100" > "1" > "0.69").
-        // Mirrors DisplayFormatters.FormatCertificationResults: contains % → strip and use; [0,1) → ×100;
-        // ≥1 → as-is; non-numeric → NULL (sorts as default per direction). Column is read-only on the DB.
+        // DEF-181: persisted computed column that normalizes CertificationResults to a number so
+        // sorting orders values the way users read them. Raw values are mixed format ("95%", "100",
+        // "0.69") and lex sort produced unintuitive output ("95%" > "100" > "1" > "0.69").
+        // Rule: contains % → strip and use; otherwise → the number as typed; non-numeric → NULL
+        // (sorts as default per direction). Column is read-only on the DB.
+        //
+        // CR-045 removed the ×100 branch so the sort key equals the displayed value. Keep it that
+        // way: this column and the published string must never apply different rules (DEF-383).
         [Column(TypeName = "decimal(18,4)")]
         public decimal? CertificationResultsNumeric { get; private set; }
 

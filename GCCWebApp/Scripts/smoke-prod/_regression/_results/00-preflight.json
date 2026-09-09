@@ -1,8 +1,8 @@
 {
   "phaseId": "00-preflight",
   "base": "https://gccwebapp.com",
-  "startedAt": "2026-08-31T03:31:11.693Z",
-  "finishedAt": "2026-08-31T03:31:35.333Z",
+  "startedAt": "2026-09-03T17:49:43.859Z",
+  "finishedAt": "2026-09-03T17:50:00.628Z",
   "gate": {
     "mode": "cookie",
     "detail": "302 -> /__gate?returnUrl=%2F"
@@ -10,27 +10,27 @@
   "perAccount": {
     "admin": {
       "landed": "/Certificate/CertificateTileViewInternal",
-      "loginMs": 10717
+      "loginMs": 2805
     },
     "analyst": {
       "landed": "/Certificate/CertificateTileViewInternal",
-      "loginMs": 2556
+      "loginMs": 2633
     },
     "external": {
       "landed": "/Certificate/CertificateTileViewExternal",
-      "loginMs": 2335
+      "loginMs": 2658
     },
     "external2": {
       "landed": "/Certificate/CertificateTileViewExternal",
-      "loginMs": 2347
+      "loginMs": 2551
     },
     "amazon": {
       "landed": "/Certificate/CertificateTileViewExternal",
-      "loginMs": 2487
+      "loginMs": 2603
     },
     "novi": {
       "landed": "/Certificate/CertificateTileViewExternal",
-      "loginMs": 2391
+      "loginMs": 2664
     }
   },
   "pass": 13,
@@ -48,9 +48,9 @@
       "id": "pre.login.admin",
       "name": "test.admin (Admin) authenticates",
       "status": "PASS",
-      "notes": "landed /Certificate/CertificateTileViewInternal in 10717ms",
+      "notes": "landed /Certificate/CertificateTileViewInternal in 2805ms",
       "landed": "/Certificate/CertificateTileViewInternal",
-      "ms": 10717
+      "ms": 2805
     },
     {
       "id": "pre.landing.admin",
@@ -62,9 +62,9 @@
       "id": "pre.login.analyst",
       "name": "test.analyst (Analyst) authenticates",
       "status": "PASS",
-      "notes": "landed /Certificate/CertificateTileViewInternal in 2556ms",
+      "notes": "landed /Certificate/CertificateTileViewInternal in 2633ms",
       "landed": "/Certificate/CertificateTileViewInternal",
-      "ms": 2556
+      "ms": 2633
     },
     {
       "id": "pre.landing.analyst",
@@ -76,9 +76,9 @@
       "id": "pre.login.external",
       "name": "test.external (External) authenticates",
       "status": "PASS",
-      "notes": "landed /Certificate/CertificateTileViewExternal in 2335ms",
+      "notes": "landed /Certificate/CertificateTileViewExternal in 2658ms",
       "landed": "/Certificate/CertificateTileViewExternal",
-      "ms": 2335
+      "ms": 2658
     },
     {
       "id": "pre.landing.external",
@@ -90,9 +90,9 @@
       "id": "pre.login.external2",
       "name": "test.external2 (External) authenticates",
       "status": "PASS",
-      "notes": "landed /Certificate/CertificateTileViewExternal in 2347ms",
+      "notes": "landed /Certificate/CertificateTileViewExternal in 2551ms",
       "landed": "/Certificate/CertificateTileViewExternal",
-      "ms": 2347
+      "ms": 2551
     },
     {
       "id": "pre.landing.external2",
@@ -104,9 +104,9 @@
       "id": "pre.login.amazon",
       "name": "test.amazon (Partner) authenticates",
       "status": "PASS",
-      "notes": "landed /Certificate/CertificateTileViewExternal in 2487ms",
+      "notes": "landed /Certificate/CertificateTileViewExternal in 2603ms",
       "landed": "/Certificate/CertificateTileViewExternal",
-      "ms": 2487
+      "ms": 2603
     },
     {
       "id": "pre.landing.amazon",
@@ -118,9 +118,9 @@
       "id": "pre.login.novi",
       "name": "test.novi (Partner) authenticates",
       "status": "PASS",
-      "notes": "landed /Certificate/CertificateTileViewExternal in 2391ms",
+      "notes": "landed /Certificate/CertificateTileViewExternal in 2664ms",
       "landed": "/Certificate/CertificateTileViewExternal",
-      "ms": 2391
+      "ms": 2664
     },
     {
       "id": "pre.landing.novi",

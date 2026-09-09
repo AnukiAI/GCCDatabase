@@ -13,7 +13,9 @@ Two independent questions, both of which have been answered wrongly before:
              in-zip bytes, with a control marker that MUST be present and a nonsense marker that
              MUST be absent, so a silently-broken check cannot read as a pass.
 
-Usage:  python Scripts/deploy/verify-bundle.py <path-to-zip>
+Usage:  python Scripts/deploy/verify-bundle.py <path-to-zip> [--no-migrations=<HighWaterName>]
+        --no-migrations declares a drop that carries NO schema change. Absence of the migration
+        script is otherwise FATAL, and should stay that way.
 Exit:   0 = clean, 1 = a hygiene failure or a missing expected marker.
 """
 import re
@@ -46,7 +48,7 @@ HYGIENE = [
 REQUIRED = ["gccwebapp.dll", "web.config", "appsettings.json", "appsettings.production.json"]
 
 
-def main(path):
+def main(path, no_migrations_highwater=None):
     z = zipfile.ZipFile(path)
     names = z.namelist()
     normed = [norm(n) for n in names]
@@ -90,6 +92,7 @@ def main(path):
     tilejs = blob("wwwroot/js/certificate-tile-view.js")
     authjs = blob("wwwroot/js/auth.js")
     prodcfg = blob("appsettings.production.json")
+    authcss = blob("wwwroot/css/auth.css")
 
     print("\n=== CONTENT MARKERS (in-zip bytes) ===")
     # A .NET assembly stores these in TWO different heaps with TWO different encodings:
@@ -155,6 +158,102 @@ def main(path):
         # unattended schema migration on app start is not acceptable for this drop.
         ("AutoMigrateOnStartup is false", prodcfg, '"AutoMigrateOnStartup": false', True),
         ("AutoMigrateOnStartup is not true", prodcfg, '"AutoMigrateOnStartup": true', False),
+
+        # --- 2026-09-04 client-QC forgot-password batch (DEF-405 / 406 / 407) -----------------
+        # These are Razor VIEW changes. Views compile into GCCWebApp.dll and their static text is
+        # emitted as string literals (same mechanism DEF-384 relies on above), so both the fix and
+        # the defect are greppable in the assembly.
+        #
+        # Read the control marker FIRST: all three fixes below are asserted partly as ABSENCES, and
+        # an absence proves nothing if the view never made it into the DLL at all. This control is
+        # untouched copy from ForgotPassword.cshtml, so it is present iff the view compiled in.
+        ("control: ForgotPassword view compiled in", dll, "Enter your email to reset your password", True),
+
+        # DEF-405 - the page said 24 hours, the token really dies in 1 hour (AddHours(1)).
+        ("DEF-405 reset expiry says 1 hour", dll, "Reset links expire after 1 hour", True),
+        # Marker is the FULL sentence, deliberately. "expire after 24 hours" alone collides with
+        # SwaggerExtensions.cs:356 ("Tokens expire after 24 hours" — API JWT docs, unrelated), which
+        # made this report a false FAIL on 2026-09-04. Keep it specific to the reset-link copy.
+        ("DEF-405 old 24-hour copy is gone", dll, "Reset links expire after 24 hours", False),
+
+        # DEF-406 - three auth views each redeclared --auth-left-gradient, shadowing auth.css and
+        # rendering a darker green than sign-in. The fix DELETES those declarations, so assert the
+        # declaration is gone from the DLL and the single surviving light one ships in auth.css.
+        # NB: assert the VARIABLE DECLARATION, not the bare gradient value - the same dark gradient
+        # legitimately remains on `.auth-icon` (auth.css) and in WelcomeRedirect.cshtml, so a bare
+        # value check would fail on code that is deliberately unchanged.
+        ("DEF-406 no view redeclares the gradient", dll,
+         "--auth-left-gradient: linear-gradient(135deg, #4a7c23", False),
+        ("DEF-406 light gradient ships in auth.css", authcss,
+         "--auth-left-gradient: linear-gradient(135deg, #92C83E", True),
+
+        # DEF-407 - client asked for this line to come off the Forgot Password screens.
+        ("DEF-407 tagline removed from auth views", dll,
+         "Access your sustainability certification database.", False),
+
+        # --- 2026-09-04 drop -------------------------------------------------
+        # DEF-401 - the preview-image field on Certificate/Edit. Razor views are compiled into
+        # the DLL, so the element ids are the marker; both are new, neither existed before.
+        ("DEF-401 preview-image upload zone", dll, "imageUploadZone", True),
+        ("DEF-401 preview-image container", dll, "imagePreviewContainer", True),
+
+        # DEF-402 - the country clause pulled out of the search OR into its own semi-join.
+        # A new public method, so it lands in the #Strings heap under its own name.
+        ("DEF-402 country semi-join helper", dll, "MatchingCountryCertificateIdsAsync", True),
+
+        # DEF-404 - the export/list country filter now matches CertificateCountries rather than
+        # the denormalized primary. The fix adds no new type or literal, but the lambda CAPTURES
+        # the local, so the compiler emits a display-class field of that name. That field name is
+        # the only durable trace the change left in the assembly.
+        ("DEF-404 captured country filter", dll, "countryFilter", True),
+
+        # --- 2026-09-08 drop -------------------------------------------------
+        # DEF-410 - "Trust this device for 30 days" posted the literal "on", which ASP.NET Core's
+        # bool binder cannot parse, so the trust cookie was NEVER issued. The fix is one attribute,
+        # and it is asserted BOTH ways: the fixed markup must be present AND the broken bare form
+        # must be gone. The absent-check is the regression guard - if someone drops value="true"
+        # again the feature silently dies with no error anywhere.
+        ("DEF-410 trust checkbox is bindable", dll, 'name="TrustDevice" value="true"', True),
+        ("DEF-410 bare checkbox (posts \"on\") is gone", dll, 'name="TrustDevice" />', False),
+
+        # DEF-401 second half - the Create screen's preview-image field. Uses the Create-specific
+        # help text: `imageUploadZone` cannot tell Create from Edit, since both views compile into
+        # this same assembly.
+        ("DEF-401 Create-side preview image field", dll,
+         "Leave empty and the preview is generated from the PDF above", True),
+
+        # --- 2026-09-05 drop -------------------------------------------------
+        # DEF-409 - relevance ranking for search. A new type and two new public members, so all
+        # three land in the #Strings heap under their own names.
+        ("DEF-409 ranking helper type", dll, "SearchRanking", True),
+        ("DEF-409 banded paging", dll, "PageIdsAsync", True),
+        ("DEF-409 autocomplete ranking", dll, "OrderByNumberRelevance", True),
+
+        # CR-043 - Confidential certificates reach the PI export and the partner/Amazon API.
+        # BadgeableStatuses is the new field and IsBadgeable the new predicate; both are member
+        # names, so they land in the assembly's #Strings metadata heap and survive as ASCII.
+        # PublicStatuses must STILL be present - it is not replaced, it keeps its four public
+        # surfaces. A bundle where it vanished would mean the public embargo went with it, which
+        # is the failure this pair is here to catch.
+        # (The CR-043 data backfill inside migrations/apply-migrations.sql is not asserted here:
+        # this table reads BINARY entries, and the schema script is text. It is covered by the
+        # post-deploy data-script section that already parses that file.)
+        ("CR-043 badgeable status list", dll, "BadgeableStatuses", True),
+        ("CR-043 badgeable predicate", dll, "IsBadgeable", True),
+        ("CR-043 public status list still present", dll, "PublicStatuses", True),
+
+        # CR-045 - Certification Results publishes verbatim. Asserted by ABSENCE: the formatter
+        # type and its method were deleted, not neutered, so either name reappearing in the DLL
+        # means someone reinstated the display-time conversion.
+        ("CR-045 display formatter is gone", dll, "FormatCertificationResults", False),
+        ("CR-045 formatter class is gone", dll, "DisplayFormatters", False),
+
+        # DEF-403 has NO reliable in-DLL marker and is deliberately not asserted here.
+        # Its whole change is the ORDER BY expressions inside three LINQ queries - it introduces
+        # no type, member or string literal, and every property name it touches already existed.
+        # Inventing a marker that cannot fail would be worse than admitting the gap: verify it
+        # functionally after the upload instead, with Scripts/smoke-prod/2026-09-04-export-audit.py,
+        # which compares the six stat exports and fails if any two are byte-identical.
     ]
     for label, data, marker, want in checks:
         if data is None:
@@ -276,8 +375,29 @@ def main(path):
                 # Informational only: absent simply means already applied on the target.
                 print("  [note] %s: %s" % (label, "present" if marker in sql else
                                            "absent (already applied on target)"))
+    elif no_migrations_highwater:
+        # Explicit operator assertion that this drop carries NO schema change. The absence stays a
+        # FAIL by default (that default has caught real omissions), so skipping it must be a
+        # deliberate, recorded act — not a silent pass.
+        #
+        # The flag takes the migration that is expected to be the high-water mark and ALREADY
+        # applied on the target. Asserting that type name is compiled into the DLL proves the
+        # bundle really is at the schema level being claimed. It cannot prove nothing NEWER exists,
+        # so the operator's assertion is printed loudly for the deploy log to carry.
+        print("  [note] migrations/apply-migrations.sql: absent — declared NO-SCHEMA drop")
+        if dll is not None and contains(dll, no_migrations_highwater):
+            print("  [PASS] declared schema high-water compiled in: %s" % no_migrations_highwater)
+        else:
+            print("  [FAIL] declared schema high-water NOT in DLL: %s" % no_migrations_highwater)
+            failures += 1
+        print("  [!!] OPERATOR ASSERTION: no pending migration for this drop. If any migration was")
+        print("       added after '%s', this bundle is INCOMPLETE and the" % no_migrations_highwater)
+        print("       app will 500 on the changed tables. Re-check before uploading.")
     else:
         print("  [FAIL] migrations/apply-migrations.sql not found in zip")
+        print("         If this drop genuinely carries no schema change, re-run with")
+        print("         --no-migrations=<AlreadyAppliedHighWaterMigrationName> to declare that")
+        print("         explicitly. Do NOT ignore this line.")
         failures += 1
 
     print("\nfailures: %d" % failures)
@@ -285,4 +405,17 @@ def main(path):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1]))
+    args = sys.argv[1:]
+    zip_path = None
+    highwater = None
+    for a in args:
+        if a.startswith("--no-migrations="):
+            highwater = a.split("=", 1)[1]
+        elif a == "--no-migrations":
+            sys.exit("--no-migrations requires the already-applied high-water migration name, "
+                     "e.g. --no-migrations=CR037_MultiCountryCertificates")
+        else:
+            zip_path = a
+    if not zip_path:
+        sys.exit("usage: verify-bundle.py <zip> [--no-migrations=<HighWaterMigrationName>]")
+    sys.exit(main(zip_path, highwater))

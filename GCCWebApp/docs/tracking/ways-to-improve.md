@@ -144,3 +144,264 @@ Surfaced while reviewing Novi's data-exchange guidance against the Amazon integr
    partners want active-only; validation partners need Expired/Revoked to refute a false claim. If a
    second partner needs the expanded set, prefer a per-key or per-partner behavior flag over forking
    the endpoint — and treat any change as a CR, since the Amazon contract is frozen.
+
+## 2026-09-03 — Incremental loads onto a live database are a different job from the first migration
+
+Surfaced running the September top-up (193 certificates, 1,870 ASINs) through tooling written for
+the one-time August go-live load.
+
+1. **A loader written for an empty database quietly stops being correct.** The August generator
+   asserted `AllowsDuplicateNumber` counts across the *whole table*, which balances only when the
+   table starts empty; on the 2026-09-02 top-up a correct load rolled back. Same shape here with
+   `DisplayOrder`, which restarted at 1 per certificate and would have collided on a certificate
+   that already had product identifiers. **Every "count the table" assertion in a loader should be
+   scoped to the rows that load is responsible for**, from the first version, not after it bites.
+2. **Resolve the client's data against the client's own system, not against our reading of it.**
+   Three certificates looked like unauthorised UPDATEs to live records. One fetch of the client's
+   public production API settled it in seconds: their system already showed the renewed dates, so
+   the spreadsheet was right and our database was stale. The same fetch supplied every field for two
+   certificates missing from the drop entirely. **A client-facing system of record is a cheaper
+   tie-breaker than an email round-trip, and it is evidence rather than inference.**
+3. **Ask the blocking questions in one batch, before building, not as they arise.** 79% of the ASIN
+   file pointed at two certificates that did not exist. Discovering that at load time would have cost
+   the deadline; discovering it during a 20-minute analysis pass cost nothing, and the answer arrived
+   while the loader was being written.
+4. **A design decision already settled in code but never written down gets re-deferred every time.**
+   `ProductSubcategoryId` was left NULL in August "pending a design decision" — but the decision was
+   visible in `CertificateController.GetProductSubcategories` all along (it FKs to `ProductTypes`,
+   not to the empty `ProductSubcategories` table). Two loads shipped without a field the client
+   supplies. **When a loader skips a field "pending a decision", check whether the running
+   application has already made it.**
+5. **A case-insensitive database will silently reuse a near-match, and that is usually right.** Two
+   product names differed from the sheet in capitalisation only; the loader matched the existing
+   records rather than creating twins the application itself cannot distinguish. The verifier should
+   report that as information, not fail on it — a check that fails on correct behaviour trains people
+   to ignore it.
+6. **Measure the endpoint the user actually uses.** The reported 10-12 second search measured as
+   under a second on the public tile endpoint and 8-10 seconds on the internal one — same feature,
+   different controller, 1,100 rows versus 5,924. **A performance measurement is worthless without
+   naming the role and the route it was taken on.**
+
+## 2026-09-03 (later) — verification that fails on correct work is worse than no verification
+
+Both of the day's false alarms were in the CHECKS, not in the work being checked.
+
+1. **A 404 from the wrong route key is indistinguishable from "the file is missing."** The PDF
+   round-trip check reported **0 of 12 documents served** against 96 uploads that were all perfect.
+   `ViewCertificateFile`/`ViewCertificateImage` take an `int id`, not a certificate number — the
+   exception to this project's number-keyed-routes rule, which is documented in CLAUDE.md for the
+   *edit* routes and not for these. **Any check whose failure mode is a 404 should assert a
+   known-good control passes** before believing a whole batch failed.
+2. **A dictionary keyed by a non-unique key silently deletes rows from your report.** The country
+   audit printed "5,749 certificates" for a 5,924-row table, because both its lookups were keyed by
+   certificate NUMBER and CR-038 lets several records share one. It read like a load had just
+   dropped 175 rows. **Print row counts and distinct-key counts as separate figures whenever a
+   key is not unique** — and CR-038 means no certificate-number key in this codebase ever is.
+3. **A "known follow-up" left unrun becomes an inconsistency the moment new data arrives.** The
+   compound-country split was deliberately deferred on 2026-09-02 with good reason. One load later,
+   10 new certificates use the split shape and 15 old ones do not, so the database now holds two
+   shapes for the same concept — a worse state than either choice. **When deferring a data fix, note
+   what will make the deferral more expensive, not just why it is safe today.**
+4. **Prefer the application's own API to hand-placing files and hand-writing SQL.** Attaching 96
+   PDFs through `POST /api/certificates/{number}/upload-pdf` picked up four behaviours for free that
+   the August hand-placement reimplemented — path resolution (DEF-286), naming, preview rendering
+   (DEF-262) and setting both columns atomically — and needed no server access at all. Check for an
+   existing endpoint before writing a migration path around one.
+
+## 2026-09-04 — "are we sure that's the best solution?" was worth more than the whole diagnosis
+
+The client-visible search fix was found only because Shawn refused the first answer. Four things
+went wrong before that, and they are all the same kind of wrong.
+
+1. **A plausible mechanism is not a measured one.** "Leading-wildcard LIKE is non-sargable" is
+   true, expert-sounding, and accounted for **195 ms of an 8,000 ms** request. It was never tested
+   against the database — it was reasoned from the code. **5,924 rows is small; if a number seems
+   too large for the data volume, the explanation is probably not the one you can see.**
+2. **Verify against the artifact you actually measured.** The endpoint timed was
+   `/api/certificate-tiles-internal`. The predicate read — and confidently ruled out — was in
+   `CertificateService.cs`, which that endpoint does not call. The controller's own predicate
+   carried the CR-037 clause that turned out to be the entire cause. A "ruled out" written into the
+   defect register from the wrong file is worse than no entry, because the next person believes it.
+3. **A fix that costs user-visible behaviour deserves the most scepticism, not the least.**
+   Prefix-matching certificate numbers would have been shipped, would have made `0636` stop finding
+   `26-0636`, and would have saved almost nothing. It reached a client letter before it was caught.
+4. **A measurement harness can be the bug.** The first test of the real fix showed no improvement —
+   because it resolved ids into a `DECLARE @ids TABLE`, and a table variable estimates 1 row and
+   wrecks the plan. With a literal `IN` list, as the code actually emits, it was 194 ms.
+   **When a fix "does not work", check the test before abandoning the fix.**
+
+And one that is not about being wrong: **the same defect keeps coming back under a new feature.**
+DEF-366 pulled the tag match out of the search OR; CR-037 put the country match straight back in,
+in the same shape, three months later. The fix existed, was documented, and was in the very file the
+new code called. **When a class of bug gets its own helper, the helper's doc comment should say
+"any new collection match belongs here" — and a code review of a feature that adds a searchable
+collection should ask whether it used it.**
+
+## 2026-09-04 — a warning in a code comment is evidence of a decision, not of current behaviour
+
+The session's third stale claim. All three reached a client-facing document.
+
+1. **A doc comment describes the world when it was written.** The compound-country split script
+   warned that after running it the exports would show only the primary country. True on 2026-09-01.
+   `BuildCountryList` landed afterwards and made it false — but the comment stayed, and I carried it
+   into a defect note, the shipped log and a client letter without once downloading the export.
+   **Before repeating a limitation from a comment, spend the ninety seconds to observe it.**
+2. **The deployed artifact is the only authority on deployed behaviour.** Reading the repository
+   could have shown the fix existed but never that it was live. One HTTP request settled both.
+3. **Never invent an input and report its rejection as a defect.** The export audit's first run
+   flagged four endpoints returning HTTP 400. The `type` parameter is a closed switch; I had made
+   the values up. Transcribe enumerated inputs from the code, then a rejection means something.
+4. **"Same size" is a lead worth pulling.** Six stat exports came back within 20 bytes of each other.
+   They were meant to differ, and three sorted by the wrong dimension — two produced byte-identical
+   files under different titles. A row-count check would have passed all six; comparing the files to
+   each other is what found it.
+5. **Widening a filter needs proof, not reasoning.** Removing three null-guards looked obviously safe
+   because the FKs are NOT NULL. Confirming that with a query — 0 rows violate them — cost one
+   command and turned "obviously" into "measured".
+
+---
+
+## 2026-09-04 — Shared design tokens keep getting shadowed by page-local `:root` overrides
+
+DEF-406 was not a colour decision gone wrong; it was `--auth-left-gradient` being defined once
+correctly in `wwwroot/css/auth.css` and then re-declared inline in three separate views. The shared
+token was doing its job — three pages were opted out of it, silently, and nobody could see the drift
+without opening all four files side by side.
+
+**The pattern to watch:** a `:root { --token: ... }` block inside a view's `<style>` element. It
+looks like a "page-specific override" (the comment in each file literally said so) but it overrides
+the *global* token for that page, so the page stops tracking the design system permanently.
+
+**Suggested check, cheap to run before any UI batch:**
+
+```
+grep -rn ":root" Views/ | grep -v "^Views/Shared/"
+```
+
+A page-scoped class (`.login-left { background: ... }`) would have been visible as an override;
+re-declaring the token was not.
+
+**Refinement after doing it:** that grep over-reports. `SignUp.cshtml` keeps a legitimate `:root`
+block for *sizing* tokens (container width, logo height, header font size) — page-specific sizing is
+a reasonable use. The smell is specifically a view redefining a **shared theme/colour** token. Grep
+the token names, not `:root`:
+
+```
+grep -rn "auth-left-gradient\|--gcc-" Views/
+```
+
+**And a sharper lesson fell out of it — one about me, not the CSS.** Chasing the last override
+surfaced that `Views/Account/SignUp.cshtml` has no action, no route and no inbound link, so
+`/Account/SignUp` 404s. I wrote it up as orphan markup and proposed deleting it. **It is not dead —
+the client asked for that screen to be built ahead of a future self-registration feature, and it is
+deliberately parked and deliberately unreachable.**
+
+The general point: *unreferenced is not the same as unwanted.* "No caller" is evidence about the
+code; it says nothing about intent. Deliberately-parked work is invisible in the code by
+construction — it looks exactly like the thing you are trying to delete. A static sweep for "views
+with no corresponding action" would have flagged this file every time and been wrong every time.
+
+**What to do instead:** when something scans as dead, the cheap move is to ask the owner before
+proposing removal — and when the answer is "keep it", write the intent **into the file**, not only
+into a tracking doc. `SignUp.cshtml` now carries a `DELIBERATELY PARKED — DO NOT DELETE, DO NOT WIRE
+UP` header for exactly that reason, so the next sweep (human or agent) reads the reason at the point
+of temptation rather than re-litigating it. Intent that lives only in a register does not travel
+with the file.
+
+**Related:** DEF-406, [[feedback_one_modal_design_gcc_modal]] — same shape of problem as hand-rolled
+modals: a second copy of something that already had one source of truth.
+
+---
+
+## A checked-in file is a photograph, not a measurement (2026-09-04)
+
+Two separate false findings in one session, same root cause: a file in the repo read as if it were
+the current state of the system.
+
+1. **`_regression/_artifacts/cert-export-admin.csv`** — I reported 9 certificates still holding
+   compound country strings. The artifact was captured **2026-09-03 17:53 UTC**, before the split
+   ran. The live database has zero. What made it convincing was that the *same file* held correctly
+   split rows for other certificates, so it read as a half-finished job rather than a stale snapshot.
+2. **`_regression/_results/02-data-scoping.json`** — phase 3 graded today's export against a
+   population count from the previous day and reported four FAILs with a 193-row delta. Every delta
+   is zero when both numbers come from the same day (DEF-408).
+
+**The habit to build:** before quoting a file under `_artifacts/` or `_results/` as evidence, read
+its own timestamp — `finishedAt` in the results JSON, the file mtime for artifacts — and say the
+timestamp out loud in the finding. If it is not from the current run, re-measure before reporting.
+
+**The harness change that would enforce it (DEF-408):** a phase that consumes another phase's output
+should refuse a stale one — WARN "snapshot stale, re-run phase 2" instead of grading against it.
+Bonus trap in the same loop: a missing population is skipped with `continue`, so the check silently
+disappears rather than reporting NOT-RUN. **A check that vanishes reads as a pass.**
+
+**Related, and this is the third instance:** the same stale-source error put "exports show only the
+primary country" into a client letter — that claim came from a script doc comment written the day
+*before* the export code was fixed. Corrected in place 2026-09-04, deliberately not deleted, because
+the wrong claim was already out. See [[feedback_verify_deployed_asset_not_symptom]] and DEF-404.
+
+
+## 2026-09-08 — the .NET test suite cannot be used as a gate in its current state
+
+**Finding.** `GCCWebApp.Api.Tests` reports **89 failures out of 839** before any change is made. The
+bulk is `Integration.PartnerApiScopingTests` and `MultiPartnerApiIntegrationTests`, which return an
+empty payload for *every* partner — so they fail identically whether partner scoping works or not.
+
+**Why it matters, in cost terms.** It cost most of an hour on CR-043 alone. A red suite cannot answer
+"did I break anything?", so the only honest method is to capture a pre-change baseline, diff the
+failing *set*, and reason about each difference by hand. That is a per-change tax on every future
+piece of work, and it grows: the more failures accumulate, the less anyone trusts the number, and the
+easier it becomes for a real regression to hide inside the noise. A suite that always fails is worse
+than no suite, because it costs the same to run and tells you nothing.
+
+**What it is not.** Not a product defect. These are fixtures and harness setup, not application code —
+the same 89 fail on a clean checkout.
+
+**Suggested approach, cheapest first.**
+
+1. **Triage in one pass, don't fix in one pass.** Split the 89 into (a) fixtures that never got
+   updated when the code moved — the `DEF-404` country-filter fixture found today is exactly this
+   shape, one line to fix; (b) integration tests whose `WebApplicationFactory` or seed no longer
+   stands up; (c) anything that is a real bug hiding in the pile. Only (c) is urgent.
+2. **Fix the harness before the assertions.** If the partner integration factory returns empty for
+   everyone, one root cause is probably worth ~24 of the failures.
+3. **Then make green the standard** and add the suite to the pre-deploy checklist as a gate. Until it
+   is green it cannot be one, which is why it is currently absent from Gates 0–10.
+
+**Rough cost.** Half a day to triage and categorise all 89 with a one-line cause each; the fix effort
+is unknown until that is done, but the integration-factory cluster looks like a single root cause.
+
+**Related pattern already logged:** [[feedback_test_below_the_defect_layer]] — a green test at the
+wrong layer proves nothing. This is the mirror: a red test at any layer proves nothing either.
+
+---
+
+## Verification scripts mint partner API keys and never revoke them (2026-09-09)
+
+**What it is.** Ten Amazon partner API keys (`PartnerApiKeys` ids 8–17) are **active** on the test
+environment right now, every one of them created by a verification script that mints a key, uses it
+for a few seconds, and exits. `amazon-contract-diff` alone has left five. None of them revokes what it
+creates, so the count only ever goes up — five more were added in a single hour of work on 2026-09-09
+before the new export script was taught to clean up after itself.
+
+**Why it matters.** A partner API key is a credential that reads the whole Amazon dataset. This is a
+pre-launch environment, so the exposure today is limited — but the *habit* travels to production with
+the scripts, and there is no way to tell an abandoned key from a live integration key by looking at
+the table. Id 6 is the key published in the Amazon Developer Guide PDF and genuinely must stay active;
+ids 8–17 look exactly like it.
+
+**The fix is small.** `2026-09-09-amazon-payload-export.py` shows the shape: capture `data.id` from
+the mint response and `DELETE /api/admin/partner/apikey/{id}` as soon as the pulls finish — before the
+file-writing steps, so a later error still cannot leave a credential behind. Roughly four lines per
+script.
+
+**Suggested action.**
+
+1. Revoke ids 8–17 (Shawn's call — they are not obviously in use, but revoking is one-way).
+2. Add self-revoke to `amazon-contract-diff.js`, `def358-api-effective-date.js`,
+   `cr171-multipartner-isolation.js` and any other script that calls `/apikey`.
+3. Consider having `GenerateApiKey` accept an expiry so a forgotten key dies on its own — the
+   `ExpiresAt` column already exists and is unused by every one of these scripts.
+
+**Rough cost.** An hour for steps 1–2. Step 3 is a small CR, only worth doing if partner keys are ever
+minted by anyone other than a test script.

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using FluentAssertions;
@@ -170,6 +170,29 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 }
             };
             _context.Certificates.AddRange(certs);
+            _context.SaveChanges();
+
+            // DEF-404 follow-up (fixture, not product): country filtering no longer reads the
+            // denormalized Certificate.Country. CR-037 put the full set in CertificateCountries and
+            // DEF-404 repointed the filter at it, because filtering the primary silently dropped
+            // certificates where the chosen country is a SECONDARY one (Canada listed 115 and
+            // exported 107). This seed only ever set Certificate.Country, so the country filter
+            // matched nothing and GetCertificatesAsync_FilterByCountry_FiltersCorrectly returned 0
+            // — a stale fixture, not a regression.
+            //
+            // Mirror the primary into the join table for every seeded certificate, which is what
+            // SyncCertificateCountriesAsync does on a real save.
+            foreach (var cert in certs)
+            {
+                if (!string.IsNullOrWhiteSpace(cert.Country))
+                {
+                    _context.Set<CertificateCountry>().Add(new CertificateCountry
+                    {
+                        CertificateId = cert.Id,
+                        Country = cert.Country!
+                    });
+                }
+            }
             _context.SaveChanges();
         }
 

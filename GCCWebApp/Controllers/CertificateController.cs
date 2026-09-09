@@ -2454,10 +2454,12 @@ namespace GCCWebApp.Controllers
         /// DEF-204: shared gate for ViewCertificateFile + ViewCertificateImage.
         /// Admin / Analyst → unrestricted.
         /// Anonymous → only PublicStatuses, only non-expired, only on/after EffectiveDate (DEF-358).
-        /// External → must be in user's CompanyIds AND in PublicStatuses (non-expired). The owning
-        ///            company still sees its own not-yet-effective certs (DEF-358 scope decision).
-        /// Partner → must be in user's PartnerNames AND in PublicStatuses (non-expired), and only
-        ///           on/after EffectiveDate (DEF-358 — parity with the partner API).
+        /// External → must be in user's CompanyIds AND in BadgeableStatuses (non-expired). The owning
+        ///            company still sees its own not-yet-effective certs (DEF-358 scope decision),
+        ///            and since CR-043 its own Confidential ones too (client Q1, 2026-09-03).
+        /// Partner → must be in user's PartnerNames AND in BadgeableStatuses (non-expired), and only
+        ///           on/after EffectiveDate (DEF-358 — parity with the partner API). CR-043: a
+        ///           Confidential cert a partner can now list must also serve its PDF.
         /// All other roles → denied.
         /// </summary>
         /// <summary>
@@ -2556,12 +2558,25 @@ namespace GCCWebApp.Controllers
                 return true;
             }
 
-            var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
+            // CR-043: the status bar is ROLE-DEPENDENT, because "may a stranger see it" and
+            // "is it in force" are two different questions and Confidential answers them
+            // differently. An anonymous caller keeps PublicStatuses; the owning company and its
+            // partners get BadgeableStatuses, so a Confidential certificate they can now list
+            // through the API and the tile view also serves its PDF and preview image.
+            //
+            // This gate is the adjacent endpoint that scoping fixes keep missing
+            // (DEF-103/164/198/204/205): without it the certificate would appear in the partner's
+            // feed and 404 on its document, which reads as a broken deploy rather than a
+            // permissions rule. [[feedback_scoping_check_adjacent_endpoints]]
+            var isBadgeableRole = role == "External" || role == "Partner";
+            var isVisibleStatus = isBadgeableRole
+                ? CertificateStatusHelper.IsBadgeable(certificate.Status)
+                : CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
             var isExpired = certificate.ExpirationDate != default
                             && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday;
-            if (!isPublicStatus || isExpired)
+            if (!isVisibleStatus || isExpired)
             {
-                denyReason = $"non-public (Status={certificate.Status}, Expired={isExpired})";
+                denyReason = $"non-visible for role {role} (Status={certificate.Status}, Expired={isExpired})";
                 return false;
             }
 

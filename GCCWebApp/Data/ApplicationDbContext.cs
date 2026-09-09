@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using GCCWebApp.Models;
 using GCCWebApp.Models.Import;
@@ -106,20 +106,28 @@ namespace GCCWebApp.Data
                 entity.HasIndex(e => new { e.ExpirationDate, e.Status, e.CompanyId });
 
                 // DEF-181: persisted computed column for numeric-aware sort on CertificationResults.
-                // See Certificate.CertificationResultsNumeric for the why. Matches DisplayFormatters
-                // logic so the sort order tracks what users see. NULL when the raw value isn't parseable
-                // — non-numeric values fall out of the numeric sort dimension.
+                // See Certificate.CertificationResultsNumeric for the why. NULL when the raw value
+                // isn't parseable — non-numeric values fall out of the numeric sort dimension.
                 //
-                // DEF-383: the `<= 1` boundary MUST match DisplayFormatters.FormatCertificationResults.
-                // It was `< 1` here and there, so the 106 certificates stored as `1` sorted as 1 while
-                // meaning 100. Changing this SQL rewrites a PERSISTED computed column, so it needs a
-                // migration that drops the index, drops the column, and re-adds both.
+                // CR-045 (client, 2026-09-04): the x100 branch is GONE. CertificationResults is a
+                // true free-text field now — whatever the analyst types is what publishes — so the
+                // sort key must read the same value the user sees, or display and sort diverge and
+                // we recreate DEF-383 from the other side (a future `0.5` would show as "0.5" and
+                // sort as 50).
+                //
+                // The `%`-strip STAYS: "23%" is a formatted 23 and must sort as 23. That is
+                // reading the value, not reinterpreting it. Every populated row on TEST and DEV is
+                // an explicit XX% string after CR-042, so removing the x100 branch changes no
+                // existing sort position — verified before the change, which is what made it safe.
+                //
+                // MUST move in the same deploy as the call-site change. Rewriting a PERSISTED
+                // computed column needs a migration that drops the index, drops the column, and
+                // re-adds both — EF's AlterColumn generates exactly that.
                 entity.Property(e => e.CertificationResultsNumeric)
                     .HasComputedColumnSql(@"
                         CASE
                           WHEN [CertificationResults] IS NULL OR [CertificationResults] = N'' THEN NULL
                           WHEN [CertificationResults] LIKE N'%[%]%' THEN TRY_CAST(REPLACE([CertificationResults], N'%', N'') AS DECIMAL(18,4))
-                          WHEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) <= 1 THEN TRY_CAST([CertificationResults] AS DECIMAL(18,4)) * 100
                           ELSE TRY_CAST([CertificationResults] AS DECIMAL(18,4))
                         END", stored: true);
                 entity.HasIndex(e => e.CertificationResultsNumeric);

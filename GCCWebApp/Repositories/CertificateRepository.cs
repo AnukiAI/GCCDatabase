@@ -198,6 +198,8 @@ namespace GCCWebApp.Repositories
             // DEF-366: tag ids resolved first so the tag match never becomes a per-row correlated
             // subquery inside the OR. See Search/TagSearchMatch.cs for the measurements.
             var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_dbSet, nq);
+            // DEF-402: same treatment for the CR-037 country clause, for the same reason.
+            var countryIds = await TagSearchMatch.MatchingCountryCertificateIdsAsync(_dbSet, nq);
 
             // Include navigation properties first to prevent N+1 queries
             return await _dbSet
@@ -208,9 +210,12 @@ namespace GCCWebApp.Repositories
                            c.Company.NormalizedName!.Contains(nq) ||
                            c.Product.NormalizedName!.Contains(nq) ||
                            (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                           (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
-                           // CR-037: secondary countries are searchable too, not just the primary.
-                           c.Countries.Any(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq)), tagIds)
+                           (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)),
+                           TagSearchMatch.Union(tagIds, countryIds))
+                // DEF-409: this method had NO ordering whatsoever, so callers got whatever order
+                // SQL Server happened to return. Prefix matches on the number first, then a stable
+                // Number/Id order — which also makes the result deterministic for the first time.
+                .OrderByNumberRelevance(nq)
                 .ToListAsync();
         }
 
@@ -220,11 +225,15 @@ namespace GCCWebApp.Repositories
             var query = _dbSet.AsQueryable();
 
             // Apply filters
+            // DEF-409: null unless there is a usable search term, so the unsearched order is
+            // unchanged.
+            string? rankQuery = null;
             if (!string.IsNullOrEmpty(searchTerm))
             {
                 // CR-187: normalized search against persisted computed columns.
                 // DEF-366: tag ids resolved separately — see Search/TagSearchMatch.cs.
                 var nq = SearchNormalizer.Normalize(searchTerm);
+                rankQuery = string.IsNullOrEmpty(nq) ? null : nq;
                 var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_dbSet, nq);
                 query = query.WhereMatchesSearch(c => c.NormalizedNumber!.Contains(nq) ||
                                         c.Company.NormalizedName!.Contains(nq) ||
@@ -248,11 +257,18 @@ namespace GCCWebApp.Repositories
 
             var totalCount = await query.CountAsync();
 
+            // DEF-409: prefix matches on the number first; CreatedAt still orders within each band.
+            // Here the band CAN simply be prepended, because this method builds its own ordering
+            // inline rather than going through a multi-branch sort switch.
             var certificates = await query
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
-                .OrderByDescending(c => c.CreatedAt)
+                .OrderBy(c => rankQuery == null
+                    ? 0
+                    : (c.NormalizedNumber != null && c.NormalizedNumber.StartsWith(rankQuery) ? 0 : 1))
+                .ThenByDescending(c => c.CreatedAt)
+                .ThenBy(c => c.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -327,6 +343,9 @@ namespace GCCWebApp.Repositories
         {
             var query = _dbSet.AsQueryable();
 
+            // DEF-409: null unless there is a usable search term, so unsearched order is unchanged.
+            string? rankQuery = null;
+
             // CR-187: normalized, user-friendly search. Both the search input and the searchable
             // fields are reduced to a canonical form (lowercase; trademark/punctuation/whitespace
             // stripped) so "Product A" matches "Product™ A", "product-a", "Product:  A", etc. The
@@ -343,16 +362,19 @@ namespace GCCWebApp.Repositories
                     // had to re-run it per row of the joined result — 3,200 ms vs 212 ms without it
                     // on the 5,702-row test database, paid twice per request (count + page). It is
                     // now resolved up front as its own semi-join. See Search/TagSearchMatch.cs.
+                    // DEF-409: remembered so the paging step can rank prefix matches first.
+                    rankQuery = nq;
                     var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_dbSet, nq);
+                    // DEF-402: country clause resolved as a semi-join, not a correlated EXISTS.
+                    var countryIds = await TagSearchMatch.MatchingCountryCertificateIdsAsync(_dbSet, nq);
                     query = query.WhereMatchesSearch(c =>
                         c.NormalizedNumber!.Contains(nq) ||
                         c.Company.NormalizedName!.Contains(nq) ||
                         c.Product.NormalizedName!.Contains(nq) ||
                         c.CertificationType.NormalizedName!.Contains(nq) ||
                         (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                        (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
-                        // CR-037: secondary countries are searchable too, not just the primary.
-                        c.Countries.Any(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq)), tagIds);
+                        (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)),
+                        TagSearchMatch.Union(tagIds, countryIds));
                 }
             }
 
@@ -494,21 +516,27 @@ namespace GCCWebApp.Repositories
             // QC #157: text columns sort empty/blank values LAST regardless of direction, via the
             // shared OrderByTextEmptiesLast helper, so the public tile view matches the internal +
             // external views. Number / dates / Status(enum) have no blank state — kept as-is.
-            IOrderedQueryable<Certificate> ordered = filter.SortBy?.ToLower() switch
+            // DEF-409: the sort switch became a local function of `q` so it can be applied
+            // WITHIN each relevance band. Only the receiver was renamed — all branches and
+            // their EmptiesLast helpers are otherwise untouched.
+            IQueryable<Certificate> ApplyFilterSort(IQueryable<Certificate> q)
             {
-                "number" => filter.SortDescending ? query.OrderByDescending(c => c.Number) : query.OrderBy(c => c.Number),
-                "company" => query.OrderByTextEmptiesLast(c => c.Company.Name, filter.SortDescending),
-                "product" => query.OrderByTextEmptiesLast(c => c.Product.Name, filter.SortDescending),
-                "certtype" => query.OrderByTextEmptiesLast(c => c.CertificationType.Name, filter.SortDescending),
-                "location" => query.OrderByTextEmptiesLast(c => c.Location, filter.SortDescending),
-                "country" => query.OrderByTextEmptiesLast(c => c.Country, filter.SortDescending),
-                "producttype" => query.OrderByTextEmptiesLast(c => c.Product.ProductType != null ? c.Product.ProductType.Name : "", filter.SortDescending),
-                "effectivedate" => filter.SortDescending ? query.OrderByDescending(c => c.EffectiveDate) : query.OrderBy(c => c.EffectiveDate),
-                "expirationdate" => filter.SortDescending ? query.OrderByDescending(c => c.ExpirationDate) : query.OrderBy(c => c.ExpirationDate),
-                "status" => filter.SortDescending ? query.OrderByDescending(c => c.Status) : query.OrderBy(c => c.Status),
-                _ => filter.SortDescending ? query.OrderByDescending(c => c.Number) : query.OrderBy(c => c.Number)
+                IOrderedQueryable<Certificate> ordered = filter.SortBy?.ToLower() switch
+            {
+                "number" => filter.SortDescending ? q.OrderByDescending(c => c.Number) : q.OrderBy(c => c.Number),
+                "company" => q.OrderByTextEmptiesLast(c => c.Company.Name, filter.SortDescending),
+                "product" => q.OrderByTextEmptiesLast(c => c.Product.Name, filter.SortDescending),
+                "certtype" => q.OrderByTextEmptiesLast(c => c.CertificationType.Name, filter.SortDescending),
+                "location" => q.OrderByTextEmptiesLast(c => c.Location, filter.SortDescending),
+                "country" => q.OrderByTextEmptiesLast(c => c.Country, filter.SortDescending),
+                "producttype" => q.OrderByTextEmptiesLast(c => c.Product.ProductType != null ? c.Product.ProductType.Name : "", filter.SortDescending),
+                "effectivedate" => filter.SortDescending ? q.OrderByDescending(c => c.EffectiveDate) : q.OrderBy(c => c.EffectiveDate),
+                "expirationdate" => filter.SortDescending ? q.OrderByDescending(c => c.ExpirationDate) : q.OrderBy(c => c.ExpirationDate),
+                "status" => filter.SortDescending ? q.OrderByDescending(c => c.Status) : q.OrderBy(c => c.Status),
+                _ => filter.SortDescending ? q.OrderByDescending(c => c.Number) : q.OrderBy(c => c.Number)
             };
-            query = ordered.ThenBy(c => c.Id);
+                return ordered.ThenBy(c => c.Id);
+            }
 
             // DEF-234: AsSplitQuery() prevents cartesian explosion across the two collection
             // Includes (Tags, Partners). Without it, EF emits a single query that joins every
@@ -522,7 +550,17 @@ namespace GCCWebApp.Repositories
             // non-unique (Number, Company.Name, etc.), so without a stable secondary sort the
             // page boundary is non-deterministic across SQL Server batches — same cert can
             // appear on page 1 and page 2, or skip entirely. Also per `feedback_ef_includes_with_projection`.
+            //
+            // DEF-409: prefix matches on the certificate NUMBER come first, the caller's sort still
+            // governing within each band. Partitioned rather than prepending a key, because
+            // ApplyFilterSort returns an already-ordered query through the EmptiesLast helpers.
+            var pagedIds = await SearchRanking.PageIdsAsync(
+                query, ApplyFilterSort, rankQuery,
+                filter.Skip ?? ((filter.Page - 1) * filter.PageSize),
+                filter.PageSize);
+
             var certificates = await query
+                .Where(c => pagedIds.Contains(c.Id))
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                     .ThenInclude(p => p.Category)
@@ -539,9 +577,13 @@ namespace GCCWebApp.Repositories
                 // DEF-381: honour an exact row offset when the caller supplied one. Offset-based
                 // callers cannot round-trip through a page number unless the offset happens to be a
                 // multiple of the page size — see CertificateSearchFilter.Skip.
-                .Skip(filter.Skip ?? ((filter.Page - 1) * filter.PageSize))
-                .Take(filter.PageSize)
                 .ToListAsync();
+
+            // DEF-409: filtering by id returns rows in arbitrary order — restore the ranked page.
+            var idOrder = pagedIds.Select((id, i) => new { id, i }).ToDictionary(x => x.id, x => x.i);
+            certificates = certificates
+                .OrderBy(c => idOrder.TryGetValue(c.Id, out var i) ? i : int.MaxValue)
+                .ToList();
 
             return (certificates, totalCount);
         }

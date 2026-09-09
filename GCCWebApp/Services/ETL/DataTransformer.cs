@@ -383,7 +383,7 @@ namespace GCCWebApp.Services.ETL
                         if (c is null || !c.TryGetValue("Status", out var status) || status is null)
                             return false;
                         var statusString = status!.ToString();
-                        return CertificateStatusHelper.PublicStatuses.Contains(statusString ?? "");
+                        return CertificateStatusHelper.DashboardStatuses.Contains(statusString ?? "");
                     }),
                     ExpiredCertificates = group.Count(c =>
                     {

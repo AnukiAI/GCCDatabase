@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
@@ -24,7 +24,8 @@ namespace GCCWebApp.Models
         public string ProductIdValue { get; set; } = string.Empty;
 
         // Status is auto-derived from parent certificate status (CR-015).
-        // Not user-editable: "Active" iff parent cert is in PublicStatuses, else "Inactive".
+        // Not user-editable: "Active" iff parent cert is in BadgeableStatuses, else "Inactive".
+        // CR-043 widened that set to include Confidential — see DeriveStatusFromCert.
         [MaxLength(20)]
         public string Status { get; set; } = "Inactive"; // Auto-set on save; default Inactive until cascade runs.
 
@@ -75,12 +76,23 @@ namespace GCCWebApp.Models
 
         /// <summary>
         /// Derives the product-ID status from its parent certificate's status (CR-015).
-        /// "Active" only when the cert is in PublicStatuses (Client Approved - Paid or Republished);
-        /// "Inactive" for every other state (Draft, Hold, Expired, Confidential, Not Paid, Republished->Expired, etc.).
+        /// "Active" when the cert is in BadgeableStatuses (Client Approved - Paid, Client Approved -
+        /// Confidential, Republished); "Inactive" for every other state (Draft, Hold, Expired, Not
+        /// Paid, etc.).
+        ///
+        /// CR-043 moved this off PublicStatuses. It is not cosmetic: the identifiers on a
+        /// Confidential certificate are now emitted by the "Active Product Identifiers" export and
+        /// sent to Amazon, so leaving their own Status reading "Inactive" would put a visible
+        /// contradiction in front of the client on the Product Identifiers grid — the same row,
+        /// labelled inactive, sitting inside the active file.
+        ///
+        /// Existing rows were written under the old rule and do NOT recompute themselves — this
+        /// runs on save. Backfill with Scripts/data-ops/2026-09-08-CR043-productid-status-backfill.sql
+        /// in the same release.
         /// </summary>
         public static string DeriveStatusFromCert(string? certStatus)
         {
-            return CertificateStatusHelper.PublicStatuses.Contains(certStatus ?? string.Empty)
+            return CertificateStatusHelper.BadgeableStatuses.Contains(certStatus ?? string.Empty)
                 ? "Active"
                 : "Inactive";
         }

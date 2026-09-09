@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
 using System.Text.Json;
@@ -109,7 +109,10 @@ namespace GCCWebApp.Services.ETL
                 // Add metadata
                 extractedData.Metadata.Add("ExtractionType", lastExtractTime.HasValue ? "Incremental" : "Full");
                 extractedData.Metadata.Add("TotalCertificates", certificateData.Count());
-                extractedData.Metadata.Add("ActiveCertificates", certificates.Count(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status)));
+                // CR-043 Q2: every "ActiveCertificates" tally in the ETL is an INTERNAL count, so it
+                // uses DashboardStatuses (Confidential included). None of these is a visibility
+                // filter — they are all Count() over rows already selected.
+                extractedData.Metadata.Add("ActiveCertificates", certificates.Count(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status)));
                 extractedData.Metadata.Add("ExpiredCertificates", certificates.Count(c => c.ExpirationDate < DateTime.UtcNow));
 
                 _logger.LogInformation("Certificate extraction completed. Extracted {Count} records", certificateData.Count());
@@ -159,13 +162,13 @@ namespace GCCWebApp.Services.ETL
                     c.UpdatedAt,
                     // Aggregated data
                     TotalCertificates = c.Certificates.Count,
-                    ActiveCertificates = c.Certificates.Count(cert => CertificateStatusHelper.PublicStatuses.Contains(cert.Status)),
+                    ActiveCertificates = c.Certificates.Count(cert => CertificateStatusHelper.DashboardStatuses.Contains(cert.Status)),
                     TotalProducts = c.Products.Count,
                     TotalUsers = c.Users.Count,
                     // Latest certificate info
                     LatestCertificateDate = c.Certificates.Max(cert => (DateTime?)cert.CreatedAt),
                     ExpiringCertificatesCount = c.Certificates.Count(cert => 
-                        cert.ExpirationDate <= DateTime.UtcNow.AddDays(30) && CertificateStatusHelper.PublicStatuses.Contains(cert.Status))
+                        cert.ExpirationDate <= DateTime.UtcNow.AddDays(30) && CertificateStatusHelper.DashboardStatuses.Contains(cert.Status))
                 }).Cast<object>().ToList();
 
                 extractedData.Data.Add("Companies", companyData);
@@ -236,7 +239,7 @@ namespace GCCWebApp.Services.ETL
                     Tags = p.Tags.Select(t => t.Name).ToList(),
                     // Certificate statistics
                     TotalCertificates = p.Certificates.Count,
-                    ActiveCertificates = p.Certificates.Count(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status)),
+                    ActiveCertificates = p.Certificates.Count(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status)),
                     ExpiredCertificates = p.Certificates.Count(c => c.ExpirationDate < DateTime.UtcNow),
                     LatestCertificateDate = p.Certificates.Max(c => (DateTime?)c.CreatedAt)
                 }).Cast<object>().ToList();

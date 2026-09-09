@@ -1,28 +1,28 @@
 {
   "phaseId": "05-performance",
   "base": "https://gccwebapp.com",
-  "startedAt": "2026-08-31T03:35:24.256Z",
-  "finishedAt": "2026-08-31T03:36:17.566Z",
+  "startedAt": "2026-09-02T21:00:27.023Z",
+  "finishedAt": "2026-09-02T21:01:48.758Z",
   "repeats": 5,
   "detail": [
     {
       "kind": "page",
       "route": "/",
       "role": "anon",
-      "cold": 120,
-      "median": 100,
+      "cold": 200,
+      "median": 122,
       "samples": [
-        120,
-        99,
-        113,
-        99,
-        100
+        200,
+        128,
+        116,
+        111,
+        137
       ],
       "nav": {
-        "ttfb": 70,
-        "domContentLoaded": 97,
-        "load": 110,
-        "transfer": 4948
+        "ttfb": 96,
+        "domContentLoaded": 134,
+        "load": 160,
+        "transfer": 4950
       },
       "budget": 2000
     },
@@ -30,20 +30,20 @@
       "kind": "page",
       "route": "/Certificate/CertificateTileView",
       "role": "anon",
-      "cold": 104,
-      "median": 113,
+      "cold": 106,
+      "median": 139,
       "samples": [
-        104,
-        114,
-        107,
-        112,
-        141
+        106,
+        119,
+        161,
+        142,
+        135
       ],
       "nav": {
-        "ttfb": 74,
-        "domContentLoaded": 138,
-        "load": 152,
-        "transfer": 4947
+        "ttfb": 68,
+        "domContentLoaded": 130,
+        "load": 0,
+        "transfer": 4945
       },
       "budget": 3000
     },
@@ -51,20 +51,20 @@
       "kind": "page",
       "route": "/Certificate/CertificateTileViewExternal",
       "role": "external",
-      "cold": 116,
-      "median": 123,
+      "cold": 133,
+      "median": 125,
       "samples": [
-        116,
-        109,
-        119,
-        129,
-        127
+        133,
+        126,
+        113,
+        124,
+        134
       ],
       "nav": {
-        "ttfb": 74,
-        "domContentLoaded": 125,
-        "load": 0,
-        "transfer": 7513
+        "ttfb": 84,
+        "domContentLoaded": 131,
+        "load": 158,
+        "transfer": 7515
       },
       "budget": 3000
     },
@@ -72,20 +72,20 @@
       "kind": "page",
       "route": "/Certificate/CertificateTileViewExternal",
       "role": "amazon",
-      "cold": 132,
-      "median": 132,
+      "cold": 134,
+      "median": 144,
       "samples": [
-        132,
-        136,
-        127,
-        127,
-        149
+        134,
+        141,
+        147,
+        154,
+        133
       ],
       "nav": {
-        "ttfb": 90,
-        "domContentLoaded": 147,
-        "load": 0,
-        "transfer": 7491
+        "ttfb": 77,
+        "domContentLoaded": 129,
+        "load": 158,
+        "transfer": 7492
       },
       "budget": 3000
     },
@@ -93,20 +93,20 @@
       "kind": "page",
       "route": "/Certificate/CertificateTileViewInternal",
       "role": "analyst",
-      "cold": 125,
-      "median": 120,
+      "cold": 159,
+      "median": 139,
       "samples": [
-        125,
-        105,
-        127,
-        119,
-        120
+        159,
+        144,
+        133,
+        124,
+        151
       ],
       "nav": {
-        "ttfb": 75,
-        "domContentLoaded": 118,
-        "load": 140,
-        "transfer": 13693
+        "ttfb": 72,
+        "domContentLoaded": 148,
+        "load": 187,
+        "transfer": 13695
       },
       "budget": 4000
     },
@@ -114,20 +114,20 @@
       "kind": "page",
       "route": "/Certificate/Create",
       "role": "analyst",
-      "cold": 869,
-      "median": 256,
+      "cold": 1065,
+      "median": 364,
       "samples": [
-        869,
-        233,
-        272,
-        332,
-        240
+        1065,
+        381,
+        354,
+        268,
+        373
       ],
       "nav": {
-        "ttfb": 199,
-        "domContentLoaded": 239,
+        "ttfb": 287,
+        "domContentLoaded": 370,
         "load": 0,
-        "transfer": 24759
+        "transfer": 25056
       },
       "budget": 5000
     },
@@ -135,20 +135,20 @@
       "kind": "page",
       "route": "/Dashboard/Index",
       "role": "analyst",
-      "cold": 596,
-      "median": 336,
+      "cold": 624,
+      "median": 357,
       "samples": [
-        596,
-        334,
-        355,
-        337,
-        309
+        624,
+        372,
+        356,
+        339,
+        357
       ],
       "nav": {
-        "ttfb": 271,
-        "domContentLoaded": 307,
-        "load": 0,
-        "transfer": 5725
+        "ttfb": 290,
+        "domContentLoaded": 345,
+        "load": 381,
+        "transfer": 5744
       },
       "budget": 6000
     },
@@ -156,20 +156,20 @@
       "kind": "page",
       "route": "/Company/Management",
       "role": "analyst",
-      "cold": 180,
-      "median": 107,
+      "cold": 214,
+      "median": 217,
       "samples": [
-        180,
-        120,
-        108,
-        105,
-        97
+        214,
+        167,
+        267,
+        145,
+        3925
       ],
       "nav": {
-        "ttfb": 68,
-        "domContentLoaded": 96,
-        "load": 111,
-        "transfer": 5694
+        "ttfb": 3882,
+        "domContentLoaded": 3922,
+        "load": 0,
+        "transfer": 5692
       },
       "budget": 4000
     },
@@ -177,20 +177,20 @@
       "kind": "page",
       "route": "/Product/Management",
       "role": "analyst",
-      "cold": 220,
-      "median": 129,
+      "cold": 273,
+      "median": 132,
       "samples": [
-        220,
-        129,
-        138,
-        129,
-        105
+        273,
+        125,
+        173,
+        133,
+        130
       ],
       "nav": {
-        "ttfb": 69,
-        "domContentLoaded": 102,
-        "load": 121,
-        "transfer": 19759
+        "ttfb": 86,
+        "domContentLoaded": 128,
+        "load": 145,
+        "transfer": 19762
       },
       "budget": 5000
     },
@@ -198,20 +198,20 @@
       "kind": "page",
       "route": "/Admin/UserManagement",
       "role": "admin",
-      "cold": 292,
-      "median": 131,
+      "cold": 362,
+      "median": 155,
       "samples": [
-        292,
+        362,
+        172,
         120,
-        121,
-        206,
-        140
+        180,
+        138
       ],
       "nav": {
         "ttfb": 84,
-        "domContentLoaded": 138,
-        "load": 0,
-        "transfer": 9353
+        "domContentLoaded": 135,
+        "load": 153,
+        "transfer": 9359
       },
       "budget": 4000
     },
@@ -219,20 +219,20 @@
       "kind": "page",
       "route": "/Admin/ProductManagement",
       "role": "admin",
-      "cold": 209,
-      "median": 126,
+      "cold": 172,
+      "median": 136,
       "samples": [
-        209,
-        115,
-        126,
-        183,
-        126
+        172,
+        118,
+        141,
+        153,
+        130
       ],
       "nav": {
-        "ttfb": 80,
-        "domContentLoaded": 124,
-        "load": 139,
-        "transfer": 8864
+        "ttfb": 82,
+        "domContentLoaded": 128,
+        "load": 0,
+        "transfer": 8865
       },
       "budget": 5000
     },
@@ -240,48 +240,48 @@
       "kind": "api",
       "route": "/api/certificate-tiles?page=1&pageSize=20",
       "role": "anon",
-      "cold": 358,
-      "median": 177,
+      "cold": 644,
+      "median": 255,
       "samples": [
-        358,
-        179,
-        158,
-        176,
-        178
+        644,
+        276,
+        248,
+        237,
+        262
       ],
       "status": 200,
-      "bytes": 12558,
+      "bytes": 12612,
       "budget": 2000
     },
     {
       "kind": "api",
       "route": "/api/certificate-tiles/filters",
       "role": "anon",
-      "cold": 152,
-      "median": 164,
+      "cold": 386,
+      "median": 172,
       "samples": [
-        152,
-        194,
-        163,
-        156,
-        164
+        386,
+        167,
+        192,
+        173,
+        171
       ],
       "status": 200,
-      "bytes": 19237,
+      "bytes": 18749,
       "budget": 3000
     },
     {
       "kind": "api",
       "route": "/api/certificate-tiles-internal?page=1&pageSize=20",
       "role": "analyst",
-      "cold": 110,
-      "median": 106,
+      "cold": 412,
+      "median": 141,
       "samples": [
-        110,
-        107,
-        104,
-        102,
-        111
+        412,
+        274,
+        159,
+        122,
+        113
       ],
       "status": 200,
       "bytes": 39894,
@@ -291,14 +291,14 @@
       "kind": "api",
       "route": "/api/certificate-tiles-internal?page=50&pageSize=20",
       "role": "analyst",
-      "cold": 149,
-      "median": 119,
+      "cold": 161,
+      "median": 145,
       "samples": [
-        149,
-        126,
-        115,
-        119,
-        119
+        161,
+        151,
+        324,
+        132,
+        138
       ],
       "status": 200,
       "bytes": 110750,
@@ -308,14 +308,14 @@
       "kind": "api",
       "route": "/api/certificate-tiles-internal?search=sika&page=1&pageSize=20",
       "role": "analyst",
-      "cold": 352,
-      "median": 255,
+      "cold": 5882,
+      "median": 4408,
       "samples": [
-        352,
-        277,
-        270,
-        225,
-        239
+        5882,
+        4400,
+        4416,
+        4373,
+        5276
       ],
       "status": 200,
       "bytes": 23775,
@@ -325,14 +325,14 @@
       "kind": "api",
       "route": "/api/CertificateTileExternal?page=1&pageSize=20",
       "role": "external",
-      "cold": 90,
-      "median": 92,
+      "cold": 211,
+      "median": 101,
       "samples": [
-        90,
-        94,
-        84,
-        90,
-        98
+        211,
+        91,
+        119,
+        110,
+        88
       ],
       "status": 200,
       "bytes": 15417,
@@ -342,155 +342,155 @@
       "kind": "api",
       "route": "/api/certificate-tiles-internal/filters",
       "role": "analyst",
-      "cold": 89,
-      "median": 105,
+      "cold": 137,
+      "median": 99,
       "samples": [
-        89,
-        110,
-        91,
-        125,
-        100
+        137,
+        104,
+        101,
+        96,
+        95
       ],
       "status": 200,
-      "bytes": 33950,
+      "bytes": 34627,
       "budget": 4000
     },
     {
       "kind": "api",
       "route": "/Certificate/ExportCertificates?format=csv",
       "role": "analyst",
-      "cold": 4447,
-      "median": 3873,
+      "cold": 4983,
+      "median": 4304,
       "samples": [
-        4447,
-        4450,
-        3623,
-        3447,
-        4123
+        4983,
+        4143,
+        3899,
+        4465,
+        4559
       ],
       "status": 200,
-      "bytes": 1534964,
+      "bytes": 1539694,
       "budget": 15000
     }
   ],
-  "pass": 19,
+  "pass": 18,
   "fail": 0,
-  "warn": 0,
+  "warn": 1,
   "info": 0,
   "rows": [
     {
       "id": "perf.page./.anon",
       "name": "/ as anon",
       "status": "PASS",
-      "notes": "median 100ms (cold 120ms, budget 2000ms), TTFB 70ms, 5KB"
+      "notes": "median 122ms (cold 200ms, budget 2000ms), TTFB 96ms, 5KB"
     },
     {
       "id": "perf.page./Certificate/CertificateTileView.anon",
       "name": "/Certificate/CertificateTileView as anon",
       "status": "PASS",
-      "notes": "median 113ms (cold 104ms, budget 3000ms), TTFB 74ms, 5KB"
+      "notes": "median 139ms (cold 106ms, budget 3000ms), TTFB 68ms, 5KB"
     },
     {
       "id": "perf.page./Certificate/CertificateTileViewExternal.external",
       "name": "/Certificate/CertificateTileViewExternal as external",
       "status": "PASS",
-      "notes": "median 123ms (cold 116ms, budget 3000ms), TTFB 74ms, 7KB"
+      "notes": "median 125ms (cold 133ms, budget 3000ms), TTFB 84ms, 7KB"
     },
     {
       "id": "perf.page./Certificate/CertificateTileViewExternal.amazon",
       "name": "/Certificate/CertificateTileViewExternal as amazon",
       "status": "PASS",
-      "notes": "median 132ms (cold 132ms, budget 3000ms), TTFB 90ms, 7KB"
+      "notes": "median 144ms (cold 134ms, budget 3000ms), TTFB 77ms, 7KB"
     },
     {
       "id": "perf.page./Certificate/CertificateTileViewInternal.analyst",
       "name": "/Certificate/CertificateTileViewInternal as analyst",
       "status": "PASS",
-      "notes": "median 120ms (cold 125ms, budget 4000ms), TTFB 75ms, 13KB"
+      "notes": "median 139ms (cold 159ms, budget 4000ms), TTFB 72ms, 13KB"
     },
     {
       "id": "perf.page./Certificate/Create.analyst",
       "name": "/Certificate/Create as analyst",
       "status": "PASS",
-      "notes": "median 256ms (cold 869ms, budget 5000ms), TTFB 199ms, 24KB"
+      "notes": "median 364ms (cold 1065ms, budget 5000ms), TTFB 287ms, 24KB"
     },
     {
       "id": "perf.page./Dashboard/Index.analyst",
       "name": "/Dashboard/Index as analyst",
       "status": "PASS",
-      "notes": "median 336ms (cold 596ms, budget 6000ms), TTFB 271ms, 6KB"
+      "notes": "median 357ms (cold 624ms, budget 6000ms), TTFB 290ms, 6KB"
     },
     {
       "id": "perf.page./Company/Management.analyst",
       "name": "/Company/Management as analyst",
       "status": "PASS",
-      "notes": "median 107ms (cold 180ms, budget 4000ms), TTFB 68ms, 6KB"
+      "notes": "median 217ms (cold 214ms, budget 4000ms), TTFB 3882ms, 6KB"
     },
     {
       "id": "perf.page./Product/Management.analyst",
       "name": "/Product/Management as analyst",
       "status": "PASS",
-      "notes": "median 129ms (cold 220ms, budget 5000ms), TTFB 69ms, 19KB"
+      "notes": "median 132ms (cold 273ms, budget 5000ms), TTFB 86ms, 19KB"
     },
     {
       "id": "perf.page./Admin/UserManagement.admin",
       "name": "/Admin/UserManagement as admin",
       "status": "PASS",
-      "notes": "median 131ms (cold 292ms, budget 4000ms), TTFB 84ms, 9KB"
+      "notes": "median 155ms (cold 362ms, budget 4000ms), TTFB 84ms, 9KB"
     },
     {
       "id": "perf.page./Admin/ProductManagement.admin",
       "name": "/Admin/ProductManagement as admin",
       "status": "PASS",
-      "notes": "median 126ms (cold 209ms, budget 5000ms), TTFB 80ms, 9KB"
+      "notes": "median 136ms (cold 172ms, budget 5000ms), TTFB 82ms, 9KB"
     },
     {
       "id": "perf.api./api/certificate-tiles?page=1&pageSize=20.anon",
       "name": "/api/certificate-tiles?page=1&pageSize=20 as anon",
       "status": "PASS",
-      "notes": "HTTP 200, median 177ms (cold 358ms, budget 2000ms), 12KB"
+      "notes": "HTTP 200, median 255ms (cold 644ms, budget 2000ms), 12KB"
     },
     {
       "id": "perf.api./api/certificate-tiles/filters.anon",
       "name": "/api/certificate-tiles/filters as anon",
       "status": "PASS",
-      "notes": "HTTP 200, median 164ms (cold 152ms, budget 3000ms), 19KB"
+      "notes": "HTTP 200, median 172ms (cold 386ms, budget 3000ms), 18KB"
     },
     {
       "id": "perf.api./api/certificate-tiles-internal?page=1&pageSize=20.analyst",
       "name": "/api/certificate-tiles-internal?page=1&pageSize=20 as analyst",
       "status": "PASS",
-      "notes": "HTTP 200, median 106ms (cold 110ms, budget 3000ms), 39KB"
+      "notes": "HTTP 200, median 141ms (cold 412ms, budget 3000ms), 39KB"
     },
     {
       "id": "perf.api./api/certificate-tiles-internal?page=50&pageSize=20.analyst",
       "name": "/api/certificate-tiles-internal?page=50&pageSize=20 as analyst",
       "status": "PASS",
-      "notes": "HTTP 200, median 119ms (cold 149ms, budget 3000ms), 108KB"
+      "notes": "HTTP 200, median 145ms (cold 161ms, budget 3000ms), 108KB"
     },
     {
       "id": "perf.api./api/certificate-tiles-internal?search=sika&page=1&pageSize=20.analyst",
       "name": "/api/certificate-tiles-internal?search=sika&page=1&pageSize=20 as analyst",
-      "status": "PASS",
-      "notes": "HTTP 200, median 255ms (cold 352ms, budget 3000ms), 23KB"
+      "status": "WARN",
+      "notes": "HTTP 200, median 4408ms (cold 5882ms, budget 3000ms), 23KB"
     },
     {
       "id": "perf.api./api/CertificateTileExternal?page=1&pageSize=20.external",
       "name": "/api/CertificateTileExternal?page=1&pageSize=20 as external",
       "status": "PASS",
-      "notes": "HTTP 200, median 92ms (cold 90ms, budget 2000ms), 15KB"
+      "notes": "HTTP 200, median 101ms (cold 211ms, budget 2000ms), 15KB"
     },
     {
       "id": "perf.api./api/certificate-tiles-internal/filters.analyst",
       "name": "/api/certificate-tiles-internal/filters as analyst",
       "status": "PASS",
-      "notes": "HTTP 200, median 105ms (cold 89ms, budget 4000ms), 33KB"
+      "notes": "HTTP 200, median 99ms (cold 137ms, budget 4000ms), 34KB"
     },
     {
       "id": "perf.api./Certificate/ExportCertificates?format=csv.analyst",
       "name": "/Certificate/ExportCertificates?format=csv as analyst",
       "status": "PASS",
-      "notes": "HTTP 200, median 3873ms (cold 4447ms, budget 15000ms), 1499KB"
+      "notes": "HTTP 200, median 4304ms (cold 4983ms, budget 15000ms), 1504KB"
     }
   ]
 }

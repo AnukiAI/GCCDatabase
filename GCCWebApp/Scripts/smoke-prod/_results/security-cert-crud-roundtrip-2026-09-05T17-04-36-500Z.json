@@ -1,0 +1,67 @@
+{
+  "specId": "cert-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 9,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 9,
+  "results": [
+    {
+      "id": "crud.pre",
+      "name": "clonable combo + count snapshot",
+      "status": "PASS",
+      "notes": "company=35 product=3618 cat=1 type=4 sub=96 certType=3 | products=3592 certs=5931"
+    },
+    {
+      "id": "crud.C1.create-302",
+      "name": "analyst Create POST redirects on success",
+      "status": "PASS",
+      "notes": "HTTP 302, redirect=\"/Certificate/CertificateInternalView/26-0659\", number=26-0659"
+    },
+    {
+      "id": "crud.C2.create-persisted",
+      "name": "created cert exists in DB with marker",
+      "status": "PASS",
+      "notes": "db Location=\"ZZ_SmokeFixture_CRUD_2026-09-05_mtomsyir\" expected=\"ZZ_SmokeFixture_CRUD_2026-09-05_mtomsyir\""
+    },
+    {
+      "id": "crud.U1.edit-302",
+      "name": "analyst Edit POST redirects on success",
+      "status": "PASS",
+      "notes": "HTTP 302 (id=5975)"
+    },
+    {
+      "id": "crud.U2.edit-persisted",
+      "name": "edited value persisted in DB",
+      "status": "PASS",
+      "notes": "db Location=\"ZZ_SmokeFixture_CRUD_2026-09-05_mtomsyir_EDITED\" expected=\"ZZ_SmokeFixture_CRUD_2026-09-05_mtomsyir_EDITED\""
+    },
+    {
+      "id": "crud.D1.delete-ok",
+      "name": "admin Delete POST accepted",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "crud.D2.delete-removed",
+      "name": "cert row removed from DB",
+      "status": "PASS",
+      "notes": "gone"
+    },
+    {
+      "id": "crud.INV.products",
+      "name": "Products count unchanged (no find-or-create pollution)",
+      "status": "PASS",
+      "notes": "before=3592 after=3592"
+    },
+    {
+      "id": "crud.INV.certs",
+      "name": "Certificates count net-zero after round-trip",
+      "status": "PASS",
+      "notes": "before=5931 after=5931"
+    }
+  ],
+  "finishedAt": "2026-09-05T17:04:36.500Z"
+}

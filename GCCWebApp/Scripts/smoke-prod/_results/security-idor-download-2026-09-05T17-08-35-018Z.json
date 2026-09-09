@@ -1,0 +1,25 @@
+{
+  "specId": "idor-download",
+  "base": "http://localhost:5101",
+  "url": "/Certificate/DownloadSelectedZip",
+  "pass": 2,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 2,
+  "results": [
+    {
+      "id": "idor.login",
+      "name": "external login",
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "idor.bulk-zip",
+      "name": "DownloadSelectedZip respects company scope",
+      "status": "PASS",
+      "notes": "HTTP 400 — none of [1..60] downloadable for this user (closed state)"
+    }
+  ],
+  "finishedAt": "2026-09-05T17:08:35.018Z"
+}

@@ -69,17 +69,48 @@ namespace GCCWebApp.Models
         };
 
         /// <summary>
-        /// Statuses counted as "active" everywhere (public site, internal dashboard, API).
-        /// DEF-223 (Shawn, 2026-05-26): narrowed from {Paid, Republished, Confidential} to
-        /// {Paid, Republished} so "Active" means the same thing internally and publicly.
-        /// Confidential is paid-but-embargoed — work is done, but the client opted to keep
-        /// it private; treating it as "active" on internal counts confused things because
-        /// the badge label and the export rows now strictly mean "actively certified" (the
-        /// state IsActiveStatus() has always returned true for). Equal to PublicStatuses.
+        /// CR-043 (client, 2026-09-02, answers confirmed 2026-09-03): statuses that are
+        /// COMMERCIALLY IN FORCE and therefore badgeable — the partner/Amazon API, the
+        /// product-identifier export, and every logged-in owner surface (Partner and
+        /// External/company).
+        ///
+        /// Differs from <see cref="PublicStatuses"/> by exactly one value: Confidential.
+        /// The client's rule is *"the Confidential piece is just for the public DB side to
+        /// not show there"* — paid, in-force work that still gets badged, with only the
+        /// anonymous public listing suppressed. Before CR-043 a single array answered both
+        /// questions, so embargoing a certificate from the public site silently pulled it
+        /// out of Amazon's feed as well.
+        ///
+        /// NEVER point an anonymous/public surface at this array. The pairing is deliberate:
+        /// PublicStatuses = "may a stranger see it", BadgeableStatuses = "is it in force".
+        /// </summary>
+        public static readonly string[] BadgeableStatuses = new[]
+        {
+            StatusClientApprovedPaid,
+            StatusClientApprovedConfidential,
+            StatusRepublished
+        };
+
+        /// <summary>
+        /// Statuses counted as "active" on the INTERNAL dashboard tiles and their exports.
+        ///
+        /// DEF-223 (Shawn, 2026-05-26) narrowed this from {Paid, Republished, Confidential}
+        /// to {Paid, Republished} so "Active" meant the same thing internally and publicly.
+        /// CR-043 Q2 (client, 2026-09-03) reverses that premise and restores Confidential:
+        /// asked *"should Confidential certificates count as Active in the internal dashboard
+        /// counts and their exports?"* the client answered *"Yes as long as they are in the
+        /// eff-exp period window."* Confidential is in-force work; only its public listing is
+        /// embargoed.
+        ///
+        /// Equal in value to <see cref="BadgeableStatuses"/> today, and deliberately kept as
+        /// a separate array anyway — "counts as active internally" and "is badgeable" are two
+        /// questions, and collapsing two questions into one array is the exact fault CR-043
+        /// was raised to fix. The window (eff/exp) is applied by each call site, not here.
         /// </summary>
         public static readonly string[] DashboardStatuses = new[]
         {
             StatusClientApprovedPaid,
+            StatusClientApprovedConfidential,
             StatusRepublished
         };
 
@@ -242,7 +273,24 @@ namespace GCCWebApp.Models
         }
 
         /// <summary>
-        /// Checks if a status represents an active/valid certificate
+        /// CR-043: in-force check for the badging surfaces — partner/Amazon, the product-identifier
+        /// export, and logged-in owner views. The counterpart to <see cref="IsPubliclyVisible"/>,
+        /// which answers the anonymous-visibility question and must not be used here.
+        /// Status only; callers still apply the effective/expiration window.
+        /// </summary>
+        public static bool IsBadgeable(string status)
+        {
+            return status == StatusClientApprovedPaid
+                || status == StatusClientApprovedConfidential
+                || status == StatusRepublished;
+        }
+
+        /// <summary>
+        /// Checks if a status represents an active/valid certificate.
+        /// Currently unreferenced — <see cref="IsPubliclyVisible"/> and <see cref="IsBadgeable"/>
+        /// are the two live predicates. Left in place rather than widened for CR-043 precisely
+        /// because "active" is the ambiguous word that let one list do two jobs; a new caller
+        /// should pick the specific question it means.
         /// </summary>
         public static bool IsActiveStatus(string status)
         {

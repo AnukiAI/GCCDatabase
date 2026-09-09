@@ -25,11 +25,28 @@
   CertificateCountries row, so nothing is lost. "United States, Canada" therefore becomes primary
   "United States" plus rows for United States and Canada.
 
-  !! ONE VISIBLE CONSEQUENCE, stated because it reaches the client: Certificate.Country is what the
-  CSV export writes into its "Country" column (CertificateService.cs:1328) and the XLSX export
-  (:1576), and it is the sort key. After this runs, those exports show "United States" for a
-  certificate that used to read "United States, Canada". If the exports are meant to list the full
-  set, they have to read CertificateCountries instead - that is CR-037 code work, not data ops.
+  !! THE PARAGRAPH THAT USED TO BE HERE WAS TRUE WHEN WRITTEN AND IS NOW WRONG. It warned that
+  after this runs, the exports would show "United States" for a certificate that used to read
+  "United States, Canada", because Certificate.Country was what the export wrote into its "Country"
+  column. It then said the exports "have to read CertificateCountries instead - that is CR-037 code
+  work, not data ops."
+
+  That code work was DONE on 2026-09-02 (commit a792fbe), the day after this script was written:
+  CertificateService.BuildCountryList feeds the certificate CSV/XLSX and ExportController
+  .CountriesField feeds the four report exports, and both read CertificateCountries. Verified live
+  on the test site 2026-09-04: 27 multi-country certificates, every one listing its full set.
+
+  The stale warning outlived the problem and was quoted twice as if current - once into a client
+  letter - so it is corrected in place rather than deleted, because the wrong claim is already out
+  there. THE EXPORTS DO LIST EVERY COUNTRY. Do not re-report otherwise without measuring the
+  deployed site first.
+
+  Certificate.Country is still the denormalized PRIMARY and still the sort key, and it is still
+  rewritten to the first country listed - that part was always true.
+
+  STILL genuinely open (DEF-404, logged 2026-09-04): the export's country FILTER matches the primary
+  only, so filtering by Canada and exporting drops certificates that hold Canada as a secondary
+  country. That is separate from the column this paragraph was about.
 
 .PARAMETER Target
   REQUIRED. 'test' (gccwebapp.com, connection read from appsettings.Production.json) or 'dev'

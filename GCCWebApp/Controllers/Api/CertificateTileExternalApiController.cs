@@ -125,7 +125,7 @@ namespace GCCWebApp.Controllers.Api
                     //
                     // Lower bound only, same reasoning as DEF-359: CertificateExpirationService flips
                     // Status to Expired on a daily sweep, so the upper bound is already carried by
-                    // the PublicStatuses filter further down. Only the not-yet-effective case had no
+                    // the BadgeableStatuses filter further down. Only the not-yet-effective case had no
                     // status to carry it. Reuses the shared helper rather than restating the date
                     // rule, so there is no second copy to drift.
                     query = query.WhereEffectiveDateReached();
@@ -156,17 +156,24 @@ namespace GCCWebApp.Controllers.Api
                 // CR-187: normalized, user-friendly search (mirrors the internal tile controller).
                 // Both sides reduced to a canonical form via the shared SearchNormalizer / persisted
                 // computed NormalizedX columns so "Product A" matches "Product™ A", "product-a", etc.
+                // DEF-409: hoisted so the paging step below can rank prefix matches first. Stays
+                // null when there is no usable search term, so unsearched ordering is unchanged.
+                string? rankQuery = null;
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     var nq = SearchNormalizer.Normalize(search);
                     if (!string.IsNullOrEmpty(nq))
                     {
+                        rankQuery = nq;
                         // DEF-366: tag match resolved up front rather than as a per-row correlated
                         // subquery inside this OR. The role scoping applied above this point is a
                         // separate AND'd Where, so OR-ing an unscoped tag id set into the search
                         // predicate cannot widen what an External or Partner caller sees.
                         // See Search/TagSearchMatch.cs.
                         var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
+                        // DEF-402: country match resolved as its own semi-join instead of a
+                        // correlated EXISTS inside this OR. Secondary countries remain searchable.
+                        var countryIds = await TagSearchMatch.MatchingCountryCertificateIdsAsync(_context.Certificates, nq);
                         query = query.WhereMatchesSearch(c =>
                             c.NormalizedNumber!.Contains(nq) ||
                             c.CertificationType.NormalizedName!.Contains(nq) ||
@@ -174,9 +181,8 @@ namespace GCCWebApp.Controllers.Api
                             c.Product.NormalizedName!.Contains(nq) ||
                             c.Product.Category.NormalizedName!.Contains(nq) ||
                             (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
-                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)) ||
-                            // CR-037: secondary countries are searchable too.
-                            c.Countries.Any(cc => cc.NormalizedCountry != null && cc.NormalizedCountry.Contains(nq)), tagIds);
+                            (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)),
+                            TagSearchMatch.Union(tagIds, countryIds));
                     }
                 }
 
@@ -240,19 +246,29 @@ namespace GCCWebApp.Controllers.Api
                     query = query.Where(c => c.Tags.Any(t => tagsList.Contains(t.Name) && t.TagType == "external"));
                 }
 
-                // Filter to only show active/valid certificates for external partners
-                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday));
+                // CR-043: in-force certificates for this logged-in owner surface - Confidential
+                // included. This controller is Partner + External + Admin/Analyst only; it is never
+                // reachable anonymously ([Authorize(Policy = "ExternalAccess")], no [AllowAnonymous]),
+                // which is what makes BadgeableStatuses correct here and wrong on the public tiles.
+                query = query.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday));
 
                 // Apply sorting
-                query = ApplySorting(query, sortBy);
+                var sortedQuery = ApplySorting(query, sortBy);
 
-                // Get total count
-                var totalCount = await query.CountAsync();
+                // Get total count. Deliberately taken from the SORTED query, exactly as before:
+                // one sort branch adds a .Where(), so counting the unsorted query would change
+                // this number. Ranking never changes it — no row enters or leaves the result set.
+                var totalCount = await sortedQuery.CountAsync();
+
+                // DEF-409: certificates whose NUMBER starts with the query come first; sortBy still
+                // governs within each band. Same fix as the internal tile, applied after the role
+                // scoping above, so it cannot widen what an External or Partner caller sees.
+                var pagedIds = await SearchRanking.PageIdsAsync(
+                    query, q => ApplySorting(q, sortBy), rankQuery, (page - 1) * pageSize, pageSize);
 
                 // Apply pagination - first fetch raw data
                 var rawCertificates = await query
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
+                    .Where(c => pagedIds.Contains(c.Id))
                     .Select(c => new
                     {
                         c.Id,
@@ -282,8 +298,10 @@ namespace GCCWebApp.Controllers.Api
                         PdfPath = c.CertificateFile,
                         // CR-171: project the full partner-name list; post-process scopes it per role.
                         PartnerNames = c.Partners.Select(p => p.Name).ToList(),
-                        // Status: only PublicStatuses reach this projection (filter at line ~204),
-                        // so this is always one of "Client Approved - Paid" / "Republished".
+                        // Status: only BadgeableStatuses reach this projection (filter below), so this
+                        // is one of "Client Approved - Paid" / "Client Approved - Confidential" /
+                        // "Republished" (CR-043 added the middle one - the owning company and its
+                        // partners see in-force Confidential certs; the public database does not).
                         // Surfaced in the UI table so the Status column actually has a value.
                         c.Status,
                         // CR-XXX (QC #201, client 7/6/2026): Cert Results is partner-visible again.
@@ -293,6 +311,14 @@ namespace GCCWebApp.Controllers.Api
                         c.CertificationResults
                     })
                     .ToListAsync();
+
+                // DEF-409: the fetch above filters by id and therefore returns rows in whatever
+                // order SQL Server chose. Restore the ranked page order, mirroring what the internal
+                // tile controller already does after its own id-then-hydrate fetch.
+                var idOrder = pagedIds.Select((id, i) => new { id, i }).ToDictionary(x => x.id, x => x.i);
+                rawCertificates = rawCertificates
+                    .OrderBy(c => idOrder.TryGetValue(c.Id, out var i) ? i : int.MaxValue)
+                    .ToList();
 
                 // Format certificate numbers to YY-NNNN format
                 var certificates = rawCertificates.Select(c => new
@@ -325,7 +351,7 @@ namespace GCCWebApp.Controllers.Api
                     // QC #201: display as a percentage, matching the internal tile view and the
                     // v1 partner API (0.17 → "17%", 100 → "100%"). Free-text non-numerics
                     // ("Pass") pass through unchanged. Single source: DisplayFormatters.
-                    CertificationResults = DisplayFormatters.FormatCertificationResults(c.CertificationResults)
+                    CertificationResults = c.CertificationResults
                 }).ToList();
 
                 return Ok(new
@@ -392,11 +418,15 @@ namespace GCCWebApp.Controllers.Api
                 }
 
                 // Only show active certificates in autocomplete
-                baseQuery = baseQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday));
+                baseQuery = baseQuery.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday));
 
                 // Search certificate numbers
+                // DEF-409: prefix matches first — same fix as the internal autocomplete. Applied
+                // after the role scoping on baseQuery above, so ranking cannot widen what an
+                // External or Partner caller is offered.
                 var certNumbers = await baseQuery
                     .Where(c => c.NormalizedNumber!.Contains(nq))
+                    .OrderByNumberRelevance(nq)
                     .Select(c => new {
                         value = c.Number,
                         label = c.Number,
@@ -416,7 +446,7 @@ namespace GCCWebApp.Controllers.Api
                                    (userRole != "Partner" && userRole != "External") ||
                                    (userRole == "Partner" && cert.Partners.Any(p => userPartnerNames2.Contains(p.Name))) ||
                                    (userRole == "External" && userCompanyIds2.Contains(cert.CompanyId)) &&
-                                   CertificateStatusHelper.PublicStatuses.Contains(cert.Status) && (cert.ExpirationDate == null || cert.ExpirationDate >= CertificateStatusHelper.BusinessToday)))
+                                   CertificateStatusHelper.BadgeableStatuses.Contains(cert.Status) && (cert.ExpirationDate == null || cert.ExpirationDate >= CertificateStatusHelper.BusinessToday)))
                     .Select(c => new {
                         value = c.Name,
                         label = c.Name,
@@ -433,7 +463,7 @@ namespace GCCWebApp.Controllers.Api
                                    (userRole != "Partner" && userRole != "External") ||
                                    (userRole == "Partner" && cert.Partners.Any(p => userPartnerNames2.Contains(p.Name))) ||
                                    (userRole == "External" && userCompanyIds2.Contains(cert.CompanyId)) &&
-                                   CertificateStatusHelper.PublicStatuses.Contains(cert.Status) && (cert.ExpirationDate == null || cert.ExpirationDate >= CertificateStatusHelper.BusinessToday)))
+                                   CertificateStatusHelper.BadgeableStatuses.Contains(cert.Status) && (cert.ExpirationDate == null || cert.ExpirationDate >= CertificateStatusHelper.BusinessToday)))
                     .Select(p => new {
                         value = p.Name,
                         label = p.Name,
@@ -517,7 +547,7 @@ namespace GCCWebApp.Controllers.Api
                 }
 
                 // Filter to active certificates only
-                baseQuery = baseQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday));
+                baseQuery = baseQuery.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday));
 
                 // DEF-199 (QC #178): use the EFFECTIVE category/type/subcategory at each level
                 // (cert-level override if set, otherwise Product-derived) — mirrors DEF-192's
@@ -751,7 +781,7 @@ namespace GCCWebApp.Controllers.Api
                 }
 
                 // Only allow download of active certificates for external users
-                if (!CertificateStatusHelper.IsPubliclyVisible(certificate.Status) || (certificate.ExpirationDate != null && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday))
+                if (!CertificateStatusHelper.IsBadgeable(certificate.Status) || (certificate.ExpirationDate != null && certificate.ExpirationDate < CertificateStatusHelper.BusinessToday))
                 {
                     return BadRequest(new { error = "Certificate is not available for download" });
                 }

@@ -80,6 +80,72 @@ namespace GCCWebApp.Search
         }
 
         /// <summary>
+        /// Certificate ids whose COUNTRIES match the already-normalized term <paramref name="nq"/>.
+        ///
+        /// DEF-402. CR-037 added multi-country support and put its clause into the search as
+        /// `c.Countries.Any(cc => cc.NormalizedCountry.Contains(nq))` — a correlated EXISTS sitting
+        /// inside the same OR that this class exists to keep collection matches out of. It is the
+        /// identical mistake DEF-366 fixed for tags, reintroduced for countries three months later.
+        ///
+        /// Measured on the test database (5,924 certificates, 1,563 country rows), median of 3:
+        ///
+        ///   search term   | 7 legs, no country leg | + correlated EXISTS | + this id list
+        ///   zzzznomatch   |         195 ms         |      2,648 ms       |   195 ms (leg omitted)
+        ///   canada        |         173 ms         |      3,297 ms       |   194 ms  (+232 ms step 1)
+        ///   sika          |         197 ms         |      2,968 ms       |   197 ms (leg omitted)
+        ///
+        /// The country leg cost 15x the whole rest of the query. Row counts are identical either
+        /// way (694 = 694 for "canada"), so this changes results for nobody.
+        ///
+        /// Scanning CertificateCountries once is cheap because it is small and read whole; the
+        /// correlated form re-evaluated it per certificate row instead.
+        /// </summary>
+        public static async Task<IReadOnlyList<int>> MatchingCountryCertificateIdsAsync(
+            IQueryable<Certificate> certificates,
+            string nq,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(nq)) return Array.Empty<int>();
+
+            return await certificates
+                .Where(c => c.Countries.Any(cc => cc.NormalizedCountry != null
+                                                  && cc.NormalizedCountry.Contains(nq)))
+                .Select(c => c.Id)
+                // Stable order for the same reason as the tag list: the ids become literal SQL
+                // text, and an unstable order is a plan-cache miss on every keystroke.
+                .OrderBy(id => id)
+                .Take(MaxInlineIds + 1)
+                .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Merges two matched-id lists into the single list <see cref="WhereMatchesSearch"/> takes.
+        /// OR-ing `Contains(c.Id)` over the union is equivalent to OR-ing the two clauses
+        /// separately, so callers can fold tag and country matches into one set-membership test
+        /// rather than two.
+        ///
+        /// Sorted and de-duplicated, and capped the same way the individual resolvers are, so a
+        /// union can never push the literal IN list past the guard that keeps it sane.
+        /// </summary>
+        public static IReadOnlyList<int> Union(IReadOnlyList<int> a, IReadOnlyList<int> b)
+        {
+            if (a.Count == 0) return b;
+            if (b.Count == 0) return a;
+
+            var set = new HashSet<int>(a);
+            set.UnionWith(b);
+
+            var merged = new List<int>(set);
+            merged.Sort();
+            // Over the ceiling WhereMatchesSearch switches to a parameterized Contains, which needs
+            // the list to be complete rather than truncated — so keep the +1 sentinel shape the
+            // resolvers use instead of silently dropping ids.
+            return merged.Count > MaxInlineIds + 1
+                ? merged.GetRange(0, MaxInlineIds + 1)
+                : merged;
+        }
+
+        /// <summary>
         /// Applies a certificate search: the caller supplies the OR across the plain (non-tag)
         /// searchable fields, and this method OR's the tag match back in — cheaply.
         ///

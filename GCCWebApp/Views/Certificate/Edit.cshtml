@@ -411,6 +411,28 @@
                     <small id="pdf-help" class="form-text text-muted">PDF file optional for editing. Leave empty to keep existing PDF. Image preview will be regenerated if new file uploaded.</small>
                     <div id="pdfPreviewContainer" aria-live="polite"></div>
                 </div>
+
+                @* DEF-401: the POST has always accepted `certificateImage` and set
+                   CertificateImagePath from it (CertificateController.cs:1254) — there was simply no
+                   field to supply one, so the parameter was always null and the handler was dead code.
+                   This matters for any certificate whose PDF cannot be rendered: an encrypted document
+                   (DEF-400 / 23-0971), a corrupt file, or a scan the renderer chokes on. Without this
+                   an analyst cannot fix the preview at all; it needs a developer or a database write. *@
+                <div class="form-group">
+                    <label for="certificateImage">Replace Preview Image (optional)</label>
+                    <div class="pdf-upload-zone" id="imageUploadZone" role="button" tabindex="0"
+                         aria-label="Upload a preview image for this certificate. You can drag and drop a file here or press Enter to select a file."
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificateImage').click();}">
+                        <div class="pdf-upload-placeholder">
+                            <i class="fas fa-image" aria-hidden="true"></i>
+                        </div>
+                        <div class="pdf-upload-text">Drag and drop image here or click to select</div>
+                        <small class="form-text text-muted">Maximum file size: 5MB. Leave empty to keep the existing preview.</small>
+                    </div>
+                    <input type="file" id="certificateImage" name="certificateImage" accept="image/*" style="display: none;" aria-describedby="image-help" />
+                    <small id="image-help" class="form-text text-muted">Only needed when the preview cannot be generated from the PDF. Uploading a new PDF regenerates the preview automatically and does not need this. JPG, PNG, GIF, BMP or WebP.</small>
+                    <div id="imagePreviewContainer" aria-live="polite"></div>
+                </div>
             </div>
 
             <!-- Product ID Manager -->
@@ -485,6 +507,67 @@
         var productCategorySearch = new SearchableSelect('#ProductCategoryId', { placeholder: 'Search product categories...' });
         // Company and Product dropdowns are handled by certificate-inline-create.js (createCustomDropdown)
         // which provides search + "Add New" functionality. Do NOT also wrap them with SearchableSelect.
+    </script>
+
+    <script>
+        // DEF-401: wire the preview-image upload zone.
+        //
+        // Lives here rather than in certificate-create.js on purpose: that file is shared with the
+        // Create page, which has no image field, and its PdfUpload.init() binds #pdfUploadZone only.
+        // Without this a mouse click on the zone does nothing — the keyboard path works, because the
+        // markup carries its own onkeydown, which is exactly the kind of half-working control that
+        // reads as "the button is broken".
+        (function () {
+            var zone = document.getElementById('imageUploadZone');
+            var input = document.getElementById('certificateImage');
+            var preview = document.getElementById('imagePreviewContainer');
+            if (!zone || !input) return;
+
+            function show(file) {
+                if (!preview) return;
+                if (!file) { preview.textContent = ''; return; }
+                preview.textContent = 'Selected: ' + file.name +
+                    ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+            }
+
+            zone.addEventListener('click', function () { input.click(); });
+            input.addEventListener('change', function () { show(input.files[0]); });
+
+            zone.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                zone.style.borderColor = '#447638';
+                zone.style.background = 'rgba(146, 200, 62, 0.05)';
+            });
+            function reset() {
+                zone.style.borderColor = '#00AEEF';
+                zone.style.background = 'var(--white)';
+            }
+            zone.addEventListener('dragleave', reset);
+            zone.addEventListener('drop', function (e) {
+                e.preventDefault();
+                reset();
+                var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+                if (!f) return;
+                if (!/^image\//.test(f.type)) {
+                    // Guarded exactly like the delete handler further down this file: AdminCore is
+                    // not guaranteed to be loaded here, and an unguarded call would throw a
+                    // ReferenceError instead of showing the message. Never a native alert().
+                    var msg = 'That file is not an image. Use JPG, PNG, GIF, BMP or WebP.';
+                    if (window.AdminCore && AdminCore.showNotification) {
+                        AdminCore.showNotification(msg, 'error');
+                    } else if (preview) {
+                        preview.textContent = msg;
+                    }
+                    return;
+                }
+                // Assign through a DataTransfer so the file actually reaches the form POST —
+                // setting input.files from a drop is otherwise ignored by the browser.
+                var dt = new DataTransfer();
+                dt.items.add(f);
+                input.files = dt.files;
+                show(f);
+            });
+        })();
     </script>
 
     <script>

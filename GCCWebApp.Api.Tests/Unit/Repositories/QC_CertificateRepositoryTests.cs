@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using FluentAssertions;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
@@ -166,8 +166,15 @@ namespace GCCWebApp.Api.Tests.Unit.Repositories
         public async Task GetCertificateStatisticsAsync_ActiveCountFiltersByStatusAndDate()
         {
             var stats = await _repository.GetCertificateStatisticsAsync();
-            // Only 200 and 201 are active (public status + not expired by date)
-            stats["Active"].Should().Be(2);
+            // CR-043 Q2 (client, 2026-09-03): the internal "Active" count includes Confidential
+            // while it is inside its window. Re-baselined from 2 to 3 on purpose - this test was
+            // the DEF-223 assertion, and the client has reversed that decision.
+            //   200 Client Approved - Paid,    in window
+            //   201 Republished,               in window
+            //   206 Client Approved - Confidential, in window  <-- added by CR-043
+            // Still excluded and worth naming: 205 is Paid but EXPIRED BY DATE, which proves the
+            // window half of the rule is still being applied and CR-043 did not widen it.
+            stats["Active"].Should().Be(3);
         }
 
         [Fact]
@@ -190,15 +197,19 @@ namespace GCCWebApp.Api.Tests.Unit.Repositories
         public async Task GetCertificateStatisticsAsync_CompaniesWithActiveCerts_DistinctCount()
         {
             var stats = await _repository.GetCertificateStatisticsAsync();
-            // Active certs: 200 (company 10) and 201 (company 11) = 2 distinct companies
-            stats["CompaniesWithActiveCerts"].Should().Be(2);
+            // CR-043 Q2: active certs are now 200 (company 10), 201 (company 11) and
+            // 206 (company 12, Confidential) = 3 distinct companies.
+            stats["CompaniesWithActiveCerts"].Should().Be(3);
         }
 
         [Fact]
         public async Task GetCertificateStatisticsAsync_CertTypesWithActiveCerts_DistinctCount()
         {
             var stats = await _repository.GetCertificateStatisticsAsync();
-            // Active certs: 200 (type 10) and 201 (type 11) = 2 distinct cert types
+            // Active certs: 200 (type 10), 201 (type 11) and, since CR-043, 206 (type 10 again)
+            // = still 2 distinct cert types. Deliberately left at 2: the Confidential cert shares
+            // a type with 200, so this count is the control showing the CR-043 widening moved only
+            // the counts it should have.
             stats["CertTypesWithActiveCerts"].Should().Be(2);
         }
 

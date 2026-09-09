@@ -1,0 +1,100 @@
+WHAT AMAZON RECEIVES - TEST (https://gccwebapp.com)
+Retrieved 20260909-094724 via the Amazon partner API key.
+
+PAYLOAD
+  certificates delivered (standard list)  : 223
+  product identifiers delivered           : 19003
+  GS1 documents delivered                 : 223
+  GS1 product entries                     : 223
+
+CERTIFICATION RESULTS AS DELIVERED
+  certificates with a value               : 223
+  certificates with no value              : 0
+  values in XX% form                      : 223
+  bare decimals <= 1 (publish literally)  : 0
+  non-numeric (Pass, Silver, etc.)        : 0
+
+RECONCILIATION (DB now | pre-CR-045 snapshot | standard API | GS1 API)
+  snapshot control available              : yes - CertResults_bak_CR045_20260908
+  certificates compared                   : 223
+  all sources identical                   : 223
+  mismatches                              : 0
+  numbers with disagreeing duplicate rows : 0
+
+MEMBERSHIP (is the right SET of certificates in the payload?)
+  Amazon-tagged certificates in the DB    : 295
+  delivered to Amazon                     : 223
+  correctly withheld                      : 72
+      Expired                            39
+      Draft                              31
+      effective date not reached         2
+  findings                                : 0
+
+DISTINCT DELIVERED VALUES (every one, not a sample)
+  '100%'         74
+  '98%'          12
+  '99%'          8
+  '97%'          6
+  '86%'          5
+  '35%'          4
+  '5%'           4
+  '63%'          4
+  '83%'          4
+  '95%'          4
+  '96%'          4
+  '1%'           3
+  '12%'          3
+  '16%'          3
+  '17%'          3
+  '43%'          3
+  '50%'          3
+  '58%'          3
+  '65%'          3
+  '76%'          3
+  '88%'          3
+  '89%'          3
+  '23%'          2
+  '25%'          2
+  '3%'           2
+  '33%'          2
+  '34%'          2
+  '41%'          2
+  '46%'          2
+  '49%'          2
+  '52%'          2
+  '57%'          2
+  '60%'          2
+  '68%'          2
+  '78%'          2
+  '84%'          2
+  '87%'          2
+  '94%'          2
+  '10%'          1
+  '18%'          1
+  '21%'          1
+  '24%'          1
+  '26%'          1
+  '27%'          1
+  '30%'          1
+  '38%'          1
+  '39%'          1
+  '44%'          1
+  '45%'          1
+  '47%'          1
+  '48%'          1
+  '51%'          1
+  '53%'          1
+  '59%'          1
+  '61%'          1
+  '64%'          1
+  '66%'          1
+  '69%'          1
+  '7%'           1
+  '70%'          1
+  '72%'          1
+  '73%'          1
+  '74%'          1
+  '80%'          1
+  '81%'          1
+  '82%'          1
+  '85%'          1

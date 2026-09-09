@@ -129,11 +129,25 @@ The **X-SENSE** row was added 2026-09-02 for the DEF-376 carve-out check and is 
 show that it *sees* something — never that it is correctly *denied* someone else's data. Test them
 against each other.
 
-**Addresses use Gmail subaddressing** (`+tag`) so each account has the unique email the app requires
-while all mail lands in one inbox. Deliberately **not** on `gccwebapp.com`: that domain's only
-mailbox is the address the app *sends from*, and giving a test account the sender's address caused
-the credential collision on 2026-08-19 (see DEF-263). Note `mail.gccwebapp.com` does **not** support
-subaddressing — Gmail does; don't generalise.
+**Addresses use Gmail subaddressing** (`+tag`) so each account has the unique email the app requires.
+Deliberately **not** on `gccwebapp.com`: that domain's only mailbox is the address the app *sends
+from*, and giving a test account the sender's address caused the credential collision on 2026-08-19
+(see DEF-263).
+
+> ⚠️ **MAIL TO THE `+tag` ADDRESSES DOES NOT ARRIVE.** (Shawn, 2026-09-05: *"the +analyst or other
+> variations won't work. shawnmwest@gmail.com only"*.) This paragraph used to claim "all mail lands
+> in one inbox" — **it does not.** The `+tag` addresses satisfy the app's uniqueness requirement and
+> nothing more.
+>
+> **Consequence: seven of the eight test accounts cannot complete any flow that requires reading an
+> email** — password reset, email 2FA, verification links. The app is not at fault and the failure is
+> invisible from inside it: verified on 2026-09-05 that a reset request against `test.analyst`
+> **did** write a `PasswordResetToken`, so the app generated and attempted to send a message that
+> could never be received. DEF-209 then returns the same "check your email" page either way.
+>
+> **`2fatest` (`shawnmwest@gmail.com`, no tag) is the ONLY account that can receive mail** — so it is
+> the only account any email-dependent test can use, including the Gate 12 delivery check.
+> Do not "fix" a mail test by pointing it at a `+tag` address.
 
 Also present: `2fatest` / `GccTest2026!` (Analyst, email `shawnmwest@gmail.com` — no `+` tag) — the
 2FA fixture, deliberately left with 2FA **on**. Because it is the only account with 2FA enabled, it

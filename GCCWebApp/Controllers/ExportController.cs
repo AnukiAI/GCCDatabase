@@ -124,6 +124,11 @@ namespace GCCWebApp.Controllers
                 List<Certificate> certificates;
                 string reportTitle;
 
+                // CR-043 Q2: these three Analyst/Admin reports count "active" the internal way,
+                // so they read DashboardStatuses - which now includes Confidential. They were on
+                // PublicStatuses, the exact tile-vs-export disagreement DEF-200 fixed for the
+                // dashboard exports below and missed here.
+
                 switch (type)
                 {
                     case "active-certificates":
@@ -131,7 +136,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
-                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday))
+                            .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday))
                             .OrderByDescending(c => c.EffectiveDate)
                             .ToListAsync();
                         reportTitle = "Current Active Certificates";
@@ -143,7 +148,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
-                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
+                            .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) &&
                                        (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday) &&
                                        c.ExpirationDate <= thirtyDaysFromNow)
                             .OrderBy(c => c.ExpirationDate)
@@ -157,7 +162,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
-                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
+                            .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) &&
                                        (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday) &&
                                        c.ExpirationDate <= threeMonthsFromNow)
                             .OrderBy(c => c.ExpirationDate)
@@ -235,10 +240,11 @@ namespace GCCWebApp.Controllers
         /// <summary>
         /// Aggregate export of all ACTIVE product identifiers across every certificate — the
         /// "all active product identifiers across certs" report from QC #184 / CR-184.
-        /// "Active" = parent cert is publicly live, which is exactly CR-015's definition of an
-        /// active product identifier. Since DEF-358 that means publishable status (PublicStatuses:
-        /// Client Approved - Paid or Republished) AND the certificate has reached its effective
-        /// date — see DEF-359 in the query below. A certificate staged for a future effective date
+        /// "Active" = parent cert is commercially IN FORCE. CR-015 originally defined that as
+        /// "publicly live"; CR-043 (client, 2026-09-02) separated the two — Confidential is paid,
+        /// in-force work that must still be badged, and only the anonymous public database hides
+        /// it. So the status set is BadgeableStatuses (Client Approved - Paid, Client Approved -
+        /// Confidential, Republished) AND the certificate has reached its effective date — see DEF-359 in the query below. A certificate staged for a future effective date
         /// is not yet active, so neither are its identifiers.
         /// The per-certificate export (ProductIdService.ExportToCsvAsync) only covers one cert at a
         /// time; this is the single cross-cert file an analyst needs, with the certificate context
@@ -258,9 +264,13 @@ namespace GCCWebApp.Controllers
                     return Forbid();
                 }
 
-                // Active product identifiers only: non-deleted rows whose parent cert is publicly
-                // live (PublicStatuses = Paid or Republished) — the client's "all active product
-                // identifiers across certs". Tie-breaker ordering per DEF-166/234.
+                // Active product identifiers only: non-deleted rows whose parent cert is in force
+                // (BadgeableStatuses = Paid, Confidential, Republished) — the client's "all active
+                // product identifiers across certs". Tie-breaker ordering per DEF-166/234.
+                //
+                // CR-043: Confidential was excluded here until 2026-09-08. 11 Confidential certs
+                // carrying 110 product identifiers were missing from a file whose whole purpose is
+                // to drive partner badging. The client's report listed exactly those 11.
                 //
                 // DEF-360: this used to Include the whole Certificate entity graph (Certificate →
                 // Company/CertificationType/Pathway, plus both User navigations) with AsSplitQuery,
@@ -271,7 +281,7 @@ namespace GCCWebApp.Controllers
                 // emits and nothing else. AsSplitQuery is gone with the Includes — there are no
                 // collection navigations here, only references, so it was never doing anything.
                 //
-                // DEF-359: "publicly live" is status AND the validity window since DEF-358. This
+                // DEF-359: "in force" is status AND the validity window since DEF-358. This
                 // export filtered on status alone, so it emitted identifiers for certificates the
                 // public database and the Amazon partner API both correctly withhold — 14 rows
                 // across 2 certs effective two months out, in a file titled "Active" that carries
@@ -281,7 +291,7 @@ namespace GCCWebApp.Controllers
                 //
                 // Lower bound only, deliberately. The upper bound stays with the status filter:
                 // CertificateExpirationService flips Status to Expired on a daily sweep, so an
-                // expired cert leaves PublicStatuses on its own. Only the not-yet-effective case
+                // expired cert leaves BadgeableStatuses on its own. Only the not-yet-effective case
                 // had no status to carry it.
                 var effectiveCertIds = _context.Certificates
                     .WhereEffectiveDateReached()
@@ -290,7 +300,7 @@ namespace GCCWebApp.Controllers
                 var rows = await _context.CertificateProductIds
                     .AsNoTracking()
                     .Where(p => p.IsActive
-                                && CertificateStatusHelper.PublicStatuses.Contains(p.Certificate.Status)
+                                && CertificateStatusHelper.BadgeableStatuses.Contains(p.Certificate.Status)
                                 && effectiveCertIds.Contains(p.CertificateId))
                     .OrderBy(p => p.Certificate.Number)
                     .ThenBy(p => p.ProductIdType)
@@ -348,7 +358,7 @@ namespace GCCWebApp.Controllers
                         CsvField(p.CertificateStatus),
                         CsvField(p.IdPartner),
                         CsvField(p.CertPartner),
-                        CsvField(GCCWebApp.Extensions.DisplayFormatters.FormatCertificationResults(p.CertificationResults)),
+                        CsvField(p.CertificationResults),
                         CsvField(p.PathwayName),
                         CsvField(p.ProductIdType),
                         // Leading-zero-safe: UPC/GTIN/EAN values keep their zeros (DEF-306).
@@ -504,13 +514,27 @@ namespace GCCWebApp.Controllers
                         .ToListAsync();
                     return new { Certificates = companyCerts, Description = "Companies with Active Certificates" };
 
+                // DEF-403: these three sorted by the WRONG dimension — categories by certification
+                // type, types and subcategories by product NAME. Each returns the same certificate
+                // set (the null-guards exclude nothing in practice), so the only thing a caller
+                // could tell them apart by was the order, and the order was wrong. "Product Types"
+                // and "Products" were byte-identical apart from the title.
+                //
+                // The cert-level field wins with a fallback to the product's, matching how the
+                // certificate export projects the same three columns
+                // (CertificateService.ProjectToExportRows) — a certificate may override its
+                // product's taxonomy, and ordering must reflect what the file actually shows.
                 case "product-categories-with-active-certs":
                     var categoryCerts = await _context.Certificates
                         .Include(c => c.Company)
                         .Include(c => c.Product)
+                            .ThenInclude(p => p!.Category)
+                        .Include(c => c.ProductCategory)
                         .Include(c => c.CertificationType)
-                        .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now) && c.CertificationType != null)
-                        .OrderBy(c => c.CertificationType!.Name)
+                        .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now))
+                        .OrderBy(c => c.ProductCategory != null
+                                        ? c.ProductCategory.Name
+                                        : (c.Product != null && c.Product.Category != null ? c.Product.Category.Name : ""))
                         .ThenBy(c => c.Number)
                         .ToListAsync();
                     return new { Certificates = categoryCerts, Description = "Product Categories with Active Certificates" };
@@ -519,9 +543,13 @@ namespace GCCWebApp.Controllers
                     var productTypeCerts = await _context.Certificates
                         .Include(c => c.Company)
                         .Include(c => c.Product)
+                            .ThenInclude(p => p!.ProductType)
+                        .Include(c => c.ProductType)
                         .Include(c => c.CertificationType)
-                        .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now) && c.Product != null)
-                        .OrderBy(c => c.Product!.Name)
+                        .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now))
+                        .OrderBy(c => c.ProductType != null
+                                        ? c.ProductType.Name
+                                        : (c.Product != null && c.Product.ProductType != null ? c.Product.ProductType.Name : ""))
                         .ThenBy(c => c.Number)
                         .ToListAsync();
                     return new { Certificates = productTypeCerts, Description = "Product Types with Active Certificates" };
@@ -530,10 +558,13 @@ namespace GCCWebApp.Controllers
                     var subcategoryCerts = await _context.Certificates
                         .Include(c => c.Company)
                         .Include(c => c.Product)
-                        .ThenInclude(p => p!.Category)
+                            .ThenInclude(p => p!.ProductSubcategory)
+                        .Include(c => c.ProductSubcategory)
                         .Include(c => c.CertificationType)
-                        .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now) && c.Product != null && c.Product.Category != null)
-                        .OrderBy(c => c.Product!.Category!.Name)
+                        .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now))
+                        .OrderBy(c => c.ProductSubcategory != null
+                                        ? c.ProductSubcategory.Name
+                                        : (c.Product != null && c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : ""))
                         .ThenBy(c => c.Number)
                         .ToListAsync();
                     return new { Certificates = subcategoryCerts, Description = "Product Subcategories with Active Certificates" };
@@ -697,11 +728,11 @@ namespace GCCWebApp.Controllers
             csv.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             csv.AppendLine($"Total Certificates: {certificates.Count}");
             csv.AppendLine();
-            csv.AppendLine("Certificate Number,Status,Company,Product,Certification Type,Effective Date,Expiration Date,Location,Country");
+            csv.AppendLine("Certificate Number,Status,Company,Product,Certification Type,Effective Date,Expiration Date,Location,Country,Cert Subcategories");
 
             foreach (var cert in certificates)
             {
-                csv.AppendLine($"{CsvField(cert.Number)},{CsvField(cert.Status)},{CsvField(cert.Company?.Name)},{CsvField(cert.Product?.Name)},{CsvField(cert.CertificationType?.Name)},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{CsvField(cert.Location)},{CsvField(CountriesField(cert))}");
+                csv.AppendLine($"{CsvField(cert.Number)},{CsvField(cert.Status)},{CsvField(cert.Company?.Name)},{CsvField(cert.Product?.Name)},{CsvField(cert.CertificationType?.Name)},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{CsvField(cert.Location)},{CsvField(CountriesField(cert))},{CsvField(CertSubcategoriesField(cert))}");
             }
 
             return csv.ToString();
@@ -777,9 +808,10 @@ namespace GCCWebApp.Controllers
                 worksheet.Cell(headerRow, 7).Value = "Expiration Date";
                 worksheet.Cell(headerRow, 8).Value = "Location";
                 worksheet.Cell(headerRow, 9).Value = "Country";
+                worksheet.Cell(headerRow, 10).Value = "Cert Subcategories"; // DEF-412
 
                 // Style headers
-                var headerRange = worksheet.Range(headerRow, 1, headerRow, 9);
+                var headerRange = worksheet.Range(headerRow, 1, headerRow, 10);
                 headerRange.Style.Font.Bold = true;
                 headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#00AEEF");
                 headerRange.Style.Font.FontColor = XLColor.White;
@@ -801,13 +833,14 @@ namespace GCCWebApp.Controllers
                     worksheet.Cell(row, 7).Style.DateFormat.Format = "yyyy-MM-dd";
                     worksheet.Cell(row, 8).Value = cert.Location ?? "";
                     worksheet.Cell(row, 9).Value = CountriesField(cert); // CR-037
+                    worksheet.Cell(row, 10).Value = CertSubcategoriesField(cert); // DEF-412
                     row++;
                 }
 
                 // Add borders to data
                 if (certificates.Any())
                 {
-                    var dataRange = worksheet.Range(headerRow, 1, row - 1, 9);
+                    var dataRange = worksheet.Range(headerRow, 1, row - 1, 10);
                     dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
                     dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
                 }
@@ -1077,6 +1110,58 @@ namespace GCCWebApp.Controllers
                 .OrderByDescending(n => n == primary)
                 .ThenBy(n => n, StringComparer.Ordinal));
 
+        /// <summary>
+        /// DEF-412: lazily-built CertificateId -> certificate subcategories lookup, scoped to one
+        /// export request. See <see cref="CertSubcategoriesField"/>.
+        /// </summary>
+        private Dictionary<int, List<string>>? _certSubcategoryLookup;
+
+        /// <summary>
+        /// DEF-412: the certificate's subcategories as a pipe-delimited list.
+        ///
+        /// This controller had no notion of the field at all — it referenced only
+        /// <c>ProductSubcategory</c>, which is the product taxonomy and a different thing that
+        /// happens to share a word. So the column was absent rather than empty, and backfilling the
+        /// data (DEF-411) would not have made it appear here.
+        ///
+        /// Pipe-delimited and built from a per-request lookup for exactly the reasons spelled out on
+        /// <see cref="CountriesField"/>: a comma-joined cell depends on CSV quoting to survive, and
+        /// the report generators here are fed by many different queries, none of which Include this
+        /// collection. Depending on the navigation would produce the silent wrong answer — an empty
+        /// cell that looks like "this certificate has none" — and adding an Include to every query
+        /// regresses the moment someone writes the next one. It is also the collection DEF-393 warns
+        /// about loading alongside the others.
+        /// </summary>
+        private string CertSubcategoriesField(Certificate cert)
+        {
+            // Use the navigation when a caller did load it — avoids the lookup entirely.
+            if (cert.CertificationTypeSubcategories != null && cert.CertificationTypeSubcategories.Count > 0)
+            {
+                return JoinSubcategories(cert.CertificationTypeSubcategories.Select(s => s.Name));
+            }
+
+            // No DbSet exists for the join table — it is configured with UsingEntity — so the lookup
+            // is projected through the navigation instead of read from the table directly.
+            _certSubcategoryLookup ??= _context.Certificates
+                .AsNoTracking()
+                .Where(c => c.CertificationTypeSubcategories.Any())
+                .Select(c => new
+                {
+                    c.Id,
+                    Names = c.CertificationTypeSubcategories.Select(s => s.Name).ToList()
+                })
+                .ToList()
+                .ToDictionary(x => x.Id, x => x.Names);
+
+            return _certSubcategoryLookup.TryGetValue(cert.Id, out var subs)
+                ? JoinSubcategories(subs)
+                : "";
+        }
+
+        /// <summary>A-Z, pipe-delimited — matching the internal tile view's own ordering.</summary>
+        private static string JoinSubcategories(IEnumerable<string> names) =>
+            string.Join(" | ", names.OrderBy(n => n, StringComparer.Ordinal));
+
         private string GenerateCertificateReportCsv(string reportTitle, List<Certificate> certificates)
         {
             var csv = new StringBuilder();
@@ -1084,11 +1169,11 @@ namespace GCCWebApp.Controllers
             csv.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             csv.AppendLine($"Total Certificates: {certificates.Count}");
             csv.AppendLine();
-            csv.AppendLine("Certificate Number,Status,Company,Product,Certification Type,Effective Date,Expiration Date,Location,Country");
+            csv.AppendLine("Certificate Number,Status,Company,Product,Certification Type,Effective Date,Expiration Date,Location,Country,Cert Subcategories");
 
             foreach (var cert in certificates)
             {
-                csv.AppendLine($"{CsvField(cert.Number)},{CsvField(cert.Status)},{CsvField(cert.Company?.Name)},{CsvField(cert.Product?.Name)},{CsvField(cert.CertificationType?.Name)},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{CsvField(cert.Location)},{CsvField(CountriesField(cert))}");
+                csv.AppendLine($"{CsvField(cert.Number)},{CsvField(cert.Status)},{CsvField(cert.Company?.Name)},{CsvField(cert.Product?.Name)},{CsvField(cert.CertificationType?.Name)},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{CsvField(cert.Location)},{CsvField(CountriesField(cert))},{CsvField(CertSubcategoriesField(cert))}");
             }
 
             return csv.ToString();
@@ -1123,9 +1208,10 @@ namespace GCCWebApp.Controllers
                 worksheet.Cell(headerRow, 7).Value = "Expiration Date";
                 worksheet.Cell(headerRow, 8).Value = "Location";
                 worksheet.Cell(headerRow, 9).Value = "Country";
+                worksheet.Cell(headerRow, 10).Value = "Cert Subcategories"; // DEF-412
 
                 // Style headers
-                var headerRange = worksheet.Range(headerRow, 1, headerRow, 9);
+                var headerRange = worksheet.Range(headerRow, 1, headerRow, 10);
                 headerRange.Style.Font.Bold = true;
                 headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#00AEEF");
                 headerRange.Style.Font.FontColor = XLColor.White;
@@ -1147,13 +1233,14 @@ namespace GCCWebApp.Controllers
                     worksheet.Cell(row, 7).Style.DateFormat.Format = "yyyy-MM-dd";
                     worksheet.Cell(row, 8).Value = cert.Location ?? "";
                     worksheet.Cell(row, 9).Value = CountriesField(cert); // CR-037
+                    worksheet.Cell(row, 10).Value = CertSubcategoriesField(cert); // DEF-412
                     row++;
                 }
 
                 // Add borders to data
                 if (certificates.Any())
                 {
-                    var dataRange = worksheet.Range(headerRow, 1, row - 1, 9);
+                    var dataRange = worksheet.Range(headerRow, 1, row - 1, 10);
                     dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
                     dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
                 }

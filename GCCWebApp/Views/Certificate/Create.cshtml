@@ -405,6 +405,33 @@
                     <small id="pdf-requirements" class="admin-sr-only">File must be PDF format, maximum 10 megabytes</small>
                     <div id="pdfPreviewContainer" aria-live="polite" aria-atomic="true"></div>
                 </div>
+
+                @* DEF-401 (second half, 2026-09-05): the Create POST has always accepted
+                   `certificateImage` and set CertificateImagePath from it
+                   (CertificateController.cs:461 / :577) — but no field exposed it, so the parameter
+                   was always null and the handler was dead code. Edit got its field on 2026-09-04;
+                   this is the other half.
+
+                   Optional here, unlike on Edit's reading of it: the preview is normally generated
+                   from the PDF being uploaded in the same request. It matters when the analyst
+                   already knows that will fail — an encrypted document (DEF-400 / 23-0971), a
+                   corrupt file, a scan the renderer chokes on. Without it they must create the
+                   certificate, discover the blank preview, and then go and edit it. *@
+                <div class="form-group">
+                    <label for="certificateImage">Preview Image (optional)</label>
+                    <div class="pdf-upload-zone" id="imageUploadZone" role="button" tabindex="0"
+                         aria-label="Upload a preview image for this certificate. You can drag and drop a file here or press Enter to select a file."
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificateImage').click();}">
+                        <div class="pdf-upload-placeholder">
+                            <i class="fas fa-image" aria-hidden="true"></i>
+                        </div>
+                        <div class="pdf-upload-text">Drag and drop image here or click to select</div>
+                        <small style="color: #6c757d; font-size: 16px;">Maximum file size: 5MB</small>
+                    </div>
+                    <input type="file" id="certificateImage" name="certificateImage" accept="image/*" style="display: none;" aria-describedby="image-help" />
+                    <small id="image-help" class="form-text text-muted">Leave empty and the preview is generated from the PDF above. Only needed when that cannot be rendered. JPG, PNG, GIF, BMP or WebP.</small>
+                    <div id="imagePreviewContainer" aria-live="polite" aria-atomic="true"></div>
+                </div>
             </div>
 
             <!-- Product ID Manager -->
@@ -458,6 +485,43 @@
 </div>
 
 @section Scripts {
+    <script>
+        // DEF-401: wire the preview-image upload zone.
+        //
+        // Inline for the same reason as on Edit: certificate-create.js is shared by both pages and
+        // its PdfUpload.init() binds #pdfUploadZone only. Without this a mouse click on the zone
+        // does nothing while the keyboard path works, because the markup carries its own onkeydown
+        // — exactly the kind of half-working control that reads as "the button is broken".
+        (function () {
+            var zone = document.getElementById('imageUploadZone');
+            var input = document.getElementById('certificateImage');
+            var preview = document.getElementById('imagePreviewContainer');
+            if (!zone || !input) return;
+
+            function show(file) {
+                if (!preview) return;
+                if (!file) { preview.textContent = ''; return; }
+                preview.textContent = 'Selected: ' + file.name +
+                    ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+            }
+
+            zone.addEventListener('click', function () { input.click(); });
+            input.addEventListener('change', function () { show(input.files[0]); });
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function (ev) {
+                zone.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); });
+            });
+            zone.addEventListener('drop', function (e) {
+                var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+                if (!f) return;
+                var dt = new DataTransfer();
+                dt.items.add(f);
+                input.files = dt.files;
+                show(f);
+            });
+        })();
+    </script>
+
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script src="~/js/product-id-manager.js" asp-append-version="true"></script>
     <script src="~/js/certificate-custom-fields.js" asp-append-version="true"></script>

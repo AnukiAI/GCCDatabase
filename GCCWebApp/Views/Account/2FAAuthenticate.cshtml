@@ -75,7 +75,14 @@
             </div>
 
             <div class="trust-device">
-                <input type="checkbox" id="TrustDevice" name="TrustDevice" />
+                @* DEF-410: value="true" is load-bearing. A bare <input type="checkbox"> posts the
+                   literal string "on" when ticked, and ASP.NET Core binds bool via TypeConverter,
+                   which parses "true"/"false" and NOT "on" — so `trustDevice` arrived false on every
+                   submit, IssueTrustedDeviceCookieAsync never ran, and 2FA re-prompted forever.
+                   The login page's "Remember me" works precisely because it uses asp-for, which
+                   emits value="true" plus a paired hidden "false"; this one was hand-written and
+                   never got either. Do not remove the value attribute. *@
+                <input type="checkbox" id="TrustDevice" name="TrustDevice" value="true" />
                 <label for="TrustDevice">Trust this device for 30 days</label>
             </div>
 

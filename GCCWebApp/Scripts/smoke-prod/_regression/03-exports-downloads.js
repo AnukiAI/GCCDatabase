@@ -6,7 +6,19 @@
 // An export that 200s with every row in the database passes an access test and is a data breach.
 // DEF-198/QC #182 was exactly that: Partner web users fell through to the unscoped path and
 // received every cert in the DB. So each successful export is parsed and its rows are compared
-// against the population that role is allowed to see (established in phase 2).
+// against the population that role is allowed to see.
+//
+// DEF-408: that population is now fetched HERE, in the same session and at the same moment as the
+// export, instead of being read out of phase 2's results file. The old cross-phase read had three
+// failure modes and all three broke the check silently or falsely:
+//   1. a day-old snapshot graded today's export and produced 4 false FAILs (5,924 vs 5,731 — the
+//      difference was simply the batch-2 load);
+//   2. a missing role population hit `continue`, so the check VANISHED rather than reporting;
+//   3. no phase-2 file at all skipped the whole block, collapsing seven per-role checks into a
+//      single WARN — visible, but the phase still reported 0 FAIL and no role was actually checked.
+// This check is directional — it exists to catch an export WIDER than the role's population — so
+// crying wolf and silently disappearing are both ways of losing the one signal that catches a
+// DEF-198-class leak.
 
 const fs = require('fs');
 const path = require('path');
@@ -31,6 +43,37 @@ function parseCsv(text) {
 }
 
 const CERT_EXPORT = '/Certificate/ExportCertificates?format=csv';
+
+// DEF-408: the tile API that defines each role's legitimate population. Same mapping phase 2 uses.
+// Only page 1 is requested — totalCount comes back on it, and the row SET comparison that needs a
+// full walk is phase 2's job, not this one's.
+const POPULATION_API = {
+  anon: '/api/certificate-tiles',
+  external: '/api/CertificateTileExternal',
+  external2: '/api/CertificateTileExternal',
+  amazon: '/api/CertificateTileExternal',
+  novi: '/api/CertificateTileExternal',
+  analyst: '/api/certificate-tiles-internal',
+  admin: '/api/certificate-tiles-internal',
+};
+
+// Returns { totalCount } or { error }. Never returns a number it did not read from a 200 body —
+// DEF-392: a harness must not report a figure it did not actually measure.
+async function fetchPopulation(page, role) {
+  const endpoint = POPULATION_API[role];
+  if (!endpoint) return { error: `no population endpoint mapped for role ${role}` };
+  try {
+    const resp = await page.request.get(`${BASE}${endpoint}?page=1&pageSize=1`, {
+      failOnStatusCode: false, timeout: 180000,
+    });
+    if (resp.status() !== 200) return { error: `HTTP ${resp.status()} from ${endpoint}` };
+    const body = await resp.json();
+    if (typeof body.totalCount !== 'number') return { error: `no numeric totalCount in ${endpoint} response` };
+    return { totalCount: body.totalCount };
+  } catch (e) {
+    return { error: `${endpoint}: ${String(e.message).slice(0, 120)}` };
+  }
+}
 
 // Analyst/Admin-only export surfaces. `type` values are the ones the admin pages actually request.
 const TABLE_EXPORTS = [
@@ -91,7 +134,12 @@ const INTERNAL_ONLY_COLUMNS = [/internal\s*tag/i];
       // match loosely on both spellings rather than an exact string.
       const numIdx = header.findIndex((h) => /cert(ificate)?\s*(number|no\.?|#)/i.test(h.replace(/^﻿/, '')));
       const nums = numIdx >= 0 ? new Set(body.map((r) => (r[numIdx] || '').trim()).filter(Boolean)) : new Set();
-      exports[role] = { rows: body.length, header, numbers: nums, bytes: text.length, ms };
+      // DEF-408: same session, same moment as the export it will be compared against.
+      const popResult = await fetchPopulation(page, role);
+      exports[role] = {
+        rows: body.length, header, numbers: nums, bytes: text.length, ms,
+        population: popResult.totalCount ?? null, populationError: popResult.error ?? null,
+      };
 
       rec(`exp.certcsv.${role}`, `Certificate CSV export as ${role}`, 'PASS',
         `${body.length} rows, ${header.length} cols, ${(text.length / 1024).toFixed(0)}KB in ${ms}ms`);
@@ -125,22 +173,33 @@ const INTERNAL_ONLY_COLUMNS = [/internal\s*tag/i];
   }
 
   // --- 3. Export scoping: the file must not be wider than the role's own population ---
-  // Compared against the role's tile-API population from phase 2 where available.
-  const phase2Path = path.join(__dirname, '_results', '02-data-scoping.json');
-  if (fs.existsSync(phase2Path)) {
-    const p2 = JSON.parse(fs.readFileSync(phase2Path, 'utf8'));
-    const pop = p2.populations || {};
-    const expected = {
-      anon: pop.public?.totalCount, external: pop.external?.totalCount, external2: pop.external2?.totalCount,
-      amazon: pop.amazon?.totalCount, novi: pop.novi?.totalCount,
-      analyst: pop.internal_analyst?.totalCount, admin: pop.internal_admin?.totalCount,
-    };
+  // DEF-408: both numbers come from this run. No phase-2 file is read, so there is nothing to be
+  // stale, and every role reports an outcome — a role that cannot be measured says so.
+  {
     for (const role of ROLES) {
-      if (!exports[role] || expected[role] == null) continue;
-      const got = exports[role].rows, want = expected[role];
+      if (!exports[role]) {
+        // The export itself failed and was already recorded as such above; do not also imply the
+        // scope check passed by staying silent about it.
+        rec(`exp.scope.${role}`, `${role}: export row count matches what the role can see`, 'WARN',
+          'NOT RUN — no export was retrieved for this role');
+        continue;
+      }
+      const { rows: got, population: want, populationError } = exports[role];
+      if (want == null) {
+        // Never silently skip. An absent population used to `continue`, and a check that vanishes
+        // reads as a pass.
+        rec(`exp.scope.${role}`, `${role}: export row count matches what the role can see`, 'FAIL',
+          `NOT MEASURED — could not read this role's population: ${populationError || 'unknown reason'}`);
+        continue;
+      }
+      // Wider than the population is the breach direction (DEF-198); narrower is a different
+      // problem but still a disagreement, so both fail — the note says which way it went.
+      const delta = got - want;
       rec(`exp.scope.${role}`, `${role}: export row count matches what the role can see`,
-        got === want ? 'PASS' : 'FAIL',
-        `export=${got} rows, tile API totalCount=${want}, delta=${got - want}`);
+        delta === 0 ? 'PASS' : 'FAIL',
+        `export=${got} rows, tile API totalCount=${want}, delta=${delta}` +
+        (delta > 0 ? ' — export is WIDER than the role may see (breach direction)'
+          : delta < 0 ? ' — export is narrower than the role may see' : ''));
     }
     // Cross-role: the two scoped externals must not appear in each other's export.
     if (exports.external && exports.external2) {
@@ -149,8 +208,6 @@ const INTERNAL_ONLY_COLUMNS = [/internal\s*tag/i];
         shared.length === 0 ? 'PASS' : 'FAIL',
         `external=${exports.external.numbers.size} external2=${exports.external2.numbers.size} shared=${shared.length}${shared.length ? ' e.g. ' + shared.slice(0, 5) : ''}`);
     }
-  } else {
-    rec('exp.scope', 'Export scoping comparison', 'WARN', 'phase 2 results not found — run 02-data-scoping.js first');
   }
 
   await browser.close();

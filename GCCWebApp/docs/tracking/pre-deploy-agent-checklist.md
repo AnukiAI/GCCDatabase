@@ -323,6 +323,148 @@ They can disagree — a deploy that extracted the DLL but not `wwwroot` is a rea
 
 ## Deploy gate results log
 
+### `GCCWebApp-deploy-20260908-1607.zip` — **DEPLOYED to gccwebapp.com 2026-09-08, post-deploy verified**
+
+**Runbook:** `docs/tracking/2026-09-08-deploy-runbook-CR043-CR045.md`
+**Contents:** CR-043, CR-045, **and DEF-412** (whose own bundle was never uploaded).
+**In-zip `GCCWebApp.dll` md5:** `457bd720da884279` · 341 entries · 61.1 MB
+
+**Supersedes `GCCWebApp-deploy-20260908-DEF412.zip` and `GCCWebApp-deploy-20260908-0648.zip` — do
+not upload either.** This bundle carries everything they did plus both CRs.
+
+> **DEPLOYED.** DB applied ~16:20 EDT, code uploaded and recycled ~17:0x EDT, verified immediately
+> after: **17 of 18 live checks pass**; the one that does not is `CR043.C2`, recorded as a failure
+> on purpose because **Novi has 0 tagged certificates on this dataset**, so its isolation control
+> returns an empty set and proves nothing. `CR043.C3` (a different company, 23 certificates visible,
+> 0 of the 13) is the control that carries that assertion here.
+
+| Gate | Result |
+|------|--------|
+| 0 — server uploads backup | **NOT DONE — human step, must happen before extraction.** Bundle contains 0 upload entries, so extraction cannot touch the PDF store; take the backup regardless (2026-04-23 and 2026-06-15 both started here) |
+| 3 — data scoping | **PASS** — 11/11 live checks, each with a control: anonymous 404s on all 13 Confidential certs while a public cert still 200s; Amazon sees 13/13, **Novi 0/13 on a non-empty response** |
+| 4 — partner API contract | **PASS** — response shape unchanged, row set widens only. `partner-isolation.js` / `rbac-matrix.js` needed no re-baselining: they discover certificates dynamically and assert scoping, not a fixed status list |
+| 5 — traceability | **PASS** — CR-043 and CR-045 register entries updated to BUILT with as-built sections; shipped log, observations log, ways-to-improve all appended |
+| 7 — pending migration | **APPLIED.** `20260908175939_CR045_CertificationResultsVerbatimSort` recorded. `AutoMigrateOnStartup=false` confirmed in the bundle, so nothing migrates on start either way |
+| 9 — static integrity | **PASS** — verifier 0 failures, now including CR-043/CR-045 markers added this session |
+| 10 — config resolves | **PASS** — bundled `web.config` has `ASPNETCORE_ENVIRONMENT=Production`; 0 DataProtection keys, 0 dev config, 0 secrets overlay, 0 upload entries |
+| 11 — post-deploy close-out | **PASS** — `/appsettings.Production.json` and `/appsettings.json` both 404; DEF-412 column present AND populated (169/1,061) |
+| 12 — outbound email | **NOT RUN** — nothing in this deploy touches mail; only `2fatest` can receive it |
+
+**Marker check on the in-zip DLL** — size and entry count prove nothing here (339 entries / 61.1 MB
+once matched between two bundles while one was missing an entire fix):
+
+| Marker | Expected | Found |
+|---|---|---|
+| `BadgeableStatuses` | present | **PRESENT** |
+| `IsBadgeable` | present | **PRESENT** |
+| `PublicStatuses` | **present** — must survive; it still guards the public database | **PRESENT** |
+| `FormatCertificationResults` | **absent** | **ABSENT** |
+| `DisplayFormatters` | **absent** | **ABSENT** |
+| `Cert Subcategories` | present (DEF-412) | **PRESENT** |
+
+**Database, applied then proven against snapshots** (`CertProductIdStatus_bak_CR043_20260908`,
+`CertResults_bak_CR045_20260908` — drop both once the deploy is confirmed good):
+
+| | |
+|---|---|
+| Sort values changed | **0 of 6,012** |
+| `CertificationResults` text changed | **0 of 6,012** |
+| CR-043 backfill | **420 rows, all on Confidential certificates**, nothing else |
+| CR-171 idempotent re-run | 0 + 0 inserted |
+| Certificate count | 6,012 before and after |
+| `EXEC(CONCAT(…))` surviving in the schema script | **0** — the DEF-386 repair fired on 1 statement, CR-045's computed column |
+
+**The behaviour change, now measured:** the Analyst/Admin `active-certificates` report returned
+**1,061** rows against an expected ~1,024. Reconciled exactly — 1,019 Paid+Republished in force
+(what it would have returned before) **+ 42 Confidential in force** (added by CR-043 Q2) = 1,061.
+Intended, and the one place a count moves without the client having asked for it, so tell them
+before they find it.
+
+---
+
+### `GCCWebApp-deploy-20260904-1328.zip` — **BUILT 2026-09-04, verified, NOT uploaded — HELD, review in progress**
+
+Built from the **`ci-regression` working tree** (not a clean checkout of HEAD) with
+`dotnet publish -c Release -p:PublishProfile=PleskTestEnvironment`. 61.1 MB, 339 entries.
+Publish output lands in `bin/Release/net8.0/**win-x64**/publish/` (the profile sets
+`RuntimeIdentifier=win-x64`), **not** `bin/Release/net8.0/publish/` — zipping the wrong path
+produces an empty or stale bundle.
+
+**Shawn asked for the fixes to be bundled but explicitly NOT deployed — a few items are still under
+review. Do not upload this without checking the contents list below.**
+
+#### ⚠️ This bundle carries more than the fixes it was asked for
+
+The request was to bundle the forgot-password batch (DEF-405/406/407). **That cannot be shipped on
+its own.** There is no Razor runtime compilation configured (no `RuntimeCompilation` package, no
+`.cshtml` in the build output), so **views compile into `GCCWebApp.dll`**. Shipping a view fix means
+shipping the DLL, and the DLL contains every other source change in the working tree. A `.cshtml`
+file-drop would do nothing on the server.
+
+So this bundle necessarily also contains work that was **not** part of the request:
+
+| In the bundle | What it is | Review state |
+|---|---|---|
+| **DEF-405 / 406 / 407** | Forgot-password copy, gradient, tagline | The requested batch. Fixed + verified on localhost. |
+| **DEF-402** | Search perf — CR-037 country `EXISTS` moved out of the search `OR` (4 files: both tile API controllers, `CertificateRepository`, `Search/TagSearchMatch.cs`) | **Fixed, previously logged NOT deployed.** Perf claim not re-measured against this build. |
+| **DEF-403** | Three dashboard stat exports sorted by the wrong dimension (`ExportController`) | Fixed, previously logged not deployed. |
+| **DEF-400 / DEF-401** | Certificate Edit image input (`Views/Certificate/Edit.cshtml`) | **DEF-401 has had no viewport pass.** This is the likeliest thing still under review. |
+
+`DEF-404` (country filter vs export mismatch) is **OPEN and NOT fixed** — it is not in this bundle
+and shipping this bundle does not address it.
+
+#### Verification
+
+| Check | Result |
+|---|---|
+| `verify-bundle.py` hygiene | **ALL PASS** — 0 DataProtection keys, 0 `appsettings.Secrets.json`, 0 `appsettings.Development.json`, 0 `appsettings.Test.json`, 0 `Scripts/`, 0 `docs/`, 0 `docs2/`, 0 `wwwroot/uploads`, 0 `App_Data/uploads`. (`GCCWebApp.pdb` present — non-fatal note, as always.) |
+| Required files | **PASS** — `GCCWebApp.dll`, `web.config`, `appsettings.json`, `appsettings.Production.json` |
+| Content markers | **failures: 0** (`--no-migrations=CR037_MultiCountryCertificates`) |
+| `AutoMigrateOnStartup` | **false** in the shipped `appsettings.Production.json`, and not true — asserted on the in-zip bytes |
+
+**New markers added to `verify-bundle.py` for this batch**, asserted against in-zip bytes:
+control (`ForgotPassword` view compiled in) · DEF-405 "1 hour" present / "Reset links expire after
+24 hours" absent · DEF-406 no view redeclares `--auth-left-gradient` + the light token ships in
+`auth.css` · DEF-407 tagline absent. The control marker matters: three of these are **absence**
+assertions, and an absence proves nothing if the view never compiled into the DLL at all.
+
+#### Two verifier failures on the first run — both resolved, one was a real gap
+
+1. **`DEF-405 old 24-hour copy is gone: PRESENT` — false positive I introduced.** The marker
+   `"expire after 24 hours"` also matches `Extensions/SwaggerExtensions.cs:356`
+   (*"Tokens expire after 24 hours"* — API JWT documentation, unrelated to password reset).
+   Tightened to the full sentence `"Reset links expire after 24 hours"`. The reset copy really is
+   gone; the marker was the thing at fault.
+2. **`migrations/apply-migrations.sql not found in zip` — a genuine gap in the check.** The
+   assertion was unconditional, so a legitimately schema-free drop could only ever FAIL, which
+   invites the habit of eyeballing a red line and uploading anyway. **The default is unchanged and
+   still fatal.** Added an explicit opt-in instead:
+
+   ```
+   python Scripts/deploy/verify-bundle.py <zip> --no-migrations=<AlreadyAppliedHighWaterName>
+   ```
+
+   It asserts the declared high-water migration type is compiled into the DLL, and prints a loud
+   operator assertion into the output for this log to carry. It cannot prove nothing newer exists —
+   that part is a human claim, deliberately recorded as one.
+
+**Gate 7 — nothing to run.** Repo migration high-water is
+`20260901164220_CR037_MultiCountryCertificates`, which was **applied to the target on 2026-09-02**
+(see `docs/tracking/2026-09-02-deploy-runbook.md`). `git status -- Migrations/` is clean and no
+migration was added in this batch, so this drop carries no schema change. **DEF-398**
+(`IX_CertificateCountries_NormalizedCountry` exceeding the 1700-byte index key limit) remains
+outstanding from the last deploy and is unaffected by this bundle.
+
+**Not run against this bundle:** Gates 0–6 and 8–10. No upload, so no Gate 11/12. **This is a
+verified artifact, not a gated release** — the full gate run belongs at the point Shawn decides to
+deploy, not now, since the contents may still change.
+
+**Housekeeping flag (not actioned — deleting artifacts is Shawn's call):** `deployment-drops/` still
+holds `GCCWebApp-deploy-20260831-1628.zip`, which was never uploaded and is now superseded, plus
+`GCCWebApp-deploy-20260902-full.zip`, which **is** the currently-live artifact and must be kept.
+Uploading 20260831-1628 by mistake would be a downgrade — it predates the 2026-09-02 deploy.
+
+
 ### `GCCWebApp-deploy-20260831-1628.zip` — **BUILT 2026-08-31, verified, NOT uploaded**
 
 Built from the **working tree** (not a clean checkout of HEAD) specifically to replace
@@ -1304,3 +1446,304 @@ maximum length of 8000 bytes."* **Shawn's call, 2026-09-01: the width stays.** C
 unlimited number of countries per certificate, and a cap risks truncation — which is the DEF-314
 failure the `CertificateCountry` model comment already cites. The same warning class is documented
 as expected for CR-187. **Do not "fix" this by narrowing the column.**
+
+---
+
+## Deploy record — 2026-09-04 · `GCCWebApp-deploy-20260904-1750.zip` · **CANDIDATE, NOT UPLOADED**
+
+**Artifact:** `deployment-drops\GCCWebApp-deploy-20260904-1750.zip` — 339 entries, 61.1 MB
+(also at `C:\gccpub_out\GCCWebApp-deploy-20260904-1750.zip`; byte-identical, same sha256)
+
+> ⚠️ **TWO bundles were built today and only one is complete.** `deployment-drops\` already held
+> `GCCWebApp-deploy-20260904-1328.zip` from a parallel session. Both are 339 entries and 61.1 MB, and
+> the sizes are identical — but marker-checked against the in-zip DLL, **the 13:28 bundle is MISSING
+> DEF-404** (`countryFilter` ABSENT; DEF-401/402/405 and the control marker all present). Uploading
+> it would ship today's work minus the country-filter fix, and nothing about the file would say so.
+> The 17:51 bundle was copied into `deployment-drops\` so the newest file in the canonical folder is
+> also the correct one. **Size and entry count are NOT evidence two bundles are the same build** —
+> the DLLs differ by 512 bytes.
+**sha256:** `729e8c44351a59bf529d04b2322a9cfd9ebafd7ce27a78900b989d2c4f157434`
+**Target:** TEST (gccwebapp.com). **Built from:** branch `ci-regression` **working tree** (not HEAD),
+`dotnet publish -c Release -p:PublishProfile=PleskTestEnvironment`, 0 errors.
+
+> ⚠️ **A zip is a full overwrite, and this one carries every uncommitted change in the tree** —
+> three sessions' work, not one. The DLL is a single artifact: no fix in the table below can be
+> excluded without reverting its files and rebuilding.
+
+**What ships — 11 files, 6 defects:**
+
+| Defect | Files | Validated by |
+|---|---|---|
+| DEF-401 preview-image field on Certificate/Edit | `Views/Certificate/Edit.cshtml` | 5-viewport pass, 2026-09-04 (below) |
+| DEF-402 search 8-10s (country clause in the search OR) | `Search/TagSearchMatch.cs`, both tile API controllers, `Repositories/CertificateRepository.cs` | prior session |
+| DEF-403 three stat exports sorted by the wrong dimension | `Controllers/ExportController.cs` | local run, prior session |
+| DEF-404 country filter matched the primary only | `Services/CertificateService.cs` | controller-layer set comparison on dev |
+| DEF-405/406/407 forgot-password copy, gradient, tagline | `Views/Account/*.cshtml` (4) | parallel session |
+
+**Not in this bundle:** DEF-408 is harness-only (`Scripts/` is excluded from publish by design).
+
+### Gate results
+
+| Gate | Fires? | Result | Evidence |
+|---|---|---|---|
+| 0 uploads backup | yes | **NOT DONE — manual, owner: Shawn, must precede extraction** | Cannot be done from the workstation. |
+| 1 UI / design guide | yes | **NOT RUN** (agent gate) | Partially covered: DEF-401's field got a 5-viewport pass; the four auth views did not. |
+| 2 cross-role + responsive | yes | **PARTIAL** | DEF-401 field at 320/390/768/1440/1920: renders, click opens the file dialog at every width, **0 horizontal overflow**. Full cross-role responsive sweep not run. |
+| 3 data scoping | yes | **PASS** | `deploy-gate.js` security suite, exit 0, 98s. |
+| 4 **Amazon contract** | yes | **PASS — 7/7, `CONTRACT UNCHANGED`** | GS1 list, GS1 single, standard list all "identical structure" vs the April baselines. |
+| 5 traceability | always | **PASS (with one correction made)** | DEF-401's row said *"RAISED, NOT FIXED · Files: none changed"* while `Edit.cshtml` held 83 lines of fix. Corrected. Gate 9 could not see it — a row that never said "pending deploy" is invisible to `unshipped-fixes`, the same blind spot as `close-out.js`. |
+| 6 performance / EF | yes | **PARTIAL** | Filtered exports 0.4-1.3s after the DEF-404 change (dev, Debug build). No cold-start timing run. DEF-402's own numbers are the prior session's. |
+| 7 migration → schema | yes | **PASS — 0 pending** | 37 migrations in code, 38 applied on TEST. **This deploy changes the database not at all.** One historical orphan, `20260127002958_AddPartnerIdToCompanies`, applied on the DB and absent from code — pre-existing, harmless, already noted in the 08-17 record. |
+| 8 CRUD write paths | yes | **PASS — 39P / 0F / 0W / 0B** | tag, company, product, user, certificate round-trips. |
+| 9 static integrity | always | **PASS — 23P / 0F / 13W, GREEN-WITH-WARNINGS** | Confirms independently that the bundle must be built from the working tree, not HEAD. |
+| 10 config → data row | always | **not re-run** | No config file changed in this tree; `appsettings.Production.json` is at HEAD. |
+| 11 post-deploy close-out | after upload | **PASS** | `close-out.js` matched only DEF-405/406/407; the other four were closed by hand — see the note below. Undeployed roll-up **9 → 6**, and none of the 6 relate to this deploy. |
+| 12 outbound email | after upload | **PASS — delivery confirmed end to end** | Reset requested for `shawnmwest@gmail.com` 2026-09-05 15:16:12 UTC; **Shawn confirmed the message arrived.** |
+
+### Bundle hygiene — `verify-bundle.py`, **0 failures**
+
+**0** entries matching DataProtection keys, loose `key-*.xml`, `appsettings.Development.json`,
+`appsettings.Secrets.json`, `appsettings.Test.json`, test projects, `wwwroot/uploads`,
+`App_Data/uploads`, `Scripts/`, `docs/`, `docs2/`. All four required files present. The one `.env`
+hit in a raw filename scan was **`Serilog.Enrichers.Environment.dll`** — a substring match, not a
+finding; it is recorded here because the count alone read as a failure.
+
+### Content markers — four added this drop
+
+`imageUploadZone` and `imagePreviewContainer` (DEF-401, Razor compiles into the DLL),
+`MatchingCountryCertificateIdsAsync` (DEF-402), and `countryFilter` (DEF-404 — the fix adds no type
+or literal, but the lambda captures the local, so the compiler emits a display-class field of that
+name; it is the only durable trace the change left). All four assert PRESENT against the **in-zip
+bytes**, alongside the existing control-present / nonsense-absent pair.
+
+**DEF-403 has no reliable in-DLL marker and is deliberately not asserted.** Its entire change is the
+ORDER BY expressions inside three LINQ queries — no new type, member or literal, and every property
+name it touches already existed. Inventing a marker that cannot fail would be worse than recording
+the gap. **Verify it functionally after the upload** with
+`Scripts/smoke-prod/2026-09-04-export-audit.py`, which fails if any two of the six stat exports come
+back byte-identical — the exact symptom DEF-403 describes.
+
+### One config note, checked because the checklist header contradicts the file
+
+The header of this document says `Database:AutoMigrateOnStartup: true` "is set *because* this is a
+test env". **It is `false` in `appsettings.Production.json` today** (`:107`) and unchanged in this
+tree, so this deploy does not alter it — but the header text and
+[[feedback_test_env_auto_migrates]] are both stale. It does not matter for this drop (0 pending
+migrations either way); it matters a great deal for the next one that has a migration, which will
+now need applying by hand.
+
+### Carried risk, stated plainly
+
+Gate 0 has not been done and is the operator's. Gate 1 did not run and Gates 2 and 6 ran only
+partially: **the four auth views (DEF-405/406/407) have had no viewport or design pass in this
+session** — they are a parallel session's work and I did not re-validate them. Everything else is
+green, the Amazon contract is unchanged, and the schema is untouched.
+
+### Gate 11 note — close-out could only see 3 of the 7
+
+`close-out.js` reported `(none matched)` for DEF-401/402/403/404. Cause: `PENDING_RE`
+(`_static/unshipped-fixes.js:34`) matches **"not yet deployed"** and those four rows were written
+**"FIXED, NOT DEPLOYED"**. Gate 9's "genuinely undeployed" roll-up was blind to them for the same
+reason — the fixes had shipped and nothing in the tooling could say so.
+
+Closed by hand. **The durable fix is one word** — add `|not deployed` to that alternation — and it
+was deliberately NOT done here: the regex is imported by both `close-out.js` and Gate 9, so changing
+it moves every future roll-up, and doing that silently mid-deploy is how tooling stops being
+trusted. Worth doing as its own change.
+
+**Meanwhile, when writing a Status line, use wording the regex already knows** — "pending deploy" or
+"not yet deployed". Never invent a phrasing.
+
+### Gate 12 note — delivery SUBSUMES the two server-side checks
+
+The checklist lists three bullets: `appsettings.Secrets.json` present beside the DLL, a
+`Email: LIVE …` startup banner, and one real delivery. **The third proves the first two.**
+`MockEmailService` delivers nothing at all, so a message that actually arrives is only possible if
+the secrets overlay survived the extract *and* the banner says LIVE *and* the host can reach
+`accumail3` outbound. Confirmed arrival is therefore stronger evidence than either file check, not
+weaker.
+
+**So the two server-side bullets are diagnostics for when delivery FAILS, not independent
+requirements.** A future gate run that gets a confirmed delivery can record Gate 12 as PASS without
+server access; only a failure needs someone to go and read the banner.
+
+**A cheaper probe found on the way:** `Users.PasswordResetTokenExpiry` came back exactly **60
+minutes** after the request, which confirms DEF-405's "expires in 1 hour" copy is live **without
+touching a mailbox**. It also distinguishes "the app never tried" from "the app tried and delivery
+failed" — a token was issued for the `+tag` address too, and that mail could never arrive.
+
+### Test-account constraint discovered during this gate
+
+**Mail to the `shawnmwest+tag@gmail.com` addresses does not arrive** (Shawn, 2026-09-05). Seven of
+the eight test accounts therefore cannot complete a password reset, email 2FA, or any verification
+flow. **`2fatest` / `shawnmwest@gmail.com` is the only account that can receive mail** and is the
+only valid target for this gate. `.claude/CLAUDE.md` claimed the opposite and has been corrected.
+
+
+---
+
+## Deploy record — 2026-09-05 · `GCCWebApp-deploy-20260905-1301.zip` · **CANDIDATE, NOT UPLOADED**
+
+**Artifact:** `deployment-drops\GCCWebApp-deploy-20260905-1301.zip` — 339 entries, 61.1 MB
+(also at `C:\gccpub_out\`; byte-identical, same sha256)
+**sha256:** `88bb0f12893faa0d2cb3b6003ec35ee877e80010d8bbc69e068a04b3b8748841`
+**Target:** TEST (gccwebapp.com). **Built from:** `ci-regression` **working tree**, Release, 0 errors.
+
+**What this drop adds: DEF-409 only** — search now ranks certificate-number prefix matches first.
+Everything else in the zip (DEF-401/402/403/404/405/406/407) is identical to the 2026-09-04 bundle
+that is already live, so re-shipping it is a no-op.
+
+### Gate results
+
+| Gate | Fires? | Result |
+|---|---|---|
+| 0 uploads backup | yes | **NOT DONE — manual, owner: Shawn, must precede extraction** |
+| 1 UI / design guide | **no** | no view changed — this drop is `.cs` only |
+| 2 cross-role + responsive | **no** | same reason |
+| 3 data scoping | yes | **PASS — 65P / 0F** (partner-isolation 21, rbac 24, idor 2, cert-detail 10, keepalive 8) |
+| 4 **Amazon contract** | yes | **PASS — 7/7, `CONTRACT UNCHANGED`.** The v1 controller shares none of the changed code, but the gate proves it rather than assuming |
+| 5 traceability | always | **PARTIAL** — see the close-out note below |
+| 6 performance | yes | **PARTIAL** — measured on dev/Debug: unsearched 861 ms, ranked "23" 1,045 ms, boundary page 1,070 ms, and "sika" 1,545 ms *without* using the rank path. Re-measure on the test site |
+| 7 migration → schema | yes | **PASS — 0 pending.** 37 in code, 38 applied. **Schema untouched** |
+| 8 CRUD write paths | yes | **PASS — 39P / 0F** |
+| 9 static integrity | always | **PASS — 23P / 0F** |
+| 10 config → data | always | not re-run — no config file changed |
+| 11 post-deploy close-out | after upload | **PASS** — DEF-409 closed via `close-out.js --ids`. See the note below: the Status rewording DID work for close-out; only the `unshipped-fixes` roll-up still cannot see it |
+| 12 outbound email | after upload | **PASS — delivery confirmed.** Reset to `shawnmwest@gmail.com` 2026-09-05 17:27:38 UTC; Shawn confirmed arrival. Token expiry read 60 min, re-confirming DEF-405 live |
+
+### The first gate run went RED and it was my fault — recorded because a waiver would have hidden it
+
+The first `deploy-gate.js` reported **57P / 1F — RED**, blocking on `session-keepalive` (DEF-390),
+which has nothing to do with this change. The message was **`apiRequestContext.get: Timeout 90000ms
+exceeded`** — a timeout, not an assertion.
+
+**Cause: I ran `dotnet publish -c Release` on the same machine while the gate was measuring the Debug
+app.** The keep-alive checks wait on real session-timing windows; the publish saturated the box and
+they timed out. Re-run alone: **8P / 0F**. Full gate re-run with nothing competing: **GREEN, security
+65P / 0F**.
+
+**The checklist offers "fix before deploy, or waive + log". Neither was right** — there was nothing to
+fix and waiving would have recorded a security failure that did not exist. The correct answer to a
+red caused by the measurement itself is to remove the interference and measure again.
+**Never run a build, publish or bulk job while a timing-sensitive gate is measuring the local app.**
+
+### Bundle verification — `verify-bundle.py`, 0 failures
+
+Hygiene clean: no DataProtection keys, dev config, `appsettings.Secrets.json`, uploads, `Scripts/` or
+`docs/`. All four required files present.
+
+**Three new content markers added for DEF-409** and asserted against the **in-zip bytes**:
+`SearchRanking` (new type), `PageIdsAsync`, `OrderByNumberRelevance`. A new type and two new public
+members, so all three land in the assembly's `#Strings` heap. They now run on every future bundle.
+
+### Gate 5 note — the register tooling still cannot see DEF-409
+
+`unshipped-fixes` does not list DEF-409 as undeployed. I rewrote its Status to *"FIXED — not yet
+deployed"*, the wording `PENDING_RE` matches (yesterday's lesson), and it still does not appear —
+so the phrasing was not the only obstacle. Not chased mid-deploy; **close DEF-409 out by hand after
+upload**, and the check itself needs a proper look, because it means the roll-up under-reports what
+is genuinely pending.
+
+### What to verify after upload
+
+The sharp check: **page 1 of a "23" search must be entirely `23-xxxx`.** Before this drop the first
+one sat at **position 67** — page 4 at 20/page. `totalCount` must stay **1,219**: ranking reorders,
+it must never filter.
+
+### Gate 11 note — yesterday's diagnosis was half right
+
+2026-09-04 concluded that `close-out.js` missed four rows because their Status read
+**"FIXED, NOT DEPLOYED"** while `PENDING_RE` matches **"not yet deployed"**. DEF-409 was written with
+the matching wording, and **close-out saw it**. So the wording fix works — for close-out.
+
+**It does NOT move the `unshipped-fixes` roll-up**, which still does not list DEF-409 as undeployed.
+That check resolves register entries to repo file paths and is a separate code path with its own
+cause. Anyone about to add `|not deployed` to `PENDING_RE` expecting the roll-up to change should
+know it will not. The roll-up under-reporting what is pending is the opposite of its purpose and has
+now bitten twice — worth its own investigation, not a mid-deploy patch.
+
+### Verified live after upload
+
+7/7. Page 1 of a "23" search is **entirely `23-xxxx`** (the first one previously sat at position 67);
+`totalCount` still **1,219**, so ranking reordered without filtering; autocomplete returns
+`23-0001…23-0005`; five pages walked across the band boundary with **0 repeats**; unsearched listings
+unchanged; and DEF-404 from the previous drop still correct at 115.
+
+
+---
+
+## Deploy record — 2026-09-08 · `GCCWebApp-deploy-20260908-0648.zip` · **CANDIDATE, NOT UPLOADED**
+
+**Artifact:** `deployment-drops\GCCWebApp-deploy-20260908-0648.zip` — 339 entries, 61.1 MB
+**sha256:** `54f4b6c6eed93bc5a5c83acc404da72f4967f8fb7898dd1aa03cac4d13d69751`
+**Target:** TEST (gccwebapp.com). **Built from:** `ci-regression` **working tree**, Release, 0 errors.
+
+**What this drop adds — two view changes:**
+
+| Defect | File | Why it matters |
+|---|---|---|
+| **DEF-410** | `Views/Account/2FAAuthenticate.cshtml` | "Trust this device for 30 days" **has never worked**. The checkbox posted `"on"`, which cannot bind to `bool`, so the trust cookie was never issued and every 2FA user was re-challenged on every sign-in since 2026-08-30 |
+| **DEF-401** (2nd half) | `Views/Certificate/Create.cshtml` | preview-image field on Create; the POST handler had been unreachable since the page existed |
+
+Everything else in the zip is identical to what is already live.
+
+### Gate results
+
+| Gate | Fires? | Result |
+|---|---|---|
+| 0 uploads backup | yes | **NOT DONE — manual, owner: Shawn, must precede extraction** |
+| 1 UI / design guide | yes | **PARTIAL** — DEF-401's Create field got a 5-viewport pass (renders, click opens the dialog, no overflow, PDF zone intact). DEF-410 is a one-attribute change with no visual effect |
+| 2 cross-role + responsive | yes | **PARTIAL** — as above |
+| 3 data scoping | yes | **PASS — 65P / 0F** |
+| 4 **Amazon contract** | yes | **PASS — 7/7, `CONTRACT UNCHANGED`** |
+| 5 traceability | always | **PASS** — both entries carry register rows; DEF-401's stale row was corrected on 2026-09-04 |
+| 6 performance | no | no query changed |
+| 7 migration → schema | yes | **PASS — 0 pending.** 37 in code, 38 applied. **Schema untouched** |
+| 8 CRUD write paths | yes | **PASS — 39P / 0F** |
+| 9 static integrity | always | **PASS — 23P / 0F** |
+| 10 config → data | always | not re-run — no config file changed |
+| 11 post-deploy close-out | after upload | **PASS** — DEF-401 and DEF-410 closed; undeployed roll-up **7 → 6** |
+| 12 outbound email | after upload | **app side PASS** — reset requested 2026-09-08 11:57:56 UTC, fresh token issued, 60-min expiry. Delivery pending Shawn's inbox |
+
+**Gates run to completion BEFORE publishing this time** — 2026-09-05's red was a publish starving
+the app under test into a timeout. Serialising cost nothing and the gate came back green first pass.
+
+### Bundle verification — 0 failures, three new markers
+
+- `DEF-410 trust checkbox is bindable` — `name="TrustDevice" value="true"` **PRESENT**
+- `DEF-410 bare checkbox (posts "on") is gone` — `name="TrustDevice" />` **ABSENT**
+- `DEF-401 Create-side preview image field` — the Create-specific help text **PRESENT**
+
+The **absent**-assertion is the important one: it is a permanent regression guard. Drop that one
+attribute again and the feature dies silently, with no error anywhere — which is exactly how it went
+unnoticed for nine days.
+
+`imageUploadZone` could not distinguish Create from Edit (both views compile into the same
+assembly), so the Create marker uses its own help text. **Razor `@* *@` comments are stripped at
+compile time** and are useless as markers — checked rather than assumed.
+
+### What to verify after upload
+
+**DEF-410 is the one that needs a real check**, because it is a security feature that has never
+executed: sign in as a 2FA account, tick "Trust this device for 30 days", complete the code, **sign
+out, and sign in again — the second sign-in must NOT ask for a code.** Corroborate in the database:
+a row should appear in `TrustedDevices` (there are currently **0**) and an audit row saying "Device
+trusted for 30 days". Both are absent today, which is what proved the defect.
+
+### Verified live after upload — 3/3
+
+| | |
+|---|---|
+| DEF-410 | the 2FA checkbox now renders `value="true"` and posts **`["true"]`** — it posted `["on"]` before |
+| DEF-401 | `/Certificate/Create` renders the field, label *"Preview Image (optional)"* |
+| 2FA challenge | still reached correctly for a 2FA account |
+
+**DEF-410 is not fully proven by that, and should not be recorded as if it were.** What is proven is
+the binding — the thing that was broken. The end of the chain (a `TrustedDevices` row appears, and
+the *next* sign-in after a sign-out skips the code) needs someone who can read the emailed 2FA code
+on TEST. It was proven 6/6 on localhost with a known TOTP secret, but that is a different
+environment.
+
+**`TrustedDevices` on TEST is still 0** — expected, and it is the cleanest possible check: the first
+row to appear will be the proof, and there is no way to fake it.
+

@@ -176,11 +176,14 @@ namespace GCCWebApp.Controllers.Api.v1
 
                     // Partner API contract (Amazon Developer Guide §8): only active certificates are returned;
                     // draft, expired, suspended, and revoked certs are excluded.
+                    // CR-043: "active" here is BadgeableStatuses, not PublicStatuses - Confidential is
+                    // paid, in-force work that must still be badged (client, 2026-09-02). The response
+                    // SHAPE is unchanged; only the row set widens.
                     // DEF-358: "active" also means the effective date has been reached. Partner callers are
                     // always reported status="Active", and Amazon does not validate effectiveDate on its side,
                     // so a cert staged ahead of time would be treated as in-force weeks early. Omit it entirely
                     // rather than adding a new status value — the response shape stays frozen.
-                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status))
+                    query = query.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status))
                                  .WhereEffectiveDateReached();
                 }
                 else if (userRole == "External")
@@ -208,8 +211,11 @@ namespace GCCWebApp.Controllers.Api.v1
                         return PaginatedResponse(new List<object>(), 0, parameters.PageNumber, parameters.PageSize);
                     }
 
-                    // External users only see publicly-visible certificates (parity with external tile API)
-                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+                    // CR-043: the owning company sees its own IN-FORCE certificates, which now
+                    // includes Confidential. Q1 to the client (2026-09-03): "should a company see
+                    // its OWN Confidential certificates when signed in?" - answered Yes. Only the
+                    // anonymous public database keeps hiding them (PublicStatuses, untouched).
+                    query = query.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status));
                 }
                 // Admin and Analyst see all certificates (no additional filtering)
 
@@ -295,7 +301,9 @@ namespace GCCWebApp.Controllers.Api.v1
                         })
                         .ToListAsync();
 
-                    // Post-process: format CertificationResults as percentage (raw DB value may be decimal, e.g. "0.17")
+                    // CR-045: certificationResults is passed through VERBATIM. This block used to
+                    // call FormatCertificationResults to turn a stored "0.17" into "17%"; that
+                    // formatter is deleted and must not come back — see Models/Certificate.cs.
                     // CR-171: scope partner output — partner callers see only their own association;
                     // product-ID labels caller-scoped (Model A). Non-partner callers see the primary value.
                     var certificatesWithProductIds = certificatesWithProductIdsRaw.Select(x => new
@@ -303,7 +311,7 @@ namespace GCCWebApp.Controllers.Api.v1
                         x.certificateNumber, x.status, x.issueDate, x.expirationDate,
                         x.certificationCountries,
                         partner = isPartnerCaller ? (x.ownPartner ?? "") : string.Join(", ", x.allPartners),
-                        certificationResults = DisplayFormatters.FormatCertificationResults(x.certificationResults),
+                        certificationResults = x.certificationResults,
                         x.pathway, x.company, x.productName, x.certificationType, x.amazonCode,
                         x.issuer,
                         productIds = x.productIds.Select(pi => new
@@ -349,7 +357,7 @@ namespace GCCWebApp.Controllers.Api.v1
                         x.certificateNumber, x.status, x.issueDate, x.expirationDate,
                         x.certificationCountries,
                         partner = isPartnerCaller ? (x.ownPartner ?? "") : string.Join(", ", x.allPartners),
-                        certificationResults = DisplayFormatters.FormatCertificationResults(x.certificationResults),
+                        certificationResults = x.certificationResults,
                         x.pathway, x.company, x.productName, x.certificationType, x.amazonCode,
                         x.issuer, x.pdfDownloadUrl
                     }).ToList();
@@ -398,7 +406,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     // Partner API contract: non-active certs are not visible to partners.
                     // DEF-358: a cert staged ahead of its effective date is not yet in force —
                     // 404 exactly like a non-active one, so the response shape is unchanged.
-                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status)
+                    if (!CertificateStatusHelper.BadgeableStatuses.Contains(certificate.Status)
                         || CertificateVisibility.IsNotYetEffective(certificate))
                         return NotFoundResponse($"Certificate with ID {id} not found");
 
@@ -455,7 +463,7 @@ namespace GCCWebApp.Controllers.Api.v1
                 {
                     // Partner API contract: non-active certs are not visible to partners.
                     // DEF-358: not-yet-effective certs 404 the same way.
-                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status)
+                    if (!CertificateStatusHelper.BadgeableStatuses.Contains(certificate.Status)
                         || CertificateVisibility.IsNotYetEffective(certificate))
                         return NotFoundResponse($"Certificate with number {certificateNumber} not found");
 
@@ -749,7 +757,7 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 // DEF-269: this is a literal match against the INTERNAL lifecycle status
                 // (e.g. "Client Approved - Paid", "Republished"). Partner callers are always
-                // reported status="Active" and are already constrained to PublicStatuses below, so
+                // reported status="Active" and are already constrained to BadgeableStatuses below, so
                 // a partner passing ?status=Active would match zero rows. Honor the filter only for
                 // internal callers (Admin/Analyst); ignore it for partners.
                 if (!string.IsNullOrEmpty(status) && !isPartnerCaller)
@@ -778,7 +786,7 @@ namespace GCCWebApp.Controllers.Api.v1
 
                     // DEF-358: effective-date lower bound alongside the status + partner scoping.
                     query = query.Where(c =>
-                        CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
+                        CertificateStatusHelper.BadgeableStatuses.Contains(c.Status) &&
                         c.Partners.Any(p => userPartnerNames.Contains(p.Name)))
                         .WhereEffectiveDateReached();
                 }
@@ -879,7 +887,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     // DEF-358: a not-yet-effective cert is not in force, so it cannot be "expiring soon"
                     // from the partner's perspective either — apply the same lower bound here.
                     query = query.Where(c =>
-                        CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
+                        CertificateStatusHelper.BadgeableStatuses.Contains(c.Status) &&
                         c.Partners.Any(p => userPartnerNames.Contains(p.Name)))
                         .WhereEffectiveDateReached();
                 }
@@ -1091,7 +1099,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
 
                     // Partner API contract (Amazon Developer Guide §8): only active certificates are returned.
                     // DEF-358: plus the effective-date lower bound.
-                    certificatesQuery = certificatesQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status))
+                    certificatesQuery = certificatesQuery.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status))
                                                          .WhereEffectiveDateReached();
                 }
                 // Apply role-based filtering for External users (logged in via session)
@@ -1124,8 +1132,9 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         return SuccessResponse(new List<object>(), "No certificates found matching your access permissions");
                     }
 
-                    // External users only see publicly-visible certificates
-                    certificatesQuery = certificatesQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+                    // CR-043 Q1 (Yes): the owning company sees its own in-force certificates,
+                    // Confidential included. Anonymous public stays on PublicStatuses.
+                    certificatesQuery = certificatesQuery.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status));
                 }
                 // Admin and Analyst see all matched certificates (no additional filtering)
 
@@ -1152,7 +1161,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     partner = isPartnerCaller
                         ? string.Join(", ", cert.Partners.Where(p => userPartnerNames.Contains(p.Name)).Select(p => p.Name))
                         : cert.Partner,
-                    certificationResults = DisplayFormatters.FormatCertificationResults(cert.CertificationResults),
+                    certificationResults = cert.CertificationResults,
                     pathway = cert.Pathway?.Name,
                     company = cert.Company?.Name,
                     productName = cert.Product?.Name,
@@ -1349,7 +1358,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 {
                     // Partner API contract: non-active certs are not visible to partners.
                     // DEF-358: not-yet-effective certs 404 the same way — no PDF before the effective date.
-                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status)
+                    if (!CertificateStatusHelper.BadgeableStatuses.Contains(certificate.Status)
                         || CertificateVisibility.IsNotYetEffective(certificate))
                         return NotFoundResponse($"Certificate '{id}' not found");
 
@@ -1506,7 +1515,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
 
                     // Partner API contract (Amazon Developer Guide §8): only active certificates are returned.
                     // DEF-358: plus the effective-date lower bound.
-                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status))
+                    query = query.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status))
                                  .WhereEffectiveDateReached();
                 }
                 else if (userRole == "External")
@@ -1540,8 +1549,9 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         });
                     }
 
-                    // External users only see publicly-visible certificates
-                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
+                    // CR-043 Q1 (Yes): the owning company sees its own in-force certificates,
+                    // Confidential included. Anonymous public stays on PublicStatuses.
+                    query = query.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status));
                 }
                 // Admin and Analyst see all certificates
 
@@ -1633,7 +1643,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 {
                     // Partner API contract: non-active certs are not visible to partners.
                     // DEF-358: not-yet-effective certs 404 the same way (GS1 surface).
-                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status)
+                    if (!CertificateStatusHelper.BadgeableStatuses.Contains(certificate.Status)
                         || CertificateVisibility.IsNotYetEffective(certificate))
                         return NotFoundResponse($"Certificate '{certificateNumber}' not found");
 
@@ -1725,7 +1735,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                             Program = cert.CertificationType?.Name,
                             CertificateId = cert.Number,
                             Status = gs1Status,
-                            Value = DisplayFormatters.FormatCertificationResults(cert.CertificationResults),
+                            Value = cert.CertificationResults,
                             StartDate = issueDate,
                             EndDate = endDate,
                             // Amazon Developer Guide contract: targetCountries is always "All" for partner responses
@@ -1758,7 +1768,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 expirationDate = c.ExpirationDate,
                 certificationCountries = "All",
                 partner = string.Join(", ", ownPartners),
-                certificationResults = DisplayFormatters.FormatCertificationResults(c.CertificationResults),
+                certificationResults = c.CertificationResults,
                 pathway = c.Pathway?.Name,
                 company = c.Company?.Name,
                 productName = c.Product?.Name,

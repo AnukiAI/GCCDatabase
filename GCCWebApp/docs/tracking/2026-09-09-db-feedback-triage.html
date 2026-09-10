@@ -1,0 +1,527 @@
+<title>Four Items, One Defect</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper:      #F5F7F5;
+    --surface:    #FFFFFF;
+    --surface-2:  #ECF0EE;
+    --ink:        #17211D;
+    --ink-soft:   #4A5751;
+    --ink-faint:  #7A8880;
+    --rule:       #D8DFDA;
+    --accent:     #14584C;
+
+    --bug:        #A32017;
+    --bug-bg:     #FBEAE8;
+    --cr:         #8A5300;
+    --cr-bg:      #FAF0DF;
+    --question:   #1C5A85;
+    --question-bg:#E6F0F7;
+    --ux:         #56458A;
+    --ux-bg:      #EEEBF7;
+
+    --fs-body:    1.0625rem;
+    --fs-small:   0.9375rem;
+    --maxw:       46rem;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #0F1512;
+      --surface:   #161E1A;
+      --surface-2: #1D2723;
+      --ink:       #E3EAE5;
+      --ink-soft:  #A9B6B0;
+      --ink-faint: #78877F;
+      --rule:      #2B3833;
+      --accent:    #5FBFA6;
+
+      --bug:        #F0968C;
+      --bug-bg:     #2E1A18;
+      --cr:         #E0B268;
+      --cr-bg:      #2C2317;
+      --question:   #8CBEE0;
+      --question-bg:#16242E;
+      --ux:         #B3A4E0;
+      --ux-bg:      #211C31;
+
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #0F1512;
+    --surface:   #161E1A;
+    --surface-2: #1D2723;
+    --ink:       #E3EAE5;
+    --ink-soft:  #A9B6B0;
+    --ink-faint: #78877F;
+    --rule:      #2B3833;
+    --accent:    #5FBFA6;
+
+    --bug:        #F0968C;
+    --bug-bg:     #2E1A18;
+    --cr:         #E0B268;
+    --cr-bg:      #2C2317;
+    --question:   #8CBEE0;
+    --question-bg:#16242E;
+    --ux:         #B3A4E0;
+    --ux-bg:      #211C31;
+
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--fs-body);
+    line-height: 1.6;
+    padding-inline: 20px;
+    padding-block: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: var(--maxw);
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    padding-block: 3.5rem 5rem;
+  }
+
+  h1, h2, h3 {
+    font-family: Newsreader, Georgia, "Times New Roman", serif;
+    text-wrap: balance;
+    margin: 0;
+    font-weight: 600;
+  }
+  h1 { font-size: clamp(2rem, 6vw, 2.9rem); line-height: 1.1; letter-spacing: -0.01em; }
+  h2 { font-size: 1.55rem; line-height: 1.2; }
+  h3 { font-size: 1.2rem; line-height: 1.3; }
+  p  { margin: 0; }
+
+  .eyebrow {
+    font-size: var(--fs-small);
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+    font-size: 0.94em;
+  }
+  code {
+    background: var(--surface-2);
+    padding: 0.1em 0.36em;
+    border-radius: 3px;
+    word-break: break-word;
+  }
+
+  header { display: flex; flex-direction: column; gap: 1rem; }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.5rem;
+    font-size: var(--fs-small);
+    color: var(--ink-soft);
+    border-top: 2px solid var(--ink);
+    padding-top: 0.85rem;
+  }
+  .meta b { font-weight: 600; color: var(--ink); }
+
+  .standfirst {
+    font-size: 1.2rem;
+    color: var(--ink-soft);
+    font-family: Newsreader, Georgia, serif;
+  }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  section { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  .triage { display: flex; flex-direction: column; border-top: 1px solid var(--rule); }
+
+  .row {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr 8rem;
+    gap: 0.4rem 1rem;
+    align-items: start;
+    padding-block: 1.15rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .row .num {
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--ink-faint);
+    font-size: var(--fs-small);
+    padding-top: 0.2rem;
+  }
+  .row .what { display: flex; flex-direction: column; gap: 0.35rem; }
+  .row .what b { font-weight: 600; }
+  .row .what span { color: var(--ink-soft); font-size: var(--fs-small); }
+  .row .verdict { justify-self: end; }
+
+  .chip {
+    display: inline-block;
+    font-size: var(--fs-small);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .chip.bug      { color: var(--bug);      background: var(--bug-bg); }
+  .chip.cr       { color: var(--cr);       background: var(--cr-bg); }
+  .chip.question { color: var(--question); background: var(--question-bg); }
+  .chip.ux       { color: var(--ux);       background: var(--ux-bg); }
+
+  @media (max-width: 34rem) {
+    .row { grid-template-columns: 2rem 1fr; }
+    .row .verdict { grid-column: 2; justify-self: start; }
+  }
+
+  blockquote {
+    margin: 0;
+    padding-left: 1.25rem;
+    border-left: 3px solid var(--accent);
+    font-family: Newsreader, Georgia, serif;
+    font-size: 1.2rem;
+    color: var(--ink);
+  }
+  blockquote cite {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: var(--fs-small);
+    font-style: normal;
+    color: var(--ink-faint);
+    font-family: "IBM Plex Sans", sans-serif;
+  }
+
+  .flag {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--bug);
+    padding: 1.15rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .flag .eyebrow { color: var(--bug); }
+
+  ol.decisions {
+    margin: 0;
+    padding-left: 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  ol.decisions li::marker { color: var(--accent); font-weight: 600; }
+
+  ul.plain {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  ul.plain li::marker { color: var(--ink-faint); }
+
+  .note { font-size: var(--fs-small); color: var(--ink-soft); }
+
+  .letter-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    align-items: baseline;
+    justify-content: space-between;
+    border-top: 2px solid var(--ink);
+    padding-top: 0.85rem;
+  }
+  .letter-head h2 { margin-top: 0.3rem; }
+
+  .letter {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: clamp(1.4rem, 4vw, 2.4rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+  .letter h3 { font-size: 1.1rem; margin-top: 0.6rem; }
+  .letter h3:first-of-type { margin-top: 0; }
+  .letter hr { border: 0; border-top: 1px solid var(--rule); margin: 0.4rem 0; }
+
+  button.copy {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--paper);
+    background: var(--accent);
+    border: 0;
+    border-radius: 3px;
+    padding: 0.45rem 0.95rem;
+    cursor: pointer;
+  }
+  button.copy:hover { filter: brightness(1.12); }
+  button.copy:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.25rem;
+    color: var(--ink-soft);
+    font-size: var(--fs-small);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Anuki Consulting &middot; Client feedback triage</p>
+    <h1>Four items, one defect</h1>
+    <p class="standfirst">The client&rsquo;s 9 September email reads as four bug reports. Measured against our own
+      change-request process it is <strong>one defect, one question, and two scope changes</strong> &mdash; and the
+      difference is worth money.</p>
+    <div class="meta">
+      <span><b>Source</b> <code>CR_9_9_26_edit.pdf</code></span>
+      <span><b>Received</b> 9 Sep 2026, 10:52</span>
+      <span><b>Status</b> Draft &mdash; not sent</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>The ruling, item by item</h2>
+    <div class="triage">
+
+      <div class="row">
+        <span class="num">01</span>
+        <span class="what">
+          <b>Edit button should open a new tab</b>
+          <span>Nothing in the baseline says how Edit navigates. Preview opens a tab; Edit was never specified either
+            way, so no delivered requirement is missing. It works as built &mdash; the design is just awkward.</span>
+        </span>
+        <span class="verdict"><span class="chip ux">UX</span></span>
+      </div>
+
+      <div class="row">
+        <span class="num">02</span>
+        <span class="what">
+          <b>List view as the default for logged-in users</b>
+          <span>The tile view is the specified default and the project&rsquo;s headline feature. Changing it is new
+            scope; remembering each person&rsquo;s last choice is new functionality outright.</span>
+        </span>
+        <span class="verdict"><span class="chip cr">CR &mdash; price it</span></span>
+      </div>
+
+      <div class="row">
+        <span class="num">03</span>
+        <span class="what">
+          <b>Is the Certificate&nbsp;# column there for editing existing certs?</b>
+          <span>Yes. The import is an update-or-create: blank assigns a new number, a supplied number updates that
+            certificate after a preview diff. Nothing to change &mdash; but the answer exposes a data condition.</span>
+        </span>
+        <span class="verdict"><span class="chip question">Question</span></span>
+      </div>
+
+      <div class="row">
+        <span class="num">04</span>
+        <span class="what">
+          <b>&ldquo;Certificate Number is required&rdquo; in the import modal</b>
+          <span>The screen states a rule the system does not enforce. The baseline says a blank number auto-assigns;
+            the interface tells users the opposite. The other import screen already says it correctly, so the two
+            screens contradict each other.</span>
+        </span>
+        <span class="verdict"><span class="chip bug">Defect</span></span>
+      </div>
+
+    </div>
+    <p class="note">Reserved tracking IDs: <code>CR-048</code> (item 1, if logged) &middot; <code>CR-049</code>
+      (item 2) &middot; <code>DEF-416</code> (item 4). <b>None are written to the registers yet.</b></p>
+  </section>
+
+  <section>
+    <h2>How I decided</h2>
+    <p>Not by judgement &mdash; by the test already written into
+      <code>docs/governance/change-request-process.md</code> &sect;B1:</p>
+    <blockquote>
+      Point at the line in the baseline that this request says was not delivered. If you can, it&rsquo;s a Bug. If you
+      cannot, it&rsquo;s a CR. &ldquo;The client assumed it&rdquo; is not a line in the baseline.
+      <cite>Change Request Process, Part B &mdash; Per-request triage</cite>
+    </blockquote>
+    <p>Only item 4 survives that test as a defect. For items 1 and 2 there is no line to point at, because the
+      behaviour was never specified in the first place.</p>
+    <p>The same document flags precisely the trap this email sets: <em>&ldquo;New requirements arrive dressed as
+      defects. A single QC log entry once carried 44 items, of which 39 were new requirements.&rdquo;</em> Triage runs
+      per item, never per email.</p>
+  </section>
+
+  <section>
+    <h2>Why the labels matter</h2>
+    <p>The client offered to log all four in the QC log for tracking. If they go in as defects, two change requests get
+      absorbed without ever being priced &mdash; and &sect;C1 of the same process is blunt about the cost:</p>
+    <blockquote>
+      Absorb work silently and that number is zero, no matter how much you gave away. Phase&nbsp;1&rsquo;s absorbed CRs
+      are, financially, indistinguishable from work that never happened.
+      <cite>Change Request Process, Part C &mdash; Pricing</cite>
+    </blockquote>
+    <p>Absorbing items 1 and 2 is entirely reasonable &mdash; both are small and the goodwill is worth having. The
+      process only asks that they be <b>numbered, estimated, and recorded as absorbed</b>, so the total value given
+      away this phase is a real figure at renewal rather than a memory.</p>
+  </section>
+
+  <section>
+    <div class="flag">
+      <p class="eyebrow">Flagged &mdash; answering item 3 surfaced this</p>
+      <p><b>Certificate numbers are not unique in the current data.</b> The import matches an existing certificate by
+        number and takes the first match. Where a number sits on more than one record &mdash; and a number of them do
+        &mdash; an edit-by-import updates whichever record comes back first, which may not be the intended one.</p>
+      <p>This is a condition of the data, not a fault in the import, so it carries no defect number. But if the team is
+        going to use the template routinely for edits, the safe answer is a check that stops and warns on an ambiguous
+        number instead of quietly choosing. That would be its own small change request.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What I need back before anything is built</h2>
+    <p>Three from the client, one from you:</p>
+    <ol class="decisions">
+      <li><b>Item 1 &mdash; how far does the new tab reach?</b> The tile card, the list row and the certificate detail
+        page all run through one shared function, so they change together unless the detail page is deliberately
+        excluded. Confirm which is wanted.</li>
+      <li><b>Item 2 &mdash; hard default, or remembered preference?</b> A fixed List default solves it for the analysts
+        and hands the same complaint to anyone who prefers tiles. Remembering each person&rsquo;s last choice solves it
+        for everyone, and is the recommendation.</li>
+      <li><b>Item 2 &mdash; internal team only, or external and partner logins too?</b> &ldquo;All logged in users&rdquo;
+        reads both ways. The draft assumes the internal team only.</li>
+      <li><b>For you:</b> the three tracking IDs above are reserved, not logged. If the reply goes out as written they
+        need register rows, or the numbers will drift &mdash; re-grep both registers immediately before appending.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="letter-head">
+      <div>
+        <p class="eyebrow">Ready to send</p>
+        <h2>Draft reply</h2>
+      </div>
+      <button class="copy" id="copyLetter" type="button">Copy reply text</button>
+    </div>
+
+    <div class="letter" id="letterBody">
+      <p>Hi Carly,</p>
+
+      <p>Thanks &mdash; this is exactly the kind of feedback that&rsquo;s easiest to act on. I went through all four
+        items against the code before answering. Two are straightforward changes, one is a question I can answer for
+        you right now, and one is a genuine fault on our side.</p>
+
+      <h3>1. Edit button opening in a new tab &mdash; yes, and it&rsquo;s a small change</h3>
+      <p>You&rsquo;re right that this is the low-risk version of the fix. All three Edit buttons your team sees &mdash;
+        on the tile card, in the list&rsquo;s Actions column, and on the certificate detail page &mdash; run through a
+        single shared piece of code, so changing one place changes all three and leaves everything else alone.</p>
+      <p>Two things to confirm before I build it:</p>
+      <ul class="plain">
+        <li>Should Edit behave exactly like Preview does today &mdash; new tab, original tab untouched with the search
+          results still on screen? That&rsquo;s my assumption.</li>
+        <li>Any objection to it applying on the certificate detail page too? It&rsquo;s consistent, but it&rsquo;s a
+          slightly different moment than the one your team described, so say if you&rsquo;d rather I left it alone.</li>
+      </ul>
+
+      <h3>2. List view as the default &mdash; yes, with one question back</h3>
+      <p>Easy change, low risk. Before I make it, though: the complaint is having to toggle each time the page loads,
+        and there are two ways to solve that.</p>
+      <ul class="plain">
+        <li><b>Hard default to List.</b> Every page load starts in List, for everyone. Literally what you asked for.
+          The catch is that it moves the problem &mdash; anyone who prefers tiles now toggles every time instead.</li>
+        <li><b>Remember each person&rsquo;s last choice, starting everyone on List.</b> First visit lands on List;
+          after that the page opens in whichever view that person used last. Nobody toggles repeatedly. A bit more
+          work, but not much.</li>
+      </ul>
+      <p>I&rsquo;d recommend the second &mdash; it settles the complaint rather than reassigning it. One caveat either
+        way: the preference is remembered per browser, so someone moving to a different computer starts on List
+        again.</p>
+      <p>Also worth confirming: does this apply to your internal team only, or to external and partner logins as well?
+        My assumption is the internal team.</p>
+
+      <h3>3. The Certificate&nbsp;# column in the template &mdash; your read is exactly right</h3>
+      <p>That column is there for precisely the case you described. The import works as an update-or-create:</p>
+      <ul class="plain">
+        <li><b>Leave Certificate&nbsp;# blank</b> &mdash; the system assigns the next number and creates a new
+          certificate.</li>
+        <li><b>Enter an existing certificate&rsquo;s number</b> &mdash; the import updates that certificate rather than
+          creating a duplicate. Before anything is written you get a preview showing a field-by-field comparison of
+          what will change, so you can back out if it isn&rsquo;t what you expected.</li>
+      </ul>
+      <p>No change needed here.</p>
+      <p>One thing I do want to flag, because it affects how safely the team can lean on this. Certificate numbers in
+        the current data are not all unique &mdash; some numbers appear on more than one record. If someone imports a
+        row using one of those, the system updates the first matching record it finds, which may not be the one they
+        meant. That is a condition of the data rather than a fault in the import, and it may never come up. But if the
+        team is going to use the template routinely for edits, I&rsquo;d suggest we add a check that stops and warns
+        when a number matches more than one certificate, instead of quietly picking one. Happy to scope that
+        separately if you&rsquo;d like it.</p>
+
+      <h3>4. The &ldquo;Certificate Number is required&rdquo; text &mdash; you&rsquo;re right, and I&rsquo;ll fix
+        it</h3>
+      <p>Confirmed, and this one is ours to correct. Certificate&nbsp;# is not required when adding new entries,
+        exactly as you found. Worth knowing that the other import screen in the application already describes the
+        behaviour correctly, so the two screens currently contradict each other. I&rsquo;ll bring the modal into line
+        and make the wording spell out both cases &mdash; blank creates, filled updates.</p>
+      <p>I&rsquo;m logging this as a defect rather than a change request, since it is incorrect instructions rather
+        than new functionality.</p>
+
+      <h3>On testing</h3>
+      <p>Completely understood on not wanting to test the import against live data. When you&rsquo;re ready I can walk
+        the team through it on a copy so they can watch the preview-and-confirm step for themselves. Nothing is
+        written until someone approves the diff &mdash; but that is much easier to trust once you have seen it
+        happen.</p>
+
+      <hr>
+      <p><b>Short version:</b> item 3 needs nothing from us, item 4 I&rsquo;ll fix, and items 1 and 2 I&rsquo;ll build
+        as soon as you confirm the questions above.</p>
+      <p>Thanks,<br>Shawn</p>
+    </div>
+  </section>
+
+  <footer>
+    <p><b>What has not happened.</b> No code changed. No rows added to the defect or change-request registers. Nothing
+      sent to the client. Intake analysis is appended to <code>observations_log.md</code>; the plain-text draft lives
+      at <code>docs/tracking/2026-09-09-client-reply-db-feedback.md</code>.</p>
+    <p>Prepared 9 September 2026 &middot; Anuki Consulting &middot; GCC Database Solution</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('copyLetter');
+    var body = document.getElementById('letterBody');
+    if (!btn || !body) return;
+    btn.addEventListener('click', function () {
+      var text = body.innerText.replace(/\n{3,}/g, '\n\n').trim();
+      var done = function (ok) {
+        btn.textContent = ok ? 'Copied' : 'Select and copy manually';
+        setTimeout(function () { btn.textContent = 'Copy reply text'; }, 2500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+      } else {
+        done(false);
+      }
+    });
+  })();
+</script>

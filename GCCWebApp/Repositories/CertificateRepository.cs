@@ -367,6 +367,9 @@ namespace GCCWebApp.Repositories
                     var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_dbSet, nq);
                     // DEF-402: country clause resolved as a semi-join, not a correlated EXISTS.
                     var countryIds = await TagSearchMatch.MatchingCountryCertificateIdsAsync(_dbSet, nq);
+                    // DEF-413: certification-type SUBCATEGORY names are searchable, resolved the
+                    // same way as tags and countries rather than as a clause inside the OR.
+                    var subcatIds = await TagSearchMatch.MatchingSubcategoryCertificateIdsAsync(_dbSet, nq);
                     query = query.WhereMatchesSearch(c =>
                         c.NormalizedNumber!.Contains(nq) ||
                         c.Company.NormalizedName!.Contains(nq) ||
@@ -374,7 +377,7 @@ namespace GCCWebApp.Repositories
                         c.CertificationType.NormalizedName!.Contains(nq) ||
                         (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
                         (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)),
-                        TagSearchMatch.Union(tagIds, countryIds));
+                        TagSearchMatch.Union(TagSearchMatch.Union(tagIds, countryIds), subcatIds));
                 }
             }
 
@@ -465,7 +468,14 @@ namespace GCCWebApp.Repositories
 
             // New filter properties for API
             if (filter.CertificationTypeNames != null && filter.CertificationTypeNames.Any())
-                query = query.Where(c => c.CertificationType != null && EF.Constant(filter.CertificationTypeNames).Contains(c.CertificationType.Name));
+            {
+                // DEF-413: a Certification Type filter option matches the certificate's own TYPE or
+                // any of its certification-type SUBCATEGORIES. Resolved as its own semi-join, never
+                // as an .Any() inside the OR — see Search/TagSearchMatch.cs (DEF-366, DEF-402).
+                var certTypeSubcatIds = await TagSearchMatch.SubcategoryNamedCertificateIdsAsync(
+                    _dbSet, filter.CertificationTypeNames);
+                query = query.WhereCertificationTypeMatches(filter.CertificationTypeNames, certTypeSubcatIds);
+            }
 
             if (filter.Countries != null && filter.Countries.Any())
                 // CR-037: match if the country exists anywhere on the certificate, not only as the

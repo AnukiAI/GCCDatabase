@@ -37,14 +37,48 @@ const ARTIFACT_DIR = path.join(__dirname, '..', '_artifacts');
 // partners, because a scoped account can only prove it SEES something, never that it is correctly
 // DENIED someone else's data. Cross-checks below rely on both halves of each pair.
 const TEST_PASSWORD = process.env.REG_PASSWORD || 'GccTest2026!';
+// Account usernames are overridable per role so this suite can be aimed somewhere other than
+// gccwebapp.com. The defaults below are the TEST accounts, unchanged: a normal TEST run behaves
+// exactly as it did before.
+//
+// These six accounts exist ONLY on the test environment. Aiming this suite at localhost/dev
+// without overriding them fails as six separate "login failed ... landed /Account/Login" errors,
+// which reads like six broken logins rather than one wrong-environment target. That cost real
+// debugging time on 2026-09-09, which is why assertAccountsMatchTarget() exists below.
 const ACCOUNTS = {
-  admin:     { user: 'test.admin',     role: 'Admin',    scope: null,                 lands: '/Certificate/CertificateTileViewInternal' },
-  analyst:   { user: 'test.analyst',   role: 'Analyst',  scope: null,                 lands: '/Certificate/CertificateTileViewInternal' },
-  external:  { user: 'test.external',  role: 'External', scope: 'Sika Corporation',   lands: '/Certificate/CertificateTileViewExternal' },
-  external2: { user: 'test.external2', role: 'External', scope: 'MAPEI',              lands: '/Certificate/CertificateTileViewExternal' },
-  amazon:    { user: 'test.amazon',    role: 'Partner',  scope: 'Amazon',             lands: '/Certificate/CertificateTileViewExternal' },
-  novi:      { user: 'test.novi',      role: 'Partner',  scope: 'Novi',               lands: '/Certificate/CertificateTileViewExternal' },
+  admin:     { user: process.env.REG_USER_ADMIN     || 'test.admin',     role: 'Admin',    scope: null,                 lands: '/Certificate/CertificateTileViewInternal' },
+  analyst:   { user: process.env.REG_USER_ANALYST   || 'test.analyst',   role: 'Analyst',  scope: null,                 lands: '/Certificate/CertificateTileViewInternal' },
+  external:  { user: process.env.REG_USER_EXTERNAL  || 'test.external',  role: 'External', scope: process.env.REG_SCOPE_EXTERNAL  || 'Sika Corporation', lands: '/Certificate/CertificateTileViewExternal' },
+  external2: { user: process.env.REG_USER_EXTERNAL2 || 'test.external2', role: 'External', scope: process.env.REG_SCOPE_EXTERNAL2 || 'MAPEI',            lands: '/Certificate/CertificateTileViewExternal' },
+  amazon:    { user: process.env.REG_USER_AMAZON    || 'test.amazon',    role: 'Partner',  scope: 'Amazon',             lands: '/Certificate/CertificateTileViewExternal' },
+  novi:      { user: process.env.REG_USER_NOVI      || 'test.novi',      role: 'Partner',  scope: 'Novi',               lands: '/Certificate/CertificateTileViewExternal' },
 };
+
+// Fail LOUDLY when this suite is aimed away from gccwebapp.com while still carrying the TEST-only
+// account names. Without this, such a run yields 24 anonymous PASSes and 6 login FAILs, which looks
+// like an application defect. It is not - it is a misconfigured target.
+const FOREIGN_ACCOUNT_HELP = [
+  '_regression is built for the TEST environment, but BASE is ',
+  '.',
+  'The accounts test.admin / test.analyst / test.external / test.external2 / test.amazon /',
+  'test.novi exist ONLY on gccwebapp.com. Against any other target EVERY login will fail, and',
+  'the run will look like 6 broken logins instead of 1 wrong target.',
+  'Fix: set REG_USER_ADMIN / REG_USER_ANALYST / REG_USER_EXTERNAL / REG_USER_EXTERNAL2 /',
+  '     REG_USER_AMAZON / REG_USER_NOVI (and REG_PASSWORD) for that environment,',
+  'or set REG_ALLOW_FOREIGN_ACCOUNTS=1 to proceed anyway.',
+];
+
+function assertAccountsMatchTarget() {
+  const usingTestDefaults = Object.values(ACCOUNTS).every((a) => a.user.indexOf('test.') === 0);
+  const targetIsTestEnv = /gccwebapp[.]com/i.test(BASE);
+  if (usingTestDefaults && !targetIsTestEnv && process.env.REG_ALLOW_FOREIGN_ACCOUNTS !== '1') {
+    const nl = String.fromCharCode(10);
+    throw new Error(
+      FOREIGN_ACCOUNT_HELP[0] + BASE + FOREIGN_ACCOUNT_HELP[1] + nl +
+      '  ' + FOREIGN_ACCOUNT_HELP.slice(2).join(nl + '  ')
+    );
+  }
+}
 
 function ensureDirs() {
   for (const d of [RESULTS_DIR, ARTIFACT_DIR]) {
@@ -173,9 +207,23 @@ function makeRecorder(phaseId) {
   return { rec, rows, save };
 }
 
+// Validate the target/account pairing ONCE, at load. Doing this per-session turned a single
+// configuration mistake into six or seven recorded test FAILURES, which is precisely the confusion
+// this guard exists to prevent. A config error must abort the run, not masquerade as test results.
+//
+// Printed and exited rather than thrown: a misconfigured target is an operator error, and a Node
+// stack trace pointing into module loader internals buries the one line that actually helps.
+try {
+  assertAccountsMatchTarget();
+} catch (err) {
+  process.stderr.write(String.fromCharCode(10) + 'CONFIGURATION ERROR' + String.fromCharCode(10) + err.message + String.fromCharCode(10, 10));
+  process.exit(2);
+}
+
 module.exports = {
   BASE, HEADLESS, NAV_TIMEOUT, GATE_CANDIDATES, TEST_PASSWORD, ACCOUNTS,
   RESULTS_DIR, ARTIFACT_DIR, ensureDirs,
   detectGate, passGate, workingGatePassword, login, session, makeRecorder,
+  assertAccountsMatchTarget,
   chromium,
 };

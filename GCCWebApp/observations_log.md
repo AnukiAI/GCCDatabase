@@ -2769,3 +2769,497 @@ the control that looks wrong.
 Closed open decision #3: the search leg is **in**. Filter-only would fix step C but leave step B
 wrong and make the checkbox and the search box disagree about the same words. The 3-3.5 hr
 filter-only estimate is withdrawn; ≈ 4.5-5 hr + deploy stands. Still no code changed.
+
+
+### 2026-09-09 — "what about the other views?" — scope was half the real size
+
+Shawn asked and the answer was not the reassuring one. My spec named three tile views; a proper
+sweep of every entry point found **six** filter sites. `Services/CertificateService.cs` holds three
+more copies of the same parent-name-only predicate — the internal cert LIST/table view (P4), the
+**CSV export** (P5), and a partner list with no controller caller (P6). 12 edits across 4 files, not
+6 across 3. Effort ≈ 4.5-5 hr → ≈ 6.5-7 hr.
+
+**The export is the one that would have bitten.** The Export button on both logged-in tile views
+calls `/Certificate/ExportCertificates`, which re-runs the filter through its own predicate. Fixing
+the tiles without it = screen 526, CSV 458 — a fresh DEF-404, in the same method whose DEF-404
+comment is still sitting there warning about exactly that.
+
+**Lesson, and it is the one already in [[feedback_scoping_check_adjacent_endpoints]]:** I applied
+that rule to *reads of the same page family* (list/detail/download) and stopped there. The rule is
+wider — anything that re-runs the same filter server-side is an adjacent endpoint, including the
+export and a second listing UI for the same data. Next time enumerate by **predicate**, grepping the
+filter expression across the solution, not by **page**. The grep that found it
+(`\.CertificationTypes` / `CertificationTypeNames`) took one call and should have been call one.
+
+Also flagged, not fixed: the search predicates differ across surfaces (tile = 7 fields + tag +
+country ids; export/list/partner = 3 fields + tags), so an active search term at Export time can
+under-deliver independently of DEF-413. Provable from the field lists, **not measured**, so not
+called a defect yet. ~2-3 hr to measure and align. Its own DEF if confirmed.
+
+Still no code changed.
+
+
+### 2026-09-09 — DEF-413/414 built and verified on dev; and I reported a 4-second regression that wasn't real
+
+The 12 edits are in the tree across 4 files and the solution builds clean (0 errors). Verified
+against `GCCDatabase_Dev` on localhost:5101.
+
+**The client's own sequence now reproduces to the to-be column exactly** — A=609, B=526, **C=68**,
+D=151, E=526, against the as-is 607 / 458 / **0** / 149 / 458. Step C is the "nothing came back"
+blank page; it returns 68 certificates. Filter totals: CSF 103 (unchanged), Recycled Content 526
+(was 458), Waste Diversion 151 (was 46). Cert `25-8071` — her own example — is now returned by all
+three filters; before, by none.
+
+**Scoping held on both legs.** As `external`, every filtered result is a strict SUBSET of that
+user's own 24 certificates (Carbon Footprint 1, Material Ingredient 22, GreenCircle Audited 1, each
+single-company), while `analyst` sees 2,403 Recycled Content certs and `external` sees **0**. The
+unscoped subcategory id set does not widen a scoped caller — filter leg or search leg.
+
+**Export parity held.** Screen vs CSV agree on all six cases (2403/2403, 334/334, 399/399 on
+filters; same on searches). P5 was the DEF-404 trap and it is closed.
+
+**The mistake worth recording.** I ran the perf A/B seconds after building and launching a
+second (pre-fix) app instance against the same SQL Server, and reported internal search as
+978 ms -> 5,101 ms and 1,373 ms -> 5,746 ms — a 4-second regression, flagged as blocking. It was
+contamination. Re-run warm, the same endpoint gives 1,287 -> 1,422 ms and 921 -> 1,259 ms. The
+pre-fix numbers agreed across runs; only the post-fix ones moved, which was the tell.
+
+[[feedback_never_build_while_gate_measures]] already says this and I applied it too narrowly — I
+serialised the two *apps* against each other but not against the *build* that preceded them. A
+cold second instance warming its EF model is load on the shared database just as surely as a
+publish is. **Warm-up is part of the gate; wait it out before the first timed request.**
+
+The second lesson is that I had the calibration in hand and didn't use it: `INT no search/filter`
+runs no resolvers at all — identical code on both builds — and still swung +686 ms. That is the
+noise floor of the measurement, and it was sitting in the same table as the numbers I was reading
+as signal. **Put an unchanged-code-path case in every A/B and read it first.**
+
+**Perf verdict: no meaningful regression.** Deltas are +12 to +338 ms and several are negative;
+on the internal endpoint they are inside a +-700 ms noise floor. The decisive row is a term that
+matches nothing anywhere (`zzzqqqnomatch`): **+12 ms**. That is the exact pathology of DEF-366
+(2,648 ms on a no-match term) and DEF-402 (3,297 ms on `canada`), and it is absent — the semi-join
+shape did its job. Caveat stated plainly: the internal endpoint's noise floor is too large for this
+method to resolve a sub-500 ms regression there. The public endpoint is quieter and clean.
+
+**Not verified, flagged:** the DEF-414 comments in `CertificateService.cs` cite pre-fix measurements
+("103 on screen and exported 0"; "canada 54 vs 23"). I did not reproduce those — I measured
+post-fix parity only. The fix's correctness does not rest on them, but they are unverified numbers
+baked into source comments.
+
+**Still no commit** — all 8 files remain in the working tree for Shawn.
+
+---
+
+## 2026-09-09 — DEF-413 / DEF-414 correctness verification (search + filter)
+
+Asked: *"lets test the search filter functionality."* Verification only — **no code changed**, and
+`git status` is byte-identical to how the session started (8 modified files, none of them mine).
+
+Tested the running dev build (DLL 15:04, process 15:05; an incremental `dotnet build` found nothing
+to recompile, which is how I know the live server carried the DEF-413/414 code) against
+`GCCDatabase_Dev`, using **SQL as independent ground truth** rather than comparing the API to itself.
+
+**The client's reproducer exists in dev and now works.** Cert `25-8071` (Id 726, JW Aluminum, type
+Certified Sustainability Facts, publicly live, subcategories Recycled Content / Waste Diversion from
+Landfill / Recyclable Material). It is returned by the Waste Diversion filter — the exact behaviour
+the client said was missing.
+
+**Filter — public surface, exact SET match both directions.** Not just equal counts
+([[feedback_equal_counts_are_not_the_same_rows]]): for `Waste Diversion from Landfill` I pulled all
+151 ids from the API and all 151 from SQL — zero rows in one and not the other.
+
+| Filter | SQL expected | Public API |
+|---|---|---|
+| Recycled Content | 526 | 526 |
+| Waste Diversion from Landfill | 151 | 151 |
+| Certified Sustainability Facts | 103 | 103 |
+
+**DEF-414 parity holds — tile, list and CSV export now agree on every term tested.** This was the
+whole point of DEF-414, and it is the leg most likely to under-deliver silently.
+
+| Search term | Internal tile | Internal list | CSV export |
+|---|---|---|---|
+| certified sustainability facts | 334 | 334 | 334 |
+| canada | 698 | 698 | 698 |
+| waste diversion | 403 | 403 | 403 |
+| recycled content | 2403 | 2403 | 2403 |
+| zzznomatch | 0 | 0 | 0 |
+
+Filter parity across the same three surfaces likewise: 2403 / 399 / 334, three-way identical.
+
+**Scoping does NOT widen — proven positively, not argued.** The new resolvers deliberately run
+against the UNSCOPED certificate set and OR an id list into a later AND'd clause; the source comments
+*argue* this is safe. It is, and here is the evidence rather than the argument:
+
+- *Public:* unscoped union for Waste Diversion is 399; anonymous callers get exactly the 151 that pass
+  the visibility gate. 248 correctly suppressed.
+- *External:* `Carbon Footprint Reduction` is both a parent type AND a subcategory on 25 other
+  companies' certs — unscoped union 39. The External user (scoped to Sika + ZZ_CI_ExternalCo) gets
+  **exactly 1**, its own cert 6066. Zero ids outside its own visible set.
+
+The first external attempt was **vacuous** — every filter returned 0 because neither of that user's
+companies owns a subcategory cert, so "no leak" proved nothing
+([[feedback_novi_has_no_certs_on_test]]). I only got a real answer by finding a filter name whose
+unscoped id set is large and demonstrably foreign. *A negative result on an empty population is not
+a pass.*
+
+### Two findings — triage only, NOT fixed
+
+**1. (Real, client-visible) The DEF-413 fix never reached the filter-OPTIONS endpoints.** All six
+*listing* predicates were fixed; the three `GetFilterOptions` endpoints still build the checkbox list
+as `ct.IsActive && ct.ParentId == null && <ids that are some cert's OWN type>.Contains(ct.Id)`
+(`CertificateTilesApiController.cs:317`, `…Internal…:595`, `…External…:654`). So two subcategory
+names match certificates but **cannot be clicked**:
+
+- `Recyclable Material` — matches 9 public certs. A Level-1 row exists (Id 120) but no cert has it as
+  its own type, so the `visibleCertTypeIds` test excludes it.
+- `Zero Waste to Landfill` — matches 17 public certs. Exists ONLY at Level 2 (Id 134), so DEF-167's
+  Level-1-only rule can never offer it.
+
+Passing either name directly to the API returns the right rows, so the engine is right and only the
+option list is short. Note `Recyclable Material` is the **third subcategory on the client's own
+reproducer cert 25-8071** — they are likely to click for it. The client's three stated examples
+(CSF, Recycled Content, Waste Diversion from Landfill) all *are* selectable, so their literal
+acceptance test passes. Search box + autocomplete do reach both names, so there is a workaround.
+Rough cost: one predicate, three call sites, plus a decision that reads as a **CR not a defect** —
+showing Level-2 names in the pane directly contradicts DEF-167, which deliberately excluded them.
+
+**2. (Cosmetic) Autocomplete returns `Recyclable Material` twice.** It queries `CertificationTypes`
+with no ParentId restriction and no dedupe by name, so the Level-1 and Level-2 rows both match —
+expected, given [[feedback_certtypes_hierarchy]]. One-line distinct-by-name fix; no data impact.
+
+### Latent, not a defect today
+
+The subcategory resolvers inherit `Take(MaxInlineIds + 1)` = 2001 ids, and **nothing detects
+overflow** — past the ceiling the list is silently truncated rather than falling back. Measured
+today: max reach is **227 certs** (every cert carrying any subcategory at all), so this is headroom,
+exactly as the tag comment claims for its own 412. But subcategories are applied per-certificate by
+analysts, unlike the 4 tag rows, so this ceiling is far more reachable over time than the tag one.
+Worth a guard before it is worth a defect.
+
+### Test suite: 89 failures are PRE-EXISTING, not this change
+
+`dotnet test` reports 89 failed / 750 passed in `GCCWebApp.Api.Tests`. I did **not** report that as a
+regression on the strength of the number: I built a detached worktree at pristine `HEAD` (no
+working-tree changes) and ran the same suite — **89 failed / 750 passed, identical**. So the DEF-413
+work neither caused nor fixed them. (`RoleBasedUI.Tests` is 98/99 failing on baseline too.) The
+worktree was removed; only undeletable `.git/worktrees` metadata remains, alongside two stale entries
+(`prefix-baseline`, `wt294`) that predate this session.
+
+Also: a DB write was refused by the permission classifier when I tried to seed a subcategory onto a
+`ZZ_CI_` fixture cert to build the external positive control. I did not work around it — I found a
+filter name that made the same proof possible with **no data change at all**, which was the better
+test anyway.
+
+**Doc correction:** the DEF-413 spec lists P4 as `GET /api/certificates`. The real route is
+**`/api/CertificatesApi`** (`[Route("api/[controller]")]` on `CertificatesApiController`);
+`/api/certificates` returns 404. Anyone verifying P4 from that table will read a 404 as a broken
+endpoint.
+
+**No commit** — working tree left exactly as found, for Shawn.
+
+
+### 2026-09-09 (later) — DEF-413/414 P2+P3 in-browser viewport pass — PASSES
+
+Picked up the one item the DEF-413 register entry still listed as open. Read-only throughout; no
+data writes, no source changes, nothing committed.
+
+**Result: both views pass at 5 viewports (1920/1440/1280/768/375), 0 console errors, 10 full-page
+screenshots.**
+
+| | View | Filter clicked | Count | Subcategory proof on screen |
+|---|---|---|---|---|
+| P3 | Internal tile, as `analyst` | Waste Diversion from Landfill | 6,019 → **399** | **YES** — tiles typed *Certified Sustainability Facts* appear under a *Waste Diversion* filter |
+| P2 | External tile, as `external` | Material Ingredient Reporting | 24 → **22** | **No — not provable on this account** |
+
+**The three register numbers reproduce exactly and independently** (own-type count vs filtered count,
+internal tile): Recycled Content 2,314 → **2,403** (+89 via subcategory) · Certified Sustainability
+Facts 334 → **334** (+0) · Waste Diversion from Landfill 245 → **399** (+154).
+
+**CSF is a genuinely blind test case — it widens by zero.** No certificate carries CSF as a
+subcategory-only match, so filtering it returns exactly the 334 whose *own* type is CSF: the pre-fix
+and post-fix results are identical. My first viewport run used CSF and produced no visible proof,
+which I nearly read as a failed fix. It is the client's headline example and the one most likely to
+be chosen for a demo. **Any acceptance test that uses CSF alone cannot distinguish the fixed build
+from the broken one.** Use Waste Diversion from Landfill (+154) or Recycled Content (+89).
+
+**P2's proof is limited by fixture data, not by the code.** The dev `external` account sees 24 certs
+across 3 types (1 / 1 / 22 — they sum to 24), none with subcategory reach, so no subcategory-only row
+can be shown. The UI mechanism is verified there — chip renders, filter applies, count updates, layout
+holds at all 5 viewports — but the widening itself is not. Proving P2 needs a cert with a subcategory
+seeded onto an external-visible company, which is a data change and therefore a CR.
+
+**Correction to two things I asserted earlier in this session — both were my error, not the app's.**
+The tile API filter parameter is **`certType`**, not `certificationTypes`. Passing the latter is
+silently ignored and the endpoint returns the **full unfiltered set**. It cost me two wrong readings:
+a "the running server has the fix" confirmation that was really just the top of an unfiltered list,
+and a 6,019-vs-334 "discrepancy" that was no discrepancy at all. Captured the real URL off the UI to
+settle it. Same trap as the P4 route correction the other stream logged an hour earlier — **the API
+parameter names in the DEF-413 spec doc are not reliable; capture the request the UI actually sends.**
+
+Verification scripts (throwaway, in the job tmp dir, not added to the repo):
+`def413-viewport-pass.js`, `def413-widen.js`, `def413-capture.js`. Say the word if any are worth
+keeping in `Scripts/smoke-prod/`.
+
+
+### 2026-09-09 (later still) — "are we done testing?" — answered per surface; P4 tested, one dead file found
+
+Went surface-by-surface rather than answering in general. **P4 was untested** — no acceptance test
+in the register touched it — so I tested it: `GET /api/CertificatesApi?Filters.CertificationTypes=
+Waste Diversion from Landfill` returns **399**, identical to P3, and the first 200 rows are 115
+Waste-Diversion + **85 Certified Sustainability Facts**, so subcategory matches are reaching that
+path too. P4 passes.
+
+Coverage now: P1 ✅ · P2 ⚠️ UI verified, widening unprovable on fixtures · P3 ✅ · P4 ✅ · P5 ✅ ·
+P6 ❌ unreachable (no controller caller). Dev only; TEST env is post-deploy.
+
+**Three surfaces, three different filter parameter spellings, none interchangeable** — tile APIs take
+`certType`, P4 takes `Filters.CertificationTypes`. Wrong spelling is silently ignored and returns the
+**full unfiltered set**, which reads as a successful call with a big number. This bit me twice today.
+
+**`wwwroot/js/certificates.js` is dead code** — referenced by no view or controller, and it fetches
+the 404 route `/api/certificates`. So P4 has no live UI consumer. The sharper point: that file
+filters **client-side on the cert's own type name** (line 357), so if it were ever revived it would
+re-narrow precisely what the P4 server fix widens — a fix silently undone in the browser. Unreachable
+today, so not a defect and I changed nothing, but it should not be revived as-is.
+
+**Lesson:** [[feedback_scoping_check_adjacent_endpoints]] again, one layer further out. Having
+enumerated the six server-side predicates, I nearly stopped without asking which of them anything
+actually *calls*. Two of the six (P4, P6) have no live consumer. Enumerate the callers, not just the
+call sites — otherwise "12 edits across 4 files" overstates what shipped to users.
+
+
+### 2026-09-09 — "are you sure?" — I was not, and the challenge caught a wrong claim
+
+Shawn pushed back before I deleted anything. Correct instinct: **my "referenced by nothing" was
+wrong.** `appsettings.Performance.json:37` listed the file in a bundle —
+`"main": ["js/main.js", "js/certificates.js"]`. I had grepped `.cshtml`/`.cs` and called it dead
+without grepping config.
+
+Verified properly before touching it. It **is** dead, but for three reasons I had not established:
+
+1. `AddBundlingAndMinification` (Program.cs:524) is a **no-op stub** — `// can be expanded`, returns
+   `services` untouched, never reads the `Bundles` section.
+2. `appsettings.Performance.json` is **never loaded** — Program.cs adds only `appsettings.Secrets.json`,
+   and "Performance" is not an environment name, so `appsettings.{ENV}.json` never picks it up.
+3. That config is demonstrably stale anyway: it also names **`js/admin.js`, which does not exist.**
+
+**The clincher, found last: this file is DEF-143.** `qc159-live-check/older-defs-grouped-sweep.js:227`
+— *"DEF-143 — Cert detail loads wrong JS (was loading js/certificates.js)"* — with a live regression
+probe asserting the cert detail page does **not** load it. So it was orphaned by that fix years back,
+not parked deliberately. That distinction is the whole question
+([[feedback_signup_view_deliberately_parked]]: unreferenced ≠ unwanted), and I only settled it by
+finding the defect that orphaned it. The probe asserts *absence*, so deleting the file cannot break it.
+
+**Done:** `git rm wwwroot/js/certificates.js`; removed the stale entry from the Performance bundle so
+nothing points at a deleted file. Build clean, 0 errors. Backup of the config at the job tmp path.
+Uncommitted, as always.
+
+**Triage only — found, not touched, not costed in detail:**
+- `wwwroot/js/certificatesexternal.js` — 0 view references, same smell. Doesn't block. ~15 min to confirm.
+- `js/admin.js` named in the same dead bundle config but the file doesn't exist. Cosmetic. ~5 min.
+- `publish-20260505-1100/` — a whole publish output committed into the repo, still carrying its own
+  copy of certificates.js. Belongs with [[project_repo_cleanup_backlog]]. Doesn't block.
+
+**Lesson:** "no references" is only as wide as the file types you grepped. I checked code and views
+and skipped config, which is exactly where the one reference lived. Grep config and build files
+before calling anything dead — and when something looks orphaned, find the change that orphaned it.
+
+
+### 2026-09-09 — local regression run for the DEF-413 batch — GREEN, plus one real defect and two harness bugs
+
+Ran the local suites against `localhost:5101`, serialised (never two gates at once).
+
+**Security P0 gate — GREEN, 65 PASS / 0 FAIL / 0 WARN / 0 BLOCKED.** partner-isolation 21P ·
+rbac-matrix 24P · idor-download 2P · cert-detail-scoping 10P · session-keepalive 8P. Above the 55P
+baseline in memory, so coverage has grown, and rbac matches yesterday's 24P/0W exactly.
+
+**View smokes — the DEF-413 surfaces are clean.** cert-tile-public **124P/0F**, cert-tile-external
+**96P/0F**, cert-tile-internal **62P/0F**. Also 0F: login 28P, cert-edit 68P, dashboard 58P,
+admin-user-mgmt 40P, admin-tags 40P, and cert-create **80P/0F**.
+
+#### The `/Certificate/Create` alarm was mine, not the code's
+
+The first security run flagged `analyst -> /Certificate/Create` as **302 instead of 200** — new that
+day — and the view suite hit the same route with repeated **60 s timeouts**. It looked exactly like an
+auth regression. It was not. The dev server had been up 2h50m and I had just paged it through 6,019
+certificates several times over. Timings before vs after a restart, same probe:
+
+| Route | tired process | fresh process |
+|---|---|---|
+| `/Dashboard` | 28,638 ms | **2,219 ms** |
+| `/Certificate/Create` | 87,591 ms | **1,765 ms** |
+| `/Product/Management` | 102 ms | 230 ms |
+
+Everything returned **200** throughout — the 302/401 was the harness's timeout being recorded as a
+redirect, not a denial. After the restart the security gate went 64P/1W → **65P/0W** and cert-create
+went 43P/3F → **80P/0F**.
+
+**This is [[feedback_never_build_while_gate_measures]] in a new costume.** I had internalised it as
+"don't build during a gate" and then spent an hour on a phantom auth defect because I measured on a
+server *I* had exhausted. The rule is wider: **do not measure on a process whose state you just
+disturbed.** Restart first, then measure. A restart is 30 seconds; this cost far more.
+
+#### DEF-415 raised — Product Management renders 0 rows (not ours)
+
+Reproduces on the fresh server, so it is real: 6 FAIL for analyst+admin, `rows=0`, counter reads
+"Showing 0 of 0 products", while `/Product/GetProducts` returns **200 with 3,633 products** in exactly
+the shape the page expects. The page variable `products` stays at 0 through +25 s with **no console
+error and no failed request** — the initial in-page fetch never settles. Register shows this page
+working at 120 products; dev now has 3,633, so it smells scale-dependent (hypothesis, unmeasured).
+Not on any path we touched. Full detail + cost in the register.
+
+#### Two harness bugs, both blocking coverage
+
+1. **`_views/run-all.js` crashes at `cert-state-matrix`** — `JSON.parse` on a JSONC file containing
+   `// DEF-286:` comments (`_views/cert-state-matrix.js:79`). It aborts the whole run, so the last
+   views never execute. `_lib/read-jsonc.js` exists for exactly this and is not being used. ~10 min.
+2. **`_regression/` cannot run against localhost at all.** Its `ACCOUNTS` table hardcodes
+   `test.admin` / `test.analyst` / `test.external` / `test.external2` / `test.amazon` / `test.novi`,
+   which per CLAUDE.md exist **only on gccwebapp.com**, not in `GCCDatabase_Dev`. Every login fails
+   with "landed /Account/Login"; the 24 checks that passed are the anonymous ones that need no login.
+   This is [[feedback_verification_scripts_default_to_wrong_env]] again. **Nothing was wrong with the
+   app.** Either seed those six accounts into dev or let the account names be overridden. ~30 min.
+
+Run was also killed once by Windows for low memory — the machine had **0.9 GB of 15.5 GB free**, and
+not from my processes (0 stray browsers, 0 node afterwards; the app itself was 419 MB). Worth knowing
+before blaming a suite that dies mid-run.
+
+**Net: nothing in the DEF-413/414 batch regressed anything.** The two failures that looked like ours
+were an exhausted server and a wrong-environment credential table.
+
+
+### 2026-09-09 — DEF-415 ownership PROVEN by A/B against pristine HEAD — and a near-miss worth keeping
+
+Closed the one caveat I had left open: "DEF-415 is not ours" was reasoned from reading the code, not
+proven. Now proven, and the proof nearly went the wrong way.
+
+Built a detached worktree at pristine `HEAD` (`f47a894c`) and ran it on :5101 in place of the
+working-tree build. Shawn's tree was never touched — no stash, no checkout, no commit — which is why
+a worktree beats `git stash` for this: the uncommitted batch stays exactly where it is.
+
+**Which build was live was verified by a positive marker rather than assumed:** `/js/certificates.js`
+returns **200** on the baseline and **404** on our build (the batch deletes it). Confirmed on every
+swap, in both directions, per [[feedback_verify_deployed_asset_not_symptom]].
+
+| Build | product-mgmt | failing |
+|---|---|---|
+| Baseline run 1 | 81P / **2F** | admin/tablet, admin/mobile |
+| Baseline run 2 | 77P / **6F** | analyst ×3, admin ×3 |
+| Baseline run 3 | 77P / **6F** | analyst ×3, admin ×3 |
+| Our build (×3 earlier) | 77P / **6F** | analyst ×3, admin ×3 |
+
+**Identical. DEF-415 is pre-existing; the batch neither causes nor worsens it.**
+
+**The near-miss.** Baseline run 1 failed only **2** checks against our consistent **6**. Stopping
+there would have produced exactly the wrong headline — *"our change makes Product Management worse"* —
+and sent someone hunting a regression that does not exist. Two more runs on the *same* baseline gave
+6 and 6. The 2 was variance from a just-started server, nothing else.
+
+**Lesson, and it is a sharper version of [[feedback_equal_counts_are_not_the_same_rows]]:** when
+A and B disagree, the first question is whether **B disagrees with itself**. I compared one baseline
+sample against three of ours and almost called the difference a finding. Re-run the *baseline* before
+believing any A/B delta — especially on a suite whose symptom is already timing-dependent.
+
+**And the variance turned out to be the best diagnostic I have for DEF-415.** It fails *less* on a
+cold server (2F) and settles at 6F once warm. That fits "the initial fetch never settles" and points
+at concurrency on the four parallel load fetches — not at the response shape, which I had already
+verified matches. Recorded in the register for whoever picks it up.
+
+Worktree removed; only the undeletable `.git/worktrees` metadata remains (same as the earlier stream
+hit — `pristine`, `baseline`, `prefix-baseline`, `wt294` are all stale entries, not live worktrees).
+Shawn's dev server restarted on her build and verified live by the 404 marker. Still no commit.
+
+---
+
+## 2026-09-09 — Client feedback intake: `CR_9_9_26_edit.pdf` (email, 10:52 AM)
+
+Four items, two of them **questions** rather than change requests. Read the code before answering;
+nothing built yet — logged here per the estimate-before-build gate
+([[feedback_absorbed_cr_is_still_priced]]).
+
+**1. Edit button should open a new tab** (tile + list views). Reason given: the team loses its prior
+search when editing a batch of certs. Code: `editCertificate()` sets `window.location.href` —
+`wwwroot/js/certificate-tile-view-internal.js:1297`, `-external.js:1279`, plus the detail views
+`CertificateInternalView.cshtml:492` / `CertificateExternalView.cshtml:411`. One-line change per
+site (`window.open(url, '_blank')`). Low risk; the open question is **how many of those four sites**
+are in scope.
+
+**2. List view as the default for logged-in users.** Code: `state.currentView: 'tile'`
+(`certificate-tile-view-internal.js:27`) and the markup hard-codes `active` on the tile button
+(`CertificateTileViewInternal.cshtml:263`, `CertificateTileViewExternal.cshtml:195`). Flipping the
+default is small; "remember the user's last choice" is the better answer to the stated complaint but
+is a larger ask than what was written.
+
+**3. Template `Certificate #` column — is it for editing existing certs?** *Answer: yes.* Import is
+an upsert. Blank ⇒ `GenerateNextCertificateNumberAsync()` assigns a new number
+(`CertificateImportService.cs:1854`); a number that matches a stored cert routes to
+`UpdateCertificateAsync` and the preview shows a field-by-field diff (`:1637-1684`). No change needed.
+**Caveat worth telling the client:** the match is `FirstOrDefault` on Number, and Number is **not**
+unique — see [[feedback_duplicate_certificate_numbers_exist]]. Importing against a number that has
+more than one row will update whichever row is returned first.
+
+**4. Import modal says `CERTIFICATE_NUMBER` is Required — it isn't, for new rows.** Confirmed
+mis-statement. `Views/Certificate/CertificateTileViewInternal.cshtml:429`. Note the *other* import
+screen (`Views/CertificateImport/Index.cshtml:72-73`) already describes the upsert behaviour
+correctly, so the two screens disagree with each other. This is a **defect** (wrong instructions),
+not a CR.
+
+Client explicitly did not test items 3/4 herself — "data is real and we are using DB".
+
+
+### 2026-09-09 — "what failed? can we fix it" — one of the three wasn't real, two are now fixed
+
+Three things had failed. Re-examined each before fixing anything, which was the right order:
+one of them was my own error, again.
+
+**1. DEF-415 (Product Management, 0 rows) — MY CHARACTERISATION WAS WRONG. Corrected in the register.**
+I wrote that the page's initial fetch "never settles". Instrumenting `window.fetch` *before* any page
+script ran, on a freshly restarted server:
+
+```
+resolved 200  1437ms  2,572,855B  /Product/GetProducts   => products=3633  rows=100
+```
+
+It settles in 1.4 s and renders 100 rows. Three consecutive smoke runs on that same server:
+**83P/0F**, then 77P/6F, then 78P/5F. **The page is not broken — it passes on a healthy server and
+fails as the server degrades.** Every "products=0 at +25 s" reading I had was taken on a loaded
+process.
+
+This is the **third** time in one session I mistook server degradation for a defect
+(`/Certificate/Create`, the rbac 302, now this). I diagnosed the mechanism correctly the first time
+and then failed to apply it twice more. **Product Management is the most sensitive detector of the
+degradation, not a broken page** — it pulls 2.5 MB / 3,633 rows per load where other pages pull
+kilobytes, so it fails first. It is the canary, not the fire.
+
+**The real finding is bigger and I have re-scoped DEF-415 to it:** sustained load degrades the whole
+app by 1-2 orders of magnitude — `/Certificate/Create` 1.7 s → 87 s (50×), `/Dashboard` 2.2 s → 28 s
+(13×) on one process. **Not established:** whether that happens under normal traffic or only under
+the abnormal hammering I applied. Must be measured on TEST before anyone calls it a production
+defect. My dev numbers must not go into a client-facing note.
+
+**2. DEF-416 — `_views/run-all.js` JSONC crash — FIXED.** `cert-state-matrix.js:79` used raw
+`JSON.parse` on `appsettings.Development.json`, which is JSONC. It threw at position 888 and aborted
+the *entire* view suite, so later views never ran. `_lib/read-jsonc.js` has existed for this since
+2026-08-25 and `_crud` already uses it; this file was never migrated. It was the only remaining site.
+Verified both directions on the real file.
+
+**3. DEF-417 — `_regression` silent wrong-target failure — FIXED.** The suite is TEST-env by design;
+aimed at localhost it yielded 24 anonymous PASS + 6 "login failed", which reads as six broken logins
+rather than one wrong target. Accounts are now env-overridable (defaults unchanged) and a guard
+aborts with one actionable message.
+
+**The instructive part of #3.** My first attempt put the guard inside `session()`. That produced
+**0 PASS / 7 FAIL** — it converted one configuration error into seven recorded *test failures*,
+which is exactly the confusion the guard existed to remove. Moved it to module load: prints
+`CONFIGURATION ERROR`, exits 2, writes no result rows. **A configuration error must abort a run, not
+masquerade as test results.** Worth remembering the next time a "guard" is added anywhere.
+
+**Two self-inflicted messes, both caught and reverted:** I corrupted `regression-lib.js` twice with
+bash/JS escaping through heredocs before switching to a plain-text splice — restored from backup both
+times and confirmed byte-identical to git before continuing. And my misconfigured runs overwrote two
+**tracked** result files (`_regression/_results/00-preflight.json`, `01-rbac-matrix.json`); restored
+with `git checkout`. **Take the backup before the edit, not after the breakage.**
+
+Product code untouched throughout: the only non-doc changes remain the DEF-413/414 batch, the
+`certificates.js` deletion, and its `appsettings.Performance.json` entry.

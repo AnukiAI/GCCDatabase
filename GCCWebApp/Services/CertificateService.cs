@@ -56,15 +56,36 @@ namespace GCCWebApp.Services
                     // DEF-409: remembered so the paging step below can rank prefix matches first.
                     rankQuery = string.IsNullOrEmpty(nq) ? null : nq;
                     var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
+                    // DEF-402 / DEF-414: country ids as their own semi-join, matching the tile APIs.
+                    var countryIds = await TagSearchMatch.MatchingCountryCertificateIdsAsync(_context.Certificates, nq);
+                    // DEF-413: certification-type SUBCATEGORY names are searchable.
+                    var subcatIds = await TagSearchMatch.MatchingSubcategoryCertificateIdsAsync(_context.Certificates, nq);
+                    // DEF-414: this predicate covered Company/Product/Number ONLY, while the tile
+                    // views whose results it must agree with also search Type, Product Category,
+                    // Location and Country. Measured on dev before the fix: searching 'certified
+                    // sustainability facts' showed 103 on screen and exported 0; 'canada' showed 54
+                    // and exported 23. Silent under-delivery, the same failure DEF-404 fixed for the
+                    // country FILTER. The field list below is now identical to the tile APIs'.
                     query = query.WhereMatchesSearch(c =>
+                        c.NormalizedNumber!.Contains(nq) ||
+                        c.CertificationType.NormalizedName!.Contains(nq) ||
                         c.Company.NormalizedName!.Contains(nq) ||
                         c.Product.NormalizedName!.Contains(nq) ||
-                        c.NormalizedNumber!.Contains(nq), tagIds);
+                        c.Product.Category.NormalizedName!.Contains(nq) ||
+                        (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
+                        (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)),
+                        TagSearchMatch.Union(TagSearchMatch.Union(tagIds, countryIds), subcatIds));
                 }
 
                 if (request.Filters.CertificationTypes.Any())
                 {
-                    query = query.Where(c => request.Filters.CertificationTypes.Contains(c.CertificationType.Name));
+                    // // DEF-413: match the certificate's own TYPE or any of its certification-type
+                    // SUBCATEGORIES. Semi-join, never an .Any() inside the OR (DEF-366, DEF-402).
+                    // Role/visibility scoping is a separate AND'd Where, so an unscoped id set here
+                    // cannot widen what the caller sees.
+                    var certTypeSubcatIds = await TagSearchMatch.SubcategoryNamedCertificateIdsAsync(
+                        _context.Certificates, request.Filters.CertificationTypes);
+                    query = query.WhereCertificationTypeMatches(request.Filters.CertificationTypes, certTypeSubcatIds);
                 }
 
                 if (request.Filters.Countries.Any())
@@ -210,15 +231,36 @@ namespace GCCWebApp.Services
                     // DEF-409: remembered so the paging step below can rank prefix matches first.
                     rankQuery = string.IsNullOrEmpty(nq) ? null : nq;
                     var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
+                    // DEF-402 / DEF-414: country ids as their own semi-join, matching the tile APIs.
+                    var countryIds = await TagSearchMatch.MatchingCountryCertificateIdsAsync(_context.Certificates, nq);
+                    // DEF-413: certification-type SUBCATEGORY names are searchable.
+                    var subcatIds = await TagSearchMatch.MatchingSubcategoryCertificateIdsAsync(_context.Certificates, nq);
+                    // DEF-414: this predicate covered Company/Product/Number ONLY, while the tile
+                    // views whose results it must agree with also search Type, Product Category,
+                    // Location and Country. Measured on dev before the fix: searching 'certified
+                    // sustainability facts' showed 103 on screen and exported 0; 'canada' showed 54
+                    // and exported 23. Silent under-delivery, the same failure DEF-404 fixed for the
+                    // country FILTER. The field list below is now identical to the tile APIs'.
                     query = query.WhereMatchesSearch(c =>
+                        c.NormalizedNumber!.Contains(nq) ||
+                        c.CertificationType.NormalizedName!.Contains(nq) ||
                         c.Company.NormalizedName!.Contains(nq) ||
                         c.Product.NormalizedName!.Contains(nq) ||
-                        c.NormalizedNumber!.Contains(nq), tagIds);
+                        c.Product.Category.NormalizedName!.Contains(nq) ||
+                        (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
+                        (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)),
+                        TagSearchMatch.Union(TagSearchMatch.Union(tagIds, countryIds), subcatIds));
                 }
 
                 if (request.Filters.CertificationTypes.Any())
                 {
-                    query = query.Where(c => request.Filters.CertificationTypes.Contains(c.CertificationType.Name));
+                    // // DEF-413: match the certificate's own TYPE or any of its certification-type
+                    // SUBCATEGORIES. Semi-join, never an .Any() inside the OR (DEF-366, DEF-402).
+                    // Role/visibility scoping is a separate AND'd Where, so an unscoped id set here
+                    // cannot widen what the caller sees.
+                    var certTypeSubcatIds = await TagSearchMatch.SubcategoryNamedCertificateIdsAsync(
+                        _context.Certificates, request.Filters.CertificationTypes);
+                    query = query.WhereCertificationTypeMatches(request.Filters.CertificationTypes, certTypeSubcatIds);
                 }
 
                 if (request.Filters.Countries.Any())
@@ -524,13 +566,36 @@ namespace GCCWebApp.Services
                 // DEF-409: remembered so the rows can be ranked below.
                 rankQuery = string.IsNullOrEmpty(nq) ? null : nq;
                 var tagIds = await TagSearchMatch.MatchingCertificateIdsAsync(_context.Certificates, nq);
+                // DEF-402 / DEF-414: country ids as their own semi-join, matching the tile APIs.
+                var countryIds = await TagSearchMatch.MatchingCountryCertificateIdsAsync(_context.Certificates, nq);
+                // DEF-413: certification-type SUBCATEGORY names are searchable.
+                var subcatIds = await TagSearchMatch.MatchingSubcategoryCertificateIdsAsync(_context.Certificates, nq);
+                // DEF-414: this predicate covered Company/Product/Number ONLY, while the tile
+                // views whose results it must agree with also search Type, Product Category,
+                // Location and Country. Measured on dev before the fix: searching 'certified
+                // sustainability facts' showed 103 on screen and exported 0; 'canada' showed 54
+                // and exported 23. Silent under-delivery, the same failure DEF-404 fixed for the
+                // country FILTER. The field list below is now identical to the tile APIs'.
                 query = query.WhereMatchesSearch(c =>
+                    c.NormalizedNumber!.Contains(nq) ||
+                    c.CertificationType.NormalizedName!.Contains(nq) ||
                     c.Company.NormalizedName!.Contains(nq) ||
                     c.Product.NormalizedName!.Contains(nq) ||
-                    c.NormalizedNumber!.Contains(nq), tagIds);
+                    c.Product.Category.NormalizedName!.Contains(nq) ||
+                    (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
+                    (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)),
+                    TagSearchMatch.Union(TagSearchMatch.Union(tagIds, countryIds), subcatIds));
             }
             if (request.Filters.CertificationTypes.Any())
-                query = query.Where(c => request.Filters.CertificationTypes.Contains(c.CertificationType.Name));
+            {
+                // // DEF-413: match the certificate's own TYPE or any of its certification-type
+                // SUBCATEGORIES. Semi-join, never an .Any() inside the OR (DEF-366, DEF-402).
+                // Role/visibility scoping is a separate AND'd Where, so an unscoped id set here
+                // cannot widen what the caller sees.
+                var certTypeSubcatIds = await TagSearchMatch.SubcategoryNamedCertificateIdsAsync(
+                    _context.Certificates, request.Filters.CertificationTypes);
+                query = query.WhereCertificationTypeMatches(request.Filters.CertificationTypes, certTypeSubcatIds);
+            }
             if (request.Filters.Countries.Any())
             {
                 // DEF-404: this is the export, and it must return the same certificates the list

@@ -139,6 +139,9 @@ namespace GCCWebApp.Controllers.Api
                         // (DEF-366), then OR'd back in as set membership. Countries are still fully
                         // searchable, primary and secondary; row counts are unchanged.
                         var countryIds = await TagSearchMatch.MatchingCountryCertificateIdsAsync(_context.Certificates, nq);
+                        // DEF-413: certification-type SUBCATEGORY names are searchable, resolved the
+                        // same way as tags and countries rather than as a clause inside the OR.
+                        var subcatIds = await TagSearchMatch.MatchingSubcategoryCertificateIdsAsync(_context.Certificates, nq);
                         query = query.WhereMatchesSearch(c =>
                             c.NormalizedNumber!.Contains(nq) ||
                             c.CertificationType.NormalizedName!.Contains(nq) ||
@@ -147,15 +150,22 @@ namespace GCCWebApp.Controllers.Api
                             c.Product.Category.NormalizedName!.Contains(nq) ||
                             (c.NormalizedLocation != null && c.NormalizedLocation.Contains(nq)) ||
                             (c.NormalizedCountry != null && c.NormalizedCountry.Contains(nq)),
-                            TagSearchMatch.Union(tagIds, countryIds));
+                            TagSearchMatch.Union(TagSearchMatch.Union(tagIds, countryIds), subcatIds));
                     }
                 }
 
                 // Apply certification type filter
                 if (!string.IsNullOrWhiteSpace(certType))
                 {
-                    var types = certType.Split('|', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => types.Contains(c.CertificationType.Name));
+                    // DEF-413: a filter option matches the certificate's own TYPE or any of its
+                    // certification-type SUBCATEGORIES. The role scoping applied above this point is
+                    // a separate AND'd Where, so OR-ing an unscoped subcategory id set in here cannot
+                    // widen what this caller sees — the same argument as the tag/country search legs.
+                    // Resolved as a semi-join, never as an .Any() inside the OR (DEF-366, DEF-402).
+                    var types = certType.Split('|', StringSplitOptions.RemoveEmptyEntries).ToList();
+                    var certTypeSubcatIds = await TagSearchMatch.SubcategoryNamedCertificateIdsAsync(
+                        _context.Certificates, types);
+                    query = query.WhereCertificationTypeMatches(types, certTypeSubcatIds);
                 }
 
                 // DEF-192: Match the EFFECTIVE displayed category/type/subcategory at each level

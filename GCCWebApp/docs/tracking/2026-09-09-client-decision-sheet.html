@@ -1,0 +1,518 @@
+<title>Four Items, Three Decisions</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+  :root {
+    --paper:      #FBFBF9;
+    --surface:    #FFFFFF;
+    --surface-2:  #F1F3F0;
+    --ink:        #1A2420;
+    --ink-soft:   #55625C;
+    --ink-faint:  #838F89;
+    --rule:       #E1E5E1;
+    --accent:     #1B6152;
+    --accent-bg:  #E9F2EF;
+    --signal:     #A0620A;
+    --signal-bg:  #FCF2E1;
+
+    --fs-body:  1.0625rem;
+    --fs-small: 0.9375rem;
+    --maxw:     44rem;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #101613;
+      --surface:    #18211D;
+      --surface-2:  #1F2A25;
+      --ink:        #E6ECE8;
+      --ink-soft:   #A7B3AD;
+      --ink-faint:  #7B8781;
+      --rule:       #2C3833;
+      --accent:     #6BC3A9;
+      --accent-bg:  #16261F;
+      --signal:     #E7B15E;
+      --signal-bg:  #2A2216;
+
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #101613;
+    --surface:    #18211D;
+    --surface-2:  #1F2A25;
+    --ink:        #E6ECE8;
+    --ink-soft:   #A7B3AD;
+    --ink-faint:  #7B8781;
+    --rule:       #2C3833;
+    --accent:     #6BC3A9;
+    --accent-bg:  #16261F;
+    --signal:     #E7B15E;
+    --signal-bg:  #2A2216;
+
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--fs-body);
+    line-height: 1.62;
+    padding-inline: 20px;
+    padding-block: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: var(--maxw);
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2.75rem;
+    padding-block: 3.25rem 4.5rem;
+  }
+
+  h1, h2, h3 {
+    font-family: Lora, Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h1 { font-size: clamp(1.9rem, 5.5vw, 2.6rem); line-height: 1.12; }
+  h2 { font-size: 1.4rem; line-height: 1.25; }
+  h3 { font-size: 1.12rem; line-height: 1.3; }
+  p  { margin: 0; }
+
+  .eyebrow {
+    font-size: var(--fs-small);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  header { display: flex; flex-direction: column; gap: 0.9rem; }
+  .lede { font-size: 1.15rem; color: var(--ink-soft); }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  .docmeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.4rem;
+    font-size: var(--fs-small);
+    color: var(--ink-soft);
+    border-top: 2px solid var(--ink);
+    padding-top: 0.8rem;
+  }
+  .docmeta b { color: var(--ink); font-weight: 600; }
+
+  section { display: flex; flex-direction: column; gap: 1.1rem; }
+
+  /* --- status of the four items --- */
+  .status { display: flex; flex-direction: column; border-top: 1px solid var(--rule); }
+  .status-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.3rem 1rem;
+    align-items: baseline;
+    padding-block: 0.95rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .status-row .item { display: flex; flex-direction: column; gap: 0.25rem; }
+  .status-row .item b { font-weight: 600; }
+  .status-row .item span { font-size: var(--fs-small); color: var(--ink-soft); }
+
+  .tag {
+    font-size: var(--fs-small);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.55rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .tag.settled { color: var(--accent); background: var(--accent-bg); }
+  .tag.needs   { color: var(--signal); background: var(--signal-bg); }
+
+  @media (max-width: 32rem) {
+    .status-row { grid-template-columns: 1fr; }
+    .status-row .tag { justify-self: start; }
+  }
+
+  /* --- decision cards --- */
+  .decisions { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .decision {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--signal);
+    padding: 1.4rem clamp(1.1rem, 3.5vw, 1.7rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .decision > .q { display: flex; flex-direction: column; gap: 0.4rem; }
+  .decision .qnum {
+    font-size: var(--fs-small);
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--signal);
+  }
+  .decision p.context { color: var(--ink-soft); font-size: var(--fs-small); }
+
+  .options { display: flex; flex-direction: column; gap: 0.7rem; }
+  .option {
+    display: grid;
+    grid-template-columns: 1.5rem 1fr;
+    gap: 0.2rem 0.7rem;
+    align-items: start;
+    padding: 0.7rem 0.85rem;
+    background: var(--surface-2);
+    border-radius: 3px;
+  }
+  .option .box {
+    font-size: 1.15rem;
+    line-height: 1.35;
+    color: var(--ink-faint);
+  }
+  .option .body { display: flex; flex-direction: column; gap: 0.3rem; }
+  .option .body b { font-weight: 600; }
+  .option .body span { font-size: var(--fs-small); color: var(--ink-soft); }
+  .option.pick { background: var(--accent-bg); }
+
+  .rec {
+    display: inline-block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-left: 0.45rem;
+    white-space: nowrap;
+  }
+
+  /* --- reassurance + cost tables --- */
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--fs-body); }
+  th, td { text-align: left; padding: 0.7rem 0.9rem 0.7rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-weight: 600; white-space: nowrap; padding-right: 1.5rem; }
+  td { color: var(--ink-soft); }
+  table.tight th { width: 42%; }
+
+  .cost {
+    background: var(--accent-bg);
+    border: 1px solid var(--rule);
+    padding: 1.3rem clamp(1.1rem, 3.5vw, 1.7rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  .cost .figure {
+    font-family: Lora, Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  ul.plain, ol.plain {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  ul.plain li::marker, ol.plain li::marker { color: var(--ink-faint); }
+
+  .checklist { display: flex; flex-direction: column; gap: 0.6rem; }
+  .checklist div { display: grid; grid-template-columns: 1.4rem 1fr; gap: 0.6rem; align-items: start; }
+  .checklist .box { color: var(--ink-faint); font-size: 1.1rem; line-height: 1.4; }
+
+  /* --- sign-off --- */
+  .signoff {
+    border: 2px solid var(--ink);
+    padding: 1.5rem clamp(1.1rem, 3.5vw, 1.7rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .shortcut {
+    background: var(--surface-2);
+    padding: 0.85rem 1rem;
+    border-radius: 3px;
+    font-size: var(--fs-small);
+  }
+  .rule-line {
+    border-bottom: 1px solid var(--ink-faint);
+    height: 1.9rem;
+  }
+  .siglines { display: flex; flex-wrap: wrap; gap: 1rem 2rem; }
+  .siglines > div { flex: 1 1 12rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .siglines span { font-size: var(--fs-small); color: var(--ink-soft); }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.15rem;
+    color: var(--ink-soft);
+    font-size: var(--fs-small);
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header>
+    <p class="eyebrow">Prepared by Anuki Consulting</p>
+    <h1>Four items, three decisions</h1>
+    <p class="lede">Thank you for the database feedback of 9 September. We have checked all four items against the
+      system. <strong>Two are settled and need nothing from you.</strong> The other two are worth doing, and there are
+      three small choices only your team can make.</p>
+    <div class="docmeta">
+      <span><b>Date</b> 9 September 2026</span>
+      <span><b>Reference</b> CR-048 &middot; CR-049 &middot; DEF-416</span>
+      <span><b>Reply by</b> whenever suits &mdash; nothing is blocked</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Where your four items stand</h2>
+    <div class="status">
+
+      <div class="status-row">
+        <span class="item">
+          <b>Edit should open in a new tab</b>
+          <span>Agreed, and it is a contained change. One question about how far it should reach.</span>
+        </span>
+        <span class="tag needs">Decision 1</span>
+      </div>
+
+      <div class="status-row">
+        <span class="item">
+          <b>List view as the default</b>
+          <span>Agreed. Two questions, because there is a better and a worse way to solve it.</span>
+        </span>
+        <span class="tag needs">Decisions 2 &amp; 3</span>
+      </div>
+
+      <div class="status-row">
+        <span class="item">
+          <b>Certificate&nbsp;# column in the template</b>
+          <span>Your reading is correct. Blank creates a new certificate; entering an existing number edits that
+            certificate. Nothing to change.</span>
+        </span>
+        <span class="tag settled">Answered</span>
+      </div>
+
+      <div class="status-row">
+        <span class="item">
+          <b>&ldquo;Certificate Number is required&rdquo;</b>
+          <span>You are right, the wording is wrong. That is our error and we are correcting it at no charge.</span>
+        </span>
+        <span class="tag settled">We fix it</span>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>What we found</h2>
+    <p>The import already works the way your team hoped. Leave the Certificate&nbsp;# blank and the system assigns the
+      next number and creates a new certificate. Enter an existing certificate&rsquo;s number and the import updates
+      that certificate instead of duplicating it &mdash; and before anything is saved you see a preview listing every
+      field that would change, so a file can be abandoned at that point with nothing written.</p>
+    <p>The wording in the upload window contradicts that, which is what your team ran into. It is also inconsistent
+      with the other import screen in the system, which describes the behaviour correctly. We are bringing the two into
+      line and spelling out both cases.</p>
+    <p><b>One thing we should raise while you are here.</b> A small number of certificate numbers in the current data
+      appear on more than one record. If someone edits by import using one of those numbers, the system updates the
+      first matching record, which may not be the one they intended. This comes from the historic data rather than the
+      import itself, and it may never arise in practice. If your team is going to use the template routinely for edits
+      we would suggest a check that pauses and warns when a number matches more than one certificate, rather than
+      choosing quietly. Happy to look at that separately &mdash; it is not part of the work below.</p>
+  </section>
+
+  <section>
+    <h2>The three decisions</h2>
+    <p class="lede" style="font-size: var(--fs-body);">Each one is genuinely a preference, not a technical
+      constraint. Our recommendation is marked, and any combination works.</p>
+
+    <div class="decisions">
+
+      <div class="decision">
+        <div class="q">
+          <p class="qnum">Decision 1</p>
+          <h3>How far should the new tab reach?</h3>
+          <p class="context">Your team sees an Edit button in three places: on the tile card, in the list&rsquo;s
+            Actions column, and on the certificate detail page. All three run through the same underlying control, so
+            they naturally change together.</p>
+        </div>
+        <div class="options">
+          <div class="option pick">
+            <span class="box">&#9744;</span>
+            <span class="body">
+              <b>A &mdash; All three places<span class="rec">Our recommendation</span></b>
+              <span>Edit always opens a new tab and always leaves your search behind it. One consistent behaviour to
+                learn.</span>
+            </span>
+          </div>
+          <div class="option">
+            <span class="box">&#9744;</span>
+            <span class="body">
+              <b>B &mdash; The tile and list only</b>
+              <span>Leaves the certificate detail page editing in place, as it does today. Fewer changes, but Edit then
+                behaves differently depending on where you press it.</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="decision">
+        <div class="q">
+          <p class="qnum">Decision 2</p>
+          <h3>A fixed List default, or one that remembers?</h3>
+          <p class="context">The frustration described is having to switch view every time the page loads. There are
+            two ways to remove that, and they behave differently for anyone who prefers the tile view.</p>
+        </div>
+        <div class="options">
+          <div class="option">
+            <span class="box">&#9744;</span>
+            <span class="body">
+              <b>A &mdash; Always start in List</b>
+              <span>Every page load opens in List for everyone. Exactly as requested. The trade-off is that anyone who
+                prefers tiles now switches every time instead.</span>
+            </span>
+          </div>
+          <div class="option pick">
+            <span class="box">&#9744;</span>
+            <span class="body">
+              <b>B &mdash; Start in List, then remember<span class="rec">Our recommendation</span></b>
+              <span>The first visit opens in List. After that the page opens in whichever view that person last used,
+                so nobody keeps switching. The preference is held in the browser, so a different computer starts in
+                List again.</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="decision">
+        <div class="q">
+          <p class="qnum">Decision 3</p>
+          <h3>Who does the List default apply to?</h3>
+          <p class="context">Your note said &ldquo;all logged in users&rdquo;, which could mean your own team or
+            everyone with a login, including client and partner accounts.</p>
+        </div>
+        <div class="options">
+          <div class="option pick">
+            <span class="box">&#9744;</span>
+            <span class="body">
+              <b>A &mdash; Your internal team only<span class="rec">Our recommendation</span></b>
+              <span>Analysts and administrators. External and partner logins keep opening on the tile view, which is
+                the presentation your certificate holders are used to.</span>
+            </span>
+          </div>
+          <div class="option">
+            <span class="box">&#9744;</span>
+            <span class="body">
+              <b>B &mdash; Everyone with a login</b>
+              <span>Including external company and partner accounts. Worth pausing on: the tile view is the polished
+                view those audiences see, so this changes their first impression too.</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>What deliberately will not change</h2>
+    <p>None of this touches your data or your integrations. Stated plainly:</p>
+    <div class="tablewrap">
+      <table class="tight">
+        <tbody>
+          <tr><th>Your certificate data</th><td>Unchanged. Nothing is edited, moved or recalculated.</td></tr>
+          <tr><th>The Amazon partner feed</th><td>Unchanged. No change to what is sent or how.</td></tr>
+          <tr><th>Existing import files</th><td>Unchanged. Files your team already uses keep working exactly as they
+            do now.</td></tr>
+          <tr><th>Who can see what</th><td>Unchanged. No change to permissions, or to what external and partner
+            accounts can reach.</td></tr>
+          <tr><th>Certificate statuses and workflow</th><td>Unchanged.</td></tr>
+          <tr><th>The public certificate pages</th><td>Unchanged.</td></tr>
+          <tr><th>Sorting, filters and search</th><td>Unchanged. Only the view a page opens in is affected.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Effort and cost</h2>
+    <div class="cost">
+      <p class="figure">No charge &mdash; absorbed</p>
+      <p>All three items together are estimated at approximately <b>one day</b>, including testing and release. Anuki
+        Consulting is absorbing this at no charge.</p>
+      <p style="font-size: var(--fs-small); color: var(--ink-soft);">The correction to the import wording would be at
+        no charge in any case, as it is our error. The two improvements are recorded at their estimated value and
+        discounted in full, so the position stays visible on both sides.</p>
+    </div>
+    <p style="font-size: var(--fs-small); color: var(--ink-soft);">Once decisions are returned, the work can begin
+      within the next release cycle and is a same-day change. It does not need a database migration or any downtime.</p>
+  </section>
+
+  <section>
+    <h2>How your team can check it</h2>
+    <p>After release, without needing us:</p>
+    <div class="checklist">
+      <div><span class="box">&#9744;</span><span>Run a search, press Edit on a certificate, and confirm the search is
+        still there when the new tab is closed.</span></div>
+      <div><span class="box">&#9744;</span><span>Sign out, sign back in, and confirm the certificates page opens in
+        List view.</span></div>
+      <div><span class="box">&#9744;</span><span>Switch to the tile view, reload the page, and confirm it behaves the
+        way Decision 2 says it should.</span></div>
+      <div><span class="box">&#9744;</span><span>Open the certificate import window and confirm the instructions now
+        describe both cases &mdash; blank creates, filled updates.</span></div>
+      <div><span class="box">&#9744;</span><span>Download the template, leave Certificate&nbsp;# blank on one row and
+        fill an existing number on another, and confirm the preview shows one new certificate and one set of
+        changes.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Your decision</h2>
+    <div class="signoff">
+      <p class="shortcut"><b>The quick way:</b> reply with three letters &mdash; for example
+        <b>1&ndash;A, 2&ndash;B, 3&ndash;A</b>, which is our recommendation throughout. Or mark the boxes above and
+        return this page.</p>
+      <div class="siglines">
+        <div><span class="rule-line"></span><span>Decisions (e.g. 1&ndash;A, 2&ndash;B, 3&ndash;A)</span></div>
+        <div><span class="rule-line"></span><span>Date</span></div>
+      </div>
+      <div class="siglines">
+        <div><span class="rule-line"></span><span>Anything you would like changed or added</span></div>
+      </div>
+      <div class="siglines">
+        <div><span class="rule-line"></span><span>Name</span></div>
+        <div><span class="rule-line"></span><span>Signature</span></div>
+      </div>
+      <p style="font-size: var(--fs-small); color: var(--ink-soft);">We will not start these changes until the
+        decisions come back, so nothing moves under your team while they are still testing.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Reference CR-048, CR-049 and DEF-416 &middot; Anuki Consulting &middot; 9 September 2026</p>
+    <p>This document supersedes any prior verbal estimate for these requests.</p>
+  </footer>
+
+</div>

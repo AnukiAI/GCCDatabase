@@ -38,6 +38,8 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { login, BASE } = require('../_lib/smoke-template');
+// Config files here are JSONC (`//` comments) — JSON.parse chokes on them. See _lib/read-jsonc.js.
+const { readJsonc } = require('../_lib/read-jsonc');
 
 const NAV_TIMEOUT = parseInt(process.env.SMOKE_NAV_TIMEOUT || '60000', 10);
 const API_TIMEOUT = parseInt(process.env.SMOKE_API_TIMEOUT || '20000', 10);
@@ -76,7 +78,7 @@ const VIEWS = [
 // --- DB connection parsed from appsettings.Development.json (dev server uses this) -------
 function sqlcmdArgs() {
   const cfgPath = path.resolve(__dirname, '..', '..', '..', 'appsettings.Development.json');
-  const conn = JSON.parse(fs.readFileSync(cfgPath, 'utf8')).ConnectionStrings.DefaultConnection;
+  const conn = readJsonc(cfgPath).ConnectionStrings.DefaultConnection;
   const kv = {};
   for (const part of conn.split(';')) {
     const i = part.indexOf('=');

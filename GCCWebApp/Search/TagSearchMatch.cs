@@ -118,6 +118,102 @@ namespace GCCWebApp.Search
                 .ToListAsync(cancellationToken);
         }
 
+
+        /// <summary>
+        /// DEF-413. Certificate ids whose certification-type SUBCATEGORIES match the already-
+        /// normalized search term <paramref name="nq"/>.
+        ///
+        /// Same semi-join shape, and for the same reason, as the tag and country resolvers above:
+        /// `c.CertificationTypeSubcategories.Any(...)` sitting inside the search OR is the exact
+        /// pattern that cost 3,200 ms on tags (DEF-366) and 15x the whole query on countries
+        /// (DEF-402). Resolved on its own it is a plain semi-join.
+        /// </summary>
+        public static async Task<IReadOnlyList<int>> MatchingSubcategoryCertificateIdsAsync(
+            IQueryable<Certificate> certificates,
+            string nq,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(nq)) return Array.Empty<int>();
+
+            return await certificates
+                .Where(c => c.CertificationTypeSubcategories.Any(
+                    s => s.NormalizedName != null && s.NormalizedName.Contains(nq)))
+                .Select(c => c.Id)
+                // Stable order for the same plan-cache reason as the tag and country lists.
+                .OrderBy(id => id)
+                .Take(MaxInlineIds + 1)
+                .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// DEF-413. Certificate ids carrying any certification-type subcategory whose EXACT name is
+        /// in <paramref name="names"/>.
+        ///
+        /// The filter-checkbox counterpart of <see cref="MatchingSubcategoryCertificateIdsAsync"/>:
+        /// the sidebar posts exact names rather than a search term, so this matches on equality
+        /// rather than Contains.
+        /// </summary>
+        public static async Task<IReadOnlyList<int>> SubcategoryNamedCertificateIdsAsync(
+            IQueryable<Certificate> certificates,
+            IEnumerable<string>? names,
+            CancellationToken cancellationToken = default)
+        {
+            if (names == null) return Array.Empty<int>();
+            var nameList = names as List<string> ?? names.ToList();
+            if (nameList.Count == 0) return Array.Empty<int>();
+
+            return await certificates
+                .Where(c => c.CertificationTypeSubcategories.Any(s => EF.Constant(nameList).Contains(s.Name)))
+                .Select(c => c.Id)
+                .OrderBy(id => id)
+                .Take(MaxInlineIds + 1)
+                .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// DEF-413. Applies the Certification Type filter: a certificate matches when its own
+        /// certification-type name is in <paramref name="typeNames"/>, OR it appears in
+        /// <paramref name="subcategoryMatchedIds"/> (resolved by
+        /// <see cref="SubcategoryNamedCertificateIdsAsync"/>).
+        ///
+        /// Shares the id-list guard with <see cref="WhereMatchesSearch"/>: a literal EF.Constant IN
+        /// list up to <see cref="MaxInlineIds"/> so the optimizer gets real histogram values, and a
+        /// parameterized Contains above it so we never emit a pathological literal list.
+        ///
+        /// Lives here rather than at the call sites because SIX surfaces carry their own copy of
+        /// this filter — the three tile APIs, the internal list view, the CSV export and the partner
+        /// list — and they had already drifted. One implementation is the point.
+        ///
+        /// SCOPING NOTE: callers resolve the id set against the UNSCOPED certificate set, exactly as
+        /// the tag and country resolvers are already used. That is safe because role scoping and
+        /// public visibility are applied as separate AND'd Where clauses earlier in every chain, so
+        /// OR-ing an unscoped id set into a later AND'd clause can only narrow within what the
+        /// caller may already see — never widen it.
+        /// </summary>
+        public static IQueryable<Certificate> WhereCertificationTypeMatches(
+            this IQueryable<Certificate> query,
+            IEnumerable<string> typeNames,
+            IReadOnlyList<int> subcategoryMatchedIds)
+        {
+            var names = typeNames as List<string> ?? typeNames.ToList();
+
+            // Nothing matched on subcategories → the extra clause cannot change the result set, and
+            // the emitted SQL stays byte-identical to the pre-DEF-413 query. Fast path.
+            if (subcategoryMatchedIds.Count == 0)
+                return query.Where(c => c.CertificationType != null
+                                        && EF.Constant(names).Contains(c.CertificationType.Name));
+
+            if (subcategoryMatchedIds.Count <= MaxInlineIds)
+                return query.Where(c => (c.CertificationType != null
+                                         && EF.Constant(names).Contains(c.CertificationType.Name))
+                                        || EF.Constant(subcategoryMatchedIds).Contains(c.Id));
+
+            var ids = subcategoryMatchedIds.ToList();
+            return query.Where(c => (c.CertificationType != null
+                                     && EF.Constant(names).Contains(c.CertificationType.Name))
+                                    || ids.Contains(c.Id));
+        }
+
         /// <summary>
         /// Merges two matched-id lists into the single list <see cref="WhereMatchesSearch"/> takes.
         /// OR-ing `Contains(c.Id)` over the union is equivalent to OR-ing the two clauses

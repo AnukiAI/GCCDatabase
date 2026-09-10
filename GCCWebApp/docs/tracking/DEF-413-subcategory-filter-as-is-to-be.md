@@ -36,6 +36,10 @@ Today it is returned by the "Certified Sustainability Facts" checkbox and by not
 
 ## 2. Pages in scope
 
+> ⚠ **This section is INCOMPLETE — see §2a.** A sweep on 2026-09-09 found three further copies of
+> the same predicate in `Services/CertificateService.cs`, including the CSV export. Six surfaces,
+> not three. §2a supersedes the table below; the three tile views remain correct as far as they go.
+
 Three pages, all three showing the same certificate-tile UI with the same left-hand filter pane. Each
 has its **own** API controller and its **own** copy of the filter predicate — this is why the fix has
 three sites rather than one.
@@ -54,6 +58,104 @@ On each page, three separate controls are affected:
 
 Not in scope: `/Certificate/CertificateSingleView/{number}`, the Admin pages, `/api/v1/certificates*`
 (Amazon), and all exports. See §7.
+
+
+---
+
+## 2a. SCOPE CORRECTION 2026-09-09 — there are SIX filter sites, not three
+
+Asked directly: *"what about the other views?"* Swept every entry point rather than assuming the
+three tile views were the whole surface. **They are not.** §2 above understated the scope by half and
+is superseded by this table.
+
+Three further copies of the same parent-name-only predicate live in `Services/CertificateService.cs`,
+reached by different pages. Each of the six sites has **both** a filter predicate and a search
+predicate, so the fix is **12 edits across 4 files**, not 6 across 3.
+
+| # | Surface | Route / entry | Access | Filter site | Search site |
+|---|---|---|---|---|---|
+| **P1** | Public tile view | `/api/certificate-tiles` | Anonymous | `CertificateRepository.cs:467-468` | `:365-378` |
+| **P2** | External tile view | `/api/CertificateTileExternal` | External + Partner | `CertificateTileExternalApiController.cs:189-194` | `:177-185` |
+| **P3** | Internal tile view | `/api/certificate-tiles-internal` | Analyst + Admin | `CertificateTileInternalApiController.cs:154-159` | `:169-176` |
+| **P4** | **Internal certificate LIST/table view** | `GET /api/certificates` → `CertificateService.GetCertificatesAsync` (L35) | `AnalystOrAdmin` | `CertificateService.cs:65-67` | `:51-62` |
+| **P5** | **CSV export** | `GET /Certificate/ExportCertificates` → `GetCertificatesForExportAsync` (L503) | `[AllowAnonymous]`, role-scoped inside | `CertificateService.cs:532-533` | `:518-530` |
+| **P6** | Partner certificate list | `CertificateService.GetCertificatesByPartnerAsync` (L186) | Partner | `CertificateService.cs:219-221` | `:205-215` |
+
+All six are the identical line, modulo variable names:
+
+```csharp
+query = query.Where(c => <names>.Contains(c.CertificationType.Name));
+```
+
+Notes on the three newly-found surfaces:
+
+- **P4** is the internal **table** view, driven by `wwwroot/js/certificates.js` — a different page from
+  the internal *tile* view (P3), with its own filter panel that posts `certTypes`.
+- **P5 is the one that matters most** — see §2b.
+- **P6** has **no controller caller** in the current tree (`GetCertificatesByPartnerAsync` is declared
+  in `IServices.cs:9` and implemented, but nothing in `Controllers/` invokes it). Fix it for
+  consistency — it is the same one-line change — but do not spend verification time on a page that
+  cannot currently be reached. Confirm before deleting anything; absence of a caller is not proof it
+  is dead.
+
+**Out of scope, deliberately:** `/api/v1/certificates` (Amazon partner API) filters by
+`certificationTypeId` — an **int**, not a name (`Controllers/Api/v1/CertificatesController.cs:697`).
+Different shape, different contract, and the contract is immutable. It does not participate in this
+fix and must not be changed to.
+
+---
+
+## 2b. Why P5 (export) is not optional — DEF-404 precedent
+
+**The Export button on the External and Internal tile views calls P5.** Confirmed:
+`wwwroot/js/certificate-tile-view-external.js`, `wwwroot/js/certificate-tile-view-internal.js` and
+`wwwroot/js/certificateExternalService.js` all call `/Certificate/ExportCertificates`. (The public
+tile view has no export, so P1 is unaffected by this.)
+
+So the user filters to "Recycled Content" on screen, clicks Export, and P5 re-runs the filter through
+its **own** predicate. Fix P2/P3 without fixing P5 and the two disagree:
+
+| | Screen (P2/P3, fixed) | CSV (P5, unfixed) |
+|---|---|---|
+| filter "Recycled Content" | **526** | 458 |
+
+**This is exactly DEF-404, repeating.** That defect's own comment, still in the code at
+`CertificateService.cs:536-540`:
+
+> *"this is the export, and it must return the same certificates the list the user just filtered
+> showed them. The tile APIs and CertificateRepository:453 match on CertificateCountries; this
+> matched Certificate.Country, the primary only, so filtering by Canada listed 115 certificates and
+> exported 107. **Under-delivery, not a leak — but silent, which is worse to find.**"*
+
+Shipping the tile fix without P5 would manufacture a fresh instance of the defect that comment was
+written to prevent, in the same method, four months later. **P5 ships with P1-P3 or the batch does
+not ship.**
+
+---
+
+## 2c. Pre-existing finding, flagged not fixed — the export's SEARCH is narrower than the tile views'
+
+Found while tracing P5. Not caused by DEF-413 and not part of it.
+
+The search predicates are **not** the same across surfaces:
+
+| Surface | Search predicate covers |
+|---|---|
+| P3 internal tile | Number, Type, Company, Product, Product Category, Location, Country + tag ids + country ids |
+| P5 export / P4 list / P6 partner | Number, Company, Product + tag ids **only** |
+
+So a search term that is active when the user clicks Export can under-deliver for reasons that have
+nothing to do with subcategories — searching a **location**, **country** or **certification type** on
+the internal tile view and then exporting would return fewer rows than the screen showed. That is the
+same class as DEF-404 (silent under-delivery on export), and the same argument applies.
+
+**Triage:** real, pre-existing, not blocking DEF-413. Needs its own measurement before it is called a
+defect — the divergence is provable from the field lists, but nobody has counted it. Rough cost to
+measure and, if confirmed, align the three narrow predicates: **~2-3 hr**. Recommend a separate
+DEF once measured; do not fold it into DEF-413.
+
+**Do not "fix" it by widening P4/P5/P6 as part of this work.** Changing what the export searches is a
+behaviour change on a client-facing artifact and deserves its own decision.
 
 ---
 
@@ -545,6 +647,46 @@ would find the CSF certificates while typing the same words into the search box 
 **Recommendation: build both legs together.** Decision #3 should close as "in".
 
 
+
+### 6b. "Search and the type filter are independent" — is that a second problem to fix? **No.**
+
+Asked directly (Shawn, 2026-09-09). Checked rather than assumed:
+
+**1. The AND is correct and must stay.** Search and the facet filters are separate `.Where()` calls,
+so a search term narrows within the selected checkboxes. That is standard faceted-search behaviour:
+adding a facet narrows, removing one widens. Making them OR instead would mean typing a search term
+*widened* the result beyond your checkbox selection, which is wrong. After DEF-413 the reported
+sequence ends at 68 rather than 0, which is the whole fix — the independence was never the fault.
+
+**2. After the fix the two controls agree on the same words.** Public visible set, term
+"Recycled Content", compared as SETS not counts (per `feedback_equal_counts_are_not_the_same_rows`):
+
+| | rows |
+|---|---|
+| checkbox "Recycled Content" (to-be) | 526 |
+| search `recycled content` (to-be) | 526 |
+| in filter but NOT in search | **0** |
+| in search but NOT in filter | **0** |
+
+Identical, both directions. Today those same two sets are 458 vs 458 but for a *different* reason —
+both are blind to subcategories in the same way.
+
+**3. They still differ in KIND, by design — do not "fix" this.** Search is a substring match over
+Number, Company, Product, Product Category, Type, Location, Country, plus the tag and country
+semi-joins. The filter is exact-name equality on the certificate's type and subcategories. So a
+partial term ("recycled", "waste") will legitimately return more than the corresponding checkbox, and
+a company or product name containing the words will match search only. Forcing the two to agree would
+break search.
+
+**4. No front-end defect.** Verified in `wwwroot/js/certificate-tile-view.js`: the active search term
+is rendered as its own removable chip alongside the type chips (`renderActiveFilterTags`, ~L1027), an
+empty state with a "clear all filters" action is shown when nothing matches (`showEmptyState`, L1338),
+and `clearAllFilters` (L982) resets the search term and the search input as well as the checkboxes.
+The UI does disclose that a search is still narrowing the result.
+
+**Conclusion: nothing independent to resolve.** DEF-413's two legs (filter + search) are the whole fix.
+
+
 ---
 
 ## 7. Out of scope → CR-047
@@ -585,7 +727,9 @@ DEF-413.**
 | §5.5 autocomplete guard *(if approved)* | 0.25 hr |
 | Baseline capture + §6 tests 1-12 across three surfaces and four accounts | 2.0 hr |
 | Register/shipped-log updates | 0.5 hr |
-| **Total** | **≈ 4.5-5 hr**, plus a deploy |
+| §2a P4/P5/P6 — three further filter+search sites in `CertificateService.cs` | 1.0 hr |
+| §2b export-vs-screen parity checks (P5 against P2 and P3) | 1.0 hr |
+| **Total** | **≈ 6.5-7 hr**, plus a deploy |
 
 ~~Filter only, dropping the search leg: ≈ 3-3.5 hr.~~ **Withdrawn** — §6a shows the filter-only
 variant leaves the reported symptom half-fixed and introduces a checkbox-vs-search inconsistency.

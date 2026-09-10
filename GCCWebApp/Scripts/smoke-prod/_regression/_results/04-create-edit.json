@@ -1,11 +1,11 @@
 {
   "phaseId": "04-create-edit",
   "base": "https://gccwebapp.com",
-  "startedAt": "2026-08-31T03:45:30.998Z",
-  "finishedAt": "2026-08-31T03:45:50.088Z",
-  "runId": "2026-08-31_mtgp3xx0",
-  "marker": "ZZ_RegressionFixture_2026-08-31_mtgp3xx0",
-  "createdNumber": "26-0482",
+  "startedAt": "2026-09-10T03:19:57.995Z",
+  "finishedAt": "2026-09-10T03:20:23.246Z",
+  "runId": "2026-09-10_mtuyllpl",
+  "marker": "ZZ_RegressionFixture_2026-09-10_mtuyllpl",
+  "createdNumber": "26-0679",
   "pass": 17,
   "fail": 0,
   "warn": 0,
@@ -21,25 +21,25 @@
       "id": "crud.create",
       "name": "Analyst creates a certificate",
       "status": "PASS",
-      "notes": "landed /Certificate/CertificateInternalView/26-0482 in 2595ms; number=26-0482"
+      "notes": "landed /Certificate/CertificateInternalView/26-0679 in 2715ms; number=26-0679"
     },
     {
       "id": "crud.create.autonumber",
       "name": "Certificate number auto-generated (Number left blank)",
       "status": "PASS",
-      "notes": "generated \"26-0482\" (expected NN-NNNN form)"
+      "notes": "generated \"26-0679\" (expected NN-NNNN form)"
     },
     {
       "id": "crud.create.persisted",
       "name": "Created certificate is readable through the internal API",
       "status": "PASS",
-      "notes": "found 26-0482"
+      "notes": "found 26-0679"
     },
     {
       "id": "crud.create.location",
       "name": "Location field persisted",
       "status": "PASS",
-      "notes": "expected \"ZZ_RegressionFixture_2026-08-31_mtgp3xx0\", got \"ZZ_RegressionFixture_2026-08-31_mtgp3xx0\""
+      "notes": "expected \"ZZ_RegressionFixture_2026-09-10_mtuyllpl\", got \"ZZ_RegressionFixture_2026-09-10_mtuyllpl\""
     },
     {
       "id": "crud.create.certresults",
@@ -57,7 +57,7 @@
       "id": "crud.create.pdf",
       "name": "Uploaded PDF is linked to the certificate",
       "status": "PASS",
-      "notes": "pdfPath=uploads/certificates/26-0482_20260831_034537.pdf"
+      "notes": "pdfPath=uploads/certificates/26-0679_20260910_032007.pdf"
     },
     {
       "id": "crud.create.draft-not-public",
@@ -67,21 +67,21 @@
     },
     {
       "id": "crud.edit.loads",
-      "name": "Edit form loads for 26-0482",
+      "name": "Edit form loads for 26-0679",
       "status": "PASS",
-      "notes": "url=/Certificate/Edit/26-0482"
+      "notes": "url=/Certificate/Edit/26-0679"
     },
     {
       "id": "crud.edit.prefill",
       "name": "Edit form prefills stored values",
       "status": "PASS",
-      "notes": "Location=\"ZZ_RegressionFixture_2026-08-31_mtgp3xx0\" CertificationResults=\"Regression probe 87.5% reduction\""
+      "notes": "Location=\"ZZ_RegressionFixture_2026-09-10_mtuyllpl\" CertificationResults=\"Regression probe 87.5% reduction\""
     },
     {
       "id": "crud.edit.persisted",
       "name": "Edit persisted",
       "status": "PASS",
-      "notes": "expected \"ZZ_RegressionFixture_2026-08-31_mtgp3xx0_EDITED\", got \"ZZ_RegressionFixture_2026-08-31_mtgp3xx0_EDITED\" (3846ms)"
+      "notes": "expected \"ZZ_RegressionFixture_2026-09-10_mtuyllpl_EDITED\", got \"ZZ_RegressionFixture_2026-09-10_mtuyllpl_EDITED\" (3991ms)"
     },
     {
       "id": "crud.edit.certresults",
@@ -93,17 +93,17 @@
       "id": "crud.edit.no-duplicate",
       "name": "Edit did not create a second certificate",
       "status": "PASS",
-      "notes": "search for 26-0482 returns 1 rows"
+      "notes": "search for 26-0679 returns 1 rows"
     },
     {
       "id": "crud.delete.analyst-denied",
       "name": "Analyst cannot reach certificate Delete (AdminOnly)",
       "status": "PASS",
-      "notes": "HTTP 302 location=https://gccwebapp.com/Account/AccessDenied?ReturnUrl=%2FCertificate%2FDelete%2F26-0482"
+      "notes": "HTTP 302 location=https://gccwebapp.com/Account/AccessDenied?ReturnUrl=%2FCertificate%2FDelete%2F26-0679"
     },
     {
       "id": "crud.delete",
-      "name": "Admin deletes fixture 26-0482",
+      "name": "Admin deletes fixture 26-0679",
       "status": "PASS",
       "notes": "POST 200; still present=false"
     },

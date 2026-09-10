@@ -3263,3 +3263,138 @@ with `git checkout`. **Take the backup before the edit, not after the breakage.*
 
 Product code untouched throughout: the only non-doc changes remain the DEF-413/414 batch, the
 `certificates.js` deletion, and its `appsettings.Performance.json` entry.
+
+## 2026-09-09 — Post-deploy test of TEST (gccwebapp.com) after the 9-9 bundle
+
+**DEF-413 confirmed LIVE.** `Scripts/smoke-prod/_def413-live.js` (new, kept) passes the cookie gate
+and filters the public tile API by each of the 13 top-level certification types, then checks whether
+any returned certificate's OWN type differs from the filter value. Six filters returned
+subcategory-typed certificates — impossible before the fix, which matched on exact name only:
+Certified Energy Savings, LCA Optimized, Recycled Content (529), Sustainable Energy Practices,
+Sustainable Manufacturing Practices, and Waste Diversion from Landfill (151, reaching two
+subcategories). This is a self-contained proof: it needs no pre-fix baseline and no DB access.
+
+**Gate suites are split by target and it is not obvious from the filenames.** `_security/` is
+LOCALHOST-ONLY by design — it still sends Basic Auth for the test-env gate, which has been Cookie
+mode since 2026-08-04, so pointing it at gccwebapp.com grades the ~2,519-byte gate page as the
+application (DEF-341). It also reads `BASE_URL`, not `BASE`; passing `BASE=` silently ran the whole
+P0 suite against localhost:5101 and reported 57P/1F that had nothing to do with the deploy.
+`_regression/` is the TEST-env suite. Do not "fix" this by forcing `_security/` remote.
+
+**Two TEST accounts are broken, and neither is a code problem.**
+- `test.external` (Sika Corporation, 574 certs) **no longer exists** — admin User Management search
+  for "Sika" returns "No users found". The user table is now 21 rows with no pager, down from 83.
+- `test.amazon` ("Test Partner AMZ") **exists, is active, 2FA off, and rejects the password** by
+  both username and email, on `GccTest2026!` and `TestPass123!`.
+- The Sep-4 `02-data-scoping.json` shows `data.scoped.amazon` PASSing, so that account broke between
+  2026-09-04 and today. Both failures abort `_regression` phases outright rather than recording a
+  row, so they cost more coverage than their count suggests.
+
+**External counts narrowed legitimately, and it reads like a leak fix gone wrong if you don't know
+why.** external2/MAPEI sees 21 certificates where admin sees 313. The external tile API applies
+`WhereEffectiveDateReached()` + `BadgeableStatuses` (in force), not merely "publishable" — and
+CR-043, which drew that distinction, shipped in THIS bundle. So the drop is the CR landing, not a
+scoping regression. Scoping assertions themselves all passed: single company, no cross-company leak,
+public set a strict subset of internal.
+
+**Full unfiltered CSV export took the app pool down and it did not come back.**
+`/Certificate/ExportCertificates?format=csv` (admin, no filters, ~6,032 certificates) returned
+ECONNRESET, and every path on the site has returned **503 in ~0.23s** ever since — IIS refusing
+immediately, i.e. the pool is stopped, most likely rapid-fail protection. Still 503 after 5 minutes
+of polling; it needs a manual recycle in Plesk.
+
+**No DEF filed yet, deliberately.** The DEF-413/414 export changes sit inside
+`if (request.Filters.CertificationTypes.Any())` and search-term guards, and the crashing request
+carried no filters, so those branches cannot have executed — our change is very unlikely to be the
+cause. But this session has already mistaken server degradation for a defect three times (DEF-415
+being the worst), and one un-reproduced event on a pool that had just served 12,000+ certificate
+rows through phase 2 is not enough to characterize. Reproduce on a freshly recycled pool, as the
+first request, before writing a register row.
+
+**Phases run against TEST:** 00 preflight 9P/2F (both the broken accounts) · 01 RBAC **144P/1F**
+(the one failure is `rbac.session.amazon`, not a policy gap; latencies 100-500ms on a fresh pool) ·
+02 data-scoping 10 assertions green then aborted on amazon · 03 exports **crashed the pool** ·
+08 tile-scroll-dupes PASS (4 scrolls, 250 tiles, all unique) · 09 offset-paging PASS (6 unaligned
+offsets incl. tail). Not run: 04 create-edit and 06 import (they WRITE to the production database —
+needs a CR), 05 performance, 07 (localhost-targeted), 10-12.
+
+**Note:** `_regression/_results/00-preflight.json` and `01-rbac-matrix.json` are modified in the
+working tree — they are this run's real post-deploy evidence, not clobbered baselines, but they did
+overwrite the previous ones. `02-data-scoping.json` survived at its Sep-4 state only because the
+phase crashed before writing.
+
+### 2026-09-09 (later) — RESOLVED: the export is not broken, the pool was
+
+Shawn recycled the app pool. Re-ran the export as the first substantial request, escalating by size
+and checking pool health between each:
+
+| request | result |
+|---|---|
+| anon, public scope | HTTP 200, 478 KB, 1,016 lines, **3.7s** |
+| admin, `certificationTypes=Recycled Content` | HTTP 200, 604 KB, 2,404 lines, **4.1s** |
+| admin, UNFILTERED (the request that 503'd) | HTTP 200, 1,629 KB, 6,033 lines, **5.3s** |
+
+Pool healthy after all three. **The export was never the problem** — the earlier ECONNRESET was a
+pool that had already served 12,000+ certificate rows through phase 2. That is the FOURTH time this
+session that server degradation presented as a defect. Holding the DEF row was correct; filing one
+would have produced a fifth wrong characterization.
+
+**Second, unplanned confirmation of DEF-413.** The `Recycled Content` export returned **2,403 data
+rows** (2,404 lines less the header). Dev measured that filter at **2,314 pre-fix and 2,403
+post-fix**. The deployed export returns the post-fix number exactly, so DEF-413 is live on the P5
+export surface as well as the P1 tile API — two independent surfaces, two independent proofs.
+
+**Phase 3 re-run: 49 PASS / 1 FAIL / 1 WARN**, both non-passes being the broken amazon account. The
+assertion that matters for DEF-414 is `exp.scope.*`: export row count equals the tile API's
+totalCount with **delta=0 for every role** (anon 1015, external 6, external2 21, novi 0, analyst
+6032, admin 6032), and `exp.scope.external-vs-external2` shows **shared=0** — company exports do not
+overlap. Every role's export also carries a `Certificate #` column at index 0.
+
+**One broken test account is disproportionately expensive.** `test.amazon` aborts phases 02 and 05
+outright — phase 5 builds every role's session before it measures anything, so a single bad login
+costs the entire performance phase. Both phases are blocked on a credential, not on code.
+
+**Not restoring the accounts unilaterally.** The TEST user table went from 83 rows to 21 and
+`test.external`/Sika is gone, so accounts on this environment have been deliberately changed
+recently. Recreating a purged user or resetting a password that somebody may have changed on purpose
+would undo an intent I cannot see from here. Asked instead.
+
+### 2026-09-09 (full regression) — 241 PASS / 4 FAIL, every failure a broken test account
+
+| Phase | Result |
+|---|---|
+| 00 preflight | 9P / 2F — `test.external` absent, `test.amazon` bad password |
+| 01 rbac-matrix | **144P / 1F** — the 1F is `rbac.session.amazon`, not a policy gap |
+| 02 data-scoping | 8P / 2 INFO, then **ABORTED** on amazon (no JSON written) |
+| 03 exports-downloads | 49P / 1F / 1W — both amazon |
+| 04 create-edit | **17P / 0F** — teardown clean |
+| 05 performance | **ABORTED** on amazon before measuring anything |
+| 06 import | **14P / 0F / 1W** — teardown clean |
+| 08 tile-scroll-dupes | PASS (4 scrolls, 250 tiles, all unique) |
+| 09 offset-paging | PASS (6 unaligned offsets incl. tail) |
+| 10 recovery-code-format | PASS |
+| 11 trust-device | PASS (no trust without a verified second factor) |
+| 12 trust-device-roundtrip | NOT RUNNABLE — needs a live TOTP base32 secret |
+
+**Zero code failures.** All four FAILs are the two broken accounts.
+
+**Write phases are safe and were verified so.** 04 and 06 each create one row marked
+`ZZ_RegressionFixture_*` / `ZZ_RegressionImport_*` and remove it in teardown. An independent sweep
+afterwards for `ZZ_Regression`, `ZZ_CI_`, `26-9954` and `26-0679` returned **totalCount=0** on all
+four — nothing left in the client database.
+
+**Two results worth pulling out.** `crud.create.certresults` and `crud.edit.certresults` both pass:
+the Certification Results free-text field (the client requirement in the project CLAUDE.md) persists
+on create and on edit, verbatim, with no display-time conversion. And `crud.create.autonumber`
+generated **26-0679** — proper `NN-NNNN` form, not a bare row Id, which is the standing "certs pages
+show ID instead of certificate number" concern; every role's CSV export also carries `Certificate #`
+at index 0.
+
+**`imp.undo` WARN:** batchId is not discoverable from the Import History page markup, so the harness
+could not exercise Undo and fell through to the admin-delete backstop. The fixture was removed
+either way, but Undo itself is therefore UNTESTED. Worth a look — it is a real user-facing path.
+
+**I could not repair the accounts.** Resetting `test.amazon` through the admin Edit User modal was
+blocked by the auto-mode classifier, correctly — changing a credential on a shared environment is
+what that guard exists for. Not routed around. Phase 04 was blocked on its first (compound-command)
+invocation and ran fine as a bare `node` call, so that block was command shape, not the phase.

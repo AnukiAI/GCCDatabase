@@ -1,0 +1,48 @@
+{
+  "status": "RED-FAIL",
+  "totals": {
+    "pass": 57,
+    "fail": 1,
+    "warn": 0,
+    "blocked": 0
+  },
+  "specs": [
+    {
+      "spec": "partner-isolation",
+      "pass": 21,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "rbac-matrix",
+      "pass": 24,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "idor-download",
+      "pass": 2,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "cert-detail-scoping",
+      "pass": 10,
+      "fail": 0,
+      "warn": 0,
+      "blocked": 0
+    },
+    {
+      "spec": "session-keepalive",
+      "pass": 0,
+      "fail": 1,
+      "warn": 0,
+      "blocked": 0,
+      "error": "apiRequestContext.get: Timeout 90000ms exceeded.\nCall log:\n\u001b[2m  - → GET http://localhost:5101/Dashboard\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - cookie: __RequestVerificationToken=CfDJ8BrfGHgqIbtJnVG3nzQuF_XDF8PIYcOPn7Hspx1AJn7IJbJUKa3dchH-I3pek7zxI8qZl4_gNhmqRvWZPSLVo6j8zkw23pE0vm75nNSLkTN6FIWaXLlFXUVd4gVERtOW4YVIsX2ouWJa6XLt6DbvxKc; GCC.Session=CfDJ8BrfGHgqIbtJnVG3nzQuF%2FXDk7%2BQ261FQwxi1ZlNUEBPLIlQqrLOk63CDEGEPBFjSirHhV1HrmrUt7sIELmIWAKNYb9%2B7eChcS6zfwVOqPQiA0uAAgKXudcE8pQwlLQbEMobn%2FTu57IMGdfl0Emg6lWUGTCEc8glLHbs2FOj12pg; GCC.Auth=CfDJ8BrfGHgqIbtJnVG3nzQuF_UylE0hX20kNx75DNRBi5Yy28dviyKuPdQaQDxVkziikUXqcm59Enq_3fx_-211DCoDtUda7MwEbv52vIwZmNbkB0Lx3ANAmx8tJ1Z1tNEQnr2PCvB-JnMGqguon7fI-6lVyPleyyQyFPgKMPBjnqrTw14w2JUvNrw9lxe3EBNWw6Hj6nMRENiHuMkG7TrFAdmxsSZ3dnjiKFVNitubfQdrtxQH_6emD0vY9rOCtgkX64JZZRCKBnthVtvI9zssAFYeRM6FAeCzIynJ0_OnkJO41L9XiMgTk9Cqit-yKt1K0r89vNJRW_F2QfLVU09VqPw_40ylrYlXjEq73dc2BOPt59nkZ_HXIJ_0jQmZYeWfTWZil9pwHxWcXbzjm-X322qLmOUz6XR7-J7eiRNzOhxtkkK7--_uS8ZIG8SvCKQ9TbgICyc6e9raRuTJBBVIVw8RW2Af3rxx_CiFwENn5QBUEICMOZvq4hqgfMRvTeuQQqmIR7GXVFmlaHocQvGdzE4CKuj_zIaGanZ_LfGfKKkbZdaRyG78VH5s7VTbsGDcXeM7QWiLoq9JY9I5ZBXg3ex0enu1SobVReYVm3pflRFq7Xs3DSZpJyadkkjzk1CEdU49_aYfzbofwE17iR5R3f483HEruWHu9sJo8vwQvexm-bQGRAlV4IVu2GACb51C-fUGH7i86p6g3WR-GcnwmjML5T12ako3IUvXwGrbDqvAPbtnsi6uZB2GDou5AoyBpQf3Vo6Hi-G2-os9thmEmNxnn24jJB75COCnxQDKG97yQmchpYDFDjd79VNsdU2rxA; _ga_16J12CPD8S=GS2.1.s1789006715$o1$g0$t1789006715$j60$l0$h914550550; _ga=GA1.1.1648846820.1789006715\u001b[22m\n"
+    }
+  ],
+  "finishedAt": "2026-09-10T02:20:06.104Z"
+}

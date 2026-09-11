@@ -1,11 +1,11 @@
 {
   "phaseId": "03-exports-downloads",
   "base": "https://gccwebapp.com",
-  "startedAt": "2026-09-10T03:02:49.018Z",
-  "finishedAt": "2026-09-10T03:03:31.936Z",
+  "startedAt": "2026-09-11T17:57:26.829Z",
+  "finishedAt": "2026-09-11T17:58:15.779Z",
   "exports": {
     "anon": {
-      "rows": 1015,
+      "rows": 1018,
       "header": [
         "﻿Certificate #",
         "Certification Type",
@@ -29,14 +29,14 @@
         "GTIN",
         "EAN"
       ],
-      "bytes": 489429,
-      "ms": 3394,
-      "population": 1015,
+      "bytes": 490321,
+      "ms": 3989,
+      "population": 1018,
       "populationError": null,
-      "numberCount": 1003
+      "numberCount": 1006
     },
     "external": {
-      "rows": 6,
+      "rows": 23,
       "header": [
         "﻿Certificate #",
         "Certification Type",
@@ -60,11 +60,11 @@
         "GTIN",
         "EAN"
       ],
-      "bytes": 2465,
-      "ms": 459,
-      "population": 6,
+      "bytes": 6152,
+      "ms": 207,
+      "population": 23,
       "populationError": null,
-      "numberCount": 6
+      "numberCount": 23
     },
     "external2": {
       "rows": 21,
@@ -92,10 +92,41 @@
         "EAN"
       ],
       "bytes": 5704,
-      "ms": 94,
+      "ms": 102,
       "population": 21,
       "populationError": null,
       "numberCount": 21
+    },
+    "amazon": {
+      "rows": 208,
+      "header": [
+        "﻿Certificate #",
+        "Certification Type",
+        "Status",
+        "Company",
+        "Company Contact Email/URL",
+        "Contact URL",
+        "Product Name",
+        "Product Category",
+        "Product Type",
+        "Subcategory",
+        "Partner",
+        "Cert Results",
+        "Effective Date",
+        "Expiration Date",
+        "Location",
+        "Country",
+        "External Tag",
+        "ASIN",
+        "UPC",
+        "GTIN",
+        "EAN"
+      ],
+      "bytes": 280645,
+      "ms": 2887,
+      "population": 208,
+      "populationError": null,
+      "numberCount": 208
     },
     "novi": {
       "rows": 0,
@@ -123,7 +154,7 @@
         "EAN"
       ],
       "bytes": 285,
-      "ms": 280,
+      "ms": 144,
       "population": 0,
       "populationError": null,
       "numberCount": 0
@@ -156,8 +187,8 @@
         "GTIN",
         "EAN"
       ],
-      "bytes": 1664421,
-      "ms": 5794,
+      "bytes": 1664814,
+      "ms": 4806,
       "population": 6032,
       "populationError": null,
       "numberCount": 5857
@@ -190,29 +221,29 @@
         "GTIN",
         "EAN"
       ],
-      "bytes": 1664421,
-      "ms": 4302,
+      "bytes": 1664814,
+      "ms": 5933,
       "population": 6032,
       "populationError": null,
       "numberCount": 5857
     }
   },
-  "pass": 49,
-  "fail": 1,
-  "warn": 1,
+  "pass": 57,
+  "fail": 0,
+  "warn": 0,
   "info": 0,
   "rows": [
     {
       "id": "exp.certcsv.anon.format",
       "name": "anon: export is CSV",
       "status": "PASS",
-      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-09-210253.csv; filename*=UTF-8''certificates-2026-09-09-210253.csv"
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-11-115733.csv; filename*=UTF-8''certificates-2026-09-11-115733.csv"
     },
     {
       "id": "exp.certcsv.anon",
       "name": "Certificate CSV export as anon",
       "status": "PASS",
-      "notes": "1015 rows, 21 cols, 478KB in 3394ms"
+      "notes": "1018 rows, 21 cols, 479KB in 3989ms"
     },
     {
       "id": "exp.certcsv.anon.has-certnumber",
@@ -248,13 +279,13 @@
       "id": "exp.certcsv.external.format",
       "name": "external: export is CSV",
       "status": "PASS",
-      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-09-210257.csv; filename*=UTF-8''certificates-2026-09-09-210257.csv"
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-11-115737.csv; filename*=UTF-8''certificates-2026-09-11-115737.csv"
     },
     {
       "id": "exp.certcsv.external",
       "name": "Certificate CSV export as external",
       "status": "PASS",
-      "notes": "6 rows, 21 cols, 2KB in 459ms"
+      "notes": "23 rows, 21 cols, 6KB in 207ms"
     },
     {
       "id": "exp.certcsv.external.has-certnumber",
@@ -290,13 +321,13 @@
       "id": "exp.certcsv.external2.format",
       "name": "external2: export is CSV",
       "status": "PASS",
-      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-09-210301.csv; filename*=UTF-8''certificates-2026-09-09-210301.csv"
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-11-115740.csv; filename*=UTF-8''certificates-2026-09-11-115740.csv"
     },
     {
       "id": "exp.certcsv.external2",
       "name": "Certificate CSV export as external2",
       "status": "PASS",
-      "notes": "21 rows, 21 cols, 6KB in 94ms"
+      "notes": "21 rows, 21 cols, 6KB in 102ms"
     },
     {
       "id": "exp.certcsv.external2.has-certnumber",
@@ -329,22 +360,58 @@
       "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
     },
     {
-      "id": "exp.session.amazon",
-      "name": "Session for amazon",
-      "status": "FAIL",
-      "notes": "login failed for amazon: landed /Account/Login"
+      "id": "exp.certcsv.amazon.format",
+      "name": "amazon: export is CSV",
+      "status": "PASS",
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-11-115747.csv; filename*=UTF-8''certificates-2026-09-11-115747.csv"
+    },
+    {
+      "id": "exp.certcsv.amazon",
+      "name": "Certificate CSV export as amazon",
+      "status": "PASS",
+      "notes": "208 rows, 21 cols, 274KB in 2887ms"
+    },
+    {
+      "id": "exp.certcsv.amazon.has-certnumber",
+      "name": "amazon: export carries a Certificate Number column",
+      "status": "PASS",
+      "notes": "column \"﻿Certificate #\" at index 0"
+    },
+    {
+      "id": "exp.certcsv.amazon.internal-tag-column",
+      "name": "amazon: Internal Tag column absent (DEF-128)",
+      "status": "PASS",
+      "notes": "not present"
+    },
+    {
+      "id": "exp.table.Active Product IDs.amazon",
+      "name": "Active Product IDs as amazon",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 403 content-type=application/json"
+    },
+    {
+      "id": "exp.table.Certificate import template.amazon",
+      "name": "Certificate import template as amazon",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
+    },
+    {
+      "id": "exp.table.Product import template.amazon",
+      "name": "Product import template as amazon",
+      "status": "PASS",
+      "notes": "expected denial, got HTTP 200 content-type=text/html; charset=utf-8"
     },
     {
       "id": "exp.certcsv.novi.format",
       "name": "novi: export is CSV",
       "status": "PASS",
-      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-09-210307.csv; filename*=UTF-8''certificates-2026-09-09-210307.csv"
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-11-115751.csv; filename*=UTF-8''certificates-2026-09-11-115751.csv"
     },
     {
       "id": "exp.certcsv.novi",
       "name": "Certificate CSV export as novi",
       "status": "PASS",
-      "notes": "0 rows, 21 cols, 0KB in 280ms"
+      "notes": "0 rows, 21 cols, 0KB in 144ms"
     },
     {
       "id": "exp.certcsv.novi.has-certnumber",
@@ -380,13 +447,13 @@
       "id": "exp.certcsv.analyst.format",
       "name": "analyst: export is CSV",
       "status": "PASS",
-      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-09-210321.csv; filename*=UTF-8''certificates-2026-09-09-210321.csv"
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-11-115759.csv; filename*=UTF-8''certificates-2026-09-11-115759.csv"
     },
     {
       "id": "exp.certcsv.analyst",
       "name": "Certificate CSV export as analyst",
       "status": "PASS",
-      "notes": "6032 rows, 24 cols, 1625KB in 5794ms"
+      "notes": "6032 rows, 24 cols, 1626KB in 4806ms"
     },
     {
       "id": "exp.certcsv.analyst.has-certnumber",
@@ -422,13 +489,13 @@
       "id": "exp.certcsv.admin.format",
       "name": "admin: export is CSV",
       "status": "PASS",
-      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-09-210330.csv; filename*=UTF-8''certificates-2026-09-09-210330.csv"
+      "notes": "content-type=text/csv disposition=attachment; filename=certificates-2026-09-11-115813.csv; filename*=UTF-8''certificates-2026-09-11-115813.csv"
     },
     {
       "id": "exp.certcsv.admin",
       "name": "Certificate CSV export as admin",
       "status": "PASS",
-      "notes": "6032 rows, 24 cols, 1625KB in 4302ms"
+      "notes": "6032 rows, 24 cols, 1626KB in 5933ms"
     },
     {
       "id": "exp.certcsv.admin.has-certnumber",
@@ -464,13 +531,13 @@
       "id": "exp.scope.anon",
       "name": "anon: export row count matches what the role can see",
       "status": "PASS",
-      "notes": "export=1015 rows, tile API totalCount=1015, delta=0"
+      "notes": "export=1018 rows, tile API totalCount=1018, delta=0"
     },
     {
       "id": "exp.scope.external",
       "name": "external: export row count matches what the role can see",
       "status": "PASS",
-      "notes": "export=6 rows, tile API totalCount=6, delta=0"
+      "notes": "export=23 rows, tile API totalCount=23, delta=0"
     },
     {
       "id": "exp.scope.external2",
@@ -481,8 +548,8 @@
     {
       "id": "exp.scope.amazon",
       "name": "amazon: export row count matches what the role can see",
-      "status": "WARN",
-      "notes": "NOT RUN — no export was retrieved for this role"
+      "status": "PASS",
+      "notes": "export=208 rows, tile API totalCount=208, delta=0"
     },
     {
       "id": "exp.scope.novi",
@@ -506,7 +573,7 @@
       "id": "exp.scope.external-vs-external2",
       "name": "Company exports do not overlap",
       "status": "PASS",
-      "notes": "external=6 external2=21 shared=0"
+      "notes": "external=23 external2=21 shared=0"
     }
   ]
 }

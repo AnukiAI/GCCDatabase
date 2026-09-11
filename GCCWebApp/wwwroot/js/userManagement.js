@@ -990,10 +990,13 @@ class UserManagement {
             const fields = this.parseCSVLine(line);
             if (fields.length < 2) continue;
 
-            // Build user object from headers
+            // Build user object from headers.
+            // DEF-423: undo the Excel text-format wrapper before anything reads the value, so a
+            // name or company beginning = + - @ round-trips through export -> edit -> re-import
+            // instead of arriving as ="+Foo".
             const user = {};
             headers.forEach((header, index) => {
-                user[header] = fields[index]?.trim() || '';
+                user[header] = GccCsv.stripExcelText(fields[index]?.trim() || '');
             });
 
             const name = user.name || '';

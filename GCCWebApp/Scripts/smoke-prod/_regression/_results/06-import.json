@@ -1,11 +1,11 @@
 {
   "phaseId": "06-import",
   "base": "https://gccwebapp.com",
-  "startedAt": "2026-09-10T03:19:14.450Z",
-  "finishedAt": "2026-09-10T03:19:39.521Z",
-  "runId": "2026-09-10_mtuyko3x",
-  "marker": "ZZ_RegressionImport_2026-09-10_mtuyko3x",
-  "importedNumber": "26-9954",
+  "startedAt": "2026-09-11T18:00:14.719Z",
+  "finishedAt": "2026-09-11T18:00:36.948Z",
+  "runId": "2026-09-11_mtx9hi0u",
+  "marker": "ZZ_RegressionImport_2026-09-11_mtx9hi0u",
+  "importedNumber": "26-9914",
   "batchId": null,
   "pass": 14,
   "fail": 0,
@@ -52,7 +52,7 @@
       "id": "imp.preview.importId",
       "name": "Preview carries an importId for Apply",
       "status": "PASS",
-      "notes": "ebc7b4a3-08a8-4464-9a6a-d4694fcc5ee7"
+      "notes": "9cce9fb0-232e-4923-bf04-5e94b5144a4c"
     },
     {
       "id": "imp.apply",
@@ -64,13 +64,13 @@
       "id": "imp.apply.persisted",
       "name": "Imported certificate is readable through the internal API",
       "status": "PASS",
-      "notes": "number=26-9954 location=\"ZZ_RegressionImport_2026-09-10_mtuyko3x\""
+      "notes": "number=26-9914 location=\"ZZ_RegressionImport_2026-09-11_mtx9hi0u\""
     },
     {
       "id": "imp.apply.number",
       "name": "Imported certificate keeps the number given in the CSV",
       "status": "PASS",
-      "notes": "sent \"26-9954\", stored \"26-9954\""
+      "notes": "sent \"26-9914\", stored \"26-9914\""
     },
     {
       "id": "imp.apply.certresults",
@@ -82,7 +82,7 @@
       "id": "imp.apply.location",
       "name": "Location column imported",
       "status": "PASS",
-      "notes": "got \"ZZ_RegressionImport_2026-09-10_mtuyko3x\""
+      "notes": "got \"ZZ_RegressionImport_2026-09-11_mtx9hi0u\""
     },
     {
       "id": "imp.apply.status",

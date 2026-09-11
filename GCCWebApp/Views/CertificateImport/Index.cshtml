@@ -68,12 +68,14 @@
         <div class="alert alert-info" style="margin-bottom: 2rem;">
             <h4 style="margin-top: 0;"><i class="fas fa-info-circle"></i> Import Instructions</h4>
             <ul style="margin-bottom: 0;">
-                <li><strong>Format:</strong> CSV file only (.csv extension)</li>
-                <li><strong>Required Columns:</strong> CertificateNumber, CompanyName, ProductName, CertificationType</li>
-                <li><strong>Behavior:</strong> Existing certificates will be updated, new ones will be created</li>
-                <li><strong>Validation:</strong> Company, Product, and CertificationType must exist in database</li>
-                <li><strong>Max Size:</strong> 10MB per file</li>
-                <li><strong>Preview:</strong> You'll see all changes before applying them</li>
+                <li><strong>Format:</strong> CSV file only (.csv extension). Use the <strong>Download Template</strong> button above &mdash; its headers are the column names described on this page.</li>
+                <li><strong>Required columns:</strong> <code>Company</code>, <code>Product Name</code>, <code>Certification Type</code>. <strong>Certificate # is not required.</strong></li>
+                <li><strong>To add a new certificate:</strong> leave <strong>Certificate #</strong> blank and the next available number is assigned automatically. Each blank row gets its own number.</li>
+                <li><strong>To edit an existing certificate:</strong> enter its <strong>Certificate #</strong> and that certificate is updated. Only the columns present in your file are changed &mdash; any column you leave out is left untouched.</li>
+                <li><strong>Overwrite confirmation:</strong> if any row would update an existing certificate you must tick an acknowledgement before it is applied, and a backup of those certificates is saved automatically first.</li>
+                <li><strong>Created automatically:</strong> Company, Product and Product Type are created if they don't already exist. <strong>Product Category must already exist</strong> &mdash; an unrecognised one rejects the row.</li>
+                <li><strong>Max size:</strong> 10MB per file</li>
+                <li><strong>Preview:</strong> you'll see every change, field by field, before anything is written.</li>
             </ul>
         </div>
 
@@ -124,48 +126,74 @@
                 <h3 class="admin-card-title">CSV Format Reference</h3>
             </div>
             <div class="admin-card-body">
-                <p><strong>Required Columns:</strong></p>
+                <p class="text-muted">
+                    Column names below are the headers produced by <strong>Download Template</strong>.
+                    Columns may appear in any order, and a column you omit entirely is left untouched
+                    on an update.
+                </p>
+
+                <p><strong>Certificate # &mdash; optional; this is how you choose add vs. edit:</strong></p>
                 <ul>
-                    <li><code>CERTIFICATE_NUMBER</code> - Unique certificate number (e.g., "24-0001")</li>
-                    <li><code>COMPANY_NAME</code> - Company name (auto-created if not exists)</li>
-                    <li><code>PRODUCT_NAME</code> - Product name (auto-created if not exists)</li>
-                    <li><code>CERTIFICATION_TYPE</code> - Must match existing certification type (e.g., "Recycled Content")</li>
+                    <li><code>Certificate #</code> &mdash; <strong>Leave blank</strong> to create a new certificate; the next available number is assigned for you.
+                        <strong>Enter an existing number</strong> (e.g. "24-0001") to update that certificate instead. Updates require an
+                        on-screen acknowledgement, and a backup is taken automatically before anything is changed.</li>
+                </ul>
+
+                <p><strong>Required Columns</strong> &mdash; a row without these is rejected:</p>
+                <ul>
+                    <li><code>Company</code> &mdash; Company name (created automatically if it doesn't exist)</li>
+                    <li><code>Product Name</code> &mdash; Product name (created automatically if it doesn't exist)</li>
+                    <li><code>Certification Type</code> &mdash; e.g. "Recycled Content". If the value isn't in the system the certificate
+                        still imports and is set to the <em>Unspecified</em> placeholder for an analyst to correct.</li>
                 </ul>
 
                 <p><strong>Company Columns (Optional):</strong></p>
                 <ul>
-                    <li><code>COMPANY_LOCATION</code> - Company location (City, State)</li>
-                    <li><code>COMPANY_COUNTRY</code> - Company country</li>
-                    <li><code>COMPANY_EMAIL</code> - Company contact email</li>
-                    <li><code>COMPANY_WEBSITE</code> - Company website URL</li>
+                    <li><code>Company Email</code> &mdash; Company contact email</li>
+                    <li><code>Company URL</code> &mdash; Company website URL</li>
+                    <li><code>COMPANY_LOCATION</code> &mdash; Company location, City, State (not in the template; accepted if you add it)</li>
+                    <li><code>COMPANY_COUNTRY</code> &mdash; Company country (not in the template; accepted if you add it)</li>
                 </ul>
 
                 <p><strong>Product Columns (Optional):</strong></p>
                 <ul>
-                    <li><code>PRODUCT_TYPE</code> - Product type (auto-created if not exists)</li>
+                    <li><code>Product Category</code> &mdash; <strong>Must already exist.</strong> An unrecognised category rejects the row,
+                        so that a typo cannot create a new category.</li>
+                    <li><code>Product Type</code> &mdash; Product type (created automatically if it doesn't exist)</li>
                 </ul>
 
                 <p><strong>Certificate Columns (Optional):</strong></p>
                 <ul>
-                    <li><code>EFFECTIVE_DATE</code> - Date format: YYYY-MM-DD</li>
-                    <li><code>EXPIRATION_DATE</code> - Date format: YYYY-MM-DD</li>
-                    <li><code>CERTIFICATE_LOCATION</code> - Certificate location (City, State)</li>
-                    <li><code>CERTIFICATE_COUNTRY</code> - Certificate country</li>
-                    <li><code>PARTNER</code> - Amazon, Novi, or None</li>
-                    <li><code>CERTIFICATION_RESULTS</code> - Results/percentage achieved (e.g., "95%")</li>
-                    <li><code>TAGS</code> - Comma-separated tags (e.g., "Sustainable,Verified")</li>
+                    <li><code>Status</code> &mdash; Draft, Client Approved - Not Paid, Client Approved - Confidential,
+                        Client Approved - Paid, Hold, Expired, Republished, or Expired - No Annual Verification.
+                        <strong>Defaults to Draft if blank.</strong></li>
+                    <li><code>Effective Date</code> &mdash; YYYY-MM-DD recommended (other common date formats are accepted)</li>
+                    <li><code>Expiration Date</code> &mdash; YYYY-MM-DD recommended (other common date formats are accepted)</li>
+                    <li><code>Location</code> &mdash; Certificate location (City, State)</li>
+                    <li><code>Country (separate by comma)</code> &mdash; One or more countries, separated by commas</li>
+                    <li><code>Partner (separate by comma)</code> &mdash; One or more partners, separated by commas; leave blank for none</li>
+                    <li><code>Pathway</code> &mdash; Optional pathway name; an unrecognised value is ignored rather than rejected</li>
+                    <li><code>Cert Results</code> &mdash; Certification results achieved. Stored and displayed exactly as typed (e.g. "95%")</li>
+                    <li><code>External Tag</code> &mdash; Comma-separated tags visible to external users (e.g. "Sustainable,Verified")</li>
+                    <li><code>Internal Tag</code> &mdash; Comma-separated tags visible to internal users only</li>
                 </ul>
 
                 <p><strong>Product ID Columns (Optional):</strong></p>
                 <ul>
-                    <li><code>ASIN</code> - Amazon Standard ID</li>
-                    <li><code>UPC</code> - Universal Product Code</li>
-                    <li><code>GTIN</code> - Global Trade Item Number</li>
-                    <li><code>EAN</code> - European Article Number</li>
+                    <li><code>ASIN</code> &mdash; Amazon Standard ID</li>
+                    <li><code>UPC</code> &mdash; Universal Product Code</li>
+                    <li><code>GTIN</code> &mdash; Global Trade Item Number</li>
+                    <li><code>EAN</code> &mdash; European Article Number</li>
                 </ul>
 
                 <p class="text-muted" style="margin-top: 1rem;">
                     <i class="fas fa-info-circle"></i> PDF attachments are managed separately after import.
+                </p>
+                <p class="text-muted">
+                    <i class="fas fa-info-circle"></i> Older header spellings are still accepted for
+                    backward compatibility &mdash; <code>CERTIFICATE_NUMBER</code>, <code>COMPANY_NAME</code>,
+                    <code>PRODUCT_NAME</code>, <code>CERTIFICATION_TYPE</code> and the matching
+                    <code>PascalCase</code> forms all import the same way.
                 </p>
             </div>
         </div>

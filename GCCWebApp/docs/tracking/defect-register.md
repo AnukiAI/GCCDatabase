@@ -15065,7 +15065,7 @@ suite **configurable** and its misuse **loud**; it does not port the suite to de
 
 - **Date raised:** 2026-09-10
 - **Severity:** Low (documentation only — no behaviour is wrong) but **client-facing and confidence-damaging**
-- **Status:** **RAISED — not started.** No code changed.
+- **Status:** **FIXED 2026-09-10 — built locally, NOT yet deployed.** `Views/CertificateImport/Index.cshtml`, copy only, no logic. Build clean (0 errors); page verified rendered on localhost:5101 as `admin`.
 - **Reporter:** Client, via Shawn, 2026-09-09
 - **QC log ID:** **QC #263** — `Database QC Log_9.9.26_sw_updates.xlsx`, sheet `GCC DB QC Log2`, **row 272**, page `Cert Import`, raised by Carly 2026-09-09. Source email `CR_9_9_26_edit.pdf`.
 - **Triage doc:** `docs/tracking/qc-triage-2026-09-10-QC261-264.md`
@@ -15110,6 +15110,60 @@ Copy only, no logic.
 **Do NOT "fix" it by changing the accepted aliases or the template headers.** Both are correct and
 in use — the migration's own source files rely on the `SCREAMING_SNAKE` spellings (see the DEF-347
 note at `CertificateImportService.cs:100`). Only the prose is wrong.
+
+---
+
+#### Resolution — 2026-09-10
+
+Both panels in `Views/CertificateImport/Index.cshtml` rewritten against the code. Copy only; no
+logic, no alias changes, no template-header changes. **Build clean (0 errors, 74 pre-existing
+warnings); the rendered page was fetched from localhost:5101 signed in as `admin` and confirmed to
+contain none of the four wrong strings.**
+
+What the page now says, each line traced to source:
+
+| Now says | Source |
+|---|---|
+| Required: `Company`, `Product Name`, `Certification Type`; **Certificate # is not required** | `CertificateImportService.cs:1340-1360` |
+| Blank Certificate # → next number assigned, each blank row its own | `:1351`, `:1854` |
+| Supplied Certificate # → updates that certificate, acknowledgement required, automatic backup first | `:1637`, `CertificateImportController.cs:151-171` (CR-023 R5) |
+| Columns absent from the file are left untouched on an update | `:BuildProvidedColumns` (DEF-355) |
+| Company / Product / Product Type auto-created | `:668-745`, `:1480-1500` |
+| **Product Category must already exist** — unmatched rejects the row | `:1539-1547` (DEF-278) |
+| Status defaults to Draft if blank; all 8 states listed | `CertificateImportController.cs:467` |
+| Dates: YYYY-MM-DD recommended, other common formats accepted | `:1440-1455` (`DateTime.TryParse`, not a strict format) |
+| Column names are the ones `DownloadTemplate` emits; legacy `SCREAMING_SNAKE`/`PascalCase` still accepted | `CertificateImportController.cs:468`, `CertificateImportService.cs:78-89` |
+
+**Two corrections to this defect's own original analysis, found while implementing it:**
+
+1. **The row above at line 74 was wrong about Certification Type too, and so was the triage doc.**
+   Both said *"Correct for Certification Type only"* — i.e. that a certification type must
+   pre-exist. **It must not.** An unmatched value does **not** reject the row: it is mapped to the
+   deactivated `Unspecified` placeholder and logged as a warning (`:1503-1528`, client directive
+   2026-06-24, because `CertificationTypeId` is a required FK and the placeholder represents
+   "blank"). So **none** of Company / Product / Certification Type has to pre-exist. The only field
+   on the whole import that genuinely must already exist is **Product Category** — which is
+   *optional*, and which the old copy never mentioned at all. The page now says this.
+2. **`DateTime.TryParse`, not a fixed format.** The old copy's *"Date format: YYYY-MM-DD"* read as a
+   hard requirement; it is a recommendation. Reworded rather than deleted, since YYYY-MM-DD is still
+   the unambiguous choice for a client pasting from Excel.
+
+**Separate finding — now raised and FIXED as [DEF-421](#def-421).** `DownloadTemplate` emits two
+columns the importer never read: **`Cert Subcategories`** (position 3) and **`Subcategory`**
+(position 11). There was no mapping array for either, and `CertificateImportService.cs:866` said so
+outright — *"Subcategory still resolves as null (no column yet)"*. An analyst could fill both in and
+the values were **silently discarded** — the same class of silent-drop failure as DEF-347.
+
+They were deliberately left out of this page's copy rather than documented as working. **Both are
+now wired up (DEF-421, 2026-09-10), so this page's Certificate Columns list is currently
+INCOMPLETE** — it should gain `Subcategory` and `Cert Subcategories` rows when DEF-421 ships. Both
+fixes are in the same working tree and deploy together, so this is a sequencing note, not a second
+defect.
+
+**Not deployed.** Ships with the next bundle; the client reply
+(`docs/tracking/2026-09-09-client-reply-db-feedback.md`) has been updated to say it is done and
+lands with the next release, and its §4 factual error about certification types was corrected per
+point 1 above.
 
 - **Related:** QC #263 (same row also carries a question, answered at zero cost — see the triage doc), CR-023 R5 (the overwrite guard), DEF-347 / DEF-355 (why the alias lists exist), DEF-353 (blank-date rejection, the sibling "blank means what?" ruling).
 
@@ -15256,8 +15310,8 @@ positional `string[]`, same per-field trim). Both hand-rolled `ParseCsvLine` cop
 
 - **Date raised:** 2026-09-10
 - **Severity:** Medium-High. Same silent partner loss as DEF-419, reached from the other direction — and export → edit → re-import is the documented way to bulk-edit these pages.
-- **Status:** **RAISED — not fixed.** Found during the DEF-419 audit. No code changed.
-- **Related:** DEF-419 (import side, fixed), DEF-306/DEF-315 (earlier fixes of this same class in `exportUtils.js`)
+- **Status:** **FIXED 2026-09-10, committed in `3eba3970` — NOT deployed.** Verified 2026-09-11; see the resolution note at the end of this entry.
+- **Related:** DEF-419 (import side, fixed), DEF-306/DEF-315 (earlier fixes of this same class in `exportUtils.js`), DEF-423 (the one piece of this entry's fix shape that was NOT carried out)
 
 **Proven, not theorised.** The Product ID exporter (`wwwroot/js/product-id-manager.js:2237`) wraps
 every field in quotes with **no escaping**: `"${pid.productName || ''}"`. A product name containing a
@@ -15288,3 +15342,281 @@ DEF-306/315), `admin/productManagement.js` `escapeValue()`, and the server expor
 `exportUtils.js` semantics (double the quotes; quote when the value holds `,`, `"` or a newline;
 keep the DEF-306 formula-injection guard). Estimated ~1.5 hrs including a round-trip assertion added
 to `Scripts/ci/check-csv-import.js` (export → re-import → same values). **Awaiting approval.**
+
+---
+
+#### Resolution — fixed 2026-09-10, confirmed 2026-09-11
+
+**This entry was stale**, and the staleness cost something: it still read "RAISED — not fixed" a day
+after the fix landed, so the work was recommended for the next bundle when it was already committed.
+Re-read the code before quoting a register status.
+
+`GccCsv.escapeField()` lives in `wwwroot/js/csv-parse.js`, `_Layout.cshtml` loads that file globally,
+and **all five** exporters call it — confirmed with a clean `git status` on each:
+
+| File | Now calls |
+|---|---|
+| `wwwroot/js/product-id-manager.js:2252` | `GccCsv.escapeField(v, true)` |
+| `wwwroot/js/admin/csfAttributes.js:463` | `GccCsv.escapeField(cell, true)` |
+| `wwwroot/js/admin/companyManagement.js:405` | `GccCsv.escapeField(value)` |
+| `wwwroot/js/userManagement.js:872` | `GccCsv.escapeField(value)` |
+| `wwwroot/js/admin/userManagement.js:1228` | `GccCsv.escapeField(field, true)` |
+
+`escapeField(value, forceQuote)` doubles embedded quotes and quotes on comma, quote, CR or LF. The
+`forceQuote` flag keeps identifier columns quoted so Excel cannot eat the leading zero off a UPC.
+
+**Verified by running the check, not by reading the code.** `node Scripts/ci/check-csv-import.js` —
+**PASSED, all assertions** — including four export → re-import round trips that reproduce this
+defect's own example: *round trip (double-quote in name)* asserting exactly one row, partner
+survives and name survives, plus comma, line-break and multi-partner variants, and
+*identifier column stays quoted*.
+
+**What was NOT carried out: the DEF-306 formula-injection guard** that the fix shape above explicitly
+called for. `escapeField` has no guard; `exportUtils.js` and the server exporters do. Raised as
+**DEF-423** rather than bolted on here, because doing it correctly needs a matching import-side
+change and that is a bigger decision than this entry's scope.
+
+---
+
+### DEF-421 — Certificate import template emits two columns (`Subcategory`, `Cert Subcategories`) that the importer never reads, so the values are silently discarded
+
+- **Date raised:** 2026-09-10
+- **Severity:** **Medium-High.** Silent data loss with no error, no warning and nothing in the preview — the analyst has no way to tell it happened. Same class as DEF-347 and DEF-419.
+- **Status:** **FIXED 2026-09-10 — built and verified on dev, NOT deployed.**
+- **Reporter:** Found while fixing DEF-418 (the import help text), by reading the mapping arrays rather than by anything failing.
+- **QC log ID:** none — not client-reported. Adjacent to **QC #263**, which is what put the template under review.
+- **Numbering note:** first written up as DEF-420; renumbered to **421** because a parallel stream had already claimed 420 for the CSV-export quoting defect. All 20 in-code references were renumbered and the build re-verified.
+
+**The defect.** `DownloadTemplate` (`CertificateImportController.cs:468`) emits 24 columns. Two of
+them had no mapping array in `CertificateImportService.cs` — the only thing that makes a column
+readable — so they were parsed by nothing:
+
+| Template column | Position | Target field |
+|---|---|---|
+| `Cert Subcategories` | 3 | `Certificate.CertificationTypeSubcategories` (multi-select M2M) |
+| `Subcategory` | 11 | `Certificate.ProductSubcategoryId` (FK to the Level-2 `ProductTypes` rows) |
+
+The service admitted it in a comment at `:866` — *"Subcategory still resolves as null (no column
+yet)"* — and `ResolveProductForImportAsync` was called with a hardcoded `null` for the subcategory
+leg of the CR-186 identity tuple.
+
+**Why it mattered more than a blank field.** `Cert Subcategories` is also an **export** column
+(`CertificateService.cs:1495`), so the documented export → edit → re-import round-trip silently
+dropped it on the way back in. And because the CR-186 product identity is
+(Company, Name, Category, Type, **Subcategory**), passing `null` collapsed certificates that differ
+only by subcategory onto a single product record — the exact splitting the CR exists to produce.
+
+**Fix.** Both columns now read, resolved **parent-scoped**, and written on create and update.
+
+- `Subcategory` resolves against `ProductTypes` where `Name` matches **and** `ParentId` is the row's
+  resolved Product Type. Unmatched is a **warning, not a rejection** — the column has been discarded
+  since the template shipped, so files in circulation may carry junk in it, and turning those into
+  hard row failures would break a batch load the day this deploys. Follows the Country precedent.
+- `Cert Subcategories` splits on `,` and `|` (export writes `", "`-joined; pipe matches Partner and
+  Country) and resolves against `CertificationTypes` where `ParentId` is the certificate's **own**
+  certification type — mirroring `CertificateController.cs:1442`. Unmatched entries are warned and
+  skipped.
+- `ResolveProductForImportAsync` now receives the real subcategory id instead of `null`.
+- Both obey **DEF-355**: a file that omits the column leaves the stored value alone; a file that
+  carries the column but leaves the cell blank clears it.
+
+**Verified end-to-end against `GCCDatabase_Dev` through the running app** — not by unit test, per
+[[feedback_test_below_the_defect_layer]]. Three certificates imported, then read back from SQL:
+
+| Check | Result |
+|---|---|
+| Valid product subcategory (`HDPE` under `Plastics`) | `ProductSubcategoryId = 46` ✓ |
+| Valid cert subcategories (`Recycled Content`, `Waste Diversion from Landfill`) | resolved to **73 and 78** ✓ |
+| **Hierarchy trap** — `Waste Diversion from Landfill` exists **twice**: id 78 under CertType 6, id 132 under CertType 19 | picked **78**, the child of the declared type. Name-only matching would have picked either ✓ |
+| Cert subcategory belonging to a *different* parent (`Waste System Audit`, child of 19, declared type 6) | warned and skipped; **zero** M2M rows written ✓ |
+| Junk product subcategory (`ZZ_NotARealSubcat`) | warned; `ProductSubcategoryId` NULL; row still imported ✓ |
+| **CR-186 split** — three certs differing only by subcategory | **three** product rows (null / 46 / 49), not one ✓ |
+| Re-import **omitting** both columns | both fields **survived** (DEF-355) ✓ |
+| Re-import **with** both columns, cells blank | both **cleared** — the deliberate-edit case ✓ |
+
+**Whole-template audit.** All 24 columns were then enumerated against the mapping arrays, using the
+live downloaded template rather than the C# source, replicating `GetFieldWithMapping`'s exact rule
+(case-sensitive exact, else the DEF-202 case-insensitive `"<name> "` / `"<name>("` prefix):
+**0 columns now read by nothing** (was 2). Script: `Scripts/ci/` candidate, currently at
+`$CLAUDE_JOB_DIR/tmp/audit-template-coverage.js` — worth promoting into CI, since this is the third
+defect of this class.
+
+**Related:** DEF-418 (the help text that exposed it), DEF-347 (`COUNTRY` silently unread — same
+class), DEF-419 / DEF-420 (CSV record and quoting defects found in the same week), DEF-355
+(omitted-column rule), DEF-278 (Product Category precedent), CR-186 (the identity tuple),
+DEF-422 (found by the same audit).
+
+---
+
+### DEF-422 — A CSV whose header has `Company Email` but no `Company` imports the **email address as the company name**
+
+- **Date raised:** 2026-09-10
+- **Severity:** **Medium.** Creates junk company records from a file that looks valid; the preview reports `canApply: true` and flags nothing.
+- **Status:** **FIXED 2026-09-11 — built and verified on dev, NOT deployed.**
+- **Reporter:** Internal. **Pre-existing — not introduced by DEF-421.**
+- **QC log ID:** none.
+
+**Cause.** `GetFieldWithMapping` falls back (DEF-202) to accepting any header that *starts with* a
+mapped name followed by a space or `(`, so the template's long `Status (Draft / …)` header still
+resolves. The fallback is not scoped to the field it was added for. `CompanyNameColumns` contains
+`"Company"`, so when no exact `Company` header exists the fallback happily matches **`Company
+Email`** — or `Company URL`. `ProductNameColumns` contains `"Product"` and has the same exposure
+against `Product Category` and `Product Type`.
+
+**Confirmed live**, against the running app on dev. Posting a file headed
+`"Company Email","Product Name","Certification Type","Effective Date","Expiration Date"` returned:
+
+```json
+"companyName": "zz-greedy-probe@example.com",
+"companiesToCreate": 1,
+"canApply": true
+```
+
+Preview only — nothing was applied, so no junk company was created.
+
+**Why it has not bitten yet.** The downloaded template and every export carry the exact `Company`
+and `Product Name` headers, so the supported round-trip always matches exactly and never reaches the
+fallback. It bites hand-made, hand-trimmed or partial files — which is precisely what QC #263 says
+the client is starting to build.
+
+**Fix shape.** Try **every** exact match across **all** mapping arrays before any prefix fallback
+runs, and restrict the fallback to the arrays that actually need it (`Status`, `Partner`, `Country`,
+`Pathway` — the four with value hints in the template header). Cheaper alternative: require the
+fallback's matched header to be unclaimed by another array's exact match. Either way, add the
+`Company Email`-without-`Company` case to `Scripts/ci/check-csv-import.js`.
+
+**Estimated ~1-1.5 hrs** including the regression assertion. **Awaiting approval.**
+
+---
+
+#### Resolution — 2026-09-11
+
+Taken as scoped. `GetFieldWithMapping` and `HasColumn` now take
+`bool allowPrefixFallback = false`; the DEF-202 prefix walk runs **only** when a caller opts in.
+Four call sites opt in — `Status`, `Partner`, `Country` and `Pathway` — and `BuildProvidedColumns`
+threads the same flag through its `Check()` helper so **presence and readability still agree
+exactly**, which is the invariant DEF-355 depends on.
+
+**The defect is gone, verified against the running app.** Re-posting the original probe (a file
+headed `Company Email` with no `Company` column) now yields no `companyName` at all: the row fails
+validation with *"Company Name is required"* instead of inventing a company from the email address.
+Refusing the file is the correct outcome — the column genuinely isn't there.
+
+**No regression on real files, verified by applying a real import and reading SQL** — not from the
+preview API, whose row DTO exposes only 8 fields and which briefly made this look like a 6-field
+failure. A row built from the **downloaded template's own headers** was imported to dev and read
+back:
+
+| Field | Landed | Resolved via |
+|---|---|---|
+| Status | `Client Approved - Paid` | **opt-in prefix** (`Status (Draft / …)`) |
+| Partner | `Amazon` | **opt-in prefix** (`Partner (separate by comma)`) |
+| Country | `United States` + join rows `{United States, Canada}` | **opt-in prefix** (`Country (separate by comma)`) |
+| Location | `Columbus, OH` | exact |
+| Cert Results | `97%` | exact |
+| ASIN | `B0ZZDEF422` | exact |
+| Subcategory | `HDPE` | exact (DEF-421) |
+| Cert Subcategories | `Recycled Content` | exact (DEF-421) |
+| Product Category | `Chemicals and Raw Materials` | exact |
+
+**Whole-template audit re-run under the NEW rule.** The audit harness was updated to model the
+opt-in list and now **cross-checks that list against the source** and reports HARNESS DRIFT if they
+diverge — without that, it would have kept reporting PASS for a rule the app no longer uses. Result:
+**24/24 columns resolve, 0 read by nothing, exactly 3 via the opt-in fallback.** The ambiguous
+multi-hits are gone: `Company Email` now resolves to `CompanyEmailColumns` alone, where it
+previously also matched `CompanyNameColumns`.
+
+Dev fixture removed; certificate and product counts returned to 6,019 / 3,633.
+
+**Related:** DEF-202 (added the fallback), DEF-421 (the audit that found this), DEF-347.
+
+---
+
+### DEF-423 — Five CSV exports have no formula-injection guard, so `+Vantage Vinyl Verified` still renders as `#NAME?`
+
+- **Date raised:** 2026-09-11
+- **Severity:** Low-Medium. Cosmetic in Excel, but it is DEF-306 recurring on pages DEF-306 never covered, and the affected string is literally the one DEF-306 was raised about.
+- **Status:** **FIXED 2026-09-11 — built and verified, NOT deployed.** Shipped as two ordered halves; see the resolution note.
+- **Reporter:** Internal.
+- **QC log ID:** none. DEF-306 was the client-reported original.
+
+**The gap.** DEF-420's fix shape said to keep the DEF-306 formula-injection guard when moving the
+five exporters onto `GccCsv.escapeField()`. The move happened; the guard did not come with it.
+`escapeField` handles quoting only, so a value beginning `=`, `+`, `-`, `@`, tab or CR is emitted
+bare and Excel/Sheets evaluate it as a formula — the `#NAME?` symptom of DEF-306.
+
+**Measured on dev, not assumed:** **78 products** and **1 certification type** begin with a formula
+character, and that certification type is `+Vantage Vinyl Verified` — the exact string that raised
+DEF-306. Product names flow into the Product ID export, which is the very page DEF-420 was reported
+on. Companies: 0 today, but nothing prevents one.
+
+**Why this is not a one-line change, and why it was not folded into DEF-420.** The guard encodes a
+value as an Excel text formula, which decodes back to `="value"`. Something must strip that wrapper
+on re-import or the round trip silently corrupts the value. Support is currently uneven:
+
+| Import path | Strips the wrapper? |
+|---|---|
+| Server certificate import (`CertificateImportService.StripExcelTextFormat:244`) | **yes** |
+| `product-id-manager.js` (`stripExcelTextFormat:1563`) | **yes** — its own private copy |
+| Company import (`Views/Company/Index.cshtml`) | **no** |
+| User import (`userManagement.js` `parseAndPreviewImport`) | **no** |
+| CSF attributes import | **no** |
+
+So adding the guard today would fix Excel display on all five and **introduce** a round-trip bug on
+three of them: a company named `+Foo` would re-import as a company named `="+Foo"`.
+
+**Fix shape.** Add `GccCsv.stripExcelText()` beside `escapeField()` — lift
+`product-id-manager.js:1563`, which already does exactly this, and retire the private copy — call it
+from the three client importers that lack it, and **only then** add the guard to `escapeField`.
+Extend `Scripts/ci/check-csv-import.js` with a `+Vantage`-style round trip asserting the original
+string comes back. **Estimated ~2 hrs.** Strip first, guard second; in that order neither half can
+ship a regression on its own.
+
+**Related:** DEF-306 (the original, in `exportUtils.js`), DEF-315 (quoting of the same construct),
+DEF-420 (moved the exporters onto the shared helper), DEF-419.
+
+---
+
+#### Resolution — 2026-09-11, in the stated order: strip first, guard second
+
+**(a) Import side.** `GccCsv.stripExcelText(value, stripBareEquals)` added to
+`wwwroot/js/csv-parse.js`. `product-id-manager.js`'s private `stripExcelTextFormat` now delegates to
+it, so there is one implementation. Wired into the **user** importer (`userManagement.js`
+`parseAndPreviewImport`) and the **company** importer (`Views/Company/Index.cshtml`), both of which
+strip at the point fields are read, so every column is covered rather than a chosen few.
+
+`stripBareEquals` is opt-in and **off** by default: dropping a lone leading `=` is safe for product
+identifiers and SKUs, where `product-id-manager.js` has always done it, but a company or product
+name beginning `=` is unusual rather than impossible, and silently truncating it would be a new bug.
+
+**(b) Export side.** The DEF-306 guard now lives in `escapeField`, using the DEF-315 encoding so the
+`=` sits inside the CSV quoting and an embedded comma cannot split the field.
+
+**Correction to this entry as originally written.** It listed *three* client importers missing the
+strip. There are **two**: `csfAttributes.js` contains no import path at all — it is export-only
+(zero occurrences of "import" in the file). The CSF export therefore has no round-trip concern.
+
+**A second defect, found by the new test and fixed here.** `product-id-manager.js` *had* a strip but
+applied it to **only the identifier value and the SKU** — not Product Name, Partner or Description.
+Turning the guard on would therefore have re-imported a product named `+Vantage Vinyl Verified` as
+`="+Vantage Vinyl Verified"`. This was caught by the round-trip assertion, **not** by reading the
+code: checking that an importer *has* a strip is not the same as checking it applies it to the field
+you care about. Fixed by stripping every column as it is read.
+
+**Verification.** `Scripts/ci/check-csv-import.js` extended (now the DEF-419/420/423 check) and
+**passing every assertion**, including:
+
+- the guard round-tripping `+Vantage Vinyl Verified`, `=cmd|calc`, `-1234`, `@handle`, and
+  `=a"b,c` (guard + embedded quote + embedded comma together);
+- ordinary values untouched, and `Satisfry 5" Panoramic` still plain-quoted;
+- `stripExcelText` leaving `Acme = Best` alone — an `=` that is not a wrapper;
+- bare-equals kept by default and dropped only when asked;
+- a full export → re-import through the Product ID shape carrying a formula-leading **product name**,
+  asserting one row, partner intact and name intact.
+
+Assertions test the **round trip**, never the encoding alone — asserting the encoding would let
+someone "fix" one half and ship a silent corruption in the other. The harness's `importRows` was
+updated in the same commit to mirror `product-id-manager.js`, so the model does not drift from the
+importer it stands for.
+
+**Effort:** estimated ~2 hrs for this defect; the product-name finding was absorbed within it.

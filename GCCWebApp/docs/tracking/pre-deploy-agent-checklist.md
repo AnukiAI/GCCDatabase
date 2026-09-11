@@ -1874,3 +1874,103 @@ control marker present and a nonsense marker absent so a silently-broken check c
 **Deploy order (unchanged):** back up server `wwwroot/uploads/` → stop app → extract (overwrite) →
 run `migrations\apply-migrations.sql` (`sqlcmd -I`) **before** recycling → start app → smoke root +
 `/api/v1/certificates`.
+---
+
+# Bundle 2026-09-11 — CSV import/export integrity batch
+
+**Artifact:** `GCCWebApp-deploy-20260911-1319.zip` (repo parent dir) — **339 entries, 61.15 MB**
+**sha256:** `30dc3e88c43a2a55aaa29af51b01ceddd5c21ac99a6b8b7aa02027009a8196a0`
+**Target:** TEST (gccwebapp.com). **Built from:** `ci-regression` **working tree**, Release, 0 errors.
+
+> **Built from the WORKING TREE deliberately, and it must be.** Gate 9 flagged
+> *"2 defect(s) exist ONLY in the working tree — publish the bundle from THIS tree, not from a
+> clean checkout of HEAD"* (DEF-418 `Views/CertificateImport/Index.cshtml`, DEF-342
+> `wwwroot/js/product-id-manager.js`). A clean-checkout build would silently omit them.
+> **The tree is uncommitted — commit before or immediately after uploading, or the deployed
+> artifact has no commit to trace back to.**
+
+**What this drop adds** — four fixes from this session plus everything committed since the
+2026-09-08 deploy (DEF-419/DEF-420 CSV record + export escaping, QC #260 subcategory search,
+CR-021 Amazon CEF code, Edit-in-new-tab). No schema change.
+
+| Fix | What it does |
+|---|---|
+| **DEF-418** | Certificate Import help text rewritten against the code — Certificate # is correctly documented as optional, blank-vs-supplied behaviour stated, column names aligned to the template (QC #263) |
+| **DEF-421** | `Subcategory` and `Cert Subcategories` template columns are now READ — they were emitted and silently discarded |
+| **DEF-422** | The DEF-202 header prefix fallback is now opt-in, so `Company Email` can no longer be read as the company name |
+| **DEF-423** | DEF-306 formula-injection guard carried to the shared CSV helper, with the matching import-side strip so it round-trips |
+
+### Gate results
+
+| Gate | Fires? | Result |
+|---|---|---|
+| 0 uploads backup | yes | **NOT DONE — manual, owner: Shawn, must precede extraction** |
+| 1 UI / design guide | yes (2 views changed) | **NOT RUN — OWED.** Both changes are copy/markup inside existing structure (`CertificateImport/Index.cshtml` text, one `GccCsv` call in `Company/Index.cshtml`); no new components, no layout change. Low risk, but not zero — the import page's panels were rewritten |
+| 2 cross-role + responsive | marginal | **NOT RUN — OWED.** No role-gated or responsive surface changed |
+| 3 data scoping | yes | **PASS** — `deploy-gate.js` security leg, exit 0, 316 s |
+| 4 **Amazon contract** | yes | **PASS — 7/7, `CONTRACT UNCHANGED`.** Matters this time: DEF-422 changed CSV header matching and DEF-423 changed export encoding, so the gate proves the v1 payload shape is untouched rather than assuming it |
+| 5 traceability | always | **PASS for this session's work** — DEF-418/421/422/423 all carry register entries with evidence, DEF-420 closed after being found already-fixed, DEF-419 committed by the parallel stream. **Owed:** the working tree is uncommitted |
+| 6 performance | no | no query or EF path changed |
+| 7 migration → schema | yes | **PASS — 0 pending.** Newest migration in code is `20260908175939_CR045_CertificationResultsVerbatimSort`; dev `__EFMigrationsHistory` matches; declared a NO-SCHEMA drop and the high-water is compiled in. **TEST auto-migrate is OFF — nothing to apply this time** |
+| 8 CRUD write paths | yes | **PASS** — `deploy-gate.js` crud leg, exit 0, 144 s |
+| 9 static integrity | always | **PASS — 23P / 0F / 13W**, selftest **9 ok / 0 failed** (confirmed, not assumed). 13 WARNs, all pre-existing classes |
+| 10 config → data | always | not re-run — no config file changed |
+| 11 post-deploy close-out | after upload | pending |
+| 12 outbound email | after upload | pending |
+
+`deploy-gate.js` roll-up: **GREEN — safe to deploy** (security 316 s · crud 144 s · contract 191 s),
+`Scripts/smoke-prod/_results/deploy-gate-2026-09-11T16-38-40-596Z.json`.
+
+### Bundle verification — hygiene AND content, both clean
+
+`python Scripts/deploy/verify-bundle.py <zip> --no-migrations=20260908175939_CR045_...` →
+**failures: 0, exit 0.** Hygiene: no DataProtection keys, no loose `key-*.xml`, no
+`appsettings.Development.json` / `.Secrets.json` / `.Test.json`, no test projects, no
+`wwwroot/uploads`, no `App_Data/uploads`, no `Scripts/`, `docs/` or `docs2/` tree. One `note`:
+`GCCWebApp.pdb` present, as in every prior bundle. `AutoMigrateOnStartup is false` confirmed in the
+shipped config.
+
+**Every historical marker still PRESENT** — DEF-376/377/378/381/382/383/384/385/390/391/394/395/
+401/402/404/405/406/407/409/410, CR-037, CR-043, CR-045. That answers *"what would this bundle
+UNDO?"*: nothing.
+
+`python Scripts/deploy/marker-check-20260911.py <zip>` → **CLEAN, 16/16**, this session's four fixes
+asserted against the in-zip bytes:
+
+- controls: `CertificateController` PRESENT, nonsense marker ABSENT (so the check itself works)
+- DEF-418: *"Certificate # is not required"* and *"Product Category must already exist"* PRESENT;
+  *"must exist in database"* and *"CertificateNumber, CompanyName"* ABSENT
+- DEF-421: `ProductSubcategoryColumns`, `CertSubcategoriesColumns`, `ProductSubcategoryName`,
+  `CertSubcategoryIds`
+- DEF-422: `allowPrefixFallback`
+- DEF-423: `function stripExcelText`, its export, the `=+-@` guard, and both importer call sites
+
+> **Worth keeping:** views are **compiled into `GCCWebApp.dll`** in .NET 8 — there is no
+> `GCCWebApp.Views.dll` and **zero `.cshtml`** entries in the bundle. The first marker run tested
+> the DEF-418 strings against a non-existent `Views.dll`, so the two *"old line is GONE"* markers
+> passed **vacuously** while the two *"new line is present"* markers failed. Pairing a
+> must-be-present marker with every must-be-absent one is what exposed it. `verify-bundle.py`
+> already knows this (`[note] Preview.cshtml not shipped separately`).
+
+### Why the `_regression` suite is not cited above
+
+`Scripts/smoke-prod/_regression/` is built for the **TEST environment**: its fixtures are the
+`test.*` accounts, and **dev has none of them** (`SELECT … WHERE Username LIKE 'test.%'` → 0 rows,
+9 users total). Run against localhost it reports a fixture failure, not a product failure —
+`03-exports-downloads` gave 48P/**1F**, the FAIL being `exp.session.external — login failed for
+external`, i.e. `test.external` does not exist on dev. Every role that *does* exist passed with
+`delta=0` (anon 1018, external2 21, amazon 208, novi 0, analyst 6032, admin 6032). `06-import` ran
+clean on dev: **14P / 0F / 1W**, the WARN a known harness limitation (batchId not discoverable from
+the History markup), and it confirmed the template still emits **24 columns** and that Status,
+Location and Cert Results still import — the DEF-422 prefix path.
+
+**Do not read this morning's 340P/0F `_regression` figure as covering this bundle.** That run
+predates DEF-422/DEF-423 *and* targeted a different environment.
+
+**The JS exporters changed by DEF-423 are not covered by any server-side suite** — they run in the
+browser. Their coverage is `node Scripts/ci/check-csv-import.js` (**47 assertions, all pass**),
+which exercises the real `wwwroot/js/csv-parse.js` rather than a copy, plus `node --check` on all
+four touched files. A browser-level pass is **owed**.
+
+**Deploy order (unchanged):** back up server `wwwroot/uploads/` → stop app → extract (overwrite) →
+**no migration to run this time** → start app → smoke root + `/api/v1/certificates` → Gates 11, 12.

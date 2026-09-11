@@ -3879,3 +3879,556 @@ localhost:5101.
 session. One build failed with `CS0103: CsvRecordReader does not exist` purely because the file was
 being written as the build read it — the next build was clean with no intervention. A build error
 during concurrent work is worth re-running once before investigating.
+---
+
+## 2026-09-10 — DEF-418 fixed: Certificate Import help text rewritten against the code
+
+**Asked:** "what is the status of [QC #263]" then "fix it".
+
+QC #263 was two things in one row. The client's *question* — is the Certificate # column there so
+you can edit an existing certificate? — was already answered correctly in the unsent client reply:
+yes, blank mints a new number, supplied updates that certificate. The *defect* half was the help
+text on `/CertificateImport`, which DEF-418 had logged as wrong in four places but never fixed.
+
+**Fixed.** Both panels in `Views/CertificateImport/Index.cshtml` rewritten. Copy only — no logic, no
+alias changes, no template-header changes. Build clean (0 errors); the page was fetched from
+localhost:5101 signed in as `admin` and confirmed to carry none of the four wrong strings.
+
+**The register's own analysis of this defect was itself wrong in one place, and I only found it
+because I re-read the code instead of trusting the write-up.** Both DEF-418 and the triage doc said
+the "must exist in database" line was *"correct for Certification Type only"*. It is not correct for
+Certification Type either: an unmatched certification type does **not** reject the row — it is
+mapped to the deactivated `Unspecified` placeholder and logged (`CertificateImportService.cs:1503-1528`,
+client directive 2026-06-24). So **none** of Company / Product / Certification Type must pre-exist.
+The only field on the entire import that genuinely must already exist is **Product Category**, which
+is *optional*, and which the old copy never mentioned at all. A defect write-up is a hypothesis, not
+a spec — three of its four claims survived verification and the fourth did not.
+
+Second, smaller correction: the old *"Date format: YYYY-MM-DD"* read as a hard requirement. The
+parser is `DateTime.TryParse`, so it is a recommendation. Reworded, not deleted.
+
+**Separate finding, logged not fixed.** `DownloadTemplate` emits two columns the importer never
+reads — `Cert Subcategories` and `Subcategory`. No mapping array exists for either, and
+`CertificateImportService.cs:866` says so outright. An analyst can fill them in and the values are
+**silently discarded** — the same class of failure as DEF-347. Left out of the new copy rather than
+documented as working; needs its own DEF number and a decision (wire them up, or drop them from the
+template). Noted in `ways-to-improve.md`.
+
+**Also corrected the unsent client reply** (`docs/tracking/2026-09-09-client-reply-db-feedback.md`):
+its §4 carried the same wrong claim about certification types, and it said the fix was still to come.
+Both amended — a known-wrong sentence in an unsent client email is worth more than the edit costs.
+
+**Two process notes.** `EnterWorktree` failed outright on this repo — Windows long-path limits on
+legacy screenshot PNGs under `Scripts/smoke-prod/_results/` and PDFs under `docs/OneDrive_2026-05-09/`
+abort the checkout. Worked in place instead, which matches the no-commit convention anyway. And
+writing a file with Python's text mode silently flattened CRLF to LF across the whole view; caught it
+on `git diff --stat` and restored it. Read/modify/write on a Windows repo needs `newline=''` on the
+read too, or a byte-level pass afterwards.
+
+**Not deployed.** Working tree only, uncommitted.
+
+---
+
+## 2026-09-10 — Full regression run against the test environment
+
+Ran the `_regression` suite plus the `_security` roll-up. Headline: **321 PASS / 0 FAIL against
+gccwebapp.com**, security suite **GREEN 65P**. Nothing in the application failed. Everything below is
+about the *harness*, and two of the items mean a check has been reporting green without testing
+anything.
+
+**Fixture drift blocked the start.** Preflight came back 9 PASS / 2 FAIL: `test.external` and
+`test.amazon` would not authenticate. Two different causes wearing the same "Invalid email or
+password" message — `test.amazon` still existed and was active (last login 9/9) with a changed
+password, while `test.external` had been **deleted outright** (id 103 is a gap in the sequence).
+Recreated external as id 1111 scoped to Sika Corporation, reset amazon's password through
+`/Admin/UpdateUser/105` echoing its Amazon scope back. Preflight then 13/13.
+
+Two things to know about the recreated account: `AdminService.CreateUserAsync` sets
+`Username = model.Email`, so it has **no short username** — it signs in as
+`shawnmwest+external@gmail.com`, and the run needs `REG_USER_EXTERNAL` set to that. And the test
+environment is now down to **21 users** total against the 83-86 the docs describe, so something
+purged far more than these two accounts.
+
+**A check that has never actually run.** `07-verify-fixes.js` F-2 posts to `/Admin/CreateUser` with
+`username` / `firstName` / `lastName` / `isActive` — none of which exist on `CreateUserViewModel` —
+and omits `name`, which is `[Required]`. `AdminController.CreateUser` returns **HTTP 200 with
+`success:false`** on a ModelState failure, and the script only tests `status >= 400`. So it records
+`F-2.partner-user` as **PASS** for a user that was never created, then fails to sign in as it and
+reports BLOCKED. Verified against the dev database: **zero** `zz.fixverify` users exist. The
+consequence is that the DEF-376 assertion underneath it — partner tile view excludes
+not-yet-effective certificates — has never been exercised by this phase.
+
+**Phases silently graded the wrong environment.** `08` and `09` read their base URL from `argv[2]`
+and default to `http://localhost:5101`. Run from a chain without an explicit argument they print a
+confident `PASS` for localhost while the operator reads it as a test-environment result — and the
+pre-deploy checklist specifically asks for these two against gccwebapp.com. Worse, their remote
+guard prints `refusing to run ...` and then **exits 0**, so a runner that branches on exit code
+scores a refusal as a pass. Re-ran both with `ALLOW_REMOTE=1` against the real target: both PASS,
+1017 public certificates, 4 scrolls all-distinct, unaligned offsets exact. DEF-381 is confirmed
+fixed on the deployed environment, which the first run had not shown.
+
+`07` itself is localhost-only *by design* (it writes data and hard-refuses a remote base), as are
+`11` and `12`, which additionally need a scratch TOTP secret enrolled against the dev DB. Those
+three are not test-environment phases and were not counted in the 321.
+
+**Residue owed.** `07` teardown failed: certificates **26-0659 (id 6074)** and **26-0660 (id 6075)**
+remain in `GCCDatabase_Dev` as Draft, cloned from an existing company/product combo. No user residue
+(none was ever created). Cleanup not performed — flagged rather than deleted.
+
+**Worth a second look, not defects.** External scope returns 23 certificates for Sika Corporation and
+21 for MAPEI against the 574 / 313 the credentials table cites; consistent with publishable +
+in-window visibility filtering, but unconfirmed. `novi` returns 0, which is the already-documented
+vacuous half of the amazon/novi pair. `/Company/Management` cold load measured 3987ms against a
+4000ms budget — passed at 99.7% of budget, so it is one slow cold start from flipping red.
+
+**No application code changed.** Two test-environment data changes only (the fixture repair above).
+
+### 2026-09-11 — cleanup of the two fixture certificates, and why the teardown really failed
+
+Deleted `26-0659` (id 6074) and `26-0660` (id 6075) from `GCCDatabase_Dev`. Guards before pulling the
+trigger, because a certificate delete is permanent (no soft-delete, DEF-288 parked) and
+`Certificate.Number` is not unique: the marker search `ZZ_FixVerify_mtwchl9u` returned **exactly**
+those two rows and nothing else, and each number resolved to a **single** row. Deleted with `cid`
+pinned to the integer id anyway — the DEF-369 parameter — rather than trusting the number.
+Both returned `success: true`; marker search now returns 0; count 6024 → **6022**, stable across a
+re-read and a fresh session.
+
+**The teardown failure has a specific cause, and it is not "the delete didn't work."** My first
+attempt reproduced it exactly: `/Certificate/Delete/{number}` is **not** a form post. The confirmation
+page carries no `__RequestVerificationToken` input, so the harness's
+`page.locator('input[name="__RequestVerificationToken"]').inputValue()` yields an empty string and the
+POST goes out unauthenticated — silently, because the teardown wraps it in `.catch(() => {})`. The
+real path is a **JSON POST with the token in a `RequestVerificationToken` header**, issued from the
+certificate detail page (`/Certificate/CertificateInternalView/{number}`), which is where the token
+input actually lives — see `Views/Certificate/CertificateInternalView.cshtml:499`. That matches the
+project's modal→delete→toast convention: the delete is driven by `AdminCore.showConfirmation()`, not
+by a server-rendered form. Any harness teardown that assumes a form post will keep leaving residue.
+
+**Unexplained, logged rather than chased.** The dev total read 6021, then 6024 a few minutes later
+with nothing of mine creating certificates in between; startup seeding was skipped
+(`Essential security data already exists`), only one `dotnet` process was running, and the count has
+been stable at 6022 since. Arithmetic after the delete is consistent with 6024, not 6021. Worth a look
+if it recurs; not pursued further here.
+
+Also of note: the dev server had been reaped between the regression run and this cleanup, and the
+internal tile API is slow enough cold that a 30s Playwright default times out — the first cleanup run
+died on that, not on the delete.
+
+### 2026-09-11 — teardown fixed in `07-verify-fixes.js`
+
+Rewrote the certificate teardown to the path the UI actually uses: read the antiforgery token from the
+certificate **detail** page, then POST `/Certificate/Delete/{number}?cid={id}` with the token in a
+`RequestVerificationToken` **header**. Three changes beyond the header itself:
+
+- **`cid` is now passed**, resolved from the marker search, so a delete is pinned to an exact row.
+  `Certificate.Number` is not unique and the shared-number rule can otherwise resolve to a different
+  certificate than intended (DEF-369). A fixture can only be deleted by an id this run's own marker
+  returned.
+- **Graded on the body's `success` flag, not HTTP status.** This app answers refused writes with
+  200 + `success:false`, so status alone scores a no-op as a pass — the same trap that makes
+  `F-2.partner-user` report PASS for a user it never creates (still open, not touched here).
+- **Failures are recorded, not swallowed.** The old `.catch(() => {})` is gone; a missing token or a
+  failed delete now emits a `teardown.delete` FAIL naming the certificate.
+
+**Falsifiability was established by observation, not assumed:** the old code had already left
+26-0659/26-0660 behind on a run that reported success, and a hand-repro reproduced the empty-token
+cause directly. After the fix, phase 07 ran end to end — `teardown.certificates :: clean`, exit code
+**0** (was 1), **16 PASS / 0 FAIL / 1 BLOCKED**. Verified independently of the harness's own
+self-report: its two new fixtures (26-0664, 26-0665) are both gone, no `ZZ_FixVerify` residue of any
+run remains, and the dev total is back to exactly the 6022 baseline.
+
+The `F-2` BLOCKED is unchanged and expected — that is the separate `/Admin/CreateUser` payload defect,
+deliberately out of scope here.
+
+**Working tree only, not committed.**
+
+### 2026-09-11 — `07-verify-fixes.js` F-2 payload fixed; the phase is now 19 PASS / 0 FAIL / 0 BLOCKED
+
+The F-2 `/Admin/CreateUser` call was rebuilt against the real `CreateUserViewModel`: send `name`
+(which is `[Required]` and was missing), drop `username` / `firstName` / `lastName` / `isActive`
+(none of which exist on that model), and set `requirePasswordReset: false` — load-bearing, because
+the model defaults it to **true** and such a user is bounced to a forced-reset page rather than the
+tile view, which would fail the sign-in for a reason unrelated to what F-2 tests. Creation is now
+graded on the body's `success` flag instead of `status >= 400`, and the sign-in uses the **email**,
+since `CreateUserAsync` sets `Username = model.Email`.
+
+**Fixing creation exposed two more dead branches in the same teardown**, which had been harmless only
+because no user was ever created:
+
+- The lookup matched `u.username === PARTNER_USER.username`. `UserViewModel` has **no `username`
+  property at all**, so it never matched and the delete branch never ran. Now matched by email.
+- `DeleteUser` is **`[HttpDelete]`**, and the teardown called it with `page.request.post` — a POST
+  never reaches the action. Now a real DELETE, graded on the `success` flag (it answers
+  "cannot delete / not found" with 200 + `success:false`).
+
+Without both of those, a working create would have leaked one Partner user into the dev database on
+every single run.
+
+**Two assertions ran for the first time.** `F-2.tiles-no-future` — 218 tiles, 0 not-yet-effective —
+and `F-2.tiles-match-export` — tiles 218 vs export 218, delta 0. Neither had ever executed; the phase
+had been reporting BLOCKED at the sign-in immediately above them.
+
+**Checked that the assertion can actually fail rather than passing vacuously.** Dev holds 292
+Amazon-tagged certificates, 4 of them future-dated: the X-SENSE pair 26-0441 / 26-0442 (effective
+2026-10-21, status **Client Approved - Paid**) and a Whirlpool pair (Draft). `PublicStatuses` is
+`{ ClientApprovedPaid, Republished }`, so the X-SENSE two are in a badgeable status and **would**
+appear in Amazon's tile view if the DEF-376 not-yet-effective exclusion regressed. The Draft pair is
+filtered on status regardless and contributes nothing. So the check has real material to catch — it
+is not green-by-absence.
+
+Phase result **19 PASS / 0 FAIL / 0 BLOCKED**, exit 0. Residue verified independently of the
+harness's self-report: 0 `zz.fixverify` users, 0 `ZZ_FixVerify` certificates, dev total back to
+exactly the 6022 baseline.
+
+**Working tree only, not committed.** No application code touched — `07-verify-fixes.js` is the only
+file changed.
+---
+
+## 2026-09-10 — DEF-421 wired up the two dead template columns; DEF-422 found by the same audit
+
+**Asked:** "wire it up and fix it. Does this issue exist for any columns on other imports?"
+
+**Wired up (DEF-421).** `Subcategory` → `Certificate.ProductSubcategoryId`; `Cert Subcategories` →
+the `CertificationTypeSubcategories` multi-select. Both resolved **parent-scoped**, both obeying the
+DEF-355 omitted-column rule, and `ResolveProductForImportAsync` now gets the real subcategory id
+instead of the hardcoded `null` that was collapsing the CR-186 product split.
+
+**Verified through the app against dev, not by unit test** — nine checks, each read back from SQL.
+The one worth keeping: dev contains a certification type named *"Waste Diversion from Landfill"*
+**twice** — id 78 under parent 6 and id 132 under parent 19. That is not dirty data, it is the
+hierarchy working as designed ([[feedback_certtypes_hierarchy]]), and it is the perfect negative
+control: a name-only match would have picked either one and looked fine. The import picked 78, the
+child of the declared type. **Look for a duplicate name in the fixture data before writing the
+assertion — it is worth more than any synthetic case.**
+
+**Audit answer: mostly no.** Products, tags, companies and the live user import are all
+header-driven and consume every column their template emits. Two pieces of **dead** code carry the
+old shape — `/Admin/ImportUsers` (reads 5 of 7 columns, explicitly discards Status) and
+`wwwroot/js/admin/userManagement.js` (7-column positional parser, misaligned against the current
+7-column template). Neither is reachable: no view loads that JS file, and nothing calls that action.
+**I nearly reported the JS one as a live column-misalignment bug.** What stopped it was checking
+which script `Views/Admin/UserManagement.cshtml` actually loads — it loads `~/js/userManagement.js`,
+not `~/js/admin/userManagement.js`. Two files with the same basename in sibling directories, one
+live and one dead. Grep the view for the `<script src>` before believing any finding in a JS file.
+
+**Then the audit paid for itself twice.** Enumerating all 24 template columns against the mapping
+arrays showed several headers matching **more than one** array — `Company Email` matched both
+`CompanyEmailColumns` and `CompanyNameColumns`. That is the DEF-202 prefix fallback being greedy.
+Rather than reason about whether it was reachable, I posted a file with `Company Email` and **no**
+`Company` column: the preview came back with `"companyName": "zz-greedy-probe@example.com"` and
+`canApply: true`. Raised as **DEF-422**. The 30 seconds spent proving it beat a paragraph of
+speculation — [[feedback_measure_dont_reason_about_perf]] applies to correctness too.
+
+**Numbering collision.** I wrote this up as DEF-420 and had already put 20 `DEF-420` references into
+the code before discovering a parallel stream had taken 420 for the CSV-export quoting defect.
+Renumbered to 421. **The register high-water mark moves while you work** — re-grep it immediately
+before writing a number into source comments, not just before appending to the register.
+[[reference_def_register_numbering]] says to re-grep before appending; the sharper rule is to re-grep
+before *citing*, because a number in a code comment is far more expensive to change than one in a doc.
+
+**Two harness notes.** The dev server holds `bin/Debug/net8.0/GCCWebApp.exe`, so a build during a
+run fails with MSB3027 "file is locked" — stop the server first; it reads like a compile error and
+is not one. And the import **preview** preloads every certificate (DEF-350), so a single
+preview+apply cycle on the 5,700-row dev database runs past 180 seconds; budget for it rather than
+treating the timeout as a hang.
+
+**Not deployed.** Working tree only, uncommitted. DEF-418 and DEF-421 ship together — DEF-418's new
+help text does not yet list the two columns DEF-421 turned on, so shipping them apart would leave
+the page wrong in a new way.
+
+### 2026-09-11 — full regression re-run, all green; the dev "count drift" resolved
+
+Re-ran everything with the right target per phase. **All 11 phases exit 0.**
+
+| Phase | Target | Result |
+|---|---|---|
+| 00 preflight | TEST | 13 P / 0 F |
+| 01 rbac-matrix | TEST | 168 P / 0 F |
+| 02 data-scoping | TEST | 33 P / 0 F (8 INFO) |
+| 03 exports-downloads | TEST | 57 P / 0 F |
+| 04 create-edit | TEST | 17 P / 0 F |
+| 05 performance | TEST | 19 P / 0 F |
+| 06 import | TEST | 14 P / 0 F / 1 WARN |
+| 08 tile-scroll-dupes | TEST | PASS (gate line in log confirms TEST, not localhost) |
+| 09 offset-paging | TEST | PASS |
+| 10 recovery-code-format | source | PASS |
+| 07 verify-fixes | localhost | **19 P / 0 F / 0 BLOCKED** |
+| `_security` roll-up | localhost | 65 P / 0 F => GREEN |
+
+**The 07 fixes hold on a clean run.** `F-2.partner-user` PASS, `F-2.tiles-no-future` 218 tiles / 0
+not-yet-effective, `F-2.tiles-match-export` delta 0, and both teardowns PASS. Verified independently
+of the harness: 0 `zz.fixverify` users and 0 `ZZ_FixVerify` certificates left in dev.
+
+**The count anomaly was the API, not the database.** `sqlcmd` against `GCCDatabase_Dev` gives the
+ground truth: **6019 rows**, 5844 distinct numbers. That reconciles exactly — the first reading taken
+was 6021 while fixtures 6074/6075 were still present, those two were deleted, and every phase-07 run
+since is net-zero (creates two, removes two). 6021 - 2 = 6019. No rows were ever spontaneously gained
+or lost; the internal tile API's `totalCount` transiently **over-reported by 3** (it read 6024 and
+6022 in between while the table held 6021 and 6019). Worth remembering before trusting that field as
+a count — it is a paginated-query total, and the DEF-166/234 Includes-plus-pagination class of bug
+lives exactly there. Low priority, but do not cite `totalCount` as a row count without checking.
+
+**Public count on TEST moved 1017 -> 1018** between this morning's run and this one. Expected on a
+shared environment — a certificate coming into force or being published does that — but noting it so
+a future diff against 1017 is not read as a defect.
+
+Unchanged from the earlier run: `06-import` still WARNs that the undo `batchId` is not discoverable
+from the History page markup.
+---
+
+## 2026-09-11 — DEF-420 was already fixed; the register said otherwise and I believed it
+
+**Asked:** "are we ready to build and zip for deployment?" then "yes, fix DEF-420".
+
+**I gave a wrong recommendation.** I read DEF-420's status line — *"RAISED — not fixed"* — and told
+Shawn it was a blocker worth holding the bundle for, because shipping the DEF-419 import fix without
+the export half would leave the export → edit → re-import round trip broken. The reasoning was
+sound. The premise was not: DEF-420 had been fixed and committed the previous day in `3eba3970` by
+the parallel stream, which updated the code and not the entry. I found out only when I opened the
+files to fix them and every one already called `GccCsv.escapeField`.
+
+**The rule this earns.** A register entry's **Status** line is the least trustworthy line in the
+register during parallel work, because it is the field that goes stale first and the one nothing
+enforces. `git log -1 -- <file>` and a clean `git status` on the named files cost two commands and
+settle it. I already knew the general form of this — [[feedback_checked_in_artifact_is_stale_evidence]],
+and my own note earlier this same session that a defect write-up is a hypothesis — and still quoted
+a status as fact. **Verify before quoting a status, not just before appending one.**
+
+There is a second-order cost worth naming: I recommended *holding a deployment* on that status. A
+stale doc that only misinforms is cheap; a stale doc that changes a release decision is not.
+
+**What was actually still missing.** DEF-420's own fix shape said to carry the DEF-306
+formula-injection guard across to the shared helper. That did not happen — `escapeField` handles
+quoting only. Measured the exposure rather than asserting it: **78 products** and **1 certification
+type** on dev begin with a formula character, and the certification type is `+Vantage Vinyl
+Verified`, the exact string DEF-306 was raised about. Raised as **DEF-423**.
+
+**And the guard is not a one-liner, which is why it is its own number.** Encoding a value as an Excel
+text formula means something must strip the wrapper on re-import. The server importer does
+(`StripExcelTextFormat:244`) and `product-id-manager.js` does (`:1563`, its own private copy), but
+the company, user and CSF importers do not — so adding the guard today would fix Excel display on
+five exports and *introduce* a round-trip bug on three. Strip first, guard second. Enumerating the
+five import paths before writing the fix is what turned a "one-line change" into the right change.
+
+**Verified DEF-420 by running its check, not by reading its code:**
+`node Scripts/ci/check-csv-import.js` passes every assertion, including the four export → re-import
+round trips that reproduce the defect's own `Satisfry 5" Panoramic` example.
+
+**Register hygiene:** DEF-423 first landed between 420 and 421 because it was appended to the end of
+the DEF-420 entry. Moved to the end so the file stays in numeric order.
+---
+
+## 2026-09-11 — DEF-422 and DEF-423 fixed; three lessons about trusting a harness
+
+**Asked:** "how much to fix these" then "do it". Estimated ~3 hrs for DEF-422 plus DEF-423's two
+halves. Both are fixed, built and verified; the estimate held, with one extra defect absorbed.
+
+**DEF-422** — the DEF-202 prefix fallback is now opt-in (`allowPrefixFallback`, default false), with
+four callers asking for it: Status, Partner, Country, Pathway. `HasColumn`/`BuildProvidedColumns`
+thread the same flag so presence and readability keep agreeing, which is what DEF-355 rests on.
+
+**DEF-423** — `GccCsv.stripExcelText()` added and wired into the user and company importers, the
+private copy in `product-id-manager.js` retired to a delegate, and only *then* the DEF-306 formula
+guard added to `escapeField`. Strip first, guard second; in the other order each half ships a
+regression alone.
+
+### Three things I got wrong, all caught by verification rather than by reading
+
+**1. "This importer has a strip" is not "this importer strips the field you care about."**
+`product-id-manager.js` has had `stripExcelTextFormat` for ages, so I marked it green in the DEF-423
+table. It applies the strip to the identifier value and the SKU **only** — not Product Name, Partner
+or Description. Turning on the guard would have re-imported `+Vantage Vinyl Verified` as
+`="+Vantage Vinyl Verified"`. The round-trip assertion caught it on first run. **Check the field,
+not the function's existence.**
+
+**2. A harness that models a rule must prove it still models it.** My template-coverage script
+replicated `GetFieldWithMapping`'s matching rule. DEF-422 *changed* that rule — and the script
+happily reported "PASS: 0 columns read by nothing" while measuring the **old** one. The PASS was
+meaningless for about ten minutes. It now parses the opt-in list out of the C# and prints
+HARNESS DRIFT if its own copy disagrees. Any harness that mirrors production logic needs that
+check, or it silently becomes a photograph — [[feedback_checked_in_artifact_is_stale_evidence]]
+applies to logic, not just to files.
+
+**3. A failure can be the harness's.** My first DEF-422 regression run reported six wrong fields —
+Partner, Country, Location, Cert Results, ASIN all `undefined`, and Status reading `"New"`. Nothing
+was wrong: the preview API's row DTO exposes only **eight** fields, `status` there is the *row*
+status, and the rest are simply not projected ([[feedback_column_exists_but_never_projected]]).
+Re-verified by applying the import and reading SQL, where all nine fields were correct. **A red
+result from a harness you wrote minutes ago deserves the same scepticism as a green one** — I
+nearly reported a regression that did not exist.
+
+### Also corrected
+
+DEF-423's original write-up listed three client importers missing the strip. There are **two** —
+`csfAttributes.js` has no import path at all, it is export-only. I had inferred a third from an
+export symmetry rather than checking.
+
+### Verification that stands
+
+- `Scripts/ci/check-csv-import.js` extended to the DEF-419/420/423 check: **all assertions pass**,
+  every formula case asserted as a **round trip**, never as an encoding.
+- Template coverage under the new rule: **24/24 resolve, 0 unread, 3 via the opt-in fallback**, and
+  the ambiguous multi-hits are gone.
+- A row built from the **downloaded template's own headers** imported to dev and read back from SQL:
+  Status, Partner, multi-country, Location, Cert Results, ASIN, Subcategory, Cert Subcategories and
+  Category all correct. Fixture removed; dev back to 6,019 certs / 3,633 products.
+
+### Deploy note that matters
+
+**The gate runs from this morning are now stale for this bundle.** The `_regression` suite
+(340 PASS / 0 FAIL) and the security suite (65 PASS / 0 FAIL) both ran *before* the DEF-422 and
+DEF-423 changes. DEF-422 altered CSV header matching and DEF-423 altered five export paths and two
+import paths — squarely inside what `03-exports-downloads` and `06-import` cover. **Both suites need
+re-running before the bundle**, and per [[feedback_never_build_while_gate_measures]] nothing should
+be building while they do.
+
+**Not deployed.** Working tree only, uncommitted.
+
+
+---
+
+## 2026-09-11 - Amazon payload re-export for the client (rerun, no code change)
+
+Reran `Scripts/data-ops/2026-09-09-amazon-payload-export.py test` to produce a current CSV + JSON
+set for the client. Pull is live, through a minted Amazon partner key against the same endpoints
+Amazon calls; the key was self-revoked at the end of the run (id 25).
+
+### Result - clean
+
+- **208 certificates**, **19,146 product identifiers**, **208 GS1 documents** delivered.
+- Certification Results reconciled four ways (DB now / pre-CR-045 snapshot / standard API / GS1):
+  **208 of 208 byte-identical, 0 mismatches**. All values in `XX%` form; no bare decimals, no
+  non-numeric values.
+- Membership: 281 Amazon-tagged, 208 delivered, 73 correctly withheld (39 Expired, 32 Draft,
+  2 not yet effective). **0 findings.**
+
+### The count moved 212 -> 208, and the cause is the client's own edit
+
+Yesterday's run delivered 212. Four certificates - **25-8333, 25-8334, 25-8413, 26-0519** - are gone
+from the payload. They were not withheld; they left the Amazon-tagged population entirely
+(285 -> 281), which the summary totals alone would not explain.
+
+`AuditHistory` rows 3330-3333 name the cause: `Partner: Amazon -> None`, **ChangeSource `Web UI`**,
+by the client's own account, 2026-09-11 12:30-12:53. All four certificates still exist and are still
+`Client Approved - Paid` and in force - only the Amazon association was removed, so withholding them
+is correct behaviour, not a regression.
+
+**Worth noting as a pattern:** a payload delta is not self-explaining. The delivered count dropping
+looks identical whether a certificate expired, was unpublished, or was untagged by hand - and only
+the last of those is invisible to the membership CSV, because an untagged certificate drops out of
+the query that builds it. Diffing the *number sets* between runs and then reading `AuditHistory` is
+what separated "client did this on purpose" from "we broke something"; a summary-to-summary
+comparison could not have. See [[feedback_equal_counts_are_not_the_same_rows]].
+
+### Deliverable
+
+`Scripts/data-ops/_amazon_payload/GCC-Amazon-Payload-2026-09-11.zip` (1.0 MB, 9 files, integrity
+verified). Same 8 files as the 2026-09-10 package plus a `README.txt` that states the totals, the
+zero-mismatch reconciliation, and the 212 -> 208 change with the four certificate numbers named, so
+the client is not left to discover the delta themselves.
+
+**No code change. Read-only against the test environment** - the only write was the API key mint,
+which was revoked.
+
+---
+
+## 2026-09-11 — Full regression against gccwebapp.com, post-deploy
+
+Run requested immediately after the 2026-09-11 bundle went to the test environment. Ran every
+`_regression` phase that is *environment-appropriate* for a remote target, plus a deploy-state probe.
+
+### Result: 321 PASS / 0 FAIL / 1 WARN across the seven numbered phases, + 3 standalone phases PASS
+
+| Phase | Result |
+|-------|--------|
+| `00-preflight` | 13P / 0F |
+| `01-rbac-matrix` | 168P / 0F |
+| `02-data-scoping` | 33P / 0F / 8 INFO |
+| `03-exports-downloads` | 57P / 0F |
+| `04-create-edit` | 17P / 0F |
+| `05-performance` | 19P / 0F |
+| `06-import` | 14P / 0F / 1 WARN |
+| `08-tile-scroll-dupes` | PASS — 4 scrolls, 250 tiles, all unique |
+| `09-offset-paging` | PASS — unaligned offsets 37/75/90/123/149 + tail |
+| `10-recovery-code-format` | PASS — DEF-384 formatCode round-trips |
+
+Phases **07, 11, 12 were not run, by design, not by omission.** `07-verify-fixes` hard-refuses any
+non-localhost target (`REFUSING to run against …`) because it creates a Partner user and imports
+certificates; 11 and 12 are localhost + dev-DB only (12 needs a seeded TOTP secret). Anyone reading
+"full regression" as "all thirteen files" will otherwise think three phases silently failed.
+
+The `_security` suite was **deliberately not pointed at gccwebapp.com.** Its `_lib` passes the
+test-env gate with **Basic auth**, and that gate is **Cookie** mode — which does not error, it
+returns a 200 gate page for every URL. A remote run would have produced a page of fabricated
+PASSes. It stays a localhost/dev gate. ([[feedback_harness_never_fabricate_status]])
+
+### The one FAIL, and why it was not the application
+
+`00-preflight` and `01-rbac-matrix` first reported `pre.login.external` / `rbac.session.external`
+FAIL — *"login failed for external: landed /Account/Login"*, with the page showing
+**"Invalid email or password"**. That message is the whole trap: it reads as a broken login.
+
+Diagnosed by posting the same password under both identifiers:
+
+- `test.external` + `GccTest2026!` → **rejected**
+- `shawnmwest+external@gmail.com` + `GccTest2026!` → **200, lands /CertificateTileViewExternal**
+
+The lookup is `u.Email == email || u.Username == email`. The email half matching proves the account
+is **active, unlocked, and holding the expected password** — so the only thing that changed is the
+account's **`Username`**, which no longer equals `test.external`. Admin → User Management confirms
+the row is present and `active` (Test External / Sika Corporation / External); that grid has no
+Username column, which is why the drift is invisible from the UI.
+
+**This is fixture drift on the test environment, not a defect, and not part of this deploy.** No DEF
+raised ([[feedback_data_issue_vs_defect]]). Re-ran 00 and 01 with
+`REG_USER_EXTERNAL=shawnmwest+external@gmail.com` and both went clean (13P/0F and 168P/0F); that
+override was carried through phases 02–06.
+
+**Open item for Shawn:** either restore the `Username` to `test.external` on that account, or change
+the default in `_lib/regression-lib.js` to the email. Until one of those happens every future run
+starts with a FAIL that looks like a broken login. Cheapest is the DB/admin-side rename.
+
+### Deploy state confirmed before trusting any of the above
+
+`whats-deployed.js`: DLL verdict — DEF-337 batch **is** deployed (all three `/Document/*` routes
+GONE, control route PRESENT). Asset verdict — **9 same / 0 differ**, live `wwwroot` matches the
+working tree *exactly*, including `userManagement.js` and `product-id-manager.js`, both of which
+carry the DEF-423 changes. So the bundle is genuinely live, not a "can't reproduce" illusion
+([[feedback_verify_deployed_asset_not_symptom]]).
+
+Config-leak guard re-checked **through the gate**, which matters: anonymously every path returns
+**302** (the gate intercepting), and a 302 is not evidence of anything. With a `GCC.TestGate` cookie
+held, `/appsettings.Production.json`, `/appsettings.json`, `/appsettings.Secrets.json`,
+`/appsettings.Development.json`, `/web.config` and `/GCCWebApp.dll` all return **404**. Handler
+active. ([[feedback_verify_handler_active_after_deploy]])
+
+### What the numbers say about the changes in this bundle
+
+- **DEF-422/423 (CSV header matching + Excel-text strip + formula guard)** — the phases that cover
+  them are green on the deployed build: `03-exports-downloads` 57P/0F across all seven roles
+  (every role's export carries `Certificate #` at index 0; Internal Tag present for analyst/admin
+  and absent for anon/external/external2/amazon/novi — DEF-128 holds), and `06-import` round-tripped
+  a real row: blank Certificate # auto-numbered, `26-9914` stored as sent, Cert Results, Location
+  and Status all read back correctly, fixture torn down clean.
+- **DEF-402 (search latency)** — `search=sika` median **562ms** against a 6,032-cert internal set,
+  budget 3,000ms. The CR-037 country-EXISTS regression is not back.
+- **Export scope parity** — export row count equals tile-API `totalCount` for all seven roles,
+  delta 0 in every case; Sika (23) and MAPEI (21) share **0** certificates.
+- **Cert # vs Id** — 0 of 5,857 internal and 0 of 1,006 public numbers look like a bare integer.
+  The 137 duplicate numbers are all in the CR-038 grandfathered set, 0 unexpected.
+  ([[feedback_cert_number_vs_id_resolved]], [[feedback_duplicate_certificate_numbers_exist]])
+
+### The one WARN
+
+`imp.undo` — *"batchId not discoverable from the History page markup"*. The import itself, its
+History row and its reason all verified; only the **Undo** path could not be exercised because the
+batchId is not exposed in the rendered markup for the harness to grab. Pre-existing harness
+limitation, not new in this bundle, and the fixture was removed by teardown anyway. Worth a low
+-priority fix so Undo stops being the one import path with no live coverage.
+
+### Data counts observed (test env, 2026-09-11)
+
+Internal 6,032 certs (5,857 distinct numbers) · public 1,018 · Sika 23 · MAPEI 21 · Amazon 208 over
+42 companies · Novi **0**. Novi being empty is expected and means the amazon/novi isolation pair is
+still vacuous on TEST — the real isolation evidence is the external/external2 pair, which is
+non-vacuous and shares nothing. ([[feedback_novi_has_no_certs_on_test]])

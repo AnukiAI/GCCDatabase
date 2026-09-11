@@ -1,8 +1,8 @@
 {
   "phaseId": "01-rbac-matrix",
   "base": "https://gccwebapp.com",
-  "startedAt": "2026-09-10T02:23:55.731Z",
-  "finishedAt": "2026-09-10T02:24:50.231Z",
+  "startedAt": "2026-09-11T18:54:53.781Z",
+  "finishedAt": "2026-09-11T18:55:48.975Z",
   "routes": 24,
   "roles": [
     "anon",
@@ -19,42 +19,49 @@
         "status": 200,
         "effective": 200,
         "finalPath": "/",
-        "ms": 548,
+        "ms": 174,
         "err": null
       },
       "external": {
         "status": 200,
         "effective": 200,
         "finalPath": "/",
-        "ms": 226,
+        "ms": 122,
         "err": null
       },
       "external2": {
         "status": 200,
         "effective": 200,
         "finalPath": "/",
-        "ms": 128,
+        "ms": 106,
         "err": null
       },
-      "novi": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/",
-        "ms": 121,
-        "err": null
-      },
-      "analyst": {
+      "amazon": {
         "status": 200,
         "effective": 200,
         "finalPath": "/",
         "ms": 118,
         "err": null
       },
+      "novi": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/",
+        "ms": 104,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/",
+        "ms": 111,
+        "err": null
+      },
       "admin": {
         "status": 200,
         "effective": 200,
         "finalPath": "/",
-        "ms": 117,
+        "ms": 109,
         "err": null
       }
     },
@@ -63,42 +70,49 @@
         "status": 200,
         "effective": 200,
         "finalPath": "/Account/Login",
-        "ms": 295,
+        "ms": 158,
         "err": null
       },
       "external": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewExternal",
-        "ms": 391,
+        "ms": 192,
         "err": null
       },
       "external2": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewExternal",
-        "ms": 372,
+        "ms": 214,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Certificate/CertificateTileViewExternal",
+        "ms": 180,
         "err": null
       },
       "novi": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewExternal",
-        "ms": 238,
+        "ms": 174,
         "err": null
       },
       "analyst": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewInternal",
-        "ms": 203,
+        "ms": 179,
         "err": null
       },
       "admin": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewInternal",
-        "ms": 188,
+        "ms": 229,
         "err": null
       }
     },
@@ -107,35 +121,42 @@
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileView",
-        "ms": 122,
+        "ms": 100,
         "err": null
       },
       "external": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileView",
-        "ms": 135,
+        "ms": 129,
         "err": null
       },
       "external2": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileView",
-        "ms": 246,
+        "ms": 105,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Certificate/CertificateTileView",
+        "ms": 106,
         "err": null
       },
       "novi": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileView",
-        "ms": 119,
+        "ms": 129,
         "err": null
       },
       "analyst": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileView",
-        "ms": 107,
+        "ms": 138,
         "err": null
       },
       "admin": {
@@ -151,35 +172,42 @@
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/Login",
-        "ms": 188,
+        "ms": 175,
         "err": null
       },
       "external": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewExternal",
-        "ms": 134,
+        "ms": 112,
         "err": null
       },
       "external2": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewExternal",
-        "ms": 131,
+        "ms": 107,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Certificate/CertificateTileViewExternal",
+        "ms": 108,
         "err": null
       },
       "novi": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewExternal",
-        "ms": 112,
+        "ms": 151,
         "err": null
       },
       "analyst": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewExternal",
-        "ms": 187,
+        "ms": 173,
         "err": null
       },
       "admin": {
@@ -195,42 +223,49 @@
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/Login",
-        "ms": 223,
+        "ms": 153,
         "err": null
       },
       "external": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Product/Management",
-        "ms": 319,
+        "ms": 325,
         "err": null
       },
       "external2": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Product/Management",
-        "ms": 286,
+        "ms": 274,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Product/Management",
+        "ms": 275,
         "err": null
       },
       "novi": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Product/Management",
-        "ms": 290,
+        "ms": 241,
         "err": null
       },
       "analyst": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Product/Management",
-        "ms": 263,
+        "ms": 250,
         "err": null
       },
       "admin": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Product/Management",
-        "ms": 274,
+        "ms": 298,
         "err": null
       }
     },
@@ -239,42 +274,49 @@
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/Login",
-        "ms": 157,
+        "ms": 146,
         "err": null
       },
       "external": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 228,
+        "ms": 192,
         "err": null
       },
       "external2": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 214,
+        "ms": 211,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 195,
         "err": null
       },
       "novi": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 194,
+        "ms": 177,
         "err": null
       },
       "analyst": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewInternal",
-        "ms": 157,
+        "ms": 103,
         "err": null
       },
       "admin": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/CertificateTileViewInternal",
-        "ms": 132,
+        "ms": 131,
         "err": null
       }
     },
@@ -283,42 +325,49 @@
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/Login",
-        "ms": 156,
+        "ms": 151,
         "err": null
       },
       "external": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 211,
+        "ms": 193,
         "err": null
       },
       "external2": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 225,
+        "ms": 189,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 174,
         "err": null
       },
       "novi": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 218,
+        "ms": 164,
         "err": null
       },
       "analyst": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/Create",
-        "ms": 718,
+        "ms": 777,
         "err": null
       },
       "admin": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/Create",
-        "ms": 530,
+        "ms": 1104,
         "err": null
       }
     },
@@ -327,42 +376,49 @@
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/Login",
-        "ms": 183,
+        "ms": 158,
         "err": null
       },
       "external": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 199,
+        "ms": 178,
         "err": null
       },
       "external2": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 219,
+        "ms": 181,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 205,
         "err": null
       },
       "novi": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 341,
+        "ms": 183,
         "err": null
       },
       "analyst": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/Statistics",
-        "ms": 382,
+        "ms": 4172,
         "err": null
       },
       "admin": {
         "status": 200,
         "effective": 200,
         "finalPath": "/Certificate/Statistics",
-        "ms": 225,
+        "ms": 207,
         "err": null
       }
     },
@@ -371,7 +427,211 @@
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/Login",
-        "ms": 158,
+        "ms": 155,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 202,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 170,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 165,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 171,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Dashboard/Index",
+        "ms": 904,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Dashboard/Index",
+        "ms": 407,
+        "err": null
+      }
+    },
+    "/Company/Management": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 139,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 171,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 172,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 197,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 198,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Company/Management",
+        "ms": 222,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Company/Management",
+        "ms": 186,
+        "err": null
+      }
+    },
+    "/CertificateImport/Index": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 161,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 164,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 162,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 159,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 162,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/CertificateImport/Index",
+        "ms": 157,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/CertificateImport/Index",
+        "ms": 165,
+        "err": null
+      }
+    },
+    "/CertificateImport/History": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 137,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 171,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 169,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 184,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 301,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/CertificateImport/History",
+        "ms": 185,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/CertificateImport/History",
+        "ms": 106,
+        "err": null
+      }
+    },
+    "/Admin/Index": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 162,
         "err": null
       },
       "external": {
@@ -385,95 +645,218 @@
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 610,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 306,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Dashboard/Index",
-        "ms": 680,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Dashboard/Index",
-        "ms": 424,
-        "err": null
-      }
-    },
-    "/Company/Management": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 162,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 177,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 221,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 176,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Company/Management",
-        "ms": 229,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Company/Management",
-        "ms": 168,
-        "err": null
-      }
-    },
-    "/CertificateImport/Index": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 183,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
         "ms": 194,
         "err": null
       },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 180,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 222,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 211,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Admin/UserManagement",
+        "ms": 305,
+        "err": null
+      }
+    },
+    "/Admin/UserManagement": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 177,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 185,
+        "err": null
+      },
       "external2": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 184,
+        "ms": 174,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 172,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 201,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 191,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Admin/UserManagement",
+        "ms": 139,
+        "err": null
+      }
+    },
+    "/Admin/RoleManagement": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 147,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 191,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 209,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 189,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 173,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 200,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Admin/RoleManagement",
+        "ms": 204,
+        "err": null
+      }
+    },
+    "/Admin/Tags": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 144,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 170,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 170,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 172,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 174,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 191,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Admin/Tags",
+        "ms": 218,
+        "err": null
+      }
+    },
+    "/Admin/Partners": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 143,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 233,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 174,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 179,
         "err": null
       },
       "novi": {
@@ -485,20 +868,20 @@
       },
       "analyst": {
         "status": 200,
-        "effective": 200,
-        "finalPath": "/CertificateImport/Index",
-        "ms": 150,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 266,
         "err": null
       },
       "admin": {
         "status": 200,
         "effective": 200,
-        "finalPath": "/CertificateImport/Index",
-        "ms": 135,
+        "finalPath": "/Admin/Partners",
+        "ms": 191,
         "err": null
       }
     },
-    "/CertificateImport/History": {
+    "/Admin/CertificateTypes": {
       "anon": {
         "status": 200,
         "effective": 401,
@@ -510,215 +893,46 @@
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 216,
+        "ms": 241,
         "err": null
       },
       "external2": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 250,
+        "ms": 181,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 172,
         "err": null
       },
       "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 203,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/CertificateImport/History",
-        "ms": 208,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/CertificateImport/History",
-        "ms": 124,
-        "err": null
-      }
-    },
-    "/Admin/Index": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 158,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 218,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 175,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 207,
-        "err": null
-      },
-      "analyst": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
         "ms": 173,
         "err": null
       },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Admin/UserManagement",
-        "ms": 346,
-        "err": null
-      }
-    },
-    "/Admin/UserManagement": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 200,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 183,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 253,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 403,
-        "err": null
-      },
       "analyst": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 229,
+        "ms": 190,
         "err": null
       },
       "admin": {
         "status": 200,
         "effective": 200,
-        "finalPath": "/Admin/UserManagement",
-        "ms": 135,
+        "finalPath": "/Admin/CertificateTypes",
+        "ms": 211,
         "err": null
       }
     },
-    "/Admin/RoleManagement": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 158,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 200,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 409,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 263,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 283,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Admin/RoleManagement",
-        "ms": 178,
-        "err": null
-      }
-    },
-    "/Admin/Tags": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 228,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 282,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 205,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 176,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 279,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Admin/Tags",
-        "ms": 178,
-        "err": null
-      }
-    },
-    "/Admin/Partners": {
+    "/Admin/ProductTypes": {
       "anon": {
         "status": 200,
         "effective": 401,
@@ -730,329 +944,28 @@
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 217,
+        "ms": 209,
         "err": null
       },
       "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 458,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 258,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 254,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Admin/Partners",
-        "ms": 264,
-        "err": null
-      }
-    },
-    "/Admin/CertificateTypes": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 158,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 205,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 189,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 234,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 200,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Admin/CertificateTypes",
-        "ms": 269,
-        "err": null
-      }
-    },
-    "/Admin/ProductTypes": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 158,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 226,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 196,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 211,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 185,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Admin/ProductTypes",
-        "ms": 215,
-        "err": null
-      }
-    },
-    "/Admin/CertificateFields": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 168,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 230,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 237,
-        "err": null
-      },
-      "novi": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
         "ms": 173,
         "err": null
       },
-      "analyst": {
+      "amazon": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 168,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Admin/CertificateFields",
-        "ms": 205,
-        "err": null
-      }
-    },
-    "/Admin/CSFAttributes": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 267,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 178,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 293,
+        "ms": 182,
         "err": null
       },
       "novi": {
         "status": 200,
         "effective": 401,
         "finalPath": "/Account/AccessDenied",
-        "ms": 187,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 217,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Admin/CSFAttributes",
-        "ms": 174,
-        "err": null
-      }
-    },
-    "/Admin/Pathways": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 163,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 203,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 342,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 198,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 194,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Admin/Pathways",
-        "ms": 159,
-        "err": null
-      }
-    },
-    "/Admin/ProductManagement": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 156,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 243,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 344,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 218,
-        "err": null
-      },
-      "analyst": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 200,
-        "err": null
-      },
-      "admin": {
-        "status": 200,
-        "effective": 200,
-        "finalPath": "/Admin/ProductManagement",
-        "ms": 127,
-        "err": null
-      }
-    },
-    "/Admin/GoogleAnalytics": {
-      "anon": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/Login",
-        "ms": 158,
-        "err": null
-      },
-      "external": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 238,
-        "err": null
-      },
-      "external2": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 253,
-        "err": null
-      },
-      "novi": {
-        "status": 200,
-        "effective": 401,
-        "finalPath": "/Account/AccessDenied",
-        "ms": 237,
+        "ms": 182,
         "err": null
       },
       "analyst": {
@@ -1065,208 +978,487 @@
       "admin": {
         "status": 200,
         "effective": 200,
+        "finalPath": "/Admin/ProductTypes",
+        "ms": 163,
+        "err": null
+      }
+    },
+    "/Admin/CertificateFields": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 162,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 187,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 190,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 196,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 178,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 186,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Admin/CertificateFields",
+        "ms": 169,
+        "err": null
+      }
+    },
+    "/Admin/CSFAttributes": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 160,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 200,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 222,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 173,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 184,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 186,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Admin/CSFAttributes",
+        "ms": 168,
+        "err": null
+      }
+    },
+    "/Admin/Pathways": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 157,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 170,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 179,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 181,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 182,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 203,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Admin/Pathways",
+        "ms": 121,
+        "err": null
+      }
+    },
+    "/Admin/ProductManagement": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 146,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 180,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 169,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 189,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 171,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 174,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
+        "finalPath": "/Admin/ProductManagement",
+        "ms": 120,
+        "err": null
+      }
+    },
+    "/Admin/GoogleAnalytics": {
+      "anon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/Login",
+        "ms": 148,
+        "err": null
+      },
+      "external": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 169,
+        "err": null
+      },
+      "external2": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 185,
+        "err": null
+      },
+      "amazon": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 184,
+        "err": null
+      },
+      "novi": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 181,
+        "err": null
+      },
+      "analyst": {
+        "status": 200,
+        "effective": 401,
+        "finalPath": "/Account/AccessDenied",
+        "ms": 196,
+        "err": null
+      },
+      "admin": {
+        "status": 200,
+        "effective": 200,
         "finalPath": "/Admin/GoogleAnalytics",
-        "ms": 256,
+        "ms": 217,
         "err": null
       }
     }
   },
   "timings": {
     "/": {
-      "anon": 548,
-      "external": 226,
-      "external2": 128,
-      "novi": 121,
-      "analyst": 118,
-      "admin": 117
+      "anon": 174,
+      "external": 122,
+      "external2": 106,
+      "amazon": 118,
+      "novi": 104,
+      "analyst": 111,
+      "admin": 109
     },
     "/Account/Login": {
-      "anon": 295,
-      "external": 391,
-      "external2": 372,
-      "novi": 238,
-      "analyst": 203,
-      "admin": 188
+      "anon": 158,
+      "external": 192,
+      "external2": 214,
+      "amazon": 180,
+      "novi": 174,
+      "analyst": 179,
+      "admin": 229
     },
     "/Certificate/CertificateTileView": {
-      "anon": 122,
-      "external": 135,
-      "external2": 246,
-      "novi": 119,
-      "analyst": 107,
+      "anon": 100,
+      "external": 129,
+      "external2": 105,
+      "amazon": 106,
+      "novi": 129,
+      "analyst": 138,
       "admin": 111
     },
     "/Certificate/CertificateTileViewExternal": {
-      "anon": 188,
-      "external": 134,
-      "external2": 131,
-      "novi": 112,
-      "analyst": 187,
+      "anon": 175,
+      "external": 112,
+      "external2": 107,
+      "amazon": 108,
+      "novi": 151,
+      "analyst": 173,
       "admin": 184
     },
     "/Product/Management": {
-      "anon": 223,
-      "external": 319,
-      "external2": 286,
-      "novi": 290,
-      "analyst": 263,
-      "admin": 274
+      "anon": 153,
+      "external": 325,
+      "external2": 274,
+      "amazon": 275,
+      "novi": 241,
+      "analyst": 250,
+      "admin": 298
     },
     "/Certificate/CertificateTileViewInternal": {
-      "anon": 157,
-      "external": 228,
-      "external2": 214,
-      "novi": 194,
-      "analyst": 157,
-      "admin": 132
+      "anon": 146,
+      "external": 192,
+      "external2": 211,
+      "amazon": 195,
+      "novi": 177,
+      "analyst": 103,
+      "admin": 131
     },
     "/Certificate/Create": {
-      "anon": 156,
-      "external": 211,
-      "external2": 225,
-      "novi": 218,
-      "analyst": 718,
-      "admin": 530
+      "anon": 151,
+      "external": 193,
+      "external2": 189,
+      "amazon": 174,
+      "novi": 164,
+      "analyst": 777,
+      "admin": 1104
     },
     "/Certificate/Statistics": {
-      "anon": 183,
-      "external": 199,
-      "external2": 219,
-      "novi": 341,
-      "analyst": 382,
-      "admin": 225
+      "anon": 158,
+      "external": 178,
+      "external2": 181,
+      "amazon": 205,
+      "novi": 183,
+      "analyst": 4172,
+      "admin": 207
     },
     "/Dashboard/Index": {
-      "anon": 158,
-      "external": 206,
-      "external2": 610,
-      "novi": 306,
-      "analyst": 680,
-      "admin": 424
+      "anon": 155,
+      "external": 202,
+      "external2": 170,
+      "amazon": 165,
+      "novi": 171,
+      "analyst": 904,
+      "admin": 407
     },
     "/Company/Management": {
-      "anon": 162,
-      "external": 177,
-      "external2": 221,
-      "novi": 176,
-      "analyst": 229,
-      "admin": 168
+      "anon": 139,
+      "external": 171,
+      "external2": 172,
+      "amazon": 197,
+      "novi": 198,
+      "analyst": 222,
+      "admin": 186
     },
     "/CertificateImport/Index": {
-      "anon": 183,
-      "external": 194,
-      "external2": 184,
-      "novi": 190,
-      "analyst": 150,
-      "admin": 135
+      "anon": 161,
+      "external": 164,
+      "external2": 162,
+      "amazon": 159,
+      "novi": 162,
+      "analyst": 157,
+      "admin": 165
     },
     "/CertificateImport/History": {
-      "anon": 152,
-      "external": 216,
-      "external2": 250,
-      "novi": 203,
-      "analyst": 208,
-      "admin": 124
+      "anon": 137,
+      "external": 171,
+      "external2": 169,
+      "amazon": 184,
+      "novi": 301,
+      "analyst": 185,
+      "admin": 106
     },
     "/Admin/Index": {
-      "anon": 158,
-      "external": 218,
-      "external2": 175,
-      "novi": 207,
-      "analyst": 173,
-      "admin": 346
+      "anon": 162,
+      "external": 206,
+      "external2": 194,
+      "amazon": 180,
+      "novi": 222,
+      "analyst": 211,
+      "admin": 305
     },
     "/Admin/UserManagement": {
-      "anon": 200,
-      "external": 183,
-      "external2": 253,
-      "novi": 403,
-      "analyst": 229,
-      "admin": 135
+      "anon": 177,
+      "external": 185,
+      "external2": 174,
+      "amazon": 172,
+      "novi": 201,
+      "analyst": 191,
+      "admin": 139
     },
     "/Admin/RoleManagement": {
-      "anon": 158,
-      "external": 200,
-      "external2": 409,
-      "novi": 263,
-      "analyst": 283,
-      "admin": 178
+      "anon": 147,
+      "external": 191,
+      "external2": 209,
+      "amazon": 189,
+      "novi": 173,
+      "analyst": 200,
+      "admin": 204
     },
     "/Admin/Tags": {
-      "anon": 228,
-      "external": 282,
-      "external2": 205,
-      "novi": 176,
-      "analyst": 279,
-      "admin": 178
+      "anon": 144,
+      "external": 170,
+      "external2": 170,
+      "amazon": 172,
+      "novi": 174,
+      "analyst": 191,
+      "admin": 218
     },
     "/Admin/Partners": {
-      "anon": 157,
-      "external": 217,
-      "external2": 458,
-      "novi": 258,
-      "analyst": 254,
-      "admin": 264
+      "anon": 143,
+      "external": 233,
+      "external2": 174,
+      "amazon": 179,
+      "novi": 190,
+      "analyst": 266,
+      "admin": 191
     },
     "/Admin/CertificateTypes": {
-      "anon": 158,
-      "external": 205,
-      "external2": 189,
-      "novi": 234,
-      "analyst": 200,
-      "admin": 269
+      "anon": 152,
+      "external": 241,
+      "external2": 181,
+      "amazon": 172,
+      "novi": 173,
+      "analyst": 190,
+      "admin": 211
     },
     "/Admin/ProductTypes": {
-      "anon": 158,
-      "external": 226,
-      "external2": 196,
-      "novi": 211,
-      "analyst": 185,
-      "admin": 215
+      "anon": 157,
+      "external": 209,
+      "external2": 173,
+      "amazon": 182,
+      "novi": 182,
+      "analyst": 183,
+      "admin": 163
     },
     "/Admin/CertificateFields": {
-      "anon": 168,
-      "external": 230,
-      "external2": 237,
-      "novi": 173,
-      "analyst": 168,
-      "admin": 205
+      "anon": 162,
+      "external": 187,
+      "external2": 190,
+      "amazon": 196,
+      "novi": 178,
+      "analyst": 186,
+      "admin": 169
     },
     "/Admin/CSFAttributes": {
-      "anon": 267,
-      "external": 178,
-      "external2": 293,
-      "novi": 187,
-      "analyst": 217,
-      "admin": 174
+      "anon": 160,
+      "external": 200,
+      "external2": 222,
+      "amazon": 173,
+      "novi": 184,
+      "analyst": 186,
+      "admin": 168
     },
     "/Admin/Pathways": {
-      "anon": 163,
-      "external": 203,
-      "external2": 342,
-      "novi": 198,
-      "analyst": 194,
-      "admin": 159
+      "anon": 157,
+      "external": 170,
+      "external2": 179,
+      "amazon": 181,
+      "novi": 182,
+      "analyst": 203,
+      "admin": 121
     },
     "/Admin/ProductManagement": {
-      "anon": 156,
-      "external": 243,
-      "external2": 344,
-      "novi": 218,
-      "analyst": 200,
-      "admin": 127
+      "anon": 146,
+      "external": 180,
+      "external2": 169,
+      "amazon": 189,
+      "novi": 171,
+      "analyst": 174,
+      "admin": 120
     },
     "/Admin/GoogleAnalytics": {
-      "anon": 158,
-      "external": 238,
-      "external2": 253,
-      "novi": 237,
-      "analyst": 183,
-      "admin": 256
+      "anon": 148,
+      "external": 169,
+      "external2": 185,
+      "amazon": 184,
+      "novi": 181,
+      "analyst": 196,
+      "admin": 217
     }
   },
-  "pass": 144,
-  "fail": 1,
+  "pass": 168,
+  "fail": 0,
   "warn": 0,
   "info": 0,
   "rows": [
@@ -1274,1349 +1466,1607 @@
       "id": "rbac./.anon",
       "name": "Home [AllowAnonymous] as anon",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 548ms",
+      "notes": "expected ALLOW, got 200 174ms",
       "route": "/",
       "role": "anon",
       "expected": 200,
       "effective": 200,
-      "ms": 548
+      "ms": 174
     },
     {
       "id": "rbac./Account/Login.anon",
       "name": "Login page [AllowAnonymous] as anon",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 295ms",
+      "notes": "expected ALLOW, got 200 158ms",
       "route": "/Account/Login",
       "role": "anon",
       "expected": 200,
       "effective": 200,
-      "ms": 295
+      "ms": 158
     },
     {
       "id": "rbac./Certificate/CertificateTileView.anon",
       "name": "Public tile view [AllowAnonymous] as anon",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 122ms",
+      "notes": "expected ALLOW, got 200 100ms",
       "route": "/Certificate/CertificateTileView",
       "role": "anon",
       "expected": 200,
       "effective": 200,
-      "ms": 122
+      "ms": 100
     },
     {
       "id": "rbac./Certificate/CertificateTileViewExternal.anon",
       "name": "External tile view [ExternalAccess] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 188ms",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 175ms",
       "route": "/Certificate/CertificateTileViewExternal",
       "role": "anon",
       "expected": 401,
       "effective": 401,
-      "ms": 188
+      "ms": 175
     },
     {
       "id": "rbac./Product/Management.anon",
       "name": "Product Management [ExternalAccess] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 223ms",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 153ms",
       "route": "/Product/Management",
       "role": "anon",
       "expected": 401,
       "effective": 401,
-      "ms": 223
+      "ms": 153
     },
     {
       "id": "rbac./Certificate/CertificateTileViewInternal.anon",
       "name": "Internal tile view [AnalystOrAdmin] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 157ms",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 146ms",
       "route": "/Certificate/CertificateTileViewInternal",
       "role": "anon",
       "expected": 401,
       "effective": 401,
-      "ms": 157
+      "ms": 146
     },
     {
       "id": "rbac./Certificate/Create.anon",
       "name": "Certificate Create [AnalystOrAdmin] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 156ms",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 151ms",
       "route": "/Certificate/Create",
       "role": "anon",
       "expected": 401,
       "effective": 401,
-      "ms": 156
+      "ms": 151
     },
     {
       "id": "rbac./Certificate/Statistics.anon",
       "name": "Certificate Statistics [AnalystOrAdmin] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 183ms",
-      "route": "/Certificate/Statistics",
-      "role": "anon",
-      "expected": 401,
-      "effective": 401,
-      "ms": 183
-    },
-    {
-      "id": "rbac./Dashboard/Index.anon",
-      "name": "Dashboard [AnalystOrAdmin] as anon",
-      "status": "PASS",
       "notes": "expected DENY, got 401 (-> /Account/Login) 158ms",
-      "route": "/Dashboard/Index",
+      "route": "/Certificate/Statistics",
       "role": "anon",
       "expected": 401,
       "effective": 401,
       "ms": 158
     },
     {
+      "id": "rbac./Dashboard/Index.anon",
+      "name": "Dashboard [AnalystOrAdmin] as anon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 155ms",
+      "route": "/Dashboard/Index",
+      "role": "anon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 155
+    },
+    {
       "id": "rbac./Company/Management.anon",
       "name": "Company Management [AnalystOrAdmin] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 162ms",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 139ms",
       "route": "/Company/Management",
+      "role": "anon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 139
+    },
+    {
+      "id": "rbac./CertificateImport/Index.anon",
+      "name": "Certificate Import [AnalystOrAdmin] as anon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 161ms",
+      "route": "/CertificateImport/Index",
+      "role": "anon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 161
+    },
+    {
+      "id": "rbac./CertificateImport/History.anon",
+      "name": "Import History [AnalystOrAdmin] as anon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 137ms",
+      "route": "/CertificateImport/History",
+      "role": "anon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 137
+    },
+    {
+      "id": "rbac./Admin/Index.anon",
+      "name": "Admin home [AdminOnly] as anon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 162ms",
+      "route": "/Admin/Index",
       "role": "anon",
       "expected": 401,
       "effective": 401,
       "ms": 162
     },
     {
-      "id": "rbac./CertificateImport/Index.anon",
-      "name": "Certificate Import [AnalystOrAdmin] as anon",
+      "id": "rbac./Admin/UserManagement.anon",
+      "name": "User Management [AdminOnly] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 183ms",
-      "route": "/CertificateImport/Index",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 177ms",
+      "route": "/Admin/UserManagement",
       "role": "anon",
       "expected": 401,
       "effective": 401,
-      "ms": 183
+      "ms": 177
     },
     {
-      "id": "rbac./CertificateImport/History.anon",
-      "name": "Import History [AnalystOrAdmin] as anon",
+      "id": "rbac./Admin/RoleManagement.anon",
+      "name": "Role Management [AdminOnly] as anon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 147ms",
+      "route": "/Admin/RoleManagement",
+      "role": "anon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 147
+    },
+    {
+      "id": "rbac./Admin/Tags.anon",
+      "name": "Tags [AdminOnly] as anon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 144ms",
+      "route": "/Admin/Tags",
+      "role": "anon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 144
+    },
+    {
+      "id": "rbac./Admin/Partners.anon",
+      "name": "Partners [AdminOnly] as anon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 143ms",
+      "route": "/Admin/Partners",
+      "role": "anon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 143
+    },
+    {
+      "id": "rbac./Admin/CertificateTypes.anon",
+      "name": "Certificate Types [AdminOnly] as anon",
       "status": "PASS",
       "notes": "expected DENY, got 401 (-> /Account/Login) 152ms",
-      "route": "/CertificateImport/History",
+      "route": "/Admin/CertificateTypes",
       "role": "anon",
       "expected": 401,
       "effective": 401,
       "ms": 152
     },
     {
-      "id": "rbac./Admin/Index.anon",
-      "name": "Admin home [AdminOnly] as anon",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 158ms",
-      "route": "/Admin/Index",
-      "role": "anon",
-      "expected": 401,
-      "effective": 401,
-      "ms": 158
-    },
-    {
-      "id": "rbac./Admin/UserManagement.anon",
-      "name": "User Management [AdminOnly] as anon",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 200ms",
-      "route": "/Admin/UserManagement",
-      "role": "anon",
-      "expected": 401,
-      "effective": 401,
-      "ms": 200
-    },
-    {
-      "id": "rbac./Admin/RoleManagement.anon",
-      "name": "Role Management [AdminOnly] as anon",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 158ms",
-      "route": "/Admin/RoleManagement",
-      "role": "anon",
-      "expected": 401,
-      "effective": 401,
-      "ms": 158
-    },
-    {
-      "id": "rbac./Admin/Tags.anon",
-      "name": "Tags [AdminOnly] as anon",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 228ms",
-      "route": "/Admin/Tags",
-      "role": "anon",
-      "expected": 401,
-      "effective": 401,
-      "ms": 228
-    },
-    {
-      "id": "rbac./Admin/Partners.anon",
-      "name": "Partners [AdminOnly] as anon",
+      "id": "rbac./Admin/ProductTypes.anon",
+      "name": "Product Types [AdminOnly] as anon",
       "status": "PASS",
       "notes": "expected DENY, got 401 (-> /Account/Login) 157ms",
-      "route": "/Admin/Partners",
+      "route": "/Admin/ProductTypes",
       "role": "anon",
       "expected": 401,
       "effective": 401,
       "ms": 157
     },
     {
-      "id": "rbac./Admin/CertificateTypes.anon",
-      "name": "Certificate Types [AdminOnly] as anon",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 158ms",
-      "route": "/Admin/CertificateTypes",
-      "role": "anon",
-      "expected": 401,
-      "effective": 401,
-      "ms": 158
-    },
-    {
-      "id": "rbac./Admin/ProductTypes.anon",
-      "name": "Product Types [AdminOnly] as anon",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 158ms",
-      "route": "/Admin/ProductTypes",
-      "role": "anon",
-      "expected": 401,
-      "effective": 401,
-      "ms": 158
-    },
-    {
       "id": "rbac./Admin/CertificateFields.anon",
       "name": "Certificate Fields [AdminOnly] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 168ms",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 162ms",
       "route": "/Admin/CertificateFields",
       "role": "anon",
       "expected": 401,
       "effective": 401,
-      "ms": 168
+      "ms": 162
     },
     {
       "id": "rbac./Admin/CSFAttributes.anon",
       "name": "CSF Attributes [AdminOnly] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 267ms",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 160ms",
       "route": "/Admin/CSFAttributes",
       "role": "anon",
       "expected": 401,
       "effective": 401,
-      "ms": 267
+      "ms": 160
     },
     {
       "id": "rbac./Admin/Pathways.anon",
       "name": "Pathways [AdminOnly] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 163ms",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 157ms",
       "route": "/Admin/Pathways",
       "role": "anon",
       "expected": 401,
       "effective": 401,
-      "ms": 163
+      "ms": 157
     },
     {
       "id": "rbac./Admin/ProductManagement.anon",
       "name": "Admin Product Mgmt [AdminOnly] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 156ms",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 146ms",
       "route": "/Admin/ProductManagement",
       "role": "anon",
       "expected": 401,
       "effective": 401,
-      "ms": 156
+      "ms": 146
     },
     {
       "id": "rbac./Admin/GoogleAnalytics.anon",
       "name": "Google Analytics config [AdminOnly] as anon",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/Login) 158ms",
+      "notes": "expected DENY, got 401 (-> /Account/Login) 148ms",
       "route": "/Admin/GoogleAnalytics",
       "role": "anon",
       "expected": 401,
       "effective": 401,
-      "ms": 158
+      "ms": 148
     },
     {
       "id": "rbac./.external",
       "name": "Home [AllowAnonymous] as external",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 226ms",
+      "notes": "expected ALLOW, got 200 122ms",
       "route": "/",
       "role": "external",
       "expected": 200,
       "effective": 200,
-      "ms": 226
+      "ms": 122
     },
     {
       "id": "rbac./Account/Login.external",
       "name": "Login page [AllowAnonymous] as external",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewExternal) 391ms",
+      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewExternal) 192ms",
       "route": "/Account/Login",
       "role": "external",
       "expected": 200,
       "effective": 200,
-      "ms": 391
+      "ms": 192
     },
     {
       "id": "rbac./Certificate/CertificateTileView.external",
       "name": "Public tile view [AllowAnonymous] as external",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 135ms",
+      "notes": "expected ALLOW, got 200 129ms",
       "route": "/Certificate/CertificateTileView",
       "role": "external",
       "expected": 200,
       "effective": 200,
-      "ms": 135
+      "ms": 129
     },
     {
       "id": "rbac./Certificate/CertificateTileViewExternal.external",
       "name": "External tile view [ExternalAccess] as external",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 134ms",
+      "notes": "expected ALLOW, got 200 112ms",
       "route": "/Certificate/CertificateTileViewExternal",
       "role": "external",
       "expected": 200,
       "effective": 200,
-      "ms": 134
+      "ms": 112
     },
     {
       "id": "rbac./Product/Management.external",
       "name": "Product Management [ExternalAccess] as external",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 319ms",
+      "notes": "expected ALLOW, got 200 325ms",
       "route": "/Product/Management",
       "role": "external",
       "expected": 200,
       "effective": 200,
-      "ms": 319
+      "ms": 325
     },
     {
       "id": "rbac./Certificate/CertificateTileViewInternal.external",
       "name": "Internal tile view [AnalystOrAdmin] as external",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 228ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 192ms",
       "route": "/Certificate/CertificateTileViewInternal",
       "role": "external",
       "expected": 401,
       "effective": 401,
-      "ms": 228
+      "ms": 192
     },
     {
       "id": "rbac./Certificate/Create.external",
       "name": "Certificate Create [AnalystOrAdmin] as external",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 211ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 193ms",
       "route": "/Certificate/Create",
       "role": "external",
       "expected": 401,
       "effective": 401,
-      "ms": 211
+      "ms": 193
     },
     {
       "id": "rbac./Certificate/Statistics.external",
       "name": "Certificate Statistics [AnalystOrAdmin] as external",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 199ms",
-      "route": "/Certificate/Statistics",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 199
-    },
-    {
-      "id": "rbac./Dashboard/Index.external",
-      "name": "Dashboard [AnalystOrAdmin] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 206ms",
-      "route": "/Dashboard/Index",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 206
-    },
-    {
-      "id": "rbac./Company/Management.external",
-      "name": "Company Management [AnalystOrAdmin] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 177ms",
-      "route": "/Company/Management",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 177
-    },
-    {
-      "id": "rbac./CertificateImport/Index.external",
-      "name": "Certificate Import [AnalystOrAdmin] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 194ms",
-      "route": "/CertificateImport/Index",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 194
-    },
-    {
-      "id": "rbac./CertificateImport/History.external",
-      "name": "Import History [AnalystOrAdmin] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 216ms",
-      "route": "/CertificateImport/History",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 216
-    },
-    {
-      "id": "rbac./Admin/Index.external",
-      "name": "Admin home [AdminOnly] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 218ms",
-      "route": "/Admin/Index",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 218
-    },
-    {
-      "id": "rbac./Admin/UserManagement.external",
-      "name": "User Management [AdminOnly] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 183ms",
-      "route": "/Admin/UserManagement",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 183
-    },
-    {
-      "id": "rbac./Admin/RoleManagement.external",
-      "name": "Role Management [AdminOnly] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 200ms",
-      "route": "/Admin/RoleManagement",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 200
-    },
-    {
-      "id": "rbac./Admin/Tags.external",
-      "name": "Tags [AdminOnly] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 282ms",
-      "route": "/Admin/Tags",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 282
-    },
-    {
-      "id": "rbac./Admin/Partners.external",
-      "name": "Partners [AdminOnly] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 217ms",
-      "route": "/Admin/Partners",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 217
-    },
-    {
-      "id": "rbac./Admin/CertificateTypes.external",
-      "name": "Certificate Types [AdminOnly] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 205ms",
-      "route": "/Admin/CertificateTypes",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 205
-    },
-    {
-      "id": "rbac./Admin/ProductTypes.external",
-      "name": "Product Types [AdminOnly] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 226ms",
-      "route": "/Admin/ProductTypes",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 226
-    },
-    {
-      "id": "rbac./Admin/CertificateFields.external",
-      "name": "Certificate Fields [AdminOnly] as external",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 230ms",
-      "route": "/Admin/CertificateFields",
-      "role": "external",
-      "expected": 401,
-      "effective": 401,
-      "ms": 230
-    },
-    {
-      "id": "rbac./Admin/CSFAttributes.external",
-      "name": "CSF Attributes [AdminOnly] as external",
-      "status": "PASS",
       "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 178ms",
-      "route": "/Admin/CSFAttributes",
+      "route": "/Certificate/Statistics",
       "role": "external",
       "expected": 401,
       "effective": 401,
       "ms": 178
     },
     {
+      "id": "rbac./Dashboard/Index.external",
+      "name": "Dashboard [AnalystOrAdmin] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 202ms",
+      "route": "/Dashboard/Index",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 202
+    },
+    {
+      "id": "rbac./Company/Management.external",
+      "name": "Company Management [AnalystOrAdmin] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 171ms",
+      "route": "/Company/Management",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 171
+    },
+    {
+      "id": "rbac./CertificateImport/Index.external",
+      "name": "Certificate Import [AnalystOrAdmin] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 164ms",
+      "route": "/CertificateImport/Index",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 164
+    },
+    {
+      "id": "rbac./CertificateImport/History.external",
+      "name": "Import History [AnalystOrAdmin] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 171ms",
+      "route": "/CertificateImport/History",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 171
+    },
+    {
+      "id": "rbac./Admin/Index.external",
+      "name": "Admin home [AdminOnly] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 206ms",
+      "route": "/Admin/Index",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 206
+    },
+    {
+      "id": "rbac./Admin/UserManagement.external",
+      "name": "User Management [AdminOnly] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 185ms",
+      "route": "/Admin/UserManagement",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 185
+    },
+    {
+      "id": "rbac./Admin/RoleManagement.external",
+      "name": "Role Management [AdminOnly] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 191ms",
+      "route": "/Admin/RoleManagement",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 191
+    },
+    {
+      "id": "rbac./Admin/Tags.external",
+      "name": "Tags [AdminOnly] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 170ms",
+      "route": "/Admin/Tags",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 170
+    },
+    {
+      "id": "rbac./Admin/Partners.external",
+      "name": "Partners [AdminOnly] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 233ms",
+      "route": "/Admin/Partners",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 233
+    },
+    {
+      "id": "rbac./Admin/CertificateTypes.external",
+      "name": "Certificate Types [AdminOnly] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 241ms",
+      "route": "/Admin/CertificateTypes",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 241
+    },
+    {
+      "id": "rbac./Admin/ProductTypes.external",
+      "name": "Product Types [AdminOnly] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 209ms",
+      "route": "/Admin/ProductTypes",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 209
+    },
+    {
+      "id": "rbac./Admin/CertificateFields.external",
+      "name": "Certificate Fields [AdminOnly] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 187ms",
+      "route": "/Admin/CertificateFields",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 187
+    },
+    {
+      "id": "rbac./Admin/CSFAttributes.external",
+      "name": "CSF Attributes [AdminOnly] as external",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 200ms",
+      "route": "/Admin/CSFAttributes",
+      "role": "external",
+      "expected": 401,
+      "effective": 401,
+      "ms": 200
+    },
+    {
       "id": "rbac./Admin/Pathways.external",
       "name": "Pathways [AdminOnly] as external",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 203ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 170ms",
       "route": "/Admin/Pathways",
       "role": "external",
       "expected": 401,
       "effective": 401,
-      "ms": 203
+      "ms": 170
     },
     {
       "id": "rbac./Admin/ProductManagement.external",
       "name": "Admin Product Mgmt [AdminOnly] as external",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 243ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 180ms",
       "route": "/Admin/ProductManagement",
       "role": "external",
       "expected": 401,
       "effective": 401,
-      "ms": 243
+      "ms": 180
     },
     {
       "id": "rbac./Admin/GoogleAnalytics.external",
       "name": "Google Analytics config [AdminOnly] as external",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 238ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 169ms",
       "route": "/Admin/GoogleAnalytics",
       "role": "external",
       "expected": 401,
       "effective": 401,
-      "ms": 238
+      "ms": 169
     },
     {
       "id": "rbac./.external2",
       "name": "Home [AllowAnonymous] as external2",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 128ms",
+      "notes": "expected ALLOW, got 200 106ms",
       "route": "/",
       "role": "external2",
       "expected": 200,
       "effective": 200,
-      "ms": 128
+      "ms": 106
     },
     {
       "id": "rbac./Account/Login.external2",
       "name": "Login page [AllowAnonymous] as external2",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewExternal) 372ms",
+      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewExternal) 214ms",
       "route": "/Account/Login",
       "role": "external2",
       "expected": 200,
       "effective": 200,
-      "ms": 372
+      "ms": 214
     },
     {
       "id": "rbac./Certificate/CertificateTileView.external2",
       "name": "Public tile view [AllowAnonymous] as external2",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 246ms",
+      "notes": "expected ALLOW, got 200 105ms",
       "route": "/Certificate/CertificateTileView",
       "role": "external2",
       "expected": 200,
       "effective": 200,
-      "ms": 246
+      "ms": 105
     },
     {
       "id": "rbac./Certificate/CertificateTileViewExternal.external2",
       "name": "External tile view [ExternalAccess] as external2",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 131ms",
+      "notes": "expected ALLOW, got 200 107ms",
       "route": "/Certificate/CertificateTileViewExternal",
       "role": "external2",
       "expected": 200,
       "effective": 200,
-      "ms": 131
+      "ms": 107
     },
     {
       "id": "rbac./Product/Management.external2",
       "name": "Product Management [ExternalAccess] as external2",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 286ms",
+      "notes": "expected ALLOW, got 200 274ms",
       "route": "/Product/Management",
       "role": "external2",
       "expected": 200,
       "effective": 200,
-      "ms": 286
+      "ms": 274
     },
     {
       "id": "rbac./Certificate/CertificateTileViewInternal.external2",
       "name": "Internal tile view [AnalystOrAdmin] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 214ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 211ms",
       "route": "/Certificate/CertificateTileViewInternal",
       "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 214
+      "ms": 211
     },
     {
       "id": "rbac./Certificate/Create.external2",
       "name": "Certificate Create [AnalystOrAdmin] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 225ms",
-      "route": "/Certificate/Create",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 225
-    },
-    {
-      "id": "rbac./Certificate/Statistics.external2",
-      "name": "Certificate Statistics [AnalystOrAdmin] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 219ms",
-      "route": "/Certificate/Statistics",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 219
-    },
-    {
-      "id": "rbac./Dashboard/Index.external2",
-      "name": "Dashboard [AnalystOrAdmin] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 610ms",
-      "route": "/Dashboard/Index",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 610
-    },
-    {
-      "id": "rbac./Company/Management.external2",
-      "name": "Company Management [AnalystOrAdmin] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 221ms",
-      "route": "/Company/Management",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 221
-    },
-    {
-      "id": "rbac./CertificateImport/Index.external2",
-      "name": "Certificate Import [AnalystOrAdmin] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 184ms",
-      "route": "/CertificateImport/Index",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 184
-    },
-    {
-      "id": "rbac./CertificateImport/History.external2",
-      "name": "Import History [AnalystOrAdmin] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 250ms",
-      "route": "/CertificateImport/History",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 250
-    },
-    {
-      "id": "rbac./Admin/Index.external2",
-      "name": "Admin home [AdminOnly] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 175ms",
-      "route": "/Admin/Index",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 175
-    },
-    {
-      "id": "rbac./Admin/UserManagement.external2",
-      "name": "User Management [AdminOnly] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 253ms",
-      "route": "/Admin/UserManagement",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 253
-    },
-    {
-      "id": "rbac./Admin/RoleManagement.external2",
-      "name": "Role Management [AdminOnly] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 409ms",
-      "route": "/Admin/RoleManagement",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 409
-    },
-    {
-      "id": "rbac./Admin/Tags.external2",
-      "name": "Tags [AdminOnly] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 205ms",
-      "route": "/Admin/Tags",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 205
-    },
-    {
-      "id": "rbac./Admin/Partners.external2",
-      "name": "Partners [AdminOnly] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 458ms",
-      "route": "/Admin/Partners",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 458
-    },
-    {
-      "id": "rbac./Admin/CertificateTypes.external2",
-      "name": "Certificate Types [AdminOnly] as external2",
-      "status": "PASS",
       "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 189ms",
-      "route": "/Admin/CertificateTypes",
+      "route": "/Certificate/Create",
       "role": "external2",
       "expected": 401,
       "effective": 401,
       "ms": 189
     },
     {
-      "id": "rbac./Admin/ProductTypes.external2",
-      "name": "Product Types [AdminOnly] as external2",
+      "id": "rbac./Certificate/Statistics.external2",
+      "name": "Certificate Statistics [AnalystOrAdmin] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 196ms",
-      "route": "/Admin/ProductTypes",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 181ms",
+      "route": "/Certificate/Statistics",
       "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 196
+      "ms": 181
     },
     {
-      "id": "rbac./Admin/CertificateFields.external2",
-      "name": "Certificate Fields [AdminOnly] as external2",
+      "id": "rbac./Dashboard/Index.external2",
+      "name": "Dashboard [AnalystOrAdmin] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 237ms",
-      "route": "/Admin/CertificateFields",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 170ms",
+      "route": "/Dashboard/Index",
       "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 237
+      "ms": 170
     },
     {
-      "id": "rbac./Admin/CSFAttributes.external2",
-      "name": "CSF Attributes [AdminOnly] as external2",
+      "id": "rbac./Company/Management.external2",
+      "name": "Company Management [AnalystOrAdmin] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 293ms",
-      "route": "/Admin/CSFAttributes",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 172ms",
+      "route": "/Company/Management",
       "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 293
+      "ms": 172
     },
     {
-      "id": "rbac./Admin/Pathways.external2",
-      "name": "Pathways [AdminOnly] as external2",
+      "id": "rbac./CertificateImport/Index.external2",
+      "name": "Certificate Import [AnalystOrAdmin] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 342ms",
-      "route": "/Admin/Pathways",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 162ms",
+      "route": "/CertificateImport/Index",
       "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 342
+      "ms": 162
     },
     {
-      "id": "rbac./Admin/ProductManagement.external2",
-      "name": "Admin Product Mgmt [AdminOnly] as external2",
+      "id": "rbac./CertificateImport/History.external2",
+      "name": "Import History [AnalystOrAdmin] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 344ms",
-      "route": "/Admin/ProductManagement",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 169ms",
+      "route": "/CertificateImport/History",
       "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 344
+      "ms": 169
     },
     {
-      "id": "rbac./Admin/GoogleAnalytics.external2",
-      "name": "Google Analytics config [AdminOnly] as external2",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 253ms",
-      "route": "/Admin/GoogleAnalytics",
-      "role": "external2",
-      "expected": 401,
-      "effective": 401,
-      "ms": 253
-    },
-    {
-      "id": "rbac.session.amazon",
-      "name": "Session for amazon",
-      "status": "FAIL",
-      "notes": "login failed for amazon: landed /Account/Login"
-    },
-    {
-      "id": "rbac./.novi",
-      "name": "Home [AllowAnonymous] as novi",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 121ms",
-      "route": "/",
-      "role": "novi",
-      "expected": 200,
-      "effective": 200,
-      "ms": 121
-    },
-    {
-      "id": "rbac./Account/Login.novi",
-      "name": "Login page [AllowAnonymous] as novi",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewExternal) 238ms",
-      "route": "/Account/Login",
-      "role": "novi",
-      "expected": 200,
-      "effective": 200,
-      "ms": 238
-    },
-    {
-      "id": "rbac./Certificate/CertificateTileView.novi",
-      "name": "Public tile view [AllowAnonymous] as novi",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 119ms",
-      "route": "/Certificate/CertificateTileView",
-      "role": "novi",
-      "expected": 200,
-      "effective": 200,
-      "ms": 119
-    },
-    {
-      "id": "rbac./Certificate/CertificateTileViewExternal.novi",
-      "name": "External tile view [ExternalAccess] as novi",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 112ms",
-      "route": "/Certificate/CertificateTileViewExternal",
-      "role": "novi",
-      "expected": 200,
-      "effective": 200,
-      "ms": 112
-    },
-    {
-      "id": "rbac./Product/Management.novi",
-      "name": "Product Management [ExternalAccess] as novi",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 290ms",
-      "route": "/Product/Management",
-      "role": "novi",
-      "expected": 200,
-      "effective": 200,
-      "ms": 290
-    },
-    {
-      "id": "rbac./Certificate/CertificateTileViewInternal.novi",
-      "name": "Internal tile view [AnalystOrAdmin] as novi",
+      "id": "rbac./Admin/Index.external2",
+      "name": "Admin home [AdminOnly] as external2",
       "status": "PASS",
       "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 194ms",
-      "route": "/Certificate/CertificateTileViewInternal",
-      "role": "novi",
+      "route": "/Admin/Index",
+      "role": "external2",
       "expected": 401,
       "effective": 401,
       "ms": 194
     },
     {
-      "id": "rbac./Certificate/Create.novi",
-      "name": "Certificate Create [AnalystOrAdmin] as novi",
+      "id": "rbac./Admin/UserManagement.external2",
+      "name": "User Management [AdminOnly] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 218ms",
-      "route": "/Certificate/Create",
-      "role": "novi",
-      "expected": 401,
-      "effective": 401,
-      "ms": 218
-    },
-    {
-      "id": "rbac./Certificate/Statistics.novi",
-      "name": "Certificate Statistics [AnalystOrAdmin] as novi",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 341ms",
-      "route": "/Certificate/Statistics",
-      "role": "novi",
-      "expected": 401,
-      "effective": 401,
-      "ms": 341
-    },
-    {
-      "id": "rbac./Dashboard/Index.novi",
-      "name": "Dashboard [AnalystOrAdmin] as novi",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 306ms",
-      "route": "/Dashboard/Index",
-      "role": "novi",
-      "expected": 401,
-      "effective": 401,
-      "ms": 306
-    },
-    {
-      "id": "rbac./Company/Management.novi",
-      "name": "Company Management [AnalystOrAdmin] as novi",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 176ms",
-      "route": "/Company/Management",
-      "role": "novi",
-      "expected": 401,
-      "effective": 401,
-      "ms": 176
-    },
-    {
-      "id": "rbac./CertificateImport/Index.novi",
-      "name": "Certificate Import [AnalystOrAdmin] as novi",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 190ms",
-      "route": "/CertificateImport/Index",
-      "role": "novi",
-      "expected": 401,
-      "effective": 401,
-      "ms": 190
-    },
-    {
-      "id": "rbac./CertificateImport/History.novi",
-      "name": "Import History [AnalystOrAdmin] as novi",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 203ms",
-      "route": "/CertificateImport/History",
-      "role": "novi",
-      "expected": 401,
-      "effective": 401,
-      "ms": 203
-    },
-    {
-      "id": "rbac./Admin/Index.novi",
-      "name": "Admin home [AdminOnly] as novi",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 207ms",
-      "route": "/Admin/Index",
-      "role": "novi",
-      "expected": 401,
-      "effective": 401,
-      "ms": 207
-    },
-    {
-      "id": "rbac./Admin/UserManagement.novi",
-      "name": "User Management [AdminOnly] as novi",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 403ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 174ms",
       "route": "/Admin/UserManagement",
-      "role": "novi",
+      "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 403
+      "ms": 174
     },
     {
-      "id": "rbac./Admin/RoleManagement.novi",
-      "name": "Role Management [AdminOnly] as novi",
+      "id": "rbac./Admin/RoleManagement.external2",
+      "name": "Role Management [AdminOnly] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 263ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 209ms",
       "route": "/Admin/RoleManagement",
-      "role": "novi",
+      "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 263
+      "ms": 209
     },
     {
-      "id": "rbac./Admin/Tags.novi",
-      "name": "Tags [AdminOnly] as novi",
+      "id": "rbac./Admin/Tags.external2",
+      "name": "Tags [AdminOnly] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 176ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 170ms",
       "route": "/Admin/Tags",
-      "role": "novi",
+      "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 176
+      "ms": 170
     },
     {
-      "id": "rbac./Admin/Partners.novi",
-      "name": "Partners [AdminOnly] as novi",
+      "id": "rbac./Admin/Partners.external2",
+      "name": "Partners [AdminOnly] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 258ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 174ms",
       "route": "/Admin/Partners",
-      "role": "novi",
+      "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 258
+      "ms": 174
     },
     {
-      "id": "rbac./Admin/CertificateTypes.novi",
-      "name": "Certificate Types [AdminOnly] as novi",
+      "id": "rbac./Admin/CertificateTypes.external2",
+      "name": "Certificate Types [AdminOnly] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 234ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 181ms",
       "route": "/Admin/CertificateTypes",
-      "role": "novi",
+      "role": "external2",
       "expected": 401,
       "effective": 401,
-      "ms": 234
+      "ms": 181
     },
     {
-      "id": "rbac./Admin/ProductTypes.novi",
-      "name": "Product Types [AdminOnly] as novi",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 211ms",
-      "route": "/Admin/ProductTypes",
-      "role": "novi",
-      "expected": 401,
-      "effective": 401,
-      "ms": 211
-    },
-    {
-      "id": "rbac./Admin/CertificateFields.novi",
-      "name": "Certificate Fields [AdminOnly] as novi",
+      "id": "rbac./Admin/ProductTypes.external2",
+      "name": "Product Types [AdminOnly] as external2",
       "status": "PASS",
       "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 173ms",
-      "route": "/Admin/CertificateFields",
-      "role": "novi",
+      "route": "/Admin/ProductTypes",
+      "role": "external2",
       "expected": 401,
       "effective": 401,
       "ms": 173
     },
     {
-      "id": "rbac./Admin/CSFAttributes.novi",
-      "name": "CSF Attributes [AdminOnly] as novi",
+      "id": "rbac./Admin/CertificateFields.external2",
+      "name": "Certificate Fields [AdminOnly] as external2",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 187ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 190ms",
+      "route": "/Admin/CertificateFields",
+      "role": "external2",
+      "expected": 401,
+      "effective": 401,
+      "ms": 190
+    },
+    {
+      "id": "rbac./Admin/CSFAttributes.external2",
+      "name": "CSF Attributes [AdminOnly] as external2",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 222ms",
       "route": "/Admin/CSFAttributes",
+      "role": "external2",
+      "expected": 401,
+      "effective": 401,
+      "ms": 222
+    },
+    {
+      "id": "rbac./Admin/Pathways.external2",
+      "name": "Pathways [AdminOnly] as external2",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 179ms",
+      "route": "/Admin/Pathways",
+      "role": "external2",
+      "expected": 401,
+      "effective": 401,
+      "ms": 179
+    },
+    {
+      "id": "rbac./Admin/ProductManagement.external2",
+      "name": "Admin Product Mgmt [AdminOnly] as external2",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 169ms",
+      "route": "/Admin/ProductManagement",
+      "role": "external2",
+      "expected": 401,
+      "effective": 401,
+      "ms": 169
+    },
+    {
+      "id": "rbac./Admin/GoogleAnalytics.external2",
+      "name": "Google Analytics config [AdminOnly] as external2",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 185ms",
+      "route": "/Admin/GoogleAnalytics",
+      "role": "external2",
+      "expected": 401,
+      "effective": 401,
+      "ms": 185
+    },
+    {
+      "id": "rbac./.amazon",
+      "name": "Home [AllowAnonymous] as amazon",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 118ms",
+      "route": "/",
+      "role": "amazon",
+      "expected": 200,
+      "effective": 200,
+      "ms": 118
+    },
+    {
+      "id": "rbac./Account/Login.amazon",
+      "name": "Login page [AllowAnonymous] as amazon",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewExternal) 180ms",
+      "route": "/Account/Login",
+      "role": "amazon",
+      "expected": 200,
+      "effective": 200,
+      "ms": 180
+    },
+    {
+      "id": "rbac./Certificate/CertificateTileView.amazon",
+      "name": "Public tile view [AllowAnonymous] as amazon",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 106ms",
+      "route": "/Certificate/CertificateTileView",
+      "role": "amazon",
+      "expected": 200,
+      "effective": 200,
+      "ms": 106
+    },
+    {
+      "id": "rbac./Certificate/CertificateTileViewExternal.amazon",
+      "name": "External tile view [ExternalAccess] as amazon",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 108ms",
+      "route": "/Certificate/CertificateTileViewExternal",
+      "role": "amazon",
+      "expected": 200,
+      "effective": 200,
+      "ms": 108
+    },
+    {
+      "id": "rbac./Product/Management.amazon",
+      "name": "Product Management [ExternalAccess] as amazon",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 275ms",
+      "route": "/Product/Management",
+      "role": "amazon",
+      "expected": 200,
+      "effective": 200,
+      "ms": 275
+    },
+    {
+      "id": "rbac./Certificate/CertificateTileViewInternal.amazon",
+      "name": "Internal tile view [AnalystOrAdmin] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 195ms",
+      "route": "/Certificate/CertificateTileViewInternal",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 195
+    },
+    {
+      "id": "rbac./Certificate/Create.amazon",
+      "name": "Certificate Create [AnalystOrAdmin] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 174ms",
+      "route": "/Certificate/Create",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 174
+    },
+    {
+      "id": "rbac./Certificate/Statistics.amazon",
+      "name": "Certificate Statistics [AnalystOrAdmin] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 205ms",
+      "route": "/Certificate/Statistics",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 205
+    },
+    {
+      "id": "rbac./Dashboard/Index.amazon",
+      "name": "Dashboard [AnalystOrAdmin] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 165ms",
+      "route": "/Dashboard/Index",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 165
+    },
+    {
+      "id": "rbac./Company/Management.amazon",
+      "name": "Company Management [AnalystOrAdmin] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 197ms",
+      "route": "/Company/Management",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 197
+    },
+    {
+      "id": "rbac./CertificateImport/Index.amazon",
+      "name": "Certificate Import [AnalystOrAdmin] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 159ms",
+      "route": "/CertificateImport/Index",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 159
+    },
+    {
+      "id": "rbac./CertificateImport/History.amazon",
+      "name": "Import History [AnalystOrAdmin] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 184ms",
+      "route": "/CertificateImport/History",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 184
+    },
+    {
+      "id": "rbac./Admin/Index.amazon",
+      "name": "Admin home [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 180ms",
+      "route": "/Admin/Index",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 180
+    },
+    {
+      "id": "rbac./Admin/UserManagement.amazon",
+      "name": "User Management [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 172ms",
+      "route": "/Admin/UserManagement",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 172
+    },
+    {
+      "id": "rbac./Admin/RoleManagement.amazon",
+      "name": "Role Management [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 189ms",
+      "route": "/Admin/RoleManagement",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 189
+    },
+    {
+      "id": "rbac./Admin/Tags.amazon",
+      "name": "Tags [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 172ms",
+      "route": "/Admin/Tags",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 172
+    },
+    {
+      "id": "rbac./Admin/Partners.amazon",
+      "name": "Partners [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 179ms",
+      "route": "/Admin/Partners",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 179
+    },
+    {
+      "id": "rbac./Admin/CertificateTypes.amazon",
+      "name": "Certificate Types [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 172ms",
+      "route": "/Admin/CertificateTypes",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 172
+    },
+    {
+      "id": "rbac./Admin/ProductTypes.amazon",
+      "name": "Product Types [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 182ms",
+      "route": "/Admin/ProductTypes",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 182
+    },
+    {
+      "id": "rbac./Admin/CertificateFields.amazon",
+      "name": "Certificate Fields [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 196ms",
+      "route": "/Admin/CertificateFields",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 196
+    },
+    {
+      "id": "rbac./Admin/CSFAttributes.amazon",
+      "name": "CSF Attributes [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 173ms",
+      "route": "/Admin/CSFAttributes",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 173
+    },
+    {
+      "id": "rbac./Admin/Pathways.amazon",
+      "name": "Pathways [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 181ms",
+      "route": "/Admin/Pathways",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 181
+    },
+    {
+      "id": "rbac./Admin/ProductManagement.amazon",
+      "name": "Admin Product Mgmt [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 189ms",
+      "route": "/Admin/ProductManagement",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 189
+    },
+    {
+      "id": "rbac./Admin/GoogleAnalytics.amazon",
+      "name": "Google Analytics config [AdminOnly] as amazon",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 184ms",
+      "route": "/Admin/GoogleAnalytics",
+      "role": "amazon",
+      "expected": 401,
+      "effective": 401,
+      "ms": 184
+    },
+    {
+      "id": "rbac./.novi",
+      "name": "Home [AllowAnonymous] as novi",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 104ms",
+      "route": "/",
+      "role": "novi",
+      "expected": 200,
+      "effective": 200,
+      "ms": 104
+    },
+    {
+      "id": "rbac./Account/Login.novi",
+      "name": "Login page [AllowAnonymous] as novi",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewExternal) 174ms",
+      "route": "/Account/Login",
+      "role": "novi",
+      "expected": 200,
+      "effective": 200,
+      "ms": 174
+    },
+    {
+      "id": "rbac./Certificate/CertificateTileView.novi",
+      "name": "Public tile view [AllowAnonymous] as novi",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 129ms",
+      "route": "/Certificate/CertificateTileView",
+      "role": "novi",
+      "expected": 200,
+      "effective": 200,
+      "ms": 129
+    },
+    {
+      "id": "rbac./Certificate/CertificateTileViewExternal.novi",
+      "name": "External tile view [ExternalAccess] as novi",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 151ms",
+      "route": "/Certificate/CertificateTileViewExternal",
+      "role": "novi",
+      "expected": 200,
+      "effective": 200,
+      "ms": 151
+    },
+    {
+      "id": "rbac./Product/Management.novi",
+      "name": "Product Management [ExternalAccess] as novi",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 241ms",
+      "route": "/Product/Management",
+      "role": "novi",
+      "expected": 200,
+      "effective": 200,
+      "ms": 241
+    },
+    {
+      "id": "rbac./Certificate/CertificateTileViewInternal.novi",
+      "name": "Internal tile view [AnalystOrAdmin] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 177ms",
+      "route": "/Certificate/CertificateTileViewInternal",
       "role": "novi",
       "expected": 401,
       "effective": 401,
-      "ms": 187
+      "ms": 177
     },
     {
-      "id": "rbac./Admin/Pathways.novi",
-      "name": "Pathways [AdminOnly] as novi",
+      "id": "rbac./Certificate/Create.novi",
+      "name": "Certificate Create [AnalystOrAdmin] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 164ms",
+      "route": "/Certificate/Create",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 164
+    },
+    {
+      "id": "rbac./Certificate/Statistics.novi",
+      "name": "Certificate Statistics [AnalystOrAdmin] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 183ms",
+      "route": "/Certificate/Statistics",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 183
+    },
+    {
+      "id": "rbac./Dashboard/Index.novi",
+      "name": "Dashboard [AnalystOrAdmin] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 171ms",
+      "route": "/Dashboard/Index",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 171
+    },
+    {
+      "id": "rbac./Company/Management.novi",
+      "name": "Company Management [AnalystOrAdmin] as novi",
       "status": "PASS",
       "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 198ms",
-      "route": "/Admin/Pathways",
+      "route": "/Company/Management",
       "role": "novi",
       "expected": 401,
       "effective": 401,
       "ms": 198
     },
     {
+      "id": "rbac./CertificateImport/Index.novi",
+      "name": "Certificate Import [AnalystOrAdmin] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 162ms",
+      "route": "/CertificateImport/Index",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 162
+    },
+    {
+      "id": "rbac./CertificateImport/History.novi",
+      "name": "Import History [AnalystOrAdmin] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 301ms",
+      "route": "/CertificateImport/History",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 301
+    },
+    {
+      "id": "rbac./Admin/Index.novi",
+      "name": "Admin home [AdminOnly] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 222ms",
+      "route": "/Admin/Index",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 222
+    },
+    {
+      "id": "rbac./Admin/UserManagement.novi",
+      "name": "User Management [AdminOnly] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 201ms",
+      "route": "/Admin/UserManagement",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 201
+    },
+    {
+      "id": "rbac./Admin/RoleManagement.novi",
+      "name": "Role Management [AdminOnly] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 173ms",
+      "route": "/Admin/RoleManagement",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 173
+    },
+    {
+      "id": "rbac./Admin/Tags.novi",
+      "name": "Tags [AdminOnly] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 174ms",
+      "route": "/Admin/Tags",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 174
+    },
+    {
+      "id": "rbac./Admin/Partners.novi",
+      "name": "Partners [AdminOnly] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 190ms",
+      "route": "/Admin/Partners",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 190
+    },
+    {
+      "id": "rbac./Admin/CertificateTypes.novi",
+      "name": "Certificate Types [AdminOnly] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 173ms",
+      "route": "/Admin/CertificateTypes",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 173
+    },
+    {
+      "id": "rbac./Admin/ProductTypes.novi",
+      "name": "Product Types [AdminOnly] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 182ms",
+      "route": "/Admin/ProductTypes",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 182
+    },
+    {
+      "id": "rbac./Admin/CertificateFields.novi",
+      "name": "Certificate Fields [AdminOnly] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 178ms",
+      "route": "/Admin/CertificateFields",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 178
+    },
+    {
+      "id": "rbac./Admin/CSFAttributes.novi",
+      "name": "CSF Attributes [AdminOnly] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 184ms",
+      "route": "/Admin/CSFAttributes",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 184
+    },
+    {
+      "id": "rbac./Admin/Pathways.novi",
+      "name": "Pathways [AdminOnly] as novi",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 182ms",
+      "route": "/Admin/Pathways",
+      "role": "novi",
+      "expected": 401,
+      "effective": 401,
+      "ms": 182
+    },
+    {
       "id": "rbac./Admin/ProductManagement.novi",
       "name": "Admin Product Mgmt [AdminOnly] as novi",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 218ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 171ms",
       "route": "/Admin/ProductManagement",
       "role": "novi",
       "expected": 401,
       "effective": 401,
-      "ms": 218
+      "ms": 171
     },
     {
       "id": "rbac./Admin/GoogleAnalytics.novi",
       "name": "Google Analytics config [AdminOnly] as novi",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 237ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 181ms",
       "route": "/Admin/GoogleAnalytics",
       "role": "novi",
       "expected": 401,
       "effective": 401,
-      "ms": 237
+      "ms": 181
     },
     {
       "id": "rbac./.analyst",
       "name": "Home [AllowAnonymous] as analyst",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 118ms",
+      "notes": "expected ALLOW, got 200 111ms",
       "route": "/",
       "role": "analyst",
       "expected": 200,
       "effective": 200,
-      "ms": 118
+      "ms": 111
     },
     {
       "id": "rbac./Account/Login.analyst",
       "name": "Login page [AllowAnonymous] as analyst",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewInternal) 203ms",
+      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewInternal) 179ms",
       "route": "/Account/Login",
       "role": "analyst",
       "expected": 200,
       "effective": 200,
-      "ms": 203
+      "ms": 179
     },
     {
       "id": "rbac./Certificate/CertificateTileView.analyst",
       "name": "Public tile view [AllowAnonymous] as analyst",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 107ms",
+      "notes": "expected ALLOW, got 200 138ms",
       "route": "/Certificate/CertificateTileView",
       "role": "analyst",
       "expected": 200,
       "effective": 200,
-      "ms": 107
+      "ms": 138
     },
     {
       "id": "rbac./Certificate/CertificateTileViewExternal.analyst",
       "name": "External tile view [ExternalAccess] as analyst",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 187ms",
+      "notes": "expected ALLOW, got 200 173ms",
       "route": "/Certificate/CertificateTileViewExternal",
       "role": "analyst",
       "expected": 200,
       "effective": 200,
-      "ms": 187
+      "ms": 173
     },
     {
       "id": "rbac./Product/Management.analyst",
       "name": "Product Management [ExternalAccess] as analyst",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 263ms",
+      "notes": "expected ALLOW, got 200 250ms",
       "route": "/Product/Management",
       "role": "analyst",
       "expected": 200,
       "effective": 200,
-      "ms": 263
+      "ms": 250
     },
     {
       "id": "rbac./Certificate/CertificateTileViewInternal.analyst",
       "name": "Internal tile view [AnalystOrAdmin] as analyst",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 157ms",
+      "notes": "expected ALLOW, got 200 103ms",
       "route": "/Certificate/CertificateTileViewInternal",
+      "role": "analyst",
+      "expected": 200,
+      "effective": 200,
+      "ms": 103
+    },
+    {
+      "id": "rbac./Certificate/Create.analyst",
+      "name": "Certificate Create [AnalystOrAdmin] as analyst",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 777ms",
+      "route": "/Certificate/Create",
+      "role": "analyst",
+      "expected": 200,
+      "effective": 200,
+      "ms": 777
+    },
+    {
+      "id": "rbac./Certificate/Statistics.analyst",
+      "name": "Certificate Statistics [AnalystOrAdmin] as analyst",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 4172ms",
+      "route": "/Certificate/Statistics",
+      "role": "analyst",
+      "expected": 200,
+      "effective": 200,
+      "ms": 4172
+    },
+    {
+      "id": "rbac./Dashboard/Index.analyst",
+      "name": "Dashboard [AnalystOrAdmin] as analyst",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 904ms",
+      "route": "/Dashboard/Index",
+      "role": "analyst",
+      "expected": 200,
+      "effective": 200,
+      "ms": 904
+    },
+    {
+      "id": "rbac./Company/Management.analyst",
+      "name": "Company Management [AnalystOrAdmin] as analyst",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 222ms",
+      "route": "/Company/Management",
+      "role": "analyst",
+      "expected": 200,
+      "effective": 200,
+      "ms": 222
+    },
+    {
+      "id": "rbac./CertificateImport/Index.analyst",
+      "name": "Certificate Import [AnalystOrAdmin] as analyst",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 157ms",
+      "route": "/CertificateImport/Index",
       "role": "analyst",
       "expected": 200,
       "effective": 200,
       "ms": 157
     },
     {
-      "id": "rbac./Certificate/Create.analyst",
-      "name": "Certificate Create [AnalystOrAdmin] as analyst",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 718ms",
-      "route": "/Certificate/Create",
-      "role": "analyst",
-      "expected": 200,
-      "effective": 200,
-      "ms": 718
-    },
-    {
-      "id": "rbac./Certificate/Statistics.analyst",
-      "name": "Certificate Statistics [AnalystOrAdmin] as analyst",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 382ms",
-      "route": "/Certificate/Statistics",
-      "role": "analyst",
-      "expected": 200,
-      "effective": 200,
-      "ms": 382
-    },
-    {
-      "id": "rbac./Dashboard/Index.analyst",
-      "name": "Dashboard [AnalystOrAdmin] as analyst",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 680ms",
-      "route": "/Dashboard/Index",
-      "role": "analyst",
-      "expected": 200,
-      "effective": 200,
-      "ms": 680
-    },
-    {
-      "id": "rbac./Company/Management.analyst",
-      "name": "Company Management [AnalystOrAdmin] as analyst",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 229ms",
-      "route": "/Company/Management",
-      "role": "analyst",
-      "expected": 200,
-      "effective": 200,
-      "ms": 229
-    },
-    {
-      "id": "rbac./CertificateImport/Index.analyst",
-      "name": "Certificate Import [AnalystOrAdmin] as analyst",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 150ms",
-      "route": "/CertificateImport/Index",
-      "role": "analyst",
-      "expected": 200,
-      "effective": 200,
-      "ms": 150
-    },
-    {
       "id": "rbac./CertificateImport/History.analyst",
       "name": "Import History [AnalystOrAdmin] as analyst",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 208ms",
+      "notes": "expected ALLOW, got 200 185ms",
       "route": "/CertificateImport/History",
       "role": "analyst",
       "expected": 200,
       "effective": 200,
-      "ms": 208
+      "ms": 185
     },
     {
       "id": "rbac./Admin/Index.analyst",
       "name": "Admin home [AdminOnly] as analyst",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 173ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 211ms",
       "route": "/Admin/Index",
       "role": "analyst",
       "expected": 401,
       "effective": 401,
-      "ms": 173
+      "ms": 211
     },
     {
       "id": "rbac./Admin/UserManagement.analyst",
       "name": "User Management [AdminOnly] as analyst",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 229ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 191ms",
       "route": "/Admin/UserManagement",
       "role": "analyst",
       "expected": 401,
       "effective": 401,
-      "ms": 229
+      "ms": 191
     },
     {
       "id": "rbac./Admin/RoleManagement.analyst",
       "name": "Role Management [AdminOnly] as analyst",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 283ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 200ms",
       "route": "/Admin/RoleManagement",
       "role": "analyst",
       "expected": 401,
       "effective": 401,
-      "ms": 283
+      "ms": 200
     },
     {
       "id": "rbac./Admin/Tags.analyst",
       "name": "Tags [AdminOnly] as analyst",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 279ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 191ms",
       "route": "/Admin/Tags",
       "role": "analyst",
       "expected": 401,
       "effective": 401,
-      "ms": 279
+      "ms": 191
     },
     {
       "id": "rbac./Admin/Partners.analyst",
       "name": "Partners [AdminOnly] as analyst",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 254ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 266ms",
       "route": "/Admin/Partners",
       "role": "analyst",
       "expected": 401,
       "effective": 401,
-      "ms": 254
+      "ms": 266
     },
     {
       "id": "rbac./Admin/CertificateTypes.analyst",
       "name": "Certificate Types [AdminOnly] as analyst",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 200ms",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 190ms",
       "route": "/Admin/CertificateTypes",
       "role": "analyst",
       "expected": 401,
       "effective": 401,
-      "ms": 200
+      "ms": 190
     },
     {
       "id": "rbac./Admin/ProductTypes.analyst",
       "name": "Product Types [AdminOnly] as analyst",
       "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 185ms",
-      "route": "/Admin/ProductTypes",
-      "role": "analyst",
-      "expected": 401,
-      "effective": 401,
-      "ms": 185
-    },
-    {
-      "id": "rbac./Admin/CertificateFields.analyst",
-      "name": "Certificate Fields [AdminOnly] as analyst",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 168ms",
-      "route": "/Admin/CertificateFields",
-      "role": "analyst",
-      "expected": 401,
-      "effective": 401,
-      "ms": 168
-    },
-    {
-      "id": "rbac./Admin/CSFAttributes.analyst",
-      "name": "CSF Attributes [AdminOnly] as analyst",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 217ms",
-      "route": "/Admin/CSFAttributes",
-      "role": "analyst",
-      "expected": 401,
-      "effective": 401,
-      "ms": 217
-    },
-    {
-      "id": "rbac./Admin/Pathways.analyst",
-      "name": "Pathways [AdminOnly] as analyst",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 194ms",
-      "route": "/Admin/Pathways",
-      "role": "analyst",
-      "expected": 401,
-      "effective": 401,
-      "ms": 194
-    },
-    {
-      "id": "rbac./Admin/ProductManagement.analyst",
-      "name": "Admin Product Mgmt [AdminOnly] as analyst",
-      "status": "PASS",
-      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 200ms",
-      "route": "/Admin/ProductManagement",
-      "role": "analyst",
-      "expected": 401,
-      "effective": 401,
-      "ms": 200
-    },
-    {
-      "id": "rbac./Admin/GoogleAnalytics.analyst",
-      "name": "Google Analytics config [AdminOnly] as analyst",
-      "status": "PASS",
       "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 183ms",
-      "route": "/Admin/GoogleAnalytics",
+      "route": "/Admin/ProductTypes",
       "role": "analyst",
       "expected": 401,
       "effective": 401,
       "ms": 183
     },
     {
+      "id": "rbac./Admin/CertificateFields.analyst",
+      "name": "Certificate Fields [AdminOnly] as analyst",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 186ms",
+      "route": "/Admin/CertificateFields",
+      "role": "analyst",
+      "expected": 401,
+      "effective": 401,
+      "ms": 186
+    },
+    {
+      "id": "rbac./Admin/CSFAttributes.analyst",
+      "name": "CSF Attributes [AdminOnly] as analyst",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 186ms",
+      "route": "/Admin/CSFAttributes",
+      "role": "analyst",
+      "expected": 401,
+      "effective": 401,
+      "ms": 186
+    },
+    {
+      "id": "rbac./Admin/Pathways.analyst",
+      "name": "Pathways [AdminOnly] as analyst",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 203ms",
+      "route": "/Admin/Pathways",
+      "role": "analyst",
+      "expected": 401,
+      "effective": 401,
+      "ms": 203
+    },
+    {
+      "id": "rbac./Admin/ProductManagement.analyst",
+      "name": "Admin Product Mgmt [AdminOnly] as analyst",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 174ms",
+      "route": "/Admin/ProductManagement",
+      "role": "analyst",
+      "expected": 401,
+      "effective": 401,
+      "ms": 174
+    },
+    {
+      "id": "rbac./Admin/GoogleAnalytics.analyst",
+      "name": "Google Analytics config [AdminOnly] as analyst",
+      "status": "PASS",
+      "notes": "expected DENY, got 401 (-> /Account/AccessDenied) 196ms",
+      "route": "/Admin/GoogleAnalytics",
+      "role": "analyst",
+      "expected": 401,
+      "effective": 401,
+      "ms": 196
+    },
+    {
       "id": "rbac./.admin",
       "name": "Home [AllowAnonymous] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 117ms",
+      "notes": "expected ALLOW, got 200 109ms",
       "route": "/",
       "role": "admin",
       "expected": 200,
       "effective": 200,
-      "ms": 117
+      "ms": 109
     },
     {
       "id": "rbac./Account/Login.admin",
       "name": "Login page [AllowAnonymous] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewInternal) 188ms",
+      "notes": "expected ALLOW, got 200 (-> /Certificate/CertificateTileViewInternal) 229ms",
       "route": "/Account/Login",
       "role": "admin",
       "expected": 200,
       "effective": 200,
-      "ms": 188
+      "ms": 229
     },
     {
       "id": "rbac./Certificate/CertificateTileView.admin",
@@ -2644,221 +3094,221 @@
       "id": "rbac./Product/Management.admin",
       "name": "Product Management [ExternalAccess] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 274ms",
+      "notes": "expected ALLOW, got 200 298ms",
       "route": "/Product/Management",
       "role": "admin",
       "expected": 200,
       "effective": 200,
-      "ms": 274
+      "ms": 298
     },
     {
       "id": "rbac./Certificate/CertificateTileViewInternal.admin",
       "name": "Internal tile view [AnalystOrAdmin] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 132ms",
+      "notes": "expected ALLOW, got 200 131ms",
       "route": "/Certificate/CertificateTileViewInternal",
       "role": "admin",
       "expected": 200,
       "effective": 200,
-      "ms": 132
+      "ms": 131
     },
     {
       "id": "rbac./Certificate/Create.admin",
       "name": "Certificate Create [AnalystOrAdmin] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 530ms",
+      "notes": "expected ALLOW, got 200 1104ms",
       "route": "/Certificate/Create",
       "role": "admin",
       "expected": 200,
       "effective": 200,
-      "ms": 530
+      "ms": 1104
     },
     {
       "id": "rbac./Certificate/Statistics.admin",
       "name": "Certificate Statistics [AnalystOrAdmin] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 225ms",
+      "notes": "expected ALLOW, got 200 207ms",
       "route": "/Certificate/Statistics",
       "role": "admin",
       "expected": 200,
       "effective": 200,
-      "ms": 225
+      "ms": 207
     },
     {
       "id": "rbac./Dashboard/Index.admin",
       "name": "Dashboard [AnalystOrAdmin] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 424ms",
+      "notes": "expected ALLOW, got 200 407ms",
       "route": "/Dashboard/Index",
       "role": "admin",
       "expected": 200,
       "effective": 200,
-      "ms": 424
+      "ms": 407
     },
     {
       "id": "rbac./Company/Management.admin",
       "name": "Company Management [AnalystOrAdmin] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 168ms",
+      "notes": "expected ALLOW, got 200 186ms",
       "route": "/Company/Management",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 186
+    },
+    {
+      "id": "rbac./CertificateImport/Index.admin",
+      "name": "Certificate Import [AnalystOrAdmin] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 165ms",
+      "route": "/CertificateImport/Index",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 165
+    },
+    {
+      "id": "rbac./CertificateImport/History.admin",
+      "name": "Import History [AnalystOrAdmin] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 106ms",
+      "route": "/CertificateImport/History",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 106
+    },
+    {
+      "id": "rbac./Admin/Index.admin",
+      "name": "Admin home [AdminOnly] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 (-> /Admin/UserManagement) 305ms",
+      "route": "/Admin/Index",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 305
+    },
+    {
+      "id": "rbac./Admin/UserManagement.admin",
+      "name": "User Management [AdminOnly] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 139ms",
+      "route": "/Admin/UserManagement",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 139
+    },
+    {
+      "id": "rbac./Admin/RoleManagement.admin",
+      "name": "Role Management [AdminOnly] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 204ms",
+      "route": "/Admin/RoleManagement",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 204
+    },
+    {
+      "id": "rbac./Admin/Tags.admin",
+      "name": "Tags [AdminOnly] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 218ms",
+      "route": "/Admin/Tags",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 218
+    },
+    {
+      "id": "rbac./Admin/Partners.admin",
+      "name": "Partners [AdminOnly] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 191ms",
+      "route": "/Admin/Partners",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 191
+    },
+    {
+      "id": "rbac./Admin/CertificateTypes.admin",
+      "name": "Certificate Types [AdminOnly] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 211ms",
+      "route": "/Admin/CertificateTypes",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 211
+    },
+    {
+      "id": "rbac./Admin/ProductTypes.admin",
+      "name": "Product Types [AdminOnly] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 163ms",
+      "route": "/Admin/ProductTypes",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 163
+    },
+    {
+      "id": "rbac./Admin/CertificateFields.admin",
+      "name": "Certificate Fields [AdminOnly] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 169ms",
+      "route": "/Admin/CertificateFields",
+      "role": "admin",
+      "expected": 200,
+      "effective": 200,
+      "ms": 169
+    },
+    {
+      "id": "rbac./Admin/CSFAttributes.admin",
+      "name": "CSF Attributes [AdminOnly] as admin",
+      "status": "PASS",
+      "notes": "expected ALLOW, got 200 168ms",
+      "route": "/Admin/CSFAttributes",
       "role": "admin",
       "expected": 200,
       "effective": 200,
       "ms": 168
     },
     {
-      "id": "rbac./CertificateImport/Index.admin",
-      "name": "Certificate Import [AnalystOrAdmin] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 135ms",
-      "route": "/CertificateImport/Index",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 135
-    },
-    {
-      "id": "rbac./CertificateImport/History.admin",
-      "name": "Import History [AnalystOrAdmin] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 124ms",
-      "route": "/CertificateImport/History",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 124
-    },
-    {
-      "id": "rbac./Admin/Index.admin",
-      "name": "Admin home [AdminOnly] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 (-> /Admin/UserManagement) 346ms",
-      "route": "/Admin/Index",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 346
-    },
-    {
-      "id": "rbac./Admin/UserManagement.admin",
-      "name": "User Management [AdminOnly] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 135ms",
-      "route": "/Admin/UserManagement",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 135
-    },
-    {
-      "id": "rbac./Admin/RoleManagement.admin",
-      "name": "Role Management [AdminOnly] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 178ms",
-      "route": "/Admin/RoleManagement",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 178
-    },
-    {
-      "id": "rbac./Admin/Tags.admin",
-      "name": "Tags [AdminOnly] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 178ms",
-      "route": "/Admin/Tags",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 178
-    },
-    {
-      "id": "rbac./Admin/Partners.admin",
-      "name": "Partners [AdminOnly] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 264ms",
-      "route": "/Admin/Partners",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 264
-    },
-    {
-      "id": "rbac./Admin/CertificateTypes.admin",
-      "name": "Certificate Types [AdminOnly] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 269ms",
-      "route": "/Admin/CertificateTypes",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 269
-    },
-    {
-      "id": "rbac./Admin/ProductTypes.admin",
-      "name": "Product Types [AdminOnly] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 215ms",
-      "route": "/Admin/ProductTypes",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 215
-    },
-    {
-      "id": "rbac./Admin/CertificateFields.admin",
-      "name": "Certificate Fields [AdminOnly] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 205ms",
-      "route": "/Admin/CertificateFields",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 205
-    },
-    {
-      "id": "rbac./Admin/CSFAttributes.admin",
-      "name": "CSF Attributes [AdminOnly] as admin",
-      "status": "PASS",
-      "notes": "expected ALLOW, got 200 174ms",
-      "route": "/Admin/CSFAttributes",
-      "role": "admin",
-      "expected": 200,
-      "effective": 200,
-      "ms": 174
-    },
-    {
       "id": "rbac./Admin/Pathways.admin",
       "name": "Pathways [AdminOnly] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 159ms",
+      "notes": "expected ALLOW, got 200 121ms",
       "route": "/Admin/Pathways",
       "role": "admin",
       "expected": 200,
       "effective": 200,
-      "ms": 159
+      "ms": 121
     },
     {
       "id": "rbac./Admin/ProductManagement.admin",
       "name": "Admin Product Mgmt [AdminOnly] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 127ms",
+      "notes": "expected ALLOW, got 200 120ms",
       "route": "/Admin/ProductManagement",
       "role": "admin",
       "expected": 200,
       "effective": 200,
-      "ms": 127
+      "ms": 120
     },
     {
       "id": "rbac./Admin/GoogleAnalytics.admin",
       "name": "Google Analytics config [AdminOnly] as admin",
       "status": "PASS",
-      "notes": "expected ALLOW, got 200 256ms",
+      "notes": "expected ALLOW, got 200 217ms",
       "route": "/Admin/GoogleAnalytics",
       "role": "admin",
       "expected": 200,
       "effective": 200,
-      "ms": 256
+      "ms": 217
     }
   ]
 }

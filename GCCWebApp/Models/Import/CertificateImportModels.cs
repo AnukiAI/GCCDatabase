@@ -154,6 +154,23 @@ namespace GCCWebApp.Models.Import
         public string? ProductCategoryName { get; set; }
         public int? ProductCategoryId { get; set; }
 
+        // Product Subcategory (DEF-421): resolved from the template's "Subcategory" column against
+        // the Level-2 ProductType rows whose ParentId is this row's Product Type — the same
+        // parent-scoped rule the cert form uses. No auto-create: an unmatched value is WARNED and
+        // left null rather than rejected, matching the Country precedent, because the column has
+        // been silently ignored until now and a file that already carries junk in it must not
+        // start failing outright. Feeds both the cert-level ProductSubcategoryId and the CR-186
+        // product-identity tuple.
+        public string? ProductSubcategoryName { get; set; }
+        public int? ProductSubcategoryId { get; set; }
+
+        // Cert Subcategories (DEF-421): resolved from the template's "Cert Subcategories" column
+        // against the CertificationType rows whose ParentId is this row's Certification Type —
+        // mirroring CertificateController.Edit, which refuses any subcategory not under the
+        // selected parent type. Multi-value. Unmatched entries are warned and skipped.
+        public List<string> CertSubcategoryNames { get; set; } = new();
+        public List<int> CertSubcategoryIds { get; set; } = new();
+
         // Certification results
         public string? CertificationResults { get; set; }
 
@@ -295,6 +312,15 @@ namespace GCCWebApp.Models.Import
         public string ProductName { get; set; } = string.Empty;
         public string ProductType { get; set; } = string.Empty;
         public string ProductCategory { get; set; } = string.Empty;
+
+        // DEF-421: the template emitted a "Subcategory" column from the start but nothing ever
+        // read it, so the cell was silently discarded on every import. Resolved against the
+        // Level-2 ProductType rows under the row's Product Type.
+        public string ProductSubcategory { get; set; } = string.Empty;
+
+        // DEF-421: likewise "Cert Subcategories" (template column 3, and an export column).
+        // Multi-value; separated by comma or pipe like Partner and Country.
+        public string CertSubcategories { get; set; } = string.Empty;
 
         // Product identifiers
         public string Asin { get; set; } = string.Empty;

@@ -39,7 +39,12 @@ function importRows(csv) {
     return records.slice(1).map(r => {
         const fields = GccCsv.parseLine(r);
         const row = {};
-        headers.forEach((h, i) => { row[h] = fields[i] !== undefined ? fields[i] : ''; });
+        // DEF-423: mirrors product-id-manager.js, which strips the Excel text-format wrapper
+        // from every column as it reads it. Keep these two in step - the whole value of this
+        // harness is that it models the real importer rather than an idealised one.
+        headers.forEach((h, i) => {
+            row[h] = fields[i] !== undefined ? GccCsv.stripExcelText(fields[i]) : '';
+        });
         return {
             value: row['product id'] || '',
             name: row['product name'] || '',
@@ -174,9 +179,57 @@ check('identifier column stays quoted', GccCsv.escapeField('012345678905', true)
 // Without forceQuote a plain value stays bare, so conditional exporters keep their shape.
 check('plain value stays unquoted when not forced', GccCsv.escapeField('Amazon'), 'Amazon');
 
+// ---------------------------------------------------------------------------------------
+// DEF-423: formula-injection guard, and the strip that makes it safe.
+//
+// A value starting = + - @ is evaluated as a formula by Excel/Sheets - that is how the
+// certification type "+Vantage Vinyl Verified" came to display as #NAME? (DEF-306). It is
+// now exported in Excel text format. The pairing is the point: the guard is only safe
+// because stripExcelText() undoes it on re-import, so these assert the ROUND TRIP, not the
+// encoding. Asserting only the encoding would let someone "fix" one half and ship a
+// silent corruption in the other.
+// ---------------------------------------------------------------------------------------
+const formulaCases = [
+    '+Vantage Vinyl Verified',   // the real DEF-306 string, still live on 1 cert type / 78 products
+    '=cmd|calc',                 // the injection shape the guard exists to neutralise
+    '-1234',
+    '@handle',
+    '=a"b,c',                    // guard + embedded quote + embedded comma together
+];
+for (const v of formulaCases) {
+    const encoded = GccCsv.escapeField(v, true);
+    check('formula guard quotes "' + v + '"', encoded[0], '"');
+    check('formula guard round-trips "' + v + '"', GccCsv.stripExcelText(GccCsv.parseLine(encoded)[0]), v);
+}
+
+// The guard must not disturb ordinary values.
+check('plain value untouched by guard', GccCsv.escapeField('Vantage Vinyl Verified'), 'Vantage Vinyl Verified');
+check('quote-only value still plain-quoted', GccCsv.escapeField('Satisfry 5" Panoramic', true), '"Satisfry 5"" Panoramic"');
+
+// stripExcelText must leave a normal value alone, including one that merely CONTAINS '='.
+check('strip leaves normal value', GccCsv.stripExcelText('Acme = Best'), 'Acme = Best');
+check('strip leaves empty', GccCsv.stripExcelText(''), '');
+// Bare-equals residue is opt-in only: safe for identifiers, refused by default so a company
+// name legitimately beginning "=" is not silently truncated.
+check('bare equals kept by default', GccCsv.stripExcelText('=NotAWrapper'), '=NotAWrapper');
+check('bare equals dropped when asked', GccCsv.stripExcelText('=012345', true), '012345');
+
+// Full export -> re-import through the certificate importer shape, with a formula value in
+// the name column: the row must survive intact and keep its partner.
+{
+    const csv = EXPORT_HEADER + NL + exportRow({
+        productIdType: 'ASIN', productIdValue: 'B0DDDDDDDD', productName: '+Vantage Vinyl Verified',
+        productSku: 'SKU-1', partners: ['Amazon'], created: '2026-09-11', by: 'dan', description: ''
+    }) + NL;
+    const back = importRows(csv);
+    check('formula value: exactly one row', back.length, 1);
+    check('formula value: partner survives', back[0].partner, 'Amazon');
+    check('formula value: name survives', back[0].name, '+Vantage Vinyl Verified');
+}
+
 console.log('');
 if (failures > 0) {
-    console.log('DEF-419/420 check FAILED (' + failures + ' assertion(s))');
+    console.log('DEF-419/420/423 check FAILED (' + failures + ' assertion(s))');
     process.exit(1);
 }
-console.log('DEF-419/420 check PASSED (all assertions)');
+console.log('DEF-419/420/423 check PASSED (all assertions)');

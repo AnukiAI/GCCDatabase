@@ -1,10 +1,10 @@
 {
   "phaseId": "04-create-edit",
   "base": "https://gccwebapp.com",
-  "startedAt": "2026-09-10T03:19:57.995Z",
-  "finishedAt": "2026-09-10T03:20:23.246Z",
-  "runId": "2026-09-10_mtuyllpl",
-  "marker": "ZZ_RegressionFixture_2026-09-10_mtuyllpl",
+  "startedAt": "2026-09-11T17:58:25.654Z",
+  "finishedAt": "2026-09-11T17:58:49.756Z",
+  "runId": "2026-09-11_mtx9f5v9",
+  "marker": "ZZ_RegressionFixture_2026-09-11_mtx9f5v9",
   "createdNumber": "26-0679",
   "pass": 17,
   "fail": 0,
@@ -21,7 +21,7 @@
       "id": "crud.create",
       "name": "Analyst creates a certificate",
       "status": "PASS",
-      "notes": "landed /Certificate/CertificateInternalView/26-0679 in 2715ms; number=26-0679"
+      "notes": "landed /Certificate/CertificateInternalView/26-0679 in 4534ms; number=26-0679"
     },
     {
       "id": "crud.create.autonumber",
@@ -39,7 +39,7 @@
       "id": "crud.create.location",
       "name": "Location field persisted",
       "status": "PASS",
-      "notes": "expected \"ZZ_RegressionFixture_2026-09-10_mtuyllpl\", got \"ZZ_RegressionFixture_2026-09-10_mtuyllpl\""
+      "notes": "expected \"ZZ_RegressionFixture_2026-09-11_mtx9f5v9\", got \"ZZ_RegressionFixture_2026-09-11_mtx9f5v9\""
     },
     {
       "id": "crud.create.certresults",
@@ -57,7 +57,7 @@
       "id": "crud.create.pdf",
       "name": "Uploaded PDF is linked to the certificate",
       "status": "PASS",
-      "notes": "pdfPath=uploads/certificates/26-0679_20260910_032007.pdf"
+      "notes": "pdfPath=uploads/certificates/26-0679_20260911_175835.pdf"
     },
     {
       "id": "crud.create.draft-not-public",
@@ -75,13 +75,13 @@
       "id": "crud.edit.prefill",
       "name": "Edit form prefills stored values",
       "status": "PASS",
-      "notes": "Location=\"ZZ_RegressionFixture_2026-09-10_mtuyllpl\" CertificationResults=\"Regression probe 87.5% reduction\""
+      "notes": "Location=\"ZZ_RegressionFixture_2026-09-11_mtx9f5v9\" CertificationResults=\"Regression probe 87.5% reduction\""
     },
     {
       "id": "crud.edit.persisted",
       "name": "Edit persisted",
       "status": "PASS",
-      "notes": "expected \"ZZ_RegressionFixture_2026-09-10_mtuyllpl_EDITED\", got \"ZZ_RegressionFixture_2026-09-10_mtuyllpl_EDITED\" (3991ms)"
+      "notes": "expected \"ZZ_RegressionFixture_2026-09-11_mtx9f5v9_EDITED\", got \"ZZ_RegressionFixture_2026-09-11_mtx9f5v9_EDITED\" (3944ms)"
     },
     {
       "id": "crud.edit.certresults",

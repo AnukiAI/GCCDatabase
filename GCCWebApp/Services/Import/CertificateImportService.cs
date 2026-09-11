@@ -86,6 +86,17 @@ namespace GCCWebApp.Services.Import
         // QC #189 / DEF-278: Product Category column. Resolved against existing categories
         // (case-insensitive); no auto-create — an unmatched value rejects the row.
         private static readonly string[] ProductCategoryColumns = { "PRODUCT_CATEGORY", "ProductCategory", "product_category", "Product Category", "Category" };
+        // DEF-421: both of these columns are EMITTED BY THE TEMPLATE (DownloadTemplate positions 11
+        // and 3) and, until now, read by nothing — there was no mapping array for either, so the
+        // analyst's values were silently discarded. Same failure class as DEF-347, and invisible
+        // for the same reason: the parser cannot warn about a column it has never heard of.
+        // "Subcategory" is the template's own header; the SCREAMING_SNAKE and PascalCase forms are
+        // carried for consistency with every other array here.
+        private static readonly string[] ProductSubcategoryColumns = { "PRODUCT_SUBCATEGORY", "ProductSubcategory", "product_subcategory", "Subcategory", "Product Subcategory" };
+        // Multi-value. The EXPORT writes this column as ", "-joined names
+        // (CertificateService.cs:763), so comma is the round-trip separator; pipe is accepted too,
+        // matching SyncCertificatePartnersAsync and CountryList.ParseMany.
+        private static readonly string[] CertSubcategoriesColumns = { "CERT_SUBCATEGORIES", "CertSubcategories", "cert_subcategories", "Cert Subcategories", "Certification Subcategories", "CERTIFICATION_SUBCATEGORIES" };
         private static readonly string[] CertificationTypeColumns = { "CERTIFICATION_TYPE", "CertificationType", "certification_type", "Certification Type", "Cert Type" };
         // DEF-202 (QC #148): the downloaded template header reads
         // "Status (Draft / Client Approved - Not Paid / Client Approved - Confidential / Client Approved - Paid / Hold / Expired / Republished / Expired - No Annual Verification — defaults to Draft if blank)"
@@ -137,13 +148,20 @@ namespace GCCWebApp.Services.Import
         // GetFieldWithMapping's matching rules EXACTLY so presence and readability agree:
         // an exact, case-SENSITIVE match (CsvHelper's GetField, no PrepareHeaderForMatch — the
         // DEF-347 trap), plus the DEF-202 case-insensitive "Name " / "Name(" prefix fallback.
-        private static bool HasColumn(string[]? header, string[] possibleNames)
+        private static bool HasColumn(string[]? header, string[] possibleNames, bool allowPrefixFallback = false)
         {
             if (header == null) return false;
             foreach (var name in possibleNames)
             {
                 if (header.Any(h => h != null && h.Equals(name, StringComparison.Ordinal)))
                     return true;
+            }
+            // DEF-422: the prefix fallback is opt-in here for the same reason as in
+            // GetFieldWithMapping — and this method must keep agreeing with it exactly, or a
+            // column would read as "present" while being unreadable (or vice versa).
+            if (!allowPrefixFallback) return false;
+            foreach (var name in possibleNames)
+            {
                 if (header.Any(h => h != null &&
                         (h.StartsWith(name + " ", StringComparison.OrdinalIgnoreCase) ||
                          h.StartsWith(name + "(", StringComparison.OrdinalIgnoreCase))))
@@ -159,14 +177,22 @@ namespace GCCWebApp.Services.Import
         private static HashSet<string> BuildProvidedColumns(string[]? header)
         {
             var provided = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            void Check(string key, string[] names) { if (HasColumn(header, names)) provided.Add(key); }
+            void Check(string key, string[] names, bool prefix = false)
+            { if (HasColumn(header, names, prefix)) provided.Add(key); }
 
-            Check(nameof(Certificate.Status), StatusColumns);
+            // DEF-422: `prefix: true` ONLY for the columns whose template header carries an inline
+            // value hint — these are the three that genuinely need the fallback, and the list must
+            // match the one in ParseCsvRow's GetFieldWithMapping calls.
+            Check(nameof(Certificate.Status), StatusColumns, prefix: true);
             Check(nameof(Certificate.Location), CertificateLocationColumns);
-            Check(nameof(Certificate.Country), CertificateCountryColumns);
+            Check(nameof(Certificate.Country), CertificateCountryColumns, prefix: true);
             Check(nameof(Certificate.ProductCategoryId), ProductCategoryColumns);
+            // DEF-421: both new columns obey the DEF-355 rule — a file that omits them must not
+            // clear an existing certificate's subcategories.
+            Check(nameof(Certificate.ProductSubcategoryId), ProductSubcategoryColumns);
+            Check(nameof(Certificate.CertificationTypeSubcategories), CertSubcategoriesColumns);
             Check(nameof(Certificate.CertificationResults), CertificationResultsColumns);
-            Check(nameof(Certificate.Partner), PartnerColumns);
+            Check(nameof(Certificate.Partner), PartnerColumns, prefix: true);
             Check(nameof(Certificate.Asin), AsinColumns);
             Check(nameof(Certificate.Upc), UpcColumns);
             Check(nameof(Certificate.Gtin), GtinColumns);
@@ -174,7 +200,23 @@ namespace GCCWebApp.Services.Import
             return provided;
         }
 
-        private static string GetFieldWithMapping(CsvReader csv, string[] possibleNames)
+        /// <param name="allowPrefixFallback">
+        /// DEF-422: opt in to the DEF-202 "header starts with this name" fallback. Default FALSE.
+        ///
+        /// That fallback was added so the template's hint-bearing headers still resolve
+        /// ("Status (Draft / ...)" -> Status). It was applied to EVERY lookup, which made it
+        /// greedy: `CompanyNameColumns` contains "Company", so a file carrying "Company Email"
+        /// but no plain "Company" column resolved the COMPANY NAME to the email address, created
+        /// a company named after it, and reported canApply:true with no warning. Confirmed live
+        /// against a running instance. `ProductNameColumns` contains "Product" and had the same
+        /// exposure against "Product Category" and "Product Type".
+        ///
+        /// The template and every export always emit the exact "Company" / "Product Name"
+        /// headers, so the supported round-trip never reached the fallback — it bites hand-made
+        /// or partially-filled files, which is exactly what QC #263 says analysts are starting to
+        /// build. Pass true ONLY for columns whose template header carries an inline value hint.
+        /// </param>
+        private static string GetFieldWithMapping(CsvReader csv, string[] possibleNames, bool allowPrefixFallback = false)
         {
             foreach (var name in possibleNames)
             {
@@ -195,6 +237,8 @@ namespace GCCWebApp.Services.Import
             // above won't find those, so as a fallback walk the header row and accept any
             // header that starts with one of the short names followed by a space or '(' —
             // tight enough that "Status Update" or "Status Date" wouldn't false-positive.
+            // DEF-422: ...but only for callers that asked for it. See allowPrefixFallback.
+            if (!allowPrefixFallback) return string.Empty;
             try
             {
                 var header = csv.HeaderRecord;
@@ -324,6 +368,12 @@ namespace GCCWebApp.Services.Import
                     .Include(c => c.CertificationType)
                     .Include(c => c.Pathway)
                     .Include(c => c.Tags)
+                    // DEF-421: DetectChanges compares both subcategory fields, so both must be
+                    // loaded or every re-import would report them as unchanged. AsSplitQuery below
+                    // keeps the extra collection from compounding the DEF-350 cartesian blow-up —
+                    // it becomes one more SELECT, not a wider join.
+                    .Include(c => c.CertificationTypeSubcategories)
+                    .Include(c => c.ProductSubcategory)
                     .AsSplitQuery()
                     // Preview never mutates these — DetectChanges only reads them, and
                     // UpdateCertificateAsync re-queries the certificate by Id before writing.
@@ -863,10 +913,13 @@ namespace GCCWebApp.Services.Import
                         // on SEPARATE records — consistent with the cert form's find-or-create. The name-keyed
                         // step above can only ever return one record per name; this overrides it. QC #189 /
                         // DEF-278: the template's Product Category is now honored (row.ProductCategoryId) and
-                        // passed through; Subcategory still resolves as null (no column yet) and Category falls
-                        // back to the base product's only when the row left it blank.
+                        // passed through; Category falls back to the base product's only when the row left it
+                        // blank. DEF-421: Subcategory is no longer hardcoded null — the template's
+                        // "Subcategory" column now resolves and takes part in the identity tuple, so two certs
+                        // that differ ONLY by subcategory land on separate product line items, which is what
+                        // the CR-186 SPLIT model requires.
                         if (row.ProductId.HasValue)
-                            row.ProductId = await ResolveProductForImportAsync(row.ProductId.Value, row.ProductTypeId, null, row.ProductCategoryId);
+                            row.ProductId = await ResolveProductForImportAsync(row.ProductId.Value, row.ProductTypeId, row.ProductSubcategoryId, row.ProductCategoryId);
 
                         // Resolve tag IDs (external + internal both land in the same Tags M2M)
                         var allTagIds = new List<int>(row.TagIds);
@@ -1194,8 +1247,8 @@ namespace GCCWebApp.Services.Import
             while (await csv.ReadAsync())
             {
                 rowNumber++;
-                var status = GetFieldWithMapping(csv, StatusColumns);
-                var partner = GetFieldWithMapping(csv, PartnerColumns);
+                var status = GetFieldWithMapping(csv, StatusColumns, allowPrefixFallback: true);          // DEF-422
+                var partner = GetFieldWithMapping(csv, PartnerColumns, allowPrefixFallback: true);        // DEF-422
 
                 rows.Add(new CertificateImportCsvRow
                 {
@@ -1208,7 +1261,7 @@ namespace GCCWebApp.Services.Import
                     EffectiveDate = GetFieldWithMapping(csv, EffectiveDateColumns),
                     ExpirationDate = GetFieldWithMapping(csv, ExpirationDateColumns),
                     Location = GetFieldWithMapping(csv, CertificateLocationColumns),
-                    Country = GetFieldWithMapping(csv, CertificateCountryColumns),
+                    Country = GetFieldWithMapping(csv, CertificateCountryColumns, allowPrefixFallback: true),  // DEF-422
                     CertificationResults = GetFieldWithMapping(csv, CertificationResultsColumns),
                     Tags = GetFieldWithMapping(csv, TagsColumns),
                     InternalTags = GetFieldWithMapping(csv, InternalTagsColumns),
@@ -1222,6 +1275,8 @@ namespace GCCWebApp.Services.Import
                     ProductName = GetFieldWithMapping(csv, ProductNameColumns),
                     ProductType = GetFieldWithMapping(csv, ProductTypeColumns),
                     ProductCategory = GetFieldWithMapping(csv, ProductCategoryColumns),
+                    ProductSubcategory = GetFieldWithMapping(csv, ProductSubcategoryColumns),   // DEF-421
+                    CertSubcategories = GetFieldWithMapping(csv, CertSubcategoriesColumns),     // DEF-421
                     // Product identifiers
                     Asin = GetFieldWithMapping(csv, AsinColumns),
                     Upc = GetFieldWithMapping(csv, UpcColumns),
@@ -1237,7 +1292,7 @@ namespace GCCWebApp.Services.Import
                     // Partner
                     Partner = string.IsNullOrWhiteSpace(partner) ? "None" : partner,
                     // Pathway (optional)
-                    Pathway = GetFieldWithMapping(csv, PathwayColumns),
+                    Pathway = GetFieldWithMapping(csv, PathwayColumns, allowPrefixFallback: true),        // DEF-422: legacy "Pathway (SEP Amazon only)" header
                     RawData = csv.Context.Parser.RawRecord
                 });
             }
@@ -1331,6 +1386,7 @@ namespace GCCWebApp.Services.Import
                 CompanyWebsite = csvRow.CompanyWebsite,
                 ProductTypeName = csvRow.ProductType,
                 ProductCategoryName = csvRow.ProductCategory,
+                ProductSubcategoryName = csvRow.ProductSubcategory,   // DEF-421
                 CertificationResults = csvRow.CertificationResults,
                 Pathway = csvRow.Pathway
             };
@@ -1485,6 +1541,46 @@ namespace GCCWebApp.Services.Import
                 }
             }
 
+            // === Product Subcategory Lookup (DEF-421; optional, no auto-create) ===
+            // ProductSubcategoryId FKs to ProductTypes, not to the legacy ProductSubcategories
+            // table (Models/Product.cs:49-51), and a subcategory is only meaningful UNDER its
+            // parent type — so resolve by name AND ParentId, exactly as the certificate form does.
+            //
+            // Unmatched is a WARNING, not a rejection. This column has been silently discarded
+            // since the template first shipped, so files already in circulation may carry values
+            // that never meant anything; turning those into hard row failures would break a batch
+            // load the day this fix deploys. The warning is surfaced on the preview screen, which
+            // is the behaviour the Country resolver already established (:1429).
+            if (!string.IsNullOrWhiteSpace(csvRow.ProductSubcategory))
+            {
+                if (!row.ProductTypeId.HasValue)
+                {
+                    row.Warnings.Add(
+                        $"Subcategory '{Truncate(csvRow.ProductSubcategory, 60)}' could not be applied because the row has no " +
+                        (string.IsNullOrWhiteSpace(csvRow.ProductType)
+                            ? "Product Type. A subcategory only exists underneath a product type, so fill in Product Type as well."
+                            : $"resolved Product Type ('{Truncate(csvRow.ProductType, 60)}' will be created by this import, so it has no subcategories yet). " +
+                              "Import once to create the type, add the subcategory under it, then re-import."));
+                }
+                else
+                {
+                    var subcat = productTypes.FirstOrDefault(pt =>
+                        pt.Name.Equals(csvRow.ProductSubcategory, StringComparison.OrdinalIgnoreCase) &&
+                        pt.ParentId == row.ProductTypeId.Value);
+                    if (subcat != null)
+                    {
+                        row.ProductSubcategoryId = subcat.Id;
+                    }
+                    else
+                    {
+                        row.Warnings.Add(
+                            $"Subcategory '{Truncate(csvRow.ProductSubcategory, 60)}' is not a subcategory of Product Type " +
+                            $"'{Truncate(csvRow.ProductType, 60)}'. The certificate will import without a subcategory; " +
+                            "add it under that product type and re-import, or correct the spelling.");
+                    }
+                }
+            }
+
             // === Product Lookup/Auto-Creation Logic ===
             var product = products.FirstOrDefault(p =>
                 p.Name.Equals(row.ProductName, StringComparison.OrdinalIgnoreCase));
@@ -1525,6 +1621,47 @@ namespace GCCWebApp.Services.Import
                 {
                     // Defensive: placeholder couldn't be resolved (shouldn't happen — ensured in preview).
                     row.ValidationMessages.Add($"Certification Type not found: '{row.CertificationType}'. Certification Types must exist before import.");
+                }
+            }
+
+            // === Cert Subcategories Lookup (DEF-421; optional, multi-value, no auto-create) ===
+            // Mirrors CertificateController.Edit (:1442) exactly: a subcategory is only accepted
+            // when its ParentId is the certificate's OWN certification type. That guard is the
+            // whole point — CertificationTypes is a hierarchy in which the same Name legitimately
+            // appears under several parents ([[feedback_certtypes_hierarchy]]), so matching on name
+            // alone would attach a same-named subcategory belonging to a different type.
+            //
+            // Split on both ',' and '|': the export writes ", "-joined names, and pipe is the
+            // separator the Partner and Country cells already accept.
+            if (!string.IsNullOrWhiteSpace(csvRow.CertSubcategories))
+            {
+                var wanted = csvRow.CertSubcategories
+                    .Split(new[] { ',', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(v => v.Trim())
+                    .Where(v => !string.IsNullOrWhiteSpace(v))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                foreach (var name in wanted)
+                {
+                    var match = row.CertificationTypeId.HasValue
+                        ? certTypes.FirstOrDefault(ct =>
+                            ct.Name.Equals(name, StringComparison.OrdinalIgnoreCase) &&
+                            ct.ParentId == row.CertificationTypeId.Value)
+                        : null;
+
+                    if (match != null)
+                    {
+                        row.CertSubcategoryNames.Add(match.Name);
+                        row.CertSubcategoryIds.Add(match.Id);
+                    }
+                    else
+                    {
+                        row.Warnings.Add(
+                            $"Cert Subcategory '{Truncate(name, 60)}' is not a subcategory of Certification Type " +
+                            $"'{Truncate(row.CertificationType, 60)}' and was skipped. Subcategories must sit " +
+                            "underneath the certificate's own certification type.");
+                    }
                 }
             }
 
@@ -1721,6 +1858,33 @@ namespace GCCWebApp.Services.Import
                     NewValue = newData.CertificationType
                 });
 
+            // DEF-421: Subcategory. Compared by Id; shown by name so the preview is readable.
+            if (Provided(nameof(Certificate.ProductSubcategoryId))
+                && existing.ProductSubcategoryId != newData.ProductSubcategoryId)
+                changes.Add(new FieldChange
+                {
+                    FieldName = "Subcategory",
+                    OldValue = existing.ProductSubcategory?.Name,
+                    NewValue = newData.ProductSubcategoryName
+                });
+
+            // DEF-421: Cert Subcategories. An unordered SET comparison — the export joins these in
+            // whatever order EF returned them, so an order-sensitive compare would report a change
+            // on every untouched round-trip.
+            if (Provided(nameof(Certificate.CertificationTypeSubcategories)))
+            {
+                var oldSubs = (existing.CertificationTypeSubcategories ?? new List<CertificationType>())
+                    .Select(ct => ct.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var newSubs = newData.CertSubcategoryNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                if (!oldSubs.SetEquals(newSubs))
+                    changes.Add(new FieldChange
+                    {
+                        FieldName = "Cert Subcategories",
+                        OldValue = string.Join(", ", oldSubs.OrderBy(v => v)),
+                        NewValue = string.Join(", ", newSubs.OrderBy(v => v))
+                    });
+            }
+
             // Pathway: only flag a change when the CSV supplied a pathway (matches the
             // conditional apply in UpdateCertificateAsync — a blank column is a no-op, not a clear).
             if (!string.IsNullOrWhiteSpace(newData.Pathway) && existing.PathwayId != newData.PathwayId)
@@ -1873,6 +2037,7 @@ namespace GCCWebApp.Services.Import
                 // Edit view model (CertificateController.cs:844) and used for ProductType
                 // delete-protection (AdminService.cs:1426), so a NULL here is not cosmetic.
                 ProductTypeId = row.ProductTypeId,
+                ProductSubcategoryId = row.ProductSubcategoryId, // DEF-421
                 Status = row.Status,
                 // DEF-353: these were `?? DateTime.UtcNow` / `?? .AddYears(1)`, which silently
                 // invented dates for blank source cells — on the go-live rehearsal that gave an
@@ -1917,6 +2082,20 @@ namespace GCCWebApp.Services.Import
                 foreach (var tag in tagsToAdd)
                 {
                     certificate.Tags.Add(tag);
+                }
+            }
+
+            // DEF-421: cert-level subcategories. Re-read through the context rather than reusing
+            // the preview's certTypes instances, exactly as the tag block above does — those were
+            // loaded on a different query and attaching them directly risks EF treating them as
+            // new rows.
+            if (row.CertSubcategoryIds.Any())
+            {
+                var subcatsToAdd = await _context.CertificationTypes
+                    .Where(ct => row.CertSubcategoryIds.Contains(ct.Id)).ToListAsync();
+                foreach (var subcat in subcatsToAdd)
+                {
+                    certificate.CertificationTypeSubcategories.Add(subcat);
                 }
             }
             await _context.SaveChangesAsync();
@@ -2019,6 +2198,10 @@ namespace GCCWebApp.Services.Import
                 // the re-inserts collide with the unique (CertificateId, Country) index — so a
                 // re-import would fail to update countries at all.
                 .Include(c => c.Countries)
+                // DEF-421: required for the same reason as Countries above — the sync below clears
+                // this collection before re-adding, and without the Include it arrives empty, the
+                // old join rows survive untouched, and the re-insert collides with them.
+                .Include(c => c.CertificationTypeSubcategories)
                 .FirstOrDefaultAsync(c => c.Id == row.ExistingCertificateId!.Value);
 
             if (certificate == null)
@@ -2073,6 +2256,11 @@ namespace GCCWebApp.Services.Import
                 certificate.ProductCategoryId = row.ProductCategoryId; // QC #189 / DEF-278: honor template category
             // DEF-354: Product Type follows the same rule.
             if (row.ProductTypeId.HasValue) certificate.ProductTypeId = row.ProductTypeId.Value;
+            // DEF-421: Subcategory is DEF-355-gated rather than HasValue-gated, so that a file
+            // which CARRIES the column but leaves the cell blank clears the subcategory — the
+            // deliberate-edit case — while a file without the column leaves it alone.
+            if (Provided(nameof(Certificate.ProductSubcategoryId)))
+                certificate.ProductSubcategoryId = row.ProductSubcategoryId;
             if (Provided(nameof(Certificate.Status)))
                 certificate.Status = row.Status;
             if (row.EffectiveDate.HasValue) certificate.EffectiveDate = row.EffectiveDate.Value;
@@ -2103,6 +2291,24 @@ namespace GCCWebApp.Services.Import
                 foreach (var tag in tagsToAdd)
                 {
                     certificate.Tags.Add(tag);
+                }
+            }
+
+            // DEF-421: cert-level subcategories, clear-and-re-add like tags — but ONLY when the
+            // file carried the column. Unconditional clearing here would be the DEF-355 data-loss
+            // bug all over again: every re-import from a file without the column would strip the
+            // subcategories off every certificate it touched.
+            if (Provided(nameof(Certificate.CertificationTypeSubcategories)))
+            {
+                certificate.CertificationTypeSubcategories.Clear();
+                if (row.CertSubcategoryIds.Any())
+                {
+                    var subcatsToAdd = await _context.CertificationTypes
+                        .Where(ct => row.CertSubcategoryIds.Contains(ct.Id)).ToListAsync();
+                    foreach (var subcat in subcatsToAdd)
+                    {
+                        certificate.CertificationTypeSubcategories.Add(subcat);
+                    }
                 }
             }
 

@@ -468,3 +468,140 @@ the internal certificate view, the public tile view, and the **anonymous Home pa
 certificate JS bundles pass `node --check`, so it is a Razor-rendered inline script — most likely
 unescaped data reaching a `<script>` block. It is silent to users today, but a page-level syntax
 error means whatever follows it in that block never runs. Worth half an hour to locate.
+---
+
+## The certificate import template emits two columns the importer throws away — RESOLVED
+
+> **RESOLVED 2026-09-10 as DEF-421** — both columns are now read, resolved parent-scoped and
+> written, verified end-to-end against dev. Item 3 below (the generic "unconsumed column" warning)
+> is the part that is **still open**, and it is the one that stops this class recurring; the audit
+> script written for DEF-421 is the seed for it. Item 1's decision went to "wire both up". The
+> same audit also turned up **DEF-422** (a `Company Email` column with no `Company` column imports
+> the email address as the company name) — raised, not fixed.
+
+**Found 2026-09-10 while fixing DEF-418.**
+
+`DownloadTemplate` (`Controllers/CertificateImportController.cs:468`) emits 24 columns. Two of them
+are never read by the importer:
+
+- **`Cert Subcategories`** (column 3)
+- **`Subcategory`** (column 11)
+
+There is no mapping array for either in `CertificateImportService.cs` — every other column in the
+template has one — and the service comments say so outright at `:866`: *"Subcategory still resolves
+as null (no column yet)"*.
+
+**Why it matters.** An analyst downloads the template, sees a `Subcategory` column, fills it in for
+several hundred rows, imports, and the values are **silently discarded**. Nothing warns, nothing
+rejects, and the preview screen has nothing to show because the field was never parsed. This is the
+same shape as DEF-347, where a `COUNTRY`-headed file silently imported blank countries for months —
+and that one was only found by reading the mapping arrays, not by anything failing.
+
+The risk is highest precisely now: the client has just started asking how to use the template for
+edits (QC #263), so template-driven editing is about to get more use, not less.
+
+**Suggested action.**
+
+1. Decide which way it goes. `Subcategory` is probably worth wiring up — the CR-186 product-identity
+   resolution at `CertificateImportService.cs:1250-1290` already takes a `subcatId` parameter, so the
+   plumbing exists and only the column-read and lookup are missing. `Cert Subcategories` needs a
+   product decision first: it is a certificate-level multi-value field, so it needs a separator
+   convention like Partner and Country already have.
+2. If either is **not** going to be wired up, remove it from the template. A column that silently
+   does nothing is worse than no column.
+3. Whichever way: add a preview-time warning for any template column the parser does not consume.
+   That generalises the fix and would have caught DEF-347 too.
+
+**Rough cost.** `Subcategory` wire-up, roughly half a day including a preview-diff check. Dropping
+either column from the template, under an hour. The generic "unconsumed column" warning, half a day,
+and it is the one that stops this recurring.
+
+## Regression harness — found during the 2026-09-10 full run
+
+1. **A refusal must not exit 0.** `_regression/08` and `09` print `refusing to run against ... without
+   ALLOW_REMOTE=1` and then exit 0. Any chain runner that branches on exit code scores that as a pass.
+   Exit non-zero on refusal.
+2. **Phases that take a base URL should not silently default to localhost.** `08`/`09` read
+   `argv[2] || 'http://localhost:5101'`, so a run aimed at the test environment grades localhost and
+   says `PASS`. Either require the base explicitly or print the resolved target in the result line.
+3. **Never grade an admin API call by HTTP status alone.** `/Admin/CreateUser` returns 200 with
+   `success:false` on validation failure. `07-verify-fixes.js` checks `status >= 400` and therefore
+   reports PASS for a user it never created. Parse the body's `success` flag — the controller comments
+   already warn about exactly this.
+4. **Keep test payloads in step with the view models.** That same call sends `username` / `firstName` /
+   `lastName` / `isActive`, none of which exist on `CreateUserViewModel`, and omits the `[Required]`
+   `name`. A payload-shape assertion in the harness would have caught it the day the model changed.
+5. **Teardown failure should be loud and re-runnable.** `07` left certs 26-0659 / 26-0660 in the dev DB
+   with only a FAIL line. Worth a `--cleanup-only` mode that sweeps by marker.
+6. **One runner for the whole suite.** There is no `_regression/run-all.js`; the phase list lives in
+   operators' heads, which is how 08/09 got run against the wrong target. `_security`, `_views` and
+   `_crud` each have one.
+---
+
+## A defect register that lags the code can hold up a release
+
+**Found 2026-09-11.** Process, not code. No fix, a suggestion.
+
+DEF-420 was fixed and committed on 2026-09-10. Its register entry still read **"RAISED — not fixed"**
+the next day. On the strength of that line I recommended holding a deployment to fix work that was
+already done. The error was caught only because the fix was attempted and the code turned out to be
+already correct.
+
+This is structural, not carelessness. Several streams commit to this repo in a day; the code is
+updated in the same commit as the work, and the register is updated by whoever remembers. The
+**Status** field is the one readers trust most and the one that decays fastest.
+
+**Suggested action.**
+
+1. **Cheapest, do this one:** at the top of the defect register, state that a Status line is
+   provisional and must be confirmed against `git log -1 -- <file>` before it is quoted in a release
+   decision. Ten minutes, and it would have prevented this.
+2. Make it mechanical: a pre-deploy gate step that lists every entry whose Status says
+   "RAISED"/"not fixed" while the files it names have changed since the entry's date. That is a
+   ~20-line script over the register and `git log`, and it belongs next to Gate 9, which already does
+   shipped-vs-fixed reconciliation. **~1-2 hrs.**
+3. Cheaper habit with most of the benefit: when a fix is committed, put the DEF number in the commit
+   message. `git log --grep=DEF-420` then answers "is this fixed?" in one command. Today's commits
+   are titled "updates", so that question can only be answered by reading diffs.
+
+**Rough cost.** Item 1 is ten minutes and is worth doing today. Item 3 is free and compounding.
+Item 2 is the real fix and can wait for the next quiet gate cycle.
+
+**Why it is worth money.** The failure mode is not a wrong document — it is a delayed release, or a
+second deploy a few days later for work that was already in the first bundle.
+
+---
+
+## From the 2026-09-11 post-deploy regression run
+
+**1. A fixture-drift failure is indistinguishable from a broken login — make the suite say which.**
+`test.external` failed to authenticate and reported *"login failed for external: landed
+/Account/Login"* against a page reading *"Invalid email or password"*. The account was fine; only its
+`Username` had drifted. It cost four diagnostic round-trips to establish that. `regression-lib`'s
+`login()` already knows the account's email — when a username login fails it should retry with the
+email and, if that succeeds, report **FIXTURE DRIFT: username no longer matches, email works**
+rather than a generic FAIL. Same shape as the `assertAccountsMatchTarget()` guard already in that
+file, which exists for exactly this class of mistake.
+
+**2. "Full regression" needs a manifest that states which phases are remote-eligible.**
+Of thirteen phase files, three (07, 11, 12) are localhost-only *by design* and one suite
+(`_security`) would return fabricated PASSes if aimed at TEST. Nothing in the directory says so — it
+is discoverable only by reading each file's header. A short table in `_regression/README.md`
+(phase → local-only / remote-OK / gate mode) would stop a future run either skipping real coverage
+or reporting green on a suite that never actually ran.
+
+**3. The security suite's gate mode is wrong for the only remote target that exists.**
+`_security/_lib` passes the test-env gate with **Basic auth**; gccwebapp.com is **Cookie** mode.
+The failure is silent — a 200 gate page for every URL, so every assertion "passes". `regression-lib`
+already has a correct `passGate()`. Porting it into `_security/_lib` would make the P0 security gate
+runnable against the deployed environment, which is currently the one place it cannot run.
+
+**4. Import Undo is the only import path with no live coverage.**
+`imp.undo` has WARNed for several runs: the batchId is not exposed in the History page markup, so the
+harness cannot invoke Undo. Rendering it as a `data-batch-id` attribute is a small view change and
+would close the gap. Low priority, but it is a destructive path with zero live assertions.
+
+**5. Anonymous 302s prove nothing about a config leak.**
+Checking `/appsettings.Production.json` without a gate cookie returns 302 for a leaked file and 302
+for a protected one alike. The pre-deploy checklist's leak check should specify **behind the gate**,
+where the answer is an unambiguous 404.

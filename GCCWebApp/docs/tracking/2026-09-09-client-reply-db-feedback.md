@@ -98,7 +98,7 @@ But if your team is going to use the template routinely for edits, I'd suggest w
 stops and warns when an imported number matches more than one certificate, instead of quietly
 picking one. Let me know if you'd like that scoped — it would be a separate small change request.
 
-## 4. The "Certificate Number is required" text — you're right, and I'll fix it
+## 4. The "Certificate Number is required" text — you're right, and it's fixed
 
 Confirmed: that instruction is wrong. Certificate # is not required when adding new entries, exactly
 as you found.
@@ -108,8 +108,12 @@ to contradict itself:
 
 - The instructions at the top say Certificate # is required. It isn't.
 - They also say the company, product and certification type must already exist in the database.
-  Only the **certification type** must — companies and products are created automatically if the
-  import doesn't recognise them.
+  **None of the three has to.** Companies, products and product types are all created automatically
+  if the import doesn't recognise them, and an unfamiliar certification type doesn't stop the
+  import either — the certificate comes in marked *Unspecified* so an analyst can set it
+  afterwards. The one field that genuinely must already exist is **Product Category**, which is
+  optional but will reject a row if the value isn't a category we already hold (deliberately, so a
+  typo can't create a new category).
 - Further down, the same page correctly says companies and products are auto-created. So the two
   halves of the page disagree, and the half most people read first is the wrong one.
 - The column names listed on the page (`CERTIFICATE_NUMBER`, `COMPANY_NAME`, and so on) do work —
@@ -119,9 +123,10 @@ to contradict itself:
 
 None of that changes how the import behaves — it's all instructions rather than functionality — but
 it's exactly the kind of thing that makes a team hesitant to use a feature, which is what you're
-describing. I'll rewrite both sections against what the import actually does, line the column names
-up with the template, and spell out the two cases you asked about (blank = new, filled = update,
-with the confirmation step in between).
+describing. Both sections have now been rewritten against what the import actually does, the column
+names line up with the template, and the two cases you asked about are spelled out on the page
+(blank = new, filled = update, with the confirmation step in between). It will be on the test site
+with the next release.
 
 I'm logging this one as a **defect (DEF-418)** rather than a change request, since it's incorrect
 instructions rather than new functionality.

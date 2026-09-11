@@ -204,24 +204,40 @@ async function findByMarker(page, marker) {
         rec('F-2', 'Partner not-yet-effective gate', 'BLOCKED', 'no Amazon partner on this database');
       } else {
         const tok = await page.locator('input[name="__RequestVerificationToken"]').first().inputValue().catch(() => '');
+        // The payload must match CreateUserViewModel EXACTLY. The previous version sent
+        // `username` / `firstName` / `lastName` / `isActive` — none of which exist on that model —
+        // and omitted `name`, which is [Required]. ModelState was therefore invalid on every run.
+        //
+        // `requirePasswordReset: false` is load-bearing: the model defaults it to TRUE, and a user
+        // created with it set is bounced to a forced-reset page instead of the tile view, which
+        // would fail the sign-in below for a reason that has nothing to do with what F-2 tests.
         const mk = await page.request.post(`${BASE}/Admin/CreateUser`, {
           headers: { 'Content-Type': 'application/json', RequestVerificationToken: tok },
           data: {
-            username: PARTNER_USER.username, email: PARTNER_USER.email, password: PARTNER_USER.password,
-            role: 'Partner', partnerIds: [amazon.id ?? amazon.Id], isActive: true, firstName: 'Fix', lastName: 'Verify',
+            name: 'Fix Verify', email: PARTNER_USER.email, password: PARTNER_USER.password,
+            role: 'Partner', companyIds: [], partnerIds: [amazon.id ?? amazon.Id],
+            userCompanyName: null, requirePasswordReset: false,
           },
-          failOnStatusCode: false,
+          failOnStatusCode: false, timeout: REQ_TIMEOUT,
         });
         const mkBody = await mk.text();
-        if (mk.status() >= 400) {
-          rec('F-2.partner-user', 'Create a temporary Partner user', 'BLOCKED', `HTTP ${mk.status()} ${mkBody.slice(0, 160)}`);
+        // Graded on the body's `success` flag. AdminController.CreateUser answers a ModelState
+        // failure with HTTP 200 + success:false, so a `status >= 400` test reports PASS for a user
+        // that was never created — which is exactly how this check ran green while doing nothing,
+        // and why the sign-in below then failed as a BLOCKED.
+        let mkOk = false;
+        try { mkOk = mk.status() === 200 && JSON.parse(mkBody).success === true; } catch { /* non-JSON body */ }
+        if (!mkOk) {
+          rec('F-2.partner-user', 'Create a temporary Partner user', 'BLOCKED', `HTTP ${mk.status()} ${mkBody.slice(0, 200)}`);
         } else {
-          try { partnerUserId = JSON.parse(mkBody).id ?? JSON.parse(mkBody).userId ?? null; } catch { /* id parsed below if needed */ }
-          rec('F-2.partner-user', 'Create a temporary Partner user', 'PASS', PARTNER_USER.username);
+          rec('F-2.partner-user', 'Create a temporary Partner user', 'PASS', PARTNER_USER.email);
 
+          // AdminService.CreateUserAsync sets `Username = model.Email`, so the account has no short
+          // username and must be signed in BY EMAIL. CreateUser returns no id (ApiResponse<object>
+          // with Data = null), so the id for teardown is resolved from the user list by email.
           const pCtx = await browser.newContext();
           const pPage = await pCtx.newPage();
-          if (!(await login(pPage, PARTNER_USER.username, PARTNER_USER.password))) {
+          if (!(await login(pPage, PARTNER_USER.email, PARTNER_USER.password))) {
             rec('F-2', 'Partner not-yet-effective gate', 'BLOCKED', 'partner user could not sign in');
           } else {
             // Walk the partner's tile population.
@@ -261,12 +277,46 @@ async function findByMarker(page, marker) {
   } finally {
     // ---- teardown: the imported certificates, then the temporary partner user ----
     try {
+      // The delete is NOT a form post, and the confirmation page carries no antiforgery input at
+      // all. Posting `form: { __RequestVerificationToken: '' }` therefore went out with an empty
+      // token, failed, and — wrapped in `.catch(() => {})` — failed silently, which is how
+      // 26-0659/26-0660 survived a "successful" run on 2026-09-10 and had to be removed by hand.
+      //
+      // The real path is what the UI does (Views/Certificate/CertificateInternalView.cshtml:499):
+      // a JSON POST carrying the token in a `RequestVerificationToken` HEADER. The token input
+      // lives on the certificate DETAIL page, so that is the page to read it from. This matches
+      // the project's modal -> delete -> toast convention; there is no server-rendered form.
+      //
+      // `cid` pins each delete to an exact row. Certificate.Number is not unique (137 numbers have
+      // multiple rows), and without it the shared-number rule can resolve to a DIFFERENT
+      // certificate than the one intended — the DEF-369 hazard. Ids come from the marker search,
+      // so a fixture is only ever deleted by an id this run's own marker returned.
+      const targets = await findByMarker(page, MARKER);
+      const idByNumber = new Map(targets.map((c) => [c.certificateNumber, c.id]));
       for (const number of [...new Set(created)]) {
-        await page.goto(`${BASE}/Certificate/Delete/${encodeURIComponent(number)}`, { waitUntil: 'domcontentloaded' }).catch(() => {});
+        const cid = idByNumber.get(number);
+        const q = cid ? `?cid=${cid}` : '';
+        await page.goto(`${BASE}/Certificate/CertificateInternalView/${encodeURIComponent(number)}${q}`,
+          { waitUntil: 'domcontentloaded' }).catch(() => {});
         const tok = await page.locator('input[name="__RequestVerificationToken"]').first().inputValue().catch(() => '');
-        await page.request.post(`${BASE}/Certificate/Delete/${encodeURIComponent(number)}`, {
-          form: { number, __RequestVerificationToken: tok }, failOnStatusCode: false,
-        }).catch(() => {});
+        if (!tok) {
+          rec('teardown.delete', `Delete ${number}`, 'FAIL',
+            `no antiforgery token on the detail page — delete NOT attempted (MANUAL CLEANUP: ${number})`);
+          continue;
+        }
+        // Graded on the body's `success` flag, not on HTTP status: this app answers a refused or
+        // invalid write with 200 + success:false, so status alone would score a no-op as a pass.
+        const del = await page.request.post(`${BASE}/Certificate/Delete/${encodeURIComponent(number)}${q}`, {
+          headers: { Accept: 'application/json', RequestVerificationToken: tok },
+          failOnStatusCode: false, timeout: REQ_TIMEOUT,
+        }).catch((e) => ({ status: () => 0, text: async () => e.message }));
+        const raw = await del.text().catch(() => '');
+        let ok = false;
+        try { ok = del.status() === 200 && JSON.parse(raw).success === true; } catch { /* non-JSON body */ }
+        if (!ok) {
+          rec('teardown.delete', `Delete ${number}`, 'FAIL',
+            `HTTP ${del.status()} ${raw.slice(0, 160)}`);
+        }
       }
       const left = await findByMarker(page, MARKER);
       rec('teardown.certificates', 'Imported fixtures removed',
@@ -277,22 +327,36 @@ async function findByMarker(page, marker) {
       if (usersResp.status() === 200) {
         const body = await usersResp.json();
         const list = body.data || body.users || body || [];
-        const mine = (Array.isArray(list) ? list : []).find((u) => (u.username || u.Username) === PARTNER_USER.username);
+        // Matched by EMAIL. UserViewModel has no `username` property at all, so the old
+        // `u.username === PARTNER_USER.username` never matched and the branch below never ran —
+        // harmless only while creation was also broken. Now that the user is really created, this
+        // is what stops one leaking into the dev database on every run.
+        const mine = (Array.isArray(list) ? list : []).find(
+          (u) => (u.email || u.Email || '').toLowerCase() === PARTNER_USER.email.toLowerCase());
         const id = partnerUserId ?? mine?.id ?? mine?.Id;
         if (id) {
           const tok = await page.locator('input[name="__RequestVerificationToken"]').first().inputValue().catch(() => '');
-          const del = await page.request.post(`${BASE}/Admin/DeleteUser/${id}`, {
-            headers: { RequestVerificationToken: tok }, failOnStatusCode: false,
+          // DeleteUser is [HttpDelete], not POST — a POST here does not reach the action at all.
+          // Graded on the body's `success` flag: it answers "cannot delete / not found" with
+          // HTTP 200 + success:false, so status alone would score a failed cleanup as removed.
+          const del = await page.request.fetch(`${BASE}/Admin/DeleteUser/${id}`, {
+            method: 'DELETE',
+            headers: { Accept: 'application/json', RequestVerificationToken: tok },
+            failOnStatusCode: false, timeout: REQ_TIMEOUT,
           });
+          const delBody = await del.text().catch(() => '');
+          let delOk = false;
+          try { delOk = del.status() === 200 && JSON.parse(delBody).success === true; } catch { /* non-JSON body */ }
           rec('teardown.partner-user', 'Temporary Partner user removed',
-            del.status() < 400 ? 'PASS' : 'FAIL',
-            del.status() < 400 ? PARTNER_USER.username : `MANUAL CLEANUP REQUIRED: user ${PARTNER_USER.username} (HTTP ${del.status()})`);
-        } else if (mine || partnerUserId) {
-          rec('teardown.partner-user', 'Temporary Partner user removed', 'FAIL', `MANUAL CLEANUP REQUIRED: ${PARTNER_USER.username}`);
+            delOk ? 'PASS' : 'FAIL',
+            delOk ? PARTNER_USER.email
+                  : `MANUAL CLEANUP REQUIRED: user ${PARTNER_USER.email} (HTTP ${del.status()} ${delBody.slice(0, 160)})`);
+        } else if (partnerUserId) {
+          rec('teardown.partner-user', 'Temporary Partner user removed', 'FAIL', `MANUAL CLEANUP REQUIRED: ${PARTNER_USER.email}`);
         }
       }
     } catch (e) {
-      rec('teardown', 'Cleanup completed', 'FAIL', `MANUAL CLEANUP may be required (${MARKER}, ${PARTNER_USER.username}): ${e.message}`);
+      rec('teardown', 'Cleanup completed', 'FAIL', `MANUAL CLEANUP may be required (${MARKER}, ${PARTNER_USER.email}): ${e.message}`);
     }
 
     await ctx.close();

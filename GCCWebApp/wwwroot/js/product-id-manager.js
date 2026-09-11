@@ -1506,10 +1506,18 @@ class ProductIdManager {
                 continue;
             }
 
-            // Build product ID object from headers
+            // Build product ID object from headers.
+            // DEF-423: strip the Excel text-format wrapper here, for EVERY column. It used to be
+            // applied only to the identifier value and the SKU, so once the exporter started
+            // guarding formula-leading values, a product name like "+Vantage Vinyl Verified"
+            // would have re-imported as '="+Vantage Vinyl Verified"'. Product Name, Partner and
+            // Description were all exposed. Caught by the round-trip assertion in
+            // Scripts/ci/check-csv-import.js, not by reading the code - checking that an importer
+            // HAS a strip is not the same as checking it applies it to the field you care about.
+            // Bare-equals residue is deliberately left to the value/SKU calls below, which opt in.
             const productId = {};
             rawHeaders.forEach((header, index) => {
-                productId[header] = fields[index]?.trim() || '';
+                productId[header] = GccCsv.stripExcelText(fields[index]?.trim() || '');
             });
 
             const type = productId.type || '';
@@ -1561,15 +1569,11 @@ class ProductIdManager {
      * so removing it is safe and makes a raw re-import of an exported file lossless.
      */
     stripExcelTextFormat(value) {
+        // DEF-423: this logic now lives in GccCsv.stripExcelText so the company and user
+        // importers can share it. Behaviour here is unchanged - product IDs and SKUs never
+        // legitimately begin with "=", so this caller keeps the bare-equals residue handling.
         if (!value || typeof value !== 'string') return value;
-        let v = value.trim();
-        if (v.startsWith('="') && v.endsWith('"')) {
-            return v.slice(2, -1).replace(/""/g, '"');   // intact form ="..."
-        }
-        if (v.startsWith('=')) {
-            return v.slice(1);                            // parseCSVLine residue =...
-        }
-        return v;
+        return GccCsv.stripExcelText(value, true);
     }
 
     fixScientificNotation(value) {

@@ -114,6 +114,25 @@
     function escapeField(value, forceQuote) {
         const str = value === null || value === undefined ? '' : String(value);
         const escaped = str.replace(/"/g, '""');
+
+        // CSV formula-injection guard (DEF-306, carried here by DEF-423). A value starting
+        // = + - @ (or a leading tab/CR) is evaluated as a formula by Excel and Sheets - which
+        // is how the certification type "+Vantage Vinyl Verified" came to display as #NAME?.
+        // Emit it in Excel text format so it shows literally and cannot execute.
+        //
+        // DEF-315: the "=" must sit INSIDE the CSV quoting. Writing ="value" leaves the field
+        // unquoted per RFC 4180, so any embedded comma splits it and shifts every following
+        // column. "=""value""" decodes to the same ="value" cell content, so Excel's treatment
+        // is unchanged - this is an encoding-only fix.
+        //
+        // Safe to emit only because GccCsv.stripExcelText() now undoes it on the way back in,
+        // in BOTH client importers (DEF-423a) and the server one
+        // (CertificateImportService.StripExcelTextFormat). Adding this guard without that strip
+        // would have turned a company named "+Foo" into one named '="+Foo"' on re-import.
+        if (str.length > 0 && '=+-@\t\r'.indexOf(str[0]) >= 0) {
+            return '"=""' + escaped.replace(/"/g, '""') + '"""';
+        }
+
         // A value holding a comma, a quote, or a line break MUST be quoted (RFC 4180).
         if (forceQuote || /[",\r\n]/.test(str)) {
             return '"' + escaped + '"';
@@ -121,7 +140,42 @@
         return escaped;
     }
 
-    global.GccCsv = { splitRecords: splitRecords, parseLine: parseLine, escapeField: escapeField };
+    /**
+     * Undo the Excel text-format wrapper that a formula-injection guard adds (DEF-423).
+     *
+     * The guard (DEF-306/DEF-315) emits a value beginning = + - @ as the CSV field
+     * "=""value""" so Excel shows it literally instead of evaluating it as a formula. After
+     * parseLine() has removed the CSV quoting that decodes to ="value" - which is NOT the
+     * original value. Without this, export -> edit -> re-import turns a company named +Foo
+     * into a company named ="+Foo". The server importer has always done this
+     * (CertificateImportService.StripExcelTextFormat); the client importers did not.
+     *
+     * @param {*} value the parsed field
+     * @param {boolean} [stripBareEquals] also drop a lone leading "=" left as residue by a
+     *        parser that removed the surrounding quotes but not the marker. Only safe where a
+     *        legitimate value can never start with "=" - product identifiers and SKUs. OFF by
+     *        default, because a company or product NAME beginning "=" is unusual but legal.
+     * @returns {string} the original value
+     */
+    function stripExcelText(value, stripBareEquals) {
+        if (value === null || value === undefined) return value;
+        if (typeof value !== 'string') return value;
+        const v = value.trim();
+        if (v.startsWith('="') && v.endsWith('"') && v.length >= 3) {
+            return v.slice(2, -1).replace(/""/g, '"');   // intact ="..." form
+        }
+        if (stripBareEquals && v.startsWith('=')) {
+            return v.slice(1);                            // residue: quotes already removed
+        }
+        return v;
+    }
+
+    global.GccCsv = {
+        splitRecords: splitRecords,
+        parseLine: parseLine,
+        escapeField: escapeField,
+        stripExcelText: stripExcelText
+    };
 
     // Also expose to Node so Scripts/ci/check-csv-import.js can regression-test this exact file
     // rather than a copy of it that can drift.

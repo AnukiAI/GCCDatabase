@@ -760,9 +760,12 @@
                 if (!line) continue;
 
                 const fields = parseCSVLine(line);
-                const name = fields[nameIdx]?.trim() || '';
-                const email = emailIdx !== -1 ? (fields[emailIdx]?.trim() || '') : '';
-                let url = urlIdx !== -1 ? (fields[urlIdx]?.trim() || '') : '';
+                // DEF-423: strip the Excel text-format wrapper (="value") that the
+                // formula-injection guard adds on export, so a company named "+Foo" does not
+                // re-import as a company named '="+Foo"'.
+                const name = GccCsv.stripExcelText(fields[nameIdx]?.trim() || '');
+                const email = emailIdx !== -1 ? GccCsv.stripExcelText(fields[emailIdx]?.trim() || '') : '';
+                let url = urlIdx !== -1 ? GccCsv.stripExcelText(fields[urlIdx]?.trim() || '') : '';
 
                 // Add protocol to URL if missing
                 if (url && !url.match(/^https?:\/\//)) {

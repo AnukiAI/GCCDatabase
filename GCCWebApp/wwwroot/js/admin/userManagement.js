@@ -1072,7 +1072,10 @@ async function importCSV() {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const contents = e.target.result;
-            const lines = contents.split('\n');
+            // DEF-419: split into RECORDS, not lines. A quoted field may contain a hard line
+            // break (Excel Alt+Enter); breaking on every newline tore such a row in half and
+            // silently shifted every column after the break out of alignment.
+            const lines = GccCsv.splitRecords(contents);
 
             const items = [];
             for (let i = 1; i < lines.length; i++) {
@@ -1221,7 +1224,8 @@ function exportCSV() {
 
     const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.map(field => `"${field}"`).join(','))
+        // DEF-420: was `"${field}"` - a value containing a double-quote broke the record.
+        ...rows.map(row => row.map(field => GccCsv.escapeField(field, true)).join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

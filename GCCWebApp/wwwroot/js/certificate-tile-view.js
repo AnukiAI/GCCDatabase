@@ -1547,7 +1547,8 @@
         // Use certificate number (e.g., "24-1605") instead of ID for URL
         const numericId = Number(certificateId);
         const base = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
-        window.location.href = numericId > 0 ? `${base}?cid=${numericId}` : base;
+        // CR-048 (QC #261): open Edit in a new tab so the results list behind it survives.
+        window.open(numericId > 0 ? `${base}?cid=${numericId}` : base, '_blank');
     };
 
     // Export functions for global access as object as well

@@ -408,7 +408,8 @@
             return;
         }
         const editCid = Number(certificateId) > 0 ? `?cid=${Number(certificateId)}` : '';
-        window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}${editCid}`;
+        // CR-048 (QC #261): open Edit in a new tab, consistent with the other four Edit surfaces.
+        window.open(`/Certificate/Edit/${encodeURIComponent(certificateNumber)}${editCid}`, '_blank');
     };
 
     // Delete certificate function

@@ -459,7 +459,8 @@ function exportCSV() {
 
     const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        // DEF-420: was `"${cell}"` - a value containing a double-quote broke the record.
+        ...rows.map(row => row.map(cell => GccCsv.escapeField(cell, true)).join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

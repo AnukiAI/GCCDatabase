@@ -34,9 +34,62 @@
     let pageUnloading = false;
     window.addEventListener('pagehide', () => { pageUnloading = true; });
 
+    // -- CR-049 (QC #262): remembered Tile/List preference -----------------------------------
+    // Logged-in views open in LIST by default: the team works through certs in the table and was
+    // re-toggling on every page load. A deliberate switch to Tile is remembered for that browser,
+    // so the new default never fights someone who prefers tiles.
+    const VIEW_PREF_KEY = 'gcc-cert-view-internal';
+
+    function getPreferredView() {
+        try {
+            const saved = localStorage.getItem(VIEW_PREF_KEY);
+            if (saved === 'tile' || saved === 'list') return saved;
+        } catch (e) { /* localStorage unavailable */ }
+        return 'list';
+    }
+
+    function savePreferredView(viewType) {
+        try {
+            localStorage.setItem(VIEW_PREF_KEY, viewType);
+        } catch (e) { /* localStorage unavailable */ }
+    }
+
+    // Keep the toggle's visual state AND aria-pressed in sync. aria-pressed was hardcoded in the
+    // markup and never updated, which was survivable while tile was always the opening view. It is
+    // not survivable now that the opening view varies per user.
+    function setToggleButtonState(viewType) {
+        document.querySelectorAll('.toggle-btn[data-view]').forEach(btn => {
+            const isActive = btn.dataset.view === viewType;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+    }
+
+    // Put the page in the preferred view BEFORE the first load, so renderCertificates() paints
+    // straight into the table and there is no tile-then-list flash.
+    function applyPreferredViewOnLoad() {
+        const viewType = getPreferredView();
+        state.currentView = viewType;
+        setToggleButtonState(viewType);
+        if (viewType !== 'list') return;
+
+        applyTableViewChrome();
+
+        // The initial "Loading certificates..." spinner lives inside #certificatesGrid, which
+        // applyTableViewChrome() just hid. Move it into the table container so list-first users
+        // still get loading feedback; removeSkeleton() drops it by id wherever it ends up.
+        const loading = document.getElementById('initialLoadingState');
+        const tableView = document.getElementById('tableView');
+        if (loading && tableView) {
+            loading.style.gridColumn = '';
+            tableView.insertBefore(loading, tableView.firstChild);
+        }
+    }
+
     async function initialize() {
         setupUrlParameters(); // Parse URL params into state.filters first
         setupMobileFilterToggle(); // Bind toggle synchronously so it works while API calls are pending
+        applyPreferredViewOnLoad(); // CR-049: open in List (or the remembered choice) before the first fetch
 
         // Load filters and certificates in parallel for faster initial render
         await Promise.all([
@@ -1293,8 +1346,12 @@
     }
 
     function editCertificate(certificateNumber, certificateId) {
+        // CR-048 (QC #261): open Edit in a new tab, matching Preview. Editing used to navigate this
+        // tab away from the results, destroying the analyst's search on every cert they touched.
+        // Safe to leave the caller on the list: a successful save redirects the NEW tab to
+        // CertificateInternalView (CertificateController.cs), never back to the tile view.
         // Use certificate number (e.g., "24-1605") instead of ID for URL
-        window.location.href = withCid(`/Certificate/Edit/${encodeURIComponent(certificateNumber)}`, certificateId);
+        window.open(withCid(`/Certificate/Edit/${encodeURIComponent(certificateNumber)}`, certificateId), '_blank');
     }
 
     window.viewCertificate = viewCertificate;
@@ -1435,6 +1492,7 @@
         document.querySelectorAll('.toggle-btn[data-view]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const viewType = btn.dataset.view;
+                savePreferredView(viewType); // CR-049: an explicit toggle is remembered for next load
                 handleViewTypeChange(viewType);
             });
         });
@@ -1629,11 +1687,7 @@
     }
 
     async function handleViewTypeChange(viewType) {
-        // Update active button state
-        document.querySelectorAll('.toggle-btn[data-view]').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        document.querySelector(`[data-view="${viewType}"]`).classList.add('active');
+        setToggleButtonState(viewType);
 
         // Track current view state
         state.currentView = viewType;
@@ -1648,8 +1702,11 @@
         // Sidebar state is preserved - user controls collapse/expand manually
     }
 
-    // Show table view
-    async function showTableView() {
+    // Apply the list-view chrome (container visibility + wide-layout body class) WITHOUT touching
+    // the data. Split out of showTableView for CR-049 so the on-load default can put the page in
+    // list mode before the first fetch: showTableView's empty-state branch would otherwise fire a
+    // second loadCertificates().
+    function applyTableViewChrome() {
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
@@ -1657,7 +1714,18 @@
         if (tableView) {
             tableView.classList.add('active');
             tableView.style.display = 'block';
+        }
 
+        // Add class to body for wider layout in table view
+        document.body.classList.add('table-view-active');
+    }
+
+    // Show table view
+    async function showTableView() {
+        applyTableViewChrome();
+        const tableView = document.getElementById('tableView');
+
+        if (tableView) {
             // If certificates aren't loaded yet, load them first
             if (!state.certificates || state.certificates.length === 0) {
                 await loadCertificates();
@@ -1665,9 +1733,6 @@
 
             populateTableView();
         }
-
-        // Add class to body for wider layout in table view
-        document.body.classList.add('table-view-active');
 
         // Bulk actions bar will handle Download Selected button visibility
     }

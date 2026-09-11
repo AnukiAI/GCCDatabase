@@ -1,0 +1,153 @@
+{
+  "ranAt": "2026-09-11T01:01:23.540Z",
+  "base": "http://localhost:5101",
+  "total": 24,
+  "passed": 23,
+  "failed": 1,
+  "results": [
+    {
+      "id": "CR049.int.default",
+      "desc": "Internal view opens in LIST with no saved preference",
+      "status": "PASS",
+      "observed": "tableView.active=true display=block body.table-view-active=true grid.hidden-for-table=true"
+    },
+    {
+      "id": "CR049.int.toggle",
+      "desc": "List toggle button is the active one, aria-pressed correct on BOTH",
+      "status": "PASS",
+      "observed": "list: active=true aria-pressed=true | tile: active=false aria-pressed=false"
+    },
+    {
+      "id": "CR049.int.rows",
+      "desc": "Table rows actually rendered (not an empty default view)",
+      "status": "PASS",
+      "observed": "#gridBody rows=20"
+    },
+    {
+      "id": "CR049.int.spinner",
+      "desc": "Initial loading spinner cleared after load",
+      "status": "PASS",
+      "observed": "#initialLoadingState present=false"
+    },
+    {
+      "id": "CR049.int.noDoubleLoad",
+      "desc": "Exactly ONE certificates fetch on load (no duplicate from showTableView)",
+      "status": "PASS",
+      "observed": "1 request(s): http://localhost:5101/api/certificate-tiles-internal?sortBy=newest&page=1&pageSize=20"
+    },
+    {
+      "id": "CR049.int.preexisting",
+      "desc": "Pre-existing page error present but NOT caused by these CRs (Home shows it too)",
+      "status": "INFO",
+      "observed": "0 occurrence(s): (none)"
+    },
+    {
+      "id": "CR049.int.console",
+      "desc": "No NEW console/page errors on load",
+      "status": "PASS",
+      "observed": "(none)"
+    },
+    {
+      "id": "CR049.int.noRunaway",
+      "desc": "List-first does not chain-load pages while the user sits still",
+      "status": "PASS",
+      "observed": "list fetches: 1 at settle -> 1 after 8s idle; rows now 20"
+    },
+    {
+      "id": "CR048.list.newtab",
+      "desc": "Edit opens a NEW tab pointing at /Certificate/Edit/{number}",
+      "status": "PASS",
+      "observed": "new tab url=http://localhost:5101/Certificate/Edit/26-0497?cid=5796"
+    },
+    {
+      "id": "CR048.list.survives",
+      "desc": "Originating list tab did NOT navigate away",
+      "status": "PASS",
+      "observed": "before=http://localhost:5101/Certificate/CertificateTileViewInternal\n                   after =http://localhost:5101/Certificate/CertificateTileViewInternal"
+    },
+    {
+      "id": "CR048.edit.loads",
+      "desc": "Edit page in the new tab renders a form (route keyed by number works)",
+      "status": "PASS",
+      "observed": "<form> count=2, title=\"Edit Certificate - GreenCircle Certified Database\""
+    },
+    {
+      "id": "CR049.pref.saved",
+      "desc": "Clicking Tile writes the preference",
+      "status": "PASS",
+      "observed": "localStorage[gcc-cert-view-internal]=tile"
+    },
+    {
+      "id": "CR049.pref.tileSticks",
+      "desc": "Reload honours the saved Tile preference (default does not override a choice)",
+      "status": "PASS",
+      "observed": "tableView.active=false tile.active=true tile.aria=true cards=20"
+    },
+    {
+      "id": "CR049.pref.listSticks",
+      "desc": "Reload after choosing List re-opens in List",
+      "status": "PASS",
+      "observed": "tableView.active=true list.active=true rows=20 pref=list"
+    },
+    {
+      "id": "CR049.ext.default",
+      "desc": "External view opens in LIST with no saved preference",
+      "status": "PASS",
+      "observed": "tableView.active=true body.table-view-active=true grid.hidden=true rows=20"
+    },
+    {
+      "id": "CR049.ext.toggle",
+      "desc": "External toggle aria-pressed correct on both buttons",
+      "status": "PASS",
+      "observed": "list: active=true aria=true | tile: active=false aria=false"
+    },
+    {
+      "id": "CR049.ext.noDoubleLoad",
+      "desc": "Exactly ONE certificates fetch on external load",
+      "status": "PASS",
+      "observed": "1 request(s)"
+    },
+    {
+      "id": "CR049.ext.console",
+      "desc": "No console/page errors on external load",
+      "status": "PASS",
+      "observed": "(none)"
+    },
+    {
+      "id": "CR049.ext.noEditBtn",
+      "desc": "External list rows still expose NO Edit button (RBAC unchanged)",
+      "status": "PASS",
+      "observed": "edit buttons in external #gridBody = 0"
+    },
+    {
+      "id": "CR049.vp.desktop-xl",
+      "desc": "List default renders at 1920x1080 with no horizontal page overflow",
+      "status": "PASS",
+      "observed": "list=true rows=20 bodyOverflowPx=0 errors=0 shot=internal-list-desktop-xl-1920x1080.png"
+    },
+    {
+      "id": "CR049.vp.desktop",
+      "desc": "List default renders at 1440x900 with no horizontal page overflow",
+      "status": "PASS",
+      "observed": "list=true rows=20 bodyOverflowPx=0 errors=0 shot=internal-list-desktop-1440x900.png"
+    },
+    {
+      "id": "CR049.vp.laptop",
+      "desc": "List default renders at 1280x800 with no horizontal page overflow",
+      "status": "PASS",
+      "observed": "list=true rows=20 bodyOverflowPx=0 errors=0 shot=internal-list-laptop-1280x800.png"
+    },
+    {
+      "id": "CR049.vp.tablet",
+      "desc": "List default renders at 768x1024 with no horizontal page overflow",
+      "status": "PASS",
+      "observed": "list=true rows=20 bodyOverflowPx=0 errors=0 shot=internal-list-tablet-768x1024.png"
+    },
+    {
+      "id": "CR049.vp.mobile",
+      "desc": "List default renders at 390x844 with no horizontal page overflow",
+      "status": "PASS",
+      "observed": "list=true rows=20 bodyOverflowPx=0 errors=0 shot=internal-list-mobile-390x844.png"
+    }
+  ]
+}

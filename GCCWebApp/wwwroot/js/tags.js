@@ -585,7 +585,10 @@ async function showImportModal() {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const contents = e.target.result;
-            const lines = contents.split('\n').filter(line => line.trim());
+            // DEF-419: split into RECORDS, not lines. A quoted field may contain a hard line
+            // break (Excel Alt+Enter); breaking on every newline tore such a row in half and
+            // silently shifted every column after the break out of alignment.
+            const lines = GccCsv.splitRecords(contents);
 
             if (lines.length < 2) {
                 await AdminCore.showWarningModal({

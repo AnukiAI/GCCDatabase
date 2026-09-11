@@ -405,3 +405,66 @@ script.
 
 **Rough cost.** An hour for steps 1–2. Step 3 is a small CR, only worth doing if partner keys are ever
 minted by anyone other than a test script.
+
+---
+
+## Cold start: the first INTERNAL certificate query was 38-42 s twice, 1.7 s later — unresolved (found 2026-09-10)
+
+> **CORRECTED the same evening, before this was acted on.** The section below originally described
+> this as the app's cold start and as the experience of every user after an app-pool recycle.
+> **Follow-up measurement does not support that.** On a freshly restarted process the **public**
+> tile endpoint — the only one with a client-side abort ceiling — returned in **0.8 s**, and the
+> internal endpoint returned in **1.7 s** minutes later. The 38-42 s figures are real and were
+> reproduced twice back-to-back, but they are **not reliably reproducible** and the cause is not
+> established. Read what follows as an unexplained intermittent, not a known cold-start cost, and
+> **do not spend half a day on it before reproducing it.**
+>
+> **It does not gate a deploy.** Gate 6 asks that cold time clear any client-side
+> `AbortSignal.timeout(...)` with margin. The only such ceiling is 30 s on the **public** view
+> (`certificate-tile-view.js:260`), and that endpoint measured 0.8 s cold. The internal and external
+> views have **no** abort ceiling, so a slow first load there degrades to a long spinner, not an
+> error.
+
+**What was measured.** On a freshly started dev server, the first request to
+`/api/certificate-tiles-internal` returned in **37.9 s** with the view in tile mode and **42.3 s** in
+list mode. Same single request, same 6,019-certificate dataset; the gap between the two is variance
+in the warm-up, not a difference between the views. Every subsequent load in the same session renders
+in a couple of seconds.
+
+**Why it surfaced now.** It broke a verification run. The first assertion block waited 25 s, gave up
+on a page that had not finished loading, and every later assertion cascaded off that dead page — six
+red results that were not real. It reads exactly like a product failure, and it cost real time to
+attribute. Measuring **both** view modes on a cold server is what separated "the app is warming up"
+from "the change we just made is slow".
+
+**Why it might still matter.** *If* it reproduces, it is the experience of the first analyst to open
+the certificate list after an app-pool recycle — over half a minute of spinner with no way to tell
+it from a hang. That "if" is doing real work: the same endpoint was 1.7 s on a later attempt, and the
+public list was 0.8 s cold. Both slow readings were taken while the machine was also running builds
+and several headless Chromium instances, which is the most likely confound and the first thing to
+rule out.
+
+**Suggested action.**
+
+0. **Reproduce it first.** It did not reproduce on the follow-up attempt. Restart the app with
+   nothing else running on the machine and time the first authenticated
+   `/api/certificate-tiles-internal?page=1&pageSize=20`. If it comes back in seconds, close this
+   item as a measurement taken under load rather than a real defect.
+1. Only if it reproduces: measure it on the **test environment**, not dev — dev shares a machine
+   with builds, so the absolute number is not trustworthy. The shape (first-request-only) will be.
+2. If it reproduces, the usual suspects in order: EF model building on first query (an EF compiled
+   model moves this to build time), the absence of a warm-up ping after recycle, and the cold plan
+   for the list query itself.
+3. Cheapest partial mitigation regardless of cause: an IIS/Plesk **Application Initialization**
+   warm-up hitting the certificate list endpoint after a recycle, so the cost lands on the server
+   rather than on the first analyst.
+
+**Rough cost.** Ten minutes to attempt a clean reproduction — do that before anything else. Half a
+day to diagnose properly on test *only if it reproduces*. The warm-up ping is well under an hour and
+is cheap insurance either way.
+
+**Related, seen at the same time, not chased:** a `pageerror: Invalid or unexpected token` fires on
+the internal certificate view, the public tile view, and the **anonymous Home page**. All three
+certificate JS bundles pass `node --check`, so it is a Razor-rendered inline script — most likely
+unescaped data reaching a `<script>` block. It is silent to users today, but a page-level syntax
+error means whatever follows it in that block never runs. Worth half an hour to locate.

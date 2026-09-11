@@ -14238,13 +14238,13 @@ out carrying `Zero Waste to Landfill`, a subcategory that did not exist in the s
 
 ### DEF-413 — Certificate subcategories are not searchable or filterable on any surface
 
-- **Spec doc:** `docs/tracking/DEF-413-subcategory-filter-as-is-to-be.md` — As-Is / To-Be, the three pages, the exact per-file change, acceptance tests with real counts, effort. Written 2026-09-09; still specification only.
+- **Spec doc:** `docs/tracking/DEF-413-subcategory-filter-as-is-to-be.md` — As-Is / To-Be, the three pages, the exact per-file change, acceptance tests with real counts, effort. Written 2026-09-09. **No longer specification only — built, deployed and confirmed live 2026-09-09.**
 
 - **Date raised:** 2026-09-09
 - **Severity:** Medium-High (client-reported; the field's stated purpose is unmet on public + login views)
-- **Status:** **DIAGNOSED — no code changed, awaiting Shawn's investigation + scope decision**
+- **Status:** **FIXED + DEPLOYED to TEST 2026-09-09, confirmed live** — see the post-deploy addendum at the end of this entry. (Was: DIAGNOSED, no code changed.)
 - **Reporter:** Client, via Shawn, 2026-09-09
-- **QC log ID:** not yet assigned (reported by email, not through the QC log)
+- **QC log ID:** **QC #260** — `Database QC Log_9.9.26_sw_updates.xlsx`, sheet `GCC DB QC Log2`, **row 269**, page `Filtering`, raised by Carly 2026-09-09. (Originally reported by email; the client added the log row on 9/9, opening it *"See email."*) Paste-ready cell: `docs/tracking/qc-log-update-2026-09-10-QC260-subcategory-filtering.md`.
 - **May convert to CR-047** — see *"Is this a defect or a change?"* below. That call is Shawn's.
 
 **Client's words:**
@@ -14823,6 +14823,68 @@ three are bounded and named: P2 widening needs seeded data (CR), P6 needs a call
 DEF-414 pre-fix comment figures still want re-measuring or softening.
 
 
+#### DEF-413 CLOSED OUT 2026-09-10 — QC #260 assigned; live on TEST; two residuals handed back to the client
+
+**QC number now known.** The client filed this on the log on 2026-09-09 as **QC #260**
+(`Database QC Log_9.9.26_sw_updates.xlsx`, sheet `GCC DB QC Log2`, **row 269**, page `Filtering`,
+raised by Carly), opening with *"See email."* — so the register's earlier *"not yet assigned"* is
+superseded. Column O reads `New`; column Q is ours to set. The paste-ready column J and Q text is
+`docs/tracking/qc-log-update-2026-09-10-QC260-subcategory-filtering.md`.
+
+Note this is a **different** QC item from #169, the April entry that produced DEF-167 and the
+Level-1-only dropdown. #169 asked for subcategory names to be *removed* from the filter box; #260
+asks for certificates carrying them to be *returned* by it. Both are satisfiable at once — the
+dropdown contents are unchanged and only the matching widened — which is exactly why the fix was
+scoped to the predicate. Do not read #260 as reversing #169.
+
+**Live on TEST.** Deployed in the 9-9 bundle and confirmed by two independent proofs that need no
+pre-fix baseline and no DB access:
+
+- `Scripts/smoke-prod/_def413-live.js` — filters the public tile API by each of the 13 top-level
+  certification types and checks whether any returned certificate's OWN type differs from the filter
+  value. **Six filters did**, which is impossible under exact-name matching: Certified Energy Savings,
+  LCA Optimized, Recycled Content (529), Sustainable Energy Practices, Sustainable Manufacturing
+  Practices, Waste Diversion from Landfill (151, reaching two subcategories).
+- **The export, independently.** Admin `ExportCertificates?certificationTypes=Recycled Content`
+  returned **2,403 data rows**. Dev measured that filter at **2,314 pre-fix / 2,403 post-fix**, so P5
+  carries the fix too — the surface DEF-404 exists to protect.
+
+**Two residuals, both handed to the client rather than absorbed.**
+
+1. **Filter-OPTIONS endpoints were never in scope and still are not fixed.** All six *listing*
+   predicates match subcategories; the three `GetFilterOptions` endpoints still build the checkbox
+   list as `IsActive && ParentId == null && <ids that are some cert's OWN type>.Contains(ct.Id)`
+   (`CertificateTilesApiController.cs:317`, `…Internal…:595`, `…External…:654`). So
+   **Recyclable Material** (9 public certs) and **Zero Waste to Landfill** (17) match certificates but
+   cannot be clicked. Passing either name to the API directly returns the right rows, and the search
+   box reaches both, so there is a working path today. Recyclable Material is the **third subcategory
+   on the client's own reproducer cert 25-8071**, so they are likely to look for it. Making these
+   clickable puts Level-2 names back in the pane, directly against QC #169 — **CR, not a defect, and
+   it needs the client's explicit yes.** Asked as a question in the QC #260 cell. Rough cost if
+   approved: one predicate, three call sites.
+2. **Widened checkbox semantics need a sentence of confirmation.** "Recycled Content" now returns both
+   certificates *of* that type and CSF certificates carrying it as a subcategory. That is what #260
+   asks for, but it widens a control the client had already validated. Also asked in the cell.
+
+**Cosmetic, unfiled:** autocomplete returns `Recyclable Material` twice — it queries
+`CertificationTypes` with no ParentId restriction and no dedupe by name, so the Level-1 and Level-2
+rows both match. Expected given the hierarchy; one-line distinct-by-name fix; no data impact.
+
+**Latent, not a defect today:** the subcategory resolvers inherit `Take(MaxInlineIds + 1)` = 2001 ids
+with **no overflow detection** — past the ceiling the list truncates silently rather than falling
+back. Max reach measured today is **227 certificates** (every cert carrying any subcategory at all),
+so this is headroom. But subcategories are applied per-certificate by analysts, unlike the four tag
+rows, so this ceiling is far more reachable over time than the tag one. Worth a guard before it is
+worth a defect row.
+
+**Still not verified, and named rather than glossed:** P2 (external tile) widening itself is unproven
+— no fixture company owns a subcategory certificate, so a "no leak" result there is vacuous; what
+*was* proven on P2 is that scoping does not widen (unscoped union of 39 for `Carbon Footprint
+Reduction`, the Sika-scoped user gets exactly its own 1). P6 (partner list) has no controller caller
+and cannot be exercised at all. Neither gap touches what the client will retest.
+
+---
+
 #### DEF-415 — Product Management renders ZERO rows for analyst and admin (API returns 3,633)
 
 **Found 2026-09-09** during the local regression run for the DEF-413 batch. **Found, not fixed.
@@ -14996,3 +15058,233 @@ loads normally · `REG_ALLOW_FOREIGN_ACCOUNTS=1` → proceeds · dev overrides �
 **Still true after this fix:** a *full* local `_regression` run is not yet possible — dev has no
 second external company and the partner fixtures use different emails/passwords. This makes the
 suite **configurable** and its misuse **loud**; it does not port the suite to dev.
+
+---
+
+### DEF-418 — Certificate Import help text is wrong in four places and contradicts itself
+
+- **Date raised:** 2026-09-10
+- **Severity:** Low (documentation only — no behaviour is wrong) but **client-facing and confidence-damaging**
+- **Status:** **RAISED — not started.** No code changed.
+- **Reporter:** Client, via Shawn, 2026-09-09
+- **QC log ID:** **QC #263** — `Database QC Log_9.9.26_sw_updates.xlsx`, sheet `GCC DB QC Log2`, **row 272**, page `Cert Import`, raised by Carly 2026-09-09. Source email `CR_9_9_26_edit.pdf`.
+- **Triage doc:** `docs/tracking/qc-triage-2026-09-10-QC261-264.md`
+- **Draft client reply:** `docs/tracking/2026-09-09-client-reply-db-feedback.md` (unsent)
+
+**Client's words:**
+
+> I think we need to update the below text to be more detailed in the above cases since right now
+> its saying Cert Number is required when its not when adding NEW entries. Image 120
+
+**The client found one wrong line. There are four, and the page contradicts itself.**
+
+All in `Views/CertificateImport/Index.cshtml`:
+
+| Line | Says | Actually |
+|---|---|---|
+| **72** | *"Required Columns: CertificateNumber, CompanyName, ProductName, CertificationType"* | **CertificateNumber is explicitly NOT required.** `Services/Import/CertificateImportService.cs:1340` says so in as many words: *"Certificate # is deliberately NOT required."* The other three are required. |
+| **74** | *"Validation: Company, Product, and CertificationType must exist in database"* | **Wrong for Company and Product** — both are auto-created on import (`CertificateImportService.cs:668-745`, *"Auto-created via certificate import"*). Correct for Certification Type only (`:1527`). |
+| **127-131** | The same list again, headed *"Required Columns"* | The same two errors restated. |
+| **128-131** | Column names given as `CERTIFICATE_NUMBER`, `COMPANY_NAME`, … | **Not wrong** — these are genuine accepted aliases (`CertificateImportService.cs:78-89`). But they are **not the headers `DownloadTemplate` emits** (`Certificate #`, `Company`, `Product Name`, `Certification Type` — `CertificateImportController.cs:468`). The page documents a format the template does not produce. |
+
+**Line 74 and line 128 contradict each other on the same page** about whether companies and products
+must pre-exist — and the panel people read first is the wrong one.
+
+**Nothing on the page describes the create-vs-update behaviour at all** — blank Certificate # mints a
+new number (`:1351`, `:1854`), a supplied one **updates that certificate** (`:1637`) behind an
+overwrite confirmation that takes a safety backup first (CR-023 R5,
+`CertificateImportController.cs:151-171`). That behaviour is exactly what the client was asking
+about, and the page is silent on it.
+
+**Why this is a defect and not a CR.** No functionality changes. The instructions describe an import
+that does not exist, and the correct behaviour has been in place throughout — this is incorrect
+documentation of shipped behaviour, which is the defect definition
+([[feedback_data_issue_vs_defect]] does not apply; the artifact at fault is our own copy).
+
+**Fix:** rewrite both panels against the code, align the documented column names with what the
+template emits, and state the two cases (blank = new, supplied = update, with the confirmation step).
+Copy only, no logic.
+
+**Effort:** ~1-1.5 hr including a read-back against the code.
+
+**Do NOT "fix" it by changing the accepted aliases or the template headers.** Both are correct and
+in use — the migration's own source files rely on the `SCREAMING_SNAKE` spellings (see the DEF-347
+note at `CertificateImportService.cs:100`). Only the prose is wrong.
+
+- **Related:** QC #263 (same row also carries a question, answered at zero cost — see the triage doc), CR-023 R5 (the overwrite guard), DEF-347 / DEF-355 (why the alias lists exist), DEF-353 (blank-date rejection, the sibling "blank means what?" ruling).
+
+---
+
+### DEF-419 — CSV import silently drops a row and blanks its Partner when any cell contains a line break
+
+- **Date raised:** 2026-09-10
+- **Severity:** **HIGH.** Silent data loss on bulk import. Both failure modes are invisible: a row loses its Partner tag *and* another row disappears entirely, while the import still reports success.
+- **Status:** **FIXED — built, not deployed.** Local build clean, regression check green. Not on TEST.
+- **Reporter:** Dan (client) via Shawn, 2026-09-10
+- **QC log ID:** not yet assigned — Shawn to add next round (client said *"I can add to QC log next round"*).
+- **Affected file from the client:** `spectrum asin db upload reconciliation 5L.xlsx`
+
+**Client's words:**
+
+> When he imported these ASINs — 'Amazon' did not show up in the 3rd row partner column in DB. Not
+> sure why it pulled through for all but 1 of the products. He tried 3 different times and it never
+> resolved. Just concerned when we upload hundreds/thousands if it misses an Amazon tag it could be
+> a major issue we might not notice when lists are that large.
+
+**Root cause.** Every client-side importer read the file as *lines* rather than *records*:
+`contents.split('\n')` ran **before** the quote-aware `parseCSVLine()`. A CSV field is permitted to
+contain a hard line break as long as it is quoted (RFC 4180 §2.6) — which is exactly what Excel
+writes when a cell holds an Alt+Enter break. Cell `C4` of the client's sheet held one:
+
+```
+Satisfry Panoramic 5L Air Fryer Cream
+(Same as 27420-56 except in Cream color)
+```
+
+so the record was torn in two:
+
+| Fragment | Parsed as | Result |
+|---|---|---|
+| `ASIN,B0D93WK4JX,"Satisfry Panoramic 5L Air Fryer Cream` | 3 fields | Imported. Correct ASIN, **truncated name, NO Partner** — the Partner column now sits past the end of the row. |
+| `(Same as … color)",,Amazon,` | 1 field (the stray `"` re-opens quote mode) | **Dropped in silence** by `if (fields.length < 2) continue;` — no error row, nothing in the preview. |
+
+Reproduced against the real parser with the real cell text before any change: rows 1/2/4 returned
+`PARTNER="Amazon"`, row 3 returned `PARTNER=""` with a truncated name, row 4 vanished. Matches the
+client's screenshot field for field.
+
+**Why the three retries never fixed it.** The same file re-parses identically, so the imported
+partner was `''` and the stored partner was `''` — the preview's change detection
+(`product-id-manager.js` ~1655) saw no difference, marked the row *unchanged*, and skipped it. No
+re-import of that file could ever repair the row.
+
+**Scope — this was never Product-ID specific. All six client-side importers had it:**
+
+| Importer | File | Was |
+|---|---|---|
+| Product IDs / ASINs | `wwwroot/js/product-id-manager.js` | `split('\n')` |
+| Companies | `wwwroot/js/admin/companyManagement.js` | `split(/\r?\n/)` |
+| Products | `wwwroot/js/admin/productManagement.js` | `split(/\r?\n/)` |
+| Tags | `wwwroot/js/tags.js` | `split('\n')` |
+| Users | `wwwroot/js/userManagement.js` | `split('\n')` |
+| Users (unreferenced copy) | `wwwroot/js/admin/userManagement.js` | `split('\n')` |
+
+**Server side:** `ProductIdService.ImportFromCsvAsync` (behind `POST /api/productids/certificate/{id}/import`)
+was **worse** — `ReadLineAsync()` plus a bare `line.Split(',')` with *no quote handling at all*, so a
+plain comma inside any value shifted every later column. It also matched the Partner heading
+**exactly**, so a file using the shipped template heading `Partner (separate by comma)` lost every
+partner tag through that endpoint — the DEF-342 defect, still live on the API path.
+
+**Not affected:** the certificate importer (`Services/Import/CertificateImportService.cs`) uses
+CsvHelper, which implements RFC 4180 correctly. Verified, not assumed.
+
+**Fix.**
+
+1. **New** `wwwroot/js/csv-parse.js` — `GccCsv.splitRecords()` ends a record only on a newline
+   **outside** quotes; `GccCsv.parseLine()` splits one record into fields and handles the `""`
+   escape. Loaded from `_Layout.cshtml` before `@RenderSection("Scripts")`, so it is defined before
+   every importer script on every page (no view overrides the layout — `Views/_ViewStart.cshtml`).
+2. All six importers now call `GccCsv.splitRecords(contents)`. Each importer's own `parseCSVLine()`
+   was left alone (five of them do not trim fields and changing that is out of scope); only
+   `product-id-manager.js` delegates to the shared one, since its semantics already matched.
+3. **Malformed records are no longer discarded.** `product-id-manager.js` pushes a preview row
+   carrying `parseError` instead of `continue`, so a short record shows as an error row.
+4. `ProductIdService.ImportFromCsvAsync` rewritten onto **CsvHelper**, plus the DEF-342 partner
+   header prefix tolerance the browser already had.
+
+**Verification.** `node Scripts/ci/check-csv-import.js` — 13 assertions, all green, run against the
+real `csv-parse.js` rather than a copy so the two cannot drift. Covers the client's exact file, a
+quoted comma, the `""` escape, CRLF, both Partner heading forms, and phantom trailing rows.
+`dotnet build` clean (0 errors).
+
+**Client workaround until this deploys:** strip in-cell line breaks before exporting to CSV
+(Find/Replace `Ctrl+J` → space). The already-imported untagged row must be fixed by editing it
+directly — a re-import will skip it as unchanged.
+
+**Adjacent issue found, NOT fixed — needs a decision.** In `ImportProductIdsAsync`, a row that
+already exists and is active is treated as a silent success in overwrite mode and **no field is
+updated at all** — not Partner, not Product Name, not SKU, not Description
+(`Services/ProductIdService.cs` ~701-711). "Overwrite existing" does not overwrite. It is not what
+caused this defect (the browser's update path handles changed rows), but it means a partner-less row
+cannot be repaired through the bulk endpoint. Left alone deliberately: it is a behaviour change with
+a wider blast radius than this fix and belongs in its own DEF.
+
+#### DEF-419 SECOND PASS 2026-09-10 — audit found TWO more server importers; all now fixed and tested on localhost
+
+Shawn asked for a re-test and a wider sweep ("make sure we didn't miss anything the first time").
+The sweep found **two more server-side CSV importers** that the first pass missed, both with the
+identical defect — a quote-aware field splitter (`ParseCsvLine`, hand-rolled and duplicated verbatim
+in both files) fed by a `ReadLineAsync()` loop that was not:
+
+| Endpoint | File | Consequence of a line break in a cell |
+|---|---|---|
+| `POST /Admin/ImportUsers` | `Controllers/AdminController.cs:299` | First fragment imported with columns shifted; second reported as a bogus *"Insufficient fields"* error |
+| `POST /Product/ImportProducts` | `Controllers/ProductController.cs:702` | **Worse — the torn second half was imported as a real product.** A file whose only row had a blank name and a multi-line description created a junk product named `Line two` |
+
+**Fixed:** new `Services/Import/CsvRecordReader.cs` wraps CsvHelper's `CsvParser` with the lenient
+settings these importers need; `parser.Record` is a drop-in for the old `ParseCsvLine(line)` (same
+positional `string[]`, same per-field trim). Both hand-rolled `ParseCsvLine` copies deleted.
+
+**Full list of CSV entry points and their status after this pass:**
+
+| Path | Status |
+|---|---|
+| 6 client-side importers (product IDs, companies, products, tags, users ×2) | **FIXED** — shared `GccCsv.splitRecords()` |
+| `ProductIdService.ImportFromCsvAsync` (API) | **FIXED** — CsvHelper + DEF-342 partner header tolerance |
+| `AdminController.ImportUsers` | **FIXED** — `CsvRecordReader` |
+| `ProductController.ImportProducts` | **FIXED** — `CsvRecordReader` |
+| `CertificateImportService` | already correct (CsvHelper) — verified, not assumed |
+| PDF / image uploads | not structured text; N/A |
+
+**Tested on localhost:5101 against a rebuilt, restarted server (not just unit-level):**
+
+- **Product ID import, the client's actual file, through the real HTTP endpoint:** 4/4 rows imported,
+  **4/4 tagged Amazon**, the multi-line product name preserved in full, 0 errors. The 4 test rows
+  were then deleted and the certificate returned to its baseline of 0. This also exercises the
+  DEF-342 header tolerance, since the file's heading is `Partner (separate by comma)`.
+- **`/Product/ImportProducts`** with a multi-line description: exactly **1** error
+  (*"Product name is required"*), **no** phantom *"Insufficient fields"*, **nothing created**.
+- **`/Admin/ImportUsers`** with a multi-line name: exactly **1** error (*"Email is required"*),
+  no phantom error, no user created.
+- `csv-parse.js` confirmed present in the served HTML of `/Admin/Tags` and `/Certificate/Edit/{n}`,
+  and the served asset is byte-identical to the repo file (same md5).
+- `node Scripts/ci/check-csv-import.js` 13/13; `node --check` clean on all 7 JS files;
+  encoding guard OK; `dotnet build` 0 errors.
+
+---
+
+### DEF-420 — CSV **export** writes unescaped quotes, so an exported file re-imports with columns shifted
+
+- **Date raised:** 2026-09-10
+- **Severity:** Medium-High. Same silent partner loss as DEF-419, reached from the other direction — and export → edit → re-import is the documented way to bulk-edit these pages.
+- **Status:** **RAISED — not fixed.** Found during the DEF-419 audit. No code changed.
+- **Related:** DEF-419 (import side, fixed), DEF-306/DEF-315 (earlier fixes of this same class in `exportUtils.js`)
+
+**Proven, not theorised.** The Product ID exporter (`wwwroot/js/product-id-manager.js:2237`) wraps
+every field in quotes with **no escaping**: `"${pid.productName || ''}"`. A product name containing a
+double-quote produces an unbalanced row, and on re-import everything after it collapses into one
+field:
+
+```
+exported : "ASIN","B0D93WK4JX","Satisfry 5" Panoramic","","Amazon","2026-09-10","dan",""
+re-import: Product Name = 'Satisfry 5 Panoramic,",Amazon,2026-09-10,dan,"'
+           Partner      = ''      <-- lost, exactly the DEF-419 symptom
+```
+
+**Findings:**
+
+| File | Problem | Severity |
+|---|---|---|
+| `wwwroot/js/product-id-manager.js:2237` | every field `"${v}"`, no escaping | **High** — the export of the page this defect was reported on |
+| `wwwroot/js/admin/csfAttributes.js:462` | `row.map(cell => `"${cell}"`)`, no escaping | Medium |
+| `wwwroot/js/admin/companyManagement.js:404` | escapes quotes, but only quotes when the value contains `,` or `"` — **not** a newline, so a line break emits an unquoted broken record | Medium |
+| `wwwroot/js/userManagement.js:871` | same missing newline check | Medium |
+| `wwwroot/js/admin/userManagement.js:1227` | `"${field}"`, no escaping — but this file is **not referenced by any view** | Low (likely dead code) |
+
+**Already correct — do not touch:** `wwwroot/js/admin/exportUtils.js` (the shared helper, hardened by
+DEF-306/315), `admin/productManagement.js` `escapeValue()`, and the server exporters
+(`ProductIdService.ExportToCsvAsync` via `CsvCell`, `CertificateService.CsvCell`).
+
+**Fix shape:** point the five at one shared `GccCsv.escapeField()` next to `splitRecords()`, matching
+`exportUtils.js` semantics (double the quotes; quote when the value holds `,`, `"` or a newline;
+keep the DEF-306 formula-injection guard). Estimated ~1.5 hrs including a round-trip assertion added
+to `Scripts/ci/check-csv-import.js` (export → re-import → same values). **Awaiting approval.**

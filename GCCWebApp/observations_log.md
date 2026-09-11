@@ -3398,3 +3398,484 @@ either way, but Undo itself is therefore UNTESTED. Worth a look — it is a real
 blocked by the auto-mode classifier, correctly — changing a credential on a shared environment is
 what that guard exists for. Not routed around. Phase 04 was blocked on its first (compound-command)
 invocation and ran fine as a bare `node` call, so that block was command shape, not the phase.
+
+### 2026-09-10 — QC #260 assigned to DEF-413; QC log cell written; registers reconciled
+
+**Asked:** write the QC log update for the client's subcategory-filtering complaint.
+
+**The item already had a home, and finding it was the whole job.** The text pasted in is QC **#260**,
+`Database QC Log_9.9.26_sw_updates.xlsx`, sheet `GCC DB QC Log2`, **row 269**, page `Filtering`,
+Carly, opened 2026-09-09, column O `New`. The register still said *"QC log ID: not yet assigned
+(reported by email, not through the QC log)"* — true when written on 9/9, stale by 9/10 because the
+client filed the row (it opens *"See email."*, which is what makes it the same item). **The
+9.9.26 workbook is newer than the 9.3.26 one every prior doc cites** — the 9.3 file has 268 rows,
+the 9.9 file has 273 and carries five brand-new items, #260 through #264. Anyone still reading the
+9.3 workbook will not see this item at all.
+
+**The workbook would not open in place — `PermissionError`, not corruption.** OneDrive/Excel holds a
+lock. Copy it to the scratchpad first; every read after that is fine. Worth remembering before
+diagnosing a "broken" file.
+
+**#260 is not #169 re-raised, and the distinction matters.** #169 (4/30) asked for subcategory names
+to be *removed* from the filter box, which is what DEF-167 did. #260 asks for certificates *carrying*
+them to be returned by it. Both hold at once — the dropdown contents are untouched and only the
+matching widened — which is precisely why DEF-413 was scoped to the predicate and nothing else. The
+close-out note in the register now says so explicitly, so the next reader does not "fix" one by
+reversing the other.
+
+**Status was stale in the other direction too.** The register header still read *"DIAGNOSED — no code
+changed"* while the code was built, deployed in the 9-9 bundle, and confirmed live by two independent
+proofs. Corrected, with the addenda left intact so the 9/9 sequence still reads in order.
+
+**Two residuals handed back rather than absorbed.** `Recyclable Material` (9 public certs) and
+`Zero Waste to Landfill` (17) match certificates but are not clickable, because the three
+`GetFilterOptions` endpoints were never in DEF-413's scope. Recyclable Material is the third
+subcategory on the client's own reproducer cert `25-8071`, so they are likely to reach for it. Making
+them clickable contradicts #169 outright — **CR with an explicit yes, not a quiet fix.** Both are
+reachable via the search box today, so it is a question, not a blocker. The second residual is the
+widened semantics of "Recycled Content", which now means both the type and the subcategory; asked for,
+but it widens a control already signed off, so it gets a confirmation sentence.
+
+**Written:** `docs/tracking/qc-log-update-2026-09-10-QC260-subcategory-filtering.md` (paste-ready
+columns J and Q, plus a backing-evidence table kept out of the cell). **Updated:** DEF-413 header
+(status + QC ID) and a close-out addendum in `defect-register.md`; a 2026-09-09 entry in
+`shipped-2026-09.md`, which had no record of this delivery at all.
+
+**No code touched.** Documentation only.
+
+### 2026-09-10 — QC #261-264 triaged; the 9/9 draft reply has two wrong statements and a number collision
+
+**Asked:** triage the other four new QC items.
+
+**Three of them were already triaged on 9/9 and I nearly redid the work.** `CR_9_9_26_edit.pdf` (the
+client's "DB Feedback" email, 9/9 10:52 AM) had already produced
+`docs/tracking/2026-09-09-client-reply-db-feedback.md` and a triage HTML. **Check
+`docs/tracking/` for a same-source artifact before triaging anything that arrives as a PDF or an
+email** — the QC row and the email are the same item under two names, and the row says only
+*"See email."*
+
+**The existing draft is good but must not be sent as written. Two statements fail against the code:**
+
+1. *"All three Edit buttons run through a **single shared piece of code**."* **They do not.**
+   `editCertificate` is defined separately in three JS files and set inline in two `.cshtml` detail
+   views \u2014 **five sites**. This is the DEF-413 shape exactly: every surface carries its own copy.
+   Sending this promises a one-line change and delivers a five-site one, and the likely failure is a
+   partial fix where one Edit button still hijacks the tab.
+2. *"the other import screen already describes the behavior correctly \u2026 I'll bring **the modal** in
+   line."* **There is no other import screen and no modal.** `Views/CertificateImport/Index.cshtml`
+   is the only import help surface and it contradicts **itself** (line 74 says Company and Product
+   must pre-exist; lines 128-131 correctly say they are auto-created).
+
+**And the number it reserved was taken the same day.** The draft reserves **DEF-416** for the import
+help text; DEF-416 and DEF-417 were both used on 2026-09-09 for test-harness defects. This is the
+`^### DEF-` undercount biting for real, not in theory \u2014 414-417 are `####` headings, so the
+canonical grep returns 413 and the next taker collides silently. Renumbered to **DEF-418**.
+CR-048/CR-049 are still free and still correct; the draft was right to skip CR-047 (earmarked by
+DEF-413 \u00a77).
+
+**QC #264 was in neither the draft nor that email** \u2014 it came from a separate 9/9 message
+(Image 121). It is **CR-021**, proposed 2026-06-11 and *"awaiting GCC approval"* ever since, script
+already written. The client's email IS the approval. **Do not open a new CR for it** \u2014 that would
+discard the June provenance and the 7,904-of-14,183 ASIN evidence that justifies it. Pre-check the
+current value on TEST first: backfills have run since June and it may already be set, in which case
+it is a documented no-op, not a fix.
+
+**#263 is two items, not one.** The question (does a supplied Certificate # edit an existing cert?)
+is answerable at zero cost \u2014 yes, guarded by CR-023 R5's overwrite confirmation and backup. The
+help text is a genuine defect and wrong in four places, not the one line the client spotted.
+
+**PDF reads outside the working directory are blocked** (`permissions.blockReadsOutsideWorkingDirectories`)
+and `pdftoppm` is not installed, so the Read tool cannot render one. Copy the file into the
+scratchpad with `cp`, then extract text with `fitz` (PyMuPDF, available) \u2014 `pypdf` and `pdfplumber`
+are installed too.
+
+**Written:** `docs/tracking/qc-triage-2026-09-10-QC261-264.md`. **No code changed, no register rows
+written, nothing sent.**
+
+**Draft reply corrected 2026-09-10.** `docs/tracking/2026-09-09-client-reply-db-feedback.md` now
+carries the three fixes above, applied as targeted edits so the rest of Shawn's wording stands. The
+two client-facing paragraphs that were wrong are rewritten to say what the code actually does \u2014
+item 1 now tells the client the Edit button lives in five places and the work is to change all five
+(rather than claiming one shared switch), and item 4 now describes the import page contradicting
+*itself* in four places (rather than inventing a second screen that gets it right). DEF-416 \u2192
+DEF-418 throughout. A maintainer note at the top records what changed and why, and states that
+**QC #264 is deliberately not answered in this reply** \u2014 it came from a different email and belongs
+against CR-021. The closing summary was also corrected: item 1 no longer says it is waiting on two
+questions, because it now states an assumption with an opt-out instead. **Still not sent.**
+
+### 2026-09-10 — DEF-418, CR-048, CR-049 logged
+
+Re-grepped both registers immediately **before** appending (DEF-418, CR-047, CR-048, CR-049 all
+free) and immediately **after** \u2014 exactly one heading each, no duplicates. New high-water
+**DEF-418 / CR-049**; memory index and the numbering reference both updated.
+
+**CR-047 was left empty on purpose** and the reason is recorded inside the CR-048 entry rather than
+as a phantom row: it is earmarked in `DEF-413-subcategory-filter-as-is-to-be.md` \u00a77 for the three
+orphan subcategory names. A gap with no explanation is how a number gets taken twice, which this
+register has now done once already this week.
+
+**Each row carries the thing that would otherwise be relearned:**
+
+- **DEF-418** \u2014 the four wrong lines with their code citations, plus an explicit *"do NOT fix it by
+  changing the aliases or the template headers"*: the `SCREAMING_SNAKE` spellings the page documents
+  are real, accepted, and relied on by the migration's own source files (DEF-347). Only the prose is
+  wrong. Without that line the obvious "fix" is to delete correct code.
+- **CR-048** \u2014 the five-site table, because the natural assumption is one shared handler and there
+  isn't one. The `cid` check is written as the acceptance test rather than a note: numbers are not
+  unique (137 numbers / 312 rows) and losing `cid` means silently editing the wrong certificate,
+  which is worse than the problem being solved.
+- **CR-049** \u2014 marked **BLOCKED on two client answers**, not merely "pending". Either answer changes
+  the work, so building first costs the estimate twice. Also records that "low risk" is the
+  *client's* assessment and that first paint is the untested path \u2014 list view has never been the
+  initial render.
+
+No code changed.
+
+---
+
+## 2026-09-10 — Amazon API export re-run after cert updates (TEST)
+
+Client asked for another export of the Amazon API CSV to double-check what is showing after
+recent certificate updates. Re-ran `Scripts/data-ops/2026-09-09-amazon-payload-export.py test`
+unchanged. Output: `Scripts/data-ops/_amazon_payload/20260910-144252/`. Read-only against
+business data; the run mints a temporary Amazon partner key and revokes it at the end.
+
+**Result: 212 certificates delivered (was 223 on 2026-09-09). Zero findings.**
+
+- Certification Results still reconcile 4 ways — DB now, pre-CR-045 snapshot
+  (`CertResults_bak_CR045_20260908`), standard list, GS1 — 212/212 identical, 0 mismatches.
+  All 212 are in `XX%` form; no bare decimals, no non-numeric values. CR-045 remains intact.
+- Membership: 285 Amazon-tagged certs, 212 delivered, 73 correctly withheld
+  (39 Expired, 32 Draft, 2 not yet effective). 0 findings in either direction.
+
+**What the cert updates changed, exactly:**
+
+- **11 certificates lost their Amazon partner tag** and therefore left the payload. All 11 are
+  still `Client Approved - Paid`; only the tag changed — 25-8435, 25-8436, 25-8484, 25-8485,
+  25-9304, 26-0007, 26-0008, 26-0009, 26-0010, 26-0108, 26-0283. **Worth a client confirm that
+  this de-tagging was deliberate** — the status is unchanged, so nothing in the cert itself
+  says these were meant to stop going to Amazon.
+- **1 certificate newly tagged** — 26-0675, Draft and not yet effective, so correctly withheld.
+- Net Amazon-tagged 295 → 285.
+- **Product identifiers rose 19,003 → 19,147 (+144)** even though 11 certs left, because the
+  11 carried no identifiers. All +144 landed on 8 certs: 26-0080 +126 (10 → 136), and
+  26-0425/0426/0427/0428/0429/0431/0432 gained 2–4 each from zero.
+
+No code changed.
+
+
+### 2026-09-10 - CR-021 approved and executed; CEF now sends greencircle_cef
+
+**Shawn: "amazon cef change is approved."** That is the approval CR-021 had been blocked on since
+2026-06-11. Executed on dev and test.
+
+**Ran the read-only pre-check first, and it earned its place.** Both databases returned `Id=5`,
+`Name='Certified Environmental Facts'`, `AmazonCode='CEF'` - preconditions met exactly, and crucially
+**not already set**. The triage note had flagged that backfills since June (CR-046, DEF-411) might
+have set it already, in which case the honest report is "documented no-op", not "fixed". It had not.
+`before=CEF | after=greencircle_cef | rows=1` on both targets.
+
+**Checked whether it needs a post-deploy copy, and it does not.** Nothing in the application writes
+`CertificationTypes.AmazonCode`: `SeedData.cs` never sets it, no migration seeds it, and the import's
+`AmazonCode` assignments are on **`ProductIdEntry`** - a different entity that merely shares the field
+name. Worth the two greps: had any of those written the reference row, the value would have silently
+reverted on the next deploy and read as "the fix did not take".
+[[feedback_data_scripts_go_in_post_deploy]] is for backfills that must re-run; this is not one.
+
+**The endpoint caches for 300s** (`[ApiCache(CacheProfiles.Medium)]`, `CertificatesController.cs:126`).
+Said so in the client cell explicitly, because "I checked and it still says CEF" within five minutes
+is the predictable false alarm.
+
+**The real find was in the verification, not the change.** CR-021 section 4 asserts the remaining
+types *"have no Amazon code"*. **They do** - they carry seeded SHORT codes, which is a different and
+worse condition than NULL: only **4 of 17** use the long form, and **10 short-coded types have
+certificates behind them**, led by Material Ingredient Reporting at **1,557**. If Amazon receives any
+of those, they fail exactly as CEF did, silently and without a badge. **Enumerated the full set with
+counts rather than sampling it** ([[feedback_enumerate_dont_sample_populations]]) and left every one
+of them alone: the correct strings are the client's to define, and inventing a partner-facing value
+is worse than leaving an outdated one. Asked for the mapping; one CR for the batch when it arrives.
+
+**Bash heredocs strip backslashes in this shell.** `cat > f <<'EOF'` mangled a Python regex twice
+(`'\\'` arrived as `'\'`, then a `SyntaxError`). Quoted delimiter or not. **Use the Write tool for
+any file containing backslashes or regexes** - this cost three wasted calls before I stopped
+retrying it. Related to [[feedback_powershell_append_mojibake]]: the shells here mangle content in
+different ways, and the fix is the same - do not build files through the shell.
+
+**Written:** paste-ready QC #264 cell at
+`docs/tracking/qc-log-update-2026-09-10-QC264-cef-amazon-code.md`; CR-021 register entry moved to
+APPROVED + EXECUTED with the before/after table, the no-post-deploy reasoning, the cache caveat, the
+rollback, and the 13-type follow-up; shipped log entry for 2026-09-10.
+
+**Data changed on dev and TEST. No code changed, nothing committed.**
+
+---
+
+## 2026-09-10 — Missing "Amazon" partner tag on one imported ASIN — ROOT CAUSE FOUND (Dan / Spectrum 5L)
+
+**Symptom (client):** 4 ASINs imported to a certificate; 3 got the Amazon partner badge, `B0D93WK4JX`
+did not. Re-imported 3 times, never corrected. Concern raised: at hundreds/thousands of rows an
+untagged ASIN would go unnoticed.
+
+**Root cause — the Product ID CSV importer is not multi-line-quote aware.**
+`wwwroot/js/product-id-manager.js:1464` splits the whole file with `contents.split('\n')` before
+`parseCSVLine()` ever runs. `parseCSVLine()` (line ~1385) *is* quote-aware, but only within a single
+line, so a quoted field containing a hard line break is torn into two rows.
+
+Source cell `C4` of *spectrum asin db upload reconciliation 5L.xlsx* contains an in-cell line break
+(Alt+Enter): `Satisfry Panoramic 5L Air Fryer Cream\n(Same as 27420-56 except in Cream color)`.
+Excel exports it as a legal quoted multi-line CSV field. The importer then sees:
+
+- **Fragment 1** `ASIN,B0D93WK4JX,"Satisfry Panoramic 5L Air Fryer Cream` — 3 fields. Imports with the
+  correct ASIN, a truncated Product Name, and **no Partner** (the Partner column index is past the
+  end of the row).
+- **Fragment 2** `(Same as ... color)",,Amazon,` — the stray `"` re-opens quote mode, so the whole
+  tail collapses to 1 field, and `if (fields.length < 2) continue;` **drops it silently** — no error
+  row, no warning, nothing in the preview.
+
+Reproduced against the real parser with the real cell text: rows 1/2/5 → `PARTNER="Amazon"`,
+row 3 → `PARTNER=""` + truncated name, row 4 → silently dropped. This matches the client screenshot
+field for field (the DB row shows the name truncated at exactly the line break).
+
+**Why the 3 retries never fixed it.** The same file re-parses identically, so the imported partner is
+`''` and the stored partner is `''` — the preview's change detection (line ~1655) sees no difference,
+marks the row *unchanged*, and skips it. Secondary reinforcement server-side: an already-active
+duplicate in overwrite mode is a silent success and `ApplyPartners` is never re-run
+(`Services/ProductIdService.cs` ~701-711), so no re-import can repair a partner-less row.
+
+**Severity: HIGH for bulk loads, and it is silent both ways** — a row loses its partner tag *and* a
+row disappears entirely, with a success toast either way. Any cell containing Alt+Enter (notes,
+addresses, multi-line descriptions) triggers it. Note the certificate importer
+(`Services/Import/CertificateImportService.cs`, `ReadLineAsync` + `line.Split(',')`) has the same
+line-oriented weakness and should be checked in the same pass.
+
+**Immediate workaround for the client:** remove in-cell line breaks before exporting to CSV
+(Find/Replace `Ctrl+J` → space), then re-import. Fixing the partner on the existing row requires
+editing the row directly (re-import will skip it as unchanged).
+
+**No code changed. Triage only — awaiting go-ahead on the fix + DEF number.**
+
+
+### 2026-09-10 (later) - the reran Amazon payload was PRE-CR-021; re-pulled, and the client's edits reconcile exactly
+
+**Shawn: "reran for client to review records that they updated today."** That explained the untracked
+`_amazon_payload/20260910-144252/` I had flagged. Checking it turned up something that would have
+gone to the client wrong.
+
+**The payload they intend to send still said `CEF`.** Not a cache, not a failed update - the pull ran
+at **14:43** and my CR-021 write landed at **16:06**, so it is simply pre-change by ~83 minutes.
+Compared file mtimes rather than assuming, because the alternative explanation (the 300s API cache)
+would have been wrong and would have sent me looking for a bug that did not exist. **Sending that
+file would have read as the fix not landing.** Re-pulled at 16:46 -> `20260910-164647/`: 78
+`greencircle_cef`, **zero** `CEF`, and no short code anywhere in the payload.
+
+**This is the end-to-end proof I could not get earlier.** I had stopped short of an API-level check
+because I could not find the partner key and did not want a rabbit hole. The export script mints and
+cleans up its own key - so the evidence was one command away the whole time. **Look for an existing
+tool before concluding a verification is out of reach.**
+
+**Membership is identical between the 14:43 and 16:46 pulls** (285/212/73, 0 findings), so the only
+delta is the code value. That isolation is what makes it a proof rather than a coincidence.
+
+**The client's edits reconcile to the row, and I checked SETS not counts**
+([[feedback_equal_counts_are_not_the_same_rows]]): 223 -> 212, **11 dropped, 0 added**, 212 in both.
+The 11 are 6 WDL + 4 CLP + 1 SMP, and tagged fell 295->285 with Draft 31->32, accounting for all of
+them. Separately **7 certs were re-typed CFR -> CEF** and stayed in the feed (`24-0001`-`24-0005`,
+`24-0324`, `24-1635`), which is exactly the `CFR -> greencircle_cef` transition in the diff. A
+count-only comparison would have shown "-11" and hidden both movements.
+
+**I downgraded my own finding from this morning, and that is the right outcome.** I had written the
+13 remaining short codes up as a live partner-facing risk and asked the client for a mapping. Their
+edits removed the last four short-coded types from the feed; CR-021 fixed the fifth. **Zero short
+codes now reach Amazon**, so the remaining ones are **latent, not live** - a trap only if such a cert
+is Amazon-tagged later. Corrected in the CR-021 note and the QC #264 cell, and the ask softened from
+"tell us the mapping" to "we will set them on request". *Evidence arriving an hour later can make
+this morning's finding weaker as well as stronger.*
+
+**Do not send `20260910-144252/`.** Use `20260910-164647/`.
+
+
+### 2026-09-10 (later still) - the pre-CR-021 payload was already sent; scoped the damage exactly
+
+**Shawn: "I already sent the payload."** The 14:43 bundle, the one that predates the CR-021 write by
+83 minutes. So the question stopped being "don't send it" and became "what exactly is wrong in the
+copy they now have".
+
+**Answer: one field, and nothing else.** Compared sent vs corrected row by row and column by column:
+
+- certificate SET identical (212, same numbers, none added or missing)
+- every field on every certificate identical **except `amazonCode`**
+- product identifiers: same 19,147 rows, same keys, same order - `amazonCode` the only differing column
+- both reconciliation CSVs **byte-identical**
+- affected: 78 certificates, 78 GS1 documents, **7,482 of 19,147** identifier rows
+
+**Everything the client asked to review is correct in what they received.** Their same-day edits - 11
+certificates out of the feed, 7 re-typed CFR to CEF - are all accurately represented. Only the code
+column carries its old value.
+
+**I nearly told them something false.** My first pass tested "is amazonCode the only difference?" with
+`sed 's/CEF/greencircle_cef/g'` and a diff. It reported **STILL DIFFERS**, and 14,964 differing lines,
+which reads like a second unexplained problem. Both were artifacts of the method: a blanket text
+substitution is not a diff, and a line-diff double-counts every change. The column-aware comparison
+gave the real answer - one column, 7,482 rows. **Never characterise a file to a client on the strength
+of a text substitution.** Had I reported the first result, I would have manufactured an incident out
+of a clean one-field staleness.
+
+**The part that actually matters, and it is reassuring:** Amazon never receives this file. They call
+the API directly with their key, and the API has returned `greencircle_cef` since 16:06. **The live
+feed was never wrong; only the snapshot was taken too early.** Nothing to re-send to Amazon, nothing
+to correct on their side. That is the lead of the follow-up note, ahead of the apology.
+
+**Lesson for the export script:** it stamps its directory with the pull time but nothing inside the
+bundle states what the data reflects. A `summary.txt` line naming the pull timestamp *and* any data
+operation applied that day would have made "this is pre-CR-021" obvious to the sender. Worth a small
+change to `2026-09-09-amazon-payload-export.py`; flagged, not built (~30 min).
+
+**Written:** `docs/tracking/2026-09-10-client-followup-payload-amazoncode.md` - the verified
+difference table plus a short draft note. **Not sent.**
+
+### 2026-09-10 (same day, later) — DEF-419 FIXED, and the audit answer: six importers, not one
+
+Shawn approved the fix and asked whether other imports have the same problem. **They did — all six
+client-side importers, plus a worse variant on the server.** One correction to the triage note
+above: I flagged the certificate importer as needing a check; it was checked and it is **fine** —
+`Services/Import/CertificateImportService.cs` uses CsvHelper, which parses RFC 4180 properly
+including multi-line quoted fields. Not affected.
+
+**Changed (working tree only — nothing committed, nothing deployed):**
+
+- **NEW** `wwwroot/js/csv-parse.js` — shared `GccCsv.splitRecords()` / `GccCsv.parseLine()`.
+  Records end only on a newline outside quotes; `""` handled as an escaped quote.
+- `Views/Shared/_Layout.cshtml` — loads it before `@RenderSection("Scripts")`, so it is defined
+  before every importer on every page. No view overrides the layout (`Views/_ViewStart.cshtml`).
+- Six importers switched to `GccCsv.splitRecords(contents)`: `product-id-manager.js`,
+  `admin/companyManagement.js`, `admin/productManagement.js`, `tags.js`, `userManagement.js`,
+  `admin/userManagement.js` (that last one is not referenced by any view — fixed for consistency,
+  flagged as possibly dead).
+- `product-id-manager.js` — a malformed short record now becomes a **preview error row** instead of
+  being dropped in silence. That silent `continue` is what hid half of this defect.
+- `Services/ProductIdService.cs` — `ImportFromCsvAsync` moved onto CsvHelper (it had **no** quote
+  handling at all: a plain comma in any value shifted every later column), and given the DEF-342
+  partner-header prefix tolerance the browser already had, which was still missing on the API path.
+- **NEW** `Scripts/ci/check-csv-import.js` — 13 assertions, green, run against the real parser file.
+
+**Verified:** `dotnet build` 0 errors; regression check all-green; `/js/csv-parse.js` serves HTTP 200
+on localhost:5101. The `_Layout` change is not live on the running dev instance because that process
+predates the edit — it needs a restart, which I did not do (the running server holds a lock on
+`bin/`, and it is Shawn's).
+
+**Note on process:** `EnterWorktree` could not create a worktree in this repo — pre-existing
+long-path files under `GCCWebApp/docs/OneDrive_2026-05-09/Final Req Docs/GreenCircle - Blank Mark/`
+exceed the Windows path limit and `git worktree add` aborts. Worked in place instead, per the
+fallback rule. Everything is uncommitted in the working tree for Shawn to review and commit.
+
+**Raised but deliberately NOT fixed:** `ImportProductIdsAsync` treats an existing active row as a
+silent success in overwrite mode and updates **no field at all** — "overwrite existing" does not
+overwrite. Wider blast radius than this fix; wants its own DEF and a decision. Logged at the end of
+the DEF-419 register entry.
+
+### 2026-09-10 (third pass) — re-tested on localhost; the sweep found two MORE importers
+
+Shawn: *"can we test locally again and check to make sure this is not an issue elsewhere, I just
+want to make sure we didn't miss anything the first time."* Good call — **the first pass missed two
+server-side importers.**
+
+**Missed and now fixed:** `POST /Admin/ImportUsers` (`AdminController.cs:299`) and
+`POST /Product/ImportProducts` (`ProductController.cs:702`). Both had a hand-rolled `ParseCsvLine`
+(duplicated verbatim in the two files) fed by a `ReadLineAsync()` loop — the identical defect. The
+product one was the worst case found anywhere: the torn *second half* of a record was imported as a
+**real product**, so a single-row file with a multi-line description silently created a junk product
+named `Line two`. Fixed with a new `Services/Import/CsvRecordReader.cs` (CsvHelper `CsvParser`;
+`parser.Record` is a drop-in for `ParseCsvLine(line)`); both hand-rolled copies deleted.
+
+**Why the first sweep missed them:** I grepped the JS importers and `Services/`, and checked
+`CertificateImportService`. I never grepped `Controllers/` for `ReadLineAsync`. The lesson is the
+generalisable one — **enumerate the entry points, don't spot-check the ones you already know about.**
+The complete list is now in the DEF-419 register entry as a table, so the next person can see at a
+glance which paths exist and which are covered.
+
+**Tested against a rebuilt, restarted local server — not just unit level:**
+- Client's real file through the real HTTP endpoint: 4/4 rows, **4/4 tagged Amazon**, multi-line name
+  preserved, 0 errors; test rows deleted afterwards, certificate back to baseline.
+- `/Product/ImportProducts`: 1 error, no phantom "Insufficient fields", nothing created.
+- `/Admin/ImportUsers`: 1 error, no phantom error, no user created.
+- Served `csv-parse.js` byte-identical to the repo file (md5), and present in the served HTML of both
+  `/Admin/Tags` and `/Certificate/Edit/{n}`.
+
+**Note for future browser checks:** the Chrome extension was not connected this session, so the UI
+was exercised over HTTP with an authenticated session instead of clicks. Also worth remembering:
+`/Account/Login` sets `Layout = null`, so checking a layout change against the login page gives a
+false negative — every `Views/Account/*` view opts out of `_Layout`.
+
+**New defect raised, NOT fixed — DEF-420 (export side).** The audit turned up the mirror image: the
+Product ID exporter writes `"${value}"` with no escaping, so a name containing a double-quote exports
+a broken row that re-imports with the Partner **lost** — the same symptom, reached backwards through
+export → edit → re-import. Demonstrated, not assumed. Four other exporters share it in weaker forms;
+`exportUtils.js` and the server exporters are already correct (DEF-306/315 hardened them). ~1.5 hrs
+to fix all five behind one shared escape helper. Awaiting Shawn's approval.
+
+---
+
+## 2026-09-10 — CR-048 + CR-049 built and verified (QC #261, #262)
+
+Shawn brought QC #261 (*"Edit — Open New Tab"*) and #262 (*"Default — List View"*) — both the
+client's own words, both phrased as *"is it an easy fix (with low risk of breaking things)"*. Both
+already had register entries raised earlier the same day, **CR-048 and CR-049**. I checked the
+register before appending and so did not create duplicate CR-050/CR-051 rows; the code comments were
+written with the wrong numbers first and were corrected in place.
+
+**Answers taken before building**, per the standing estimate-before-build gate. Two decisions
+actually changed the work and were put to Shawn rather than assumed:
+
+- *Internal only, or external too?* → **both**. The client's *"all logged in users"* read literally,
+  over the recommendation of internal-only.
+- *Hard default, or remember the user's last choice?* → **remember, seeded to List.** Shawn asked
+  directly whether that still gives the client what she wants. It does: the page opens in List and
+  nobody toggles on load. The only difference is that someone who deliberately picks Tile keeps Tile
+  — which avoids handing the identical complaint to the opposite group.
+
+**CR-048 touched five surfaces, not the one the client could see.** The register entry had already
+enumerated them and warned that the predictable failure is fixing four and missing one. I initially
+did three, caught it against the register, and finished the other two. The `cid` parameter — the
+thing that actually matters, since 137 certificate numbers span 312 rows — was proven to survive
+into the new tab (`/Certificate/Edit/26-0497?cid=5796`), not assumed.
+
+**Three things the verification caught that inspection would not have:**
+
+1. Calling the existing `showTableView()` at init would have fired a **second identical API request**,
+   because it carries a cold-load branch. Splitting the DOM work out of it keeps the load at exactly
+   one fetch — measured, in both views.
+2. `aria-pressed` on the view toggle was hardcoded in markup and never updated by the toggle handler.
+   Harmless while tile was always the opening view; wrong the moment the opening view varies. Fixed
+   as part of the change that made it wrong.
+3. The infinite-scroll sentinel is appended *after* the table container, so list-first could in
+   principle have chain-loaded every page on load. Measured rather than reasoned about: 1 fetch at
+   settle, still 1 after 8 seconds idle.
+
+**Three harness faults that read exactly like product failures** — worth recording, because each one
+produced a red result that was not real:
+
+- The request counter matched `/api/certificate-tiles/certificates`; the real endpoints are
+  `/api/certificate-tiles-internal?…` and `/api/CertificateTileExternal?…`. It reported **0 requests**
+  while the page was plainly loading data.
+- Admin and external both **land on a tile view after login**, so that page's own fetch was counted
+  against the navigation under test and reported as a duplicate load.
+- Fixed `waitForTimeout` sleeps lost a race at some viewports and reported **0 rows**. Replaced with a
+  wait on the actual condition.
+
+**And one real, pre-existing finding, triaged not fixed:** the app's first certificate query after a
+cold start takes **~38-42 seconds** on dev. Attributed properly by measuring both modes on a cold
+server — tile 37.9 s, list 42.3 s — so it is the app warming up, not CR-049. It is what made the
+first assertion block time out and cascade. The harness now warms up before asserting. Logged to
+`ways-to-improve.md`.
+
+A second pre-existing item: a `pageerror: Invalid or unexpected token` fires on the internal view,
+the public tile view **and the anonymous Home page**, which neither CR touches. All three certificate
+bundles pass `node --check`, so it is in a Razor-rendered inline script. Not ours; not chased.
+
+**Not deployed.** Both CRs are in the working tree only. Build clean, dev server verified on
+localhost:5101.
+
+**Also worth knowing:** a parallel terminal was mid-write on the DEF-419 CSV importer during this
+session. One build failed with `CS0103: CsvRecordReader does not exist` purely because the file was
+being written as the build read it — the next build was clean with no intervention. A build error
+during concurrent work is worth re-running once before investigating.

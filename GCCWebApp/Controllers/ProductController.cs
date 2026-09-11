@@ -4,6 +4,7 @@ using GCCWebApp.Models;
 using GCCWebApp.Data;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Services.Audit;
+using GCCWebApp.Services.Import;   // DEF-419: RFC 4180 record reader
 using System.Text;
 
 namespace GCCWebApp.Controllers
@@ -697,17 +698,22 @@ namespace GCCWebApp.Controllers
                 var companies = await _context.Companies.Where(c => !c.IsDeleted).ToListAsync();
                 var createdCompanies = new List<Company>();
 
+                // DEF-419: read RECORDS, not lines. The previous ReadLineAsync() loop broke a
+                // quoted field containing a hard line break into two rows, which imported the
+                // first half with its columns shifted and reported the second half as a bogus
+                // "Insufficient fields" error.
                 using (var stream = new StreamReader(file.OpenReadStream(), Encoding.UTF8, detectEncodingFromByteOrderMarks: true))
+                using (var parser = CsvRecordReader.Create(stream))
                 {
-                    var line = await stream.ReadLineAsync(); // Skip header
+                    await parser.ReadAsync(); // Skip header
                     var lineNumber = 1;
 
-                    while ((line = await stream.ReadLineAsync()) != null)
+                    while (await parser.ReadAsync())
                     {
                         lineNumber++;
                         try
                         {
-                            var values = ParseCsvLine(line);
+                            var values = parser.Record ?? Array.Empty<string>();
 
                             if (values.Length < 2) // Minimum: Name and Company
                             {
@@ -916,43 +922,10 @@ namespace GCCWebApp.Controllers
             return File(bytes, "text/csv", "product_import_template.csv");
         }
 
-        private string[] ParseCsvLine(string line)
-        {
-            var values = new List<string>();
-            var current = new System.Text.StringBuilder();
-            var inQuotes = false;
-
-            for (int i = 0; i < line.Length; i++)
-            {
-                var c = line[i];
-
-                if (c == '"')
-                {
-                    if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
-                    {
-                        // Escaped quote
-                        current.Append('"');
-                        i++;
-                    }
-                    else
-                    {
-                        inQuotes = !inQuotes;
-                    }
-                }
-                else if (c == ',' && !inQuotes)
-                {
-                    values.Add(current.ToString().Trim());
-                    current.Clear();
-                }
-                else
-                {
-                    current.Append(c);
-                }
-            }
-
-            values.Add(current.ToString().Trim());
-            return values.ToArray();
-        }
+        // DEF-419: the hand-rolled ParseCsvLine() that used to live here was quote-aware within
+        // one line, but it was fed by a ReadLineAsync() loop that was not — so a quoted field
+        // containing a hard line break (Excel Alt+Enter) was torn into two bogus records.
+        // Records now come from CsvRecordReader (CsvHelper), which implements RFC 4180.
     }
 
     public class ProductCategoryViewModel

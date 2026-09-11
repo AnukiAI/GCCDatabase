@@ -3,30 +3,56 @@
 Status: **DRAFT for Shawn's review. Not sent. No code changed, no register rows added.**
 Source: `CR_9_9_26_edit.pdf`. Intake analysis in `observations_log.md` (2026-09-09).
 
-Proposed tracking IDs referenced below are **reserved, not yet logged**: CR-048, CR-049, DEF-416.
+Proposed tracking IDs referenced below are **reserved, not yet logged**: CR-048, CR-049, DEF-418.
+
+> **Corrected 2026-09-10** — three fixes, all in `docs/tracking/qc-triage-2026-09-10-QC261-264.md`:
+> 1. **Item 1 no longer claims the Edit buttons share one piece of code.** They do not — `editCertificate`
+>    is defined separately in three JS files and set inline in two detail views. **Five sites, not one.**
+>    The original wording would have promised a one-line change and delivered a five-site one.
+> 2. **Item 4 no longer claims another import screen gets the text right.** There is no other import
+>    screen and no modal; `Views/CertificateImport/Index.cshtml` contradicts *itself*, and it is wrong
+>    in four places rather than the one the client spotted.
+> 3. **DEF-416 → DEF-418.** DEF-416 and DEF-417 were both taken on 2026-09-09 by test-harness defects.
+>    (`^### DEF-` undercounts: 414-417 are `####` headings. Grep `^#{2,5} DEF-[0-9]+`.)
+>
+> **This reply covers only the three items in that email.** **QC #264** (the CEF `amazonCode` →
+> `greencircle_cef` request, Image 121) arrived in a *separate* 9/9 message and is deliberately not
+> answered here — it is **CR-021**, proposed 2026-06-11 and awaiting GCC approval ever since, with the
+> script already written. Their email is that approval. Log it against CR-021 and reply separately;
+> do not open a new CR number for it.
 
 ---
 
 Hi Carly,
 
 Thanks — this is exactly the kind of feedback that's easiest to act on. I went through all four
-items against the code before answering. Two are straightforward changes, and two are questions I
-can answer for you right now without touching anything.
+items against the code before answering. Two are straightforward changes, one is a question I can
+answer for you right now without touching anything, and one is a genuine mistake on our side that
+I'll correct.
 
 ## 1. Edit button opening in a new tab — yes, and it's a small change
 
-You're right that this is the low-risk version of the fix. All three Edit buttons you're seeing —
-the one on the tile card, the one in the list's Actions column, and the one on the certificate
-detail page — run through a single shared piece of code. Changing that one place changes all three
-at once and leaves everything else alone.
+You're right that this is the low-risk version of the fix, and it's a small one. Preview and Edit
+already sit side by side and differ only in *how* they open the page — Preview opens a new tab, Edit
+replaces the one you're on. Making Edit behave like Preview is a small, well-understood change.
 
-Two things I'd like you to confirm before I build it:
+One thing worth being straight with you about: the Edit button appears in five places across the
+tile view, the list view and the certificate detail page, and each one is wired up separately rather
+than sharing a single switch. So this is five small changes rather than one. That doesn't make it
+risky — they're all the same change — but it does mean the work is to go through all five together,
+because fixing four and missing one would leave you with an Edit button that still behaves the old
+way and no obvious reason why.
 
-- **Should the Edit button behave exactly like Preview does today** — new tab, original tab
-  untouched with your search results still on screen? That's my assumption.
-- **Any objection to it applying on the certificate detail page too?** Editing from there would
-  also open a new tab. It's consistent, but it's a slightly different moment than the one your team
-  described, so tell me if you'd rather I leave that one alone.
+**My assumption, unless you tell me otherwise:** Edit behaves exactly like Preview does today — new
+tab, and the tab you were on is left alone with your search results still on screen. That includes
+the Edit button on the certificate detail page, so the button behaves the same way everywhere rather
+than differently depending on where you clicked it. Say the word if you'd rather I leave the detail
+page as it is.
+
+**One consequence worth knowing before you decide.** Once Edit opens in a new tab, the original list
+tab is showing you a snapshot from before your edit — save in the new tab and the list behind it will
+still show the old values until it's refreshed. Preview already works this way and it hasn't caused
+anyone trouble, but it's the trade-off that comes with not losing your search.
 
 Proposed as **CR-048**.
 
@@ -75,11 +101,29 @@ picking one. Let me know if you'd like that scoped — it would be a separate sm
 ## 4. The "Certificate Number is required" text — you're right, and I'll fix it
 
 Confirmed: that instruction is wrong. Certificate # is not required when adding new entries, exactly
-as you found. Worth knowing that the other import screen in the application already describes the
-behavior correctly, so right now the two screens contradict each other — I'll bring the modal in
-line and make the text spell out both cases (blank = new, filled = update).
+as you found.
 
-I'm logging this one as a **defect (DEF-416)** rather than a change request, since it's incorrect
+Having gone looking, it's wrong in a few more places than the one you spotted, and the page manages
+to contradict itself:
+
+- The instructions at the top say Certificate # is required. It isn't.
+- They also say the company, product and certification type must already exist in the database.
+  Only the **certification type** must — companies and products are created automatically if the
+  import doesn't recognise them.
+- Further down, the same page correctly says companies and products are auto-created. So the two
+  halves of the page disagree, and the half most people read first is the wrong one.
+- The column names listed on the page (`CERTIFICATE_NUMBER`, `COMPANY_NAME`, and so on) do work —
+  the import accepts them — but they aren't the headings the downloadable template actually uses
+  (`Certificate #`, `Company`, `Product Name`, `Certification Type`). So the page is describing a
+  slightly different file from the one the Download Template button gives you.
+
+None of that changes how the import behaves — it's all instructions rather than functionality — but
+it's exactly the kind of thing that makes a team hesitant to use a feature, which is what you're
+describing. I'll rewrite both sections against what the import actually does, line the column names
+up with the template, and spell out the two cases you asked about (blank = new, filled = update,
+with the confirmation step in between).
+
+I'm logging this one as a **defect (DEF-418)** rather than a change request, since it's incorrect
 instructions rather than new functionality.
 
 ## On testing
@@ -89,8 +133,10 @@ walk your team through it on a copy so they can see the preview-and-confirm step
 before anyone runs it for real — the preview means nothing is written until someone approves the
 diff, but it's much easier to trust once you've watched it happen.
 
-Short version: **#3 needs nothing from us**, **#4 I'll fix**, and **#1 and #2 I'll build as soon as
-you confirm the two questions above.**
+Short version: **#3 needs nothing from us** and **#4 I'll fix**. **#1 I can start on your nod** —
+I've stated my assumption rather than asking, so it only needs a reply if you disagree. **#2 needs
+two answers from you**: whether you want the hard default or the remembered-choice version, and
+whether it applies to your internal team only or to external and partner logins as well.
 
 Thanks,
 Shawn

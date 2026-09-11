@@ -323,6 +323,49 @@ They can disagree — a deploy that extracted the DLL but not `wwwroot` is a rea
 
 ## Deploy gate results log
 
+### `GCCWebApp-deploy-20260910-2128.zip` — **BUILT + VERIFIED 2026-09-10, NOT UPLOADED**
+
+**Runbook:** `docs/tracking/2026-09-10-deploy-runbook-CR048-CR049.md`
+**In-zip `GCCWebApp.dll` md5:** `cf8c7eeafd990c5d` · 341 entries · 61.2 MB
+
+**Carries five items, not the two that were asked for** — a bundle is a full overwrite and ships the
+whole working tree. Shawn confirmed shipping all of it:
+**CR-048** (Edit opens a new tab) · **CR-049** (List is the default for logged-in users) ·
+**DEF-419** (HIGH — CSV import drops a row / blanks a Partner on an embedded line break) ·
+**DEF-420** (CSV export quote escaping) · **DEF-342** (Product Identifiers template copy, client has
+re-opened it three times).
+
+**No database step.** No migrations in the tree; test is already at the CR-045 high-water
+(`20260908175939`). `deploy.ps1` generates a full-history `apply-migrations.sql` regardless — **do
+not run it** (DEF-386: SQL Server parses every guard block before `IF NOT EXISTS` can skip it).
+
+| Gate | Result |
+|---|---|
+| 0 uploads backup | **OUTSTANDING — human, before extract** |
+| 1 UI / design guide | PASS (inspection) |
+| 2 cross-role + responsive | PASS — 3 roles, 5 viewports, 0 overflow, 0 console errors |
+| 3 data scoping / RBAC | **PASS 57P / 0F** |
+| 4 Partner API contract | **PASS — CONTRACT UNCHANGED, 7P / 0F** |
+| 5 traceability | PASS with 2 notes (DEF-420 status stale; `_Layout` diff carries no ref) |
+| 6 performance / EF | PASS — public endpoint (the only 30 s abort ceiling) **0.8 s cold** |
+| 7 pending migrations | n/a — none |
+| 8 CRUD write paths | **PASS 39P / 0F / 0W / 0B** |
+| 9 static integrity | **0 FAIL**, 13 pre-existing warnings |
+| 10 config points at data | n/a |
+| 11 close-out | after upload |
+
+**Content verification:** `verify-bundle.py` → 0 failures · `marker-check-20260910.py` → 0 failures
+(new for this deploy; asserts today's work by md5 for static assets and by literal-in-DLL for
+compiled Razor, with a negative control proving the old markup is gone).
+
+> **Marker-check trap, now handled — worth knowing before writing another one.** The first run
+> reported three fixes ABSENT from the DLL and all three were present. .NET puts type/member names
+> in the `#Strings` heap as **UTF-8** but string literals in the `#US` heap as **UTF-16LE**, and
+> compiled Razor markup is a string literal. An ASCII-only byte search therefore finds a C# type name
+> and misses every piece of view markup — which reads exactly like a bundle built from the wrong
+> tree. Search both encodings.
+
+
 ### `GCCWebApp-deploy-20260908-1607.zip` — **DEPLOYED to gccwebapp.com 2026-09-08, post-deploy verified**
 
 **Runbook:** `docs/tracking/2026-09-08-deploy-runbook-CR043-CR045.md`

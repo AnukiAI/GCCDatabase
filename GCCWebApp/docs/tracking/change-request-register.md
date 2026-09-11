@@ -310,7 +310,7 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 - **REVISION 2026-06-05 (b) — QC #106 item #2: "Company Access" column added to the User Management table, approved by Shawn 2026-06-05.** Original CR deferred the table; the 6/3 follow-up gave the single column to the employer field, leaving the data-scoping value with no column. Added a sortable "Company Access" column (between User Company and Email) rendering the existing `getCompanyAccessDisplay` ("All" for Admin/Analyst, joined company names for External/Partner). **Display-only — no backend/schema/API change, no extra prod SQL.** Files: `Views/Admin/UserManagement.cshtml`, `wwwroot/js/userManagement.js`. Verified `Scripts/smoke-prod/qc106-company-access-column.js` → **5 PASS / 0 FAIL**. Ships in the same bundle as revision (a). **QC #106 now fully addressed:** User Company = free text (a), Company Access listed in table (b), role-gating = DEF-238.
 - **Table (added to scope 2026-06-03 per client "the table in the view will not show company access"):** the table's "User Company" column now displays the User Company (employer) field, NOT Company Access — sorts by `userCompanyName`, searchable by it, blank for users with no employer set. Supersedes the DEF-238 table-display tweak (which had shown Company Access "All" for Admin/Analyst); DEF-238's modal role-gating + note still stand. `getCompanyAccessDisplay` is retained for export's "Company Access" column + import preview. Verified row `cr020-test` shows "Sofidel America Corp." not "All".
 
-### CR-021 (proposed 2026-06-11) — Set Amazon code for "Certified Environmental Facts" (`greencircle_cef`)
+### CR-021 (proposed 2026-06-11, **APPROVED + EXECUTED 2026-09-10**) — Set Amazon code for "Certified Environmental Facts" (`greencircle_cef`)
 - **Source:** Migration analysis of the client sample ASIN list (`SAMPLE ASIN List ..._6.1.26.xlsm`) — 7,904 of 14,183 ASIN rows carry `amazonCode = greencircle_cef`, but the DB still holds the seeded short code `'CEF'` on `CertificationTypes.Id = 5`. Only SEP/RC/CES were converted to long-form on 2026-04-22; CEF was left "awaiting client mapping."
 - **Type:** Data operation (one-time UPDATE on one live reference-data row) — not a code or scope change.
 - **Why CR (not on-the-fly):** Per [[feedback_data_changes_require_cr]], updating a live record needs written GCC approval. The value is **partner-facing** (sent to Amazon), so it is tracked rather than actioned silently.
@@ -321,7 +321,40 @@ Client meeting on **2026-04-29** approved all 7 pending CRs as a bundle. Framing
 - **Sequencing:** Gate 7 — direct prod data UPDATE, run in the approved maintenance step (prod does not auto-migrate). Independent of any code deploy.
 - **Script:** `docs/tracking/sql-fixes/2026-06-11_cef-amazon-code.sql` · **Detail doc:** `docs/tracking/CR-021-cef-amazon-code.md`
 - **Effort:** ~15 min (pre-check + UPDATE + verify).
-- **Status:** Proposed 2026-06-11 — awaiting GCC approval. Nothing run against live.
+- **Status:** **APPROVED 2026-09-09 · EXECUTED 2026-09-10 on dev and the test environment.** Superseded the "awaiting GCC approval" state it had held since 2026-06-11.
+
+#### CR-021 executed 2026-09-10
+
+- **Approval:** the client, 2026-09-09, logged as **QC #264** (`Database QC Log_9.9.26_sw_updates.xlsx`, sheet `GCC DB QC Log2`, **row 273**, page `API`, Image 121 + the 9/9 email): *"can you update 'CEF' (Certified Environmental Facts) amazonCode in API to the following which matches more of format as others: greencircle_cef."* Relayed by Shawn, 2026-09-10. **This is the open confirmation above, answered by the client naming the exact string themselves** — the strongest form the confirmation could take, since the value is no longer inferred from their ASIN export but stated directly.
+- **Pre-check (read-only) before any write:** `Id=5`, `Name='Certified Environmental Facts'`, `AmazonCode='CEF'` — identical on **both** dev and test. Preconditions met exactly; **not already set**, so this was a real change, not a no-op.
+- **Applied:** guarded UPDATE inside a transaction with a name assertion and a post-update value assertion that rolls back on mismatch. Result on both targets: `before=CEF | after=greencircle_cef | rows=1`.
+
+| Target | Server | Before | After | Rows |
+|---|---|---|---|---|
+| `GCCDatabase_Dev` | ANUKI01 | `CEF` | `greencircle_cef` | 1 |
+| `gccwebap_certificates` (TEST) | `68.71.129.120,1533` | `CEF` | `greencircle_cef` | 1 |
+
+- **Verified after:** `SELECT Id, Name, AmazonCode WHERE Id = 5` returns `greencircle_cef` on test. **476 certificates** are of this type and now carry the corrected code.
+- **No post-deploy copy is needed and none was added.** Checked before deciding: nothing in the application writes `CertificationTypes.AmazonCode` — `SeedData.cs` never sets it, no migration seeds it, and the import's `AmazonCode` assignments (`CertificateImportService.cs:423, 439, 1234`) are on **`ProductIdEntry`**, a different entity. The value persists across deploys, so this does **not** belong in `Scripts/database/post-deploy/` ([[feedback_data_scripts_go_in_post_deploy]] applies to backfills that must re-run; this is not one).
+- **One caveat for retest timing:** `/api/v1/certificates` carries `[ApiCache(CacheProfiles.Medium)]` = **300 s** (`Controllers/Api/v1/CertificatesController.cs:126`, `Attributes/ApiCacheAttribute.cs:144`). A response cached just before the change can serve `CEF` for up to five minutes. Not a defect; wait it out before concluding the change did not take.
+- **Rollback** (unused, kept): `UPDATE CertificationTypes SET AmazonCode = 'CEF' WHERE Id = 5 AND Name = 'Certified Environmental Facts';`
+
+**Follow-up found while verifying — flagged, NOT actioned, and it is the client's call.** CR-021 §4 says the remaining types *"have no Amazon code"*. **That is not what the data shows.** Only **four** of seventeen now carry the long form (CES, RC, SEP, and CEF as of today); the rest still hold seeded short codes, and ten of those have certificates behind them:
+
+| Type | Code | Certs |
+|---|---|---|
+| Material Ingredient Reporting | `MIV` | **1,557** |
+| Certified Sustainability Facts | `CSF` | 349 |
+| GreenCircle Audited | `GCA` | 248 |
+| Waste Diversion from Landfill | `WDL` | 245 |
+| Life Cycle Assessment (LCA) Optimized | `LCA` | 196 |
+| Closed Loop Product | `CLP` | 79 |
+| Certified Water Savings | `CWS` | 21 |
+| Dematerialization | `DEM` | 12 |
+| Sustainable Manufacturing Practices | `SMP` | 10 |
+| Greenhouse Gas (GHG) Verification | `GHG` | 2 |
+
+The client's own rationale for this CR — *"matches more of format as others"* — applies to every one of these. **Whether it matters depends on which types Amazon actually receives**, which is a question for them, not an assumption for us: a short code only reaches Amazon if certificates of that type are partner-tagged. **Do not mass-update these.** Ask which types Amazon expects, get the official strings from the client as we did for CEF, and raise one CR for the set. Rough cost once the mapping is supplied: ~1 hr for the update and verification, plus whatever the mapping conversation takes.
 
 ### CR-022 (proposed 2026-06-23) — Add SKU as a sortable column on the internal certificate table
 - **Source:** Internal review of sorting on `/Certificate/CertificateTileViewInternal` (6/23 sort-audit). One acceptance criterion asked SKU be "either added as a sortable table option or the blocker clearly documented."
@@ -1228,3 +1261,242 @@ and the taxonomy rows have guarded deletes ready (commented out, so nothing runs
   left in place by the UNDO: once an analyst picks one on some other certificate, deleting it would
   take their data with it.
 - **Related:** DEF-411 (the data gap this served), DEF-412 (exports still do not project the field).
+
+
+---
+
+### CR-048 (raised 2026-09-10, **BUILT 2026-09-10 — not yet deployed**) — Edit button opens a new tab, matching Preview
+
+- **Period:** raised 2026-09-10; not started
+- **Source:** the client, 2026-09-09 (`CR_9_9_26_edit.pdf`, "DB Feedback"), logged as **QC #261**
+  — `Database QC Log_9.9.26_sw_updates.xlsx`, sheet `GCC DB QC Log2`, **row 270**, page
+  `Edit - Open New Tab`, Image 118: *"Is it an easy fix (with low risk of breaking things) to have
+  the Edit button open a new tab in these views (similar to how Preview does). The team is finding
+  it inefficient by losing their prior search when editing a bunch of certs."*
+- **Why CR, not a defect:** Edit navigating in-place is the behaviour as built and as accepted. This
+  is a deliberate change to it, requested for workflow efficiency — new behaviour, not a fault
+  ([[feedback_absorbed_cr_is_still_priced]]: still numbered, still estimated, even if absorbed).
+- **Status:** **BUILT 2026-09-10, not yet deployed.** Built on the stated assumption rather than
+  waiting — see the build note at the end of this entry. Still worth the client's confirmation, but
+  the behaviour is now in the working tree and verified.
+
+**Scope — five sites, not one.** Each surface wires Edit up separately; there is no shared switch.
+This is the same "every surface carries its own copy" shape as DEF-413, and the predictable failure
+is fixing four and missing one:
+
+| File | Line | Surface |
+|---|---|---|
+| `wwwroot/js/certificate-tile-view-internal.js` | 1297 | internal tile + list |
+| `wwwroot/js/certificate-tile-view-external.js` | 1279 | external tile + list |
+| `wwwroot/js/certificate-tile-view.js` | 1549 | public tile |
+| `Views/Certificate/CertificateInternalView.cshtml` | 492 | internal detail page |
+| `Views/Certificate/CertificateExternalView.cshtml` | 411 | external detail page |
+
+The change at each is `window.location.href = X` → `window.open(X, '_blank')`. Preview already does
+exactly this two lines away (e.g. `certificate-tile-view-internal.js:1273`).
+
+**The `cid` parameter must survive, and this is the acceptance test, not an assumption.**
+Certificate numbers are **not unique** — 137 numbers span 312 rows — and `cid` is what pins which of
+several same-numbered certificates is being edited (DEF-369). `withCid()` already builds it; prove it
+arrives in the new tab. Getting this wrong means an analyst silently edits the wrong certificate,
+which is far worse than the inconvenience being removed.
+
+**Known consequence, accepted not fixed:** the originating list tab holds a stale row until
+refreshed. Preview already behaves this way. Stated to the client rather than left to be discovered.
+
+**Estimate:** **~1.5-2 hr** — five one-line changes, viewport pass on both tile views, `cid` check.
+Popup blockers are not a risk (`window.open` inside a click handler is a user gesture).
+
+
+#### BUILT 2026-09-10 — all five surfaces, verified
+
+Built against the client's assumption rather than waiting on confirmation, as the entry above
+anticipated. **All five surfaces in the scope table were changed** — `window.location.href = X`
+became `window.open(X, '_blank')` — including the two external ones. External users have no Edit
+control, so those two handlers are unreachable from the UI today; they were changed anyway so the
+five copies cannot drift, which is precisely the failure this entry warned about. Verified
+mechanically: **zero** `window.location.href` → `/Certificate/Edit` remain anywhere under
+`wwwroot/js/` or `Views/Certificate/`.
+
+**The `cid` acceptance test passed — this was the real risk, and it is now evidence, not assumption.**
+Clicking Edit on a list row opened a new tab at
+`http://localhost:5101/Certificate/Edit/26-0497?cid=5796`. The `cid` survives, so the
+same-numbered-certificate trap (137 numbers spanning 312 rows, DEF-369) is not reopened. The
+originating tab's URL was byte-identical before and after the click, and the Edit page rendered its
+form in the new tab.
+
+**A better outcome than the entry predicted, on the stale-row consequence.** A successful save
+redirects to `CertificateInternalView`, *not* back to the tile view
+(`Controllers/CertificateController.cs:1627`). So the analyst saves, closes the tab, and the original
+search is untouched behind it — the "stale row until refreshed" caveat still holds in principle, but
+the user never lands back on the list expecting it to have updated.
+
+**Estimate held:** ~1.5-2 hr estimated, built and verified inside it.
+
+**Harness:** `Scripts/smoke-prod/verify-cr048-cr049.js` (localhost only) — 3 CR-048 assertions, all
+PASS. Results + screenshots in `Scripts/smoke-prod/_results/cr048-cr049/`.
+
+> **CR-047 is deliberately skipped, not missing.** It is earmarked in
+> `docs/tracking/DEF-413-subcategory-filter-as-is-to-be.md` §7 for the three orphan subcategory names
+> (Zero Waste to Landfill, Waste Diversion Event, Waste System Audit). No row was ever written, so
+> the number is technically free — honour the earmark or release it deliberately, but do not fill the
+> gap by accident.
+
+---
+
+### CR-049 (raised 2026-09-10, **BUILT 2026-09-10 — not yet deployed**) — List view as the default for logged-in users
+
+- **Period:** raised 2026-09-10; not started
+- **Source:** the client, 2026-09-09 (`CR_9_9_26_edit.pdf`), logged as **QC #262** — sheet
+  `GCC DB QC Log2`, **row 271**, page `Default - List View`, Image 119: *"Is it an easy fix (with low
+  risk of breaking things) to have the List view the default for all logged in users. The team will
+  really only use this when they are working and they find it inefficient to have to toggle each time
+  the page loads."*
+- **Why CR, not a defect:** tile-first is the designed and accepted default. Changing which view a
+  page opens in is new behaviour.
+- **Status:** **BUILT 2026-09-10, not yet deployed.** Both answers landed (Shawn, 2026-09-10):
+  **(b) remember last choice, seeded to List**, and **internal AND external**, not internal-only.
+  See the build note at the end of this entry.
+
+**Scope.** The toggle is client-side state with no persistence. The default is hardcoded in two
+places per view:
+
+- `wwwroot/js/certificate-tile-view-internal.js:27` — `currentView: 'tile'`
+- `Views/Certificate/CertificateTileViewInternal.cshtml:263` — `class="toggle-btn active"` +
+  `aria-pressed="true"` on the Tile button
+- the external view repeats both (`…-external.js:27`, `CertificateTileViewExternal.cshtml:195`)
+
+The **public** view has no toggle at all and is untouched, which correctly matches "logged in users".
+
+**The risk is first paint, not the toggle — and "low risk" is the client's assumption, not ours.**
+List view has only ever been reached by clicking, i.e. *after* certificates are loaded.
+`showTableView()` does carry a cold branch
+(`if (!state.certificates || state.certificates.length === 0) await loadCertificates()`), so the path
+exists — but it has never been the initial render in production. Infinite scroll, column-visibility
+restore from `localStorage`, and the sticky header all initialise in tile context today. **That needs
+an actual test, not an inspection**, and it is where the time goes.
+
+**Answer 1 — hard default, or remember each user's choice?**
+
+| | Behaviour | Cost |
+|---|---|---|
+| **(a) Hard default to List** | Every load starts in List, for everyone. Literally what was asked. | baseline |
+| **(b) Remember last choice, first visit lands on List** | Nobody toggles repeatedly, whichever view they prefer. | **+0.5 hr** |
+
+**(b) recommended** — (a) just reassigns the toggling to whoever prefers tiles. The
+column-visibility code on the same page already uses the `localStorage` pattern (b) needs. Caveat
+either way: a per-browser preference, so a different machine starts on List again.
+
+**Answer 2 — internal team only, or external and partner logins too?** *"All logged in users"*
+literally includes External company and partner customers, but *"the team will really only use this
+when they are working"* says they are picturing staff. Defaulting a **customer-facing** view to a
+dense data table is a different decision. **Internal only is recommended.**
+
+**Estimate:** **~1.5-2 hr** internal only · **~2.5 hr** if external is included · **+0.5 hr** for the
+remembered-choice variant. Two lines per view; the rest is first-paint verification.
+
+#### BUILT 2026-09-10 — both answers received, built to them
+
+**Answer 1: (b), remember last choice, seeded to List.** Shawn confirmed this gives the client what
+she asked for — the page opens in List, nobody toggles on every load — without handing the same
+complaint to anyone who prefers tiles. A deliberate switch to Tile is remembered for that browser.
+**Answer 2: internal AND external.** Shawn chose the literal reading of *"all logged in users"* over
+the recommended internal-only. The **public** view has no toggle and is untouched, as the entry said.
+
+**What was built.** A `VIEW_PREF_KEY` in `localStorage` per view (`gcc-cert-view-internal`,
+`gcc-cert-view-external`), read by `getPreferredView()` which **defaults to `'list'`**, written only
+on an explicit toggle click. Three supporting changes were needed and are worth knowing about:
+
+1. **`applyTableViewChrome()` was split out of `showTableView()`.** `showTableView()` contains the
+   cold branch `if (certificates.length === 0) await loadCertificates()`, so calling it at init —
+   before the first fetch — would have fired a **second** identical request. The new function applies
+   only the container/body classes. *Verified: exactly ONE list fetch on load, in both views.*
+2. **The preferred view is applied BEFORE the first fetch**, not after, so `renderCertificates()`
+   paints straight into the table. No tile-then-list flash.
+3. **`aria-pressed` is now maintained in JS** (`setToggleButtonState`). It was hardcoded in the markup
+   and never updated — survivable while tile was always the opening view, wrong the moment the
+   opening view varies per user. Both buttons are now correct in both states.
+
+The initial "Loading certificates…" spinner lives inside `#certificatesGrid`, which list mode hides,
+so it is relocated into the table container — list-first users still get loading feedback.
+
+**The first-paint risk the entry flagged was real enough to test, and it passed.** Infinite scroll,
+column-visibility restore and the sticky header all initialise correctly with list as the first
+render. Specifically measured, because the scroll sentinel is appended *after* `#tableView` and could
+in principle have sat in view at load: **no runaway pagination** — 1 fetch at settle, still 1 after
+8 seconds idle, 20 rows.
+
+**Estimate:** ~2.5 hr (external included) + 0.5 hr (remembered choice) = **~3 hr**. Built and verified
+inside it.
+
+**Verification — 23 of 24 assertions PASS** (`Scripts/smoke-prod/verify-cr048-cr049.js`; the
+non-PASS is an INFO row, not a failure). Internal and external both open in List with no saved
+preference; an explicit Tile choice survives a reload; switching back to List survives a reload;
+external list rows still expose **no** Edit button (RBAC unchanged); viewport pass at 1920, 1440,
+1280, 768 and 390 px with zero horizontal overflow and zero console errors.
+
+
+
+#### CR-021 proven end-to-end through the live Amazon feed, 2026-09-10 16:46
+
+The execution note above proved the stored value. This proves what **Amazon actually receives**, which
+is the thing the CR exists for. Pulled with the Amazon partner API key via
+`Scripts/data-ops/2026-09-09-amazon-payload-export.py test`.
+
+| Pull | `CEF` | `greencircle_cef` | Short codes in payload |
+|---|---|---|---|
+| 9/9 09:47 | 71 | 0 | CFR 7 · WDL 6 · CLP 4 · SMP 1 |
+| 9/10 14:43 | 78 | 0 | none |
+| **9/10 16:46 (post-CR-021)** | **0** | **78** | **none** |
+
+**The 14:43 pull predates the update by ~83 minutes.** It sits in
+`Scripts/data-ops/_amazon_payload/20260910-144252/` and still reads `CEF`. It was generated for the
+client to review their same-day record edits, and **must not be sent as-is** — it would read as the
+fix not having landed. The 16:46 re-pull (`…/20260910-164647/`) supersedes it.
+
+**Membership is byte-identical between the 14:43 and 16:46 pulls** — 285 Amazon-tagged, 212
+delivered, 73 withheld (39 Expired, 32 Draft, 2 not yet effective), 0 findings. So the only thing
+that moved between them is the code value: the change is isolated, and nothing else was disturbed.
+
+**The client's same-day edits, reconciled exactly** (223 → 212 delivered; 11 dropped, **0 added**,
+212 in both — compared as certificate-number SETS, per [[feedback_equal_counts_are_not_the_same_rows]]):
+
+| What | Count | Certificates |
+|---|---|---|
+| Left the feed | **11** | `25-8435, 25-8436, 25-8484, 25-8485, 25-9304, 26-0007, 26-0008, 26-0009, 26-0010, 26-0108, 26-0283` — 6 Waste Diversion from Landfill, 4 Closed Loop Product, 1 Sustainable Manufacturing Practices |
+| Re-typed CFR → CEF, stayed in feed | **7** | `24-0001, 24-0002, 24-0003, 24-0004, 24-0005, 24-0324, 24-1635` |
+
+Tagged fell 295 → 285 and Draft rose 31 → 32, which accounts for all 11 departures with nothing left
+over. The 7 re-typed rows are exactly the `CFR → greencircle_cef` transitions in the code diff.
+
+#### The 13-type follow-up is DOWNGRADED — latent, not live
+
+The execution note above frames the remaining short codes as a live partner-facing risk. **After the
+client's edits that is no longer true, and the note should be read with this correction.** Their
+changes removed the last four short-coded types from the feed (CFR by re-typing, WDL/CLP/SMP by
+untagging or drafting) and CR-021 fixed the fifth, so **every certificate Amazon receives now carries
+a long-form code — zero short codes are delivered.**
+
+The thirteen internal short codes therefore reach **nobody**. They become a problem only if a
+certificate of one of those types is Amazon-tagged and published in future, at which point it would
+ship a short code and silently fail to badge. **That is a latent trap worth closing cheaply, not an
+open partner-facing defect.** Still the client's strings to define — the QC #264 cell offers to set
+them on request rather than asking for a mapping as though something were broken.
+
+
+#### CR-021 - the pre-fix payload was already sent to the client (2026-09-10)
+
+The 14:43 bundle went to the client before the 16:06 update. Scoped rather than re-pulled-and-hoped:
+**`amazonCode` is the only difference** between what they hold and what is correct - 78 certificates,
+78 GS1 documents, 7,482 of 19,147 identifier rows. Certificate set identical; both reconciliation
+CSVs byte-identical; every other field on every other row identical, verified column-aware.
+
+**No action is needed with Amazon.** They consume the API directly, not this file, and the API has
+returned `greencircle_cef` since 16:06. The stale value exists only in a human-review snapshot.
+
+Follow-up note drafted at `docs/tracking/2026-09-10-client-followup-payload-amazoncode.md` (unsent).
+
+**Process gap worth closing:** the export bundle records its pull time in the directory name only -
+nothing inside states what the data reflects, so "this snapshot predates today's data change" is
+invisible to whoever sends it. Suggest `summary.txt` carry the pull timestamp and any same-day data
+operation. ~30 min, not built.

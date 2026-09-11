@@ -1461,7 +1461,12 @@ class ProductIdManager {
     }
 
     async parseAndPreviewImport(contents) {
-        const lines = contents.split('\n').filter(line => line.trim());
+        // DEF-419: split into RECORDS, not lines. A quoted field is allowed to contain a
+        // hard line break (Excel Alt+Enter), and breaking on every newline tore such a row
+        // in half: the first half imported with a truncated name and NO Partner (that column
+        // now sat past the end of the row), and the second half was dropped without a word by
+        // the short-record guard below. Both failures were silent and the import said success.
+        const lines = GccCsv.splitRecords(contents);
         if (lines.length < 2) {
             this.showError('CSV file must have a header row and at least one data row');
             return;
@@ -1484,7 +1489,22 @@ class ProductIdManager {
             if (!line) continue;
 
             const fields = this.parseCSVLine(line);
-            if (fields.length < 2) continue;
+            if (fields.length < 2) {
+                // DEF-419: a record too short to be a row used to vanish here without a trace —
+                // which is exactly how the torn half of a multi-line record hid itself. Surface
+                // it as an error row in the preview so a malformed file cannot import silently.
+                parsedProductIds.push({
+                    rowNumber: i,
+                    productIdType: '',
+                    productIdValue: '',
+                    partner: '',
+                    productName: '',
+                    productSku: '',
+                    description: '',
+                    parseError: `Malformed CSV record: found ${fields.length} column(s), expected at least 2 — "${line.slice(0, 60)}"`
+                });
+                continue;
+            }
 
             // Build product ID object from headers
             const productId = {};
@@ -1571,23 +1591,11 @@ class ProductIdManager {
     }
 
     parseCSVLine(line) {
-        const result = [];
-        let current = '';
-        let inQuotes = false;
-
-        for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            if (char === '"') {
-                inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-                result.push(current.trim());
-                current = '';
-            } else {
-                current += char;
-            }
-        }
-        result.push(current.trim());
-        return result;
+        // DEF-419: delegates to the shared parser (wwwroot/js/csv-parse.js) so the field
+        // splitter and the record splitter can never disagree about where a quoted field
+        // ends. Same trim-each-field behaviour as before, plus correct handling of the
+        // doubled-quote escape for a literal quote inside a value.
+        return GccCsv.parseLine(line);
     }
 
     async buildImportPreview(parsedProductIds) {
@@ -1674,6 +1682,10 @@ class ProductIdManager {
             }
 
             // Validate
+            // DEF-419: a record the parser could not split into columns at all.
+            if (importItem.parseError) {
+                previewRow.errors.push(importItem.parseError);
+            }
             if (!importItem.productIdType || !importItem.productIdType.trim()) {
                 previewRow.errors.push('Type is required');
             } else {
@@ -2222,7 +2234,22 @@ class ProductIdManager {
         // QC #171, which has now been reopened three times. Safe because every cell here is
         // already quoted, so a comma inside the value cannot split the column (RFC 4180).
         const rows = this.productIds.map(pid =>
-            `"${pid.productIdType || ''}","${pid.productIdValue || ''}","${pid.productName || ''}","${pid.productSku || ''}","${this.getPartnerList(pid).join(', ')}","${formatCreated(pid.createdAt)}","${(pid.createdByUser && pid.createdByUser.username) || pid.createdBy || ''}","${pid.description || ''}"`
+            // DEF-420: these were interpolated straight into quotes, so a value containing a
+            // double-quote (e.g. a 5" pan) emitted an unbalanced record that re-imported with
+            // every later column shifted and the Partner lost. escapeField(v, true) keeps the
+            // always-quoted shape this file has always had - important for the identifier
+            // column, where unquoting would let Excel eat a UPC's leading zero - and doubles
+            // the quotes inside the value.
+            [
+                pid.productIdType,
+                pid.productIdValue,
+                pid.productName,
+                pid.productSku,
+                this.getPartnerList(pid).join(', '),
+                formatCreated(pid.createdAt),
+                (pid.createdByUser && pid.createdByUser.username) || pid.createdBy,
+                pid.description
+            ].map(v => GccCsv.escapeField(v, true)).join(',')
         );
         const csvContent = [header, ...rows].join('\n');
 

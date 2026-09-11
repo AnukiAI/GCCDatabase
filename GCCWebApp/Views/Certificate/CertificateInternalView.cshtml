@@ -489,7 +489,8 @@
         }
         // Use certificate number (e.g., "24-1605") instead of ID for URL
         const editCid = Number(certificateId) > 0 ? `?cid=${Number(certificateId)}` : '';
-        window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}${editCid}`;
+        // CR-048 (QC #261): open Edit in a new tab, consistent with the tile/list views.
+        window.open(`/Certificate/Edit/${encodeURIComponent(certificateNumber)}${editCid}`, '_blank');
     };
 
         // DEF-369: pass the id of the certificate this page is showing. Delete is permanent

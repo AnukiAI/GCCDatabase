@@ -1,0 +1,286 @@
+﻿certificateNumber,dbStatus,effectiveDate,expirationDate,eligible,delivered,verdict
+23-0753,Client Approved - Paid,2023-10-01,2026-09-30,YES,YES,OK - eligible and delivered
+23-0758,Expired,2023-09-01,2026-08-31,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+23-0812,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-0814,Expired,2023-11-01,2024-10-31,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+23-0925,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-0926,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-0927,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-0991,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-0992,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-0993,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-0994,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-0995,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-1046,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-1047,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+23-1048,Client Approved - Paid,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+24-0001,Client Approved - Confidential,2024-02-01,2027-01-31,YES,YES,OK - eligible and delivered
+24-0002,Client Approved - Confidential,2024-01-01,2026-12-31,YES,YES,OK - eligible and delivered
+24-0003,Client Approved - Confidential,2024-01-01,2026-12-31,YES,YES,OK - eligible and delivered
+24-0004,Client Approved - Confidential,2024-01-01,2026-12-31,YES,YES,OK - eligible and delivered
+24-0005,Client Approved - Confidential,2024-01-01,2026-12-31,YES,YES,OK - eligible and delivered
+24-0288,Client Approved - Paid,2024-04-01,2027-03-31,YES,YES,OK - eligible and delivered
+24-0289,Client Approved - Paid,2024-04-01,2027-03-31,YES,YES,OK - eligible and delivered
+24-0290,Client Approved - Paid,2024-04-01,2027-03-31,YES,YES,OK - eligible and delivered
+24-0298,Client Approved - Paid,2024-04-08,2027-04-07,YES,YES,OK - eligible and delivered
+24-0299,Client Approved - Paid,2024-04-08,2027-04-07,YES,YES,OK - eligible and delivered
+24-0300,Client Approved - Paid,2024-04-08,2027-04-07,YES,YES,OK - eligible and delivered
+24-0304,Client Approved - Paid,2024-04-01,2027-03-31,YES,YES,OK - eligible and delivered
+24-0321,Client Approved - Paid,2024-06-01,2027-05-31,YES,YES,OK - eligible and delivered
+24-0322,Client Approved - Paid,2024-06-01,2027-05-31,YES,YES,OK - eligible and delivered
+24-0323,Client Approved - Paid,2024-06-01,2027-05-31,YES,YES,OK - eligible and delivered
+24-0324,Client Approved - Paid,2024-06-01,2027-05-31,YES,YES,OK - eligible and delivered
+24-0325,Client Approved - Paid,2024-06-01,2027-05-31,YES,YES,OK - eligible and delivered
+24-1633,Client Approved - Paid,2024-07-08,2027-07-07,YES,YES,OK - eligible and delivered
+24-1634,Client Approved - Paid,2024-07-08,2027-07-07,YES,YES,OK - eligible and delivered
+24-1635,Client Approved - Paid,2024-07-08,2027-07-07,YES,YES,OK - eligible and delivered
+24-5426,Client Approved - Confidential,2024-07-11,2027-07-10,YES,YES,OK - eligible and delivered
+24-5427,Client Approved - Confidential,2024-07-11,2027-07-10,YES,YES,OK - eligible and delivered
+24-5428,Client Approved - Confidential,2024-07-11,2027-07-10,YES,YES,OK - eligible and delivered
+24-5545,Expired,2023-08-01,2026-07-31,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+24-5712,Client Approved - Confidential,2024-11-25,2027-11-24,YES,YES,OK - eligible and delivered
+24-5713,Client Approved - Confidential,2024-11-25,2027-11-24,YES,YES,OK - eligible and delivered
+24-5714,Client Approved - Confidential,2024-11-25,2027-11-24,YES,YES,OK - eligible and delivered
+24-5773,Client Approved - Confidential,2024-12-01,2027-07-10,YES,YES,OK - eligible and delivered
+24-5793,Client Approved - Paid,2025-01-01,2027-12-31,YES,YES,OK - eligible and delivered
+25-0275,Client Approved - Paid,2025-04-01,2028-03-31,YES,YES,OK - eligible and delivered
+25-0355,Expired,2025-08-16,2026-08-15,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0361,Expired,2025-05-12,2026-05-11,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0362,Expired,2025-05-12,2026-05-11,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0417,Client Approved - Paid,2025-06-01,2028-05-31,YES,YES,OK - eligible and delivered
+25-0418,Client Approved - Paid,2025-06-01,2028-05-31,YES,YES,OK - eligible and delivered
+25-0419,Client Approved - Paid,2025-06-01,2028-05-31,YES,YES,OK - eligible and delivered
+25-0420,Client Approved - Paid,2025-06-01,2028-05-31,YES,YES,OK - eligible and delivered
+25-0435,Client Approved - Paid,2025-10-21,2026-10-20,YES,YES,OK - eligible and delivered
+25-0436,Client Approved - Paid,2025-10-21,2026-10-20,YES,YES,OK - eligible and delivered
+25-0437,Expired,2025-06-02,2026-06-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0438,Expired,2025-06-02,2026-06-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0478,Client Approved - Confidential,2025-06-10,2026-10-31,YES,YES,OK - eligible and delivered
+25-0479,Client Approved - Confidential,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+25-0480,Client Approved - Confidential,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+25-0481,Client Approved - Confidential,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+25-0482,Client Approved - Confidential,2023-11-01,2026-10-31,YES,YES,OK - eligible and delivered
+25-0484,Expired,2025-06-16,2026-06-15,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0485,Expired,2025-06-16,2026-06-15,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0486,Expired,2025-06-16,2026-06-15,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0487,Expired,2025-06-16,2026-06-15,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0492,Expired,2025-08-01,2026-07-31,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0494,Expired,2025-08-01,2026-07-31,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0495,Expired,2025-08-01,2026-07-31,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-0496,Expired,2025-08-01,2026-07-31,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8040,Expired,2025-08-15,2026-08-14,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8074,Expired,2023-09-01,2026-08-31,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8078,Client Approved - Paid,2025-11-17,2026-11-16,YES,YES,OK - eligible and delivered
+25-8112,Client Approved - Paid,2025-11-17,2026-11-16,YES,YES,OK - eligible and delivered
+25-8114,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8115,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8116,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8117,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8118,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8119,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8120,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8121,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8122,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8123,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8124,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8125,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8126,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8127,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8128,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8129,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8130,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8131,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8132,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8133,Expired,2025-09-02,2026-09-01,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+25-8161,Client Approved - Paid,2025-11-25,2026-11-24,YES,YES,OK - eligible and delivered
+25-8162,Client Approved - Paid,2025-11-25,2026-11-24,YES,YES,OK - eligible and delivered
+25-8187,Client Approved - Paid,2025-09-01,2028-08-31,YES,YES,OK - eligible and delivered
+25-8188,Client Approved - Paid,2025-09-01,2028-08-31,YES,YES,OK - eligible and delivered
+25-8320,Client Approved - Paid,2025-01-01,2027-12-31,YES,YES,OK - eligible and delivered
+25-8321,Client Approved - Paid,2025-01-01,2027-12-31,YES,YES,OK - eligible and delivered
+25-8322,Client Approved - Paid,2025-01-01,2027-12-31,YES,YES,OK - eligible and delivered
+25-8323,Client Approved - Paid,2025-01-01,2027-12-31,YES,YES,OK - eligible and delivered
+25-8331,Client Approved - Paid,2025-12-15,2026-12-14,YES,YES,OK - eligible and delivered
+25-8332,Client Approved - Paid,2025-12-15,2026-12-14,YES,YES,OK - eligible and delivered
+25-8333,Client Approved - Paid,2025-12-15,2026-12-14,YES,YES,OK - eligible and delivered
+25-8334,Client Approved - Paid,2025-12-15,2026-12-14,YES,YES,OK - eligible and delivered
+25-8335,Client Approved - Paid,2025-12-15,2026-12-14,YES,YES,OK - eligible and delivered
+25-8336,Client Approved - Paid,2025-12-15,2026-12-14,YES,YES,OK - eligible and delivered
+25-8412,Client Approved - Paid,2025-10-24,2026-10-23,YES,YES,OK - eligible and delivered
+25-8413,Client Approved - Paid,2025-10-24,2026-10-23,YES,YES,OK - eligible and delivered
+25-8420,Client Approved - Paid,2025-11-12,2028-11-11,YES,YES,OK - eligible and delivered
+25-8421,Client Approved - Paid,2025-11-12,2028-11-11,YES,YES,OK - eligible and delivered
+25-8422,Client Approved - Paid,2025-11-12,2028-11-11,YES,YES,OK - eligible and delivered
+25-8423,Client Approved - Paid,2025-11-12,2028-11-11,YES,YES,OK - eligible and delivered
+25-8424,Client Approved - Paid,2025-11-12,2028-11-11,YES,YES,OK - eligible and delivered
+25-8425,Client Approved - Paid,2025-11-12,2028-11-11,YES,YES,OK - eligible and delivered
+25-8427,Draft,2025-11-15,2028-11-14,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+25-8428,Draft,2025-11-15,2028-11-14,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+25-8429,Draft,2025-11-15,2028-11-14,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+25-8430,Draft,2025-11-15,2028-11-14,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+25-8431,Draft,2025-11-15,2028-11-14,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+25-8432,Draft,2025-11-15,2028-11-14,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+25-8433,Client Approved - Paid,2025-12-01,2026-11-30,YES,YES,OK - eligible and delivered
+25-8434,Client Approved - Paid,2025-12-01,2026-11-30,YES,YES,OK - eligible and delivered
+25-8437,Client Approved - Paid,2025-12-01,2026-11-30,YES,YES,OK - eligible and delivered
+25-8441,Client Approved - Paid,2025-12-01,2026-11-30,YES,YES,OK - eligible and delivered
+25-8442,Client Approved - Paid,2025-12-01,2026-11-30,YES,YES,OK - eligible and delivered
+25-8477,Client Approved - Paid,2025-12-01,2028-11-30,YES,YES,OK - eligible and delivered
+25-8478,Client Approved - Paid,2025-12-01,2028-11-30,YES,YES,OK - eligible and delivered
+25-8479,Client Approved - Paid,2025-12-01,2028-11-30,YES,YES,OK - eligible and delivered
+25-8482,Client Approved - Paid,2025-12-01,2026-11-30,YES,YES,OK - eligible and delivered
+25-8483,Client Approved - Paid,2025-12-01,2026-11-30,YES,YES,OK - eligible and delivered
+25-8514,Client Approved - Paid,2025-12-05,2028-05-31,YES,YES,OK - eligible and delivered
+25-8515,Client Approved - Paid,2025-12-05,2028-05-31,YES,YES,OK - eligible and delivered
+25-8516,Client Approved - Paid,2025-12-05,2028-05-31,YES,YES,OK - eligible and delivered
+25-8517,Client Approved - Paid,2025-12-05,2028-05-31,YES,YES,OK - eligible and delivered
+25-8518,Client Approved - Paid,2025-12-05,2028-05-31,YES,YES,OK - eligible and delivered
+25-8519,Client Approved - Paid,2025-12-05,2028-05-31,YES,YES,OK - eligible and delivered
+25-8535,Client Approved - Paid,2026-01-01,2026-12-31,YES,YES,OK - eligible and delivered
+25-9289,Client Approved - Paid,2026-03-01,2027-02-28,YES,YES,OK - eligible and delivered
+25-9301,Client Approved - Paid,2025-12-23,2026-12-22,YES,YES,OK - eligible and delivered
+25-9302,Client Approved - Paid,2025-12-24,2028-12-23,YES,YES,OK - eligible and delivered
+25-9305,Client Approved - Paid,2025-12-23,2028-12-22,YES,YES,OK - eligible and delivered
+25-9306,Client Approved - Paid,2025-12-23,2028-12-22,YES,YES,OK - eligible and delivered
+26-0028,Client Approved - Paid,2025-03-01,2028-02-29,YES,YES,OK - eligible and delivered
+26-0029,Client Approved - Paid,2025-03-01,2028-02-29,YES,YES,OK - eligible and delivered
+26-0030,Client Approved - Paid,2025-03-01,2028-02-29,YES,YES,OK - eligible and delivered
+26-0038,Client Approved - Paid,2026-04-01,2027-03-31,YES,YES,OK - eligible and delivered
+26-0039,Client Approved - Paid,2026-04-01,2027-03-31,YES,YES,OK - eligible and delivered
+26-0040,Client Approved - Paid,2026-04-01,2027-03-31,YES,YES,OK - eligible and delivered
+26-0041,Client Approved - Paid,2026-04-01,2027-03-31,YES,YES,OK - eligible and delivered
+26-0042,Client Approved - Paid,2026-04-01,2027-03-31,YES,YES,OK - eligible and delivered
+26-0045,Client Approved - Paid,2026-02-25,2027-02-24,YES,YES,OK - eligible and delivered
+26-0053,Client Approved - Paid,2026-02-20,2027-02-19,YES,YES,OK - eligible and delivered
+26-0078,Expired,2026-03-01,2026-08-31,NO,NO,OK - correctly withheld (status 'Expired' is not badgeable)
+26-0080,Client Approved - Paid,2026-03-01,2028-02-29,YES,YES,OK - eligible and delivered
+26-0081,Client Approved - Paid,2026-03-01,2028-02-29,YES,YES,OK - eligible and delivered
+26-0082,Client Approved - Paid,2026-03-01,2028-02-29,YES,YES,OK - eligible and delivered
+26-0095,Client Approved - Paid,2026-03-16,2027-03-31,YES,YES,OK - eligible and delivered
+26-0096,Client Approved - Paid,2026-03-16,2027-03-31,YES,YES,OK - eligible and delivered
+26-0097,Client Approved - Paid,2026-03-16,2027-03-31,YES,YES,OK - eligible and delivered
+26-0098,Client Approved - Paid,2026-03-16,2027-03-31,YES,YES,OK - eligible and delivered
+26-0101,Client Approved - Paid,2026-02-20,2027-02-19,YES,YES,OK - eligible and delivered
+26-0104,Client Approved - Paid,2026-06-02,2027-06-01,YES,YES,OK - eligible and delivered
+26-0105,Client Approved - Paid,2026-06-02,2027-06-01,YES,YES,OK - eligible and delivered
+26-0106,Client Approved - Paid,2026-03-13,2027-03-12,YES,YES,OK - eligible and delivered
+26-0107,Client Approved - Paid,2026-05-22,2027-05-21,YES,YES,OK - eligible and delivered
+26-0125,Client Approved - Paid,2026-05-15,2027-05-14,YES,YES,OK - eligible and delivered
+26-0126,Client Approved - Paid,2026-05-15,2027-05-14,YES,YES,OK - eligible and delivered
+26-0144,Client Approved - Paid,2026-04-01,2028-05-31,YES,YES,OK - eligible and delivered
+26-0145,Client Approved - Paid,2026-04-01,2028-05-31,YES,YES,OK - eligible and delivered
+26-0146,Client Approved - Paid,2026-04-01,2028-05-31,YES,YES,OK - eligible and delivered
+26-0147,Client Approved - Paid,2026-04-01,2028-05-31,YES,YES,OK - eligible and delivered
+26-0148,Client Approved - Paid,2026-04-01,2028-05-31,YES,YES,OK - eligible and delivered
+26-0149,Client Approved - Paid,2026-04-01,2028-05-31,YES,YES,OK - eligible and delivered
+26-0150,Client Approved - Paid,2026-04-01,2028-05-31,YES,YES,OK - eligible and delivered
+26-0151,Client Approved - Paid,2026-04-01,2028-05-31,YES,YES,OK - eligible and delivered
+26-0152,Client Approved - Paid,2026-04-01,2028-05-31,YES,YES,OK - eligible and delivered
+26-0153,Client Approved - Paid,2026-04-01,2028-05-31,YES,YES,OK - eligible and delivered
+26-0157,Client Approved - Paid,2026-03-12,2027-03-11,YES,YES,OK - eligible and delivered
+26-0164,Client Approved - Paid,2026-03-12,2029-03-11,YES,YES,OK - eligible and delivered
+26-0165,Client Approved - Paid,2026-03-12,2029-03-11,YES,YES,OK - eligible and delivered
+26-0235,Draft,2026-07-01,2029-06-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0236,Draft,2026-07-01,2029-06-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0237,Draft,2026-07-01,2029-06-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0238,Draft,2026-07-01,2029-06-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0239,Draft,2026-07-01,2029-06-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0240,Draft,2026-07-01,2029-06-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0241,Draft,2026-07-01,2029-06-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0242,Draft,2026-07-01,2029-06-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0263,Client Approved - Paid,2026-08-01,2027-07-31,YES,YES,OK - eligible and delivered
+26-0264,Client Approved - Paid,2026-08-01,2027-07-31,YES,YES,OK - eligible and delivered
+26-0265,Client Approved - Paid,2026-08-01,2027-07-31,YES,YES,OK - eligible and delivered
+26-0266,Client Approved - Paid,2026-08-01,2027-07-31,YES,YES,OK - eligible and delivered
+26-0267,Client Approved - Paid,2026-08-01,2027-07-31,YES,YES,OK - eligible and delivered
+26-0268,Client Approved - Paid,2026-08-01,2027-07-31,YES,YES,OK - eligible and delivered
+26-0269,Client Approved - Paid,2026-08-01,2027-07-31,YES,YES,OK - eligible and delivered
+26-0270,Client Approved - Paid,2026-08-01,2027-07-31,YES,YES,OK - eligible and delivered
+26-0271,Client Approved - Paid,2026-08-01,2027-07-31,YES,YES,OK - eligible and delivered
+26-0272,Client Approved - Paid,2026-08-01,2027-07-31,YES,YES,OK - eligible and delivered
+26-0273,Client Approved - Paid,2026-04-15,2029-04-14,YES,YES,OK - eligible and delivered
+26-0274,Client Approved - Paid,2026-04-15,2029-04-14,YES,YES,OK - eligible and delivered
+26-0281,Client Approved - Paid,2026-04-09,2029-04-08,YES,YES,OK - eligible and delivered
+26-0282,Draft,2026-05-01,2027-04-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0284,Client Approved - Paid,2026-05-01,2029-04-30,YES,YES,OK - eligible and delivered
+26-0285,Client Approved - Paid,2026-05-01,2029-04-30,YES,YES,OK - eligible and delivered
+26-0286,Client Approved - Paid,2026-05-01,2029-04-30,YES,YES,OK - eligible and delivered
+26-0287,Client Approved - Paid,2026-05-01,2029-04-30,YES,YES,OK - eligible and delivered
+26-0288,Draft,2026-08-01,2027-07-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0289,Draft,2026-09-01,2027-07-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0290,Draft,2026-09-01,2027-07-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0291,Draft,2026-08-01,2027-07-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0292,Draft,2026-08-01,2027-07-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0305,Client Approved - Paid,2026-06-01,2027-05-31,YES,YES,OK - eligible and delivered
+26-0306,Client Approved - Paid,2026-06-01,2027-05-31,YES,YES,OK - eligible and delivered
+26-0307,Client Approved - Paid,2026-06-01,2027-05-31,YES,YES,OK - eligible and delivered
+26-0308,Client Approved - Paid,2026-06-01,2027-05-31,YES,YES,OK - eligible and delivered
+26-0309,Client Approved - Paid,2026-06-01,2027-05-31,YES,YES,OK - eligible and delivered
+26-0310,Client Approved - Paid,2026-08-16,2027-08-15,YES,YES,OK - eligible and delivered
+26-0311,Client Approved - Paid,2026-04-24,2029-04-23,YES,YES,OK - eligible and delivered
+26-0312,Client Approved - Paid,2026-04-24,2029-04-23,YES,YES,OK - eligible and delivered
+26-0313,Client Approved - Paid,2026-04-24,2029-04-23,YES,YES,OK - eligible and delivered
+26-0314,Client Approved - Paid,2026-04-24,2029-04-23,YES,YES,OK - eligible and delivered
+26-0315,Client Approved - Paid,2026-04-24,2029-04-23,YES,YES,OK - eligible and delivered
+26-0320,Client Approved - Paid,2026-07-02,2029-07-01,YES,YES,OK - eligible and delivered
+26-0321,Client Approved - Paid,2026-07-02,2029-07-01,YES,YES,OK - eligible and delivered
+26-0322,Client Approved - Paid,2026-07-02,2029-07-01,YES,YES,OK - eligible and delivered
+26-0323,Client Approved - Paid,2026-07-02,2029-07-01,YES,YES,OK - eligible and delivered
+26-0324,Client Approved - Paid,2026-07-02,2029-07-01,YES,YES,OK - eligible and delivered
+26-0325,Client Approved - Paid,2026-07-02,2029-07-01,YES,YES,OK - eligible and delivered
+26-0326,Client Approved - Paid,2026-06-01,2029-05-31,YES,YES,OK - eligible and delivered
+26-0327,Client Approved - Paid,2026-07-02,2029-07-01,YES,YES,OK - eligible and delivered
+26-0341,Client Approved - Paid,2026-05-20,2029-05-19,YES,YES,OK - eligible and delivered
+26-0342,Client Approved - Paid,2026-05-22,2027-05-21,YES,YES,OK - eligible and delivered
+26-0386,Client Approved - Paid,2026-06-15,2027-06-14,YES,YES,OK - eligible and delivered
+26-0387,Client Approved - Paid,2026-06-15,2027-06-14,YES,YES,OK - eligible and delivered
+26-0388,Client Approved - Paid,2026-06-15,2027-06-14,YES,YES,OK - eligible and delivered
+26-0389,Client Approved - Paid,2026-06-15,2029-06-14,YES,YES,OK - eligible and delivered
+26-0390,Client Approved - Paid,2026-06-15,2029-06-14,YES,YES,OK - eligible and delivered
+26-0391,Client Approved - Paid,2026-06-15,2029-06-14,YES,YES,OK - eligible and delivered
+26-0392,Client Approved - Paid,2026-06-15,2029-06-14,YES,YES,OK - eligible and delivered
+26-0393,Client Approved - Paid,2026-06-15,2029-06-14,YES,YES,OK - eligible and delivered
+26-0394,Client Approved - Paid,2026-06-15,2029-06-14,YES,YES,OK - eligible and delivered
+26-0395,Client Approved - Paid,2026-06-15,2029-06-14,YES,YES,OK - eligible and delivered
+26-0396,Client Approved - Paid,2026-06-15,2029-06-14,YES,YES,OK - eligible and delivered
+26-0397,Client Approved - Paid,2026-06-15,2029-06-14,YES,YES,OK - eligible and delivered
+26-0398,Client Approved - Paid,2026-06-15,2029-06-14,YES,YES,OK - eligible and delivered
+26-0425,Client Approved - Paid,2026-06-16,2027-06-15,YES,YES,OK - eligible and delivered
+26-0426,Client Approved - Paid,2026-06-16,2027-06-15,YES,YES,OK - eligible and delivered
+26-0427,Client Approved - Paid,2026-06-16,2027-06-15,YES,YES,OK - eligible and delivered
+26-0428,Client Approved - Paid,2026-06-16,2027-06-15,YES,YES,OK - eligible and delivered
+26-0429,Client Approved - Paid,2026-06-16,2027-06-15,YES,YES,OK - eligible and delivered
+26-0430,Client Approved - Paid,2026-06-16,2027-06-15,YES,YES,OK - eligible and delivered
+26-0431,Client Approved - Paid,2026-06-16,2027-06-15,YES,YES,OK - eligible and delivered
+26-0432,Client Approved - Paid,2026-06-16,2027-06-15,YES,YES,OK - eligible and delivered
+26-0433,Client Approved - Paid,2026-06-16,2027-06-15,YES,YES,OK - eligible and delivered
+26-0435,Client Approved - Paid,2026-07-01,2028-11-30,YES,YES,OK - eligible and delivered
+26-0436,Client Approved - Paid,2026-07-01,2028-11-30,YES,YES,OK - eligible and delivered
+26-0437,Client Approved - Paid,2026-07-01,2028-11-30,YES,YES,OK - eligible and delivered
+26-0438,Client Approved - Paid,2026-07-01,2027-07-07,YES,YES,OK - eligible and delivered
+26-0439,Client Approved - Paid,2026-07-01,2027-07-07,YES,YES,OK - eligible and delivered
+26-0440,Client Approved - Paid,2026-07-01,2027-07-07,YES,YES,OK - eligible and delivered
+26-0441,Client Approved - Paid,2026-10-21,2027-10-20,NO,NO,OK - correctly withheld (effective date not yet reached)
+26-0442,Client Approved - Paid,2026-10-21,2027-10-20,NO,NO,OK - correctly withheld (effective date not yet reached)
+26-0448,Draft,2026-08-01,2028-08-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0449,Draft,2026-08-01,2028-08-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0473,Client Approved - Confidential,2026-08-12,2029-08-11,YES,YES,OK - eligible and delivered
+26-0474,Client Approved - Confidential,2026-08-12,2029-08-11,YES,YES,OK - eligible and delivered
+26-0510,Client Approved - Paid,2026-09-01,2029-08-31,YES,YES,OK - eligible and delivered
+26-0519,Client Approved - Paid,2026-09-02,2027-09-01,YES,YES,OK - eligible and delivered
+26-0520,Client Approved - Paid,2026-09-02,2027-09-01,YES,YES,OK - eligible and delivered
+26-0521,Draft,2026-10-01,2027-09-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable; effective date not yet reached)
+26-0522,Draft,2026-10-01,2027-09-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable; effective date not yet reached)
+26-0523,Client Approved - Paid,2026-09-01,2027-08-31,YES,YES,OK - eligible and delivered
+26-0524,Client Approved - Paid,2026-09-01,2027-08-31,YES,YES,OK - eligible and delivered
+26-0525,Draft,2026-09-01,2029-08-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0526,Draft,2026-09-01,2029-08-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0527,Draft,2026-09-01,2029-08-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0528,Draft,2026-09-01,2029-08-31,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0533,Draft,2026-09-01,2027-11-24,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0534,Draft,2026-09-01,2027-11-24,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0535,Draft,2026-09-01,2027-11-24,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable)
+26-0589,Client Approved - Paid,2026-09-01,2029-08-31,YES,YES,OK - eligible and delivered
+26-0590,Client Approved - Paid,2026-09-01,2029-08-31,YES,YES,OK - eligible and delivered
+26-0591,Client Approved - Paid,2026-09-01,2029-08-31,YES,YES,OK - eligible and delivered
+26-0675,Draft,2026-10-01,2029-09-30,NO,NO,OK - correctly withheld (status 'Draft' is not badgeable; effective date not yet reached)

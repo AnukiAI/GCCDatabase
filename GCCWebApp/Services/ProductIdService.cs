@@ -3,6 +3,9 @@ using GCCWebApp.Models;
 using GCCWebApp.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using CsvHelper;                 // DEF-419: RFC 4180 parsing, incl. quoted multi-line fields
+using CsvHelper.Configuration;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 
@@ -771,14 +774,30 @@ namespace GCCWebApp.Services
         {
             var productIds = new List<ProductIdImportItem>();
 
+            // DEF-419: this method used to read the file with ReadLineAsync() and split each
+            // line on ',' with no quote handling at all — so a value containing a comma shifted
+            // every later column, and a quoted field containing a hard line break (Excel
+            // Alt+Enter) was torn into two bogus rows. The visible symptom was a row importing
+            // with a truncated name and no Partner, plus a second row vanishing, both silently.
+            // CsvHelper implements RFC 4180 properly, including multi-line quoted fields.
             using var reader = new StreamReader(csvStream, System.Text.Encoding.UTF8);
-            var headerLine = await reader.ReadLineAsync();
-            if (string.IsNullOrWhiteSpace(headerLine))
+            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                HasHeaderRecord = true,
+                TrimOptions = TrimOptions.Trim,
+                MissingFieldFound = null,   // short rows yield null fields rather than throwing
+                HeaderValidated = null,
+                BadDataFound = null
+            });
+
+            if (!await csv.ReadAsync() || !csv.ReadHeader())
             {
                 throw new ArgumentException("CSV file is empty");
             }
 
-            var headers = headerLine.Split(',').Select(h => h.Trim('"').Trim()).ToList();
+            var headers = (csv.HeaderRecord ?? Array.Empty<string>())
+                .Select(h => (h ?? string.Empty).Trim('"').Trim())
+                .ToList();
 
             // DEF-111: accept either "Value" (legacy) or "Product ID" (new template) for the value column.
             if (!headers.Contains("Type", StringComparer.OrdinalIgnoreCase))
@@ -793,16 +812,28 @@ namespace GCCWebApp.Services
                 throw new ArgumentException("Missing required header: Product ID (or Value)");
             }
 
-            string? line;
+            // DEF-419 (and DEF-342 parity): the client-side importer resolves the Partner column
+            // by prefix because the shipped template heading reads "Partner (separate by comma)".
+            // This path matched "Partner" exactly, so the same file imported through the API
+            // dropped every partner tag silently. Resolve it the same way the browser does.
+            var partnerHeader = headers.FirstOrDefault(h =>
+                    h.Equals("Partner", StringComparison.OrdinalIgnoreCase) ||
+                    h.StartsWith("Partner ", StringComparison.OrdinalIgnoreCase))
+                ?? "Partner";
+
             var lineNumber = 1;
-            while ((line = await reader.ReadLineAsync()) != null)
+            while (await csv.ReadAsync())
             {
                 lineNumber++;
-                if (string.IsNullOrWhiteSpace(line)) continue;
 
                 try
                 {
-                    var values = line.Split(',').Select(v => v.Trim('"').Trim()).ToList();
+                    var values = Enumerable.Range(0, headers.Count)
+                        .Select(i => csv.TryGetField<string>(i, out var v) ? (v ?? string.Empty).Trim() : string.Empty)
+                        .ToList();
+
+                    // A record with nothing in it is padding, not data.
+                    if (values.All(string.IsNullOrWhiteSpace)) continue;
 
                     // DEF-111: header lookup is tolerant of both legacy ("ProductName"/"ProductSku")
                     // and new-template ("Product Name"/"SKU") column names so older templates on
@@ -816,7 +847,7 @@ namespace GCCWebApp.Services
                             ?? GetValueByHeader(headers, values, "ProductId")
                             ?? "",
                         // CR-015: Status header from CSV is ignored; status auto-derives from parent cert.
-                        Partner = GetValueByHeader(headers, values, "Partner"),
+                        Partner = GetValueByHeader(headers, values, partnerHeader),
                         ProductName = GetValueByHeader(headers, values, "ProductName")
                             ?? GetValueByHeader(headers, values, "Product Name"),
                         ProductSku = GetValueByHeader(headers, values, "ProductSku")

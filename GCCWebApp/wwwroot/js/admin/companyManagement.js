@@ -399,10 +399,10 @@ class CompanyManagement {
                 ...exportData.map(row => 
                     headers.map(header => {
                         const value = row[header] || '';
-                        // Escape quotes and wrap in quotes if contains comma
-                        return value.includes(',') || value.includes('"') 
-                            ? `"${value.replace(/"/g, '""')}"` 
-                            : value;
+                        // DEF-420: this quoted on ',' and '"' but NOT on a newline, so a value
+                        // containing a line break was emitted unquoted and split the record in
+                        // two on re-import. escapeField covers all three.
+                        return GccCsv.escapeField(value);
                     }).join(',')
                 )
             ].join('\n');
@@ -459,7 +459,10 @@ class CompanyManagement {
 
     async parseAndPreviewImport(contents) {
         try {
-            const lines = contents.split(/\r?\n/).filter(line => line.trim());
+            // DEF-419: split into RECORDS, not lines. A quoted field may contain a hard line
+            // break (Excel Alt+Enter); breaking on every newline tore such a row in half and
+            // silently shifted every column after the break out of alignment.
+            const lines = GccCsv.splitRecords(contents);
             if (lines.length < 2) {
                 this.showNotification('CSV file must have a header row and at least one data row', 'error');
                 return;

@@ -514,3 +514,183 @@ on this environment**, so it sees nothing at all and the check proves nothing �
 returns an empty set cannot tell "correctly denied" from "broken". It is reported as a failure
 rather than quietly counted as a pass, and a second control using a real company account carries
 the assertion instead.
+
+---
+
+## 2026-09-09 — Certificate subcategories are now searchable and filterable (QC #260)
+
+**The problem, in one line.** The certificate subcategory field was being saved, displayed, sorted and
+exported — but it was never used for *matching*. Neither the filter checkboxes nor the search box had
+ever looked at it, on any view. It was not a recent regression; the field has behaved this way since
+it was built.
+
+### What changed
+
+Selecting a Certification Type filter option now returns a certificate when **either** its own
+certification type **or** any of its certification-type subcategories carries that name. Typing a
+subcategory name into the search box does the same. This applies to the public view, the external
+(login) view, the internal analyst/admin views, the internal list, and the CSV export.
+
+**The client's own example, confirmed on the live site.** Certificate `25-8071` (JW Aluminum,
+Certified Sustainability Facts, subcategories Recyclable Material / Recycled Content / Waste
+Diversion from Landfill) is now returned by all three of "Certified Sustainability Facts",
+"Recycled Content" and "Waste Diversion from Landfill".
+
+### What it moves, in numbers
+
+| Public filter option | Before | After |
+|---|---|---|
+| Recycled Content | 458 | **529** |
+| Waste Diversion from Landfill | 46 | **151** |
+| Certified Sustainability Facts | 103 | 103 (unchanged) |
+
+**No filter option lost results.** The change is purely additive, so there are still no dead clicks.
+
+The Export button agrees with the screen: exporting a "Recycled Content" filter returns **2,403 rows**,
+the post-fix figure exactly (it was 2,314 before).
+
+### Checked before shipping
+
+- Six of the thirteen top-level filters on the live public API returned certificates whose *own* type
+  differs from the filter value — impossible under the old exact-name match, so the fix is provably live.
+- The export was checked independently of the screen, because a filtered screen and its CSV disagreeing
+  is a failure mode this project has already paid for once (DEF-404).
+- **Scoping does not widen.** An external user scoped to one company still sees only its own
+  certificates: the unscoped match for "Carbon Footprint Reduction" spans 39 certificates across other
+  companies, and that user gets exactly its own 1. Anonymous visitors get the 151 that pass the public
+  visibility gate out of an unscoped 399.
+- Performance: the matching is resolved as a separate set lookup rather than a per-row test, the shape
+  this project settled on after two measured slowdowns (DEF-366, DEF-402). No return to multi-second
+  searches.
+
+### Known follow-ups
+
+- **Two subcategory names match certificates but cannot be clicked yet** — *Recyclable Material*
+  (9 public certs) and *Zero Waste to Landfill* (17). Both are findable by typing them into the search
+  box, so nothing is unreachable. Making them clickable means putting subcategory names back into the
+  Certification Type filter box, which is the opposite of what was asked for on 4/30 (issue #169), so
+  it needs the client's explicit go-ahead first. **Question asked, not assumed.**
+- **One confirmation wanted.** "Recycled Content" now means two things at once: certificates whose type
+  *is* Recycled Content, plus CSF certificates carrying it as a subcategory. That is what was asked for
+  and it is why the counts above rose — but it widens a control the client had already signed off, so
+  it is worth an explicit yes.
+
+
+---
+
+## 2026-09-10 — Amazon now receives the correct code for Certified Environmental Facts (QC #264 / CR-021)
+
+**One value, on one row, that had been wrong since the beginning — and it was blocking Amazon badges
+for 476 certificates.**
+
+Certificates of type **Certified Environmental Facts** were being sent to Amazon with the code `CEF`.
+Amazon does not recognise that string, so those products would not be badged. They now go across as
+**`greencircle_cef`**, which is the value Amazon actually expects.
+
+### Why this took until now
+
+We raised this ourselves on **11 June** as CR-021, having found it while analysing the client's own
+sample ASIN list during the migration work: **7,904 of the 14,183 rows** in that file already carried
+`greencircle_cef`, while our database still held the short seeded code. When the long-form codes were
+set on 22 April, only three certification types were confirmed and Certified Environmental Facts was
+left awaiting the client's mapping.
+
+Because this is a value that goes to a partner, we would not change it without written approval — so
+it sat, approved-pending, for three months. **The client's 9/9 note is that approval**, and it is
+stronger than what we asked for: they named the exact string themselves rather than us inferring it
+from their export.
+
+### What changed
+
+One value on one reference row. **No code change, and no change to the shape of what Amazon
+receives** — the `amazonCode` field was always in the payload; it was carrying the wrong value for
+this one certification type.
+
+Applied to the development database and the test environment, each one checked before and after:
+
+| | Before | After |
+|---|---|---|
+| Certified Environmental Facts | `CEF` | **`greencircle_cef`** |
+
+### Checked before and after
+
+- **Read-only pre-check first**, on both databases, confirming the row's identity and its current
+  value before anything was written. It was still `CEF` on both — a real change, not a no-op.
+- The update was **guarded on both the row id and the name**, run inside a transaction, with a check
+  afterwards that would roll it back if the resulting value were anything other than expected.
+- **It cannot be undone by a future release.** Nothing in the application writes this field — it is
+  not seeded, not set by any migration, and the import's similarly-named field belongs to a different
+  record type entirely. Checked rather than assumed.
+
+### Known follow-up — a question back to the client
+
+The client's reason for the change was that `greencircle_cef` *"matches more of format as others"*.
+Only **four of seventeen** certification types use that long format; the other thirteen still carry
+short codes, and ten of those have certificates behind them — the largest being Material Ingredient
+Reporting with **1,557**.
+
+If Amazon only receives the four that are already correct, there is nothing to do. If it receives any
+of the others, they have exactly the problem this item just fixed, and it would be **silent** — the
+certificates cross over with a code Amazon does not recognise and simply are not badged.
+
+**Nothing else was changed.** We would be guessing at the correct strings, and a wrong partner-facing
+value is worse than an outdated one. We have asked which types Amazon expects and for the official
+code for each, and will handle them as one batch.
+
+
+### Proven through the live Amazon feed, not just the database
+
+We pulled the actual Amazon payload from the test site afterwards, using the Amazon API key, and
+checked every certificate in it. **All 212 certificates now carry a long-form code, and none carries
+a short one.**
+
+| Code | Certificates |
+|---|---|
+| `greencircle_cef` | 78 |
+| `greencircle_sustainable_energy_practices` | 67 |
+| `greencircle_recycled_content` | 48 |
+| `greencircle_energy_savings` | 19 |
+
+### The client's own edits the same day, reconciled
+
+The client updated records on 2026-09-10 and asked for the Amazon payload to be regenerated so they
+could review the effect. We compared it against the 9/9 payload certificate by certificate. **Every
+difference is accounted for; nothing is unexplained.**
+
+- **11 certificates left the feed** — 6 Waste Diversion from Landfill, 4 Closed Loop Product, 1
+  Sustainable Manufacturing Practices. Ten were untagged from Amazon and one moved to Draft.
+- **7 certificates were re-typed** from Carbon Footprint Reduction to Certified Environmental Facts
+  and stayed in the feed.
+- **Nothing was added**, and no other certificate changed. The feed goes from 223 to 212.
+
+**Taken together with this fix, that closes the gap completely.** Before today, four certification
+types in the feed were still sending short codes and would have failed exactly as CEF did — sent
+across with a value Amazon does not recognise, and silently not badged. The client's edits removed
+all four; this fix corrected the fifth.
+
+The remaining short codes elsewhere in the system now reach nobody. They matter only if a certificate
+of one of those types is tagged to Amazon later, so we have offered to set them on request rather
+than leave a trap.
+
+---
+
+## 2026-09-10 — Edit opens in a new tab; the list view opens by default
+
+**Pending deploy** — built and verified on 2026-09-10, awaiting upload to gccwebapp.com.
+
+### Delivered
+
+**Edit now opens in a new tab, so you no longer lose your search (CR-048).** Reported by the team:
+editing a run of certificates meant going back and re-running the same search every single time,
+because Edit navigated the page away from the results. Edit now behaves the way Preview already did
+— it opens in a new tab, the results list stays exactly where it was, and closing the tab puts you
+straight back into the search you were working through. Applied everywhere Edit appears, not just the
+one screen it was reported on.
+
+**Logged-in users now land on the List view (CR-049).** Reported by the team: the list is what they
+actually work in, and every page load started on tiles, so the first action of every visit was
+toggling the view. Logged-in users now open straight into the List view. If you prefer tiles, simply
+switch once — your choice is remembered for next time, so nobody has to keep toggling in either
+direction. The public certificate database is unchanged.
+
+> The remembered choice is per browser, so signing in on a different machine starts on List again.

@@ -605,3 +605,40 @@ would close the gap. Low priority, but it is a destructive path with zero live a
 Checking `/appsettings.Production.json` without a gate cookie returns 302 for a leaked file and 302
 for a protected one alike. The pre-deploy checklist's leak check should specify **behind the gate**,
 where the answer is an unambiguous 404.
+
+---
+
+## 2026-09-14 - Stop issuing partner documents with blanks in them
+
+**Trigger.** Client on the Integration Guide template: *"I don't know how I would fill in some of
+missing items when I take the template and try and apply to Novi for example."* Eight of her fifteen
+comments are the same question asked in eight places - "where would this info come from?"
+
+**Diagnosis.** We handed the client a template whose per-partner values live in a system only we
+administer. That is not a documentation problem, it is a handoff problem: the blanks can only be
+filled from the API key record, and today only we create keys.
+
+**Change.** Fill the *Your Connection* panel at the moment the key is issued and send back a completed
+guide, rather than a template. Two benefits beyond convenience:
+
+1. The document can never disagree with the key that was actually issued - which is the exact failure
+   the template's own "how to use this" box warns about (a key scoped to a subset of endpoints
+   returns 403 on the others while the guide claims "All").
+2. It removes a step the client cannot perform, instead of documenting it.
+
+**Wider version of the same lesson.** Only four of the panel's eight rows genuinely vary per partner.
+The other four were written as `[PLACEHOLDER]` anyway, which is what made the document look
+unfillable. **A placeholder for a constant is a bug in the document.** Before shipping any template,
+separate "varies" from "looks like it varies".
+
+## 2026-09-14 - A client reporting a broken link is not automatically our defect
+
+Client reported a page in the Integration Guide with no content. It resolved to the *directory index*
+of a GS1 US GitHub Pages site - GS1's own placeholder. The two URLs actually referenced
+(`cert_schema.json`, `cert_context.json`) both return full content, and neither is a link we chose:
+they are `@context` and `$schema` values the GS1 data model requires inside the payload, which Word
+auto-linked.
+
+Had we "fixed" this we would have changed a partner-facing contract to solve someone else's missing
+index page. **Check what the URL actually is and who owns it before treating a client's link report
+as a defect.** The right fix was a one-line pointer to the upstream repository.

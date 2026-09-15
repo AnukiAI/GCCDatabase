@@ -63,7 +63,21 @@ async function login(page, u, p) {
   return page.url();
 }
 
-const ctx = (b, h = 900) => b.newContext({ extraHTTPHeaders: GATE, viewport: { width: 1440, height: h } });
+// The gate header goes ONLY to the app's own origin.
+//
+// This used to be `extraHTTPHeaders: GATE`, which Playwright applies to EVERY request including
+// cross-origin ones. Font Awesome is pulled from cdn.jsdelivr.net with crossorigin="anonymous"
+// (Views/Shared/_Layout.cshtml:36); forcing an Authorization header onto that request makes the
+// font fail to load, and every icon in every capture renders as an empty grey square. Scoping the
+// header to BASE fixes it. Do not go back to extraHTTPHeaders.
+const ctx = async (b, h = 900) => {
+  const c = await b.newContext({ viewport: { width: 1440, height: h } });
+  const appOrigin = new URL(BASE).origin;
+  await c.route('**/*', (route, req) => {
+    route.continue(req.url().startsWith(appOrigin) ? { headers: { ...req.headers(), ...GATE } } : {});
+  });
+  return c;
+};
 
 (async () => {
   const b = await chromium.launch();

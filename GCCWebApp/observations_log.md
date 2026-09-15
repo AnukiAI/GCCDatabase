@@ -4432,3 +4432,597 @@ Internal 6,032 certs (5,857 distinct numbers) · public 1,018 · Sika 23 · MAPE
 42 companies · Novi **0**. Novi being empty is expected and means the amazon/novi isolation pair is
 still vacuous on TEST — the real isolation evidence is the external/external2 pair, which is
 non-vacuous and shares nothing. ([[feedback_novi_has_no_certs_on_test]])
+
+---
+
+## 2026-09-14 - `client-domain-cutover` skill installed (in the repo)
+
+Shawn handed over `C:\Users\swest\Downloads\client-domain-cutover.skill` (19,212 bytes, ZIP,
+8 files). Installed to **`.claude/skills/client-domain-cutover/`** - in the repo, at Shawn's
+direction, so it travels with the code and a fresh clone gets the cutover playbook. It
+registered immediately - live in this session, no restart needed.
+
+It was first put at user level (`C:\Users\swest\.claude\skills\`) and then **moved** on the
+same request. There is exactly ONE copy: the user-level directory no longer contains it
+(only `reclaim-disk-space` remains). Do not let a second copy appear - two copies of a skill
+with the same `name:` is an ambiguity, not a backup.
+
+Git: `.claude/` is **not** ignored here, so the 8 files show as untracked (`?? GCCWebApp/
+.claude/skills/`) and will travel once committed. Left in the working tree uncommitted -
+Shawn commits. ([[feedback_no_commits]])
+
+Contents: `SKILL.md` plus `references/` (dns-providers, plesk, aspnet-core, email,
+client-comms), `assets/audit-prompt.md`, `scripts/verify-cutover.sh`.
+
+Read the whole package before installing, since a skill is instructions that later steer the
+agent. Nothing hostile: `verify-cutover.sh` is read-only (dig / curl -I / openssl s_client,
+no writes, no credentials) and the audit prompt is explicitly READ-ONLY with "do not run
+anything against production hosts".
+
+What it is for: moving the app off the placeholder hostname `gccwebapp.com` onto the client's
+own hostname (e.g. `database.greencirclecertified.com`) when DNS sits at the client's provider
+(Bluehost/cPanel, where their WordPress lives) and the app is on Plesk/AccuWebHosting - plus
+retiring the old vendor-hosted `db.` site behind a 301.
+
+Two points in it that matter for this project specifically:
+
+- **Redirects belong at the proxy/host layer, never in app code.** That is what makes rollback
+  a DNS revert rather than a redeploy. Worth honouring given how often a GCC "fix" has needed a
+  bundle to undo. ([[feedback_bundle_ask_what_it_would_undo]])
+- **Deep links, not the home page, are the real risk.** Certificate URLs are keyed by
+  certificate NUMBER (`/Certificate/CertificateSingleView/26-0224`), so any old-to-new URL map
+  has to preserve path AND query, and printed/bookmarked certificate links are exactly the
+  shape that breaks quietly. ([[feedback_cert_number_vs_id_resolved]])
+
+Not started: no cutover work was performed, no DNS/Plesk/config touched, `docs/cutover/` does
+not exist yet. Install only.
+
+---
+
+## 2026-09-14 - Read-only hostname cutover audit run (`database.greencirclecertified.com`)
+
+Ran the `client-domain-cutover` skill's audit prompt against the codebase. **READ-ONLY** - no code,
+config, DNS or Plesk setting touched. Only network activity was public DNS resolution. Three files
+written, all under `docs/cutover/`:
+
+- `database.greencirclecertified.com-inventory.md` - Step 0 answers + verbatim DNS/PTR evidence
+- `database.greencirclecertified.com-documentation-inventory.md` - Part 1, what's documented/stale/missing
+- `database.greencirclecertified.com-hostname-audit.md` - Parts 2-5, recommendations, 11 open questions
+
+### The headline is good news
+
+**Zero C# changes needed to move hostname.** Every absolute URL the app emits is built from
+`Request.Scheme` + `Request.Host` - password-reset links (`AccountController.cs:530`), GS1 JSON-LD
+`id` fields (`CertificatesController.cs:1670`), tile share URLs, cert Verify links. Nothing
+hardcodes a hostname in the URL-generating path. The usual expensive part of a cutover is absent.
+
+`AllowedOrigins` already lists `database.greencirclecertified.com` (added 2026-08-24). `AllowedHosts`
+is `*` everywhere, so the new host answers the instant it is bound. `Cookie.Domain` is never set, so
+cookies are host-scoped and just work. Azure AD B2C is all placeholders, so there is **no external
+IdP redirect URI to register** - a whole normal cutover step that does not exist here.
+
+### Four blockers, and the reason two of them are the SAME problem
+
+1. **`TestEnvironmentGate:Enabled = true`** is a global password wall on every non-API path, and the
+   middleware is **host-blind** - one flag, no per-hostname condition.
+2. **`wwwroot/robots.txt` is `Disallow: /`** - the public cert directory would launch unindexable.
+
+Both are single-process, single-file state. A Plesk **domain alias** - the skill's default Step 2 -
+puts both hostnames on the same site, same app pool, same config. So the gate and robots.txt
+**cannot differ between `gccwebapp.com` and the client host**. Turning either off for the client
+turns it off for the test env at the same instant. That forces a real choice: (a) accept it,
+(b) make the gate host-aware (code change, needs a DEF/CR), or (c) the separate production
+environment. Also: the gate binds options **once in the constructor as a singleton** - config edit
+alone does nothing until an app-pool recycle.
+
+3. **The target hostname already resolves to someone else's server.** `database.greencirclecertified.com`
+   -> `70.32.82.212`, PTR `new-verbcomm.com`. Not AccuWeb, not Squarespace, not Vercel. Blocks
+   Let's Encrypt HTTP-01 and means a stranger's box answers on the client's production name today.
+4. **Sender is `admin@gccwebapp.com`** and cannot survive cutover.
+
+### What the live DNS corrected
+
+Four working assumptions turned out wrong, each by measurement not by reading a doc:
+
+- Client DNS is **HostMonster**, not Bluehost.
+- The marketing site is **Squarespace** (`198.185.159.x`), **not WordPress on the DNS host** - so
+  pointing a subdomain away cannot disturb their website. Lower risk than assumed; say so to client.
+- Client mail is **Microsoft 365**, and root SPF does **not** include `72.18.135.96` (the AccuWeb
+  relay). A root-domain sender fails SPF on day one; a subdomain sender is greenfield
+  (`TXT database.` is empty). Recommend subdomain.
+- `api.greencirclecertified.com`, sitting in the CSP `connect-src`, is **NXDOMAIN**. Dead entry.
+
+### Two findings worth keeping past this audit
+
+**`UseSecurityPipeline` is never called.** `Extensions/SecurityServicesExtensions.cs:218` is dead -
+its only reference is its own definition. So `app.UseForwardedHeaders()` (`:221`) never runs and the
+`ForwardedHeadersOptions` at `:47-63` are inert. Harmless today (IIS in-process, no proxy), but
+`IpRateLimiting.RealIpHeader: X-Forwarded-For` is read by the rate-limiter **directly** with no
+trusted proxy configured - so **X-Forwarded-For is currently spoofable to evade rate limiting**.
+That is its own defect, unrelated to the cutover. Flagged, not acted on.
+
+**The old-site redirect map already exists.** This is the find of the audit.
+`C:\Users\swest\GCCPortalPull\manifest.csv` (2026-08-13 portal pull) profiled live: **6,000 rows,
+6,000 distinct integer `record_id`, 5,822 distinct certificate numbers, zero blanks.** The
+`record_id -> certificate_number` direction is **total and unambiguous** - exactly the direction a
+redirect for `db.greencirclecertified.com/api/certificates/{id}/download` needs. Use the **portal**
+manifest, not the public mirror (1,021 rows) - that is the difference between redirecting a sixth of
+the deep links and all of them. Still to verify: set-compare the 5,822 numbers against live data
+before generating the map ([[feedback_equal_counts_are_not_the_same_rows]]).
+
+### The decision this audit could not make
+
+`docs/tracking/email-draft-2026-08-12-production-hosting-request.md` asks for a **brand-new
+production environment** (separate box, separate DB) because test and production currently share one
+database. The skill's default is an **alias on the existing site**. These are not variants - they
+differ in effort, rollback, whether everyone gets signed out, and whether the gate/robots problem
+exists at all. **That email was never sent.** Left as the top open question; it is a cost and scope
+call, not a technical preference. ([[feedback_absorbed_cr_is_still_priced]])
+
+Also noted: `production-cutover-plan.md` is a **2FA/Duo** plan despite the name and contains no
+hostname content, and its config snapshot is stale (says `Enable2FA: false`, now `true`; SMTP line
+numbers moved). The 2026-08-12 hosting email has four facts that have since moved. Both flagged for
+a one-line stale banner rather than an edit to the analysis.
+
+---
+
+### 2026-09-14 - Client email: Amazon Integration Guide questions + 15 Word comments
+
+Client sent three bullets plus a commented copy of
+`GCC_Partner_API_Integration_Guide_TEMPLATE_GCC_2.docx` (15 comments, all hers, dated 2026-08-28).
+Draft reply: `docs/tracking/2026-09-14-client-email-amazon-ig-questions.md`. **Not sent.**
+
+**Bullet 1 - the four AmazonCode strings.** Confirmed correct and complete, from the live-feed
+evidence already captured on 2026-09-10 (QC #264 / CR-021): 212 certificates, all long-form, none
+short. No new verification needed - the shipped log and CR register already held it. Re-raised the
+thirteen remaining short codes, which is now the **second** time this has been asked.
+
+**Bullet 2 - the "page with no content".** The two `gs1us-technology.github.io` URLs she clicked are
+**not links we wrote** - they are the `@context` and `$schema` values inside the GS1 JSON response
+(`Models/Api/GS1CertificationReport.cs:15,21`), which Word auto-linked. Both files return full
+content (re-checked live today). What has no content is the **directory index above them**, which is
+GS1 US's own unpublished landing page. The instinct to treat a client's "this link is broken" as our
+defect would have been wrong here - the correct fix is a pointer to
+`github.com/gs1us-technology/certification-data-model`, not a change to the payload.
+
+**Bullet 3 - the 15 comments** collapse to four themes: eight are the same "where does this value
+come from?" about the Your Connection panel (answer: all eight rows come off the API key record, and
+only four genuinely vary per partner); two are "what does § mean?" (agreed, spell out "Section N");
+two ask whether `amazonCode` should be removed for non-Amazon partners (**no** - it is returned
+unconditionally to every partner, `CertificatesController.cs:282,348`, so removing the row would
+leave an undocumented field in the JSON); two ask whether `[PARTNER NAME]` is free text (**no** - it
+is the Partner record name, and the same name drives scoping).
+
+**Finding worth more than the email.** `database.greencirclecertified.com` - the production base URL
+the guide states as fact in four places including the Quick Start curl - resolves to 70.32.82.212 and
+returns **HTTP 200 serving the legacy Next.js site**, not the application. `gccwebapp.com`
+(64.27.52.66) correctly returns 401 on the same path. Sending the guide to a partner before the
+domain cutover means their first request returns an HTML page where JSON is documented. Flagged to
+Shawn only, not in the client email; not actioned. ([[feedback_verify_deployed_asset_not_symptom]])
+
+**Process note.** The real answer to "I don't know how I would fill this in for Novi" is not a better
+template - it is to stop shipping blanks. Proposed that we fill the panel in at the point we issue
+the key, which also removes the class of error where a partner's document disagrees with the key they
+actually hold.
+
+### 2026-09-14 (cont.) - Domain cutover prepared for database.greencirclecertified.com
+
+Shawn: *"mark the production base URL as available at go-live, we need to set this up today."*
+Both done. Artifacts in `docs/cutover/`; guide reissued as
+`GCC_Partner_API_Integration_Guide_TEMPLATE_GCC_3.docx`.
+
+**Correcting my own earlier finding.** I reported `database.greencirclecertified.com` as "HTTP 200
+serving the legacy Next.js site". **That was the redirect target, not the host.** The hostname is an
+**nginx 302 shim** at 70.32.82.212 (rDNS `pa-ala.org`, a shared box) that redirects **every path** to
+`https://db.greencirclecertified.com` and **discards the path**. `Invoke-WebRequest` followed the
+redirect silently, so the `Server: Vercel` header and Next.js HTML I read came from the far end.
+Caught it by disabling auto-redirect and tracing the chain. ([[feedback_verify_deployed_asset_not_symptom]])
+
+This makes the cutover **easier**: no application is being displaced, and the shim's box never needs
+to be touched, so rollback is one A record.
+
+**Two hostnames, previously conflated - do not repeat this.**
+- `database.` = the 302 shim. **This is the cutover target.**
+- `db.` = the **live** legacy public database on Vercel: 1,021 public certs, `/certificate/{id}`,
+  S3-backed PDF downloads, plus a signed-in tRPC portal ([[project_greencircle_public_db_scrape]]).
+  **Out of scope** - retiring it is real deep-link work and a vendor conversation.
+
+**Inventory (all resolved live):** DNS at **HostMonster** (`ns1/ns2.hostmonster.com`); marketing site
+on **Squarespace**; app at **64.27.52.66** = `ACCU22.accuwebhosting.com`, Plesk/IIS 10; mail on
+**Microsoft 365**.
+
+**App audit - no code change needed.** `AllowedHosts` is `"*"` everywhere; CORS already lists
+`https://database.greencirclecertified.com` (added 2026-08-24, marked defensive - it becomes
+load-bearing at cutover); `UseForwardedHeaders()` wired; partner URLs built from `request.Host`
+(`CertificatesController.cs:1670`), so they follow the hostname called. **Consequence for Amazon: the
+GS1 `id` is a URI and therefore CHANGES at cutover** - a partner keying on it sees new values. The
+guide already documents the mechanism; it belongs in the go-live note.
+
+**Plesk instruction that matters:** add as a **domain alias** of the existing site, never a second
+site. A second site gets its own data-protection key ring and breaks auth cookies and antiforgery
+tokens across the two hostnames.
+
+**Verify script proved itself before it was trusted.** `docs/cutover/scripts/verify-cutover.sh` run
+against the pre-cutover state returns exit 1 with exactly the two expected FAILs (DNS still at the
+old IP; 302 in front of the hostname). Two defects found and fixed by running it rather than reading
+it: (1) Git Bash on Windows has **no `dig`** - it reported "does not resolve" for a name that
+resolves fine, so it now falls back through `host`/`nslookup`; (2) it flagged `gccwebapp.com` as
+"redirect DROPS path/query" when that redirect is the **pre-launch access gate**, which preserves the
+path percent-encoded inside `returnUrl`. **A check that cries wolf is worse than no check.**
+
+**Hard blocker, and the only one: who holds the HostMonster DNS login.** Everything else is prepared.
+Email sender move and `AllowedHosts` tightening deliberately left out of scope.
+
+### 2026-09-14 (cont.) - Correction from Shawn: the test host is dbtest, and `database` is NOT free
+
+Shawn: *"the test link is dbtest.greencirclecertified.com because database and db are both being used
+by the existing database."* This invalidates two assumptions I had been working from.
+
+**1. `dbtest.greencirclecertified.com` already exists and works - no cutover needed for test.**
+Verified live: A -> 64.27.52.66 (our Plesk/IIS box), TLS SAN list is
+`dbtest.greencirclecertified.com, gccwebapp.com, www.gccwebapp.com` so the cert genuinely covers the
+name, and `/api/v1/certificates` returns **401** anonymously - the app, with the key check enforced.
+`verify-cutover.sh` reports **4/4 pass**. Nothing to build.
+
+**2. The `database.` cutover is blocked, not schedulable.** That hostname is in use by the existing
+certificate database. The runbook's procedure stands but its trigger is "legacy database retired or
+renamed", which is a client decision. Runbook header updated so nobody executes it.
+
+**Guide reissued** as `..._TEMPLATE_GCC_3.docx` from the client's commented v2: all four
+`gccwebapp.com` references replaced with `dbtest.greencirclecertified.com` (**0 remain** in the
+partner-facing doc), Base URL row marked *"available at go-live"*, and a NOT-YET-LIVE note added to
+the internal how-to box. Verified after writing: zip integrity OK, `document.xml` parses, **all 15 of
+the client's comments preserved**, 16/16 zip entries.
+
+**Lesson - I nearly shipped a guide pointing partners at the wrong host.** I had spent the whole
+cutover analysis treating `gccwebapp.com` as the test host and `database.` as an available
+production target. Both were wrong, and **neither was discoverable from the repo or from DNS** -
+`dbtest` appears nowhere in the codebase, and `database.` resolving to a redirect shim looks
+identical to "unused". Only the client knew. **When a hostname's *availability* is the premise of a
+document, ask who owns it before writing the document around it.**
+([[feedback_diagnose_on_clients_environment]])
+
+### 2026-09-14 (cont.) - Final partner-facing guide produced
+
+Shawn: *"delete the how-to box and send me the final doc."* Delivered as
+`GCC_Partner_API_Integration_Guide_FINAL_2026-09-14.docx` (repo copy in `docs/tracking/api-samples/`).
+
+**What was removed, and why more than was literally asked.** The how-to box turned out to be a single
+shaded paragraph (7,013 chars) and it **contained comment anchors 0 and 1**, so deleting it would
+have orphaned them regardless. Since the document's destination is a partner, all 15 of the client's
+internal review comments were stripped rather than left in - a reviewer's questions must not reach
+Amazon. Done properly, not just by deleting anchors: the five comment parts (`comments`,
+`commentsExtended`, `commentsIds`, `commentsExtensible`, `people`) were removed from the package,
+their five relationships dropped (11 -> 6) and their five content-type overrides dropped (13 -> 8).
+The client's own commented copy survives untouched as `..._TEMPLATE_GCC_2.docx`.
+
+**Verified after writing, not assumed:** zip integrity OK; `document.xml`, `document.xml.rels` and
+`[Content_Types].xml` all parse; **zero dangling `r:id` references** (the check that catches a
+half-removed relationship, which is what makes Word declare a file corrupt); 0 comment anchors;
+0 `gccwebapp.com`; go-live marker retained; NOT-YET-LIVE note gone with the box, which is correct -
+it was internal guidance.
+
+**Flagged, deliberately NOT actioned: 17 `[PLACEHOLDER]` occurrences remain**, including
+`[PARTNER NAME]` x6, `[MONTH YEAR]` x2, `[N] requests per hour`, `[All endpoints in §3]` and
+`[None - or the agreed expiry date]`. Filling `[PARTNER NAME]` with "Amazon" would convert a generic
+template into an Amazon-specific document, and the client may want the generic one - the Novi
+thread in the same email says they do. Three of them (rate limit, endpoint scope, key expiry) cannot
+be filled from the repo at all; they must be read off the Amazon API key record.
+
+**The irony worth recording:** the box we just deleted was the thing that said *"Fill every
+[HIGHLIGHTED PLACEHOLDER]"*. Removing the instructions removed the reminder. If issuing this guide
+becomes routine, the placeholder check belongs in the issuance log
+(`docs/tracking/partner-api-guide-issuance-log.md`), not in a box that gets deleted on the way out.
+
+### 2026-09-14 (cont.) - Guide finalised: box restored, § removed, key instructions, email
+
+Shawn: restore the how-to box; the `§` references read as "weird"; Amazon must test on **dbtest**
+before cutover; write the client instructions for creating a key; write the email.
+
+**Two documents now, because the box itself says "delete this box before issuing."** Keeping one file
+forced a contradiction. `..._MASTER_2026-09-14.docx` keeps the box and stays the reusable template
+(Novi next); `..._Amazon_2026-09-14.docx` has it removed and is the one that goes out. Both built
+from the same source in one pass so they cannot drift.
+
+**`§` -> "Section" x16.** This was the client's comment 7 (*"I don't understand these throughout
+doc?"*) and she raised it again unprompted - a second report is the signal it was never cosmetic.
+
+**Quick Start now uses dbtest.** The curl example pointed at the production host, so a partner
+copy-pasting it today would fail. Changed to `dbtest.greencirclecertified.com` and the result line
+now states plainly that only the hostname changes at go-live.
+
+**Two "placeholders" turned out not to be placeholders - a real finding.** The guide's *Your
+Connection* panel and its how-to box both claim **seven** rows vary per partner. They do not. The
+Generate Key modal exposes exactly three fields - **Partner, Description, Expiration Date**:
+- **Rate limit** is system-wide: `PartnerApiKeyLimit = 200`/hour, set in `Program.cs:530`.
+  **`RateLimitOptions` defaults to 2000** (`ApiRateLimitingMiddleware.cs:186`) - I would have written
+  2000 had I stopped at the class. Middleware confirmed live: `X-RateLimit-Limit` header present on
+  dbtest.
+- **Endpoint scope** is not scoped at all. `PartnerApiKey.AllowedEndpoints` exists as a column but no
+  UI sets it and `GenerateApiKeyAsync` never populates it, so every key gets all endpoints.
+Both filled in as the constants they are. **Only three of seven rows genuinely vary.**
+
+**`PartnerApiKey` is NOT `ApiKey`.** Two separate entities with similar fields. Partner keys go
+through `PartnerApiKeyService.GenerateApiKeyAsync`; reading `ApiKey.RateLimitPerHour` (default 1000)
+would have produced a third wrong number. ([[feedback_duplicate_certificate_numbers_exist]] is the
+same shape of trap - similar names, different records.)
+
+**Key is retrievable after creation, not shown-once.** The list endpoint returns
+`List<PartnerApiKey>` unmasked; `partnerapi.js` masks it for display but puts the full value in
+`data-key-value` behind a copy button. Good for the instructions ("you can copy it again"). Flagged
+to Shawn as a security item - full keys reach the browser DOM - but deliberately kept out of the
+client-facing doc.
+
+**Written:** `docs/tracking/2026-09-14-gcc-how-to-create-partner-api-key.md` (GCC-facing; leads with
+"a key on its own returns an empty list - certificates must be tagged to the partner first", which is
+the [[feedback_partner_scoping_two_filters]] trap, and warns not to test the key from a signed-in
+browser per [[feedback_partner_api_key_needs_unauthenticated_session]]) and
+`docs/tracking/2026-09-14-client-email-FINAL.md`.
+
+**Left unfilled on purpose:** `[PARTNER NAME]` x6, `[MONTH YEAR]`, `[YEAR]`, `[GCC support contact]`,
+key expiry. Filling "Amazon" would convert the master into an Amazon-specific document, and the
+client wants the generic template for Novi.
+
+### 2026-09-14 (cont.) - Amazon copy personalised
+
+Filled in the **Amazon copy only**: `[PARTNER NAME]` x6 -> `Amazon`, `[MONTH YEAR]` x2 ->
+`September 2026`, `[YEAR]` -> `2026`. **MASTER deliberately untouched** - it is the generic template
+and "Amazon" in it would destroy its reuse for Novi.
+
+**Two things that would have gone wrong on a blind find-and-replace:**
+
+1. **`["All"]` is not a placeholder.** It looked like one in my own placeholder listing, but it is
+   real JSON inside a sample response - `"targetCountries": ["All"]`. A regex that matched
+   `\[...\]` and "filled" it would have silently corrupted the sample Amazon reads. Asserted its
+   count before and after the edit so the guard is permanent, not a one-off inspection.
+   **The listing that flagged it was mine, from the previous turn - my own output was the trap.**
+
+2. **The brackets carry a highlight style.** `fill1` is a character style with pale-yellow shading
+   (`w:fill="FFFDE7"`) - the visual "fill me in" marker. Replacing the text alone leaves `Amazon`
+   highlighted yellow in a partner-facing document, which reads as unfinished. Cleared `fill1` from
+   the 9 runs that no longer contain a `[`, and **kept it on the 5 that do**, so the highlight still
+   means exactly what it means. This also fixed `200` and `All endpoints in Section 3` from the
+   earlier turn, which had been left highlighted.
+
+**Left bracketed on purpose, flagged to Shawn:** `[GCC support contact]` and
+`[None - or the agreed expiry date]` (both need her decision), `[Presence - ...]` (already the
+correct value, needs only the brackets removed - offered), and `[your key - delivered separately]` /
+`[64-character hash]` (deliberate guide text that must stay).
+
+Verified after writing: zip OK, all XML parses, no dangling `r:id`, cover block reads
+*"Date: September 2026 / Prepared for: Amazon Integration Team / CONFIDENTIAL - For authorized Amazon
+integration personnel only."*
+
+### 2026-09-14 (cont.) - Shawn asked whether the comments were actually addressed IN the document. Two were not.
+
+Good challenge, and the answer was no. I audited the built .docx by probing its text rather than
+trusting my own summary, and found two gaps - one of them a **false claim in my own draft email**.
+
+**1. Comment 10/12 - `[PARTNER NAME]`, "does it need to match something in API key?"** My email said
+*"I have made that explicit rather than leaving it looking like free text."* **It was not true.** No
+such text existed in the document. What I had actually done was fill the value with "Amazon" in the
+Amazon copy, which is a different thing entirely and leaves the MASTER with a bare unexplained
+placeholder. **Filling a placeholder is not the same as answering the question about it** - and I
+wrote the claim from intention rather than from the file. Fixed for real: the `partner` field
+description in Section 9 of **both** copies now reads *"the partner name exactly as GCC holds it -
+not a free-text label - and it is the same name that determines which certificates your key can
+see."* Email corrected to describe what the document says.
+
+**2. Comment 0 - "Where do we get API Key? Does GCC have to request from Anuki?"** Answered in the
+email and in the separate how-to doc, but **nowhere in the guide**. Partly defensible - a
+partner-facing document should not carry GCC's internal process - but the MASTER's how-to box is
+GCC-facing and is exactly the right home. Added there: `Admin -> Partner API Access -> Generate Key`,
+the three fields, copy from the confirmation panel, send by secure channel, and the
+tag-certificates-first trap.
+
+**The same edit corrected an instruction that was actively wrong.** The box said the panel's *seven*
+rows vary per partner and told the reader to *"check each value against the API key actually issued."*
+Rate limit and endpoint scope have **no per-key field to check against**, so that instruction could
+never be followed. Now: three rows vary; the other two are system-wide and pre-filled.
+
+**Pattern to carry forward:** when the deliverable is a document, "addressed" means *present in the
+document*, not *answered in the covering email*. Probe the built artifact for the specific sentence
+before claiming it is there. ([[feedback_verify_deployed_asset_not_symptom]] - same failure shape,
+different medium.)
+
+### 2026-09-14 (cont.) - Partner setup guide created; 8 errors fixed in the existing user guide; DEF-424 raised
+
+Shawn asked whether we have a user guide for setting up a partner with an API key. **We did** -
+`docs/user-guide/GCC_USER_GUIDE.html` sections 22, 23 and 27 - so the useful work was not writing a
+duplicate but **checking the existing one against the running application**. It was wrong in eight
+places.
+
+**Eight corrections, each verified against code or the live API before changing:**
+
+| # | Where | Was | Is |
+|---|---|---|---|
+| 1 | 23.2 | *"key is displayed exactly once... you can never see it again"* | Retrievable - `partnerapi.js` masks for display but puts the full key in `data-key-value` behind a copy button |
+| 2 | 27.1 | `greencirclecertified.com/database/api/v1` | The retired path-based address. Now dbtest (live) + production at go-live |
+| 3 | 27.3 | `GET /certificates/by-number/{n}` | **404 live.** Real route is `/number/{n}` |
+| 4 | 27.3 | `GET /certificates/{id}/pdf` | **404 live.** Real route is `/{id}/download` |
+| 5 | 27.3 | `search?productId=` "by product identifier" | That param is an **int FK**, not an ASIN. Real route is `search/productid` |
+| 6 | 27.4 | Partners see Paid + Republished | **+ Confidential** - wrong since CR-043 |
+| 7 | 8 (status table) | Confidential *"not shown... via the Partner API"* | Still returned to partners; embargo is public-only |
+| 8 | 22.2 / 22.3 | Deactivating a partner *"revokes their API access on next request"* | **It does not.** -> DEF-424 |
+
+Routes 3-5 were proven **live**, not read: an unauthenticated probe of dbtest returns 401 for a route
+that exists and 404 for one that does not, which separates "route missing" from "key rejected"
+cleanly. Three documented endpoints returned 404.
+
+**Nearly broke a correct sentence.** My first replacement for #6 matched nothing, and the residual
+check found `Paid or Republished status` still present - in section 9.6, about **public** users,
+where it is **correct** (`PublicStatuses` really is those two). A looser match would have "fixed" a
+right sentence into a wrong one. The partner line differed because it carries `<em>` markup.
+
+**DEF-424 raised** for #8 - deactivating a Partner has no effect on API auth. `ValidateApiKeyAsync`
+(`PartnerApiKeyService.cs:216`) and `GetApiKeyByValueAsync` (`:87`) both filter on the **key's**
+`IsActive`; the latter `.Include`s the Partner but never tests `Partner.IsActive`; the middleware
+(`:67, :89`) checks neither. Deliberately raised as a **question, not a fix**: adding
+`&& k.Partner.IsActive` is one line but is a live partner-facing behaviour change that would cut off
+any inactive partner still calling. Documentation corrected either way, so the immediate risk is gone
+without pre-judging it.
+
+**Register high-water was 423, not the 418 in memory** - the memory's own instruction to re-grep both
+`###` and `####` depths before appending is what caught it. Next is DEF-425.
+([[reference_def_register_numbering]] needs updating.)
+
+**New guide built through the existing pipeline, not hand-rolled.** `_source/build-guide.py` was
+hardcoded to `guide.md` -> Accounts guide; parameterised it to take a source path and derive the
+output basename from a frontmatter `slug:`, defaulting to the old behaviour. **Regression-proven:**
+the Accounts guide rebuilds **byte-identical** (same SHA-256) before and after the change. First
+attempt ignored my `slug:` because `parse()` returns a **curated** META that drops unknown keys -
+read it from the raw frontmatter instead rather than widening the parser's contract.
+
+Output: `docs/user-guide/partner-api-setup-guide.md` -> `GCC_Partner_Setup_Guide_v1.0.docx/.html`,
+9 sections, 8 tables, 6 callouts. Leads with the trap that matters:
+[[feedback_partner_scoping_two_filters]] - tag the certificates first or the partner sees nothing.
+
+### 2026-09-14 (cont.) - Screenshots added to the partner setup guide
+
+Five figures, captured from the test environment via a new
+`docs/user-guide/_source/capture-partner-shots.js` (sibling of the Accounts guide's script, kept
+separate so either guide's shots can be re-taken alone). Guide is now 419 KB docx / 659 KB html.
+
+**Two safety rules built into the script, not left to care** - this guide is about credentials:
+1. **No real key is ever captured.** Every `gcc_partner_...` value is blurred before the shutter, and
+   `shot()` re-checks the DOM afterwards and **refuses to save** if an unblurred key is still
+   visible. The list's own mask still leaks the first 16 and last 8 characters, which is why it is
+   blurred on top of that.
+2. **No key was generated to photograph one.** The "key generated" confirmation panel is deliberately
+   NOT captured - shooting it would mean creating a live credential first. The guide describes that
+   step in words and says so explicitly. Verified after building: **zero `gcc_partner_[0-9a-f]{16,}`
+   literals in the .md, .html or .docx.**
+
+**Three capture bugs found by looking at the output rather than trusting "captured 4":**
+- **Aspect ratio.** `fullPage` on the Partner API page gave 1440x4912 (24 key rows). `build-guide.py`
+  caps a figure at 6in x 7.2in, so a 1:3.4 image renders as a **2.1in-wide sliver** - technically a
+  screenshot, practically unreadable. Clipped to the regions the text actually points at.
+- **`clip` needs `fullPage`.** Without it Playwright constrains the clip to the 900px viewport: the
+  page-top shot came back silently short, and an element below the fold **threw**.
+- **Wrong selectors, found by reading the view.** `#api-keys-table` is the PER-PARTNER table inside
+  `#partner-details-section` (`display:none` until a partner is picked) - the all-keys table is
+  `#all-api-keys-table`. And the modal's inner box is `.admin-modal-container`, not
+  `.admin-modal-content`; the wrong guess silently fell back to the full-viewport backdrop.
+
+**Root-caused the blank icons rather than accepting them.** Every Font Awesome glyph rendered as an
+empty grey square, which undermines a guide that says "click Revoke". Cause: Playwright's
+`extraHTTPHeaders` applies the gate `Authorization` header to **every** request including
+cross-origin ones, and FA is pulled from `cdn.jsdelivr.net` with `crossorigin="anonymous"`
+(`Views/Shared/_Layout.cshtml:36`). Forcing an auth header onto that request kills the font. Replaced
+with a `context.route` handler that adds the header **only for the app's own origin**. Icons now
+render. **The same one-line fix applies to `capture-screenshots.js` (Accounts guide) - not changed,
+flagged to Shawn.**
+
+**Two facts the screenshots confirmed independently:** the UI's own Quick Reference panel states
+*"Rate Limit: 200 requests/hour per key"*, corroborating the figure I took from `Program.cs:530`; and
+there are **four** partners on test - Amazon, Novi, Other and **Wayfair** - so the existing user
+guide's "currently Amazon, Novi, and Other" (section 22) is stale.
+
+**Corrected in the new guide while capturing:** Partners uses an **inline add row**, not a modal
+dialog. I had written "dialog" from assumption; the screenshot showed otherwise.
+
+Accounts guide re-verified **byte-identical** after every rebuild.
+
+### 2026-09-14 (cont.) - Icon fix applied to capture-screenshots.js; Accounts guide rebuilt
+
+Same one-line class of fix as the partner script. `capture-screenshots.js` had a **single choke
+point** - the `ctx()` helper - so the change was contained: `extraHTTPHeaders: GATE` replaced with a
+`context.route` handler that adds the gate header **only** for `new URL(BASE).origin`. All four
+callers already `await ctx(...)`, so making it async was safe; `node --check` clean.
+
+Re-captured all 10 Accounts shots and rebuilt. **Icons now render** - verified by eye on
+`05-add-user.png`: the close x, the User Company and Security glyphs, the password eye-toggle and
+the Save User icon were all empty grey squares before and are correct now. Guide grew 1212 -> 1288 KB
+(html) and 759 -> 807 KB (docx), consistent with glyphs actually being drawn.
+
+Backed the 30 existing shot files up to the scratchpad before overwriting - cheap insurance against a
+partial capture run leaving a mixed set.
+
+**Both capture scripts now carry a "do not go back to extraHTTPHeaders" comment naming the cause**
+(cross-origin Font Awesome from cdn.jsdelivr.net with `crossorigin="anonymous"`,
+`Views/Shared/_Layout.cshtml:36`). Grep confirms neither script uses it any more - only the warnings.
+
+**FLAGGED, NOT ACTIONED - the capture script prints its own security warning** and it is worth
+acting on: `07-setup-authenticator.png` shows a **real TOTP secret for `test.analyst`**, printed as a
+scannable QR code in a client-facing guide. The script's stated remedy is:
+
+```sql
+UPDATE Users SET TwoFactorSecret=NULL WHERE Username='test.analyst' AND TwoFactorEnabled=0;
+```
+
+Not run - it is a write to the test database and Shawn's call, not mine to take unprompted. This
+predates today's work (the shot already existed); the re-run may have minted a fresh secret, so the
+old one being stale is not a safe assumption either way.
+
+### 2026-09-14 (cont.) - CORRECTION: the API key IS shown only once. I broke a correct sentence.
+
+Shawn: *"there is no copy button, the instructions are wrong. key would need to be recreated if not
+captured."* She is right, and this is the worst kind of error I made today: **the user guide already
+said the correct thing and I changed it to say the wrong thing.**
+
+**Ground truth, verified properly this time** (`wwwroot/js/partnerapi.js:313-325, 388-400`): each row
+in the Actions column has **exactly one** button - `data-action="revoke"` (`fa-ban`) while the key is
+active, `data-action="delete"` once revoked. **There is no copy button on any row.** The only copy
+control is `#copy-key-btn` (`:67`), which lives in the post-generation modal. Close that modal and
+the full value is gone from the UI forever.
+
+**How I got it wrong.** I grepped for `data-key-value` and `copy` in the same file, saw both, and
+inferred a per-row copy button **without checking which element the copy handler was bound to**.
+`data-key-value` actually feeds `revokeApiKey(keyId, keyValue)` (`:103, :116`), which uses it only to
+render a **masked** key in the revoke confirmation. This is exactly
+[[feedback_handler_bound_to_nonexistent_element]] - my own note that says *grep the id* - applied in
+reverse: I assumed a handler existed for an element I never confirmed.
+
+**The compounding failure is the one worth remembering.** The original §23.2 read *"displayed exactly
+once... you can never see the key again."* I listed it as error #1 of eight and "corrected" it. I had
+one source (an inference from an HTML attribute) contradicting a written statement by whoever built
+the page, and I trusted my inference. **A doc claim that contradicts your reading of the code is a
+prompt to verify harder, not evidence the doc is wrong.** Seven of the eight corrections were right
+and independently proven (three by live HTTP probes); this one I never tested, and it was the only
+one where the existing text was an assertion about UI behaviour I could have simply looked at - the
+screenshot of the Actions column was already on disk.
+
+**Fixed in all five places it had spread**, then swept the whole `docs/` tree for six phrasings of
+the wrong claim (zero hits) and positively confirmed the corrected wording in each deliverable:
+- `GCC_USER_GUIDE.html` §23.2 - restored and strengthened
+- `partner-api-setup-guide.md` - NOTE promoted to **CAUTION**; figure caption now states the single
+  Actions button is Revoke
+- `2026-09-14-gcc-how-to-create-partner-api-key.md`
+- `2026-09-14-client-email-FINAL.md`
+- `capture-partner-shots.js` safety comment
+
+**Kept as an internal-only note, deliberately not in any client doc:** the list API does return keys
+unmasked and the full value sits in `data-key-value`. That is a security observation, **not** a
+supported recovery route, and documenting it as one would be telling admins to read credentials out
+of page markup.
+
+### 2026-09-14 (cont.) - Appendix added: the "Your Connection" panel reference
+
+Shawn pasted the panel and noted *"lots of comments from Client in this section. can we add as an
+appendix to the user guide."* Added as **section 10 of the Partner Setup Guide**, with a
+cross-reference callout added to **section 27 of GCC_USER_GUIDE.html** so it is reachable from the
+main guide too.
+
+**Chose the Partner Setup Guide as the home** rather than editing the big user guide directly: it is
+the guide that is regenerable from markdown (the 153 KB user guide has no source file and is
+hand-maintained), it is topically exact, and section 4.1 already covered part of it. The pointer from
+section 27 covers the other reading of "the user guide" without duplicating the content in two places
+that would then drift.
+
+**Worth noting: the text Shawn pasted is the ORIGINAL v2 panel**, not the corrected one - it still
+shows `gccwebapp.com` as the test URL, `[N]` for rate limit, unfilled endpoint scope and the `§`
+symbols. That is the version the client commented on, which is exactly why it drew the comments.
+
+**The appendix's central point:** the panel presents itself as eight or nine per-partner lookups.
+**Only three genuinely vary** - partner name, key, key expiry. Six are identical for everybody, and
+two of those (rate limit, endpoint scope) have **no per-key field anywhere in the application**. The
+appendix carries a WARNING that older copies of the Integration Guide told the issuer to *"check the
+rate limit and permitted endpoints against the API key actually issued"* - **an instruction that
+could never be followed**, because there is nothing on the key to check against.
+
+Section 10.2 answers the six recurring client questions in place - where keys come from, "where would
+this information come from?", whether the partner name must match (it must), test-vs-production after
+go-live, whether `amazonCode` should be removed for non-Amazon partners (no - it is returned to every
+partner), and who the checklist's Owner column means.
+
+Guide now 421 KB docx / 665 KB html, 18 headings, 9 tables, 5 figures.

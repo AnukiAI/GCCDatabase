@@ -188,6 +188,35 @@ if (!string.IsNullOrEmpty(connectionString))
             });
         });
         Console.WriteLine("Using SQL Server database provider");
+
+        // Say WHICH database, not just which provider.
+        //
+        // Two sites now run this same bundle on the same Plesk platform — gccwebapp.com against
+        // gccwebap_certificates (real client data) and test.gccwebapp.com against gccwebap_test.
+        // The ONLY thing pointing the test site away from production data is its own
+        // appsettings.Secrets.json overlay, which is deliberately absent from the deploy zip.
+        // So the failure mode is: overlay missing, malformed, or the key misspelled -> the app
+        // falls straight back to the connection string in appsettings.Production.json and the
+        // test site starts writing to live client records. Nothing errors. Nothing looks wrong.
+        // Every page works. That is exactly the shape of the SMTP failure DEF-263 chased for
+        // weeks, and the fix is the same one: make the live value observable at startup.
+        //
+        // Password is never printed — SqlConnectionStringBuilder is parsed for Data Source,
+        // Initial Catalog and User ID only. Wrapped in try/catch because a malformed connection
+        // string must not be able to take the site down on startup (the DEF-395 KeyPath lesson:
+        // a diagnostic that can crash the process is worse than no diagnostic).
+        try
+        {
+            var csb = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+            Console.WriteLine($"  DB server  : {csb.DataSource}");
+            Console.WriteLine($"  DB catalog : {csb.InitialCatalog}");
+            Console.WriteLine($"  DB user    : {csb.UserID}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  WARNING: could not parse the SQL connection string to report its target ({ex.GetType().Name}). " +
+                              "The app will still try to connect; verify the target another way before trusting this site.");
+        }
     }
     else if (connectionString.Contains("Host=") || connectionString.Contains("postgres"))
     {

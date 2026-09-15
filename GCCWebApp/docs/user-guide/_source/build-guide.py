@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Renders the Accounts & Sign-In Guide to BOTH formats from one source.
+Renders a guide to BOTH formats (.docx + .html) from one markdown source.
 
-    python build-guide.py
+    python build-guide.py                          # Accounts & Sign-In Guide (default)
+    python build-guide.py ../partner-api-setup-guide.md
 
-Reads   : ../guide.md        (the only file to edit)
-          shots/*.png        (from capture-screenshots.js)
-Writes  : ../GCC_Accounts_SignIn_Guide_v1.0.docx
-          ../GCC_Accounts_SignIn_Guide_v1.0.html
+Reads   : the source .md  (the only file to edit)
+          shots/*.png     (from capture-screenshots.js)
+Writes  : ../<basename>.docx  and  ../<basename>.html
+
+The output basename comes from the frontmatter `slug:` if present, otherwise from the source
+filename. Passing no argument reproduces the original behaviour exactly, so the Accounts guide
+still builds from ../guide.md to GCC_Accounts_SignIn_Guide_v1.0.*.
 
 The two formats previously had separate copies of the text and drifted. Everything below is
 rendering only — no wording lives here.
 """
-import base64, glob, html as htmlmod, os, re
+import base64, glob, html as htmlmod, os, re, sys
 from PIL import Image
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
@@ -27,12 +31,36 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SHOTS = os.path.join(HERE, "shots")
 DEST = os.path.dirname(HERE)
 
-# guide.md sits at the top of docs/user-guide/, beside the two deliverables it produces —
+# The source .md sits at the top of docs/user-guide/, beside the deliverables it produces —
 # it is the file people edit, so it does not belong buried in _source/ with the machinery.
-SOURCE_MD = os.path.join(DEST, "guide.md")
+# Default (no argv) = the Accounts & Sign-In Guide, unchanged.
+SOURCE_MD = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(DEST, "guide.md")
+if not os.path.exists(SOURCE_MD):
+    raise SystemExit(f"  Source not found: {SOURCE_MD}")
 META, CONTENT = parse(SOURCE_MD)
-DOCX = os.path.join(DEST, "GCC_Accounts_SignIn_Guide_v1.0.docx")
-HTML = os.path.join(DEST, "GCC_Accounts_SignIn_Guide_v1.0.html")
+
+# Output basename: frontmatter `slug:` wins, else the source filename. The Accounts guide has no
+# slug and is named guide.md, so it keeps its historical output names via the explicit fallback.
+#
+# The slug is read from the raw file rather than from META: parse() returns a CURATED meta dict
+# (title, lede, org, colophon, rows, toc, intro_callout) and folds everything else into `rows`,
+# so META.get("slug") is always None. Read it here instead of widening the parser's contract.
+def _slug_from(path):
+    with open(path, encoding="utf-8") as fh:
+        if fh.readline().strip() != "---":
+            return None
+        for line in fh:
+            if line.strip() == "---":
+                return None
+            if line.split(":", 1)[0].strip() == "slug" and ":" in line:
+                return line.split(":", 1)[1].strip() or None
+    return None
+
+_stem = os.path.splitext(os.path.basename(SOURCE_MD))[0]
+BASENAME = (_slug_from(SOURCE_MD)
+            or ("GCC_Accounts_SignIn_Guide_v1.0" if _stem == "guide" else _stem))
+DOCX = os.path.join(DEST, BASENAME + ".docx")
+HTML = os.path.join(DEST, BASENAME + ".html")
 
 GREEN, NAVY, GREY = RGBColor(0x44, 0x76, 0x38), RGBColor(0x00, 0x2B, 0x76), RGBColor(0x4A, 0x5B, 0x50)
 MAX_W_IN, MAX_H_IN = 6.0, 7.2
@@ -364,4 +392,4 @@ if __name__ == "__main__":
     compress()
     render_docx()
     render_html()
-    print("\n  Both formats rendered from guide.md — edit that file only.")
+    print(f"\n  Both formats rendered from {os.path.basename(SOURCE_MD)} — edit that file only.")

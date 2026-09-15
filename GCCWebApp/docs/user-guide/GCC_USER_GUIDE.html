@@ -1038,7 +1038,7 @@
         <tbody>
             <tr><td><strong>Draft</strong></td><td>Internal only</td><td>Just created or being edited. Not yet approved. Default for new certs.</td></tr>
             <tr><td><strong>Client Approved – Not Paid</strong></td><td>Internal only</td><td>GCC has approved the certification but the client hasn't paid for publication yet. Not visible publicly.</td></tr>
-            <tr><td><strong>Client Approved – Confidential</strong></td><td>Internal only</td><td>Approved and paid, but the client has asked for it to remain confidential. Counted in internal "active" stats but not shown publicly or via the Partner API.</td></tr>
+            <tr><td><strong>Client Approved – Confidential</strong></td><td>Internal only</td><td>Approved and paid, but the client has asked for it to remain confidential. Counted in internal "active" stats, hidden from the public site, but <strong>still returned by the Partner API</strong> and still badged — the embargo is on public listing only (CR-043).</td></tr>
             <tr><td><strong>Client Approved – Paid</strong></td><td><span class="role-badge role-public">Public</span></td><td>Live — visible on the public tile view and returned by the Partner API. The primary "active" state.</td></tr>
             <tr><td><strong>Hold</strong></td><td>Internal only</td><td>Temporarily removed from public view. Use when re-issuing a corrected PDF or when a client has requested a pause.</td></tr>
             <tr><td><strong>Expired</strong></td><td>Internal only</td><td>Past its expiration date. The system can auto-move certs to Expired when their expiration date passes.</td></tr>
@@ -1714,7 +1714,7 @@
         <tbody>
             <tr><td><strong>Partner Name</strong></td><td class="req">Yes</td><td>Must be unique. Up to 100 characters.</td></tr>
             <tr><td><strong>Description</strong></td><td class="opt">Optional</td><td>Free text up to 500 chars.</td></tr>
-            <tr><td><strong>Active</strong></td><td>Auto</td><td>Defaults to true. Deactivating a partner does not delete their API keys, but does revoke their API access on next request.</td></tr>
+            <tr><td><strong>Active</strong></td><td>Auto</td><td>Defaults to true. Deactivating a partner does NOT stop their API keys working — the key check does not consult this flag. To stop API access you must revoke each key individually on the Partner API Access page (§23).</td></tr>
         </tbody>
     </table>
     </div>
@@ -1722,7 +1722,7 @@
     <h3>22.3 Tips &amp; common questions</h3>
     <details>
         <summary>I deactivated a partner — what happens to their existing API keys?</summary>
-        <p>The keys remain in the system but stop working on the next API request. If you reactivate the partner later, those keys resume functioning. To permanently invalidate, revoke each key individually on the Partner API Access page (§23).</p>
+        <p>They keep working. Deactivating a partner does not affect API authentication — verified against the running application, September 2026. The only way to stop a partner calling the API is to revoke each key individually on the Partner API Access page (§23).</p>
     </details>
     <details>
         <summary>I want to delete the "Other" partner.</summary>
@@ -1767,7 +1767,7 @@
         </li>
         <li>
             <span class="step-title">Generate &amp; copy</span>
-            <span class="step-detail">The key is displayed exactly once — copy it now and send it to the partner over a secure channel. After you close this modal, you can never see the key again (only revoke and regenerate).</span>
+            <span class="step-detail">The key is displayed <strong>once</strong> — copy it now and send it to the partner over a secure channel. After you close this dialog you cannot see the full key again: the list shows every key masked, and the only button on each row is Revoke (or Delete, once revoked). If you lose it, the key must be revoked and a replacement generated.</span>
         </li>
     </ol>
 
@@ -1887,7 +1887,7 @@
     <p>This section is a brief overview for administrators provisioning partner access. The full developer reference (request/response shapes, error codes, sample code, integration patterns) lives in the separate <strong>GCC Database Partner API — Amazon Developer Guide</strong> distributed to partner engineering teams.</p>
 
     <h3>27.1 Base URL</h3>
-    <p><code>https://greencirclecertified.com/database/api/v1</code></p>
+    <p><code>https://dbtest.greencirclecertified.com/api/v1 (test — live now). Production is https://database.greencirclecertified.com/api/v1, available at go-live only; the former greencirclecertified.com/database path is retired and was never activated.</code></p>
 
     <h3>27.2 Authentication</h3>
     <p>Every request must include an <code>X-API-Key</code> header containing a key generated on the Partner API Access page (§23). Keys are long-lived but can be revoked at any time. There is no separate session or token exchange.</p>
@@ -1899,17 +1899,17 @@
         <tbody>
             <tr><td><code>GET /certificates</code></td><td>List all certificates the calling partner is entitled to see (Paid + Republished, filtered to the partner).</td></tr>
             <tr><td><code>GET /certificates/{id}</code></td><td>Single certificate by internal ID.</td></tr>
-            <tr><td><code>GET /certificates/by-number/{n}</code></td><td>Single certificate by certification number.</td></tr>
-            <tr><td><code>GET /certificates/search?productId=...</code></td><td>Find certificates by attached product identifier (ASIN, UPC, etc.).</td></tr>
+            <tr><td><code>GET /certificates/number/{n}</code></td><td>Single certificate by certification number.</td></tr>
+            <tr><td><code>GET /certificates/search/productid?productId=...</code></td><td>Find certificates by attached product identifier (ASIN, UPC, etc.).</td></tr>
             <tr><td><code>GET /certificates/gs1</code></td><td>GS1-formatted variant used by certain partners' ingestion pipelines.</td></tr>
-            <tr><td><code>GET /certificates/{id}/pdf</code></td><td>Download the certificate PDF binary.</td></tr>
+            <tr><td><code>GET /certificates/{id}/download</code></td><td>Download the certificate PDF binary.</td></tr>
         </tbody>
     </table>
     </div>
 
     <h3>27.4 What partners see (and don't)</h3>
     <ul>
-        <li>Only certs in <em>Client Approved – Paid</em> or <em>Republished</em> status.</li>
+        <li>Only certs in <em>Client Approved – Paid</em>, <em>Client Approved – Confidential</em> or <em>Republished</em> status, and only inside their effective-to-expiration window. Confidential is embargoed from the <strong>public</strong> site only — it is still sent to partners and still badged (CR-043).</li>
         <li>Only certs scoped to the calling partner.</li>
         <li>Status is always returned as <code>"Active"</code> (the internal lifecycle status names are not leaked).</li>
         <li>Internal tags are never returned. External tags are.</li>
@@ -1919,6 +1919,12 @@
     <div class="callout callout-info">
         <span class="callout-label">For partner engineers</span>
         <p>This guide is for administrators provisioning access. Partner engineering teams should work from the <em>Partner API Developer Guide</em>, which has the full schema, all error codes, and language-specific code samples.</p>
+    </div>
+
+    <div class="callout callout-info">
+        <span class="callout-label">Setting up a partner end to end</span>
+        <p><em>Setting Up a Partner with API Access</em> (<code>GCC_Partner_Setup_Guide_v1.0</code>) walks through the whole sequence in order — create the partner, tag the certificates, generate the key, test it, deliver it — and explains why a key on its own returns an empty list.</p>
+        <p>Its <strong>Appendix (§10)</strong> is the reference for filling in the <em>Your Connection</em> panel at the front of the Partner Integration Guide: which of those rows actually vary per partner (only three do), where each value comes from, and the recurring questions that panel produces. Use it whenever you issue a partner's copy of the Integration Guide.</p>
     </div>
 
     <!-- ============================================================ -->

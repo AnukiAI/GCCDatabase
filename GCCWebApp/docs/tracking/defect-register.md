@@ -15620,3 +15620,63 @@ updated in the same commit to mirror `product-id-manager.js`, so the model does 
 importer it stands for.
 
 **Effort:** estimated ~2 hrs for this defect; the product-name finding was absorbed within it.
+
+---
+
+### DEF-424 — Deactivating a partner does **not** stop their API keys working, but the user guide told administrators it does
+
+- **Date raised:** 2026-09-14
+- **Severity:** **Medium-High.** Not a data leak in itself — a deactivated partner keeps exactly the access it already had, nothing wider. It is high because it is a **control an administrator reasonably believes they have and do not**: the documented way to cut a partner off silently does nothing, and the failure is invisible from inside the application.
+- **Status:** **RAISED — not fixed.** Needs a decision before code (see "The question this needs answered").
+- **Reporter:** Internal. Found while writing the partner setup guide, verifying a claim in the existing user guide rather than repeating it.
+- **QC log ID:** none — not client-reported.
+
+**What was claimed.** `docs/user-guide/GCC_USER_GUIDE.html` §22.2 and §22.3 both stated that
+deactivating a partner *"does revoke their API access on next request"* and that reactivating would
+make the keys *"resume functioning."*
+
+**What actually happens.** The `Active` flag on the Partner record is never consulted on the API
+authentication path. Both lookups filter on `PartnerApiKey.IsActive` — the **key's** own flag — and
+neither looks at `Partner.IsActive`:
+
+| Layer | Code | Checks |
+|---|---|---|
+| Key validity | `Services/PartnerApiKeyService.cs:216` (`ValidateApiKeyAsync`) | `k.ApiKey == apiKey && k.IsActive`, then `ExpiresAt` |
+| Partner load | `Services/PartnerApiKeyService.cs:87` (`GetApiKeyByValueAsync`) | same filter; `.Include(k => k.Partner)` loads the partner but **never tests `Partner.IsActive`** |
+| Middleware | `Middleware/PartnerApiKeyAuthenticationMiddleware.cs:67, 89` | calls the two above; adds an endpoint-scope check only |
+
+So a partner set to inactive continues to authenticate and continues to receive data. **The only
+thing that stops API access is revoking each key individually.**
+
+**The question this needs answered — do not "fix" it blind.** There are two defensible readings and
+they lead to opposite changes:
+
+1. **Deactivation should cut API access.** Add `&& k.Partner.IsActive` to the two lookups. One-line
+   change, but it is a **live partner-facing behaviour change**: if any partner record is inactive
+   today and still calling, their feed stops the moment it deploys. Check before shipping.
+2. **Deactivation was only ever about application visibility** (which partners appear in dropdowns
+   and lists), and revoking keys is correctly the separate, explicit control. Then there is no code
+   defect and this closes as documentation-only.
+
+The client's intent is not captured anywhere we could find, so this is a question for them rather
+than an assumption for us. **Reading 2 plus the corrected documentation is the lower-risk outcome**
+and is what the docs now describe.
+
+**Done already (2026-09-14): the documentation no longer misleads.** Both §22.2 and §22.3 of the user
+guide now state plainly that deactivating does not stop API keys, and that revoking each key is the
+only way to cut access. The new `docs/user-guide/partner-api-setup-guide.md` (§2) carries the same
+warning as a CAUTION callout. That removes the immediate risk — an admin acting on the old text —
+without pre-judging the behaviour question.
+
+**How to verify whichever way it is resolved.** Deactivate a partner on a non-production environment,
+then call `/api/v1/certificates` with one of its keys from an **unauthenticated** session (an admin
+cookie makes the partner middleware stand aside, and the resulting 401 reads like a bad key):
+
+```
+curl -i -H "X-API-Key: gcc_partner_..." https://dbtest.greencirclecertified.com/api/v1/certificates
+```
+
+Today this returns `200`. Under reading 1 it must return `401`.
+
+- **Related:** DEF-112 (the `Partner` role claim is minted only by this middleware, never assigned to a human user — so this path is the whole of partner authentication). CR-171 (partner scoping).
+- **Effort:** ~15 min for the code change under reading 1, plus the check for currently-inactive partners with live keys. Zero under reading 2 — the documentation half is already done.

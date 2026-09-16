@@ -114,6 +114,53 @@ Those users reuse `admin`'s password hash, so they are also `TestPass123!`.
 This seed is synthetic fixture data. It is **not** the client dataset — that is loaded separately
 from the migration workbooks and is not in the repo.
 
+## 5b. (Optional) Realistic volume - ~5,000 certificates
+
+Step 5 gives you 7 certificates. That exercises RBAC, partner isolation, the API and CRUD, but not
+paging, search performance or anything volume-dependent. For that, run the migration pipeline
+against the **sample workbooks committed in this repo** - no client data required:
+
+`docs2/data-migration/TestSampleData/` holds a sample cert listing (959 active + 4,374 expired rows)
+and a sample ASIN list (14,183 rows). Both are tracked.
+
+```bash
+cd GCCWebApp/Scripts/data-ops
+SAMPLES=../../../docs2/data-migration/TestSampleData
+
+# Stage 1 - validate the source (read-only, never touches a DB, non-zero exit on BLOCKERs)
+python 2026-06-22-migration-source-validation.py   "$SAMPLES/GCC Database SAMPLE Cert Listing for Anuki Tesing_6.2.26.xlsx"   "$SAMPLES/SAMPLE ASIN List for Anuki Testing_6.1.26.xlsm"
+
+# Stage 2 - workbooks -> importer-ready CSV, into _transform_output/<timestamp>/
+python 2026-08-13-migration-transform.py   "$SAMPLES/GCC Database SAMPLE Cert Listing for Anuki Tesing_6.2.26.xlsx"   "$SAMPLES/SAMPLE ASIN List for Anuki Testing_6.1.26.xlsm"
+
+# Stage 3 - CSV -> one transactional T-SQL load script (picks up the newest transform output)
+python 2026-08-13-migration-sql-generator.py
+
+# Stage 4 - load it. -I is required.
+sqlcmd -S <YOUR-INSTANCE> -d GCCDatabase_Dev -U GCC_DevUser -P '<pw>' -I   -i Scripts/data-ops/_sql_output/<timestamp>/migration-load.sql
+```
+
+Requires Python with `openpyxl`. Stages 1-3 are read-only against the workbooks and never connect to
+a database; only stage 4 writes. Verified end-to-end 2026-09-16 against the sample pair: 5,000
+loadable certificates and 10,847 product IDs across 98 certificates, producing a 4.7 MB load script.
+
+Expect `!! missing certs-expired2.csv` from stage 3 - it is **not** an error. The sample workbook has
+one expired tab where the full client delivery has two, and the generator tolerates an absent slot by
+design.
+
+The generators discover sheets by prefix (`Active List ...`, `Expired List ...`) and read NEW-vs-OLD
+schema off the header row, so a re-dated tab does not break them. Their *default* paths still point
+at `DataMigrationTestDev/` outside the repo, which is the real client delivery - always pass the
+workbooks explicitly as above.
+
+Note what this load deliberately omits: no `AuditHistory` rows and no `ImportBatches` row, so there
+is no UndoImport for it. Rollback is "restore the backup", which on a freshly seeded dev box is
+simply "drop and re-run". `ProductSubcategoryId` is left NULL (DEF-348).
+
+This is sample data, not the client dataset. The real delivery lives outside the repo and its
+generated output is deliberately untracked (`_sql_output/`, `_transform_output/` - regenerable, tens
+of MB per run).
+
 ## 6. Verify
 
 ```bash

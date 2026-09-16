@@ -1,9 +1,9 @@
 {
   "_what_this_is": "Ids accepted as SHIPPED as of the bundle named below - a line in the sand, not an entry-by-entry verification. Sound because a bundle is a full overwrite of the working tree, so anything fixed in the repo before the cut shipped with it. NOT sound for a fix never merged or later reverted; if one surfaces, re-raise it as a new finding rather than trusting this file.",
   "_how_to_use": "resolved-not-shipped.py drops these ids from its report so only NEW work surfaces. Delete this file to get the unfiltered picture back. Do not hand-edit to silence a finding - that is the failure this gate exists to prevent.",
-  "baselined_at": "2026-09-16 10:54",
+  "baselined_at": "2026-09-16 14:04",
   "bundle": "GCCWebApp-deploy-20260916-1023.zip",
-  "note": "DEF-426 deployed and verified on gccwebapp.com 2026-09-16 10:51. Extends the 2026-09-15 baseline.",
+  "note": "Deployed and verified on gccwebapp.com 2026-09-16 (DEF-426 partner-API IsActive). Cross-surface Gate 4B FAIL->PASS; feed 212 certs / 20,312 associations / 16,078 distinct.",
   "count": 285,
   "ids": [
     "CR-001",

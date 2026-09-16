@@ -11,7 +11,7 @@ its `assets/audit-prompt.md` template. Two passes following the same skill wrote
 and neither saw the other.
 
 **Resolved:** the two are merged into `…-audit.md`, `…-hostname-audit.md` is deleted, and the skill's
-template has been corrected so it cannot recur. Each pass had caught things the other missed and each
+template has been corrected in **both** the repo copy and the source `client-domain-cutover.skill` package (backup: `.bak-20260916`), so reinstalling the skill will not reintroduce it. Each pass had caught things the other missed and each
 corrected the other; the merged file marks those **[corrected]**.
 
 ## What is here

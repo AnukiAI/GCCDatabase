@@ -390,7 +390,7 @@ They can disagree — a deploy that extracted the DLL but not `wwwroot` is a rea
 
 ## Deploy gate results log
 
-### `GCCWebApp-deploy-20260916-1023.zip` — **BUILT + VERIFIED 2026-09-16, NOT UPLOADED**
+### `GCCWebApp-deploy-20260916-1023.zip` — **DEPLOYED to gccwebapp.com 2026-09-16, post-deploy verified**
 
 **Runbook:** `docs/tracking/2026-09-16-deploy-runbook-DEF426.md`
 **In-zip `GCCWebApp.dll` md5:** `58569001f47314c2` · 342 entries · 61.17 MB

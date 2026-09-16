@@ -5976,3 +5976,194 @@ else that matched it for as long as it existed. Un-ignoring is therefore a publi
 content scan, not just a size check. The size check happened too (largest file 27.3 MB, under
 GitHub's 100 MB cap; the two 117 MB copies are byte-identical so git stores them once) - but the
 size check was the easy question and it was not the one that mattered.
+
+---
+
+## 2026-09-16 - QC log 9.11.26 analysed: four new items, one client rejection, and a fix that landed on only one of two surfaces
+
+The client sent `Database QC Log_9.11.26.xlsx` (272 data rows, IDs to 269). Diffed cell-by-cell
+against `Database QC Log_9.9.26_sw_updates.xlsx` (269 rows, IDs to 265) rather than eyeballing the
+tail, which is what surfaced the two findings below - a row-count comparison alone would have shown
+"3 new rows" and missed both.
+
+**Four new client items:** #265 (ASIN import dropping the Amazon partner tag - client confirmed
+fixed 9/11), #266 (status filter for Admin/Analyst only - new scope), #267 (multi-page cert PDF
+preview - new scope), #269 (what link accesses the old DB after go-live - a question). **ID 268 does
+not exist** in the sheet; worth asking the client whether a row was dropped before we assume it.
+
+**Five items the client closed on 9/11:** #260, #261, #262, #264, #265.
+
+**The one rejection is the finding.** #263 (Cert Import template text) was marked `resolved` in our
+notes and the client set Date Closed to **`Not Fixed`**: *"I don't see a text edit to the Import
+Certificates popup for this - it still says cert number is required."* She is right. The fix went
+into `Views/CertificateImport/Index.cshtml:72` ("**Certificate # is not required.**") but the import
+**modal** on the internal tile view was never touched - `Views/Certificate/CertificateTileViewInternal.cshtml:432`
+still reads `Required: CERTIFICATE_NUMBER, COMPANY_NAME, PRODUCT_NAME, CERTIFICATION_TYPE`. Two
+surfaces offer the same import; one got the copy change. This is the DEF-103 pattern again, and the
+generalisable point is narrower than "check adjacent endpoints": **a copy change is as surface-bound
+as a code change, and is less likely to be checked because it feels like editing one sentence.** The
+grep that proves it is one call - `CERTIFICATE_NUMBER` appears exactly twice in the codebase.
+
+**#267 is not the cheap toggle the client hopes it is, and saying so before quoting matters.** The
+client asked "is it low risk to add a toggle to view multiple pages under the Preview popup?" The
+preview is not a PDF viewer - `FileUploadService.GeneratePdfThumbnailAsync` (Docnet) rasterises one
+page into a single `CertificateImagePath` (`nvarchar(500)`), and the popup is a zoom modal over that
+one image. There is no pdf.js anywhere in the app. Multi-page therefore needs per-page generation
+plus storage (or an on-demand render endpoint) and a pager in the modal. **When a client frames an
+ask as low-risk, the framing is a hypothesis about our implementation, not a constraint on it** -
+and checking it cost two greps against an estimate that would otherwise have been wrong by an order
+of magnitude.
+
+**A near-miss worth recording.** A register grep hit *"Status filter dropdown removed from filter
+row"* and briefly looked like #266 was asking to restore something we had deliberately removed -
+which would have changed the answer from "new CR" to "reversal of a client decision". Reading the
+enclosing header showed it was DEF-104/CR-015 removing the **Product Identifier** status filter,
+unrelated to certificate status. **A grep hit is not a finding until its enclosing context is read**;
+one `sed` range prevented telling the client we were undoing our own work.
+
+**Register state:** #265's root cause is written up (the Alt+Enter break), #260 -> DEF-413, #261 /
+#262 / #264 have CR entries, #263 has a defect entry. **#266, #267 and #269 have no register entry
+yet.** High-water: DEF-426, CR-050 (0xx series) / CR-187 (1xx series).
+
+**Also edited by the client:** #160 gained a request to check what happens to old-DB client cert and
+search links (`https://db.greencirclecertified.com/certificate`, DUPONT as the test case). That is
+the same body of work as #269 - both are legacy-DB cutover, and they should be answered together
+rather than as two separate replies.
+
+---
+
+## 2026-09-16 - Consolidated the duplicate cutover docs
+
+Two audits of the same thing existed because **the skill names its audit output two different ways**:
+`<hostname>-audit.md` in its Outputs section, `<hostname>-hostname-audit.md` in
+`assets/audit-prompt.md`. Two passes followed the same skill, wrote to two filenames, and neither
+saw the other. That is the root cause, not carelessness - worth remembering because any skill with
+an inconsistent output contract will do this again.
+
+**Result:** merged into `…-audit.md` (96 + 535 lines -> 305), deleted `…-hostname-audit.md`, added
+`docs/cutover/README.md` as the index, fixed one live cross-reference. Only ONE genuine duplicate
+pair existed - the other six files are unique and were left alone.
+
+### Each pass had corrected the other - the merge was not cosmetic
+
+**They caught three things I missed**, all verified before carrying them into the canonical doc:
+`AgencyURL = "https://www.greencirclecertified.com"` (`CertificatesController.cs:1734`, correct as
+is), the `@greencirclecertified.com` email-domain rule (`AccountController.cs:1214`), and that
+`pdfDownloadUrl` is emitted **relative** so it is hostname-agnostic.
+
+**I corrected two of theirs.** Their §5 said `UseForwardedHeaders()` "is called" - it is not:
+`UseSecurityPipeline`, the method containing that line, appears **exactly once** in the codebase,
+its own definition. Never invoked. And their §6 hedged "confirm before go-live if B2C is enabled";
+B2C is definitively NOT in use (all `{PLACEHOLDER}` tokens, own cookie auth).
+
+**Their `verify-cutover.sh` is better than the skill's generic one and was kept** - nslookup
+fallback (Git Bash ships no `dig`, which produced a false FAIL), cert hostname+chain validation, a
+401-identity check that proves it is the GCC app, catch-all-shim detection, and it recognises the
+`/__gate` redirect instead of reporting it as a failed canonical redirect.
+
+### Scope change I did not have
+
+`dbtest.greencirclecertified.com` is **live and is what partners integrate against today** (verified
+-> 64.27.52.66). `database.greencirclecertified.com` is **NOT free** - in use by the existing
+certificate database - so that cutover is **blocked on the legacy system being retired**, a client
+decision. My earlier audit had assumed `database.` was simply occupied by an unrelated host.
+
+### gate-check caught two real failures in my own work
+
+Ran it per the new CLAUDE.md GATE rule, and it was not ceremonial:
+
+1. **Source vs generated artifact (Part 1 #3).** I had fixed the skill's template in the *extracted
+   repo copy*. The **source `.skill` package in Downloads still carried the old name** - reinstalling
+   the skill (exactly how it arrived) would have reverted the fix and recreated the duplication.
+   Patched the zip in place, verified all 8 entries survive, backup at `.bak-20260916`.
+2. **Over-scoped claim (Part 1 #6).** The README said the template fix meant this "cannot recur" -
+   untrue while the source package was unpatched. Rewritten to name exactly what was fixed.
+
+Both are the same lesson in different clothes: **a fix applied to a copy is not applied.**
+## 2026-09-16 — DEF-426 deployed and closed out
+
+**Gate 4B went FAIL → PASS.** 212 certificates compared, **0 mismatches**, exit 0. The partner now
+sees exactly what the application shows. **That transition is the evidence** — the gate had returned
+`FAIL — 26-0439, 68 values` against the unfixed code first. A gate that has only ever passed proves
+nothing.
+
+**Live feed confirmed:** 212 certificates / **20,312** associations / **16,078** distinct /
+`totalPages: 3`. Certificates with ≥1 ASIN unchanged at 173.
+
+**Page 1 measured live, which settled the wording question.** 100 certificates, **7,368 distinct
+ASINs**, 7,860 associations — and **91 of the 100 carry ASINs**. So "about 7,400" survives the fix
+unchanged (those ASINs also sit on other page-1 certificates; only the association count moved,
+7,928 → 7,860), and the 9 ASIN-less certificates on page 1 are the concrete proof that
+*"100 of 173"* would have been wrong. Paging is by certificate, so the denominator must be 212.
+
+**The reviewer's correction was right and the file was already right** — "100 of 212" was never
+changed in the source; the 173 existed only in the copy under review. Checked before "reverting"
+something that had not been altered.
+
+**Leak scan threw two false positives worth remembering:** `hold` matched *threshold* and *holds*, and
+`deployed` matched the legitimate client sentence *"That fix was deployed and verified on 15
+September."* Substring matching on short words over prose will do this — read the context before
+acting on a leak hit, or the scan starts generating its own noise.
+
+**Close-out complete:** DEF-426 → deployed with the before/after table · checklist entry → DEPLOYED ·
+deploy baseline extended to `GCCWebApp-deploy-20260916-1023.zip` · **Gate 0B back to PENDING 0** ·
+`shipped-2026-09.md` appended · letter hold lifted, every figure re-verified against the live feed.
+
+### Addendum, same day — pricing QC #266 and #267 found that one of them is not scope at all
+
+Raised **CR-051** (QC #266, status filter) and **CR-052** (QC #267, multi-page PDF preview) in
+`docs/tracking/change-request-register.md`. Both are estimate-only; neither is built. Researching
+them to price them changed what each one *is*.
+
+**CR-051 is almost certainly a defect we were about to bill as a CR.** The certificate status filter
+is already built in every layer — API query param, filter-options payload, shareable-link
+round-trip, JS filter state, request param, URL de/serialise, checkbox restore, active-filter tag,
+CSV export. The only absent piece is the `#status-content` panel markup, which no view has ever
+rendered, so `querySelector('#status-content ul')` returns `null` and the population block silently
+no-ops. `git log -S 'status-content' --all -- 'Views/*'` returns zero commits, so it was never built
+rather than deliberately removed. **A feature can be 95% complete and look 0% complete, because the
+missing layer is the only one the user can see** — and the estimate moved from a half-day to ~1 hr
+once that was known. The commercial point is the sharper one: an hour of markup that finishes our own
+half-built feature should not arrive as a change request.
+
+**CR-052's estimate turned on an endpoint nobody had ever called.** The client asked whether a
+multi-page toggle was "low risk". It is not a toggle — the preview is a single 600px PNG of page 0
+rendered by Docnet into one `nvarchar(500)` column, and there is no pdf.js in the app. But
+`CertificateController.ViewCertificateFile(int id)` already streams the stored PDF with
+`application/pdf` and no `fileDownloadName`, so the browser renders it inline with every page, zoom
+and print — and `grep -rn "ViewCertificateFile" Views/ wwwroot/js/` returns **zero callers**. Wiring
+the existing endpoint is ~2 hr; generating and storing per-page images is ~8-12 hr plus a migration
+and a 5,700-cert backfill. **The cheap option existed only because someone had already written and
+secured the hard part and never connected it.**
+
+**The transferable habit:** before pricing a "missing feature", grep for its selector, id or query
+param across `Views/`, `wwwroot/js/` and `Controllers/`. Hits everywhere except the views means the
+job is markup, not plumbing. An unused-but-complete endpoint and an unrendered-but-wired filter are
+the same discovery from opposite ends, and both were invisible to anyone reading only the screen.
+
+**One near-miss, recorded because the grep nearly lied.** A register hit on *"Status filter dropdown
+removed from filter row"* briefly made CR-051 look like a reversal of a decision we had already made.
+Reading the enclosing header showed it was DEF-104/CR-015 removing the **Product Identifier** status
+filter — a different surface. A grep hit is not a finding until its enclosing context is read.
+
+#### Ruling, same day — CR-051 stands as a CR
+
+The addendum above argued QC #266 was "almost certainly a defect we were about to bill as a CR."
+**Shawn ruled it a CR on 2026-09-16** and the register now records that, with the basis written in:
+a certificate status filter was never in the accepted scope for the internal listing — no
+requirement, no mockup, no prior QC item — so the client is asking for a new filter dimension on a
+surface they already signed off. The register entry keeps the build-state evidence, reframed from
+*"do not bill this"* to *"this is why the hours are small"*.
+
+**What I got right and what I got wrong.** The technical finding was correct and worth the time: the
+filter is built in every layer except the markup, which is why the estimate is ~1 hr instead of a
+half-day. Where I overreached was treating "most of it is already built" as if it settled the
+commercial classification. It does not. **Build state and scope basis are different questions** — a
+feature can be 95% implemented and still be outside the accepted scope, because what was agreed is a
+matter of the requirements baseline, not of what happens to exist in the working tree. Half-built
+code is not evidence that something was promised.
+
+The right shape for next time: surface the build state as *evidence*, name the classification as
+*open*, and let Shawn rule — rather than leading with a recommendation that reads as settled.
+Flagging it was correct; pre-judging it was not, and the flag would have been just as useful stated
+neutrally.

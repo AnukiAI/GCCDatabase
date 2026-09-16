@@ -1585,3 +1585,196 @@ uploads; verify the banner and a write-isolation check. Full detail in the runbo
 
 `test.gccwebapp.com` is **NXDOMAIN with no wildcard on the zone** (checked 2026-09-14) — nothing to
 remove first. Shawn created the database copy `gccwebap_test` the same day.
+
+---
+
+### CR-051 (raised 2026-09-16, **NOT started — estimate only, approved as a CR**) — Certificate **Status** filter on the internal listing (Admin / Analyst only)
+
+- **Period:** raised 2026-09-16; not started
+- **Source:** the client, 2026-09-10, logged as **QC #266** — `Database QC Log_9.11.26.xlsx`, sheet
+  `GCC DB QC Log2`, **row 275**, page `Filtering`, raised by Carly, no image: *"They often need to
+  sort by status. And the only way to do it right now is alpha order by status name. Is it possible
+  to add a box FOR ADMIN/ANALYST LOGIN USERS ONLY that is status. It could be under Additional filter
+  box. If there is an easier way to implement then this I am open to it."*
+- **Why CR, not a defect:** a certificate Status filter was never part of the accepted internal
+  listing scope — no requirement, no mockup and no prior QC item asks for one, and the listing was
+  signed off without it. This is the client asking for a new filter dimension on a surface they have
+  already accepted. **Classified as a CR by Shawn, 2026-09-16**, after the build-state evidence below
+  was put in front of her — the alternative reading (absorb as a defect) was raised, considered and
+  declined. Recorded so the basis is auditable rather than assumed.
+- **Status:** **Not started.** Priced here so the estimate-before-build gate is satisfied
+  (`docs/governance/change-request-process.md`).
+
+> ### Build state: most of this CR is already implemented — read before quoting the hours
+>
+> This is **not** a full filter-plumbing job, and the estimate below will look wrong to anyone who
+> assumes it is. The status filter is **already built everywhere except the twelve lines of markup
+> that would make it visible.** Verified 2026-09-16 against the working tree:
+>
+> | Layer | State | Evidence |
+> |---|---|---|
+> | API query param | **built** | `Controllers/Api/CertificateTileInternalApiController.cs:70` takes `status`; `:224-228` applies it as a pipe-delimited multi-select |
+> | Filter-options payload | **built** | same file `:667` already returns `statuses = Enum.GetNames(typeof(CertificateStatus))` |
+> | Shareable-link round-trip | **built** | same file `:770-771` serialises `status=` into the generated link |
+> | JS filter state | **built** | `wwwroot/js/certificate-tile-view-internal.js:15` (`status: []`) |
+> | JS panel population | **built** | same file `:223-231` — populates `#status-content ul` from the options payload |
+> | JS request param | **built** | same file `:366` — `params.append('status', …)` |
+> | JS URL de/serialise + checkbox restore | **built** | same file `:1081-1082`, `:1111-1112`, `:1133` |
+> | JS active-filter-tag label | **built** | same file `:1186` (`status: 'Status'`) |
+> | CSV export honours it | **built** | same file `:1607-1608` |
+> | **The `#status-content` panel markup** | **ABSENT** | `grep -rn "status-content" Views/` returns **nothing** |
+>
+> `document.querySelector('#status-content ul')` therefore returns `null` on every page load and the
+> population block silently no-ops. This is exactly the DEF-389 shape: a handler bound to an element
+> that does not exist fails silently and looks like an unbuilt feature.
+>
+> **It was never built, not deliberately removed.** `git log -S 'status-content' --all -- 'Views/*'`
+> returns **zero commits**, and no register entry records a *certificate* status filter being taken
+> out. (A register grep does hit *"Status filter dropdown removed from filter row"* — that is
+> **DEF-104 / CR-015 removing the Product Identifier status filter**, a different surface and
+> unrelated. Confirmed by reading the enclosing entry, not the grep line.)
+>
+> **What this means for the quote, now that it is a CR.** The hours below are small because the
+> plumbing exists, not because the ask is trivial — price it as the hour it takes, not as the
+> half-day a new filter dimension would normally cost. Two consequences worth holding:
+>
+> 1. **The client will see it working the moment the panel appears**, with sorting, shareable links
+>    and CSV export all correct on day one. That is a good outcome, but it does mean the delivered
+>    behaviour will look larger than the hours billed — worth saying plainly rather than letting it
+>    read as padding.
+> 2. **The pre-existing plumbing is why the risk is low.** Nothing new is being introduced into the
+>    query path, so the usual regression surface for a new filter (paging, counts, export scoping)
+>    is not in play here.
+
+**Scope — one file, one panel.** Insert a `Status` panel into the filter sidebar of
+`Views/Certificate/CertificateTileViewInternal.cshtml`, copying the exact structure of its five
+siblings (`cert-type-content` `:48`, `product-cat-content` `:65`, `company-content` `:81`,
+`countries-content` `:97`, `additional-content` `:113`). The client asked for it "under Additional";
+the panels render in markup order, so placement is a one-line choice.
+
+Required shape, to match the siblings and keep the existing JS working unchanged:
+
+```html
+<div class="filter-panel">
+    <button class="filter-header" data-filter="status" aria-expanded="true" aria-controls="status-content">
+        <span>Status</span>
+        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+    </button>
+    <fieldset class="filter-content" id="status-content">
+        <legend class="admin-sr-only">Filter by certificate status</legend>
+        <ul class="filter-tree"><!-- populated by JS from filterOptions.statuses --></ul>
+    </fieldset>
+</div>
+```
+
+**The `id` must be exactly `status-content` and the checkbox `name` exactly `status`** — both are
+already hard-coded in the JS (`:224`, `:229`). Getting either wrong reproduces the current silent
+no-op rather than failing loudly.
+
+**Do NOT add the same panel to the external view, even though the dead selector is there too.**
+`wwwroot/js/certificate-tile-view-external.js:223` queries for the same `#status-content` and is
+equally inert. The client scoped this **"ADMIN/ANALYST LOGIN USERS ONLY"**, and exposing raw status
+values to customers would surface embargoed states — `Client Approved - Confidential` is an embargo,
+not an inactive record — and the external list is already status-filtered upstream, so the control
+would be misleading as well as leaky. Recommended: **delete** the dead selector from the external JS
+in the same change so the two files cannot be confused later, rather than leaving a loaded selector
+pointing at nothing.
+
+**Acceptance tests** — the first two are the ones that actually prove it:
+
+1. All **8** statuses appear, from `Models/CertificateStatus.cs` — the source of truth is 8 states,
+   not the originally-specified 7. The options endpoint enumerates the enum, so a miscount means the
+   enum is wrong, not the panel.
+2. Ticking two statuses returns the **union**, not the intersection — the server splits on `|`
+   (`:227`) and the JS joins on `|` (`:366`). A single-select-looking UI over a multi-select backend
+   is the predictable misread.
+3. An active filter tag reads `Status: <value>` and clearing it restores the full list.
+4. Copy the shareable link with a status filter set, open it in a clean session, and confirm the
+   checkboxes come back ticked (`:1081-1082` → `:1111-1112`).
+5. CSV export with a status filter set exports only the filtered rows (`:1607-1608`) — and parse the
+   export from **line 1 expecting a title preamble**, not a header row.
+
+**Estimate:** **~1-1.5 hr** — twelve lines of markup, then the five acceptance tests above and a
+viewport pass. Explicitly **not** a filter-plumbing job: no controller, service, repository, JS or
+CSS change is required, which is why this is priced at an hour rather than the half-day a new filter
+dimension would normally cost.
+
+**Risk:** low, and contained to one view. The one way this goes wrong is adding the panel to the
+external view as well.
+
+---
+
+### CR-052 (raised 2026-09-16, **NOT started — estimate only, needs the client to pick an option**) — Certificate PDF preview: view **all pages**, not just the first
+
+- **Period:** raised 2026-09-16; not started
+- **Source:** the client, 2026-09-10, logged as **QC #267** — `Database QC Log_9.11.26.xlsx`, sheet
+  `GCC DB QC Log2`, **row 276**, page `Cert PDF Preview Popup`, raised by Carly, Image 122: *"It
+  appears to only allow one page to be viewed when uploading certificate. Is it low risk to add a
+  toggle to view multiple pages under the Preview popup? Example: 26-0621"*
+- **Why CR, not a defect:** single-page preview is the behaviour as designed and as built — the
+  generator deliberately renders page 0 into a single thumbnail. Showing every page is new
+  capability. This one is a genuine CR, unlike CR-051 above.
+- **Status:** **Not started.** Two options priced below; the client picks.
+
+> ### The framing "is it low risk" is a hypothesis about our implementation, and it is wrong
+>
+> The preview is **not a PDF viewer**. Verified 2026-09-16:
+>
+> - `Services/FileUploadService.cs:553-591` — `GeneratePdfThumbnailAsync` opens the PDF with Docnet
+>   and calls **`docReader.GetPageReader(0)`**: page one only, converted BGRA→RGBA, downscaled to
+>   600px on the long side and saved as a **single PNG**.
+> - That one path is stored in **`Certificate.CertificateImagePath`**, a single `nvarchar(500)`
+>   column (`Migrations/20251015162223_InitialCreate_SqlServer_Final.cs:571`). There is nowhere to
+>   put a second page.
+> - The "popup" is a zoom modal over that one `<img>` — `Views/Certificate/Edit.cshtml:308`
+>   (`certificateImagePreviewImg`) and `:493` (`zoomedImage`).
+> - **There is no pdf.js anywhere in the application.** No page-navigation code exists to extend.
+>
+> So a "toggle" has nothing to toggle between. State this to the client plainly — they asked a fair
+> question and the honest answer changes which option they should want.
+
+**Option A — point the preview at the real PDF (RECOMMENDED).**
+
+The endpoint already exists and **is not called from anywhere in the UI**:
+`Controllers/CertificateController.cs:2332` `ViewCertificateFile(int id)` streams the stored PDF via
+`PhysicalFile(physical, "application/pdf")` (`:2673`) with **no `fileDownloadName`**, so ASP.NET Core
+sets no `Content-Disposition: attachment` and the browser renders it **inline in its native viewer —
+every page, plus zoom, scroll, search and print, for free**. Verified by reading the code path;
+`grep -rn "ViewCertificateFile" Views/ wwwroot/js/` returns **zero callers**.
+
+The work is a "View all pages" control in the preview modal that opens
+`/Certificate/ViewCertificateFile/{id}`, and nothing more.
+
+- **It is already secured correctly.** `FileAccessAllowed` (`:2454`, DEF-204/208) gates it: Admin and
+  Analyst unrestricted, everyone else — anonymous, External, Partner — must pass status **and**
+  ownership filters. This CR must not touch that gate.
+- **The route takes the integer `Id`, not the certificate number.** Passing `26-0621` yields a 404
+  that reads like a missing file. The modal must carry the Id.
+- **Certificate numbers are not unique** — 137 numbers span multiple rows — which is a second reason
+  to key off Id.
+- **Known limitation to state, not fix:** an encrypted PDF still will not render (DEF-400, cert
+  23-0971). The browser viewer will fail the same way the thumbnail generator does. Say so up front.
+- **Estimate: ~1.5-2.5 hr** — one control in the modal on both Create and Edit, the Id wiring, a role
+  pass proving an External user still cannot open someone else's PDF, and a check on **26-0621** (the
+  client's own example) that page 2 is actually reachable.
+
+**Option B — generate and store every page.**
+
+Extend `GeneratePdfThumbnailAsync` to loop `0..docReader.GetPageCount()`, write one PNG per page, and
+build a pager in the modal. This needs a storage model that does not exist: either a new
+`CertificatePreviewPage` table or a JSON path list, **plus a migration** (TEST auto-migrate is OFF
+since 2026-09-04 — migrations are applied by hand), **plus a backfill across ~5,700 existing
+certificates**, plus the uploads store growing by roughly the page count. It buys a slightly more
+integrated look and nothing else.
+
+- **Estimate: ~8-12 hr** build, plus a backfill run and its verification.
+
+**Recommendation: Option A.** It is ~5x cheaper, adds no schema, no migration and no backfill, gives
+the client *more* than they asked for (search and print, not just page 2), and it activates an
+endpoint we already wrote, already secured and never wired up. Option B is only worth it if the
+client specifically wants page thumbnails rendered inside our own modal chrome — worth asking, since
+their words were "view multiple pages", which Option A satisfies fully.
+
+**Open question for the client:** is a native browser PDF view acceptable, or do they want the pages
+inside the GCC-styled modal? That answer is the whole difference between ~2 hr and ~10 hr, so it goes
+to them **before** any build starts.

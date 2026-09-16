@@ -149,9 +149,24 @@ PRODUCTID_HEADERS = ["type", "value", "Partner", "productName"]
 # fail-OPEN and need a client answer before go-live — they are listed in
 # review-untagged-product-ids.csv rather than left to be discovered.
 
-SHEET_ACTIVE = "Active List 7.31.26"
-SHEET_EXPIRED2 = "Expired List 2 - 8.11.26"
-SHEET_EXPIRED1 = "Expired List 1 - 4.9.26"
+# ---------------------------------------------------------------- sheets --
+# Tab names are CLIENT-CONTROLLED and re-dated with every delivery, so they are
+# discovered by PREFIX and the schema is read from the header row — never inferred
+# from the name. Until 2026-09-16 the three exact names were hardcoded
+# ("Active List 7.31.26" etc), which meant the script found no sheets at all
+# against any workbook but the single delivery it was written for. It failed that
+# way against the sample pair committed at docs2/data-migration/TestSampleData/
+# (the 4.9.26 vintage, tabs "Active List 4.9.26" / "Expired List 4.9.26") and
+# would have failed the same way against DataMigrationTestDev/new/…_9.3.26.xlsx.
+# The failure was quiet — "!! sheet missing" on stdout and an empty output dir.
+ACTIVE_PREFIX = "active list"
+EXPIRED_PREFIX = "expired list"
+
+# NEW schema carries the post-4.9.26 columns; OLD has none of them and a single
+# combined LOCATION. "Product Category" is the discriminator, resolved through
+# find_cols so trailing spaces and parenthetical suffixes are tolerated the same
+# way every other source-side lookup tolerates them.
+NEW_SCHEMA_MARKER = "Product Category"
 
 PREFIX_RE = re.compile(r"^\d+(?:\.\d+)*\s+")
 ASIN_RE = re.compile(r"^[A-Z0-9]{10}$")          # ProductIdService.cs:96
@@ -562,6 +577,67 @@ def transform_asins(path, outdir, loadable_numbers, summary, cert_partner):
                     "Note": f"{len(per_cert)} certs; {dupes} surplus dup pairs collapsed"})
 
 
+def sheet_is_new_schema(ws):
+    """True when the sheet carries the NEW-schema columns."""
+    return bool(find_cols(header_map(ws), NEW_SCHEMA_MARKER))
+
+
+def discover_sheets(wb):
+    """-> [(sheet_name, outfile, has_new_fields)] for the tabs this workbook has.
+
+    Output FILENAMES stay fixed because the SQL generator reads them by name
+    (2026-08-13-migration-sql-generator.py:75) and tolerates any of them being
+    absent (:183). So a workbook with one expired tab simply produces one
+    expired CSV — it is not an error.
+
+    The two expired slots are assigned by SCHEMA, not by the "1"/"2" in the
+    client's tab name: certs-expired2 is the NEW-schema expired tab and
+    certs-expired1 the OLD-schema one, which is what those two names have always
+    meant ("Expired List 2 - 8.11.26" was new, "Expired List 1 - 4.9.26" old).
+    Reading it off the header keeps that true no matter how a tab is labelled.
+    """
+    active, expired = [], []
+    for name in wb.sheetnames:
+        t = name.strip().casefold()
+        if t.startswith(ACTIVE_PREFIX):
+            active.append(name)
+        elif t.startswith(EXPIRED_PREFIX):
+            expired.append(name)
+
+    if not active and not expired:
+        print("!! no 'Active List …' or 'Expired List …' tab found. Sheets present:")
+        for name in wb.sheetnames:
+            print(f"     {name}")
+        return []
+
+    sheets = []
+
+    for extra in active[1:]:
+        print(f"!! ignoring extra active tab (only one maps to certs-active.csv): {extra}")
+    if active:
+        name = active[0]
+        has_new = sheet_is_new_schema(wb[name])
+        if not has_new:
+            print(f"!! {name}: matched 'Active List' but has no '{NEW_SCHEMA_MARKER}' "
+                  f"column — treating as OLD schema")
+        sheets.append((name, "certs-active.csv", has_new))
+
+    new_exp = [n for n in expired if sheet_is_new_schema(wb[n])]
+    old_exp = [n for n in expired if n not in new_exp]
+    for slot, group, has_new in (("certs-expired2.csv", new_exp, True),
+                                 ("certs-expired1.csv", old_exp, False)):
+        for extra in group[1:]:
+            print(f"!! ignoring extra expired tab (only one maps to {slot}): {extra}")
+        if group:
+            sheets.append((group[0], slot, has_new))
+
+    print("resolved sheets:")
+    for name, outfile, has_new in sheets:
+        print(f"   {name:<30} -> {outfile:<20} schema={'NEW' if has_new else 'OLD'}")
+    print()
+    return sheets
+
+
 # -------------------------------------------------------------------- main --
 def main():
     ap = argparse.ArgumentParser()
@@ -598,16 +674,11 @@ def main():
     loadable_numbers = set()
     cert_partner = {}
 
-    sheets = [
-        (SHEET_ACTIVE, "certs-active.csv", True),
-        (SHEET_EXPIRED2, "certs-expired2.csv", True),
-        (SHEET_EXPIRED1, "certs-expired1.csv", False),
-    ]
+    sheets = discover_sheets(wb)
+    if not sheets:
+        sys.exit("No loadable certificate sheets — nothing to transform.")
 
     for sheet_name, outfile, has_new in sheets:
-        if sheet_name not in wb.sheetnames:
-            print(f"!! sheet missing: {sheet_name}")
-            continue
         ws = wb[sheet_name]
         rows = list(transform_sheet(ws, sheet_name, has_new, unmappable, pathway_fix, email_review))
         rows = withhold_incomplete(rows, sheet_name, date_quarantine)

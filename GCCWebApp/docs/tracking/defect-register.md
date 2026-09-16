@@ -15820,7 +15820,7 @@ evidence than a repeated one.
 
 - **Date raised:** 2026-09-16
 - **Severity:** **High.** Not a leak — the ASINs belong to that partner and that certificate. It is high because it is **a control an analyst reasonably believes they have and do not**: deactivating an identifier in the application removes it from every internal screen while the partner feed keeps publishing it, and the failure is invisible from inside the app. Amazon continues to badge products GCC has deactivated.
-- **Status:** **FIXED LOCALLY 2026-09-16 — pending deploy.** Reading 1 chosen by Shawn: *"we need to fix it, they should match."* Builds clean (0 errors). **Amazon must be told before this ships** — their feed drops 68 ASINs.
+- **Status:** **DEPLOYED AND VERIFIED on gccwebapp.com (test), 2026-09-16.** Shipped in `GCCWebApp-deploy-20260916-1023.zip` (DLL md5 `58569001f47314c2`). Reading 1 chosen by Shawn: *"we need to fix it, they should match."* Post-deploy evidence below.
 - **Reporter:** Internal. Surfaced while reconciling a partner-reported ASIN count against ours.
 - **QC log ID:** none — not client-reported.
 
@@ -15906,3 +15906,23 @@ never failed against a known-bad input proves nothing; this one has.
 
 Internal consistency signal it also produced: 281 UI certificates − 212 delivered = **69 UI-only**,
 matching the membership reconciliation (281 Amazon-tagged, 212 delivered, 69 correctly withheld).
+
+**Post-deploy verification, 2026-09-16 — both surfaces now agree.**
+
+| Check | Before | After |
+|---|---|---|
+| **Gate 4B cross-surface** | **FAIL** — `26-0439`, 68 values | **PASS — 0 mismatches, exit 0** |
+| ASIN associations | 20,380 | **20,312** |
+| Distinct ASINs | 16,078 | **16,078 — unchanged** |
+| Certificates delivered | 212 | **212**, `totalPages: 3` |
+| Certificates with ≥1 ASIN | 173 | **173 — unchanged** |
+
+**No product was lost.** All 68 removed associations exist on other certificates — 0 of the 68 appear
+nowhere else — so the fix removed duplicate *associations*, not products. Page 1 re-measured live:
+**7,368 distinct ASINs across 100 certificates, 91 of which carry ASINs** (identical distinct count to
+pre-fix, because those ASINs also sit on other page-1 certificates; only the association count moved,
+7,928 → 7,860).
+
+**The FAIL→PASS transition is the evidence, not the PASS.** Gate 4B returned `FAIL — 1 certificate(s)
+differ` against the unfixed code, naming `26-0439` and all 68 values, before returning PASS here. A
+gate that has only ever passed proves nothing.

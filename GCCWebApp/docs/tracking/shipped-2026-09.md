@@ -737,3 +737,43 @@ differ.
 > it depended on timing, so those runs came back clean by chance rather than by correctness. That is
 > why the new check tests the same pages twice and requires identical results, instead of trusting a
 > single good result.
+
+---
+
+## 2026-09-16 — Deactivated product identifiers now stop being sent to partners
+
+**LIVE on the test environment** — deployed and verified 2026-09-16.
+
+### Fixed
+
+**Deactivating a product identifier now actually stops it being published (DEF-426).** Found while
+reconciling a certificate count Amazon reported back to us against our own — not reported as a fault,
+and not visible from anywhere inside the application.
+
+When an analyst deactivates an ASIN on a certificate, it disappears from every screen in the system.
+It did **not** disappear from the partner feed: it kept being sent, and kept being labelled "Active".
+68 ASINs on one certificate had been in that state since 8 September — deactivated in the application,
+still going to Amazon for eight days.
+
+Deactivating now takes effect everywhere at once.
+
+**What this means for the numbers.** The Amazon feed now carries **20,312 ASIN entries** rather than
+20,380.
+
+> **No product has been removed from Amazon's view, and nothing was lost.** Every one of the 68 also
+> appears on another certificate, so they are all still being sent — the certificate in question had
+> simply been listing them twice. The figures that describe how many products are certified are
+> **unchanged**: still **16,078 distinct ASINs across 212 certificates**.
+
+### Testing
+
+A new automated check compares, certificate by certificate, what a partner receives against what the
+application displays — the two had never been compared with each other, which is the reason this went
+unnoticed. It reported the fault before the fix and reports agreement after, across all 212
+certificates.
+
+### Known follow-up
+
+The 68 identifiers were deactivated deliberately on 8 September. Worth confirming with whoever made
+that change that removing them from Amazon is the intended outcome — the system now does what the
+action says it does, but the original intent is worth having on record.

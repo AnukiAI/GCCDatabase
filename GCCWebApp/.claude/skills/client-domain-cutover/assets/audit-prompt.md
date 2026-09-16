@@ -79,7 +79,7 @@ equivalent route. Flag shapes with no equivalent.
 
 Write to:
 - docs/cutover/<target-hostname>-documentation-inventory.md  (Part 1)
-- docs/cutover/<target-hostname>-hostname-audit.md            (Parts 2–5)
+- docs/cutover/<target-hostname>-audit.md                       (Parts 2–5)
 
 End the audit file with:
 1. A recommended change list, ordered, marked pre-go-live vs go-live-day

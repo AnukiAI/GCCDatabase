@@ -379,9 +379,17 @@ conversation-*.txt
 *-fix-manual-testing-*.txt
 *-can-we-expand-*.txt
 
-# Archive folders - prevent accidental commits
+# Archive folders - prevent accidental commits of superseded CODE.
+# These patterns are deliberately broad, and until 2026-09-16 they silently swallowed the
+# DOCUMENTATION archives too: a fresh clone got none of the original requirements set even
+# though the docs tree itself was tracked. The re-includes below fix that.
+# NOTE: git cannot re-include a file whose PARENT DIRECTORY is excluded, so each negation
+# must name the directory itself - do not "simplify" these into a file glob.
 */archive/
 **/Archive/
+!docs2/archive/
+!GCCWebApp/docs/Final Req Docs/archive/
+!GCCWebApp/docs/OneDrive_2026-05-09/Final Req Docs/archive/
 pages_old/
 Archive_GCCWebApp.Tests/
 GCCWebApp-Tests/
@@ -410,7 +418,9 @@ apiUpdates.txt
 /GCCWebApp/deploy-staging-20260504-1657
 /GCCWebApp/deploy-staging-20260504-1815
 /GCCWebApp/publish-20260504-2301
-/GCCWebApp/Database_Scripts
+# /GCCWebApp/Database_Scripts - UN-IGNORED 2026-09-16. These are hand-run DB fix scripts
+# referenced by the defect register; six were already tracked (added before this rule), so the
+# rule only ever hid the newest two, which is the worst of both worlds.
 /GCCWebApp/docs/tracking/client-exec-brief-qc-volume-5-13.docx
 
 # DEF-263: server-only secrets overlay. Holds the SMTP mailbox password (and any

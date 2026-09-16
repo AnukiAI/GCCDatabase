@@ -705,3 +705,28 @@ This generalises past internal tags to every cell of the role matrix, and it is 
 External-umbrella confusion: **External is an umbrella over Company and Partner, not a peer of
 Admin/Analyst** — so any check that treats "External" as one value in a flat list of roles is already
 an open set even before a new role is added.
+
+
+---
+
+## 2026-09-16 - Un-ignoring is a publish
+
+From the fresh-clone setup work. Three habits:
+
+1. **Audit ignore rules with `git check-ignore -v` against real paths, never by reading patterns.**
+   `**/Archive/` was written to exclude superseded code and had been eating 130 documentation files,
+   including the entire original requirements archive, for months. Ignored files never appear in
+   `git status`, so there is no passive signal - the gap is only visible if you go looking. A quick
+   standing check: compare `find <dir> -type f | wc -l` against `git ls-files <dir> | wc -l` for any
+   directory that is supposed to be fully tracked.
+
+2. **Scan contents before un-ignoring anything, and stage before you commit so the scan has
+   something to read.** An ignore rule has been protecting against everything that matched it, not
+   just the thing it was written for. Removing it publishes all of that at once. Here, 21 of 133
+   files carried a plaintext production database credential. `git add` then grep the staged set for
+   credential shapes; the commit is the last reversible moment, and only while it is unpushed.
+
+3. **When a setup fails, separate "the artifact is absent" from "the environment cannot reach it."**
+   The reported symptom was missing seed data; the cause was a committed connection string pointing
+   at another machine. Check whether the file is tracked *before* concluding it was never committed -
+   `git ls-files <path>` answers it in one call and stops the search going the wrong direction.

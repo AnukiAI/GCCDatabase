@@ -5924,3 +5924,55 @@ it was re-derived from the 10:51 payload. Ready to send: `[name]`, `[sign-off]`,
 possible — the question "does anything disappear from Amazon's view?" was answered *before* the
 change, not discovered afterwards. Predict, then verify the prediction; a post-hoc measurement alone
 cannot tell you whether you understood the change.
+
+
+---
+
+## 2026-09-16 - "Not all files are in the repo" was two different problems, and one was not a problem
+
+**Ask.** Setting the project up on a second machine; files appeared to be missing from the repo,
+specifically database seeding with test data. Then: make sure the documentation is included too.
+
+**The seeding was never missing.** All three layers are tracked and always were: `Migrations/`,
+`Data/SeedData.cs` (auto-runs on a fresh dev DB at `Program.cs:1107`, idempotent) and
+`Scripts/ci/seed-e2e.sql`. What is missing on a second machine is the *environment*:
+`appsettings.Development.json` is committed with `Server=ANUKI01;...User Id=GCC_DevUser`, a machine
+name and a SQL login local to the original box. EF cannot connect, so migrations never apply and the
+seeder never runs - and the symptom is an empty database, which reads as "the seed data is not in
+the repo."
+
+**Worth keeping: a committed config file is a machine-specific file pretending to be a portable
+one.** The failure it produces is not "config is wrong", it is "the data is missing" - one layer
+away from the cause. Nothing in the repo said so, because there was no setup document at all. Now
+`SETUP.md` at the repo root, which also says to override with `ConnectionStrings__DefaultConnection`
+rather than editing the committed file, so the second machine never has to make a commit that breaks
+the first.
+
+**The documentation gap was real and unrelated.** `.gitignore` had `*/archive/` and `**/Archive/`
+under a comment saying "prevent accidental commits" - written for superseded *code*, but it also
+matched the documentation archives. A fresh clone got **none** of the original requirements set:
+
+| Path | On disk | Tracked before |
+|---|---|---|
+| `docs/Final Req Docs/archive` | 33 files / 117 MB | 0 |
+| `docs/OneDrive_2026-05-09/Final Req Docs/archive` | 33 files (byte-identical copy) | 0 |
+| `docs2/archive` | 64 files | 0 |
+
+This is the archive the project rules say to cross-check every "spec gap" claim against, and it had
+never been in the repo. `docs2` was 422 files on disk against 358 tracked - the 64-file difference
+was exactly `docs2/archive`, and nothing surfaced it because ignored files are invisible to
+`git status`. **An ignore rule written for one file type will quietly eat another that shares a
+directory name.** Audit with `git check-ignore -v` against real paths, not by reading the patterns.
+
+**Then the gate caught the actual risk.** Staging all 133 files and scanning them before committing
+found a plaintext hosting-database credential - host, port, database, user and password - in **21**
+files under `docs2/archive`, left over from the 2025 production-fix effort. Un-ignoring a folder to
+recover documentation nearly published a credential into git history, where removing it means
+rewriting history, not deleting a file. Committed 112; held the 21 pending a decision.
+
+**The generalisable point: "include everything that was excluded" inverts the safety property of an
+ignore rule.** Whatever the rule was written for, it has been silently protecting against everything
+else that matched it for as long as it existed. Un-ignoring is therefore a publish, and deserves a
+content scan, not just a size check. The size check happened too (largest file 27.3 MB, under
+GitHub's 100 MB cap; the two 117 MB copies are byte-identical so git stores them once) - but the
+size check was the easy question and it was not the one that mattered.

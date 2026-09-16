@@ -676,7 +676,9 @@ than leave a trap.
 
 ## 2026-09-10 — Edit opens in a new tab; the list view opens by default
 
-**Pending deploy** — built and verified on 2026-09-10, awaiting upload to gccwebapp.com.
+**LIVE on the test environment** — confirmed 2026-09-15. (This section previously read "Pending
+deploy"; that was stale. The work shipped in the 2026-09-11 bundle, verified by probing the live
+site rather than by reading the deploy log.)
 
 ### Delivered
 
@@ -694,3 +696,44 @@ switch once — your choice is remembered for next time, so nobody has to keep t
 direction. The public certificate database is unchanged.
 
 > The remembered choice is per browser, so signing in on a different machine starts on List again.
+
+---
+
+## 2026-09-15 — The Amazon feed now sends every certificate, exactly once
+
+**LIVE on the test environment** — deployed and verified 2026-09-15.
+
+### Delivered
+
+**Fixed: the partner feed could send a certificate twice and leave another out entirely
+(DEF-425).** Found while validating a certificate count Amazon reported back to us — not reported as
+a fault, and not visible from inside the application.
+
+When the feed is read a page at a time, the order of certificates that share the same effective date
+was not fully pinned down. Certificates sitting on the join between two pages could therefore be
+returned on both pages, while others fell between the pages and were never sent at all. On the pull
+we examined, four certificates were delivered twice and four were missing — the feed looked complete
+and well-formed throughout, and the only outward sign was a total that would not reconcile.
+
+The feed now applies a guaranteed-unique ordering, so each certificate appears exactly once no matter
+how it is paged.
+
+**What this means for the numbers:** the Amazon feed now carries **212 certificates and 20,380
+product identifiers (16,078 distinct ASINs)**, which matches the database exactly. Four certificates
+that had been silently withheld are being sent again, and four that were being sent twice now appear
+once.
+
+> **Nothing was wrong with any certificate's data.** This affected only which records were included
+> in a paged read of the feed. No certificate was altered, and no value Amazon holds was incorrect —
+> some were simply counted twice or not at all.
+
+**Also hardened: the check that would have caught this sooner.** The reconciliation we run against
+the Amazon feed compared *lists* of certificate numbers, which cannot reveal a duplicate, and the
+feed's own total agreed because the total was right while the contents were not. It now verifies
+that the number of records matches the number of distinct certificates, and fails loudly if they
+differ.
+
+> Worth stating plainly: this fault was present on several earlier pulls and did not show itself —
+> it depended on timing, so those runs came back clean by chance rather than by correctness. That is
+> why the new check tests the same pages twice and requires identical results, instead of trusting a
+> single good result.

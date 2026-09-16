@@ -102,6 +102,11 @@ the number-vs-Id note above. `/api/v1/certificates` verified with an active Amaz
 
 **ALWAYS**: Check requirements, ask clarifying questions, review mockups, test changes
 
+**GATE**: Run the `gate-check` skill before anything leaves your hands — a figure quoted to a client
+or partner, a file sent outward, a deploy, an edit to a generated artifact, a register entry, or a
+claim that something is fixed/live/verified. It is the accumulated list of things that looked right
+and were wrong. Add to it whenever something gets through.
+
 ## Quick Credentials
 
 ### Role-matrix test accounts — TEST environment (gccwebapp.com) only

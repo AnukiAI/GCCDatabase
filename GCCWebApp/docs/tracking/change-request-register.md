@@ -8,6 +8,21 @@ estimate-before-build gate, and the rule that an absorbed CR is still priced and
 
 **Note on history:** Memory references CR-001 through CR-004 as backfilled on 2026-03-23, but the original register file was never persisted. Items below numbered as best-recoverable. CR-005 onward are confirmed via shipped-2026-04.md and screenshot folders.
 
+## LINE IN THE SAND — 2026-09-15 · baseline `GCCWebApp-deploy-20260915-1641.zip`
+
+CR entries share the 285-id deploy baseline recorded in `docs/tracking/deploy-baseline.json` and
+explained in full at the top of `defect-register.md`. Every CR marked built-but-pending-deploy on or
+before 2026-09-15 is **accepted as shipped** with that bundle — a full-overwrite build from the
+working tree, deployed and verified at 17:04.
+
+Accepted, not verified. A CR that was never merged or was later reverted would be wrongly marked
+here; re-raise it as a new finding rather than trusting the baseline.
+
+From this point the gate (`python Scripts/deploy/resolved-not-shipped.py`, **Gate 0B**) reports only
+new work — so a built-but-unshipped CR is visible the day it appears.
+
+---
+
 ## Columns
 
 - **ID** — `CR-XXX`, monotonically increasing
@@ -1500,3 +1515,73 @@ Follow-up note drafted at `docs/tracking/2026-09-10-client-followup-payload-amaz
 nothing inside states what the data reflects, so "this snapshot predates today's data change" is
 invisible to whoever sends it. Suggest `summary.txt` carry the pull timestamp and any same-day data
 operation. ~30 min, not built.
+
+---
+
+### CR-050 (raised 2026-09-14, **repo-side BUILT 2026-09-14 — infrastructure in progress**) — `test.gccwebapp.com` as a separate test site
+
+- **Period:** raised 2026-09-14
+- **Source:** Shawn, 2026-09-14 — *"I want to setup test.gccwebapp.com as the test site on the same
+  hosting platform."* Scope confirmed the same day: **two separate configurations on one hosting
+  platform — separate folders, separate app pools, separate config, separate databases.**
+  `gccwebapp.com` itself is **left alone** — no redirect, decided later.
+- **Why CR, not a defect:** nothing is broken. This is a new environment, and it closes a standing
+  risk rather than fixing a fault.
+- **The standing risk it closes:** today `gccwebapp.com` is the test environment and it runs against
+  the **real production database** (`gccwebap_certificates`). Every test write lands on live client
+  records. `email-draft-2026-08-12-production-hosting-request.md` calls separating them *"the single
+  most important outcome"* of a new environment. This achieves that outcome **without** a new server.
+- **Estimate:** repo-side ~2h (done). Infrastructure — DNS, Plesk site, TLS, deploy, overlay,
+  uploads copy — ~3-4h with Plesk access, plus a 3.5-4 GB uploads copy. **Absorbed.**
+
+#### Done in the repo (2026-09-14)
+
+| Change | File | Note |
+|---|---|---|
+| Startup banner names the live database | `Program.cs`, after the SQL Server provider line | Prints `DB server` / `DB catalog` / `DB user`. **Never the password.** Wrapped in try/catch so a malformed connection string cannot take the site down — the DEF-395 KeyPath lesson. Verified locally: prints `ANUKI01 / GCCDatabase_Dev / GCC_DevUser`. Build clean, 0 errors. |
+| Per-site secrets template | `appsettings.Secrets.test-site.template.json` (new) | Sibling of the existing template. Carries the `gccwebap_test` connection string, a distinct `Jwt:Key`, `DataProtection:ApplicationName = GCC-Test`, and `FromName = GCC Database - TEST`. |
+| Runbook | `docs/cutover/test.gccwebapp.com-setup-runbook.md` (new) | Ordered steps, the verification, and the four open decisions. |
+
+#### Why the banner was worth building before the site exists
+
+Both sites deploy from the **same zip**, and that zip contains `appsettings.Production.json` with the
+**production connection string** in it. So every deploy writes the production connection string into
+the test site's folder. The only thing steering the test site elsewhere is its own
+`appsettings.Secrets.json` — absent from the zip by design, registered last, therefore wins.
+
+If that overlay is missing, malformed, or the key is misspelled, **the test site silently reads and
+writes real client records.** Nothing errors, every page loads, and the data looks right because it
+*is* the real data. Identical in shape to DEF-263, where empty SMTP credentials silently selected
+`MockEmailService` and mail simply stopped.
+
+Before this change the startup log said only *"Using SQL Server database provider"* — the provider,
+never the target — so the failure was **unobservable from the logs**. It now states the catalog,
+which makes the check falsifiable ([[feedback_confirm_means_falsifiable]]): on the test site the
+banner must read `DB catalog : gccwebap_test`. If it reads `gccwebap_certificates`, stop.
+
+#### Isolation gaps the shipped config leaves, all closed in the overlay
+
+Found while writing the template — none are obvious, and two are silent:
+
+1. **Shared JWT signing key.** `appsettings.Production.json` ships one `Jwt:Key` to both sites, so a
+   token minted on test would validate on `gccwebapp.com`. The environments are not isolated at the
+   token layer until the test site gets its own key.
+2. **Uploads are per-site, and the copied DB does not know it.** `IUploadPathResolver` resolves to
+   `ContentRootPath/App_Data/uploads` unless `FileStorage:StoragePath` is set, so the new site starts
+   **empty** while `gccwebap_test` references ~5,700 PDFs. Every document 404s until the store is
+   copied (~3.5-4 GB). Pointing the test site at the production store would "fix" reads and
+   reintroduce exactly the coupling this CR removes — **do not**.
+3. **Partner API keys came across in the copy.** A live Amazon key authenticates against
+   `test.gccwebapp.com` and returns data, and the test gate does **not** cover it — the gate skips
+   `/api/*` by design. Rotate or disable partner keys inside `gccwebap_test`.
+
+#### Still to do (needs Plesk / AccuWeb access)
+
+DNS `test A 64.27.52.66` in a zone **we control** (AccuWeb NS — no client involvement); Plesk
+**subdomain, not a domain alias**; Let's Encrypt; deploy the same zip; place the overlay; copy
+uploads; verify the banner and a write-isolation check. Full detail in the runbook.
+
+#### Prerequisite already met
+
+`test.gccwebapp.com` is **NXDOMAIN with no wildcard on the zone** (checked 2026-09-14) — nothing to
+remove first. Shawn created the database copy `gccwebap_test` the same day.

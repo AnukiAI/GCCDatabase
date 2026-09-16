@@ -19,6 +19,42 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 **Caveat.** Status lines are written at fix-time and not always updated post-deploy. The 2026-05-21 prod deploy carried a large batch of items still tagged "Fixed locally — pending deploy" on individual entries; the snapshot above is directional, not perfectly current. Source of truth for what's actually on prod is the deploy zip manifest + live-fingerprint probes in `Scripts/smoke-prod/` and `qc159-live-check/`.
 
+## LINE IN THE SAND — 2026-09-15 · baseline `GCCWebApp-deploy-20260915-1641.zip`
+
+**285 entries across this register and the CR register are hereby accepted as SHIPPED**, as of the
+bundle deployed and verified on gccwebapp.com at 2026-09-15 17:04. Machine-readable list:
+`docs/tracking/deploy-baseline.json`.
+
+**Why a line rather than a sweep.** The 2026-09-15 reconciliation
+(`python Scripts/deploy/resolved-not-shipped.py`) found that **285 of 378 entries — 75% — could not
+be confirmed as shipped** from their Status lines: 149 still read "pending deploy", 48 were
+unclassifiable, 88 had no Status line at all. That is not 285 missing fixes; it is the caveat above
+compounding for ten months. Auditing it entry-by-entry is archaeology on defects nobody will revisit,
+and it would not prevent the next occurrence.
+
+**Why the assumption is sound.** A Plesk bundle is a **full overwrite built from the working tree**,
+so any fix present in the repo when it was cut necessarily shipped with it. Every one of these
+entries describes work that was in the tree.
+
+**Where it is NOT sound — and what to do.** A fix that was never merged, or was later reverted, would
+be wrongly marked shipped here. If one surfaces, **re-raise it as a new finding**; do not assume the
+baseline settled it. The baseline is an accepted assumption, recorded as such, not a verification.
+
+**What this buys.** From 2026-09-15 the gate reports only **new** work, so an unshipped fix is visible
+the day it appears instead of being lost in a backlog of 285. `deploy-baseline.json` can be deleted at
+any time to get the unfiltered picture back — the filter is applied after classification, never
+during, so nothing is destroyed.
+
+**The obligation this creates.** Close the loop after every deploy: mark shipped entries deployed.
+The backlog existed because that step was skipped, and a second line in the sand would be an
+admission the practice did not take.
+
+> **Standing rule (Shawn, 2026-09-15):** *"we seem to miss defects in deploy. If I wanted it separate,
+> it would be in a separate build."* A build carries every issue resolved at the time it is cut.
+> Separation gets its own build; it is never achieved by omission. Enforced as **Gate 0B**.
+
+---
+
 ## Status-sync batch — 2026-05-21 (grouped older-DEFs sweep)
 
 Targeted-probe sweep across 7 surfaces (`qc159-live-check/older-defs-grouped-sweep.js`) ran 27 probes against gccwebapp.com to verify which older "Fixed locally — pending deploy" DEFs are actually deployed. **20 confirmed deployed + 1 confirmed still failing + 6 inconclusive.** Individual entries' Status lines were NOT all rewritten (would risk mismatch errors across ~70 candidates with varied status-line phrasings); this batch entry stands as the canonical sync record. Override the individual Status lines with this table:
@@ -15680,3 +15716,193 @@ Today this returns `200`. Under reading 1 it must return `401`.
 
 - **Related:** DEF-112 (the `Partner` role claim is minted only by this middleware, never assigned to a human user — so this path is the whole of partner authentication). CR-171 (partner scoping).
 - **Effort:** ~15 min for the code change under reading 1, plus the check for currently-inactive partners with live keys. Zero under reading 2 — the documentation half is already done.
+
+---
+
+### DEF-425 — Partner API paging has no unique tiebreaker, so a single pull delivered 4 certificates twice and dropped 4 others entirely
+
+- **Date raised:** 2026-09-15
+- **Severity:** **High.** This is silent, non-deterministic data loss on the feed a paying partner builds against. It does not error, does not log, and the payload stays well-formed — the only symptom is a count that will not reconcile, and it can differ run to run on identical data.
+- **Status:** **DEPLOYED AND VERIFIED on gccwebapp.com (test), 2026-09-15.** Shipped in `GCCWebApp-deploy-20260915-1641.zip` (DLL md5 `42f7efa637fd6591`). Post-deploy evidence below.
+
+**Post-deploy verification, 2026-09-15 17:04 — the payload is now whole.** Every figure matches the
+database computed independently with the API's own eligibility predicate:
+
+| Measure | Before (15:07) | After (17:04) | DB truth |
+|---|---|---|---|
+| certificates delivered | 212 rows / **208 distinct** | **212 / 212** | 212 |
+| ASIN rows | 20,908 | **20,380** | 20,380 |
+| distinct ASINs | 16,069 | **16,078** | 16,078 |
+| certificates carrying ≥1 ASIN | 169 | **173** | 173 |
+| `25-0479`–`25-0482` | missing | **present** | eligible |
+| `23-0925`/`0926`/`0927`/`0991` | delivered twice | **once each** | one row each |
+| membership findings | 4 | **0** | — |
+
+**And the race itself is gone, which the counts above cannot show.**
+`Scripts/smoke-prod/def425-paging-determinism.py test 15` walked both partner endpoints at
+pageSize=15 — 15 page boundaries each instead of the 2 a `pageSize=100` pull produces — and asserted
+three things per endpoint: rows==distinct, walk==`totalCount`, and **two independent full walks
+returning byte-identical ordered lists**. All PASS, exit 0.
+
+The third assertion is the load-bearing one and the reason the first two are not enough on their own:
+this defect ran clean on 09-09, 09-10 (twice) and 09-11 **while fully exposed** — the same 16
+certificates tied on `2023-11-01` straddled the same boundary every time. A single clean pull was
+never evidence, which is exactly how it survived four verification runs.
+- **Reporter:** Internal. Found while running the Amazon payload export to reconcile against a partner-reported ASIN count.
+- **QC log ID:** none — not client-reported.
+
+**What happened.** The 2026-09-15 pull of `/api/v1/certificates?includeProductIds=true` returned
+**212 rows carrying only 208 distinct certificates**. `23-0925`, `23-0926`, `23-0927` and `23-0991`
+were each delivered **twice**; `25-0479`–`25-0482` (Block Inc., Client Approved - Confidential, in
+force to 2026-10-31) were **not delivered at all** despite being eligible.
+
+**Root cause — undefined ordering across pages, not a data problem.** The database holds exactly one
+row per duplicated number, so the duplication is manufactured by the query. `GetCertificates()`
+ordered by `EffectiveDate` alone and then applied `Skip/Take`. `ORDER BY` on a non-unique key leaves
+the order of tied rows undefined in SQL Server, and it is free to resolve them differently for each
+page request. All eight affected certificates share `EffectiveDate = 2023-11-01` — 16 delivered
+certificates tie on that date — and they sit on the page 2/3 boundary, so four fell on both sides and
+four fell through the gap.
+
+**The arithmetic closes exactly, which is what confirms the diagnosis.** Delivered ASIN rows 20,908
+against a true 20,380 = 528 over-count. The four duplicated certificates carry 318+206+13+0 = 537
+identifiers counted twice; the four dropped certificates carry 3+2+1+3 = 9 identifiers lost;
+537 − 9 = 528. No residual.
+
+**Why the existing checks did not catch it.** The membership reconciliation in
+`Scripts/data-ops/2026-09-09-amazon-payload-export.py` compares *sets* of certificate numbers, and a
+set cannot see a duplicate. The script's `pagination.totalCount` cross-check also passed, because
+`totalCount` was a correct 212 — the row count matched while the row *identities* did not. **Equal
+counts are not the same rows.**
+
+**Fix.** A unique tiebreaker on every paged query in `Controllers/Api/v1/CertificatesController.cs`.
+`Id` is the only unique key; `Number` is not (137 numbers have multiple rows), nor are
+`Product.Name` or `Company.Name`.
+
+| Line | Action | Was | Now |
+|---|---|---|---|
+| ~258 | `GetCertificates` | `OrderByDescending(EffectiveDate)` + 5 `SortBy` branches, all non-unique | all branches funnel into `.ThenBy(c => c.Id)` |
+| ~810 | `SearchCertificates` | `OrderByDescending(EffectiveDate)` | `.ThenBy(c => c.Id)` |
+| ~908 | `GetExpiringCertificates` | `OrderBy(ExpirationDate)` | `.ThenBy(c => c.Id)` |
+| ~1584 | `GetCertificatesGS1` | `OrderByDescending(EffectiveDate)` | `.ThenBy(c => c.Id)` |
+
+The `SortBy` switch now assigns to an `IOrderedQueryable<Certificate>` so the tiebreaker is appended
+once and **cannot be forgotten on a future branch** — the previous shape invited exactly this bug,
+since each new sort option was its own complete expression.
+
+**GS1 was fixed too even though it measured correctly.** Its identifier totals matched the database
+exactly (20,380 / 16,078) on this run, but the underlying `ORDER BY` is equally non-unique, so that
+was luck rather than correctness. It is one of the two endpoints Amazon calls.
+
+**This is DEF-166/234 again.** The `.ThenBy(c => c.Id)` remedy was applied to the certificate list
+surfaces then and never reached this controller. Three call sites here already had
+`.ThenByDescending(c => c.Id)` (lines 465, 1361, 1645) — non-paged ones — which is why the gap read
+as "already handled" on a casual grep.
+
+**How to verify after deploy.** Re-run the payload export against the test environment; distinct
+certificate numbers must equal row count:
+
+```
+python Scripts/data-ops/2026-09-09-amazon-payload-export.py test
+```
+
+Expect **212 rows / 212 distinct numbers**, 20,380 ASIN rows, 16,078 distinct ASINs, and `25-0479`–
+`25-0482` present. A stronger check is to pull page 2 and page 3 twice each and confirm the row sets
+are identical between attempts — the defect is non-deterministic, so a single clean pull is weaker
+evidence than a repeated one.
+
+- **Related:** DEF-166, DEF-234 (same defect class, certificate list surfaces). CR-043 (Confidential now badgeable, which is why the dropped certificates were eligible at all). DEF-358 (effective-date gate on the same predicate).
+- **Effort:** ~20 min to fix and build; the regression pass over partner paging is the larger part.
+
+---
+
+### DEF-426 — Deactivating a product identifier does not stop it being published to the partner, and it is still sent marked "Active"
+
+- **Date raised:** 2026-09-16
+- **Severity:** **High.** Not a leak — the ASINs belong to that partner and that certificate. It is high because it is **a control an analyst reasonably believes they have and do not**: deactivating an identifier in the application removes it from every internal screen while the partner feed keeps publishing it, and the failure is invisible from inside the app. Amazon continues to badge products GCC has deactivated.
+- **Status:** **FIXED LOCALLY 2026-09-16 — pending deploy.** Reading 1 chosen by Shawn: *"we need to fix it, they should match."* Builds clean (0 errors). **Amazon must be told before this ships** — their feed drops 68 ASINs.
+- **Reporter:** Internal. Surfaced while reconciling a partner-reported ASIN count against ours.
+- **QC log ID:** none — not client-reported.
+
+**How it surfaced.** The client reported **20,313** ASINs from a web-UI export; the partner API
+delivers **20,380**. Neither number was wrong.
+
+| Path | Product-ID filter | Count |
+|---|---|---|
+| Partner API (`CertificatesController.GetCertificates`) | `Include(c => c.ProductIds)` — **none** | **20,380** |
+| Web UI / tile API (`CertificateTileInternalApiController.cs:301`) | `.Where(pid => pid.ProductIdType == "ASIN" && pid.IsActive)` | **20,312** |
+
+**The divergence.** `CertificateProductIds` carries **two** activity flags — `Status` (nvarchar) and
+`IsActive` (bit). The UI honours `IsActive`. The partner API honours **neither**: it includes every
+row and then reports `status` from `pid.Status`. So a row with `Status='Active', IsActive=0` is
+hidden internally and published externally **as Active** — the two surfaces disagree, and the
+externally visible one is the permissive one.
+
+**Scope — small, precise, and deliberate.** Exactly **68** product identifiers in the entire database
+have `IsActive = 0`. All 68 are ASINs on certificate **`26-0439` (Philips, 1,127 ASINs total)**,
+created 2026-09-04 and **updated 2026-09-08 by user id 99** — i.e. somebody deactivated them on
+purpose, eight days before this was noticed, and they have been going to Amazon ever since.
+
+**The question this needs answered — do not "fix" it blind.** Two defensible readings:
+
+1. **`IsActive=0` means "stop publishing this."** Add `&& pid.IsActive` to the partner projection.
+   One-line change, but it is a **live partner-facing behaviour change**: Amazon's feed drops 68
+   ASINs the moment it deploys, and they are mid-integration. Tell them before, not after.
+2. **`IsActive` is an internal display flag and `Status` is the published contract.** Then the defect
+   is the **inconsistent pair** — 68 rows asserting both "Active" and "not active" — and the fix is
+   to reconcile the two columns rather than change the feed.
+
+Reading 1 is almost certainly the intent (someone deactivated them expecting an effect), but the
+decision belongs to the client, and **identify user 99 first** to confirm what they meant to happen.
+
+**Related:** DEF-424 (deactivating a *partner* does not stop their API keys — same failure shape: a
+control that silently does nothing). CR-015 (product ID status derives from the parent certificate).
+DEF-425 (the same reconciliation that surfaced this).
+
+**Effort:** ~15 min for the code change under reading 1, plus notifying Amazon. Under reading 2, a
+data fix for 68 rows and a decision on which column is authoritative.
+
+**How to verify either way:** `python Scripts/data-ops/2026-09-09-amazon-payload-export.py test` —
+under reading 1 the delivered ASIN total becomes **20,312**; today it is 20,380.
+
+**Fix applied 2026-09-16 — four projection sites, all in `Controllers/Api/v1/CertificatesController.cs`.**
+Every one filtered `pi.Status == "Active"` and none filtered `pi.IsActive`; a row now needs **both**:
+
+| Line | Surface |
+|---|---|
+| ~295 | standard list (`GetCertificates`, `includeProductIds=true`) |
+| ~1186 | search-by-product-id |
+| ~1692 | GS1 document builder |
+| ~1796 | single-certificate partner projection |
+
+**Local verification is VACUOUS and was not claimed.** `GCCDatabase_Dev` holds **0** rows with
+`IsActive = 0` (all 68 are on test), so a local run passes whether or not the fix works — the same
+trap as the Novi isolation pair. The meaningful check is on test after deploy:
+
+- delivered ASIN total **20,380 → 20,312**, and that figure must now **equal the web UI export**
+- `python Scripts/data-ops/2026-09-09-amazon-payload-export.py test`
+
+**Why it was not caught earlier — the honest answer.** Our reconciliation re-implemented the API's own
+rule. `asin-truth.py` and the payload export derived "expected" ASINs with the same predicate the
+controller uses (Amazon-tagged + badgeable + effective-date + `ProductIdType='ASIN'`) and, like the
+controller, ignored `IsActive`. Both sides agreed at 20,380 because both sides were wrong in the same
+way. **A verification built from the implementation's own rule can only confirm that the code does
+what the code does.**
+
+That is the same lesson recorded in August for the migration work — *"prior reconciliations only
+compared the DB to the transform output, same source both sides, so a transform bug was invisible"* —
+learned there and never transferred here. Compounding it: the API was checked against the database and
+the UI was checked against the database, but **the two surfaces were never compared with each other**,
+so two different definitions of "which product IDs count" coexisted for months.
+
+**Cross-surface gate built 2026-09-16 — `Scripts/smoke-prod/cross-surface-productids.py`, wired in as
+Gate 4B.** It compares the partner API's product-ID set against the internal tile API's set for every
+certificate the partner receives — taking its expectation from a *second surface* rather than from the
+database, which is the axis that was missing.
+
+**Validated against the defect itself.** Run against test while the unfixed code was still deployed it
+returned `FAIL - 1 certificate(s) differ`, naming `26-0439` and all 68 values, exit 1. A gate that has
+never failed against a known-bad input proves nothing; this one has.
+
+Internal consistency signal it also produced: 281 UI certificates − 212 delivered = **69 UI-only**,
+matching the membership reconciliation (281 Amazon-tagged, 212 delivered, 69 correctly withheld).

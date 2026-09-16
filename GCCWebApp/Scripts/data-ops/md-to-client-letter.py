@@ -203,6 +203,33 @@ def build(md_path, out_path, break_before=()):
             i += 1
             continue
 
+        # ---- fenced code block ----
+        # There was no branch for ``` blocks, so they fell through to the inline-span parser: the
+        # fences became LITERAL backticks and every line collapsed into one paragraph. That shipped
+        # in a partner-facing letter. Render the block as monospace lines instead.
+        if line.startswith("```"):
+            i += 1
+            block = []
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                block.append(lines[i].rstrip())
+                i += 1
+            i += 1                                    # consume the closing fence
+            while block and not block[0].strip():
+                block.pop(0)
+            while block and not block[-1].strip():
+                block.pop()
+            for bl in block:
+                cp = doc.add_paragraph()
+                cp.paragraph_format.space_after = Pt(0)
+                cp.paragraph_format.space_before = Pt(0)
+                cp.paragraph_format.left_indent = Pt(18)
+                # A blank line inside a block still needs a run, or Word collapses the spacing.
+                r = cp.add_run(bl if bl.strip() else " ")
+                r.font.name = "Consolas"
+                r.font.size = Pt(9)
+            doc.add_paragraph().paragraph_format.space_after = Pt(6)
+            continue
+
         # ---- table ----
         if line.startswith("|") and i + 1 < len(lines) and re.match(r"^\|[\s:|-]+\|$", lines[i + 1].strip()):
             header = [c.strip() for c in line.strip("|").split("|")]

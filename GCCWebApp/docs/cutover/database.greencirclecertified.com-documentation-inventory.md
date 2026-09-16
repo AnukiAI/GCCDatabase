@@ -126,4 +126,4 @@ Ordered by how much confusion each removes, cheapest first:
 ---
 
 Related: `database.greencirclecertified.com-inventory.md` (Step 0 + DNS evidence) ·
-`database.greencirclecertified.com-hostname-audit.md` (Parts 2-5).
+`database.greencirclecertified.com-audit.md` (Parts 2-5, consolidated 2026-09-15).

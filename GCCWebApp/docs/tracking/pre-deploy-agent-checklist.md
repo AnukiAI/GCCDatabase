@@ -57,6 +57,44 @@ Zip the server's `wwwroot/uploads/` before the deploy. Publish can overwrite rea
 
 ---
 
+## Gate 0B — Everything resolved is IN the build  ·  automated (`resolved-not-shipped.py`)
+
+**Runs BEFORE the bundle is cut**, not after. Once a zip exists the question is already settled.
+
+```
+python Scripts/deploy/resolved-not-shipped.py          # add --full to also list deployed/open
+```
+
+> **The standing rule (Shawn, 2026-09-15):** *"we seem to miss defects in deploy. If I wanted it
+> separate, it would be in a separate build."*
+>
+> A build carries **every** issue resolved at the time it is cut. Never omit a fix because it was
+> not the one being asked about. A full-overwrite bundle ships the whole tree anyway — so the real
+> risk is the reverse: finished work sitting unshipped for weeks because nobody reconciled the
+> registers against the bundle. If a fix genuinely must ship alone, that is an explicit decision and
+> gets **its own build**, said out loud.
+
+The script classifies every DEF/CR entry from its Status line into PENDING / DEPLOYED / NOT-A-FIX /
+UNCLASSIFIED / NO-STATUS. It tests the **negative** phrasings first ("NOT deployed", "pending
+deploy") because most of them contain the word *deployed* — a naive grep marks those as shipped,
+which is the exact miss this gate exists to prevent.
+
+**Treat UNCLASSIFIED and NO-STATUS as unshipped.** A fix whose status cannot be read is invisible to
+every future reconciliation; that is how work goes missing rather than an edge case.
+
+**To clear the gate:** every PENDING entry is either in the build, or named in the runbook with the
+reason it is not. Then **close the loop after the deploy** — mark the shipped entries deployed, or
+the next run inherits the same fog.
+
+> ⚠️ **Known limitation, and it is the real problem.** The registers are not a reliable deploy
+> ledger: status lines are written at fix-time and frequently never updated afterwards (the defect
+> register says so itself at line 20). So a PENDING count is an *upper bound* — it includes entries
+> that shipped long ago and were never re-marked. The gate reports what cannot be confirmed as
+> shipped, which is the honest answer; narrowing it needs either a live probe
+> (`Scripts/smoke-prod/whats-deployed.js`) or a one-time line-in-the-sand sweep.
+
+---
+
 ## Gate 1 — UI / Design-Guide compliance  ·  `ux-design-compliance`
 
 **Fires when:** any `.cshtml` view or `wwwroot/js/*` / `wwwroot/css/*` changed.
@@ -111,6 +149,35 @@ Verify against `../docs2/mockups/GCC_FinalDesign/docs/0_0_MasterDesignGuide_6_4.
 - [ ] Partner/External callers get `status = "Active"` literal only — no internal lifecycle statuses (Draft / Hold / Client Approved – Paid) leaking through. `PublicStatuses` filter applied on list, search, GS1, by-id, by-number, and PDF endpoints.
 - [ ] **Partner data isolation (CR-171):** a partner caller never receives a co-partner's name or co-partner-only product IDs. (`amazon-partner-api-local.js` asserts no `Novi`/`Wayfair`/`Other` leak across all endpoints — run it too if partner scoping/CR-171 code changed.)
 - [ ] `CertificationResults` renders as percentage, not raw decimal, on every Partner-facing surface.
+
+---
+
+## Gate 4B — Cross-surface product IDs  ·  automated (`cross-surface-productids.py`)
+
+```
+python Scripts/smoke-prod/cross-surface-productids.py test
+```
+
+**What a partner RECEIVES must equal what the application SHOWS.** For every certificate the partner
+API delivers, its product-ID set is compared against the internal tile API's set for the same
+certificate. Certificates the UI lists but the partner does not receive are expected (status /
+effective-date scoping) and are reported as context, not failure.
+
+> **Why this gate exists (DEF-426).** The partner API was verified against the database. The UI was
+> verified against the database. **Nobody ever compared the two**, so two definitions of "which
+> product IDs count" coexisted for months — the API ignored `IsActive`, the UI honoured it — and 68
+> ASINs deactivated in the application kept going to Amazon labelled "Active" for eight days.
+>
+> Worse, the reconciliation that should have caught it was written *from the controller's own
+> predicate*, so it agreed with the API by construction. **A check built from the implementation can
+> only confirm that the code does what the code does.** This gate takes its expectation from a
+> different surface instead.
+
+**Proven to fire:** run against test on 2026-09-16 with the defect still live, it returned
+`FAIL — 1 certificate(s) differ`, naming `26-0439` and all 68 values. A gate that has never failed
+against a known-bad input is not yet evidence of anything.
+
+**Expected after the DEF-426 fix deploys:** `PASS`, and the delivered ASIN total moves 20,380 → 20,312.
 
 ---
 
@@ -323,7 +390,102 @@ They can disagree — a deploy that extracted the DLL but not `wwwroot` is a rea
 
 ## Deploy gate results log
 
-### `GCCWebApp-deploy-20260910-2128.zip` — **BUILT + VERIFIED 2026-09-10, NOT UPLOADED**
+### `GCCWebApp-deploy-20260916-1023.zip` — **BUILT + VERIFIED 2026-09-16, NOT UPLOADED**
+
+**Runbook:** `docs/tracking/2026-09-16-deploy-runbook-DEF426.md`
+**In-zip `GCCWebApp.dll` md5:** `58569001f47314c2` · 342 entries · 61.17 MB
+**Verifier:** `verify-bundle.py` → **0 failures** (1 expected WARN: full-history migration script)
+
+> ⚠️ **Identical size to `20260915-1641` — 342 entries / 61.17 MB both.** Only the DLL md5
+> distinguishes them (`58569001f47314c2` vs `42f7efa637fd6591`). Check the hash, never the size.
+
+**Carries one fix, one file:** **DEF-426** — the partner API now honours `pid.IsActive` at all four
+product-ID projection sites. `git diff --stat` against the live build: one file, +30/−8.
+
+**No database step.** No pending migrations; auto-migrate OFF.
+
+**Changes Amazon's numbers while they are testing:** associations 20,380 → **20,312**; distinct ASINs
+**16,078 unchanged**; 212 certificates unchanged. **No product is lost** — all 68 deactivated ASINs on
+`26-0439` also appear on other certificates (0 of the 68 exist nowhere else). Sequence the client
+letter against the deploy — see the runbook.
+
+| Gate | Result |
+|---|---|
+| 0 uploads backup | **OUTSTANDING — human, before extract** |
+| 0B resolved-but-unshipped | 1 PENDING = DEF-426, **in this build** ✔ |
+| 1 / 2 UI + responsive | n/a — no view or CSS change |
+| 3 data scoping / RBAC | PASS — the change is strictly *more* restrictive |
+| 4 Partner API contract | PASS — response shape unchanged, fewer rows in `productIds[]` |
+| **4B cross-surface product IDs** | **FAILS today — correct**; must PASS after deploy |
+| 5 traceability | PASS — DEF-426 carries decision, fix and root cause |
+| 6 performance / EF | PASS — one boolean predicate on an already-filtered collection |
+| 7 pending migrations | n/a — none |
+| 8 CRUD write paths | n/a — read-only endpoints |
+| 9 static integrity | **0 FAIL** |
+| 10 config | n/a |
+| 11 / 12 close-out, email | after upload / n/a |
+
+**No local functional verification, and none claimed** — dev holds 0 rows with `IsActive = 0`, so a
+local run is vacuous (same trap as the Novi isolation pair). Gate 4B on test is the real check: it
+returned `FAIL — 26-0439, 68 values` against the unfixed code, which is what makes a later PASS mean
+something.
+
+
+### `GCCWebApp-deploy-20260915-1641.zip` — **DEPLOYED to gccwebapp.com 2026-09-15 17:04, verified**
+
+**Runbook:** `docs/tracking/2026-09-15-deploy-runbook-DEF425.md`
+**In-zip `GCCWebApp.dll` md5:** `42f7efa637fd6591` · 342 entries · 61.17 MB
+**Verifier:** `verify-bundle.py … --no-migrations=20260908175939_…` → **0 failures** (1 expected WARN: full-history migration script — do NOT run it, DEF-386)
+
+**Carries two items only** — because 09-11 is already live (see the correction immediately below):
+**DEF-425** (HIGH — partner API paging repeated 4 certificates and dropped 4 others; `.ThenBy(c => c.Id)`
+on all four paged endpoints) · plus an unreferenced **`Program.cs`** startup diagnostic from a
+parallel stream that logs DB server/catalog/user (never the password) so a missing
+`appsettings.Secrets.json` overlay cannot silently bind the test site to live client data.
+
+**No database step.** No pending migrations; test is at the CR-045 high-water. Auto-migrate is OFF
+(asserted in the bundle).
+
+| Gate | Result |
+|---|---|
+| 0 uploads backup | **OUTSTANDING — human, before extract** |
+| 1 UI / design guide | n/a — no view or CSS change in the delta |
+| 2 cross-role + responsive | n/a — no UI surface changed |
+| 3 data scoping / RBAC | carried from 09-11 (57P/0F) — ordering changed, filter predicate untouched |
+| 4 Partner API contract | **PASS — response shape unchanged; only `ORDER BY`.** Functionally verified, see below |
+| 5 traceability | PASS with 1 note (`Program.cs` change carries no DEF/CR reference) |
+| 6 performance / EF | PASS — `ORDER BY …, Id` on the indexed PK; no new joins or includes |
+| 7 pending migrations | n/a — none |
+| 8 CRUD write paths | n/a — read-only endpoints |
+| 9 static integrity | **0 FAIL** |
+| 10 config points at data | n/a |
+| 11 close-out | after upload |
+| 12 outbound email | n/a — no mail path touched |
+
+**Functional verification (pre-deploy, localhost):** `def425-verify.py` walked both partner endpoints
+at **pageSize=7** — 32 page boundaries each, versus the 2 that `pageSize=100` produces, which is why
+the defect stayed latent. Both endpoints: 218 rows / 218 distinct / `totalCount` 218, and **two
+independent full walks returned byte-identical ordered lists.** That last assertion is the load-bearing
+one — the defect is a race and ran clean three times while fully exposed, so a single good walk proves
+nothing.
+
+> ### ⚠️ Correction 2026-09-15 — the entry below is misleading; **09-11 IS live**
+>
+> `20260910-2128` was genuinely never uploaded, but it was **superseded by
+> `GCCWebApp-deploy-20260911-1319.zip`, which WAS deployed to test.** That bundle is logged only in a
+> separate section far below ("Bundle 2026-09-11 — CSV import/export integrity batch") and carries no
+> status line, so this log read as "09-08 is the last live build". It is not.
+>
+> Verified live 2026-09-15 by two independent signals: `/js/csv-parse.js` returns 200 with md5
+> `ab2688b2d562ec57` matching the working tree (the file did not exist before 09-10), **and**
+> `/Certificate/CertificateTileView` markup references it, which proves the compiled `_Layout` in the
+> **DLL** is 09-10+ — an asset can be hand-copied, compiled Razor cannot.
+>
+> **CR-048, CR-049, DEF-419 (both passes), DEF-420 and DEF-342 are therefore already on test.**
+> Uploading either the 09-10 or the 09-11 bundle now would be a downgrade.
+
+
+### `GCCWebApp-deploy-20260910-2128.zip` — **BUILT + VERIFIED 2026-09-10, NOT UPLOADED — SUPERSEDED by `20260911-1319`, which is live**
 
 **Runbook:** `docs/tracking/2026-09-10-deploy-runbook-CR048-CR049.md`
 **In-zip `GCCWebApp.dll` md5:** `cf8c7eeafd990c5d` · 341 entries · 61.2 MB

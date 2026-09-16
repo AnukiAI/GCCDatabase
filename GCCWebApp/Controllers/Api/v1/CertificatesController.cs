@@ -229,9 +229,18 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 var totalCount = await query.CountAsync();
 
+                // DEF-425: every branch below MUST end in a unique tiebreaker. Skip/Take over a
+                // non-unique ORDER BY is undefined in SQL Server - the tied rows may come back in a
+                // different order for each page request, so a row can land on two pages while
+                // another lands on none. On 2026-09-15 that delivered 23-0925/0926/0927/0991 twice
+                // and dropped 25-0479..0482 entirely: 212 rows carrying only 208 certificates.
+                // EffectiveDate is the worst offender (16 Amazon certs share 2023-11-01) but Number,
+                // Product.Name and Company.Name are all non-unique too. Id is the only unique key.
+                // Same fix as DEF-166/234; this controller was missed.
+                IOrderedQueryable<Certificate> ordered;
                 if (!string.IsNullOrEmpty(parameters.SortBy))
                 {
-                    query = parameters.SortBy.ToLower() switch
+                    ordered = parameters.SortBy.ToLower() switch
                     {
                         "certificatenumber" => parameters.SortDescending ? query.OrderByDescending(c => c.Number) : query.OrderBy(c => c.Number),
                         "issuedate" => parameters.SortDescending ? query.OrderByDescending(c => c.EffectiveDate) : query.OrderBy(c => c.EffectiveDate),
@@ -243,8 +252,10 @@ namespace GCCWebApp.Controllers.Api.v1
                 }
                 else
                 {
-                    query = query.OrderByDescending(c => c.EffectiveDate);
+                    ordered = query.OrderByDescending(c => c.EffectiveDate);
                 }
+
+                query = ordered.ThenBy(c => c.Id);
 
                 var pagedQuery = query
                     .Skip((parameters.PageNumber - 1) * parameters.PageSize)
@@ -283,7 +294,8 @@ namespace GCCWebApp.Controllers.Api.v1
                             issuer = "GreenCircle Certified",
                             productIds = c.ProductIds
                                 // CR-171 Model A: partner callers get untagged (shared) product IDs + those tagged to them.
-                                .Where(pi => pi.Status == "Active" &&
+                                // DEF-426: IsActive must be honoured here too. The UI filters it (CertificateTileInternalApiController) and this did not, so 68 ASINs deactivated in the application kept going to Amazon labelled "Active". Status and IsActive are two separate flags; a row needs BOTH to be published.
+                                .Where(pi => pi.Status == "Active" && pi.IsActive &&
                                     (!isPartnerCaller || !pi.Partners.Any() || pi.Partners.Any(p => userPartnerNames.Contains(p.Name))))
                                 .Select(pi => new
                                 {
@@ -793,8 +805,10 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 var totalCount = await query.CountAsync();
 
+                // DEF-425: unique tiebreaker required before Skip/Take - see GetCertificates().
                 var certificates = await query
                     .OrderByDescending(c => c.EffectiveDate)
+                    .ThenBy(c => c.Id)
                     .Skip((parameters.PageNumber - 1) * parameters.PageSize)
                     .Take(parameters.PageSize)
                     .ToListAsync();
@@ -892,7 +906,9 @@ namespace GCCWebApp.Controllers.Api.v1
                         .WhereEffectiveDateReached();
                 }
 
-                query = query.OrderBy(c => c.ExpirationDate);
+                // DEF-425: unique tiebreaker required before Skip/Take - see GetCertificates().
+                // ExpirationDate ties heavily; certificates routinely share an expiry date.
+                query = query.OrderBy(c => c.ExpirationDate).ThenBy(c => c.Id);
 
                 var totalCount = await query.CountAsync();
 
@@ -1170,7 +1186,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     issuer = "GreenCircle Certified",
                     productIds = cert.ProductIds
                         // CR-171 Model A: drop co-partner-only product IDs for partner callers.
-                        .Where(cpi => cpi.Status == "Active" && ProductIdVisibleToCaller(cpi, isPartnerCaller, userPartnerNames))
+                        // DEF-426: IsActive as well as Status - see GetCertificates().
+                        .Where(cpi => cpi.Status == "Active" && cpi.IsActive && ProductIdVisibleToCaller(cpi, isPartnerCaller, userPartnerNames))
                         .Select(cpi => new
                         {
                             type = cpi.ProductIdType,
@@ -1567,7 +1584,10 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 var totalCount = await query.CountAsync();
 
                 // Order by effective date descending by default
-                query = query.OrderByDescending(c => c.EffectiveDate);
+                // DEF-425: unique tiebreaker required before Skip/Take - see GetCertificates().
+                // The GS1 feed is one of the two endpoints Amazon calls; it paged correctly on
+                // 2026-09-15 only by luck, since the underlying ORDER BY is equally non-unique.
+                query = query.OrderByDescending(c => c.EffectiveDate).ThenBy(c => c.Id);
 
                 var certificates = await query
                     .Skip((parameters.PageNumber - 1) * parameters.PageSize)
@@ -1672,7 +1692,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
             // on a shared cert — drop co-partner-only IDs here too (the GS1 surface had no partner field,
             // but the identifier values themselves are partner data). Requires pi.Partners eager-loaded.
             var productIds = (cert.ProductIds ?? new List<CertificateProductId>())
-                .Where(pi => pi.Status == "Active" && ProductIdVisibleToCaller(pi, isPartnerCaller, callerPartnerNames))
+                // DEF-426: IsActive as well as Status - see GetCertificates().
+                .Where(pi => pi.Status == "Active" && pi.IsActive && ProductIdVisibleToCaller(pi, isPartnerCaller, callerPartnerNames))
                 .ToList();
 
             // Find GTIN from product identifiers (UPC, GTIN, EAN)
@@ -1776,7 +1797,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 amazonCode = c.CertificationType?.AmazonCode,
                 issuer = "GreenCircle Certified",
                 productIds = (c.ProductIds ?? new List<CertificateProductId>())
-                    .Where(pi => pi.Status == "Active" && ProductIdVisibleToCaller(pi, true, callerPartnerNames))
+                    // DEF-426: IsActive as well as Status - see GetCertificates().
+                    .Where(pi => pi.Status == "Active" && pi.IsActive && ProductIdVisibleToCaller(pi, true, callerPartnerNames))
                     .Select(pi => new
                     {
                         type = pi.ProductIdType,

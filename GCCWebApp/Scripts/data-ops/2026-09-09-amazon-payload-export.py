@@ -273,6 +273,38 @@ def page_all(op, key, path_tmpl, label):
     return records, total_expected
 
 
+def assert_no_paging_duplicates(records, key, label):
+    """DEF-425: row count must equal DISTINCT key count.
+
+    This is the check that was missing on 2026-09-15, when paging returned 212 rows carrying only
+    208 certificates - four delivered twice, four dropped. Neither existing control could see it:
+    the membership reconciliation compares SETS of certificate numbers, and a set collapses exactly
+    the duplicates that are the symptom, while pagination.totalCount agreed because 212 was the
+    correct total. Equal counts are not the same rows.
+
+    Returns the list of duplicated keys so the caller can fail loudly rather than fold it into a
+    total. A clean result here is NOT proof the defect is gone - it is non-deterministic and ran
+    clean three times while exposed - so this prints the evidence either way.
+    """
+    seen, dupes = {}, []
+    for r in records:
+        k = r.get(key)
+        seen[k] = seen.get(k, 0) + 1
+    for k, n in sorted(seen.items(), key=lambda kv: str(kv[0])):
+        if n > 1:
+            dupes.append((k, n))
+    if dupes:
+        print("  !! %s: %d rows but only %d distinct %s - PAGING IS DROPPING/REPEATING ROWS (DEF-425)."
+              % (label, len(records), len(seen), key))
+        for k, n in dupes:
+            print("     %s delivered %d times" % (k, n))
+        print("     For every repeat there is very likely an eligible row MISSING entirely.")
+    else:
+        print("  %s: %d rows / %d distinct %s - no paging duplicates."
+              % (label, len(records), len(seen), key))
+    return dupes
+
+
 # ------------------------------------------------------------------ csv out --
 def write_csv(path, fieldnames, rows):
     # utf-8-sig: Excel opens these directly, and the client does open them in Excel.
@@ -310,9 +342,12 @@ std, std_total = page_all(
     "/api/v1/certificates?includeProductIds=true&pageSize=100&pageNumber=%d",
     "standard")
 
+std_dupes = assert_no_paging_duplicates(std, "certificateNumber", "standard")
+
 print("\n[5] GS1 list  /api/v1/certificates/gs1")
 gs1, gs1_total = page_all(
     partner_op, KEY, "/api/v1/certificates/gs1?pageSize=100&pageNumber=%d", "gs1")
+gs1_dupes = assert_no_paging_duplicates(gs1, "id", "gs1")
 
 # Both pulls are done - the key has no further job. Revoke it here rather than at the end, so
 # a failure in the file-writing steps below still cannot leave a live credential behind.
@@ -598,10 +633,22 @@ w("WHAT AMAZON RECEIVES - %s (%s)" % (TARGET.upper(), BASE))
 w("Retrieved %s via the Amazon partner API key." % stamp)
 w("")
 w("PAYLOAD")
-w("  certificates delivered (standard list)  : %d" % len(std))
+w("  certificates delivered (standard list)  : %d rows / %d distinct numbers"
+  % (len(std), len(set(c.get("certificateNumber") for c in std))))
 w("  product identifiers delivered           : %d" % len(pid_rows))
 w("  GS1 documents delivered                 : %d" % len(gs1))
 w("  GS1 product entries                     : %d" % len(gs1_rows))
+w("")
+w("PAGING INTEGRITY (DEF-425)")
+w("  standard: duplicated certificate numbers: %d" % len(std_dupes))
+w("  gs1:      duplicated document ids       : %d" % len(gs1_dupes))
+if std_dupes or gs1_dupes:
+    w("  *** PAGING FAULT - rows were repeated across pages, and for each repeat an eligible")
+    w("  *** row is very likely MISSING. Do NOT reconcile any count against this payload.")
+    for k, n in std_dupes:
+        w("      standard %s delivered %d times" % (k, n))
+    for k, n in gs1_dupes:
+        w("      gs1 %s delivered %d times" % (k, n))
 w("")
 w("CERTIFICATION RESULTS AS DELIVERED")
 w("  certificates with a value               : %d" % sum(populated.values()))
@@ -657,4 +704,4 @@ with open(os.path.join(OUTDIR, "summary.txt"), "w", encoding="utf-8") as fh:
 
 print("\n" + summary)
 print("\nFiles written to: %s" % OUTDIR)
-sys.exit(1 if (mismatches or member_findings) else 0)
+sys.exit(1 if (mismatches or member_findings or std_dupes or gs1_dupes) else 0)

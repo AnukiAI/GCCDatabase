@@ -642,3 +642,66 @@ auto-linked.
 Had we "fixed" this we would have changed a partner-facing contract to solve someone else's missing
 index page. **Check what the URL actually is and who owns it before treating a client's link report
 as a defect.** The right fix was a one-line pointer to the upstream repository.
+
+## 2026-09-15 — A set comparison cannot see a duplicate
+
+DEF-425 delivered four certificates twice and dropped four others. The Amazon payload export ran its
+full reconciliation over that payload and reported **zero findings**, because its membership check
+compares *sets* of certificate numbers in both directions — and a set silently collapses the
+duplicates that were the whole symptom. The `pagination.totalCount` cross-check passed too: the count
+was a correct 212 while the row *identities* were wrong.
+
+Two habits this should change:
+
+1. **Assert row count == distinct key count** on any paged pull, as its own line. One cheap
+   assertion would have caught this on 2026-09-10 rather than five days later.
+2. **Page-boundary bugs need a repeated pull, not a clean one.** The defect is non-deterministic;
+   a single good result is weak evidence. Pull the same page twice and compare the row sets.
+
+This generalises beyond the Amazon feed — it applies to every export and reconciliation script in
+`Scripts/data-ops/` that walks a paged API.
+
+## 2026-09-15 — Scope words are claims about sets
+
+*First, never, always, all, only, every, none.* Each asserts something about a population. Using one
+without having enumerated that population is an unverified claim wearing the costume of a verified
+one — which is worse than a hedge, because it reads as extra rigour.
+
+**The test, applied before the sentence leaves:** would this claim need a *different kind* of
+evidence than the evidence I just gathered? "Reachable for the first time" needs configuration
+history; what had actually been gathered was one file's current contents.
+
+**The fix is to downgrade the word, not to add a hedge.** "Unreachable in this session's
+configuration" is both true and more useful than "possibly the first time".
+
+Now a Part 1 always-check in the `gate-check` skill, and carried forward to future projects via
+`~/.claude/skills/lessons-learned/CARRY-FORWARD.md`.
+
+## 2026-09-15 — Write a role check as "is this an insider", never "is this an outsider"
+
+Every permission cell in the role matrix comes down to a check in code, and the check can be written
+two ways that look equivalent and are not:
+
+- **Closed set (safe):** `Admin || Analyst` — name who is allowed, exclude everyone else by
+  construction. A role added later is denied by default.
+- **Open set (unsafe):** enumerate Admin / Analyst / External and let the last `else` catch the rest.
+  A role added later inherits that `else`.
+
+DEF-198 is that failure already spent: Partner was not in the enumeration, fell through to
+`"Public"`, and the export path treated `"Public"` as unrestricted. The bug was not a missing rule —
+the rule existed and was documented. It was that the check was written as an open set.
+
+**Two habits:**
+
+1. **Grep the shape, not the rule, when auditing a matrix cell.** "Does the code implement the rule"
+   is the wrong question if the implementation is an enumeration — it implements it for today's roles
+   only. Ask instead what a role not in the list would get.
+2. **A hardcoded permissive flag must justify itself at the call site.** `includeInternalTags: true`
+   is correct in an `AnalystOrAdmin`-gated action and catastrophic two refactors later. If the reason
+   it's safe lives in an attribute above the method, it should be restated in a comment at the flag —
+   or, better, be derived rather than hardcoded.
+
+This generalises past internal tags to every cell of the role matrix, and it is the same class as the
+External-umbrella confusion: **External is an umbrella over Company and Partner, not a peer of
+Admin/Analyst** — so any check that treats "External" as one value in a flat list of roles is already
+an open set even before a new role is added.

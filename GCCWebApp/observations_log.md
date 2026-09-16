@@ -5026,3 +5026,901 @@ go-live, whether `amazonCode` should be removed for non-Amazon partners (no - it
 partner), and who the checklist's Owner column means.
 
 Guide now 421 KB docx / 665 KB html, 18 headings, 9 tables, 5 figures.
+
+---
+
+## 2026-09-14 - test.gccwebapp.com stood up as a SEPARATE test site (CR-050)
+
+Shawn: *"I want to setup test.gccwebapp.com as the test site on the same hosting platform."*
+Scope confirmed: **two separate configurations on one platform** - separate folders, app pools,
+config, **separate databases**. `gccwebapp.com` left alone, no redirect, decided later. Shawn
+created the DB copy herself: **`gccwebap_test`**.
+
+**Her two answers initially conflicted** (site-model answer said "separate databases", DB answer
+said "same production DB as today"). Asked one targeted question rather than guessing - the delta
+was a DB restore plus a refresh process. Answer: **separate DB now.** Worth repeating the pattern:
+one question beat building the wrong half.
+
+### The thing that makes this setup dangerous, and the guard added for it
+
+Both sites deploy from the **same zip**, and that zip contains `appsettings.Production.json` **with
+the production connection string in it**. So every deploy writes the production connection string
+into the test site's folder. The only thing steering the test site elsewhere is its own
+`appsettings.Secrets.json` - absent from the zip by design (deploy.ps1 aborts if it reaches
+staging), registered last (`Program.cs:41`), therefore wins. A zip extract adds and overwrites but
+never deletes, so an absent file survives.
+
+Overlay missing/malformed/misspelled key => **the test site silently reads and writes real client
+records.** Nothing errors. Every page loads. The data looks right because it IS the real data.
+Same shape as DEF-263 (empty SMTP creds -> MockEmailService -> mail silently stops).
+
+**Before this, the startup log named the PROVIDER but never the TARGET** - "Using SQL Server
+database provider" and nothing else. The failure was unobservable from logs. Added a banner after
+the provider line printing `DB server` / `DB catalog` / `DB user`, never the password, wrapped in
+try/catch so a malformed string cannot crash startup (the DEF-395 KeyPath lesson: a diagnostic that
+can take the site down is worse than no diagnostic). Verified by actually running it -
+`ANUKI01 / GCCDatabase_Dev / GCC_DevUser`. Build clean, 0 errors, 76 pre-existing warnings.
+
+The check is now falsifiable: on the test site the banner must read `DB catalog : gccwebap_test`.
+
+### Three isolation gaps the shipped config leaves - found while writing the overlay template
+
+1. **Shared JWT signing key.** One `Jwt:Key` ships to both sites, so a token minted on test
+   validates on `gccwebapp.com`. Not isolated at the token layer until the test site gets its own.
+2. **Uploads are per-site; the copied DB does not know it.** `IUploadPathResolver` ->
+   `ContentRootPath/App_Data/uploads` unless `FileStorage:StoragePath` is set. New site starts
+   EMPTY while `gccwebap_test` references ~5,700 PDFs - every document 404s until ~3.5-4 GB is
+   copied. **Do not** point it at the production store to "fix" reads: a test upload/delete would
+   then write into production's store, reintroducing the exact coupling this removes.
+3. **Partner API keys came across in the copy.** A live Amazon key authenticates against the test
+   site and returns data - and the gate does **not** cover it, because the gate skips `/api/*` by
+   design. Rotate or disable them inside `gccwebap_test`.
+
+### Also worth keeping
+
+`test.gccwebapp.com` was **NXDOMAIN with no wildcard** - nothing to remove first, unlike
+`database.greencirclecertified.com`. And the `gccwebapp.com` zone sits on **AccuWeb's own
+nameservers**, so this subdomain needs **no client involvement at all** - a materially different
+position from the client-domain cutover.
+
+**A parallel session produced an overlapping doc set** in `docs/cutover/` (`-audit.md`,
+`-runbook.md`, `scripts/`) alongside mine (`-hostname-audit.md`, `-documentation-inventory.md`).
+Its deeper probe **corrected me**: `70.32.82.212` is an nginx **302 shim** to `db.` that drops the
+path, not an unrelated app - which is better news, since nothing of substance is being displaced.
+But it also states *"`UseForwardedHeaders()` is wired (`SecurityServicesExtensions.cs:221`)"*, and
+that is **wrong**: `UseSecurityPipeline` - the method containing line 221 - appears exactly once in
+the whole codebase, its own definition. It is never called, so that line never executes. Flagged
+rather than edited, per the parallel-work convention. Duplicate doc set needs consolidating.
+### 2026-09-15 - Outbound-email cutover written up (docs/cutover/outbound-email-client-domain.md)
+
+Shawn asked whether an alias email could be set up alongside retiring the `gccwebapp.com` hostname.
+Written up as its own cutover step, independent of the web-hostname runbook. **Not started - no DNS,
+Plesk or config changes made.**
+
+**Two facts found by querying DNS rather than assuming, and both change the plan:**
+
+1. **`_dmarc.greencirclecertified.com` is `p=quarantine`** (rua to an address the client monitors),
+   with **no `sp=` tag**, so subdomains inherit it. This turns SPF/DKIM from good practice into a
+   hard requirement: a subdomain sender that fails DMARC goes to **junk, silently**, while the app
+   reports the send as successful. Alignment is *relaxed* (no adkim/aspf), which is what makes the
+   subdomain approach viable at all - `db.greencirclecertified.com` aligns against the org domain.
+2. **The root SPF record uses 7 of its 10 permitted DNS lookups**, `include:one.zoho.com` alone
+   costing 4 (it nests three more). Three lookups of headroom. Exceeding 10 is a `permerror` that
+   fails SPF for the **whole domain including their Microsoft 365 mail**. So the plan touches the
+   root zone **not at all**, and if anything ever must be added there it goes in as
+   `ip4:72.18.135.96` (zero lookups), never an `include:`.
+
+**Step 0 is a ten-minute test that may close the whole exercise.** The app authenticates to AccuWeb
+SMTP as `admin@gccwebapp.com`; many servers refuse or rewrite a `From:` outside the authenticated
+mailbox's domain. If `accumail3` does either, no DNS work helps. Testing that **before** anyone
+touches DNS or asks the client for a login is the difference between 15 minutes and a wasted day.
+
+**Recommended: subdomain sender** (`noreply@db.greencirclecertified.com`), so SPF/DKIM live on the
+subdomain and the client's live M365 mail and root SPF are untouched - nothing in the procedure can
+break their real email.
+
+**Also captured:** only `admin@gccwebapp.com` exists as a mailbox (RCPT-probed 2026-08-19);
+`gccwebapp.com` currently has **no DKIM** at all and SPF `-all`, surviving only because its DMARC is
+`p=none`; the app has **no ReplyTo support**, so a no-reply subdomain without MX hard-bounces every
+reply; and verification must go to plain `shawnmwest@gmail.com` because the `+tag` addresses receive
+nothing.
+
+**Flagged the cheap alternative honestly:** `FromName` already reads "GCC Database System" and most
+clients show the name, not the address. If the objection is simply that recipients see the word
+"gccwebapp", changing that one string solves most of it for no DNS, no Plesk and no coordination. The
+doc says to confirm which problem is being solved before spending the rest.
+
+---
+
+## 2026-09-15 - Amazon payload run on TEST for the ASIN reconciliation (paging defect found)
+
+**Ask:** "can we run the payload on test. Amazon is reporting a specific number of ASINS and want
+to validate against it."
+
+Ran `Scripts/data-ops/2026-09-09-amazon-payload-export.py test` (read-only; mints an Amazon key,
+pulls both partner endpoints, self-revokes). Output: `Scripts/data-ops/_amazon_payload/20260915-150759/`.
+
+**The payload cannot be counted as delivered.** The pull returned **212 rows over only 208 distinct
+certificate numbers**: four numbers were delivered **twice** (`23-0925`, `23-0926`, `23-0927`,
+`23-0991`) and four eligible certificates were **dropped entirely** (`25-0479`-`25-0482`, Block Inc.,
+Client Approved - Confidential, in force to 2026-10-31).
+
+**Root cause - unstable sort across pages, not a data problem.** The database holds exactly ONE row
+per duplicated number, so the duplication is produced by the API. `CertificatesController.cs:246`
+orders by `OrderByDescending(c => c.EffectiveDate)` with **no unique tiebreaker**, then applies
+`Skip/Take`. All eight affected certificates share `EffectiveDate = 2023-11-01` (16 delivered certs
+tie on that date) and sit on the page 2/3 boundary, so SQL Server was free to return the tied rows in
+a different order for each page request - some landed on both pages, others on neither. Every
+`SortBy` branch at lines 232-243 has the same gap. This is the `.ThenBy(c => c.Id)` fix from
+DEF-166/234 never applied to this controller.
+
+**Arithmetic confirms it exactly:** delivered ASIN rows 20,908 vs true 20,380 = 528 over-count;
+the four duplicated certs carry 318+206+13+0 = 537 identifiers sent twice, the four dropped certs
+carry 3+2+1+3 = 9 identifiers lost, and 537 - 9 = 528. No residual.
+
+**Authoritative counts, computed from the DB with the API's own predicate** (Amazon-tagged AND
+status in BadgeableStatuses AND effective date reached) - not paged, so not exposed to the defect:
+
+| Measure | Value |
+|---|---|
+| Eligible certificates | **212** (212 distinct numbers - no duplicates) |
+| ASIN rows | **20,380** |
+| Distinct ASIN values | **16,078** |
+| Certificates carrying >=1 ASIN | 173 |
+
+All identifiers on Amazon-eligible certificates are type ASIN, all status Active - there are no
+GTIN/SKU rows diluting the figure. The gap between 20,380 rows and 16,078 distinct values is real:
+**4,302 ASINs appear on more than one certificate**, so the answer to "how many ASINs" depends on
+which of the two Amazon means. Ask before quoting one.
+
+**Certification Results (CR-045) still clean.** The four flagged "mismatches" (`26-0525`-`26-0528`)
+are certificates created *after* the 2026-09-08 pre-change snapshot, so their snapshot value is
+absent rather than different; DB, standard API and GS1 agree on `100%` for all four. 208 of 208
+pre-existing certificates remain byte-identical across all four sources.
+
+**Not logged as a defect yet** - raised for triage. The fix is a one-line `.ThenBy(c => c.Id)` per
+sort branch, but it changes partner payload paging and needs its own regression pass.
+
+**Resolved same day — Amazon's 7K explained.** Amazon reported a "successful response of 7K ASINs"
+and said they were proceeding to code generation. That number is **page 1 of 3**: `PageSize` defaults
+to 100 and is capped at 100, so a bare call returns 100 of 212 certificates = 7,928 ASIN rows /
+**7,368 distinct**, matching their 7K. The full feed is 20,380 rows / 16,078 distinct. They are
+missing 112 certificates and ~8,700 ASINs and did not appear to know it. Draft reply:
+`docs/tracking/2026-09-15-client-email-amazon-asin-count-and-prod-endpoint.md`.
+
+**DEF-425 raised and fixed locally** (not DEF-419 as first proposed — the register had moved on to
+DEF-424 since the last read; re-grepped before appending). `.ThenBy(c => c.Id)` added to all four
+paged endpoints in `Controllers/Api/v1/CertificatesController.cs` — `GetCertificates`,
+`SearchCertificates`, `GetExpiringCertificates`, `GetCertificatesGS1`. The `SortBy` switch now
+assigns to an `IOrderedQueryable<Certificate>` so the tiebreaker is appended once and cannot be
+forgotten on a future sort branch. Builds clean, 0 errors. Not deployed.
+
+**On the prod-endpoint question:** there is no separate production instance — the test environment
+becomes production, so Amazon's key carries over and there is no second credential set. The hostname
+move is blocked on the client retiring `database.greencirclecertified.com`, so no date was promised.
+
+**Deploy prepared (not uploaded).** Bundle `GCCWebApp-deploy-20260915-1641.zip` — 342 entries,
+61.17 MB, in-zip DLL md5 `42f7efa637fd6591`, `verify-bundle.py` 0 failures. Runbook:
+`docs/tracking/2026-09-15-deploy-runbook-DEF425.md`.
+
+**Material correction found while scoping the deploy: what is live on test is 2026-09-11, not
+2026-09-08.** The gate results log presented `20260910-2128` as newest and "NOT UPLOADED", which is
+true of that zip but hides that its successor `20260911-1319` *was* deployed — that bundle is logged
+in a separate section ~1,500 lines further down with no status line. Proven two ways:
+`/js/csv-parse.js` is live and md5-matches the tree (the file did not exist before 09-10), and
+`/Certificate/CertificateTileView` markup references it, which places the compiled `_Layout` in the
+**DLL** at 09-10+. So CR-048/CR-049/DEF-419/DEF-420/DEF-342 are already on test, and this deploy
+carries only DEF-425 plus an unreferenced `Program.cs` startup diagnostic from a parallel stream
+(logs DB server/catalog/user, never the password — reviewed, safe). The checklist now carries the
+correction inline.
+
+**Verifier kept:** `Scripts/smoke-prod/def425-paging-determinism.py`. Walks both partner endpoints at
+a deliberately small pageSize to manufacture many page boundaries, and asserts three things —
+rows==distinct, walk==totalCount, and **two independent walks byte-identical**. The third is the
+load-bearing one: this defect ran clean three times while fully exposed, so a single good walk is not
+evidence.
+
+**DEPLOYED AND VERIFIED on test, 2026-09-15 17:04.** Bundle `GCCWebApp-deploy-20260915-1641.zip`
+uploaded by Shawn. Post-deploy verification, two independent checks:
+
+1. `2026-09-09-amazon-payload-export.py test` — **212 rows / 212 distinct** (was 212/208),
+   **20,380 ASIN rows**, **16,078 distinct ASINs**, 173 certs carrying ASINs, `25-0479`-`25-0482`
+   restored, `23-0925`/`0926`/`0927`/`0991` once each, **membership findings 0**. Every figure equals
+   the database computed independently with the API's own predicate. The only non-zero exit cause is
+   the four post-snapshot certs (`26-0525`-`26-0528`, `snap=None`) — benign, already understood.
+2. `def425-paging-determinism.py test 15` — **PASS, exit 0.** 15 page boundaries per endpoint;
+   rows==distinct, walk==totalCount, and **two independent walks byte-identical** on both standard
+   and GS1.
+
+The second check is the one that actually closes DEF-425. The counts alone would have looked equally
+good on 09-10 and 09-11, when the defect was live but dormant.
+
+**Records updated:** DEF-425 status → deployed+verified with the before/after table;
+`shipped-2026-09.md` gained a client-readable entry; the stale "Pending deploy" header on the
+2026-09-10 CR-048/CR-049 entry corrected to LIVE (proven by probing the site, not by reading the log).
+
+**Email is NOT sent — awaiting Shawn's approval.** Hold condition cleared, so the draft now tells
+Amazon to re-pull immediately rather than promising a future date. One placeholder left: the notice
+period for the hostname change.
+
+**Payload shape answered (Shawn's question: per product or per certificate?).** **By certificate,
+ASINs nested — neither endpoint is per-ASIN.** Standard list: 212 records = 212 certificates, ASINs in
+`productIds[]`. GS1: 212 documents, and `products` holds **exactly one** entry on every single one (it
+is the certificate's product, not the ASINs) with all ASINs in
+`products[0].additionalTradeItemId[]`. So 212 top-level records is not 212 ASINs — the array must be
+flattened to reach 20,380. Nesting is wildly uneven: min 1 / median 25 / **max 2,440** (`24-0300`
+HanesBrands), and **39 of 212 certificates carry no ASINs at all**, so code assuming ≥1 entry fails on
+nearly one record in five. Added to the draft.
+
+**Held back from the client deliberately: `gtin` is null on all 212 GS1 products.** Every identifier
+is type ASIN in `additionalTradeItemId`; no GTIN or SKU anywhere. In a GS1 document `gtin` is normally
+*the* canonical identifier, so a strict GS1 reader could expect it populated. Not captured in any
+requirement found. Raising it with Amazon invites a schema conversation — decide internally first.
+Logged as open question 5 on the draft.
+
+**Word version produced:** `docs/tracking/2026-09-15-client-letter-amazon-asin-count-and-prod-endpoint.docx`
+via `Scripts/data-ops/md-to-client-letter.py`. That converter requires a `**Subject:**` line and drops
+everything before it plus everything after a `---`/`---` divider, so the draft was restructured to the
+house pattern (internal analysis on top, Subject + body, then `# Not part of the email`). **Verified
+the .docx by extracting its text:** 14 internal markers absent (DEF numbers, Shawn, gtin, file paths,
+"Open questions"), 12 required client-facing strings present. A .docx gets forwarded, so this check
+matters more than the usual proofread.
+
+**Checked whether `hasNext` was in the integration guide — it is, and well.** §7 "Pagination" of
+`GCC_Partner_API_Integration_Guide_Amazon_2026-09-14.docx` is in the table of contents, shows the
+`pagination` object, gives a two-request worked example and states *"Loop until hasNext is false."*
+`hasNext` ×3, `totalPages`/`totalCount` ×2 each. **So the paging contract is NOT a documentation gap
+on our side** — Amazon read past it. Worth having established before writing to them; it is the
+difference between apologising and signposting.
+
+**But §7's example is genuinely wrong, and it is a silent failure.** Both worked calls omit
+`includeProductIds=true`, so copying the snippet most likely to be copied returns correctly paged
+responses with **no ASINs at all** — valid, well-formed, and empty of the thing the partner wants.
+Present in BOTH the Amazon and MASTER 09-14 guides. Logged as a required re-issue in
+`partner-api-guide-issuance-log.md` with a 5-step close-out.
+
+**The re-issue is BLOCKED and the block is worth remembering:** that log's own rule is that
+`docs2/exports/PARTNER_API_INTEGRATION_GUIDE.html` is the single source and artifacts are re-rendered,
+never hand-edited. `docs2/` sits at the **repo root**, one level above the working directory
+(`GCCWebApp/GCCWebApp`), and is outside the agent's read scope — needs `/add-dir`. Could not even
+confirm whether the 09-14 .docx derive from that HTML or from the `…_TEMPLATE.docx` lineage. Hand-
+patching a generated file would be silently reverted by the next render, so that must be settled first.
+
+**`gtin` null = BY DESIGN, not a gap — closed.** `CertificatesController.cs:1696-1705` deliberately
+promotes a `UPC`/`GTIN`/`EAN` identifier to the top-level `gtin` and left-pads it to 14 digits;
+`ASIN`/`SKU`/`MPN`/`ISBN` go to `additionalTradeItemId`. The guide states the same rule. It is null on
+all 212 because every identifier on an Amazon-eligible certificate is an ASIN — there is nothing to
+promote. The field would populate itself the day a UPC or EAN is added. Nothing to fix, nothing to
+raise with Amazon.
+
+**Client letter regenerated** with the §7 pointer and the corrected call inline. Re-verified: 12
+internal markers absent, 12 required strings present.
+
+**Guide corrected to v1.2 and attached to the letter (2026-09-15).** Both §7 example calls in the
+Amazon and MASTER guides now carry `includeProductIds=true`; version bumped in header and footer.
+Saved as **new** `…_2026-09-15.docx` files — the 09-14 pair is left untouched because it is the record
+of what Amazon actually holds, and an issued document should never be mutated in place.
+
+**Formatting trap worth remembering:** setting `paragraph.text` on a python-docx paragraph discards the
+runs, and with them the `HTML Preformatted` monospace styling — the code blocks would have silently
+flattened to body text. Write into `runs[0].text` and blank the remaining runs instead.
+
+**Verified both rebuilt guides:** 0 uncorrected examples, 2 corrected each, *"Loop until hasNext is
+false"* intact, 0 remaining `v1.1`, no live `gcc_partner_` key, no `DEF-`/`CR-0`/`localhost`/
+`PublicStatuses`/*Client Approved*/`CertificatesController` strings, paragraph+table counts unchanged
+(222/13 and 223/13) confirming nothing else moved.
+
+**⚠️ One reconciliation still owed, recorded in the issuance log.** The .docx were corrected directly
+because `docs2/exports/PARTNER_API_INTEGRATION_GUIDE.html` is outside the agent's read scope, so it is
+unknown whether the 09-14 pair was rendered from that HTML or from the `…_TEMPLATE.docx` lineage. **If
+the HTML is the source it still carries the defect and the next render will silently revert v1.2.**
+Needs `/add-dir` on `docs2`. A correction living only in a generated artifact is one render from being
+undone.
+
+**The letter now owns the mistake rather than quietly shipping a fixed guide** — it states that §7's
+examples were ours to get right, and that §3 documented the parameter but the snippet a developer would
+actually copy did not.
+
+**Guide SOURCE fixed 2026-09-15 18:29-18:33 — and the concern was justified, not theoretical.** The
+HTML source was still `v1.1` and still held both defective §7 calls
+(`pageNumber=1&amp;pageSize=100`, `pageNumber=2&amp;pageSize=100`, zero `includeProductIds`). Same
+version and content as the issued guides, with `TEMPLATE.docx` rendered 26 minutes after it — so it is
+the source lineage and **the next render would have silently reverted v1.2.**
+
+Fixed, each with a dated `v1.1-backup-*` alongside:
+- `docs2/exports/PARTNER_API_INTEGRATION_GUIDE.html` — lines 580/593 (examples), 58/736 (version)
+- `docs2/exports/GCC_Partner_API_Integration_Guide_TEMPLATE.docx` — paras 191/204, version header+footer
+
+**All four live artifacts now read v1.2 / corrected=2 / defective=0** (HTML, TEMPLATE, and both issued
+`…_2026-09-15.docx`). The `…_2026-09-14.docx` pair is deliberately left at v1.1 with the defect intact
+— it is the record of what Amazon actually holds and must not be mutated.
+
+**Verification that is worth copying.** The HTML diff against its backup is **exactly four lines**, and
+the file grew by exactly `2 × len("includeProductIds=true&amp;")` — arithmetic proof nothing else
+moved. Far stronger than "it looks right". Every replacement was asserted to match exactly once
+*before* any write, and the script refuses to write if any count is off.
+
+**A verification assertion failed and the assertion was wrong, not the file:** the literal string
+*"Loop until hasNext is false"* is absent from the HTML because the source marks it up as
+`<p>Loop until <code>hasNext</code> is <code>false</code>.</p>`. **Lesson: an assertion written against
+rendered wording is the wrong assertion for a markup source** — match on the markup or on a tag-free
+fragment.
+
+**⚠️ `/add-dir` did NOT take effect.** After Shawn added `docs2`, both the Read and Grep tools still
+refused with "outside …/GCCWebApp/GCCWebApp". Shell access to `docs2` works and always did, so the work
+was completed through Bash. **The CLAUDE.md reference table (`../docs2/claude-ref/*.md`,
+`../docs2/mockups/…`) remains unreachable by the file tools** — worth sorting out, since that table
+is currently dead weight for any agent that follows it.
+
+**`/add-dir` fixed properly 2026-09-15 — it needed a settings key, not a command.** The transient
+`/add-dir` never persisted. The durable fix is `permissions.additionalDirectories` in
+`.claude/settings.local.json`, set to the **relative** path `../docs2` so it stays portable (docs2
+lives in the repo, and an absolute OneDrive path would only work on this machine). Merged into the
+existing file, not rewritten — all 1,678 allow rules, `defaultMode` and `skillOverrides` preserved and
+verified after the edit. The environment picked it up immediately; `Read` and `Grep` against
+`docs2/exports/` and `docs2/claude-ref/` both confirmed working. **The CLAUDE.md reference table
+(`../docs2/claude-ref/*.md`) is reachable by the file tools for the first time.**
+
+**NEW SKILL: `gate-check`** (`.claude/skills/gate-check/SKILL.md`, 237 lines, 37 checkboxes).
+Shawn's ask: turn what this project has learned into a reusable gate with always-required checks and
+room to grow.
+
+Structure — **Part 1: six unconditional checks** (never report an unobserved result · verify on the
+*target* environment · establish source-vs-generated before editing · scan outbound files for internal
+content AND assert required content present · re-grep register high-water before appending · state
+what you did NOT check). **Part 2: by work type** — numbers quoted to someone · paged/batched data ·
+generated artifacts · client-facing documents · deploys · registers. **Part 3: when a check fails**
+(question the assertion before the artifact — roughly half our failures were wrong checks — but never
+weaken a check until it passes). **Part 4: how to add to it.**
+
+**The design decision worth keeping:** every check carries its real incident with real numbers
+underneath it. A bare rule gets skipped under time pressure; *"212 rows carrying 208 certificates"*
+does not. Additions must come from something that actually happened — no speculative checks, they
+dilute the list — and Part 1 stays short or it stops being read.
+
+Registered and listed automatically. Also referenced from `.claude/CLAUDE.md` under a new **GATE**
+line so it is reached for rather than rediscovered.
+
+---
+
+## 2026-09-15 — An over-scoped claim read as confidence and went unchallenged until the user caught it
+
+*First entry written in the `lessons-learned` format. Fields are the point — the ones that get
+dropped are the ones that later matter.*
+
+**What happened.** After adding `permissions.additionalDirectories`, the handoff said the CLAUDE.md
+reference table was reachable by the file tools **"for the first time."** The evidence behind that
+was: one settings file, read once, in one session. Nothing had been examined about the project's
+configuration history. The user challenged it directly — *"for the first time? How did that impact
+things?"* — and the claim did not survive contact.
+
+**What it looked like vs what it was.** It read as a confident finding delivered alongside a working
+fix, in a paragraph of otherwise verified statements. That is precisely why it passed: an
+over-scoped claim looks like *more* rigour, not less. The supportable version was narrower and
+duller — "unreachable in this session's configuration."
+
+**How it was caught.** By the user, on a single word, after it had already been stated as fact.
+Not by any check. Worth recording plainly: an outside party caught this, on the second read.
+
+**What would have caught it sooner.** A one-second test applied to scope words — *first, never,
+always, all, only, every, none*: **would this sentence need a different kind of evidence than the
+evidence I just gathered?** Here, yes: "first time" needs configuration history; what had been
+gathered was one file's current contents. Cheap, mechanical, and it was not being run.
+
+**Cost.** Small in rework — one exchange — but the wrong kind of cost. It spends credibility on a
+throwaway phrase, and it lands hardest right after genuinely careful work, where it invites doubt
+about the findings that *were* verified. On this project that is expensive: the verified findings
+are the deliverable.
+
+**The second-order finding, which mattered more than the claim.** Chasing the challenge turned up
+that the reference docs are **6–8 months stale** (newest 2026-03-25), that `claude-ref/TESTING.md`
+lists credentials that are now wrong in three ways, and that `DATABASE.md` and `TESTING.md` carry
+**plaintext production database credentials committed to the repo since 2026-07-30**. Making those
+files reachable *introduced* a risk rather than removing one. The user's question was worth more
+than the answer it asked for.
+
+**Rule.** Scope every claim to the evidence you actually have; enumerate the set or downgrade the
+word. Do not pad an over-scoped claim with a hedge — fix the word.
+
+**Disposition.** Promoted to a **Part 1 always-check** in the `gate-check` skill (now check 6 of 7,
+with this incident attached). Also in `~/.claude/skills/lessons-learned/CARRY-FORWARD.md` under
+*Claims and evidence*, so it reaches future projects. Stale-docs and committed-credentials findings
+raised separately and **not yet actioned** — see below.
+
+---
+
+## 2026-09-15 — New deploy gate: everything resolved must be IN the build
+
+**Ask (Shawn).** *"can we add a gate to include all issues that have been resolved. we seem to miss
+defects in deploy. If I wanted it separate, it would be in a separate build."*
+
+**The rule, saved to memory** (`feedback_bundle_carries_every_resolved_fix`): a build carries **every**
+issue resolved at the time it is cut. Never omit a fix because it was not the one being asked about.
+Separation is an explicit decision that gets its own build — never achieved by leaving something out
+of a shared one.
+
+**Built:** `Scripts/deploy/resolved-not-shipped.py`, wired in as **Gate 0B** of the pre-deploy
+checklist (runs *before* the bundle is cut — once a zip exists the question is already settled) and
+as a check in the `gate-check` skill.
+
+**Why it could not be a grep.** The registers carry **25+ distinct Status phrasings** for the same
+two states — `Fixed locally (pending deploy)`, `**FIXED — deployed 2026-09-04**`,
+`Fixed (pending UAT / deploy)`, `**FIXED 2026-08-30 — built and verified on dev, NOT deployed.**`.
+Most not-deployed phrasings **contain the word "deployed"**, so a naive search marks them shipped —
+which is the exact miss the gate exists to prevent. Negative patterns are therefore tested first, and
+anything unreadable is reported as UNCLASSIFIED rather than assumed shipped.
+
+**First run — 378 entries:** PENDING 149 · UNCLASSIFIED 48 · NO-STATUS 88 · DEPLOYED 64 ·
+NOT-A-FIX 29.
+
+**Read that honestly: it is NOT 149 missing fixes.** The register's own caveat (line 20) says status
+lines are written at fix-time and frequently never updated after a deploy. So the number is an
+**upper bound on what cannot be confirmed as shipped** — 285 of 378 entries, 75%.
+
+**The finding underneath the finding.** The real reason defects get missed in deploy is not
+carelessness at bundle time — it is that **the registers are not a deploy ledger**. Nothing can
+answer "what is actually out there" from them, which is the same fog that made the 2026-09-15 deploy
+log wrong by an entire bundle. The gate makes the fog visible and stops it growing; it cannot clear
+what has already accumulated.
+
+**Two ways to clear the backlog, neither started — Shawn's call:**
+1. **Line in the sand (cheap, ~1 hr).** Mark everything as of the last verified deploy, maintain from
+   here. Accepts that some history stays wrong.
+2. **Live reconciliation (expensive, days).** Probe the running site per fix with
+   `whats-deployed.js`-style markers. Accurate, and most of it is archaeology on defects nobody will
+   revisit.
+
+Recommend **1**, plus the discipline of closing the loop after every deploy from now on — which is
+what makes 2 never necessary again.
+
+---
+
+## 2026-09-15 — Line in the sand drawn; memory index compacted
+
+**Line in the sand — DONE.** `docs/tracking/deploy-baseline.json` records **285 ids accepted as
+shipped** with `GCCWebApp-deploy-20260915-1641.zip` (deployed + verified 17:04). Gate 0B now reports
+**PENDING 0 · UNCLASSIFIED 0 · NO-STATUS 0**, exit 0 — from here it surfaces only NEW work.
+
+**Why this is defensible rather than sweeping it under the rug.** A Plesk bundle is a full overwrite
+built from the working tree, so any fix present in the repo when it was cut necessarily shipped. The
+baseline states in its own text that it is an **accepted assumption, not a verification**, and names
+where it is unsound — a fix never merged, or later reverted. If one surfaces it gets re-raised as a
+new finding.
+
+**Design choice that keeps it honest:** the baseline filter is applied **after** classification, never
+during. Delete `deploy-baseline.json` and the unfiltered 285 comes straight back — nothing was
+destroyed, and the file says outright not to hand-edit it to silence a finding, since that is the
+failure the gate exists to prevent. `--show-baselined` lists exactly what it absorbed.
+
+Documented as a **LINE IN THE SAND** section at the top of both registers, following the file's own
+existing status-sync convention.
+
+**The obligation it creates:** close the loop after every deploy. A second line in the sand would be
+an admission the practice did not take.
+
+**MEMORY.md compacted: 161 → 114 lines** (limit 140). Related entries merged onto shared lines with
+`·` separators rather than dropped — **137 links, all resolving, zero broken**. Three orphaned memory
+files predate this compaction and were already unlinked (`project_dev_migration_verified_end_to_end`,
+`project_golive_source_files_2026-08-12`, `project_pdf_link_step_plan`) — flagged, not deleted.
+
+Stale entries corrected while compacting: Gates "0–10" → **0, 0B, 1–12**; register high-water
+DEF-418 → **DEF-425**; DEF-401/402 moved from "not deployed" to shipped in the baseline. Added: the
+deploy baseline, both skills, and the `docs2` staleness + committed-plaintext-credentials warning.
+
+**Orphaned memory files resolved 2026-09-15 — 1 deleted, 2 indexed, and the backup was a real one.**
+
+**The backup did not exist.** Shawn: *"we have a backup do it."* `~/.claude/backups/` holds only
+`.claude.json` config snapshots — **no memory files**. Deleting on the strength of it would have been
+unrecoverable. Took a real one first: `~/.claude/backups/memory-20260915-231646/`, 140 files,
+**verified byte-identical with `cmp` on every file, 0 mismatches**, 729K. Restore is one `cp`.
+*General rule: "we have a backup" is a claim to verify, not a fact to act on.*
+
+**Reading the three before deleting changed the answer — two were not junk.**
+
+- **`project_pdf_link_step_plan`** → genuinely superseded (its successor says so in its own text).
+  But two facts lived **only** there — the consolidated rollback CSV path and the verified counts
+  (5,179 linked / 227 with no file, proving the idempotency guard across 4 reaped restarts).
+  **Absorbed into the indexed successor, then deleted.** Migrate unique content before deleting a
+  file; supersession is rarely total.
+- **`project_dev_migration_verified_end_to_end`** → indexed. Carries a lesson nothing else does:
+  earlier reconciliations compared the DB to the *transform output* — same source on both sides, so
+  a transform bug was invisible.
+- **`project_golive_source_files_2026-08-12`** → indexed with a ⚠️ and its own line. **It holds live,
+  unresolved cutover constraints**: certificate numbering must be seeded before cutover or
+  auto-derivation silently re-issues ~110 numbers (107 Draft, 3 Client-Approved); the dual-entry
+  `26-XXXX` collision window; 51 live certs absent from the load set. **Cutover has not happened**,
+  so this was the most operationally live memory in the set — and it was unreachable from the index.
+
+**Index now: 116 lines, 139 links, 0 broken, 0 orphans — every memory file is reachable.**
+
+The orphans mattered more than the line count did. An unindexed memory is functionally deleted
+already; the difference is that nobody knows it.
+
+---
+
+## 2026-09-15 — Role permission matrix: three different shapes enforce "external users can't see internal tags"
+
+The rule is one line in `.claude/CLAUDE.md` ("External Users CANNOT view/edit internal tags"), but it
+is enforced three different ways in the code, and only two of them survive a new role being added.
+
+Internal tags are `Tag.TagType == "internal"`. Of the controllers matched by a grep for
+`InternalTags` / `ShowInternalData`:
+
+1. **Never project it.** The internal tile API is the only tile controller that emits an internal-tag
+   field (`CertificateTileInternalApiController.cs:298`, `:389`). The external and public tile APIs
+   don't select it at all — the protection is that the field never exists in the response.
+2. **Compute a deny-by-default flag.** `ShowInternalData = IsInternalUser()`
+   (`CertificateController.cs:329`, `:1878`), where `IsInternalUser()` is
+   `Admin || Analyst` (`:2065`). Anything that is *not* Admin or Analyst is excluded **without being
+   named** — which is what correctly keeps Partner out, Partner being a sub-type under the External
+   umbrella rather than a role parallel to it.
+3. **Hardcode the constant.** `ShowInternalData = false` on the public path (`:159`), `= true` on the
+   internal one (`:223`).
+
+**Where this has already gone wrong: DEF-198 (QC #182).** `GetUserRole()` enumerated
+Admin / Analyst / External and **omitted Partner**, so Partner web users fell through to `"Public"`,
+which the export path treated as unrestricted. The comment recording it is still at `:2078`. That is
+the fourth shape — *enumerate the outsiders* — and it is the only one that failed.
+
+**The distinction worth keeping.** Shapes 1 and 2 are closed sets: they name who may see internal
+data and exclude everyone else by construction, so a role added tomorrow is safe by default. Shape 4
+is an open set: a new role inherits whatever the final `else` does, and in DEF-198 that `else` was
+the most permissive branch available. The matrix is only as good as the shape of the check
+implementing each cell.
+
+**One spot to look at deliberately — noted, not raised, not tested.**
+`CertificatesApiController.cs:601` passes `includeInternalTags: true` unconditionally. It is safe
+only because the action carries `[Authorize(Policy = "AnalystOrAdmin")]` 24 lines above it; nothing
+at the call site itself signals that. The same method takes
+`UserRole = request.UserRole ?? "Public"` **from the request body** — so scoping is caller-supplied
+while internal-tag inclusion is hardcoded true. No claim here that it leaks; it was read, not
+exercised. Worth a deliberate check before the next role or policy change touches that endpoint.
+
+---
+
+## 2026-09-16 — "A difference between two totals is not a count of things" (caught pre-send)
+
+**Trigger.** Shawn asked the obvious question nobody had asked: *"if each ASIN for a certificate is
+included, then why do we have a number discrepancy of what is sent, 16k or 20k?"*
+
+**What the check found.** The feed is clean — **0 certificates list the same ASIN twice, 0 duplicate
+(certificate, ASIN) pairs anywhere**. Every ASIN on a certificate is sent exactly once for that
+certificate. The 20,380 vs 16,078 gap is entirely legitimate overlap: one product can hold several
+certifications and is delivered under each.
+
+| ASIN appears on | ASINs | Entries |
+|---|---|---|
+| 1 certificate | 12,479 | 12,479 |
+| 2 certificates | 3,067 | 6,134 |
+| 3 certificates | 361 | 1,083 |
+| 4 certificates | 171 | 684 |
+| **Total** | **16,078** | **20,380** |
+
+**But answering it exposed an error in the client letter.** The draft said *"4,302 ASINs appear on
+more than one certificate."* **Wrong by 703.** 4,302 is the surplus **entries** (20,380 − 16,078);
+the ASINs that actually repeat number **3,599**, because 532 of them sit on three or four
+certificates and contribute two or three surplus entries each.
+
+**The mistake in one line:** I subtracted two totals and described the result as a count of ASINs. A
+difference is a *quantity*; a population has to be counted. They coincide only when nothing repeats
+more than twice — an assumption never checked.
+
+**How close it came.** It was in a Word document, complete, verified clean by the leak scan, and
+queued to a partner. The leak scan checks what a document *contains*, not whether its arithmetic
+describes reality — no automated check we have would have caught this. It was caught by a question.
+
+**Fixed.** Letter corrected and regenerated (distribution table now replaces the single figure, which
+is both right and more useful), re-verified clean. Rule added to `gate-check` Part 2A and to
+`CARRY-FORWARD.md` so it reaches future projects.
+
+**Worth noticing:** the last three findings of real consequence today — the "first time" overclaim,
+the unverified backup, and this — were all caught by Shawn asking a plain question, not by any gate.
+That is a signal about where the remaining risk sits: **the gates check work products, not the
+reasoning behind the numbers in them.**
+
+**Same session, second self-inflicted near-miss: a Python edit silently broke the skill it was
+editing.** Adding the check above to `gate-check/SKILL.md` via `io.open(p,"w")` converted all 274
+line endings to **CRLF** — Python text mode translates `\n` on Windows. The skill loader's
+frontmatter parser expects `^---\n`, so the 711-character description **collapsed to the H1 heading**
+("gate-check: Gate Check" in the listing). It still loaded; nothing errored.
+
+Caught by noticing the one-line skill listing, not by any check. Diagnosis was settled by a control:
+`lessons-learned/SKILL.md`, written with a bash heredoc, was still LF and still fine — same session,
+same machine, different write path.
+
+Normalized all three files back to LF (274 + 141 CRLF pairs removed) and verified the frontmatter
+parses under a strict `^---\n` match. Rule added to `CARRY-FORWARD.md` under a new *Windows
+file-writing traps* section, alongside the existing PS 5.1 `Add-Content` mojibake trap — same family:
+**a Windows text-mode write corrupting a file in a way the diff does not show.**
+
+Also fixed: `gate-check` was itself carrying the wrong "4,302" figure in its worked example — the
+document warning against the error was propagating it.
+
+## 2026-09-16 — §7 embedded in the Amazon letter; converter bug fixed on the way
+
+**Ask:** add section 7 to the email.
+
+**Done:** §7 *Pagination* is now quoted **in full** in the letter — the heading, the explanatory
+sentence, the complete worked example (both calls plus the `pagination` block), and "Loop until
+`hasNext` is false" — taken verbatim from the corrected **v1.2** guide rather than paraphrased. Added
+underneath it: *"the numbers in that sample are illustrative; for your account today the real values
+are `totalCount` 212 and `totalPages` 3"*, so they can assert the total on the first response instead
+of discovering the end by walking off it.
+
+Rationale for quoting rather than pointing: they missed §7 once already. A reference asks them to
+open an attachment; the text asks nothing.
+
+**A converter bug surfaced doing it, and it was already in the queued letter.**
+`md-to-client-letter.py` had **no branch for fenced code blocks**, so ```` ``` ```` fell through to
+the inline-span parser: the fences became **literal backticks** and every line collapsed into a
+single paragraph. The existing sample call had shipped into the .docx as
+`` `` GET /api/v1/certificates?... `` `` on one line. Not fatal, but sloppy in a partner document —
+and the converter is used for **every** client letter, so it would have recurred.
+
+Fixed: fenced blocks now render as indented 9pt Consolas lines, blank lines preserved. Verified —
+**13 monospace lines, 0 literal backticks** in the rebuilt letter.
+
+**The CRLF trap bit again, within an hour of being logged.** The first patch attempt failed with
+`anchor matched 0 times`: the .md carried **293 CRLF pairs** from my own earlier Python edits, so an
+anchor containing `\n` could not match. Normalized to LF, then patched. Both writes in this round
+used `newline=""` on read *and* write, and the converter patch was verified at **0 CRLF pairs**
+afterwards.
+
+Worth noting the lesson only half-took: it was written down, then the very next edit hit it. A rule
+in a document is not a rule in the hands until the tooling enforces it — the durable fix is to always
+read/write with `newline=""`, not to remember not to.
+
+Letter re-verified end to end: 0 internal leaks, all required content present.
+
+## 2026-09-16 — 20,380 vs their 20,313: five causes ruled out, cause NOT established
+
+**Question:** why do we say 20,380 ASINs and the client says 20,313? Gap **67** (0.33%).
+
+**Our side has not moved.** Diffed the live database against the verified 2026-09-15 17:04 payload at
+(certificate, ASIN) pair level: **20,380 entries / 212 certs both times, 0 pairs added, 0 removed.**
+So the gap is not drift, and any pull taken after 17:04 gets 20,380.
+
+**Ruled out, each by enumeration rather than reasoning:**
+
+| Hypothesis | Result |
+|---|---|
+| Certificates past expiration still delivered (Expired is a status, not a date test) | **0 certs, 0 ASINs** |
+| Effective date in the future / no expiration date / missing amazonCode / empty results | **0 each** |
+| Malformed ASIN values their ingestion would reject (`^[A-Z0-9]{10}$`) | **0 of 20,380 fail** |
+| Case/whitespace variants collapsing on their side | no effect — 16,078 distinct either way |
+| A pre-fix pull dropping certs at the failing page boundary | tie group **cannot sum to 67** (members 1,2,3,3,13,32,113,206,318,402,1106) |
+
+Two-certificate combinations summing to 67 exist (64 of them) — **combinatorial coincidence, not
+evidence**, and recorded as such rather than offered as an answer.
+
+**Conclusion: the cause is on their side or is definitional, and I could not determine it from our
+data.** Stated plainly rather than dressed up — the honest output of a reconciliation that does not
+close is "not established", not a plausible story.
+
+**What was produced instead of a theory:**
+`docs/tracking/api-samples/2026-09-16-amazon-asin-count-per-certificate.csv` — 212 rows, certificate
+number + company + status + dates + ASIN count, totalling 20,380. Whoever holds 20,313 diffs it in a
+minute and the gap localises to specific certificates. **Comparing two totals says a gap exists;
+comparing 212 counts says where.**
+
+**The question that most likely settles it: WHEN was their pull taken?** Before 2026-09-15 17:04 the
+feed was non-deterministic (DEF-425) and no count from it is reliable by construction. Six
+certificates hold 60–75 ASINs, so a single dropped record in that range is the simplest explanation
+for a 67 shortfall.
+
+**Second question worth asking: who counted, and what?** If GCC counted their own source spreadsheet,
+the difference is untagged or unloaded certs; if Amazon counted their ingest, it is their filtering.
+Materially different answers — do not reconcile until it is clear which.
+
+**RESOLVED same day — and the reconciliation was the smaller half.** Shawn: *"their pull was before
+the fix, and pulled from the application in the web UI."* The second clause is what mattered — those
+are **two different code paths**, not two pulls of one feed, so the numbers were never going to agree.
+
+| Path | Product-ID filter | Count |
+|---|---|---|
+| Partner API | `Include(c => c.ProductIds)` — **none** | **20,380** |
+| Web UI / tile API (`CertificateTileInternalApiController.cs:301`) | `.Where(... && pid.IsActive)` | **20,312** |
+| Client reported | | 20,313 |
+
+**Cause: `CertificateProductIds` carries TWO activity flags** — `Status` (nvarchar) and `IsActive`
+(bit). The UI honours `IsActive`; the partner API honours **neither**, then reports `status` from
+`pid.Status`. So 68 rows with `Status='Active', IsActive=0` are hidden internally and published
+externally **as Active**.
+
+**Residual of 1, stated not folded away.** 20,380 − 68 = 20,312, and they reported 20,313 — one
+*more* than the pure UI count. Most likely a header or total row counted in their export, not a data
+difference. Recorded as unexplained rather than absorbed into a tidy story; after this morning's
+"difference is not a count" error, an off-by-one gets named.
+
+**The real finding — DEF-426, raised.** Exactly **68** product identifiers in the whole database have
+`IsActive = 0`; all 68 are ASINs on **`26-0439` (Philips)**, updated **2026-09-08 by user id 99**.
+Somebody deactivated them deliberately, the application removed them from every internal screen, and
+**the partner feed has kept sending them to Amazon marked "Active" for eight days.** Same failure
+shape as DEF-424: a control an analyst reasonably believes they have and do not.
+
+**Not fixed — it needs a decision**, because the one-line fix (`&& pid.IsActive`) drops 68 ASINs from
+a live partner feed mid-integration. Identify user 99 first to confirm intent. High-water re-grepped
+across all heading levels before appending: DEF **425** → DEF-426 (CR unchanged at 187 in-register).
+
+**Method note worth keeping:** five hypotheses were enumerated and killed with data before the answer
+arrived — and the answer came from one sentence of context, not from more analysis. *When a
+reconciliation will not close, the missing input is usually a fact about how the other side measured,
+not a deeper query on ours.* Ask earlier.
+
+## 2026-09-16 — DEF-426 fixed; and the answer to "why didn't we catch this before?"
+
+**Decision (Shawn):** *"we need to fix it, they should match."* Reading 1 taken — the partner API now
+honours `IsActive`.
+
+**Fix:** four projection sites in `Controllers/Api/v1/CertificatesController.cs` (~295 standard list,
+~1186 search-by-product-id, ~1692 GS1 builder, ~1796 single-cert). Every one filtered
+`pi.Status == "Active"` and **none** filtered `pi.IsActive`. A row now needs both. Builds clean,
+0 errors. **Not deployed.** Amazon must be told before it ships — their feed drops 68 ASINs.
+
+**Local verification would be vacuous, so it was not claimed.** Dev holds **0** rows with
+`IsActive = 0` (all 68 are on test), so a local run passes either way — the same trap as the Novi
+isolation pair. Real check is on test post-deploy: **20,380 → 20,312**, and that must now equal the
+web UI export.
+
+### Why it was not caught before — three compounding reasons
+
+**1. The verification was written from the implementation.** `asin-truth.py` and the payload export
+derived "expected" ASINs using the controller's own predicate — Amazon-tagged + badgeable +
+effective-date + `ProductIdType='ASIN'` — and, like the controller, ignored `IsActive`. They agreed
+exactly, 20,380 = 20,380, **because both were wrong in the same way.** A verification built from the
+code's own rule can only confirm that the code does what the code does.
+
+**2. The two surfaces were never compared with each other.** The API was checked against the database;
+the UI was checked against the database; nobody ever diffed API against UI. Two different definitions
+of "which product IDs count" coexisted for months, and only a human exporting from one and pulling
+from the other could see it.
+
+**3. The lesson already existed and did not transfer.** August, migration work:
+*"prior reconciliations only compared the DB to the transform output — same source both sides, so a
+transform bug was invisible."* Identical failure class. Learned once, recorded, and not generalised
+from the migration to the API. **This is the more uncomfortable finding: the knowledge was not
+missing, the transfer was.**
+
+Also worth noting: two days ago DEF-425 hardened this very export with paging-integrity checks. That
+strengthened the wrong axis — it made the *pagination* falsifiable while leaving the *predicate*
+self-referential.
+
+**Promoted:** new **always-check 7** in `gate-check` (*"do not verify code with the code's own rule"*,
+Part 1 now has 8), and the portable version in `CARRY-FORWARD.md`. Both state the corollary that would
+have caught this: **two surfaces answering the same question must be diffed against each other, not
+each against the database separately.**
+
+**Still owed:** an actual cross-surface check (partner API product-ID set vs UI/tile product-ID set for
+the same certificates). The rule is written down; nothing enforces it yet — and a rule without a gate
+is what reason 3 was.
+
+**CRLF bit for the third time today**, on the `.cs` file (legitimately CRLF, 1,827 pairs). Settled on
+the durable shape: read bytes → normalise to `\n` → edit → restore the file's own convention → write
+bytes. Works for CRLF and LF files alike and never converts either.
+
+## 2026-09-16 — Cross-surface gate built, and proven against the live defect
+
+`Scripts/smoke-prod/cross-surface-productids.py`, wired in as **Gate 4B**. For every certificate the
+partner API delivers, its product-ID set must equal the internal tile API's set for that certificate.
+The point is the *source of the expectation*: a second surface, not the database — the axis that was
+missing when DEF-426 survived eight days.
+
+**Validated against the defect itself.** Run against test while the unfixed code was still deployed:
+
+    certificates with mismatches : 1
+    26-0439  sent to the partner but NOT shown in the app (68): B00DE8V0RW, B00DSF4VSQ, ...
+    CROSS-SURFACE: FAIL          exit=1
+
+**That run is the whole point.** Local validation was impossible — dev has 0 inactive rows — so the
+only way to prove the check works was to point it at an environment where the fault is live. **A gate
+that has never failed against a known-bad input is an untested assertion, not a control.** Promoted
+that as a rule to `gate-check` and `CARRY-FORWARD.md`.
+
+Free consistency signal: 281 UI certificates − 212 delivered = **69 UI-only**, matching the membership
+reconciliation (281 tagged / 212 delivered / 69 withheld) from an entirely different code path.
+
+It also covers the second known divergence without extra work — the UI's legacy `Certificate.Asin`
+fallback (`CertificateTileInternalApiController.cs:399`), which the partner API never reads, surfaces
+as UI-only values.
+
+**Expected after the DEF-426 fix deploys: PASS, and 20,380 → 20,312.** Until then Gate 4B failing is
+correct behaviour, not a broken gate.
+
+**Tooling note:** the bash heredoc could not carry a 250-line Python file with nested quotes (bash
+`unexpected EOF`); fell back to the Write tool, which is the documented exception. Checked for and
+removed the partial file before retrying rather than assuming nothing was written.
+
+## 2026-09-16 — DEF-426 bundle built and gated (not uploaded)
+
+**Bundle:** `GCCWebApp-deploy-20260916-1023.zip` — 342 entries, 61.17 MB, DLL md5 `58569001f47314c2`.
+`verify-bundle.py` 0 failures. Runbook: `docs/tracking/2026-09-16-deploy-runbook-DEF426.md`.
+
+**Same size as the previous bundle** — 342 entries / 61.17 MB for both — and only the DLL md5
+separates them (`58569001f47314c2` vs `42f7efa637fd6591`). Checked rather than assumed; this is the
+exact shape of the "two bundles, same size, different build" trap.
+
+**Carries one fix, one file.** `git diff --stat HEAD` vs the live build: `CertificatesController.cs`,
++30/−8. Gate 0B reports 1 PENDING — DEF-426 — and it is in this build, which is the gate working.
+
+**The finding worth having before upload: this is far less disruptive than it looked.**
+
+| Measure | Before | After |
+|---|---|---|
+| ASIN associations | 20,380 | **20,312** (−68) |
+| **Distinct ASINs** | 16,078 | **16,078 — unchanged** |
+| Certificates delivered / with ASINs | 212 / 173 | 212 / 173 — unchanged |
+
+**0 of the 68 deactivated ASINs exist nowhere else** — every one is also carried on another
+certificate. So the fix removes 68 duplicate *associations*, not 68 products; nothing disappears from
+Amazon's view, and the letter's headline (16,078, in the subject line) stays correct. Worth computing
+before drafting an apology for a loss that does not happen.
+
+**Sequencing raised as the real decision, not the deploy itself.** The queued letter quotes 20,380.
+Recommended: deploy first, update to 20,312, then send — one number, correct, no follow-up. Amazon is
+building against this feed **this week**, so deploying silently mid-test is the thing to avoid.
+
+**Deliberately not claimed: local verification.** Dev has 0 rows with `IsActive = 0`, so a local run
+passes either way. Gate 4B against test is the meaningful check, and its pre-fix `FAIL — 26-0439, 68
+values` is what will make a post-deploy PASS mean anything.
+
+**Letter updated to the post-DEF-426 feed (2026-09-16).** 20,380 → **20,312** in all 11 client-facing
+places, plus the subject-line figure left alone (16,078, unchanged and still correct).
+
+**The overlap table had to be recomputed, not edited.** Removing 68 associations drops each of those
+ASINs by one certificate, so the whole histogram shifts:
+
+| certs per ASIN | before | after |
+|---|---|---|
+| 1 | 12,479 | **12,544** |
+| 2 | 3,067 | **3,005** |
+| 3 | 361 | **358** |
+| 4 | 171 | 171 |
+| **distinct** | 16,078 | **16,078** |
+| **entries** | 20,380 | **20,312** |
+
+Re-derived from the database with the `IsActive` filter the deployed code will apply — hand-adjusting
+the first row and leaving the rest would have produced a table that no longer sums to its own total.
+This is the same failure as *"a difference of two counts is not a count of things"*, one step along:
+**a derived table has to be re-derived, not patched.**
+
+**The historical correction note was left at its original arithmetic** (4,302 = 20,380 − 16,078) and
+re-anchored to say it describes pre-DEF-426 totals. Rewriting it to match today's numbers would have
+made a record of a past mistake silently wrong.
+
+**Letter is now on HOLD AGAIN and the header says so:** it quotes 20,312, so sending it before
+`GCCWebApp-deploy-20260916-1023.zip` is live would be wrong on arrival. Re-verified: 0 internal leaks,
+all required content present, no `20,380` anywhere in the client-facing text.
+
+## 2026-09-16 — DEF-426 deployed and verified; every prediction held
+
+**Gate 4B: FAIL → PASS.** 0 mismatches across 212 certificates. *That transition is the evidence.*
+Pre-deploy the same check, against this same environment, named `26-0439` and all 68 values — a gate
+that had only ever passed would have proved nothing.
+
+| Measure | Predicted | Actual |
+|---|---|---|
+| ASIN associations (standard) | 20,312 | **20,312** ✔ |
+| ASIN associations (GS1) | 20,312 | **20,312** ✔ |
+| Distinct ASINs | 16,078 unchanged | **16,078** ✔ |
+| Certificates delivered / with ASINs | 212 / 173 | **212 / 173** ✔ |
+| `26-0439` | 1,127 → 1,059 | **1,059** ✔ |
+| Overlap distribution | 12,544 / 3,005 / 358 / 171 | **exact match** ✔ |
+| Membership findings | 0 | **0** ✔ |
+| Paging duplicates (DEF-425) | 0 | **0** ✔ |
+
+**GS1 and the standard list both moved to 20,312**, which confirms all four projection sites took the
+fix — not just the one that was easy to test.
+
+**Closed out:** DEF-426 → deployed+verified with the evidence table · deploy baseline extended to
+`GCCWebApp-deploy-20260916-1023.zip` (Gate 0B now **PENDING 0**, DEPLOYED 64→65 — correctly
+*classified* as deployed rather than absorbed into the baseline) · checklist entry marked DEPLOYED ·
+`shipped-2026-09.md` appended in client-readable terms · **letter hold RELEASED** and regenerated.
+
+**The letter is now correct against a verified live pull**, not against a prediction — every figure in
+it was re-derived from the 10:51 payload. Ready to send: `[name]`, `[sign-off]`, attach the v1.2 guide.
+
+**Worth recording about the method, not the fix.** The prediction was made before deploying (20,312 /
+16,078 unchanged / 0 products lost) and every element of it held. That is what made the risk decision
+possible — the question "does anything disappear from Amazon's view?" was answered *before* the
+change, not discovered afterwards. Predict, then verify the prediction; a post-hoc measurement alone
+cannot tell you whether you understood the change.

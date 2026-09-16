@@ -55,7 +55,7 @@ pre code { background: none; padding: 0; }
     <h1>GCC Database Partner API</h1>
     <p class="subtitle">Partner Integration Guide</p>
     <div class="doc-meta">
-        <div><strong>Version:</strong> 1.1</div>
+        <div><strong>Version:</strong> 1.2</div>
         <div><strong>Date:</strong> <span class="fill">[MONTH YEAR]</span></div>
         <div><strong>Prepared for:</strong> <span class="fill">[PARTNER NAME] Integration Team</span></div>
         <div><strong>Prepared by:</strong> GreenCircle Certified</div>
@@ -577,7 +577,7 @@ X-API-Key: YOUR_API_KEY</code></pre>
 <code>pagination</code> object in each response to determine whether more pages are available:</p>
 
 <pre><code>// Page 1
-GET /api/v1/certificates?pageNumber=1&amp;pageSize=100
+GET /api/v1/certificates?includeProductIds=true&amp;pageNumber=1&amp;pageSize=100
 
 // Check response
 "pagination": {
@@ -590,7 +590,7 @@ GET /api/v1/certificates?pageNumber=1&amp;pageSize=100
 }
 
 // Page 2
-GET /api/v1/certificates?pageNumber=2&amp;pageSize=100</code></pre>
+GET /api/v1/certificates?includeProductIds=true&amp;pageNumber=2&amp;pageSize=100</code></pre>
 
 <p>Loop until <code>hasNext</code> is <code>false</code>.</p>
 
@@ -733,7 +733,7 @@ no partner endpoint projects them.</p>
 <span class="fill">[GCC support contact]</span></p>
 
 <div class="doc-footer">
-    GCC Database Partner API &mdash; Partner Integration Guide &mdash; v1.1 &mdash;
+    GCC Database Partner API &mdash; Partner Integration Guide &mdash; v1.2 &mdash;
     <span class="fill">[MONTH YEAR]</span><br>
     &copy; <span class="fill">[YEAR]</span> GreenCircle Certified. All rights reserved.
 </div>

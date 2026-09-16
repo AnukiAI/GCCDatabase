@@ -96,5 +96,9 @@ points elsewhere, and leaving them means a re-attempt skips steps 3 and 4.
 - **Retiring `db.greencirclecertified.com`** (the Vercel legacy database, 1,021 public certificates,
   the signed-in portal, S3-backed PDFs). Separate cutover, real deep-link mapping work, and the
   client's vendor conversation. Do not bundle it in.
-- **Moving the email sender** to the client domain. Needs SPF/DKIM at HostMonster and the M365 admin.
+- **Moving the email sender** to the client domain — now written up separately as
+  `outbound-email-client-domain.md`. It is independent of the web-hostname cutover and can run before
+  or after it. Headline: the client domain enforces **DMARC `p=quarantine`**, so SPF *and* DKIM are
+  mandatory rather than optional, and a misconfigured sender lands in junk while the app reports
+  success.
 - **Tightening `AllowedHosts`** — deferred to step 12 on purpose.

@@ -5,7 +5,12 @@ Status: **DRAFT for Shawn's review. NOT SENT — awaiting your approval.**
 > **✅ DEF-425 deployed and verified 2026-09-15 17:04** — 212 rows / 212 distinct certificates,
 > 0 membership findings, and two independent paged walks byte-identical on both endpoints.
 >
-> ⚠️ **HOLD AGAIN — send only AFTER DEF-426 deploys.** The figures in this letter were updated on
+> ✅ **DEF-426 DEPLOYED — hold lifted 2026-09-16.** Confirmed against the live feed: **212
+> certificates / 20,312 associations / 16,078 distinct**, `totalPages: 3`. Page 1 re-measured
+> post-deploy: **7,368 distinct ASINs** across 100 certificates, of which **91 carry ASINs** — the
+> 9 without are why "100 of 173" would have been wrong. Every figure in this letter is verified.
+>
+> ~~**HOLD — send only AFTER DEF-426 deploys.**~~ The figures in this letter were updated on
 > 2026-09-16 to the **post-DEF-426** feed: **20,312 associations / 16,078 distinct**. Until that
 > bundle (`GCCWebApp-deploy-20260916-1023.zip`) is live, the feed still returns 20,380 and this letter
 > would be wrong on arrival. **Distinct ASINs are unchanged at 16,078 and no product is lost** — all
@@ -225,7 +230,7 @@ Hi [name],
 
 Glad the pull worked. One important thing before you go further on the data analysis: **the 7K is the first page of three.**
 
-The endpoint pages at 100 certificates per call and defaults to page 1, so a call without a page parameter returns a complete, valid response containing about 7,400 distinct ASINs - but that is 100 of 212 certificates. The full feed is **212 certificates, 20,312 ASIN associations, 16,078 distinct ASINs**. Each response carries a `pagination` block with `totalCount`, `totalPages` and `hasNext`; loop until `hasNext` is false and you will have the complete set.
+The endpoint pages at 100 certificates per call and defaults to page 1, so a call without a page parameter returns a complete, valid response containing about 7,400 distinct ASINs - but that is **100 of the 212 certificates** in the feed. The full feed is **212 certificates, 20,312 ASIN associations, 16,078 distinct ASINs**. Each response carries a `pagination` block with `totalCount`, `totalPages` and `hasNext`; loop until `hasNext` is false and you will have the complete set.
 
 This is **section 7, Pagination** of the integration guide we sent on 14 September, if it is useful to your developers.
 

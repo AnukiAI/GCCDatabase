@@ -1,0 +1,14 @@
+Name,Email,Role,Status
+A,a@b.co,Analyst,active
+AB,ab@cd.com,External,active
+Name That Is Exactly One Hundred Characters Long For Testing The Maximum Allowed Length For UserAAAAA,exact100@boundary.com,Admin,active
+Name That Exceeds One Hundred Characters Which Is The Maximum Allowed Length For User Names In The System And Should Be Rejected,toolong@boundary.com,Analyst,active
+Min Email,a@b.io,External,active
+Max Email 255 Chars,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA@test.com,Analyst,active
+Numbers In Name 123,numbers123@test.com,Admin,active
+Unicode Name Test,unicode.user@test.com,Analyst,active
+All Roles Admin,alladmin@test.com,Admin,active
+All Roles Analyst,allanalyst@test.com,Analyst,active
+All Roles External,allexternal@test.com,External,active
+Status Active,statusactive@test.com,Analyst,active
+Status Inactive,statusinactive@test.com,Analyst,inactive

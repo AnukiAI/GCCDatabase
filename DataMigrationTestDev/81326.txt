@@ -1,0 +1,123 @@
+8/13/26
+
+Test env has 66 active users. You named 4 to keep — but 8 others are load-bearing for the pre-deploy P0 security
+gate (Scripts/smoke-prod/_security/). 
+
+
+> 1. Your 4 + the 8 test          ┌────────────────────────────────────────────────────────────────────────────┐
+    fixtures (Recommended)        │ KEEP (12)                                                                  │      2. Only your 4 — delete all     │                                                                            │
+    62 others                     │ 99  carly@greencirclecertified.com      Admin    <- yours                  │
+  3. Hold off — show me the       │ 22  admin@greencirclecertified.com      Admin    <- yours                  │
+    full 66-row list first        │ 23  analyst@greencirclecertified.com    Analyst  <- yours                  │
+                                  │ 24  partner@amazon.com                  Partner  <- yours + fixture        │
+                                  │  1  swest@anukiconsulting.com  (admin)  Admin    <- RBAC/IDOR gate         │
+                                  │  2  jane.analyst@anukiconsulting.com    Analyst  <- RBAC/IDOR gate         │
+                                  │  3  external.user@anukiconsulting.com   External <- RBAC/IDOR gate         │
+                                  │ 88  perry.novi@example.com              Partner  <- isolation gate         │
+                                  │ 89  pam.wayfair@example.com             Partner  <- isolation gate         │
+                                  │ 90  pip.other@example.com               Partner  <- isolation gate         │
+                                  │ 91  pru.multi@example.com               Partner  <- isolation gate (multi) │
+                                  │                                                                            │
+                                  │ DELETE: 54 (all *@example.com scratch, .anukiconsulting.com                │
+                                  │         seed personas, qc108- , carly@gcc5/6/7.com, etc.)                  │
+                                  └──────────────────────────────────────────────────────────────
+
+
+
+ Backed up first (43 tables / 8,823 rows → db-backups/gccwebap_certificates-2026-08-13-090039). Nothing deleted —
+  full list below for your markup.
+
+  1. "(Optional)" after Product Category — done
+
+  Removed from Views/Certificate/Create.cshtml:182 and Views/Certificate/Edit.cshtml:131.
+
+  One thing to flag: I removed the word only. The field is still not required in validation — that's the QC #195
+  decision from 6/24 (category is analyst-controlled, deliberately not auto-filled from the product). Your note says
+  "you have to have one when adding a Product," which describes the Product Management form, not the certificate
+  form. If you want the cert form to actually enforce a category, that's a separate change — say the word and I'll
+  add the red * and server-side validation.
+
+  2. Why "Delete User" sometimes isn't there
+
+  Any user holding the Admin role. The menu renders a greyed "Protected User" item instead
+  (wwwroot/js/userManagement.js:396), and the server blocks it independently (AdminService.cs:626). By design — but
+  it's exactly what's blocking you: 9 of the accounts you want gone are Admin and cannot be removed through the UI
+  at all. Those need SQL.
+
+  3. User cleanup — full list, 66 active
+
+  Two things you didn't have when you wrote the list:
+
+  - 8 accounts are load-bearing for the pre-deploy security gate. Scripts/smoke-prod/_security/ logs in as usernames
+  admin/analyst/external (Ids 1–3) and asserts partner isolation as partner@amazon.com, perry.novi@, pam.wayfair@,
+  pip.other@, pru.multi@example.com. Delete those and the P0 gate goes GREEN → BLOCKED before the next deploy.
+  - Id 1 authored 38 certs, Id 22 authored 165, Id 23 authored 14. Delete is a soft delete that suffixes the email
+  (…__deleted__1__2026…), so those 217 certs would show a mangled "Created By".
+
+  ┌──────────────────────┬─────┬───────────────────────────────────┬──────────┬────────────┬───────┐
+  │                      │ Id  │               Email               │   Role   │ Last login │ Certs │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │ KEEP — yours         │ 99  │ carly@greencirclecertified.com    │ Admin    │ 08-12      │ 0     │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │                      │ 22  │ admin@greencirclecertified.com    │ Admin    │ 08-12      │ 165   │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │                      │ 23  │ analyst@greencirclecertified.com  │ Analyst  │ 08-07      │ 14    │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │                      │ 24  │ partner@amazon.com                │ Partner  │ 08-12      │ 0     │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │ KEEP — security gate │ 1   │ swest@anukiconsulting.com (admin) │ Admin    │ 08-07      │ 38    │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │                      │ 2   │ jane.analyst@anukiconsulting.com  │ Analyst  │ 08-04      │ 1     │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │                      │ 3   │ external.user@anukiconsulting.com │ External │ 06-24      │ 0     │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │                      │ 88  │ perry.novi@example.com            │ Partner  │ never      │ 0     │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │                      │ 89  │ pam.wayfair@example.com           │ Partner  │ never      │ 0     │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │                      │ 90  │ pip.other@example.com             │ Partner  │ never      │ 0     │
+  ├──────────────────────┼─────┼───────────────────────────────────┼──────────┼────────────┼───────┤
+  │                      │ 91  │ pru.multi@example.com             │ Partner  │ never      │ 0     │
+  └──────────────────────┴─────┴───────────────────────────────────┴──────────┴────────────┴───────┘
+
+  Proposed delete — 55, none has ever logged in, none authored a cert:
+
+  - Seed personas (11): 4 test.user, 5 sarah.johnson, 6 mike.chen, 7 lisa.rodriguez, 8 david.kim, 9 emma.wilson, 10
+  alex.martinez, 11 jennifer.lee, 12 robert.taylor Admin, 13 maria.garcia, 14 public.user — all
+  @anukiconsulting.com; plus 15 partner.amazon@anukiconsulting.com
+  - CSV-import edge-case scratch (33): Ids 42–75 @example.com (cara.admin Admin, hank.badstatus Admin,
+  duplicate.user, QUINN.UPPER, zoe.emoji, formula.name, script.name, eli.newline, fay.tab, gia.mojibake …)
+  - Carly duplicates (5): 38 carly@gcccc.com, 78 carly@admin.com, 82 carly@gcc5.com, 83 carly@gcc6.com, 84
+  carly@gcc7.com — all Admin
+  - Spare partner fixtures (4): 87 pat.amazon, 92 paz.lower, 93 phil.nonpartner, 94 phoebe.pac
+  - QC #108 throwaways (4): 95–98 @gcc-test.local
+
+  Reply "go" and I'll run it as SQL (mirroring the app's soft-delete so emails free up for your real team accounts).
+  Or strike anything from the keep list.
+
+  4. Country multi-select — scoped, and it's cheaper than expected
+
+  Your observation isn't reproducible on test env: 0 of 228 certs there have multiple countries. It's in the
+  live/public data — I profiled the 1,021-record mirror: 19 certs genuinely span >1 country (25-8767 = US + Canada;
+  one is US + China + Poland), across 35 distinct countries. So it's real, just ~2%.
+
+  The important part: the Amazon contract is not affected. certificationCountries is hardcoded to the literal "All"
+  for partner callers (CertificatesController.cs:254, 318, 1067, 1668) per Dev Guide §4/§8 — only internal callers
+  project the real value. So no partner re-certification.
+
+  Cost lands in: Certificate.Country string → join table, the CR-187 persisted NormalizedCountry column, tile
+  filters/sort on both internal + external APIs, CSV import/export columns, and the migration transform (plan §87
+  already splits Location→Country). This is a CR, not a defect — needs a number and your sign-off before I build.
+
+  5. Forgot Password + 2FA — both built, both blocked by the same thing
+
+  Both are fully implemented: Forgot Password is a complete token flow (AccountController.cs:404-570), 2FA has
+  email/SMS/Both with a preferences page. Neither delivers on the test env because
+  SmtpSettings.Host/Username/Password are empty strings in appsettings.Production.json, so Program.cs:505 falls back
+  to MockEmailService — the code runs, the mail never sends. That's DEF-263, already logged.
+
+  To unblock: I need real SMTP credentials for the test env (host/port/user/password/from-address). Once those are
+  in, both features work with no code change. 2FA over SMS additionally needs a Twilio account — there's no Twilio
+  section in the config at all, so SMS is further out than email.
+
+  Logged to observations_log.md. Next DEF is 347, next CR is 036.

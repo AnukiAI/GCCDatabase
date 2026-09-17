@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In - GreenCircle Certified Database</title>
+    <link href="/css/main.css" rel="stylesheet" />
+    <link href="/css/auth.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+</head>
+<body class="login-page">
+    <main class="login-container" role="main">
+        <div class="login-left">
+            <img src="/img/gcclogo.png" alt="GreenCircle Logo" class="login-logo" />
+            <div class="login-brand">
+                <h1>GreenCircle Certified Database</h1>
+                <p>Access your sustainability certification database.</p>
+            </div>
+        </div>
+
+        <div class="login-right">
+            <div class="login-header">
+                <h2>Welcome Back</h2>
+                <p>Sign in to your account</p>
+            </div>
+            
+
+
+
+            <div class="login-form-section">
+                <form method="post" action="/Account/Login">
+                    
+                    <div class="form-group">
+                       <label for="Email" class="form-label">Email or Username <span class="text-danger" aria-label="required">*</span></label>
+                       <input type="text" id="Email" name="Email" class="form-control" placeholder="Enter your email or username" required aria-required="true" aria-describedby="email-help" data-val="true" data-val-required="The Email or Username field is required." value="" />
+                       <small id="email-help" class="form-text text-muted">You can login with either your email address or username.</small>
+                       <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="Email" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Password" class="form-label">Password <span class="text-danger" aria-label="required">*</span></label>
+                        <input type="password" id="Password" name="Password" class="form-control" placeholder="Enter your password" required aria-required="true" data-val="true" data-val-required="The Password field is required." />
+                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="Password" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="RememberMe" name="RememberMe" data-val="true" data-val-required="The Remember me? field is required." value="true" />
+                        <label for="RememberMe">Remember me</label>
+                    </div>
+
+                    <button type="submit" class="btn-lime" aria-label="Login to your account">Login</button>
+
+                    <div class="link">
+                        <a href="/Account/ForgotPassword">Forgot Password</a>
+                    </div>
+                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8CHx-_BSm9hNiZUouAeJhVYkbR9-yniB_ENSJYYxBcMhbwBlS1riK8U0IsUfkxOMP8-Zhu_VzMjes4aGpgP0OQC8ipCkWDD-g5jzeAdGOH8Uxxw_Iax9REzmUPy6WeX4HQL444JrVedrvCQ3eRgZ408" /><input name="RememberMe" type="hidden" value="false" /></form>
+
+                
+            </div>
+
+            <div class="security-notice">
+                <i class="fas fa-shield-alt"></i>
+                <div>
+                    <strong>Secure Authentication</strong>
+                    <p>Your credentials are protected with industry-standard encryption</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Login button behavior handled by /js/auth.js -->
+    <script src="/js/auth.js"></script>
+</body>
+</html>

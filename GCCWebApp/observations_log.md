@@ -6340,3 +6340,33 @@ before agreeing that committing secrets is now safe.
 `JWT_SECRET_KEY` / `DB_PASSWORD` / `REDIS_PASSWORD` - different key names entirely. A new developer
 copying it would produce a config the app ignores, and would debug it as an app fault. **A template
 that is not generated from the real file drifts silently, because nothing ever executes it.**
+
+### Same day - moving the out-of-repo docs in
+
+**Check overlap by CONTENT before importing an external folder.** Three of the 40 loose files were
+byte-identical to files already tracked, and the Partner API guides already lived in
+`docs/tracking/api-samples/` in *newer* revisions (2026-09-15) than the loose copies (2026-09-14).
+Importing by name would have added stale duplicates beside the current ones. Comparing basenames and
+then md5 took one script and reduced the real import from 40 items to 37.
+
+**The database backups were the landmine.** `db-backups/` looked like ordinary artifacts. It is 323
+files of production table dumps, and `dbo.Users.jsonl` carries live bcrypt hashes and emails while
+`dbo.ApiKeys.jsonl` / `dbo.PartnerApiKeys.jsonl` carry the partner API keys, Amazon's included.
+**A folder named after its mechanism ("backups") says nothing about its contents' sensitivity** -
+open one before deciding where it belongs.
+
+**95% of the bytes were 5% of the value.** Of 203 MB, 138 MB was eleven near-identical QC workbooks,
+including two literal `BACKUP-20260902` copies of a third. `.xlsx` is zip-compressed so git cannot
+delta them - each is stored whole, in every clone, forever. Tracking the current two and leaving the
+frozen nine in OneDrive keeps the point (git versions the log going forward) at a fifth of the cost.
+
+**Filename dates lie.** `Database QC Log_9.3.26_sw_updates.xlsx` was last modified 2026-09-14 -
+more recently than either `9.11.26` or `9.9.26` (both 2026-09-11). The note in memory saying 9.9.26
+is current may be wrong. **Sort by mtime before calling a workbook current**, and expect the most
+recently edited one to be locked, because it is the one actually open.
+
+**An Excel lock is exclusive enough to block reading.** `shutil.move` fell back to copy-then-unlink,
+left a stray copy at the destination and failed on the delete - and the source could not even be
+md5'd to verify the copy. Removed the stray rather than commit an unverified snapshot of a file
+being actively edited. **A half-completed move is worse than a skipped one**; check the destination
+after any move that raises.

@@ -184,6 +184,9 @@ All of this travels with the repo.
 | `GCCWebApp/docs/qa/`, `docs/governance/` | Test strategy and governance. |
 | `docs2/claude-ref/` | Reference notes on database, UI standards, view patterns, API, deployment. **Stale — 6-8 months old; `.claude/CLAUDE.md` is fresher and wins on any conflict.** |
 | `docs2/mockups/` | Design guides and mockups. |
+| `docs-client/` | Client QC log workbooks and working notes. Moved in from OneDrive 2026-09-17 — see its README for what was deliberately left out. |
+| `TestData/` | Import templates, Amazon test PDFs, sample ASIN lists. |
+| `DataMigrationTestDev/` | Migration source workbooks and verification workbooks. |
 
 The `archive/` folders under `docs/Final Req Docs/` and `docs2/` were excluded from git until
 2026-09-16 by an over-broad `**/Archive/` rule meant for old *code*. They are now tracked — see the

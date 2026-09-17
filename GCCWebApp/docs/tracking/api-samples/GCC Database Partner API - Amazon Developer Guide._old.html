@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<!-- saved from url=(0158)file:///C:/Users/swest/OneDrive%20-%20PointSolve%20Technology%20Inc/LocalWest/Projects/GCC%20Database%20Solution/docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Partner API - Amazon Developer Guide</title>
+    <style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 14pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 32px; margin-bottom: 12px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 18px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 14px; margin-bottom: 5px; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0 16px 0; font-size: 9pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 8px; font-size: 8.5pt; }
+td { padding: 5px 8px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 14px; overflow-x: auto; font-size: 8.5pt; line-height: 1.45; margin: 8px 0 16px 0; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 12px 0; font-size: 9pt; page-break-inside: avoid; border-radius: 0 4px 4px 0; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.callout-success { border-color: #2e7d32; background: #f0f8e8; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; text-transform: uppercase; }
+.tag-rec { background: #e8f5e1; color: #2e7d32; }
+.tag-get { background: #e3f2fd; color: #1565c0; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 14px 18px; margin: 14px 0 24px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 8px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.confidential { background: #fff3e0; border: 2px solid #e65100; padding: 8px 14px; border-radius: 4px; font-size: 9pt; margin: 10px 0; text-align: center; font-weight: 600; color: #e65100; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+.endpoint-card { border: 1px solid #e0e0e0; border-radius: 6px; margin: 12px 0; page-break-inside: avoid; }
+.endpoint-header { background: #f0f4ff; padding: 8px 12px; border-bottom: 1px solid #e0e0e0; border-radius: 6px 6px 0 0; }
+.endpoint-header code { font-size: 10pt; font-weight: 600; background: none; }
+.endpoint-body { padding: 10px 12px; }
+.step-num { display: inline-block; background: #002B76; color: #fff; border-radius: 50%; width: 22px; height: 22px; line-height: 22px; text-align: center; font-size: 9pt; font-weight: 700; margin-right: 8px; }
+@media print { body { padding: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="doc-header">
+    <h1>GCC Database Partner API</h1>
+    <p class="subtitle">Amazon Developer Integration Guide</p>
+    <div class="doc-meta">
+        <div><strong>Version:</strong> 1.0</div>
+        <div><strong>Date:</strong> March 2026</div>
+        <div><strong>Prepared for:</strong> Amazon Integration Team</div>
+        <div><strong>Prepared by:</strong> GreenCircle Certified</div>
+    </div>
+</div>
+
+<div class="confidential">CONFIDENTIAL - For authorized Amazon integration personnel only</div>
+
+<div class="toc">
+    <div class="toc-title">Contents</div>
+    <a href="file:///C:/Users/swest/OneDrive%20-%20PointSolve%20Technology%20Inc/LocalWest/Projects/GCC%20Database%20Solution/docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html#quickstart">1. Quick Start (Get Running in 5 Minutes)</a>
+    <a href="file:///C:/Users/swest/OneDrive%20-%20PointSolve%20Technology%20Inc/LocalWest/Projects/GCC%20Database%20Solution/docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html#auth">2. Authentication</a>
+    <a href="file:///C:/Users/swest/OneDrive%20-%20PointSolve%20Technology%20Inc/LocalWest/Projects/GCC%20Database%20Solution/docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html#endpoints">3. API Endpoints</a>
+    <a href="file:///C:/Users/swest/OneDrive%20-%20PointSolve%20Technology%20Inc/LocalWest/Projects/GCC%20Database%20Solution/docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html#data-model">4. Response Data Model</a>
+    <a href="file:///C:/Users/swest/OneDrive%20-%20PointSolve%20Technology%20Inc/LocalWest/Projects/GCC%20Database%20Solution/docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html#examples">5. Request/Response Examples</a>
+    <a href="file:///C:/Users/swest/OneDrive%20-%20PointSolve%20Technology%20Inc/LocalWest/Projects/GCC%20Database%20Solution/docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html#errors">6. Error Handling</a>
+    <a href="file:///C:/Users/swest/OneDrive%20-%20PointSolve%20Technology%20Inc/LocalWest/Projects/GCC%20Database%20Solution/docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html#pagination">7. Pagination</a>
+    <a href="file:///C:/Users/swest/OneDrive%20-%20PointSolve%20Technology%20Inc/LocalWest/Projects/GCC%20Database%20Solution/docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html#security">8. Security &amp; Access Scope</a>
+    <a href="file:///C:/Users/swest/OneDrive%20-%20PointSolve%20Technology%20Inc/LocalWest/Projects/GCC%20Database%20Solution/docs2/exports/AMAZON_API_DEVELOPER_GUIDE.html#reference">9. Field Reference</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- 1. QUICK START -->
+<!-- ============================================================ -->
+<h2 id="quickstart">1. Quick Start</h2>
+
+<p>Three steps to get your first data:</p>
+
+<p><span class="step-num">1</span> <strong>Get your API key</strong> from GCC (format: <code>gcc_partner_[hash]</code>)</p>
+
+<p><span class="step-num">2</span> <strong>Make your first request:</strong></p>
+
+<pre><code>curl -X GET "https://[production-domain]/api/v1/certificates/gs1" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Accept: application/json"</code></pre>
+
+<p><span class="step-num">3</span> <strong>You'll receive</strong> a JSON response with all Active certificates tagged to your partner account, including ASINs, certification details, and PDF download links.</p>
+
+<div class="callout callout-success">
+    <strong>Integration model:</strong> You PULL data from GCC. GCC does not push to you. Call the API on your schedule to retrieve current certification data. Each API call returns the full active certificate database. Amazon is responsible for identifying what is new or removed on their side to badge and unbadge products accordingly.
+</div>
+
+<!-- ============================================================ -->
+<!-- 2. AUTHENTICATION -->
+<!-- ============================================================ -->
+<h2 id="auth">2. Authentication</h2>
+
+<p>Every request requires the <code>X-API-Key</code> header:</p>
+
+<pre><code>X-API-Key: gcc_partner_fc8498d5e8067766f74ed28bb439b17210196895e4e67828036f1737d222138a</code></pre>
+
+<table>
+    <thead><tr><th>Response Code</th><th>Meaning</th><th>Action</th></tr></thead>
+    <tbody>
+        <tr><td><code>200</code></td><td>Success</td><td>Process the response</td></tr>
+        <tr><td><code>401</code></td><td>Invalid or missing API key</td><td>Check your key in the header</td></tr>
+        <tr><td><code>403</code></td><td>Endpoint not permitted</td><td>Contact GCC support</td></tr>
+        <tr><td><code>404</code></td><td>Resource not found</td><td>Verify certificate number or product ID</td></tr>
+        <tr><td><code>429</code></td><td>Rate limit exceeded</td><td>Wait and retry (200 API calls/hour)</td></tr>
+        <tr><td><code>500</code></td><td>Server error</td><td>Contact GCC support with request details</td></tr>
+    </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- 3. ENDPOINTS -->
+<!-- ============================================================ -->
+<h2 id="endpoints">3. API Endpoints</h2>
+
+<p>Base URL: <code>https://[production-domain]/api/v1</code></p>
+
+<!-- Endpoint 1 -->
+<div class="endpoint-card">
+    <div class="endpoint-header">
+        <span class="tag tag-get">GET</span> <code>/certificates/gs1</code> <span class="tag tag-rec">RECOMMENDED</span>
+    </div>
+    <div class="endpoint-body">
+        <p>List all certificates in GS1 JSON-LD format. ASINs and product IDs are always included.</p>
+        <p><strong>Parameters:</strong> <code>pageNumber</code> (default: 1), <code>pageSize</code> (default/max: 100), <code>searchTerm</code>, <code>sortBy</code></p>
+    </div>
+</div>
+
+<!-- Endpoint 2 -->
+<div class="endpoint-card">
+    <div class="endpoint-header">
+        <span class="tag tag-get">GET</span> <code>/certificates/gs1/{certNumber}</code>
+    </div>
+    <div class="endpoint-body">
+        <p>Get a single certificate by number in GS1 format.</p>
+        <p><strong>Example:</strong> <code>/certificates/gs1/24-0366</code></p>
+    </div>
+</div>
+
+<!-- Endpoint 3 -->
+<div class="endpoint-card">
+    <div class="endpoint-header">
+        <span class="tag tag-get">GET</span> <code>/certificates</code>
+    </div>
+    <div class="endpoint-body">
+        <p>List all certificates in standard JSON format.</p>
+        <p><strong>Parameters:</strong> <code>pageNumber</code>, <code>pageSize</code>, <code>searchTerm</code>, <code>sortBy</code>, <code>includeProductIds</code> (boolean - set to <code>true</code> to include ASINs)</p>
+    </div>
+</div>
+
+<!-- Endpoint 4 -->
+<div class="endpoint-card">
+    <div class="endpoint-header">
+        <span class="tag tag-get">GET</span> <code>/certificates/number/{certNumber}</code>
+    </div>
+    <div class="endpoint-body">
+        <p>Get a single certificate by number in standard JSON format.</p>
+    </div>
+</div>
+
+<!-- Endpoint 5 -->
+<div class="endpoint-card">
+    <div class="endpoint-header">
+        <span class="tag tag-get">GET</span> <code>/certificates/search/productid</code>
+    </div>
+    <div class="endpoint-body">
+        <p>Find a certificate by ASIN, UPC, or GTIN.</p>
+        <p><strong>Parameters:</strong> <code>productId</code> (required), <code>type</code> (ASIN, UPC, GTIN, EAN)</p>
+        <p><strong>Example:</strong> <code>/certificates/search/productid?productId=B08XQRT456&amp;type=ASIN</code></p>
+    </div>
+</div>
+
+<!-- Endpoint 6 -->
+<div class="endpoint-card">
+    <div class="endpoint-header">
+        <span class="tag tag-get">GET</span> <code>/certificates/{certNumber}/download</code>
+    </div>
+    <div class="endpoint-body">
+        <p>Download the certificate PDF document. Returns <code>application/pdf</code>.</p>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 4. DATA MODEL -->
+<!-- ============================================================ -->
+<h2 id="data-model">4. Response Data Model</h2>
+
+<h3>Certificate Fields</h3>
+<table>
+    <thead><tr><th>Field</th><th>Type</th><th>Description</th><th>Example</th></tr></thead>
+    <tbody>
+        <tr><td><code>certificateNumber</code></td><td>string</td><td>Unique certificate ID</td><td><code>24-0366</code></td></tr>
+        <tr><td><code>status</code></td><td>string</td><td>Always "Active" (only active certs returned)</td><td><code>Active</code></td></tr>
+        <tr><td><code>issueDate</code></td><td>datetime</td><td>Certificate effective date</td><td><code>2024-01-15T00:00:00Z</code></td></tr>
+        <tr><td><code>expirationDate</code></td><td>datetime</td><td>Certificate expiration date</td><td><code>2025-01-15T00:00:00Z</code></td></tr>
+        <tr><td><code>company</code></td><td>string</td><td>Certified company/brand name</td><td><code>EcoProduct Co</code></td></tr>
+        <tr><td><code>productName</code></td><td>string</td><td>Certified product name</td><td><code>Recycled Paper Towels</code></td></tr>
+        <tr><td><code>certificationType</code></td><td>string</td><td>Certification standard</td><td><code>Sustainable Energy Practices</code></td></tr>
+        <tr><td><code>amazonCode</code></td><td>string</td><td>Amazon's standardized cert identifier</td><td><code>greencircle_sustainable_energy_practices</code></td></tr>
+        <tr><td><code>certificationResults</code></td><td>string</td><td>Results achieved</td><td><code>25% recycled content verified</code></td></tr>
+        <tr><td><code>pathway</code></td><td>string</td><td>Certification pathway*</td><td><code>Energy usage reduction</code></td></tr>
+        <tr><td><code>issuer</code></td><td>string</td><td>Certifying body</td><td><code>GreenCircle Certified</code></td></tr>
+        <tr><td><code>certificationCountries</code></td><td>string</td><td>Marketplace countries</td><td><code>All**</code></td></tr>
+        <tr><td><code>pdfDownloadUrl</code></td><td>string</td><td>Relative URL to download cert PDF</td><td><code>/api/v1/certificates/24-0366/download</code></td></tr>
+    </tbody>
+</table>
+
+<p style="font-size: 8.5pt; color: #555; margin-top: 4px;">* Pathway will not be applicable for all certification types and will be left blank if not relevant.<br>
+** Marketplace IDs will not be passed. Amazon will apply the badge in all marketplaces where the product is sold, as the certificate is not restricted by location.</p>
+
+<h3>Product Identifier Fields (within <code>productIds[]</code>)</h3>
+<table>
+    <thead><tr><th>Field</th><th>Type</th><th>Description</th><th>Example</th></tr></thead>
+    <tbody>
+        <tr><td><code>type</code></td><td>string</td><td>ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN</td><td><code>ASIN</code></td></tr>
+        <tr><td><code>value</code></td><td>string</td><td>The product identifier value</td><td><code>B08XQRT456</code></td></tr>
+        <tr><td><code>status</code></td><td>string</td><td>Product ID status</td><td><code>Active</code></td></tr>
+        <tr><td><code>partner</code></td><td>string</td><td>Associated partner</td><td><code>Amazon</code></td></tr>
+        <tr><td><code>productName</code></td><td>string</td><td>Product variant name</td><td><code>Paper Towels - 12 Pack</code></td></tr>
+        <tr><td><code>productSku</code></td><td>string</td><td>Company SKU</td><td><code>RPT-12PK</code></td></tr>
+    </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- 5. EXAMPLES -->
+<!-- ============================================================ -->
+<h2 id="examples">5. Request/Response Examples</h2>
+
+<h3>5.1 List All Certificates (GS1 Format)</h3>
+
+<h4>Request</h4>
+<pre><code>GET /api/v1/certificates/gs1
+X-API-Key: YOUR_API_KEY</code></pre>
+
+<h4>Response</h4>
+<pre><code>{
+  "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+  "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+  "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+  "type": "CertificationReport",
+  "issueDate": "2024-01-15",
+  "issuer": "GreenCircle Certified",
+  "products": [
+    {
+      "id": "https://id.gs1.org/01/00012345678901",
+      "type": "Product",
+      "gtin": "00012345678901",
+      "name": "Energy-Efficient LED Bulb",
+      "additionalTradeItemId": [
+        { "type": "ASIN", "value": "B08XQRT456" }
+      ],
+      "certificationInfo": {
+        "type": "CertificationDetails",
+        "agency": "GreenCircle Certified",
+        "agencyURL": "https://www.greencirclecertified.com",
+        "program": "Sustainable Energy Practices",
+        "certificateId": "24-0366",
+        "status": "ACTIVE",
+        "value": "32%",
+        "startDate": "2024-01-15",
+        "endDate": "2025-01-15",
+        "targetCountries": ["All"],
+        "amazonCode": "greencircle_sustainable_energy_practices",
+        "pathway": "Energy usage reduction"
+      }
+    }
+  ]
+}</code></pre>
+
+<h3>5.2 List All Certificates (Standard JSON)</h3>
+
+<h4>Request</h4>
+<pre><code>GET /api/v1/certificates?includeProductIds=true
+X-API-Key: YOUR_API_KEY</code></pre>
+
+<h4>Response</h4>
+<pre><code>{
+  "success": true,
+  "pagination": {
+    "totalCount": 1,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  },
+  "data": [
+    {
+      "certificateNumber": "24-0366",
+      "status": "Active",
+      "issueDate": "2024-01-15T00:00:00Z",
+      "expirationDate": "2025-01-15T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "32%",
+      "pathway": "Energy usage reduction",
+      "company": "EcoProduct Co",
+      "productName": "Energy-Efficient LED Bulb",
+      "certificationType": "Sustainable Energy Practices",
+      "amazonCode": "greencircle_sustainable_energy_practices",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B08XQRT456",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Energy-Efficient LED Bulb",
+          "productSku": "LED-BULB-001"
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/24-0366/download"
+    }
+  ]
+}</code></pre>
+
+<h3>5.3 Search by ASIN</h3>
+
+<h4>Request</h4>
+<pre><code>GET /api/v1/certificates/search/productid?productId=B08XQRT789&amp;type=ASIN
+X-API-Key: YOUR_API_KEY</code></pre>
+
+<h4>Response</h4>
+<pre><code>{
+  "success": true,
+  "data": {
+    "certificateNumber": "24-0512",
+    "status": "Active",
+    "certificationResults": "60% post-consumer recycled content verified",
+    "company": "CleanGreen Industries",
+    "productName": "Recycled Paper Towels",
+    "certificationType": "Recycled Content",
+    "amazonCode": "greencircle_recycled_content",
+    "productIds": [
+      { "type": "ASIN", "value": "B08XQRT456", "productName": "Paper Towels - 6 Pack" },
+      { "type": "ASIN", "value": "B08XQRT789", "productName": "Paper Towels - 12 Pack", "isMatchedId": true },
+      { "type": "ASIN", "value": "B08XQRT999", "productName": "Paper Towels - 24 Pack" }
+    ],
+    "pdfDownloadUrl": "/api/v1/certificates/24-0512/download"
+  }
+}</code></pre>
+
+<div class="callout callout-info">
+    <strong>Note:</strong> Searching for one ASIN returns the full certificate with ALL associated product IDs. The <code>isMatchedId: true</code> flag marks which one matched your search.
+</div>
+
+<h3>5.4 Download Certificate PDF</h3>
+
+<h4>Request</h4>
+<pre><code>GET /api/v1/certificates/24-0366/download
+X-API-Key: YOUR_API_KEY</code></pre>
+
+<p>Returns the PDF file with <code>Content-Type: application/pdf</code>.</p>
+
+<!-- ============================================================ -->
+<!-- 6. ERROR HANDLING -->
+<!-- ============================================================ -->
+<h2 id="errors">6. Error Handling</h2>
+
+<p>All errors return a consistent JSON structure:</p>
+
+<pre><code>{
+  "success": false,
+  "error": "Description of what went wrong"
+}</code></pre>
+
+<table>
+    <thead><tr><th>Code</th><th>Error</th><th>Resolution</th></tr></thead>
+    <tbody>
+        <tr><td><code>401</code></td><td>Missing or invalid API key</td><td>Ensure <code>X-API-Key</code> header is present with a valid key</td></tr>
+        <tr><td><code>403</code></td><td>Insufficient permissions</td><td>Your key may not have access to this endpoint</td></tr>
+        <tr><td><code>404</code></td><td>Certificate or product ID not found</td><td>Verify the certificate number or ASIN exists and is Active</td></tr>
+        <tr><td><code>429</code></td><td>Rate limit exceeded</td><td>Default: 200 API calls/hour (each call can return up to 100 certificates). Wait and retry with exponential backoff</td></tr>
+        <tr><td><code>500</code></td><td>Server error</td><td>Contact GCC support with the request details</td></tr>
+    </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- 7. PAGINATION -->
+<!-- ============================================================ -->
+<h2 id="pagination">7. Pagination</h2>
+
+<p>The API returns certificate data in pages of up to <strong>100 certificates per request</strong>. If you have more than 100 certificates, you will need to make multiple requests to retrieve all of them. Use the <code>pagination</code> object in each response to determine if more pages are available:</p>
+
+<pre><code>// Page 1
+GET /api/v1/certificates?pageNumber=1&amp;pageSize=100
+
+// Check response
+"pagination": {
+  "totalCount": 250,
+  "pageNumber": 1,
+  "pageSize": 100,
+  "totalPages": 3,
+  "hasNext": true,      // ← more pages available
+  "hasPrevious": false
+}
+
+// Page 2
+GET /api/v1/certificates?pageNumber=2&amp;pageSize=100</code></pre>
+
+<p>Loop until <code>hasNext</code> is <code>false</code>.</p>
+
+<!-- ============================================================ -->
+<!-- 8. SECURITY -->
+<!-- ============================================================ -->
+<h2 id="security">8. Security &amp; Access Scope</h2>
+
+<table>
+    <thead><tr><th>Control</th><th>Details</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Transport</strong></td><td>HTTPS/TLS required for all requests</td></tr>
+        <tr><td><strong>Authentication</strong></td><td>API key via <code>X-API-Key</code> header</td></tr>
+        <tr><td><strong>Data Isolation</strong></td><td>Your key only returns certificates where Partner = "Amazon"; no other partner data is accessible</td></tr>
+        <tr><td><strong>Status Filter</strong></td><td>Only active certificates are returned; draft, expired, suspended, and revoked certs are excluded</td></tr>
+        <tr><td><strong>Rate Limiting</strong></td><td>200 API calls/hour (each call returns up to 100 certificates; configurable per key)</td></tr>
+        <tr><td><strong>Key Management</strong></td><td>Keys issued and revocable by GCC administrators</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-info">
+    <strong>You will never see:</strong> other partner data, internal notes, workflow history, draft certificates, or GCC user information.
+</div>
+
+<!-- ============================================================ -->
+<!-- 9. FIELD REFERENCE -->
+<!-- ============================================================ -->
+<h2 id="reference">9. Field Reference</h2>
+
+<h3>Standard JSON vs GS1 JSON-LD Field Mapping</h3>
+<table>
+    <thead><tr><th>Data</th><th>Standard JSON Path</th><th>GS1 JSON-LD Path</th></tr></thead>
+    <tbody>
+        <tr><td>Certificate Number</td><td><code>data[].certificateNumber</code></td><td><code>products[].certificationInfo.certificateId</code></td></tr>
+        <tr><td>Status</td><td><code>data[].status</code> ("Active")</td><td><code>certificationInfo.status</code> ("ACTIVE")</td></tr>
+        <tr><td>Issue Date</td><td><code>data[].issueDate</code> (ISO 8601+time)</td><td><code>issueDate</code> (date only)</td></tr>
+        <tr><td>Expiration Date</td><td><code>data[].expirationDate</code></td><td><code>certificationInfo.endDate</code></td></tr>
+        <tr><td>Cert Results</td><td><code>data[].certificationResults</code></td><td><code>certificationInfo.value</code></td></tr>
+        <tr><td>Cert Type</td><td><code>data[].certificationType</code></td><td><code>certificationInfo.program</code></td></tr>
+        <tr><td>Amazon Code</td><td><code>data[].amazonCode</code></td><td><code>certificationInfo.amazonCode</code></td></tr>
+        <tr><td>ASIN</td><td><code>data[].productIds[].value</code></td><td><code>products[].additionalTradeItemId[].value</code></td></tr>
+        <tr><td>GTIN</td><td><code>data[].productIds[].value</code></td><td><code>products[].gtin</code> (14-digit padded)</td></tr>
+        <tr><td>PDF Link</td><td><code>data[].pdfDownloadUrl</code></td><td><em>(use Standard endpoint)</em></td></tr>
+    </tbody>
+</table>
+
+<h3>Product Identifier Types</h3>
+<table>
+    <thead><tr><th>Type</th><th>Format</th><th>Example</th></tr></thead>
+    <tbody>
+        <tr><td>ASIN</td><td>10 characters (alphanumeric)</td><td><code>B08XQRT456</code></td></tr>
+        <tr><td>UPC</td><td>12 digits</td><td><code>012345678901</code></td></tr>
+        <tr><td>GTIN</td><td>14 digits</td><td><code>00012345678901</code></td></tr>
+        <tr><td>EAN</td><td>13 digits</td><td><code>4006381333931</code></td></tr>
+        <tr><td>SKU</td><td>Variable</td><td><code>RPT-12PK-ECO</code></td></tr>
+        <tr><td>MPN</td><td>Variable</td><td><code>MPN-12345</code></td></tr>
+    </tbody>
+</table>
+
+<h3>Available Sort Fields</h3>
+<table>
+    <thead><tr><th>sortBy Value</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><code>certificatenumber</code></td><td>Sort by certificate number</td></tr>
+        <tr><td><code>issuedate</code></td><td>Sort by issue date</td></tr>
+        <tr><td><code>expirationdate</code></td><td>Sort by expiration date</td></tr>
+        <tr><td><code>productname</code></td><td>Sort by product name</td></tr>
+        <tr><td><code>companyname</code></td><td>Sort by company name</td></tr>
+    </tbody>
+</table>
+
+<h3>GCC Support Contact</h3>
+<p>For API key requests, issues, or questions: Contact GreenCircle Certified</p>
+
+<div class="doc-footer">
+    <p>GCC Database Partner API - Amazon Developer Guide - v1.0 - March 2026</p>
+    <p>© 2026 GreenCircle Certified. All rights reserved.</p>
+</div>
+
+
+</body></html>

@@ -1,0 +1,14 @@
+Name,Description,CompanyName,ProductTypeName
+,Valid Description,Valid Company,Valid Type
+Missing Name Product,,Acme Corporation,Building Materials
+Name Only Product,,,
+Invalid Company Ref,Test description,NonExistent Company XYZ,Building Materials
+Invalid Type Ref,Test description,Acme Corporation,Invalid Type ABC
+Both Invalid Refs,Test description,Fake Company,Fake Type
+,,,
+SQL Injection,'; DROP TABLE Products;--,Acme Corporation,Building Materials
+XSS Attack,<script>alert(1)</script>,Acme Corporation,Building Materials
+Empty All Fields,,,
+Whitespace Only,   ,   ,
+Special Chars in Company,Test product,Company@#$%,Building Materials
+Very Long Description,This description is intentionally made very long to test the 500 character limit for product descriptions. It includes lots of filler text to ensure we exceed the maximum allowed length. Lorem ipsum dolor sit amet consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam quis nostrud exercitation ullamco laboris. More text here to really push the limits of what should be acceptable.,Acme Corporation,Building Materials

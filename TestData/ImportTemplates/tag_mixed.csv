@@ -1,0 +1,10 @@
+Name,Type,Description
+Valid External Tag,external,A valid external tag
+,external,Missing name
+Valid Internal Tag,internal,A valid internal tag
+Invalid Type Tag,public,Invalid type value
+,,,
+"Tag, With Comma",external,Comma in name
+No Description,internal,
+SQL Injection Tag,'; DROP TABLE;--,Security test
+Final Valid Tag,external,Last valid tag

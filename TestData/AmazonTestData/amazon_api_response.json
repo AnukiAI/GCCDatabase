@@ -1,0 +1,278 @@
+{
+  "pagination": {
+    "totalCount": 8,
+    "pageNumber": 1,
+    "pageSize": 20,
+    "totalPages": 1,
+    "hasPrevious": false,
+    "hasNext": false,
+    "firstPage": 1,
+    "lastPage": 1
+  },
+  "success": true,
+  "data": [
+    {
+      "id": 64,
+      "certificateNumber": "26-0146",
+      "status": "Client Approved - Paid",
+      "issueDate": "2026-04-01T00:00:00",
+      "expirationDate": "2028-05-31T00:00:00",
+      "location": "All",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "0.17",
+      "pathway": null,
+      "company": "Kao",
+      "companyId": 259,
+      "productName": "John Frieda PROfiller+ Thickening Conditioner",
+      "productId": 109,
+      "certificationType": "Sustainable Energy Practices",
+      "certificationTypeId": 17,
+      "amazonCode": "SEP",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0BRNN8BKS",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "John Frieda PROfiller+ Thickening Conditioner",
+          "productSku": null,
+          "description": "greencircle_sustainable_energy_practices"
+        },
+        {
+          "type": "ASIN",
+          "value": "B005PMYJBO",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "John Frieda Dream Curls Conditioner 250ml",
+          "productSku": null,
+          "description": "greencircle_sustainable_energy_practices"
+        }
+      ],
+      "createdAt": "2026-04-20T17:10:12.7177214",
+      "updatedAt": "2026-04-20T17:37:20.6618588",
+      "pdfDownloadUrl": "/api/v1/certificates/26-0146/download"
+    },
+    {
+      "id": 65,
+      "certificateNumber": "26-0147",
+      "status": "Client Approved - Paid",
+      "issueDate": "2026-04-01T00:00:00",
+      "expirationDate": "2028-05-31T00:00:00",
+      "location": "All",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "1",
+      "pathway": null,
+      "company": "Kao",
+      "companyId": 259,
+      "productName": "John Frieda ProFiller plus Shampoo 250ml",
+      "productId": 110,
+      "certificationType": "Sustainable Energy Practices",
+      "certificationTypeId": 17,
+      "amazonCode": "SEP",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0BRNPBZJ8",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "John Frieda ProFiller plus Shampoo 250ml",
+          "productSku": null,
+          "description": "greencircle_sustainable_energy_practices"
+        },
+        {
+          "type": "ASIN",
+          "value": "B01DSSNB5G",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "John Frieda Sheer Blonde Go Blonder Shampoo 250ml",
+          "productSku": null,
+          "description": "greencircle_sustainable_energy_practices"
+        }
+      ],
+      "createdAt": "2026-04-20T17:10:12.767231",
+      "updatedAt": "2026-04-20T17:37:27.3514828",
+      "pdfDownloadUrl": "/api/v1/certificates/26-0147/download"
+    },
+    {
+      "id": 66,
+      "certificateNumber": "26-0150",
+      "status": "Client Approved - Paid",
+      "issueDate": "2026-04-01T00:00:00",
+      "expirationDate": "2028-05-31T00:00:00",
+      "location": "All",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "0.27",
+      "pathway": null,
+      "company": "Kao",
+      "companyId": 259,
+      "productName": "Color Protecting Conditioner 200ml",
+      "productId": 111,
+      "certificationType": "Sustainable Energy Practices",
+      "certificationTypeId": 17,
+      "amazonCode": "SEP",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0BQN8R7JJ",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Conditioner 200ml",
+          "productSku": null,
+          "description": "greencircle_sustainable_energy_practices"
+        },
+        {
+          "type": "ASIN",
+          "value": "B0BQN91QFB",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Conditioner 750ml",
+          "productSku": null,
+          "description": "greencircle_sustainable_energy_practices"
+        },
+        {
+          "type": "ASIN",
+          "value": "B0C54679T3",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Conditioner 75ml",
+          "productSku": null,
+          "description": "greencircle_sustainable_energy_practices"
+        }
+      ],
+      "createdAt": "2026-04-20T17:10:12.8406461",
+      "updatedAt": "2026-04-20T17:37:30.1920825",
+      "pdfDownloadUrl": "/api/v1/certificates/26-0150/download"
+    },
+    {
+      "id": 67,
+      "certificateNumber": "26-0151",
+      "status": "Client Approved - Paid",
+      "issueDate": "2026-04-01T00:00:00",
+      "expirationDate": "2028-05-31T00:00:00",
+      "location": "All",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "1",
+      "pathway": null,
+      "company": "Kao",
+      "companyId": 259,
+      "productName": "Color Protecting Shampoo 250ml",
+      "productId": 112,
+      "certificationType": "Sustainable Energy Practices",
+      "certificationTypeId": 17,
+      "amazonCode": "SEP",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0BQN8PSY6",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Shampoo 250ml",
+          "productSku": null,
+          "description": "greencircle_sustainable_energy_practices"
+        },
+        {
+          "type": "ASIN",
+          "value": "B0BQN9BJCB",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Shampoo 750ml",
+          "productSku": null,
+          "description": "greencircle_sustainable_energy_practices"
+        },
+        {
+          "type": "ASIN",
+          "value": "B0C544FF8Q",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Shampoo 75ml",
+          "productSku": null,
+          "description": "greencircle_sustainable_energy_practices"
+        }
+      ],
+      "createdAt": "2026-04-20T17:10:12.8685788",
+      "updatedAt": "2026-04-20T17:37:32.7345417",
+      "pdfDownloadUrl": "/api/v1/certificates/26-0151/download"
+    },
+    {
+      "id": 68,
+      "certificateNumber": "26-0126",
+      "status": "Client Approved - Paid",
+      "issueDate": "2026-03-13T00:00:00",
+      "expirationDate": "2027-03-12T00:00:00",
+      "location": "All",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "0.69",
+      "pathway": null,
+      "company": "Amazon Devices",
+      "companyId": 197,
+      "productName": "eero 7, Individual Unit, ISP, Bulk Pack",
+      "productId": 113,
+      "certificationType": "Recycled Content",
+      "certificationTypeId": 15,
+      "amazonCode": "RC",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0D9HW3Z3Y",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "eero 7, Individual Unit, ISP, Bulk Pack",
+          "productSku": null,
+          "description": "greencircle_recycled_content"
+        }
+      ],
+      "createdAt": "2026-04-20T17:10:12.886458",
+      "updatedAt": "2026-04-20T17:37:18.2867523",
+      "pdfDownloadUrl": "/api/v1/certificates/26-0126/download"
+    },
+    {
+      "id": 69,
+      "certificateNumber": "26-0157",
+      "status": "Client Approved - Paid",
+      "issueDate": "2026-03-12T00:00:00",
+      "expirationDate": "2027-03-11T00:00:00",
+      "location": "All",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "0.17",
+      "pathway": null,
+      "company": "Sonos",
+      "companyId": 261,
+      "productName": "Sonos Play (Black)",
+      "productId": 114,
+      "certificationType": "Certified Energy Savings",
+      "certificationTypeId": 4,
+      "amazonCode": "CES",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0GJRV3MZC",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Sonos Play (Black)",
+          "productSku": null,
+          "description": "greencircle_energy_savings"
+        }
+      ],
+      "createdAt": "2026-04-20T17:10:12.9024875",
+      "updatedAt": "2026-04-20T17:37:34.1819214",
+      "pdfDownloadUrl": "/api/v1/certificates/26-0157/download"
+    }
+  ],
+  "message": null,
+  "errors": [],
+  "timestamp": "2026-04-20T19:04:11.967917Z",
+  "requestId": "4000d2ef-0000-5700-b63f-84710c7967bb",
+  "version": "1.0"
+}

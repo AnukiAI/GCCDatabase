@@ -1,0 +1,13 @@
+Name,Type,Description
+Eco-Friendly,external,Products that are environmentally friendly
+Recycled Content,external,Products made from recycled materials
+Energy Efficient,external,Products that save energy
+Low VOC,external,Low volatile organic compounds
+Biodegradable,external,Products that decompose naturally
+Sustainable Source,external,Sustainably sourced materials
+Carbon Neutral,external,Zero carbon footprint products
+Water Saving,external,Products that conserve water
+Priority Review,internal,Items flagged for priority review
+Pending Verification,internal,Items awaiting verification
+Manager Approved,internal,Approved by management
+Expedited,internal,Fast-track processing

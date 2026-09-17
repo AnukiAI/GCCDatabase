@@ -1,0 +1,40 @@
+Goal
+Build a script that downloads every publicly available certificate (PDF) from the
+GreenCircle Certified public database and saves them locally, plus a metadata index
+of all records.
+
+Target
+https://db.greencirclecertified.com/certificate
+
+What's known about the site
+- The certificate list is a JavaScript-rendered table (Ant Design); rows load from a
+  backend API after page load, so fetching the page HTML directly returns an empty
+  table. Prefer calling that underlying JSON API directly — inspect the browser
+  Network tab to find the endpoint and its pagination parameters. Fall back to a
+  headless browser (Playwright) only if there's no usable API.
+- Columns: Certificate, Company, Product, Type, Certification, Effective, Expiration,
+  Location, Download. The "Download" column links to each certificate file.
+- Only a subset is public ("available at the consent of the client"). Skip anything
+  not publicly downloadable; do not attempt to bypass sign-in.
+
+Requirements
+1. Enumerate ALL records: read the total count and page through every result.
+2. For each record, save (a) the certificate file and (b) all column metadata.
+3. Write a manifest (CSV + JSON): one row per record with every metadata field, the
+   download URL, the local file path, and a status (downloaded / skipped / failed).
+4. Be a good citizen: real User-Agent, a short delay between requests, retry with
+   backoff on errors, and respect robots.txt and the site's terms.
+5. Be resumable: re-running skips already-downloaded files and only retries failures.
+6. Log progress and a final summary (X of Y downloaded, list of failures).
+
+Decisions [fill these in]
+- Language/stack: [Python preferred — requests for the API path, Playwright if a
+  browser is needed]
+- Save location + file naming: [e.g. ./certificates/{Company}_{Certificate}.pdf]
+- Metadata format: Excel/Google Sheet, or is CSV fine?
+- One-time pull, or a re-runnable job that keeps a local mirror current?
+- All records, or a subset (filter by company / type / certification)?
+
+Done when
+Every public record has its certificate downloaded (or an explicit skip/fail reason),
+and manifest.csv lists all of them with their local paths.

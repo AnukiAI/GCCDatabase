@@ -41,7 +41,10 @@ logs/
 # Environment files with secrets
 .env
 .env.*
+# Sanitized templates ARE tracked -- they carry the shape of each file, never a live value.
+# Real values live only in the un-suffixed files above. See SETUP.md, "Configuration".
 !.env.example
+!.env.*.example
 appsettings.Production.json
 appsettings.Staging.json
 appsettings.Test.json
@@ -102,8 +105,8 @@ DataProtectionKeys/*.xml
 # Test artifacts at root
 test_results/
 
-# Ephemeral pre-deploy Gate 2 / probe smoke scripts + their results (throwaway, not committed)
-Scripts/smoke-prod/gate2-*.js
+# Gate 2 pre-deploy smoke scripts are now TRACKED (they are regression assets, not throwaway).
+# Only their run OUTPUT stays ignored.
 Scripts/smoke-prod/_results/gate2-*.json
 Scripts/smoke-prod/_axe-public.js
 

@@ -189,6 +189,47 @@ The `archive/` folders under `docs/Final Req Docs/` and `docs2/` were excluded f
 2026-09-16 by an over-broad `**/Archive/` rule meant for old *code*. They are now tracked — see the
 comment on that rule in `.gitignore` before changing it.
 
+## Configuration files and their templates
+
+**For local development you need none of these.** `appsettings.Development.json` plus the
+connection-string environment variable in step 3 is the whole story. The files below matter when you
+deploy, or run against a shared environment.
+
+Each real file is gitignored and holds live values. The committed template beside it is a
+line-for-line copy — same keys, same comments, same order — with every credential replaced by an
+`<ANGLE_BRACKET>` placeholder. That way a new developer can see exactly which settings exist, and
+what shape each one takes, without a live secret ever entering git history.
+
+| Real file (ignored) | Committed template | Configures |
+|---|---|---|
+| `.env` | `.env.example` | Local dev env vars: DB, JWT, SMTP, Redis |
+| `.env.https` | `.env.https.example` | Kestrel HTTPS cert + Azure AD B2C |
+| `.env.plesk-UPDATED` | `.env.plesk.example` | Plesk server env vars |
+| `.env.test` | `.env.test.example` | Test-environment env vars and seed passwords |
+| `appsettings.Production.json` | `appsettings.Production.template.json` | Production app config |
+| `appsettings.Staging.json` | `appsettings.Staging.template.json` | Staging app config |
+| `appsettings.Test.json` | `appsettings.Test.template.json` | Test app config |
+| `appsettings.Security.json` | `appsettings.Security.template.json` | Key Vault, data protection, auth policy |
+| `appsettings.Secrets.json` | `appsettings.Secrets.template.json` | Server-only secrets overlay (DEF-263) |
+| `appsettings.Secrets.json` (test site) | `appsettings.Secrets.test-site.template.json` | Test site's own DB pointer |
+
+Placeholder legend:
+
+- `<REQUEST: ...>` — ask the project owner. Not derivable and not stored in the repo.
+- `<GENERATE: openssl rand -base64 64>` — generate your own. A signing key must **not** be shared
+  between environments; reusing production's key means a token minted in test validates in
+  production.
+- `<AZURE: ...>` — read it from the Azure portal.
+- `<db-host>` / `<db-name>` / `<db-user>` — environment-specific, filled in per deployment.
+
+Copy the template to the real filename, fill in the placeholders, and never commit the filled-in
+copy. `.gitignore` already prevents it: `.env`, `.env.*` and the four environment `appsettings`
+files are ignored, with an explicit exception only for `*.example` and `*.template.json`.
+
+**`DataProtectionKeys/` is deliberately never templated and never committed.** Those XML files are
+stored *unencrypted* and are what sign auth cookies — anyone holding them can forge a signed-in
+session. The app regenerates them on first run, so a new developer needs nothing here.
+
 ## Known setup gotchas
 
 - **`docs2/claude-ref/DATABASE.md` and `TESTING.md` contain stale and wrong credentials.** They also
@@ -198,6 +239,7 @@ comment on that rule in `.gitignore` before changing it.
   integer "works" on submit and fails on load.
 - **Seeded certificates have no PDFs on disk.** The uploads store and the seeded rows are disjoint,
   so preview/download of seeded certs will 404. Upload flows on newly created certs work fine.
-- Secrets are intentionally absent from the repo: `appsettings.Secrets.json`,
-  `appsettings.Production.json`, `.env*` and `DataProtectionKeys/` are all ignored. Templates for
-  the first two are committed as `*.template.json`.
+- Secrets are intentionally absent from the repo: `appsettings.Secrets.json`, the four
+  environment `appsettings` files, `.env*` and `DataProtectionKeys/` are all ignored. A sanitized
+  template is committed for every one of them except `DataProtectionKeys/` — see "Configuration
+  files and their templates" above.

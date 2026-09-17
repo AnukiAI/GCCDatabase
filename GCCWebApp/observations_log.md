@@ -6301,3 +6301,42 @@ the repo, outside OneDrive), integrity-tested by reading a secret back out of th
 than trusting the file count, plus a manifest of all 157 ignored paths and an md5 list of every
 deleted zip. **Ask "what exists in exactly one place" - it is usually far smaller than "what is
 large".**
+
+
+## 2026-09-17 - Tracking the untracked: gate2 scripts + sanitized config templates
+
+**"Not in GitHub" is three different questions, and only one of them is `.gitignore`.** The audit
+turned up (a) one *committed but unpushed* commit, (b) 139 gitignored paths inside the repo, and
+(c) the entire parent folder - 13 QC log workbooks, 10 Partner API guides, `db-backups/`, `TestData/`
+- which sits one level ABOVE the repo root and is therefore in no git repo at all. Answering only
+(b) would have looked complete and missed the client-facing deliverables entirely. **Ask all three.**
+
+**A file named `*.template.json` is not necessarily sanitized.** The already-tracked
+`appsettings.Secrets.test-site.template.json` has proper `REPLACE_WITH_*` placeholders for its
+passwords - and then names the live DB endpoint, the production catalog and the DB login in its
+prose comments. The passwords were treated as secret; the infrastructure around them was not. **The
+placeholder discipline was applied to the value slots and stopped there.**
+
+**Which is exactly the bug I then reproduced.** Regenerating the Production template from the real
+file masked every connection string and key correctly, and leaked the production DB endpoint anyway
+- through a `//` comment explaining why auto-migrate was disabled. A line-based masker that only
+matches `key = value` and `"key": "value"` never looks at comment lines. **Comments are a value slot
+too.**
+
+**Verify sanitization in the right direction.** Re-running a "does this look like a secret" detector
+over the OUTPUT proves nothing - it only finds what the masker's own patterns already describe.
+The check that works: harvest every literal secret value out of the SOURCE files, then grep the
+generated output for each one. Same detector, opposite direction, and it is falsifiable. That is
+what surfaced the comment leak and the pre-existing exposure above.
+
+**"We're updating all the passwords" does not cover the file.** Of ~60 live values across the nine
+config files, the ones a password rotation does NOT touch are the majority: JWT signing keys, both
+Azure AD client secrets, the App Insights connection string, the Azure Blob storage connection
+string, and every host/catalog/login name. **Rotation is not sanitization** - worth saying plainly
+before agreeing that committing secrets is now safe.
+
+**Regenerating the template from the real file exposed that the old one was fiction.** The tracked
+`.env.example` used `GCC_JWT_SECRET` / `GCC_TEST_ADMIN_PASSWORD`; the real `.env` uses
+`JWT_SECRET_KEY` / `DB_PASSWORD` / `REDIS_PASSWORD` - different key names entirely. A new developer
+copying it would produce a config the app ignores, and would debug it as an app fault. **A template
+that is not generated from the real file drifts silently, because nothing ever executes it.**

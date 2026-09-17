@@ -1588,7 +1588,7 @@ remove first. Shawn created the database copy `gccwebap_test` the same day.
 
 ---
 
-### CR-051 (raised 2026-09-16, **NOT started — estimate only, approved as a CR**) — Certificate **Status** filter on the internal listing (Admin / Analyst only)
+### CR-051 (raised 2026-09-16, **BUILT 2026-09-16 — not yet deployed**) — Certificate **Status** filter on the internal listing (Admin / Analyst only)
 
 - **Period:** raised 2026-09-16; not started
 - **Source:** the client, 2026-09-10, logged as **QC #266** — `Database QC Log_9.11.26.xlsx`, sheet
@@ -1602,8 +1602,10 @@ remove first. Shawn created the database copy `gccwebap_test` the same day.
   already accepted. **Classified as a CR by Shawn, 2026-09-16**, after the build-state evidence below
   was put in front of her — the alternative reading (absorb as a defect) was raised, considered and
   declined. Recorded so the basis is auditable rather than assumed.
-- **Status:** **Not started.** Priced here so the estimate-before-build gate is satisfied
-  (`docs/governance/change-request-process.md`).
+- **Status:** **BUILT 2026-09-16, not yet deployed.** Approved as a CR and built the same day;
+  estimate was recorded before the build per the gate (`docs/governance/change-request-process.md`).
+  See the build note at the end of this entry — planning found a mismatch that would have shipped a
+  filter returning zero rows for four of the eight statuses.
 
 > ### Build state: most of this CR is already implemented — read before quoting the hours
 >
@@ -1702,9 +1704,107 @@ dimension would normally cost.
 **Risk:** low, and contained to one view. The one way this goes wrong is adding the panel to the
 external view as well.
 
+
+#### BUILT 2026-09-16 — and the plan was wrong in one material way
+
+Built on localhost:5101 against `GCCDatabase_Dev`. **0 errors, 76 warnings** (unchanged from
+baseline). Not deployed.
+
+**The markup alone would have shipped a filter that silently half-worked.** This was found while
+planning, not after, and it is the reason the entry above is not simply "twelve lines of markup":
+
+- `Certificate.Status` is a **`string`** holding the display form — `"Client Approved - Paid"`
+  (`Models/Certificate.cs:30`).
+- The options endpoint returned **enum member names** — `Enum.GetNames(typeof(CertificateStatus))`
+  yields `ClientApprovedPaid` (no spaces or hyphens; the display text lives in `[Description]`
+  attributes).
+- The filter compares `statuses.Contains(c.Status.ToString())`
+  (`CertificateTileInternalApiController.cs:228`).
+
+So the four single-word statuses (`Draft`, `Hold`, `Expired`, `Republished`) would have matched by
+coincidence and **the four multi-word ones would have returned zero rows forever**, with labels
+reading `ClientApprovedNotPaid` in the UI. A filter that returns nothing looks like "no certificates
+have that status" — it does not look like a bug, which is what makes it expensive.
+
+**Two changes, both small:**
+
+| File | Change |
+|---|---|
+| `Controllers/Api/CertificateTileInternalApiController.cs:667` | `Enum.GetNames(typeof(CertificateStatus)).ToList()` → `CertificateStatusHelper.GetAllStatuses().Keys.ToList()` — keyed by the **stored** value, and in lifecycle rather than alphabetical order |
+| `Views/Certificate/CertificateTileViewInternal.cshtml` | the `#status-content` panel, inserted after `additional-content`, matching all five sibling panels |
+
+Nothing else was touched. Every other layer was already generic and verified to need no edit:
+`toggleFilter('status')` → `getElementById('status-content')`; `handleFilterChange`'s `filterMap`
+maps name `status` → `state.filters.status`; `attachFilterEventListeners` binds every checkbox;
+`clearAllFilters` resets `status: []`; the label and name maps already carry `status`; the URL
+round-trip and the CSV export path already serialise it.
+
+**Verification — `Scripts/smoke-prod/verify-cr051-status-filter.js`, 8/8 PASS.**
+
+| Id | Assertion | Result |
+|---|---|---|
+| A1 | internal view serves `#status-content` + `data-filter="status"` | PASS |
+| A2 | external view does **not** expose a status panel | PASS |
+| A3 | `/filters` returns all 8 **stored** strings | PASS |
+| A3b | no PascalCase enum name leaked into the payload | PASS |
+| A4 | multi-word statuses return rows — **the regression this CR fixes** | PASS (`Client Approved - Paid` = **1009**, `Client Approved - Confidential` = 40) |
+| A5 | **negative control**: `ClientApprovedPaid` matches **0** rows | PASS |
+| A6 | two statuses return the **union** | PASS (129 + 4841 = 4970 exactly) |
+| A7 | the 8 per-status counts sum to the unfiltered total | PASS (6019 = 6019) |
+
+**A5 is the assertion that makes this evidence rather than a green tick.** It proves the pre-fix
+payload *could never* have filtered, so A4 is attributable to the change and not to luck.
+
+**A7 settles a question the plan could only flag.** Two of the four multi-word statuses return 0
+(`Client Approved - Not Paid`, `Expired - No Annual Verification`). Those are **real absences in
+dev, not broken matching** — because the eight per-status counts sum to exactly the unfiltered
+6019. Had any status been failing to match, the sum would have fallen short. This also answers
+"are there legacy status values outside the 8?" — **no, zero unfilterable rows.**
+
+**Visual validation — `Scripts/smoke-prod/verify-cr051-screenshots.js`, all five viewports**
+(1400×900, 1024×800, 768×1024, 390×844, 375×667), full-page, in
+`Scripts/smoke-prod/_results/cr051/`. All five render the panel with **8 checkboxes, 0 PascalCase
+leaks**. The filtered desktop capture shows the active tag `Client Approved - Paid ×`,
+*"Showing 20 of 1009 certificates"* — **independently matching the API's 1009** — and every visible
+row's Status cell reading `CLIENT APPROVED - PAID`.
+
+**One harness bug worth recording, because it would have read as a desktop-only defect.** The first
+run reported **0 checkboxes on desktop and 8 on all four other viewports.** Desktop merely ran
+first, against a cold DB: the panel is populated by a *separate* `/filters` XHR from the one that
+renders the rows, so waiting on rows can return while the panel still holds its skeleton `<li>`s.
+Added an explicit `waitForFunction` on the real inputs, re-ran, and desktop reports 8. **A
+first-in-sequence viewport failing alone is a harness race until proven otherwise** — and the fix
+is to wait on the element being asserted, never on a proxy. A second wait was needed for the same
+reason on `#resultsCount`, which was captured mid-load reading *"Loading…"*.
+
+**Not a defect, checked:** only 5 of the 8 statuses are visible in the panel at once. All filter
+panels are `.filter-content { max-height: 250px; overflow-y: auto }`
+(`wwwroot/css/certificatetileview.css:432-436`) — Countries shows 5 of 220 the same way. Scrolling
+is the established design, not clipping.
+
+**Transient 500s are environmental, not the filter.** The dev box throws
+`SqlException: Execution Timeout Expired` under contention — `CertificateExpirationService`
+runs a heavy sweep at startup and competes with these queries (it timed out in the same log). The
+list endpoint itself returns 200 in 0.8-2.6s once that settles. The harness retries 5xx up to 3
+times and surfaces the **real** status code if all attempts fail, rather than inventing one.
+
+**Estimate held:** ~1.5-2 hr revised (from ~1-1.5 hr when the entry was first written, on
+discovering the enum-name mismatch). Built and verified inside the revised figure.
+
+**Still open — NOT built, deliberately:**
+
+1. **The internal view has a second dead panel.** `certificate-tile-view-internal.js:237` populates
+   `#partner-content`, which exists only in `CertificateTileViewExternal.cshtml`. Identical silent
+   no-op, identical one-panel fix. **Out of scope** — the client asked for status. Candidate for its
+   own CR.
+2. **The external view's dead `#status-content` selector is left in place**
+   (`certificate-tile-view-external.js:223`). Removing it was not requested either. It must **never**
+   be satisfied with a panel: status values include `Client Approved - Confidential`, an embargo
+   state customers must not see.
+
 ---
 
-### CR-052 (raised 2026-09-16, **NOT started — estimate only, needs the client to pick an option**) — Certificate PDF preview: view **all pages**, not just the first
+### CR-052 (raised 2026-09-16, **BUILT 2026-09-16 — Option A, all five surfaces; not yet deployed**) — Certificate PDF preview: view **all pages**, not just the first
 
 - **Period:** raised 2026-09-16; not started
 - **Source:** the client, 2026-09-10, logged as **QC #267** — `Database QC Log_9.11.26.xlsx`, sheet
@@ -1714,7 +1814,9 @@ external view as well.
 - **Why CR, not a defect:** single-page preview is the behaviour as designed and as built — the
   generator deliberately renders page 0 into a single thumbnail. Showing every page is new
   capability. This one is a genuine CR, unlike CR-051 above.
-- **Status:** **Not started.** Two options priced below; the client picks.
+- **Status:** **BUILT 2026-09-16 (Option A), not yet deployed.** Both options were priced first and
+  Shawn chose **Option A across all five preview surfaces**, 2026-09-16. Option B is retained below
+  unbuilt, as the record of what was declined and why. See the build note at the end of this entry.
 
 > ### The framing "is it low risk" is a hypothesis about our implementation, and it is wrong
 >
@@ -1778,3 +1880,111 @@ their words were "view multiple pages", which Option A satisfies fully.
 **Open question for the client:** is a native browser PDF view acceptable, or do they want the pages
 inside the GCC-styled modal? That answer is the whole difference between ~2 hr and ~10 hr, so it goes
 to them **before** any build starts.
+
+#### BUILT 2026-09-16 — Option A, all five surfaces. Two mechanisms, not one.
+
+Built on localhost:5101 against `GCCDatabase_Dev`. **0 errors.** Not deployed. Option A as approved
+by Shawn, 2026-09-16, across all five preview surfaces.
+
+**Scale, enumerated rather than estimated.** Every PDF in the dev uploads store was page-counted with
+pypdf — **5,474 files**:
+
+| Pages | Count | Share |
+|---|---|---|
+| 1 | 4,137 | 75.6% |
+| 2 | 1,219 | 22.3% |
+| 3 | 103 | 1.9% |
+| 4-11 | 14 | 0.3% |
+| unreadable | 1 | — |
+
+**1,336 certificates (24.4%) are multi-page**, up to 11 pages, and every page after the first was
+unreachable before this change. The single unreadable file is `23-0971`, confirmed encrypted — it is
+DEF-400's certificate and the only one in the store.
+
+**Two mechanisms were required, which the estimate did not originally allow for.**
+
+| # | Surface | Cert Id available? | Mechanism |
+|---|---|---|---|
+| 1 | `Create.cshtml` | **no — pre-save** | `URL.createObjectURL(file)` |
+| 2 | `Edit.cshtml` | yes | `/Certificate/ViewCertificateFile/{id}` |
+| 3 | `CertificateInternalView.cshtml` | yes | same |
+| 4 | `CertificateExternalView.cshtml` | yes | same |
+| 5 | `CertificateSingleView.cshtml` | yes | same |
+
+Surfaces 2-5 activate `CertificateController.ViewCertificateFile(int id)` — an endpoint that already
+existed, was already gated, and had **zero callers anywhere in `Views/` or `wwwroot/js/`**. Verified
+empirically rather than by reading: it answers `content-type: application/pdf` with **no
+`content-disposition`** and `%PDF-` magic bytes, so the browser renders it inline.
+
+**Create could not use that route and this is not a detail.** There is no saved certificate and no
+Id on Create, and no generated preview image either — `certificate-create.js` shows only a filename
+and says *"Preview will be generated on save"*. The selected PDF is already in the browser, so the
+link is built from an object URL, created per selection and **revoked** when the file is replaced or
+removed. On Create this is now the only pre-save look at the document an analyst gets, which is
+slightly more than the client asked for and is called out here rather than left to be discovered.
+
+**Verification — `Scripts/smoke-prod/verify-cr052-all-pages.js`, 12/12 PASS.**
+
+| Id | Assertion | Result |
+|---|---|---|
+| A-Edit / A-CertificateInternalView | the link renders with the right Id | PASS |
+| A-Create | JS builds a blob-backed link **and revokes it** | PASS |
+| B1 | Admin: `application/pdf`, no attachment header, `%PDF-` | PASS |
+| B2 | anonymous **DENIED** an expired cert's PDF | PASS (404) |
+| B3 | External **CAN** open its own company's PDF | PASS (24 probed: 23 real PDF, 1 placeholder) |
+| B3b | a missing PDF degrades to the placeholder, never to another cert's bytes | PASS |
+| B4 | External **DENIED** a cert outside its scope | PASS (404) |
+| C1 | route takes the int Id, not the certificate number | PASS (404 on `21-0117`) |
+| D1 | `CertificateExternalView` renders it for the owning company | PASS |
+| D2 | `CertificateSingleView` renders it anonymously (`26-0481`) | PASS |
+| D3 | that public link serves **real PDF bytes** anonymously | PASS (1,205,843 bytes) |
+
+**B4 is the assertion that mattered** — activating a dormant endpoint on a customer page and a public
+page is the risk in this CR, and an External session is refused a certificate outside its scope with
+a 404. **No new authorization surface was created:** `ViewCertificateFile` enforces the *same*
+`FileAccessAllowed` gate that `ViewCertificateImage` already passes to render page 1 on those very
+pages, so any caller who can see the preview necessarily passes the identical check.
+
+**A real finding the harness surfaced, pre-existing and NOT introduced here.** When a certificate's
+PDF is missing from disk, `ViewCertificateFile` falls back to `wwwroot/img/certpreview.png` and
+returns **HTTP 200 with a PNG**. The new link is gated on the DB field `CertificateFile`, not on the
+file existing, so for such certificates it opens an image rather than a PDF. Measured: 1 of 24 of the
+external user's certs, and **111 of 200** public certs on dev. This is the known dev
+uploads-store disjoint, not a code fault, and on TEST the PDFs are present — but it is exactly the
+shape of the 2026-06-15 incident, so it is recorded rather than smoothed over.
+
+**Visual — `Scripts/smoke-prod/verify-cr052-screenshots.js`, five viewports** in
+`Scripts/smoke-prod/_results/cr052/`. The detail views gained a **third** icon in the existing
+`.certificate-download-action` flex row; at every viewport down to 375px all three icons sit on one
+row (`distinctRowTops: 1`), with no wrapping and no horizontal page overflow. Create was driven with
+a real 2-page PDF: 0 links before selection, then a link reading **"All pages"** whose href begins
+`blob:`.
+
+**Three harness bugs fixed rather than reported as findings** — each would have produced a confident
+wrong answer:
+
+1. **Magic bytes sniffed as a string.** A PNG signature starts with byte `0x89` *then* `PNG`, so
+   `magic.startsWith('PNG')` never matched — and because `0x89` prints invisibly the terminal showed
+   `PNG\r`, making the test look correct. It reported **0 placeholders** when there was 1. Sniff
+   bytes, never the rendered string.
+2. **Walks that stopped at the first hit.** B3 broke on the first real PDF, so its placeholder count
+   was an artefact of row ordering rather than a measurement.
+3. **Too narrow a search read as a missing feature.** D2 probed only the first 20 public certs, which
+   are all CI fixtures (`98-9xxx`) with no `CertificateFile`, and concluded the public surface was
+   unprovable. Widened to the real population: 88 of 200 public certs serve a real PDF.
+
+Every request path also retries 5xx: the dev box throws `SqlException: Execution Timeout Expired`
+under contention, and an early version folded any non-200 into "no rows" — making a failed request
+indistinguishable from an empty result. One such transient failure did briefly report
+`A-CertificateInternalView` as "link absent".
+
+**Estimate:** ~3-4 hr quoted after the planning pass (up from the ~1.5-2.5 hr first written here, on
+discovering the Create case and the five-surface scope). Built and verified within it.
+
+**Deferred to TEST, deliberately:** the client's own example **`26-0621` has no PDF in the dev
+uploads store**, so it cannot be exercised locally. Local proof used `21-0117` (2 pages, verified) and
+`26-0481` (public, real PDF). **Re-check 26-0621 on TEST after deploy** — that is the one the client
+will click first.
+
+**Known limitation, stated not fixed:** an encrypted PDF still will not display (DEF-400, `23-0971`).
+The browser viewer will prompt or fail exactly as the thumbnail generator does.

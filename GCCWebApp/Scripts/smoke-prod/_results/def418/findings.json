@@ -1,0 +1,122 @@
+[
+  {
+    "viewport": "desktop",
+    "importButton": {
+      "present": true,
+      "display": "flex",
+      "visibility": "visible",
+      "width": 96,
+      "height": 44,
+      "offscreenX": false
+    },
+    "modalOpen": true,
+    "bullets": 7,
+    "viewportHeight": 900,
+    "dropZone": {
+      "top": 590,
+      "bottom": 902,
+      "h": 311
+    },
+    "dropZoneOnScreenNow": false,
+    "bodyScrollable": true,
+    "bodyClipped": false,
+    "containerBottomOffscreen": false,
+    "dropZoneReachable": true
+  },
+  {
+    "viewport": "tablet-land",
+    "importButton": {
+      "present": true,
+      "display": "flex",
+      "visibility": "visible",
+      "width": 96,
+      "height": 44,
+      "offscreenX": false
+    },
+    "modalOpen": true,
+    "bullets": 7,
+    "viewportHeight": 800,
+    "dropZone": {
+      "top": 585,
+      "bottom": 897,
+      "h": 311
+    },
+    "dropZoneOnScreenNow": false,
+    "bodyScrollable": true,
+    "bodyClipped": false,
+    "containerBottomOffscreen": false,
+    "dropZoneReachable": true
+  },
+  {
+    "viewport": "tablet-port",
+    "importButton": {
+      "present": true,
+      "display": "flex",
+      "visibility": "visible",
+      "width": 96,
+      "height": 48,
+      "offscreenX": false
+    },
+    "modalOpen": true,
+    "bullets": 7,
+    "viewportHeight": 1024,
+    "dropZone": {
+      "top": 652,
+      "bottom": 971,
+      "h": 319
+    },
+    "dropZoneOnScreenNow": true,
+    "bodyScrollable": true,
+    "bodyClipped": false,
+    "containerBottomOffscreen": false,
+    "dropZoneReachable": true
+  },
+  {
+    "viewport": "mobile-iph12",
+    "importButton": {
+      "present": true,
+      "display": "flex",
+      "visibility": "visible",
+      "width": 138,
+      "height": 48,
+      "offscreenX": false
+    },
+    "modalOpen": true,
+    "bullets": 7,
+    "viewportHeight": 844,
+    "dropZone": {
+      "top": 1129,
+      "bottom": 1448,
+      "h": 319
+    },
+    "dropZoneOnScreenNow": false,
+    "bodyScrollable": true,
+    "bodyClipped": false,
+    "containerBottomOffscreen": false,
+    "dropZoneReachable": true
+  },
+  {
+    "viewport": "mobile-iphse",
+    "importButton": {
+      "present": true,
+      "display": "flex",
+      "visibility": "visible",
+      "width": 123,
+      "height": 48,
+      "offscreenX": false
+    },
+    "modalOpen": true,
+    "bullets": 7,
+    "viewportHeight": 667,
+    "dropZone": {
+      "top": 1120,
+      "bottom": 1465,
+      "h": 345
+    },
+    "dropZoneOnScreenNow": false,
+    "bodyScrollable": true,
+    "bodyClipped": false,
+    "containerBottomOffscreen": false,
+    "dropZoneReachable": true
+  }
+]

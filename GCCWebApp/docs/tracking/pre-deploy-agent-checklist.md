@@ -390,6 +390,54 @@ They can disagree — a deploy that extracted the DLL but not `wwwroot` is a rea
 
 ## Deploy gate results log
 
+### `GCCWebApp-deploy-20260917-0003.zip` — **BUILT + GATED 2026-09-17, NOT UPLOADED**
+
+**Runbook:** `docs/tracking/2026-09-17-deploy-runbook-CR051-CR052-DEF418.md`
+**In-zip `GCCWebApp.dll` md5:** `05bb58206cd39700` · 342 entries · 61.17 MB
+**Verifier:** `verify-bundle.py --no-migrations=20260908175939_CR045_…` → **0 failures** (1 expected WARN: full-history migration script)
+
+> ⚠️ **THREE bundles now share 342 entries / 61.17 MB** — `20260915-1641`, `20260916-1023` and this
+> one. Only the DLL md5 separates them: `42f7efa637fd6591` / `58569001f47314c2` / `05bb58206cd39700`.
+> **Check the hash, never the size.**
+
+**Carries three items from the 9/11 QC log** — **CR-051** (status filter on the internal listing,
+including a status-value mismatch that would have made 4 of 8 statuses match nothing), **CR-052**
+("View all pages" across all five certificate-preview surfaces), and **DEF-418** (the Import
+Certificates **modal** copy — the half the 9/10 fix missed). 8 files, +209/−12 against the live build.
+
+**Does not undo DEF-426.** `Controllers/Api/v1/CertificatesController.cs` is unmodified against HEAD
+and still carries its 4 DEF-426 sites, so it is byte-identical to the live build. Checked, not assumed.
+
+**No database step.** No new migrations since `20260908175939_CR045_…`; auto-migrate OFF. The two
+appended post-deploy backfills are idempotent and identical to the previous two bundles.
+
+**Bundle marker check: 13/13**, asserted against the DLL bytes (Razor views compile in), including a
+negative control and an ABSENT assertion on the old wrong `Required:</strong> CERTIFICATE_NUMBER` line.
+
+| Gate | Result |
+|---|---|
+| 0 uploads backup | **OUTSTANDING — human, before extract** |
+| 0B resolved-but-unshipped | 2 PENDING = CR-051 + CR-052, **both in this build** ✔ |
+| | ⚠️ **DEF-418 is NOT flagged by Gate 0B** — its id is already in the baseline from the 9/10 page fix, but only that half shipped. Known blind spot; do not let the baseline close it. |
+| 1 / 2 UI + responsive | PASS — 5 viewports across all three changes |
+| 3 data scoping / RBAC | PASS — External denied out-of-scope cert (404); anonymous denied expired cert (404) |
+| 4 Partner API contract | n/a — untouched |
+| 5 traceability | PASS |
+| 6 performance / EF | n/a |
+| 7 pending migrations | n/a — none |
+| 8 CRUD write paths | n/a — read and copy only |
+| 9 static integrity | **0 FAIL** |
+| 10 config | PASS — no DataProtection keys / dev config / uploads in the zip |
+| 11 / 12 close-out, email | after upload |
+
+**Local functional verification: 36 assertions across 3 harnesses, all passing** —
+`verify-cr051-status-filter.js` (8/8), `verify-cr052-all-pages.js` (12/12),
+`verify-def418-import-copy.js` (15/15), plus three 5-viewport Playwright runs. **One check is
+deliberately deferred to TEST:** certificate `26-0621`, the client's own example for CR-052, has no
+PDF in the dev uploads store and could not be exercised locally.
+
+---
+
 ### `GCCWebApp-deploy-20260916-1023.zip` — **DEPLOYED to gccwebapp.com 2026-09-16, post-deploy verified**
 
 **Runbook:** `docs/tracking/2026-09-16-deploy-runbook-DEF426.md`

@@ -73,7 +73,11 @@
                 <li><strong>To add a new certificate:</strong> leave <strong>Certificate #</strong> blank and the next available number is assigned automatically. Each blank row gets its own number.</li>
                 <li><strong>To edit an existing certificate:</strong> enter its <strong>Certificate #</strong> and that certificate is updated. Only the columns present in your file are changed &mdash; any column you leave out is left untouched.</li>
                 <li><strong>Overwrite confirmation:</strong> if any row would update an existing certificate you must tick an acknowledgement before it is applied, and a backup of those certificates is saved automatically first.</li>
-                <li><strong>Created automatically:</strong> Company, Product and Product Type are created if they don't already exist. <strong>Product Category must already exist</strong> &mdash; an unrecognised one rejects the row.</li>
+                @* DEF-418 reopened 2026-09-16: "Tags" added so this list and the Import Certificates
+                   modal on the certificate listing say the same thing. Tags genuinely are
+                   auto-created (CertificateImportService.cs:787-798, as "external" type) — the modal
+                   was right about that and this page had omitted it. *@
+                <li><strong>Created automatically:</strong> Company, Product, Product Type and Tags are created if they don't already exist. <strong>Product Category must already exist</strong> &mdash; an unrecognised one rejects the row.</li>
                 <li><strong>Max size:</strong> 10MB per file</li>
                 <li><strong>Preview:</strong> you'll see every change, field by field, before anything is written.</li>
             </ul>
@@ -160,6 +164,12 @@
                     <li><code>Product Category</code> &mdash; <strong>Must already exist.</strong> An unrecognised category rejects the row,
                         so that a typo cannot create a new category.</li>
                     <li><code>Product Type</code> &mdash; Product type (created automatically if it doesn't exist)</li>
+                    @* DEF-418 sequencing note discharged 2026-09-16: DEF-421 wired this column up
+                       (CertificateImportService.cs:95), so it is now documented. Parent-scoped
+                       resolution and warn-don't-reject are both from DEF-421. *@
+                    <li><code>Subcategory</code> &mdash; Product subcategory. Matched <strong>within the Product Type in the same row</strong>,
+                        so the same subcategory name under a different type won't be picked by mistake. An unrecognised value is a
+                        warning, not a rejection &mdash; the certificate still imports and the subcategory is left blank.</li>
                 </ul>
 
                 <p><strong>Certificate Columns (Optional):</strong></p>
@@ -167,6 +177,14 @@
                     <li><code>Status</code> &mdash; Draft, Client Approved - Not Paid, Client Approved - Confidential,
                         Client Approved - Paid, Hold, Expired, Republished, or Expired - No Annual Verification.
                         <strong>Defaults to Draft if blank.</strong></li>
+                    @* DEF-418 sequencing note discharged 2026-09-16: wired by DEF-421
+                       (CertificateImportService.cs:99). It is also an export column
+                       (CertificateService.cs:1495), so the export → edit → re-import round-trip
+                       depends on it being documented correctly. *@
+                    <li><code>Cert Subcategories</code> &mdash; One or more certificate subcategories, separated by commas.
+                        Each must belong to <strong>the Certification Type in the same row</strong>; an entry belonging to a different
+                        type is skipped with a warning rather than rejecting the row. This column is also included in exports, so an
+                        export &rarr; edit &rarr; re-import round-trip keeps it.</li>
                     <li><code>Effective Date</code> &mdash; YYYY-MM-DD recommended (other common date formats are accepted)</li>
                     <li><code>Expiration Date</code> &mdash; YYYY-MM-DD recommended (other common date formats are accepted)</li>
                     <li><code>Location</code> &mdash; Certificate location (City, State)</li>

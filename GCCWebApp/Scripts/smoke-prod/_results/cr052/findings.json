@@ -1,0 +1,72 @@
+[
+  {
+    "viewport": "desktop",
+    "actionRowPresent": true,
+    "iconCount": 3,
+    "distinctRowTops": 1,
+    "wrapped": false,
+    "horizontalPageOverflow": false
+  },
+  {
+    "viewport": "create-after-file-select",
+    "linksBeforeSelect": 0,
+    "linkAppeared": true,
+    "hrefIsBlob": true,
+    "linkText": "All pages"
+  },
+  {
+    "viewport": "tablet-land",
+    "actionRowPresent": true,
+    "iconCount": 3,
+    "distinctRowTops": 1,
+    "wrapped": false,
+    "horizontalPageOverflow": false
+  },
+  {
+    "viewport": "tablet-port",
+    "actionRowPresent": true,
+    "iconCount": 3,
+    "distinctRowTops": 1,
+    "wrapped": false,
+    "horizontalPageOverflow": false
+  },
+  {
+    "viewport": "mobile-iph12",
+    "actionRowPresent": true,
+    "iconCount": 3,
+    "distinctRowTops": 1,
+    "wrapped": false,
+    "horizontalPageOverflow": false
+  },
+  {
+    "viewport": "mobile-iphse",
+    "actionRowPresent": true,
+    "iconCount": 3,
+    "distinctRowTops": 1,
+    "wrapped": false,
+    "horizontalPageOverflow": false,
+    "boxes": [
+      {
+        "tag": "DIV",
+        "top": 1730,
+        "left": 184,
+        "w": 45,
+        "h": 45
+      },
+      {
+        "tag": "DIV",
+        "top": 1730,
+        "left": 239,
+        "w": 45,
+        "h": 45
+      },
+      {
+        "tag": "A",
+        "top": 1730,
+        "left": 294,
+        "w": 45,
+        "h": 45
+      }
+    ]
+  }
+]

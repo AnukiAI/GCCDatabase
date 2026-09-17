@@ -278,6 +278,32 @@
                                 <i class="fas fa-download"></i>
                             </div>
                         }
+                        @* CR-052 (QC #267) — "View all pages". See the long note in
+                           CertificateInternalView.cshtml; all five preview surfaces carry the same
+                           control deliberately so the copies cannot drift (the CR-048 lesson).
+
+                           SECURITY, and it is the reason this is safe on a CUSTOMER-facing page:
+                           ViewCertificateFile enforces FileAccessAllowed, the SAME gate the
+                           ViewCertificateImage call above already passes to render page 1. For an
+                           External caller that means the cert must be in their own CompanyIds and in
+                           BadgeableStatuses — so this cannot expose another company's document, and
+                           it exposes nothing about this one that the existing Download control
+                           doesn't already serve. *@
+                        @if (hasFile)
+                        {
+                            <a class="action-icon" title="View all pages (opens the PDF)"
+                               aria-label="View all pages of certificate @GetFormattedCertificateNumber() as a PDF"
+                               href="@Url.Action("ViewCertificateFile", "Certificate", new { id = Model.Certificate.Id })"
+                               target="_blank" rel="noopener">
+                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="action-icon disabled" title="No PDF available">
+                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>

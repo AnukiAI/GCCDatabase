@@ -398,6 +398,36 @@
                                 <i class="fas fa-download"></i>
                             </div>
                         }
+                        @* CR-052 (QC #267) — "View all pages". The preview image above is page 1
+                           ONLY: GeneratePdfThumbnailAsync calls GetPageReader(0) and stores a single
+                           PNG in CertificateImagePath. 1,336 of 5,474 certificate PDFs (24.4%) have
+                           more than one page, up to 11, so those pages are currently unreachable.
+                           ViewCertificateFile streams the stored PDF as application/pdf with NO
+                           Content-Disposition (verified), so the browser's own viewer supplies every
+                           page plus zoom, search and print at no build cost.
+
+                           SECURITY: this is the SAME FileAccessAllowed gate that the
+                           ViewCertificateImage call above already passes to render the image, so any
+                           caller who can see page 1 necessarily passes the identical check — this
+                           adds no new authorization surface.
+
+                           Keyed on the integer Id, never the certificate number: numbers are not
+                           unique (137 span multiple rows) and the route takes an int. *@
+                        @if (hasFile)
+                        {
+                            <a class="action-icon" title="View all pages (opens the PDF)"
+                               aria-label="View all pages of certificate @GetFormattedCertificateNumber() as a PDF"
+                               href="@Url.Action("ViewCertificateFile", "Certificate", new { id = Model.Certificate.Id })"
+                               target="_blank" rel="noopener">
+                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="action-icon disabled" title="No PDF available">
+                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>

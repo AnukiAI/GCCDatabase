@@ -664,7 +664,13 @@ namespace GCCWebApp.Controllers.Api
                         .ToListAsync(),
 
                     // Internal-specific filters
-                    statuses = Enum.GetNames(typeof(CertificateStatus)).ToList(),
+                    // CR-051: must be the STORED status strings, not the enum member names.
+                    // Certificate.Status is a string holding the display form ("Client Approved -
+                    // Paid"), while Enum.GetNames returns PascalCase ("ClientApprovedPaid"). The
+                    // status filter compares against c.Status, so enum names matched only the four
+                    // single-word statuses and silently returned zero rows for the other four.
+                    // GetAllStatuses() is keyed by the stored value and is also in lifecycle order.
+                    statuses = CertificateStatusHelper.GetAllStatuses().Keys.ToList(),
 
                     // CR-171: list all partner names from the M2M collection (the denormalized primary
                     // would miss co-partners on shared certs). Internal view shows every partner.

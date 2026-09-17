@@ -118,6 +118,28 @@
                 </ul>
             </fieldset>
         </div>
+
+        @* CR-051 (QC #266) — Status filter, internal listing only. Placed last per the client's
+           "It could be under Additional filter box". The id MUST stay `status-content` and the
+           checkbox name MUST stay `status`: both are hard-coded in certificate-tile-view-internal.js
+           (the populate block and handleFilterChange's filterMap). Deliberately NOT added to
+           CertificateTileViewExternal.cshtml — status values include "Client Approved -
+           Confidential", an embargo state that customers must not see. *@
+        <!-- Status Filter (Admin/Analyst only) -->
+        <div class="filter-panel">
+            <button class="filter-header" data-filter="status" aria-expanded="true" aria-controls="status-content">
+                <span>Status</span>
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <fieldset class="filter-content" id="status-content">
+                <legend class="admin-sr-only">Filter by certificate status</legend>
+                <ul class="filter-tree">
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:60%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:85%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:75%"></span></li>
+                </ul>
+            </fieldset>
+        </div>
     </aside>
     <!-- Main Content Area -->
     <div class="tile-view-content">
@@ -425,13 +447,33 @@
         <div class="import-modal-body">
             <!-- Step 1: Upload -->
             <div id="importStep1" class="import-step">
+                @* DEF-418 REOPENED (QC #263). This modal is the surface the client actually uses —
+                   the Import button on this listing opens it — and it was NOT covered by the
+                   2026-09-10 fix, which only corrected Views/CertificateImport/Index.cshtml. That
+                   page is not linked from this listing at all, so the client could not see the
+                   correction and reported the item still broken.
+
+                   Every claim below is traced to the same source lines as the page copy:
+                     Certificate # not required  ... CertificateImportService.cs:1340
+                     blank = new / supplied = update ... :1351, :1854, :1637
+                     acknowledgement + auto backup ... CertificateImportController.cs:151-171 (CR-023 R5)
+                     omitted column left untouched ... BuildProvidedColumns (DEF-355)
+                     Company/Product/Product Type/Tags auto-created ... :668-745, :787-798, :1480-1500
+                     Product Category must pre-exist ... :1539-1547 (DEF-278)
+
+                   Keep this list and the page list saying the same thing. Do NOT "fix" it by
+                   restoring the SCREAMING_SNAKE names: those aliases are real and still accepted,
+                   but they are not what Download Template emits, which is what an analyst sees. *@
                 <div class="import-instructions">
                     <h4><i class="fas fa-info-circle"></i> Import Instructions</h4>
                     <ul>
-                        <li><strong>Format:</strong> CSV file only (.csv extension)</li>
-                        <li><strong>Required:</strong> CERTIFICATE_NUMBER, COMPANY_NAME, PRODUCT_NAME, CERTIFICATION_TYPE</li>
-                        <li><strong>Auto-create:</strong> Companies, Products, and Tags will be created if they don't exist</li>
-                        <li><strong>Max Size:</strong> 10MB per file</li>
+                        <li><strong>Format:</strong> CSV file only (.csv extension). Use the <strong>Template</strong> button on this page &mdash; its headers are the column names the importer expects.</li>
+                        <li><strong>Required:</strong> <code>Company</code>, <code>Product Name</code>, <code>Certification Type</code>. <strong>Certificate # is not required.</strong></li>
+                        <li><strong>To add a new certificate:</strong> leave <strong>Certificate #</strong> blank &mdash; the next available number is assigned automatically, and each blank row gets its own number.</li>
+                        <li><strong>To edit an existing certificate:</strong> enter its <strong>Certificate #</strong>. Only the columns present in your file are changed &mdash; any column you leave out is left untouched.</li>
+                        <li><strong>Overwrite confirmation:</strong> if any row would update an existing certificate you must tick an acknowledgement before it is applied, and a backup of those certificates is saved automatically first.</li>
+                        <li><strong>Created automatically:</strong> Company, Product, Product Type and Tags. <strong>Product Category must already exist</strong> &mdash; an unrecognised one rejects the row.</li>
+                        <li><strong>Max Size:</strong> 10MB per file. You'll preview every change, field by field, before anything is written.</li>
                     </ul>
                 </div>
 

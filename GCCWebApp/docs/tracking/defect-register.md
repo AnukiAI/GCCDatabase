@@ -15101,7 +15101,21 @@ suite **configurable** and its misuse **loud**; it does not port the suite to de
 
 - **Date raised:** 2026-09-10
 - **Severity:** Low (documentation only — no behaviour is wrong) but **client-facing and confidence-damaging**
-- **Status:** **FIXED 2026-09-10 — built locally, NOT yet deployed.** `Views/CertificateImport/Index.cshtml`, copy only, no logic. Build clean (0 errors); page verified rendered on localhost:5101 as `admin`.
+- **Status:** **SPLIT — the page half is SHIPPED, the modal half is BUILT 2026-09-16 and NOT deployed.**
+  - **Page** (`Views/CertificateImport/Index.cshtml`) — fixed 2026-09-10 and **accepted as shipped in
+    the 2026-09-15 baseline** (`deploy-baseline.json`, id `DEF-418`). Live on TEST.
+  - **Modal** (`Views/Certificate/CertificateTileViewInternal.cshtml`) — the surface the client
+    actually uses, **never touched by the 9/10 pass** and therefore **not** covered by that baseline
+    entry. Rewritten 2026-09-16; **not deployed.**
+  - The client tested on 9/11, *before* the 9/15 deploy, and set `Date Closed` to `Not Fixed`. She was
+    right then and is still right now: post-baseline the corrected page is live but the window she
+    imports from is not.
+  - **Gate 0B note:** this id already appears in the 2026-09-15 baseline, so the gate will treat
+    DEF-418 as shipped. It is **partly** shipped. The baseline is explicitly "accepted, not verified —
+    re-raise anything that surfaces"; this is that re-raise. Do not let the baseline entry close it.
+  - DEF-418's own sequencing note (the two DEF-421 columns) is also discharged here — **DEF-421 itself
+    is in the 2026-09-15 baseline**, so those columns are already read on TEST; only their
+    documentation was missing. See the reopen note at the end.
 - **Reporter:** Client, via Shawn, 2026-09-09
 - **QC log ID:** **QC #263** — `Database QC Log_9.9.26_sw_updates.xlsx`, sheet `GCC DB QC Log2`, **row 272**, page `Cert Import`, raised by Carly 2026-09-09. Source email `CR_9_9_26_edit.pdf`.
 - **Triage doc:** `docs/tracking/qc-triage-2026-09-10-QC261-264.md`
@@ -15202,6 +15216,115 @@ lands with the next release, and its §4 factual error about certification types
 point 1 above.
 
 - **Related:** QC #263 (same row also carries a question, answered at zero cost — see the triage doc), CR-023 R5 (the overwrite guard), DEF-347 / DEF-355 (why the alias lists exist), DEF-353 (blank-date rejection, the sibling "blank means what?" ruling).
+
+
+#### REOPENED 2026-09-16 — the client was right: the fix went to a page she cannot reach
+
+**Client, QC log 9/11 (`Database QC Log_9.11.26.xlsx`, row 272, Date Closed set to `Not Fixed`):**
+
+> I don't see a text edit to the Import Certificates popup for this - it still says cert number is
+> required without qualifying that it's not if you are adding new certs.
+
+**She is correct, and the reason is a scoping miss, not a bad fix.** The 2026-09-10 resolution above
+names exactly one file — `Views/CertificateImport/Index.cshtml` — and that is a **standalone page**.
+The client imports from the **modal on the certificate listing**, which carried its own independent
+copy of the same instructions and was never touched.
+
+**There are exactly two "Import Instructions" blocks in the application:**
+
+| Block | 2026-09-10 | 2026-09-16 |
+|---|---|---|
+| `Views/CertificateImport/Index.cshtml:69` (standalone page) | rewritten | kept, plus 3 additions below |
+| `Views/Certificate/CertificateTileViewInternal.cshtml:451` (the modal) | **untouched** | rewritten to match |
+
+**The page we fixed is not linked from the listing at all.** The certificate listing offers
+**Import** (`#openImportModalBtn`, which opens `#certificate-import-modal`) and **Template**
+(`DownloadTemplate`) — and nothing else. The only links to `CertificateImport/Index` come from that
+area's own sibling views, `History.cshtml` and `Preview.cshtml`. So an analyst working from the
+certificate list never sees the corrected page. **Both surfaces drive the same engine**
+(`/api/CertificateImport/Preview` and `/Apply`), so the behaviour was always identical — only the
+copy diverged.
+
+**The generalisable lesson, and it is narrower than "check adjacent surfaces":** a **copy** change is
+as surface-bound as a code change, and is *less* likely to be checked because it feels like editing
+one sentence. The confirming grep costs one command — `CERTIFICATE_NUMBER` appeared exactly twice in
+the whole codebase, and only one of the two was fixed.
+
+**The modal's four original bullets, audited against the code:**
+
+| Original bullet | Verdict |
+|---|---|
+| `Format: CSV file only` | correct |
+| `Required: CERTIFICATE_NUMBER, COMPANY_NAME, PRODUCT_NAME, CERTIFICATION_TYPE` | **wrong** — Certificate # is deliberately not required (`CertificateImportService.cs:1340`); and these are legacy aliases, not the headers `DownloadTemplate` emits |
+| `Auto-create: Companies, Products, and Tags` | **correct but incomplete** — Tags genuinely do auto-create (`:787-798`), but Product Type does too, and **Product Category must already exist** or the row is rejected (`:1539-1547`) |
+| `Max Size: 10MB` | correct |
+| — | **missing: blank vs. supplied Certificate # — the client's actual question** |
+| — | missing: overwrite acknowledgement + automatic backup (CR-023 R5) |
+| — | missing: preview-before-write |
+
+**The modal was right about Tags and the page was wrong to omit them**, so the page gained that word
+rather than the modal losing it. The fix runs in both directions.
+
+#### Also done in this reopen — DEF-418's own sequencing note, discharged
+
+The 2026-09-10 entry ended by recording that this page's Certificate Columns list was **knowingly
+incomplete**: it should gain `Subcategory` and `Cert Subcategories` once **DEF-421** wired them up.
+DEF-421 is in the tree (`CertificateImportService.cs:95` and `:99`) and `DownloadTemplate` emits both
+columns (`CertificateImportController.cs:468`) — but the list still did not mention them. Now added,
+with the two properties that actually matter:
+
+- **`Subcategory`** — matched *within the Product Type in the same row*, so an identically-named
+  subcategory under a different type is not picked by mistake. Unmatched is a **warning, not a
+  rejection**.
+- **`Cert Subcategories`** — comma-separated; each entry must belong to *the Certification Type in
+  the same row*, and one belonging to a different type is skipped with a warning. It is also an
+  **export** column (`CertificateService.cs:1495`), so the export → edit → re-import round-trip
+  depends on it.
+
+Both descriptions state the **parent-scoped** matching explicitly, because name-only matching is the
+exact hierarchy trap DEF-421 documents (`Waste Diversion from Landfill` exists under two different
+certification types).
+
+#### Verification
+
+**`Scripts/smoke-prod/verify-def418-import-copy.js` — 15/15 PASS.** Every assertion is made against
+**rendered HTML from the running app**, not against files on disk: "the file contains the right
+words" is precisely what was true on 2026-09-10 while the client still saw the wrong ones.
+
+| Group | Proves |
+|---|---|
+| 1a / 1b | the modal no longer claims `CERTIFICATE_NUMBER` is required, and states it is **not** required |
+| 2a-2e | the modal answers the client's question — blank = add, supplied = edit, acknowledgement, automatic backup, and the one field that must pre-exist |
+| 3 (×4) | **the two surfaces agree** on every shared claim. DEF-418's original finding was a page contradicting *itself*; two surfaces disagreeing is the same failure one level up, and is what caused this reopen |
+| 4a-4c | the page documents both subcategory columns, including the export round-trip and the parent-scoped matching |
+| 5a | the legacy `SCREAMING_SNAKE` aliases are **still** documented as accepted — DEF-418 was explicit that they are real and the migration relies on them |
+
+Build clean, **0 errors**. `CERTIFICATE_NUMBER` now appears **once** in `Views/` — the legitimate
+back-compat sentence the original entry said to preserve.
+
+**Layout — `Scripts/smoke-prod/verify-def418-modal-layout.js`, five viewports**, in
+`Scripts/smoke-prod/_results/def418/`. The list grew from 4 bullets to 7 inside a fixed-height modal,
+so the risk was making the import *harder* to use while fixing its text. At every viewport the modal
+opens, renders all 7 bullets, the body scrolls properly (`bodyClipped: false` everywhere) and the
+drop-zone is reachable.
+
+**One honest regression, measured rather than waved past.** The three extra bullets add roughly 80px,
+and at **tablet-landscape (1024×800)** that pushes the **Browse Files** button about **55px below the
+fold** — it was likely just above it before. Desktop (1400×900) is unaffected: Browse Files sits at
+779-860 and is fully visible. Phones already required a scroll and still do.
+
+**ACCEPTED by Shawn, 2026-09-16 — no further work.** The recommendation was to accept and it was
+accepted: the client's complaint was that the instructions told her too little, so trading
+information back for 55px of scroll would reintroduce the defect being fixed. **Do not "tidy" this
+later by shortening the copy** — the scroll is the deliberate price of answering her question. If it
+ever grates, the right answer is a collapsible instructions panel, which is a UI change and belongs
+in its own item rather than smuggled into a copy fix.
+
+**Still not deployed.** The page half of this has been sitting unshipped since 2026-09-10; the modal
+half now joins it. Both ship together.
+
+- **QC log ID:** **QC #263** — still open on the client's log; `Date Closed` reads **`Not Fixed`** as
+  of `Database QC Log_9.11.26.xlsx`. It is ours to re-close only after the client confirms.
 
 ---
 

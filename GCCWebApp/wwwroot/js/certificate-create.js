@@ -185,6 +185,26 @@
         }
     };
 
+    // CR-052 (QC #267): the object URL backing the Create-mode "All pages" link.
+    //
+    // Create cannot use /Certificate/ViewCertificateFile/{id} — that route takes the integer Id and
+    // on Create no certificate has been saved yet, so there is no Id and no stored file. There is
+    // also no generated preview image at this point at all (see the "Preview will be generated on
+    // save" notification below; blank pre-save preview is deliberate). The selected PDF is, however,
+    // already in the browser, so URL.createObjectURL hands the native viewer every page with no
+    // server round-trip and no new endpoint.
+    //
+    // Held at module scope so it can be revoked: one URL per selected file, revoked when the file is
+    // replaced or removed, otherwise the blob is pinned in memory for the life of the page.
+    let currentPdfObjectUrl = null;
+
+    function releasePdfObjectUrl() {
+        if (currentPdfObjectUrl) {
+            try { URL.revokeObjectURL(currentPdfObjectUrl); } catch (e) { /* already gone */ }
+            currentPdfObjectUrl = null;
+        }
+    }
+
     // PDF Upload Handler
     const PdfUpload = {
         init: function() {
@@ -256,6 +276,11 @@
 
             // Show file info preview
             const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+
+            // CR-052: fresh object URL for this selection; drop the previous one first.
+            releasePdfObjectUrl();
+            currentPdfObjectUrl = URL.createObjectURL(file);
+
             previewContainer.innerHTML = `
                 <div class="preview-item" style="margin-top: 16px; padding: 16px; border: 1px solid var(--border-color); border-radius: 4px; display: flex; align-items: center; gap: 12px; background: var(--light-gray);">
                     <div class="file-icon" style="color: var(--warning); font-size: 24px;">📄</div>
@@ -263,6 +288,11 @@
                         <div class="file-name" style="font-weight: 500; color: var(--text-color);">${file.name}</div>
                         <div class="file-size" style="font-size: 14px; color: var(--text-secondary);">${fileSizeMB}MB</div>
                     </div>
+                    <a class="btn btn-sm" href="${currentPdfObjectUrl}" target="_blank" rel="noopener"
+                       style="background-color: #00AEEF; color: white; padding: 4px 12px; border-radius: 4px; text-decoration: none; font-size: 16px; white-space: nowrap;"
+                       title="Open this PDF to check every page before saving">
+                        <i class="fas fa-external-link-alt" aria-hidden="true"></i> All pages
+                    </a>
                     <button type="button" class="remove-btn" onclick="window.CertificateCreate.removePdfPreview()" style="background: none; border: none; color: #FF5252; cursor: pointer; font-size: 18px; padding: 4px 8px; border-radius: 4px; transition: var(--transition);" title="Remove PDF"><i class="fas fa-trash-alt"></i></button>
                 </div>
             `;
@@ -362,6 +392,10 @@
         },
 
         removePdfPreview: function() {
+            // CR-052: the "All pages" link is about to be destroyed with the markup below; free its
+            // blob so removing a PDF does not leak it for the life of the page.
+            releasePdfObjectUrl();
+
             const previewContainer = document.getElementById('pdfPreviewContainer');
             const pdfInput = document.getElementById('certificatePdf');
             const sidebarPreview = document.querySelector('.preview-container');

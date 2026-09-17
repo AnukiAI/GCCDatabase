@@ -6167,3 +6167,137 @@ The right shape for next time: surface the build state as *evidence*, name the c
 *open*, and let Shawn rule — rather than leading with a recommendation that reads as settled.
 Flagging it was correct; pre-judging it was not, and the flag would have been just as useful stated
 neutrally.
+
+### 2026-09-16 (cont.) - CR-052 built: the cheap option existed because someone had already written the hard part and never connected it
+
+Built "View all pages" across all five certificate-preview surfaces. The whole CR came in at ~3 hr
+instead of ~10 because `CertificateController.ViewCertificateFile(int id)` already existed, already
+streamed the stored PDF inline, already enforced the role gate - and had **zero callers anywhere in
+the codebase**. The expensive option (render every page to an image, new table, migration, backfill
+across 5,474 PDFs) was priced at 8-12 hr and declined.
+
+**Two findings worth keeping.**
+
+**1. Enumerate before arguing scale.** The client asked for multi-page viewing as a "low risk" nicety.
+Page-counting the entire uploads store - not a sample - showed **1,336 of 5,474 PDFs (24.4%) are
+multi-page**, up to 11 pages. That reframed the CR from a convenience to "a quarter of the library is
+partially invisible", which is a different conversation with the client. The full count took about a
+minute; the sample I ran first (400 files, 25%) would have been close enough to quote but not close
+enough to defend.
+
+**2. A dormant endpoint is not a safe endpoint until proven.** Wiring it into a customer page and a
+public page is the actual risk in this CR, so the harness spends most of its assertions there rather
+than on "does the link appear". The reassuring structural fact - that `ViewCertificateFile` uses the
+*same* `FileAccessAllowed` gate the preview image on those same pages already passes, so no new
+authorization surface is created - was still only an argument until an External session was actually
+refused someone else's certificate with a 404.
+
+**Three harness bugs, each of which produced a confident wrong answer before being caught.** These
+are the transferable part:
+
+- **Magic bytes sniffed as a string.** A PNG starts with byte `0x89` then `PNG`, so
+  `magic.startsWith('PNG')` never matched - and `0x89` prints invisibly, so the terminal showed
+  `PNG
+` and the check looked right. It reported 0 placeholder responses when there was 1.
+  **Sniff bytes, never the rendered string**; a terminal is a lossy view of binary.
+- **A walk that stopped at the first hit reported a count.** The placeholder tally was really an
+  artefact of row ordering. If a loop breaks early, it cannot also be a measurement.
+- **Too narrow a search read as a missing feature.** The public-surface check probed the first 20
+  public certs, which are all CI fixtures with no file attached, and concluded the surface was
+  unprovable. Widened: 88 of 200 public certs serve a real PDF. **"I looked and found nothing" and
+  "there is nothing" are different claims** - and the first 20 rows of a sorted list are the least
+  representative sample available.
+
+Also: every request path in both harnesses now retries 5xx, because the dev box throws
+`Execution Timeout Expired` under contention and an early version folded any non-200 into "no rows".
+That briefly reported a rendered link as absent. **A failed request and an empty result must never
+collapse into the same value.**
+
+**One thing deferred honestly rather than fudged:** the client's own example, 26-0621, has no PDF in
+the dev store, so it could not be exercised locally. Substituted a verified 2-page cert and flagged
+26-0621 for re-check on TEST after deploy - it is the first one they will click.
+
+### 2026-09-16 (cont.) - DEF-418 reopened: a copy fix is as surface-bound as a code fix, and less likely to be checked
+
+The client rejected QC #263 saying the Import Certificates popup still claimed Certificate # was
+required. She was right, and the reason matters more than the fix: the 2026-09-10 pass rewrote
+`Views/CertificateImport/Index.cshtml` - a **standalone page that the certificate listing does not
+link to at all**. The client imports from the modal on the listing, which carried its own copy of the
+same instructions and was never touched. Both surfaces drive the same engine, so behaviour was always
+identical; only the prose diverged.
+
+**The lesson is narrower than "check adjacent surfaces".** A copy change *feels* like editing one
+sentence, so it gets less scrutiny than a code change - while being exactly as surface-bound. The
+confirming grep was one command: `CERTIFICATE_NUMBER` appeared exactly twice in the entire codebase
+and only one of the two was fixed. Cheap to check, expensive to skip: it cost a client rejection and
+a reopen on an item already reported as done.
+
+**Fixing in both directions.** The modal was *right* about one thing the page had omitted - Tags do
+auto-create (`CertificateImportService.cs:787-798`). So the page gained that word rather than the
+modal losing it. When two copies of the same information disagree, the newer one is not automatically
+the correct one; check each claim against the code rather than making the laggard match the leader.
+
+**Verification changed shape because of how this failed.** Every assertion now runs against rendered
+HTML from the running app, not files on disk - because "the file contains the right words" was
+precisely what was true on 9/10 while the client still saw the wrong ones. Four of the assertions
+compare the *two surfaces against each other*, since DEF-418's original finding was a page
+contradicting itself, and two surfaces disagreeing is the same failure one level up.
+
+**A regression I introduced, measured rather than waved past.** The instruction list grew from 4
+bullets to 7, adding ~80px inside a fixed-height modal. At tablet-landscape that pushes the
+**Browse Files** button ~55px below the fold; desktop is unaffected and phones already scrolled. I
+reported it with a recommendation to accept rather than silently trimming the copy - the client's
+complaint was that the instructions said too little, so buying back 55px with information would
+reintroduce the defect. **When a fix has a cost, quote the cost; don't quietly undo the fix to avoid
+having to mention it.**
+
+**Also discharged a note the previous pass left behind.** DEF-418 had ended by recording that its own
+column list was knowingly incomplete pending DEF-421. DEF-421 shipped; the note sat unactioned. A
+"we'll add this when X lands" note in a register is a debt that nothing collects unless someone
+re-reads the entry - worth treating as a task, not a comment.
+
+
+---
+
+## 2026-09-16 - Disk cleanup: the labels "safe" and "junk" were both wrong
+
+Freed 2.1 GB (17 unreferenced deploy bundles + 12 generated-output folders + one node_modules).
+Three things the plan got wrong before it ran, all caught by checking rather than by trusting a
+category name.
+
+**"Generated output is safe to delete" - 1,027 of those files are tracked in git.** `_sql_output/`
+and `_transform_output/` are gitignored, but the dated folders committed before 2026-08-21 stay
+tracked, exactly as the .gitignore comment says. A blanket `rm -rf` on the two directories would have
+deleted committed migration output. The rule that worked: delete a generated folder only when
+`git ls-files <dir>` returns zero. **An ignored DIRECTORY can still contain tracked FILES** - the
+ignore rule and the index disagree, and the index wins.
+
+**"node_modules is always restorable" - one of the two had no package.json.**
+`qc184-live-check/node_modules` cannot be rebuilt by `npm install`; deleting it would have been
+unrecoverable, and it is the item that looks *least* like a risk. Restorability is a property to
+verify per directory, not a property of the name.
+
+**Visual Studio was running, which silently makes the biggest win unsafe.** bin/obj/.vs are 4.9 GB -
+the whole point of the exercise - and deleting `.vs/` under a live devenv corrupts solution state
+while bin/obj half-delete against file locks. Checking `tasklist` costs one call and changes what is
+safe to touch.
+
+**The deploy-zip match had an off-by-suffix bug.** Matching full basenames marked
+`GCCWebApp-deploy-20260909-2108-DEF413` unreferenced, because the register cites it as
+`20260909-2108`. Matching on the `YYYYMMDD-HHMM` timestamp alone moved the count from 18 unreferenced
+to 17 and saved a referenced bundle. **When cross-referencing artifacts against documents, match on
+the identifier the DOCUMENT uses, not the one the FILENAME uses** - the filename usually carries
+extra decoration and the document almost never does.
+
+**Separately discovered: 43 referenced bundles are already absent from disk** (20260504 through
+20260911). Not caused by this cleanup - the 17 deleted were unreferenced by construction. But it
+means every defect closed May-Aug 2026 has lost its "marker-check the DLL inside the zip" evidence
+path. Recorded here so it is not re-discovered as a fresh mystery.
+
+**Backup discipline worth keeping.** The instinct was to back up 12 GB. The set that actually needed
+backing up was **68 KB** - the ignored-but-unique config, .env files and Data Protection key.
+Everything else was either committed and pushed, or regenerable. `C:/GCCData/backups/` (outside
+the repo, outside OneDrive), integrity-tested by reading a secret back out of the archive rather
+than trusting the file count, plus a manifest of all 157 ignored paths and an md5 list of every
+deleted zip. **Ask "what exists in exactly one place" - it is usually far smaller than "what is
+large".**

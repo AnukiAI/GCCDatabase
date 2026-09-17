@@ -1,0 +1,52 @@
+[
+  {
+    "viewport": "desktop",
+    "panelPresent": true,
+    "checkboxCount": 8,
+    "pascalCaseLeaks": 0,
+    "populateError": null,
+    "labels": [
+      "Draft",
+      "Client Approved - Not Paid",
+      "Client Approved - Confidential",
+      "Client Approved - Paid",
+      "Hold",
+      "Expired",
+      "Republished",
+      "Expired - No Annual Verification"
+    ]
+  },
+  {
+    "viewport": "desktop-filtered",
+    "activeTag": "Client Approved - Paid\n×",
+    "resultsCount": "Showing 20 of 1009 certificates"
+  },
+  {
+    "viewport": "tablet-land",
+    "panelPresent": true,
+    "checkboxCount": 8,
+    "pascalCaseLeaks": 0,
+    "populateError": null
+  },
+  {
+    "viewport": "tablet-port",
+    "panelPresent": true,
+    "checkboxCount": 8,
+    "pascalCaseLeaks": 0,
+    "populateError": null
+  },
+  {
+    "viewport": "mobile-iph12",
+    "panelPresent": true,
+    "checkboxCount": 8,
+    "pascalCaseLeaks": 0,
+    "populateError": null
+  },
+  {
+    "viewport": "mobile-iphse",
+    "panelPresent": true,
+    "checkboxCount": 8,
+    "pascalCaseLeaks": 0,
+    "populateError": null
+  }
+]

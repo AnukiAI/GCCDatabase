@@ -390,6 +390,22 @@
                                 <i class="fas fa-eye"></i> View
                             </button>
                         }
+                        @* CR-052 (QC #267): the "View" button above opens the single generated
+                           image — page 1 only. This opens the stored PDF itself in the browser's
+                           viewer, which shows every page. Guarded on Model.Id > 0 because
+                           ViewCertificateFile takes the integer Id: on Create there is no saved
+                           certificate yet, which is why that surface uses a blob URL instead of
+                           this route. *@
+                        @if (Model.Id > 0)
+                        {
+                            <a class="btn btn-sm"
+                               style="background-color: #00AEEF; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer; text-decoration: none;"
+                               href="@Url.Action("ViewCertificateFile", "Certificate", new { id = Model.Id })"
+                               target="_blank" rel="noopener"
+                               title="Open the PDF to view all pages">
+                                <i class="fas fa-external-link-alt" aria-hidden="true"></i> All pages
+                            </a>
+                        }
                         <button type="button" onclick="window.CertificateEdit.confirmRemovePdf(@Model.Id)"
                                 class="btn btn-sm"
                                 style="background-color: #FF5252; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;"

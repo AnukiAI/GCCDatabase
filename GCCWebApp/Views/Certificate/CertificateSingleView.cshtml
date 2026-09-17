@@ -251,6 +251,31 @@
                                 <i class="fas fa-download"></i>
                             </div>
                         }
+                        @* CR-052 (QC #267) — "View all pages". See the long note in
+                           CertificateInternalView.cshtml.
+
+                           SECURITY, and it is the reason this is safe on the PUBLIC page:
+                           ViewCertificateFile enforces FileAccessAllowed, the SAME gate the
+                           ViewCertificateImage call above already passes to render page 1. For an
+                           anonymous caller that means PublicStatuses, non-expired, and on/after the
+                           EffectiveDate (DEF-358). And for exactly those certificates the COMPLETE
+                           PDF is already obtainable anonymously through DownloadByNumber — so page 2
+                           is not newly exposed here, it was merely harder to reach than page 1. *@
+                        @if (hasFile)
+                        {
+                            <a class="action-icon" title="View all pages (opens the PDF)"
+                               aria-label="View all pages of certificate @GetFormattedCertificateNumber() as a PDF"
+                               href="@Url.Action("ViewCertificateFile", "Certificate", new { id = Model.Certificate.Id })"
+                               target="_blank" rel="noopener">
+                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="action-icon disabled" title="No PDF available">
+                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>

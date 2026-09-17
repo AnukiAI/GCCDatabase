@@ -777,3 +777,92 @@ certificates.
 The 68 identifiers were deactivated deliberately on 8 September. Worth confirming with whoever made
 that change that removing them from Amazon is the intended outcome — the system now does what the
 action says it does, but the original intent is worth having on record.
+
+---
+
+## 2026-09-16 — Filter by status, see every page of a certificate, and import instructions that answer the question
+
+**Built, not yet deployed.** Three items from the 9/11 QC log. **None of the changes described below
+is on the test environment yet** — they go out with the next bundle.
+
+Two related pieces *are* already live, from the 15 September release, and are noted where they
+matter: the separate import page's corrected wording, and the two template columns being read on
+import. Neither is what the client was looking at.
+
+### Delivered
+
+**You can now filter the certificate list by status (CR-051).** Reported by the team: the only way to
+work by status was to sort alphabetically by its name, which puts Draft next to Expired and buries
+the one you want. There is now a **Status** box in the filter panel, below Additional, listing all
+eight statuses. Tick more than one and you get all of them together. It works with everything else
+the list already does — the filter tags along the top, the shareable link, and Export to CSV all
+respect it.
+
+**This is for signed-in staff only.** It is deliberately not on the customer or public views: those
+lists are already limited to certificates that are in force, and the status names include
+"Client Approved - Confidential", which customers should not be shown.
+
+**You can now see every page of a certificate, not just the first (CR-052).** The certificate preview
+has always been a picture of **page one**. Anything on page two onwards — continuation sheets, annexes,
+signature pages — could not be reached from the application at all.
+
+**This affects about a quarter of the library.** We counted every certificate document on file:
+**1,336 of 5,474 (24.4%) run to more than one page**, and a handful reach eleven.
+
+A new control next to the existing zoom and download buttons opens the certificate document itself,
+so you get every page, plus search, zoom and print from your browser. It appears everywhere a
+certificate preview does — the certificate detail pages, the edit screen, and the public database —
+and each one keeps exactly the access rules it already had, so nobody sees a document they could not
+see before. On the upload screen it works on the file you have just chosen, before you save, so an
+analyst can check a multi-page certificate is the right one first.
+
+### Fixed
+
+**The Import Certificates window now explains when a certificate number is needed — and when it is
+not (DEF-418).** This was reported as fixed on 10 September and the client correctly rejected it on
+the 11th: *"I don't see a text edit to the Import Certificates popup for this."*
+
+**She was right, and the reason is worth stating plainly.** The correction had been made to a
+separate import page that the certificate list does not link to, so it was never going to appear in
+the window she actually uses. That page's corrected wording did reach the test environment with the
+15 September release — but the window itself still carried the original text, which said a
+certificate number was required. It is not. **That is the half being delivered here.**
+
+The window now says what the import really does:
+
+- **Required:** Company, Product Name, Certification Type. **Certificate # is not required.**
+- **To add** a new certificate, leave Certificate # blank — the next number is assigned for you, and
+  each blank row gets its own.
+- **To edit** an existing one, enter its Certificate #. Only the columns in your file change; anything
+  you leave out is untouched.
+- Updating existing certificates asks you to confirm first, and takes a backup automatically.
+- Company, Product, Product Type and Tags are created for you. **Product Category must already
+  exist** — a typo there rejects the row rather than quietly creating a new category.
+- You preview every change, field by field, before anything is written.
+
+The separate import page and this window now say the same thing, checked against each other
+automatically so they cannot drift apart again.
+
+**Two template columns are now documented (DEF-418, following DEF-421).** `Subcategory` and
+`Cert Subcategories` are in the downloadable template and have been read on import since the
+15 September release, but the guidance had never described them — so analysts had no way of knowing
+they could use them. Both are now documented, including that each is matched **within** the product
+type or certification type on the same row, so an identically-named subcategory belonging to
+something else is not picked by mistake.
+
+### Known follow-ups
+
+**A certificate whose document is password-protected still cannot be displayed.** One certificate is
+in this state (23-0971). "View all pages" will fail on it the same way the preview image always has.
+
+**On a tablet held sideways, the import window now needs a short scroll** to reach the file-chooser,
+because the instructions above it are longer. Accepted deliberately: the complaint was that the
+instructions said too little, and shortening them again to save the scroll would undo the fix.
+
+**QC #263 stays open on the client's log.** It is marked "Not Fixed" there and it is the client's to
+close once she has seen this on the test environment — not ours.
+
+**One check is deferred to the test environment.** The certificate the client named as her example
+(26-0621) has no document attached in our development copy, so "view all pages" was proven against
+other multi-page certificates instead. It should be clicked on 26-0621 once this is deployed, since
+that is the one she will try first.

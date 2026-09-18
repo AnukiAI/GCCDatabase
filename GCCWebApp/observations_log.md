@@ -6370,3 +6370,711 @@ left a stray copy at the destination and failed on the delete - and the source c
 md5'd to verify the copy. Removed the stray rather than commit an unverified snapshot of a file
 being actively edited. **A half-completed move is worse than a skipped one**; check the destination
 after any move that raises.
+
+---
+
+## 2026-09-17 — CR-051 / CR-052 status check, dev visual verification, DEF-427
+
+**What Shawn asked.** Status of two QC log items (both Carly, 2026-09-10): the Status filter request
+and the "view multiple pages" PDF preview request. Then: start localhost, open the internal tile
+view, screenshot both controls with Playwright, and log the mislabel we spotted.
+
+**Answers given.** Both are **CR-051 (QC #266)** and **CR-052 (QC #267)**, both **built and verified
+2026-09-16**, both riding in `GCCWebApp-deploy-20260917-0003.zip` (DLL md5 `05bb58206cd39700`),
+**gated but NOT uploaded**. Live remains `20260916-1023` (md5 `58569001f47314c2`), so neither is on
+the test environment yet. Upload is Shawn's step.
+
+**Verified on localhost:5101 rather than asserted from the register.** Signed in as `admin.uat`:
+CR-051's panel renders all 8 statuses as stored display strings in lifecycle order (not alpha, which
+was the client's actual complaint, and not PascalCase, which proves the `GetAllStatuses()` fix took).
+CR-052's control renders on both Edit and the internal detail view, both pointing at the integer Id
+(`/Certificate/ViewCertificateFile/1488`), and the endpoint answers `application/pdf`, no
+`content-disposition`, `%PDF-` magic bytes, 195,071 bytes.
+
+**Chrome extension was not connected** — opened Chrome directly instead, then drove localhost with
+headless Playwright, which worked first time. Consistent with the 2026-08-31 finding: reach for
+Playwright on localhost, not the extension.
+
+**Raised DEF-427** — the Edit page prints the *thumbnail* filename under a "Current PDF:" label,
+because `CertificateEditViewModel` never projects `CertificateFile`. Cosmetic, but it sits inches
+from CR-052's new button and will be misattributed to it.
+
+**Appended to DEF-350 rather than raising a duplicate** — Shawn reported a slow list load on dev; the
+app's own log recorded `GET /api/certificate-tiles-internal returned 200 in 109,105.9ms`, against
+browser loads of 1.5s / 12.6s / 1.5s. Dev runs the expiration sweep every **1 minute**; production
+runs it **daily**. Same root cause as DEF-350, new surface (a read path, not the importer), and
+recorded as plausible-not-proven because no intervention test was run.
+
+**Two process notes worth carrying.**
+
+1. **Register hygiene:** both CR-051 and CR-052 carry a stale `**Period:** ... not started` bullet
+   that contradicts their own headers and build notes. Offered to correct; not yet actioned.
+2. **`playwright.waitForFunction(fn, arg, options)`** — passing the options object as the *second*
+   argument silently makes it the page-function argument, so the call falls back to the 30s default.
+   Cost one wasted run here, and the same mistake is latent in
+   `Scripts/smoke-prod/verify-cr051-screenshots.js` (harmless there only because the panel populates
+   fast). Also: `.table-body-row` appears before the data arrives, so it is a **skeleton** row — wait
+   on `#resultsCount` settling, never on row presence.
+
+### 2026-09-17 (later) — CR-052 reworked into the popup; DEF-428 raised; a bundle decision now pending
+
+**Shawn's two instructions.** Fix the stale `Period:` bullets on CR-051 and CR-052 (done, both now
+record built/gated/not-uploaded with a note that they previously said "not started"), and **add the
+all-pages control to the popup before the bundle goes up**. She also asked, correctly, whether the
+button next to the preview should still be there — it should not, and it was removed from Edit.
+
+**What the report actually was.** *"For 21-0117 I see page 1 of the pdf but I don't see a way to see
+the second page."* She was inside the preview popup. The 2026-09-16 build put the control in the
+action row **outside** the popup, and the client's words had been *"under the Preview popup"*. The
+file was never at fault: 2 pages, 195,071 bytes on disk, 195,071 served.
+
+**The lesson to carry: we satisfied the paraphrase and missed the location.** "View multiple pages"
+was met; "under the Preview popup" was not. Both halves of a client sentence are requirements. This
+cost ~45 min of rework that re-reading the sentence before building would have avoided.
+
+**Raised DEF-428 — a SQL connection timeout is shown to the user as "Invalid email or password."**
+Found because my own login started failing with correct credentials. The give-away was
+`FailedLoginAttempts` still sitting at **0** after two "invalid password" responses, which proves the
+password comparison was never reached; the log had `SqlException: Connection Timeout Expired` inside
+`ValidateUserDetailed`'s broad `catch (Exception)`. Major: it points users at a password reset for a
+database outage. The deliberate generic-error design (anti-enumeration) is correct and must stay —
+it just should not swallow infrastructure faults.
+
+**Corrected my own DEF-350 addendum from earlier today.** I had recorded the 1-minute dev sweep as
+the plausible cause of the slow list. Ran the intervention: with
+`Jobs__CertificateExpiration__StartupDelaySeconds=86400` the endpoint returned in **1,966ms** (vs a
+109,106ms server-logged response before) — but the same session still produced **13 further SQL
+connection timeouts** with the sweep deferred. So deferring it helps and is **not sufficient**; the
+entry now says so instead of implying a single cause.
+
+**Harness lesson worth more than the fix.** The first verification run reported
+`E1 old green-bar button removed — 0 found` **while sitting on the login page** — login had silently
+failed, so an absence assertion passed for the wrong reason. Now: a failed login aborts the run, and
+every "X is absent" assertion carries a positive control proving the right page loaded.
+**An absence assertion with no positive control is not evidence.**
+
+**Rebuilt on her instruction.** The gated bundle `20260917-0003` (md5 `05bb58206cd39700`) no longer
+matched the working tree, so it was rebuilt: **`GCCWebApp-deploy-20260917-1545.zip`**, DLL md5
+`e0210ec00a134b31`, 340 entries. Runbook `2026-09-17-deploy-runbook-20260917-1545.md`; the old
+runbook now carries a do-not-upload banner and the old zip is kept for marker-checking. Gates:
+verify-bundle 0 failures, marker check **17/17** (and **4 FAIL** against the superseded bundle, which
+is what makes the 17 mean something), 0B = the 2 expected PENDING both in the build, responsive
+**5/5 viewports**. Gate 0 (server uploads backup) is still Shawn's, before extract.
+
+**A gate caught a real leak that had been shipping for months.** The first rebuild came out at 345
+entries — three more than any previous bundle — and the diff named them: five
+`appsettings.*.template.json` files. The pubxml excluded only *Production's*. Two of the five,
+`appsettings.Secrets.template.json` and `appsettings.Secrets.test-site.template.json`, **have been in
+every bundle to date including the live one**. No passwords (all placeholders), but their prose names
+the SMTP host, a server IP, the only real mailbox, and a **live DB host and port**. Fixed in the
+pubxml as a glob, plus a **fatal** hygiene predicate in `verify-bundle.py` so it cannot silently
+return — proven to fire (5 against the bad bundle, 0 against the good one). The copies already on the
+server need a manual delete; an extract-over will not remove them.
+
+**The lesson: an unexplained change in entry count is the finding.** 342 → 345 was three lines of
+diff away from being ignored as noise. Never accept a bundle whose entry-count delta you cannot name
+file by file.
+
+### 2026-09-17 (close-out) — DEF-429 done; two bundles discarded by their own gates
+
+**Shawn: "track the pubxml files in git", then "close that out".** Both done.
+
+**Tracked, after an audit — not force-added.** `.gitignore` keeps the stock `*.pubxml` rule and gains
+a scoped negation, `!GCCWebApp/Properties/PublishProfiles/*.pubxml`, plus `*.pubxml.user`. Read both
+files in full first, because committing is publication: no `<Password>`, no `<UserName>`, no
+connection string, no real hostnames. **I had to scrub my own comment first** — the Gate 10 note I
+wrote earlier that day named the SMTP host and server IP, which was fine untracked and not fine in a
+file about to be committed.
+
+**Then the second half: making the policy checked, not merely present.** A tracked profile a fresh
+clone can still silently edit is not protection. `verify-bundle.py` now reads the profile from the
+**tree** (a zip cannot show what its own build was allowed to include) and asserts all five
+protections, treating a **missing** profile as a failure in its own right. Proven against three
+injected faults: uploads exclusion deleted, `EnvironmentName` flipped to Test, profile absent.
+
+**The clean-clone publish was the step that actually earned its keep.** Exit 0, 334 files, 0 hygiene
+failures — and it surfaced `wwwroot/css/certificate-create.css.bak` shipping in the bundle. Untracked
+2025-11-10 leftover, harmless on the server, but it meant **the bundle was not reproducible from
+git**. That property is the whole basis of answering "what is running". Excluded and gated.
+
+**Three lessons, in order of how much they will save later.**
+
+1. **A clean-clone diff is the only check that sees what a bundle has but a clone cannot produce.**
+   Neither the hygiene gate nor the marker check could find the `.bak`; both only look at what is
+   present and what is expected. This one compares against a *reproducible* baseline.
+2. **An unexplained entry-count delta is the finding.** 342 -> 345 was three lines of diff from being
+   dismissed as noise; it was five config templates. 340 -> 339 was the `.bak`. Never accept a count
+   change you cannot name file by file.
+3. **Two bundles can share a DLL md5.** `1545` and `1751` do, because only a `wwwroot` file was
+   dropped — no code changed. The standing rule is "check the hash, never the size", and here the
+   hash is the *non*-discriminating signal. Record both, and know which one separates which pair.
+
+**Also: a build failure on a long temp path is an artifact until proven otherwise.** The first
+clean-clone publish threw eight `MSB3030 Could not copy` errors and read as a repo defect. The path
+was 288 chars against Windows' 260-char `MAX_PATH`; `ls` saw the files, `os.path.exists` did not.
+
+**And an expected absence, written down so nobody reads it as a gap later:**
+`appsettings.Production.json` is not in a clean clone — gitignored, holds a real DB password and
+signing key. A fresh clone builds a complete *application*, not a deployable *bundle*. That is the
+design.
+
+**Final state: `GCCWebApp-deploy-20260917-1751.zip`, DLL md5 `e0210ec00a134b31`, 339 entries, all
+gates 0 failures. Not uploaded — Gate 0 (server uploads backup) is Shawn's, before extract.**
+
+---
+
+## 2026-09-17 — CR-052 status, and the client's follow-up: a real page-through toggle
+
+**Status paragraph (for the log).** CR-052 (QC #267, "view multiple pages") is **built, gated and
+sitting in `GCCWebApp-deploy-20260917-1751.zip` — not yet uploaded**, so the client is still looking
+at the 2026-09-16 build. What that pending bundle changes is *placement, not capability*: the first
+build put the control in the action row outside `#imageZoomModal`, the client reported back from
+*inside* the popup — *"I see page 1 of the pdf but I don't see a way to see the second page"* — so
+the control was moved inside the popup on all four popup-bearing surfaces (Edit, Internal, External,
+SingleView), the duplicate button in Edit's green bar was removed, and the caption changed from
+"Click anywhere to close" to "Click outside to close". It is a **"View all pages" link that opens the
+stored PDF in a new tab**, gated by the same `FileAccessAllowed` check that already serves the
+preview image — it is **not** a pager. The client's latest question ("a toggle on the snapshot to see
+both pages… page through") asks for the pager, which CR-052 as built does not give, so this is a new
+change request, not a defect in CR-052.
+
+**Why only one page exists today.** `FileUploadService` renders **page 0 only** via Docnet and stores
+a single image in `Certificate.CertificateImagePath`. There is no page-2 image anywhere, and no
+`PageCount` column on the model. `ViewCertificateImage(int id)` takes no page parameter. So "page
+through" is not a UI toggle over data we already hold — the other pages have never been rendered.
+
+**Triage — raised as CR-053, NOT started.** Three ways to do it, priced:
+1. **On-demand render (recommended).** Add `page` to `ViewCertificateImage`, return page count from
+   the same gate, add prev/next inside the popup. Docnet is already referenced; no DB change, **no
+   backfill of 5,702 certs**, same security gate. ~4-6 h build + the usual 5-viewport and RBAC gates.
+2. **Pre-render every page at upload.** Fastest at view time, but needs a schema change and a
+   backfill pass over every existing certificate. Several days, and a data-ops CR of its own.
+3. **pdf.js inside the popup.** New client dependency, and the popup would render the PDF twice over.
+   Not recommended.
+
+**Known risks for option 1, all small but real:** encrypted PDFs still cannot be rendered (DEF-400,
+cert 23-0971), so the pager must degrade to the existing "View all pages" link rather than error;
+CPU per page render is paid per request unless cached; and **seeded dev certs have no files on disk**,
+so this must be validated on TEST, not localhost, against the client's example **26-0621**.
+
+**Answer to "is it low risk?" — yes, option 1 is low risk, and it is additive**: the "View all pages"
+link stays as the fallback, so the worst case is the pager not appearing, never a lost capability.
+It is not free, and it is a new CR. **Estimate first, build after approval.**
+
+### Same day, later — the client answered, and it invalidates the hold I had just written
+
+Shawn spoke to the client. **They were thinking paging in the popup, and they do not want the button
+we built.** So the hold recorded above — *"deploy first, ask second, build third; there is a real
+chance CR-052 as shipped closes QC #267 outright"* — was reasonable when written and is **wrong now**.
+The answer arrived without the deploy. CR-053's status moved from *awaiting client decision* to
+**requirement confirmed, awaiting estimate approval**.
+
+**The lesson is not "ask the client sooner".** It is that a hold written on the assumption that a
+question is expensive to answer should say how it would be answered cheaply. One conversation settled
+what a deploy-and-wait cycle was being scheduled to settle.
+
+**CR-052 is not wasted and the bundle still goes up.** `20260917-1751` also carries CR-051 and
+DEF-418, which the client is waiting on and which are unrelated. The dormant `ViewCertificateFile`
+endpoint it activated, the External-session refusal it proved (B3/B4), and the popup plumbing are all
+reused by the pager. What changes is which control is *primary* — and the button survives as the
+fallback for the cases that cannot be paged at all (encrypted `23-0971`, missing files), because the
+alternative is a dead popup.
+
+**Recorded for the client in `shipped-2026-09.md`** as a named follow-up under the 2026-09-16 section,
+in their words rather than ours: what the release gives them, what they actually asked for, why the
+two differ, and that paging is priced but not scheduled.
+
+## 2026-09-17 — "The status filtering is not working" (CR-051 filter) — it filters; the page hides the failure
+
+Reported symptom: with **Expired** ticked, unticking it and ticking a different status leaves the
+count on **"Loading…"** and nothing changes.
+
+**The filter itself is correct.** Every one of the 8 statuses was requested directly against
+`/api/certificate-tiles-internal` on localhost as `admin` and returned a plausible, distinct count:
+Draft 129 · Client Approved - Confidential 40 · Client Approved - Paid 996 · Expired 4,854 ·
+and **0** for Client Approved - Not Paid, Hold, Republished, Expired - No Annual Verification.
+Those four are empty in the dev dataset, so ticking one legitimately empties the list — which reads
+exactly like "the filter did nothing". **A zero-row status is the first thing to rule out before
+calling this a defect**, and it needs confirming against TEST, whose row mix may differ.
+
+**What actually produces "Loading…" forever is the view, not the query.** In
+`certificate-tile-view-internal.js`, `loadCertificates()` sets the count to `Loading…` on every fresh
+load and only restores it inside `if (response.ok)`. There is **no `else`, and no timeout** — so a
+500, a 504 or a request that simply never lands leaves the placeholder on screen indefinitely, with
+the *previous* filter's tiles still rendered underneath. The user sees stale results under a
+permanent spinner and reasonably concludes the filter is broken. Silent-failure class, same shape as
+[the AJAX 401-as-login-HTML case](feedback_ajax_needs_x_requested_with.md): the page cannot tell the
+user what it does not check for.
+
+**Reproduced under Playwright** (uncheck Expired → check another status): three overlapping requests,
+the last returning 200 after **13.1 s**, count stuck on `Loading…` for 10 s before resolving.
+
+**The latency behind it was environmental, and I nearly mis-blamed the code for it.** A first pass
+measured 8–44 s per status and then a hard cascade of 500s; the EF log showed a 20-row hydrate query
+taking **38.9 s** and finally `Execution Timeout Expired` at the 120 s command timeout, after which
+even *pre-login handshakes* to ANUKI01 timed out at 15 s. That is the local SQL Server falling over
+under my own back-to-back probing, not a query defect: `Certificates` holds 6,019 rows,
+`CertificateProductIds` 18,104, and both are heavily indexed (incl. `IX_Certificates_Status`). After
+a clean restart the same 18 calls ran in **0.1–5.7 s**. **Do not quote the 38 s number as a product
+finding** — it measures a laptop, not the application.
+
+**Lesson.** Two different faults wore the same costume here — a status with no rows, and a view that
+cannot say "that request failed". Neither is "filtering is broken", and the first two hours of
+looking went into a third thing (query performance) that turned out to be the measuring instrument.
+The fix that survives all three readings is the missing `else`: make the page state what happened.
+
+### Same day — DEF-430 built and verified, and two things only the test could have told me
+
+Shawn approved the fix. The public view (`certificate-tile-view.js`) already had the whole pattern
+from DEF-381, so the work was porting it into the internal and external views rather than designing
+it: 30s timeout, 5xx retry with backoff, an inline panel that **replaces** the results, and a Retry
+button. 13/13 assertions pass on both views, with the failure forced by Playwright route
+interception so the check is deterministic rather than waiting for a real outage.
+
+**The first thing I got wrong was copied faithfully from the reference.** The public view calls
+`showError()` on every retry attempt. In the logged-in views that is `AdminCore.showNotification`,
+which routes **every** notification to a centered modal (`admin-core.js:120`) — so three retries
+stacked three blocking `alertdialog` overlays, and they sat on top of the Retry button the same code
+had just rendered. I did not spot this by reading; the Playwright click failed with *"<div
+role=alertdialog …> intercepts pointer events"*. **Porting a pattern carries its assumptions about
+the surrounding code, and `showError` means something different in each of the three files that
+define it.** Retry progress now goes in the results line, and the failure is reported once, inline.
+
+**The second was a number I had been told not to trust and nearly trusted anyway.** I wrote `DEF-426`
+into four files' comments before grepping the register. **DEF-426 already exists** (deactivated
+product identifiers still published to the partner, 2026-09-16); the true high-water was DEF-429.
+The memory on register numbering says in as many words to re-grep both heading depths immediately
+before appending and to treat its own recorded value as stale. Renumbered to DEF-430 before anything
+referenced it. *Writing the number into the code before claiming it in the register is the wrong
+order — the register is what makes the number mine.*
+
+**Left open deliberately, with evidence rather than a shrug:** the cold-cache latency. The 30s
+timeout means a genuinely cold 43s response now fails and retries — and the retry lands warm and
+returns in under a second, so the user's outcome improves. The hydrate query re-applying every
+filter when the page's IDs are already known is a plausible cause of the plan flip and a separate,
+measurable ticket. It is written up in DEF-430 as **not fixed here**, with the numbers marked as
+measuring this laptop and not the product.
+
+### Later still — one final build, and the duplicate icon comes out
+
+Two directions from Shawn, both overriding what I had recommended an hour earlier, both recorded
+here because the register now reads differently as a result.
+
+**1. No interim deploy. One final build with everything.** *"I want a final build to include
+everything when we are done."* I had argued for shipping `20260917-1751` unchanged so CR-051 and
+DEF-418 would not wait behind a cosmetic disagreement. Overruled, and on reflection the override is
+the cheaper position now: that bundle **still contains the icon the client has just asked to remove**,
+so uploading it would have put the rejected control back on TEST and cost a second correction cycle.
+The runbook is marked **HELD** with that reasoning at the top rather than deleted \u2014 its gate results
+and the four-bundle hash table are the method for the final cut.
+
+**Expect Gate 0B to grow and do not treat it as drift.** With a single delivery, resolved-but-unshipped
+is supposed to accumulate. Reconcile it at the final cut.
+
+**2. *"The button on the popup can stay, but the button on the tile view should be removed."*** The
+phrase "tile view" did not match the code, and the right move was to check rather than guess: the
+tile *listing* views carry **no all-pages control at all** \u2014 CR-052 never touched them. The only
+control outside a popup was the third icon in `.certificate-download-action` on the three detail
+pages, which are what you reach *from* the tile view. Removed there. Verified, not assumed, that the
+tile views had nothing to remove.
+
+**This closes an argument rework #1 left open.** On 2026-09-17 the green-bar button came off Edit for
+precisely this reason, while the detail views kept their icon on the argument that it was *"a peer of
+zoom and download \u2014 one click rather than two."* That argument was reasonable and it lost. **One
+control, in the popup.** The lesson worth keeping: when a duplicate is removed in one place for a
+stated reason, the same reason already applies everywhere else the duplicate exists \u2014 finishing the
+job then would have cost nothing and saved a round trip.
+
+**Verification: `verify-cr052-popup.js` extended from 6 to 8 assertions, 8/8 PASS**, clean build
+0 errors. I2 and P2 assert the icon is gone **and** assert `.certificate-download-action` is present
+on the same page first \u2014 the second absence-assertion in this CR, after the first one produced a
+false PASS by running on the login page. `CertificateExternalView` again was not driven by an
+External session; same Razor block, same scripted edit, but say so rather than imply coverage.
+
+**Two incidental things worth not repeating.** The first build failed with `MSB3027 could not copy`
+\u2014 the dev server was holding `GCCWebApp.exe`, not a code fault; stop it, build, restart detached.
+And my first edit pass silently converted three Razor views from CRLF to LF and stripped their BOMs,
+because the file was read in text mode and written with `newline=''`. Caught by reading the git
+warning instead of skimming past it. **Read what the file was before writing what it becomes.**
+
+**Parallel stream, noted not verified.** `wwwroot/css/certificatetileview.css` and
+`wwwroot/js/certificate-tile-view-{internal,external}.js` became modified during this session \u2014
+fetch timeout + retry-budget work on the tile views, carrying DEF-426 comments. **Shawn confirmed
+this is defect work in another session.** Not touched here, not reviewed here, and not claimed by
+CR-052 or CR-053. It matters for one reason only: with a **single final build**, that stream's
+changes and this one's land in the same bundle, so the final cut must reconcile **both** against the
+registers \u2014 a Gate 0B run that only knows about the popup work would report a clean list and be
+wrong.
+
+### CR-053 approved and BUILT the same day — the popup now pages
+
+Shawn approved the ~6-9 hr and said build it. Built in **~5 hr**, verified **14/14**, clean build
+0 errors, not deployed — it goes in the single final bundle.
+
+**Option C as planned: nothing was stored and nothing was re-processed.** `ViewCertificateImage`
+gained `int page = 0`; page 0 still serves the stored thumbnail untouched, so opening a preview costs
+exactly what it always did and only an explicit page turn opens a PDF. The page count comes from a
+new route called when the popup *opens*, not when the page renders — detail pages pay nothing for a
+feature most visits never use.
+
+**Three things I decided against the obvious version, each of which would have been a defect.**
+
+1. **A MutationObserver on the modal rather than wrapping `openImageZoom()`.** Each view declares
+   that function in its own inline script. A function *declaration* is assigned when its block runs,
+   so wrapping it from an external file would work or be silently clobbered purely on load order —
+   right on three views, broken on the fourth, and no error anywhere.
+2. **One shared script instead of four inline copies.** CR-052 was reworked in four places twice.
+   This one cannot drift that way.
+3. **A semaphore around Docnet.** `DocLib.Instance` is a process-wide P/Invoke singleton over pdfium.
+   Thumbnailing never exposed it because it happens once per upload; paging happens on demand from
+   every open browser.
+
+**The measurement replaced an assumption, which was the point of measuring.** The plan allowed for
+output caching *if* rendering proved slow. Warm: **137-159 ms** per page render, **33-423 ms** for the
+count. So **no cache was added** — less code, no invalidation to get wrong, nothing to leak between
+callers. That decision is only valid for this box; re-measure on TEST.
+
+**A false FAIL that was worth more than a pass.** One run reported *"A3 pager absent"* and *"A4 prev
+not disabled"* — and then A5 turned the page successfully with the label reading "Page 2 of 2". The
+pager was not missing; it had not arrived yet. The count request is asynchronous by design, and on a
+cold-started server the first one took over 15 s while EF built its model and the JIT warmed. The
+harness measured immediately and recorded absence.
+
+**The rule this reinforces: an assertion about an ASYNC state must wait for that state and record the
+wait.** The fix was not a longer blanket sleep — it was `waitForFunction` on the label text, a
+warm-up navigation so cold-start cost is not attributed to the feature, and the wait time printed in
+the result (`pager=1 after 48ms`). A sleep would have hidden a genuine regression later; the printed
+wait makes one visible.
+
+**Two limits carried forward, stated rather than implied:** `CertificateExternalView` still has not
+been driven by an **External browser session** — same attribute, same script, same gate, and P3 proves
+a denied caller gains nothing from the `page` parameter, but nobody has paged a document as that role.
+And **26-0621, the client's own example, still has no PDF on dev**, so it remains the first thing to
+click on TEST.
+
+## 2026-09-17 — DEF-431: I was asked to fix the hydrate query, and the measurement said my reason was wrong
+
+Shawn asked for the hydrate-query change I had flagged during DEF-430: both tile controllers
+hydrated the page's 20 rows off the *filtered* query, so the SQL carried predicates the 20 ids had
+already satisfied. The theory was a plan flip — that the spent `Status` predicate let SQL Server
+drive off `IX_Certificates_Status` and pull 4,854 rows through 11 joins to keep 20.
+
+**Built, verified, and the theory did not survive contact with a measurement.** With the plan cache
+cleared before each run, both shapes cost **33,321 logical reads with the same plan**. No gain. The
+change stands as a simplification (and, on the external path, as defence in depth — the hydrate now
+carries the isolation envelope and nothing the caller typed), and **the code comments now say
+explicitly that it is not a speed-up**, so nobody re-optimizes that WHERE clause expecting one.
+
+**Wall-clock on this machine is not evidence and I nearly reported it as such.** The cold-plan A/B
+gave 2.83s then 142.99s for the *no-filter control* — a case whose SQL is byte-identical in both
+builds. That single pair is the proof that every timing number from this box is noise. Switching to
+`SET STATISTICS IO` was the move: logical reads are independent of CPU contention, OneDrive, and
+whatever else is running. **When perf is the question on this hardware, count reads, not seconds.**
+
+**The measurement paid for itself anyway — it found the actual cost.** Three correlated subqueries in
+the projection (`SELECT TOP(1) ProductIdValue … ProductIdType = 'ISBN'/'SKU'/'MPN' … IsActive = 1`)
+account for **33,000 of the 33,321 logical reads**: strip them and the identical query costs 321
+reads, ~5ms instead of ~250ms. That is ~99% of the query's I/O for three strings.
+
+**And I sized it honestly rather than banking it.** A quarter-second per page load is real and worth
+fixing, but it is **not** the 40–95s cold call — in the cold run that same query showed 250ms of CPU
+against 29,890ms elapsed, and `physical reads 1 / read-ahead 548`, so it is waiting, not working, and
+not reading 33,000 pages from disk. The cold-start cause is still unidentified and DEF-431 says so.
+Two candidate fixes are priced (covering index ~1hr + migration; grouped fetch ~2-3hr) and neither is
+built.
+
+**One more lesson, from my own test.** The first regression run reported `external.A1 — PASS ::
+Retrying… (1/3)`. The assertion was `!/Loading/.test(text)` — so a load that had **already failed
+once** scored a pass, because "Retrying…" is not "Loading…". *Assert the positive terminal state you
+actually want ("Showing N of N", "Could not load certificates"), never the absence of one string.*
+A negative assertion passes for every reason in the world, including the ones you are testing for.
+
+### Same day, later — the covering index: approved, built, measured, and it exposed a hole in my own verification
+
+Shawn approved option 1. Tested **before** writing a migration — created the index by hand on dev,
+measured, and only then declared it worth building: **33,321 logical reads / 234ms CPU → ~489 reads /
+0-16ms**, with `CertificateProductIds` going from `Scan count 3, 33,000 reads` to `Scan count 60, 168
+reads`. Sixty is 20 rows x 3 subqueries — the seeks that should have been happening all along. Then
+dropped the manual index and rebuilt it properly through `ApplicationDbContext` + a migration.
+
+**Two EF gotchas, both silent.** `dotnet ef migrations add --no-build` produced an **empty
+migration** — it used the previously-built assembly, which did not contain my model change. An empty
+`Up()` is not an error; it just does nothing forever. Then `dotnet ef migrations remove --no-build`
+tried to remove the wrong migration (the last one EF knew about, `CR045_...`, already applied) and
+refused — which was luck, not design. *Never pass `--no-build` to a migration command after touching
+the model; build first, then generate.*
+
+**The part worth carrying: my 19/19 field-level comparison could not have caught this change's one
+real risk.** `SELECT TOP(1) ... ` with no `ORDER BY` is not deterministic — which row comes back
+depends on the access path, so a new index can change a *displayed value* while every count stays
+identical. It did not here, and the reason is that **`CertificateProductIds` on dev is 18,104 rows
+and every single one is an ASIN**: zero ISBN, SKU or MPN rows exist, so the three subqueries return
+empty and there was no value that could have changed.
+
+So the endpoint was spending 33,000 logical reads per page looking up three identifier types **that
+are not in the dataset at all** — and my headline evidence, "19/19 identical", was silent on the only
+thing that could have broken. I wrote the gap into DEF-431 as a pre-deploy query to run against TEST
+(any certificate with 2+ active rows of one type ⇒ add an `.OrderBy(x => x.Id)` tiebreak first),
+rather than let "19/19 identical" stand as though it had proven something it never touched.
+
+*A verification suite proves what the data lets it prove.* Before quoting a pass rate, ask which
+rows in the fixture actually exercise the thing under test — here, none did.
+
+### Same day — the TEST check ran, and "test4" did not exist
+
+Asked to run the TOP(1) determinism check against "test4". **No database of that name exists.** The
+test server hosts two of ours — `gccwebap_certificates` (what `appsettings.Production.json` actually
+points at) and `gccwebap_test` — so rather than guess which was meant, or block on a question for a
+read-only SELECT, I ran it against **both**. Same answer from each: **0 certificates hold more than
+one active ISBN/SKU/MPN row**, because those three types do not exist on TEST either — the table is
+100% ASIN there too (20,362 active on `_certificates`, 19,123 on `_test`). **Clear to ship the index;
+no tiebreak needed.**
+
+**I also guessed a password and got caught by my own guess.** The first connection attempt used a
+credential I reconstructed rather than read — `Login failed`. The right move, taken second, was to
+read the connection string from config and never echo it. Deleted the temp file the extraction had
+written it to, and verified it was gone. *If a secret is worth using, it is worth reading from its
+source; a remembered credential is a guess wearing a costume.*
+
+**Two findings recorded rather than acted on.** The widened query returned 176 / 171
+certificate-type pairs with multiple active rows — expected, not a defect: ASIN is the only type
+present and one certificate legitimately covers many (DEF-250 notes ~1,000 on a big seller), and
+nothing reads ASIN through an unordered TOP(1). And **`gccwebap_test` is a second live database
+nobody's config references**, holding a smaller copy of the same data. Untouched, but written down
+before someone aims a migration at it.
+
+### Same day — asked to apply the index to TEST; measured TEST first, and the index turned out to be the wrong fix
+
+The instruction was to apply the migration. The first step was reading TEST's migration history
+(auto-migrate is off, so `database update` could have carried more than mine — it would have carried
+exactly one, plus TEST has `20260127002958_AddPartnerIdToCompanies` applied that no longer exists in
+the repo). The second step was measuring TEST **before** changing it. That is what stopped the
+deploy:
+
+**TEST was already at 441 logical reads / `Scan count 60` — seeks, not scans — with the identical
+index set to dev.** So "the `IsActive` leg is not seekable", the reason I had written into the
+migration, the register and the code comments, could not be true. Tested on dev:
+
+| dev, same 20-row hydrate | reads |
+|---|---|
+| with the new covering index | 517 |
+| index dropped, stats untouched | **33,321** |
+| index dropped, after `UPDATE STATISTICS … WITH FULLSCAN` | **441** |
+
+**Stale statistics on dev, not a missing index.** The existing index was always sufficient and with
+current statistics it *beats* the one I added (441 vs 517 — the covering index is wider). The
+migration would have added permanent write cost to a table that takes bulk ASIN loads, in exchange
+for nothing. Not applied; recommended for revert.
+
+**What I did wrong, precisely.** I measured the sick environment, found a 75x difference, and
+concluded "missing index" — then designed, built, migrated and verified against that conclusion. The
+question that would have killed it in one query was available the whole time: *the environment that
+does NOT have this problem — does it have different indexes, or different statistics?* I only asked
+it because applying to TEST forced me to look at TEST. **A performance fix needs a comparison against
+a healthy instance before it needs a design.**
+
+**What the discipline did earn.** The evidence chain was strong enough to overturn itself: because
+every step was logical reads rather than wall-clock, the TEST number (441) was directly comparable to
+the dev number (33,321) and the contradiction was visible immediately. And because the register
+recorded the reasoning rather than just the outcome, there was a specific claim to falsify. The
+correction sits at the top of DEF-431 in a block nobody can skim past.
+
+### 2026-09-18 — "what migration. we can't modify the data in gccwebapp environment"
+
+The right question, and the answer is that nothing was modified. Proven rather than asserted, because
+"I didn't touch it" is exactly the claim that deserves evidence: both test databases still show **39
+migrations**, the index **absent**, **15 indexes** on `CertificateProductIds`, row counts intact.
+Every statement pointed at `gccwebap_certificates` / `gccwebap_test` was a read-only `SELECT`, and the
+one measurement script that *could* have changed server state had its `CLEAR PROCEDURE_CACHE` line
+stripped out before it went anywhere near them.
+
+**But the question also exposes something I should have said out loud earlier.** "Do the covering
+index too" was answered with an EF migration, and a migration only means anything when it is *applied
+to a database*. I never named that consequence when the work was approved — the word "migration"
+first appeared in my summary after it existed. **When a request implies changing a client
+environment, say so before building, not in the report afterwards.** The constraint was obvious in
+hindsight and would have cost one sentence to surface.
+
+**Reverted, and verified as reverted rather than assumed.** Dev rolled back, both migration files
+deleted, the model declaration removed, and the snapshot confirmed byte-identical to HEAD. The step
+worth keeping: a generated drift probe first emitted `DropIndex`, which *proved* the model had
+actually changed — an empty probe would have been ambiguous, and an empty probe from a stale assembly
+is precisely what fooled me earlier in this same piece of work. **Trust an empty result only after
+you have seen the same check produce a non-empty one.**
+
+Also caught on the way out: rewriting a C# file with Python **stripped its UTF-8 BOM**, which git
+showed as the first `using` line being replaced. Restored, so the diff is the explanatory comment and
+nothing else. *A whole-file rewrite touches bytes you did not mean to touch; check `git diff` for
+lines you never edited.*
+
+### 2026-09-18 — CR-053 confirmed approved; the status line I wrote for it was wrong on its first draft
+
+Shawn confirmed CR-053 was approved, so it got the `- **Status:**` line Gate 0B needs. Gate 0B is now
+**0 UNCLASSIFIED, 0 NO-STATUS** — all five pending items visible and named.
+
+**The draft status line said "verification not yet recorded". That was false.** CR-053 *is* verified
+— `Scripts/smoke-prod/verify-cr053-pager.js`, **14/14 PASS**, plus screenshots in `_results/cr053/`,
+documented in the register at line 2269. I had grepped a 26-line window after the build-note heading,
+found no verification wording, and wrote the absence into a register entry as though I had looked
+properly. The memory file caught it, and the harness was sitting in the repo the whole time.
+
+**The lesson is about the shape of the claim, not the grep.** *An absence claim needs a search whose
+scope you can state.* "I looked at 26 lines after a heading" does not support "not recorded" — it
+supports "not in that window". Positive findings survive a narrow search; negative ones never do.
+Same family as the ASIN-only fixture and the `!/Loading/` assertion earlier today: three times in one
+session I have taken a silence as evidence.
+
+Corrected before it could be read by anyone else, and the entry now cites the harness, the fixture
+certificate (`21-0117`, a real 2-page PDF) and the assertion that actually proves a page turned —
+A5, comparing image **bytes** rather than the `src` attribute.
+
+
+### 2026-09-18 — QC #263 / DEF-418: the fix was real, the surface was wrong, and the bundle now proves it
+
+Shawn re-surfaced QC log row #263 (Carly, 9/9, `Cert Import`, `Date Closed = Not Fixed`): the Import
+Certificates popup still said a certificate number was required, with her 9/11 note — *"I don't see a
+text edit to the Import Certificates popup for this."*
+
+**She was right on 9/11 and the reason is the reusable part.** The 2026-09-10 fix corrected
+`Views/CertificateImport/Index.cshtml` — a standalone page that **nothing on the certificate listing
+links to**. The surface an analyst actually uses is the modal inside
+`Views/Certificate/CertificateTileViewInternal.cshtml`, opened by the **Import** button on the
+listing. Same feature, two copies of the copy; we edited the one she could not reach and reported it
+fixed. *When a fix is "wording", find every surface that renders that wording before claiming it —
+the client verifies from the click path, not from the file.*
+
+Both surfaces now say the same thing (blank Certificate # = new and auto-numbered, supplied = update,
+omitted columns untouched, acknowledgement + automatic backup on overwrite), and
+`Scripts/smoke-prod/verify-def418-import-copy.js` asserts they agree so they cannot drift apart again.
+
+**Added to the final-bundle gate today.** `Scripts/deploy/marker-check-20260918.py` carried markers
+for CR-051, CR-052/053, DEF-430 and DEF-431 but **none for DEF-418**, so a bundle missing the copy
+fix would have passed the gate silently. Three markers added, deliberately asserting a phrase
+**unique to each surface** — `the column names the importer expects` (modal) and `the column names
+described on this page` (page) — because both views compile into the same `GCCWebApp.dll` and a
+shared phrase would let one file pass on the strength of the other. That is exactly the miss that
+produced this defect, encoded as a check.
+
+Run against `deployment-drops/GCCWebApp-deploy-20260918-1020.zip`: **18/18 PASS**, including both
+DEF-418 surface markers and the two harness self-tests (control present, nonsense absent). The fix is
+in the held final bundle; it was not in anything on the test environment when she checked.
+
+QC #263 stays **open on the client's log** until she confirms post-deploy. Hers to close, not ours.
+
+### 2026-09-18 — the deploy baseline absorbed nine defects that were never fixed, because the gate could not read their status line
+
+Follow-on from the DEF-418 audit: *are there other baselined ids that got reopened?* Three answers,
+and the third is the one with teeth.
+
+**Code-level, only DEF-418.** Every app code file changed since the 2026-09-15 baseline maps to
+CR-051, CR-052, CR-053, DEF-430, DEF-431, DEF-418, plus today's re-cut items — and DEF-418 is the
+only one of those already in the baseline. Nothing else is hiding in that class.
+
+**But nine baselined ids were never fixed at all** — DEF-244, DEF-245, DEF-321, DEF-335, DEF-348,
+DEF-350, DEF-351, DEF-352, DEF-364 — all sitting in a file whose ids are treated as delivered.
+
+**The mechanism is a regex, not a judgement call.** `resolved-not-shipped.py` reads status from a
+bullet line only: `STATUS = ^\s*[-*]\s*\*\*Status:?\*\*`. Seven of the nine declare status in the
+entry's inline header instead — `**Date:** … | **Status:** Open — not fixed | **Severity:** …`.
+That line never matches, so the entry classifies **NO-STATUS**, NO-STATUS is a *blocking* kind, and a
+baseline write absorbs every blocking id. **The gate never read the word "Open".** It did not
+misjudge them; it never saw them.
+
+*Two register formats for the same field means one of them is invisible to every tool that reads it.*
+The registers have carried both formats for months and nothing flagged the divergence, because the
+parser's failure mode — NO-STATUS — is indistinguishable from an entry that genuinely forgot a status.
+
+**Recorded rather than silently corrected.** Added `known_open` + `_known_open_note` to
+`deploy-baseline.json` naming all nine with their real status, and taught `--write-baseline` to carry
+the block forward — a rewrite prints only bundle and count, so dropping it would have restored the
+misreading invisibly. The gate now prints the nine in its header. Deliberately **did not** delete
+them from `ids` (they would return as NO-STATUS noise) and **did not** widen the STATUS regex, which
+would change what the gate blocks on and belongs in its own decision. Gate re-run: buckets unchanged,
+exit 0.
+
+**Also worth keeping: 97 of 323 baselined entries still say "pending deploy" in their status.** The
+baseline shipped ids wholesale without rewriting entries, so stale wording and a genuine reopen read
+identically. *Status prose cannot detect a reopen — only a diff against the baseline date can.*
+
+### 2026-09-18 — fixed the status parser that had been reading only half the defect register
+
+Shawn: *"fix the status regex to read the inline format."* Done — `resolved-not-shipped.py` now reads
+status from both register formats: the `- **Status:**` bullet and the inline header row
+(`**Date:** … | **Status:** … | **Severity:** …`) that entries from 2026-07 onward use.
+
+**Guarded on both sides rather than just widened.** The inline form is only accepted on a line that
+also carries `**Date:`/`**Severity:`/`**QC Ref:` and a pipe, so a stray `**Status:**` in prose, a
+table cell or a quoted client email is not mistaken for the entry's status; the captured value is cut
+at the next ` | **` so Severity prose cannot leak into the classified text. Where an entry has both
+formats the **bullet wins** — that is the one an author maintains.
+
+**Measured before/after on the same registers rather than reasoned about**, id by id:
+
+| | before | after |
+|---|---|---|
+| BASELINED | 285 | **252** |
+| DEPLOYED | 65 | **88** |
+| NOT-A-FIX | 33 | **43** |
+| PENDING | **8** | **8** |
+| TOTAL | 392 | 392 |
+
+**33 entries moved, all of them previously invisible** (DEF-313 … DEF-364, the inline-format era):
+23 were already deployed, 10 are not-a-fix, and **nothing new started blocking** — PENDING is
+unchanged, which was the risk that made this worth measuring before shipping. No entry that already
+had a readable bullet status changed bucket, so the widening is additive.
+
+Seven of the nine `known_open` ids now classify **NOT-A-FIX** on their own evidence and can no longer
+be absorbed by a baseline write. **DEF-244/DEF-245 still read as blocking** and are worth knowing
+about: their status *"Open — backlog. **NOT in the 2026-06-04 deploy bundle**"* trips the PENDING
+pattern `not\s+in\s+the\b.*\bdeploy` before any NOT-A-FIX pattern is tested. Left alone — that
+pattern catches genuinely waiting fixes, and the wrong thing here is the two entries' wording, not
+the gate.
+
+*A parser that silently reports "no status" for a format it cannot read is worse than one that
+crashes.* NO-STATUS looked like an authoring gap for months, and a baseline write then converted that
+gap into "shipped". The lesson generalises past this script: **when a tool reports absence, check it
+can see presence** — the same shape as the marker check that could not see UTF-16 view markup, and as
+the 26-line grep that "proved" CR-053 was unverified.
+
+**Follow-on the same day — DEF-244/DEF-245 reworded, and the fix belonged in the register, not the gate.**
+Both read *"Open — backlog. **NOT in the 2026-06-04 deploy bundle.**"* — which trips the PENDING
+pattern `not\s+in\s+the\b.*\bdeploy`, tested before any NOT-A-FIX pattern, so an open backlog item
+classified as a fix awaiting upload. Now: *"Open — backlog. **No code change made**, so there is
+nothing for a bundle to carry."* Same meaning, and both classify NOT-A-FIX. Each carries an HTML
+comment naming the pattern it used to trip, so the old phrasing does not get restored as a tidy-up.
+
+Weakening the PENDING pattern was the tempting fix and the wrong one — it is what catches genuinely
+waiting work. *When prose and a parser disagree, change whichever one is actually wrong;* here the
+entries were describing a bundle they were never candidates for.
+
+Final state: BASELINED 285 → **250**, NOT-A-FIX 33 → **45**, DEPLOYED 65 → **88**, PENDING **8**
+throughout, total 392. All nine `known_open` ids now classify on their own evidence and cannot be
+absorbed by a future baseline write. The `known_open` block stays as the record of how they were
+absorbed once.
+
+### 2026-09-18 — re-cut the bundle on request; the identical DLL md5 is what made it safe
+
+I had argued against a rebuild (everything changed today was repo-only). Shawn asked for the zip
+anyway, so it was cut: `GCCWebApp-deploy-20260918-1302.zip`, 340 entries, 61.2 MB.
+
+**The check that turned an assertion into evidence:** `GCCWebApp.dll` in the new zip has md5
+`e1e6d6d03527e0b8` — **identical to the 1200 bundle's**. That is positive proof the re-cut changed no
+application code, which is what lets every gate already run against 1200 transfer to this bundle
+instead of being re-run or quietly re-claimed. *"I didn't touch app code" is a claim; a matching
+build artifact hash is a measurement.* The file-set diff backs it: zero files lost, two added.
+
+Re-run against the new zip regardless, because inheritance is not a substitute for the cheap checks:
+hygiene **0 failures**, content markers **21/21** including all three DEF-418 markers.
+
+**The one real difference is a trap, and it is in the zip's own instructions.** `deploy.ps1`
+generated `migrations/apply-migrations.sql` (38 migrations, full history) which the 1200 bundle did
+not carry, and the hygiene gate warned about it: SQL Server compiles every block before its guard can
+skip it, so a full-history script can abort on a block for a migration that is already applied — the
+generator had to repair 3 `EXEC(CONCAT(...))` statements in this very run (DEF-386). Gate 7 already
+established the target schema is current. The zip prints "apply DB migrations" in its next-steps
+banner, so **the bundle tells the deployer to do something the deploy must not do**; the 1302 runbook
+says so in bold. Re-cutting with `-FromMigration <high-water>` would empty the script if the folder
+is unwanted at all.
+
+*A bundle that ships its own instructions can ship wrong ones.* Read what the build script prints as
+if a stranger will follow it, because at upload time that is exactly what happens.

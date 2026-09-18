@@ -93,7 +93,14 @@ namespace GCCWebApp.Controllers.Api
                 // the loaded refs being in change-tracker context for the projection translator.
                 // (Removing Includes entirely caused the projection to emit 240+ correlated subqueries
                 // and time out at 30s — see DEF-166 follow-up 2026-05-08.)
-                var query = _context.Certificates
+                // DEF-431: `certificatesBase` is the UNFILTERED base — Includes only, no predicates.
+                // The filters below are applied to `query`, which is derived from it; the hydrate
+                // step at the end goes back to this base and selects by primary key alone. See the
+                // comment on the hydrate for why that matters. This controller is
+                // [Authorize(Policy = "AnalystOrAdmin")] with no row-level scoping (verified: every
+                // `query = query.Where(...)` below is a user-supplied filter), so an unfiltered base
+                // grants no access that `query` would have withheld.
+                var certificatesBase = _context.Certificates
                     .AsNoTracking()
                     .AsSplitQuery()
                     .Include(c => c.Company)
@@ -112,6 +119,11 @@ namespace GCCWebApp.Controllers.Api
                     .Include(c => c.CustomFieldValues)
                         .ThenInclude(cfv => cfv.Field)
                     .AsQueryable();
+
+                // Everything from here on filters `query`. `certificatesBase` stays the bare base:
+                // IQueryable operators return a new instance rather than mutating the source, so
+                // the reassignments below cannot reach back into it.
+                var query = certificatesBase;
 
                 // CR-187: normalized, user-friendly search. Both sides reduced to a canonical form
                 // (lowercase; trademark/punctuation/whitespace stripped) so "Product A" matches
@@ -262,7 +274,28 @@ namespace GCCWebApp.Controllers.Api
                 // Hydrate the page with full Includes but NO expensive ORDER BY (filter by the page's
                 // IDs; AsSplitQuery stitches the collections by PK only now). The user-requested order
                 // is restored in memory from pagedIds immediately after the fetch.
-                var rawCertificates = await query
+                //
+                // DEF-431: hydrate from `certificatesBase` (the bare base), NOT from `query`. The 20
+                // ids were just selected FROM the filtered query, so re-applying those filters here
+                // cannot remove a row. The emitted SQL went from
+                // `WHERE [Status] IN (OPENJSON(@statuses)) AND [Id] IN (OPENJSON(@pagedIds))` to
+                // `WHERE [Id] IN (OPENJSON(@pagedIds))` — verified in the EF command log.
+                //
+                // HONEST SCOPE — a simplification, NOT a measured speed-up. The change was made on
+                // the theory that the spent predicate let the optimizer drive off
+                // IX_Certificates_Status rather than seek on the primary key. Measured with
+                // STATISTICS IO against a cleared plan cache, both shapes came out at **33,321
+                // logical reads with the same plan**: the theory did not hold on this data. What is
+                // proven is that the output is identical across 19 filter/sort/paging cases and the
+                // query no longer depends on predicates that have already done their work.
+                //
+                // This endpoint's real cost is elsewhere, and is now located: the three correlated
+                // `COALESCE((SELECT TOP(1) ... FROM CertificateProductIds ... ProductIdType =
+                // N'ISBN'/'SKU'/'MPN' ... IsActive = 1), N'')` subqueries in the projection below.
+                // Remove those three and the same query drops from 33,321 to **321 logical reads** —
+                // ~99% of this query's I/O, spent on three string values. See DEF-431 for the two
+                // candidate fixes. Do not re-optimize this WHERE clause expecting a win.
+                var rawCertificates = await certificatesBase
                     .Where(c => pagedIds.Contains(c.Id))
                     .Select(c => new
                     {

@@ -1590,7 +1590,7 @@ remove first. Shawn created the database copy `gccwebap_test` the same day.
 
 ### CR-051 (raised 2026-09-16, **BUILT 2026-09-16 — not yet deployed**) — Certificate **Status** filter on the internal listing (Admin / Analyst only)
 
-- **Period:** raised 2026-09-16; not started
+- **Period:** raised 2026-09-16; **built and verified 2026-09-16**; bundled and gated 2026-09-17 into **`GCCWebApp-deploy-20260917-1751.zip`** (DLL md5 `e0210ec00a134b31`, **339 entries**) — runbook `2026-09-17-deploy-runbook-20260917-1751.md`. Two intermediate bundles were cut and discarded the same day, both by gate failures: `20260917-1539` shipped five `appsettings.*.template.json` files, `20260917-1545` shipped a `.bak` file. **`1545` shares this bundle's DLL md5** — tell them apart by entry count, 340 vs 339. **Not uploaded** — deploy is Shawn's step. The earlier `20260917-0003` bundle (md5 `05bb58206cd39700`) is **SUPERSEDED and must not be uploaded**: it predates the CR-052 popup rework. (This bullet read "not started" until 2026-09-17, contradicting the header, the Status line and the build note below it.)
 - **Source:** the client, 2026-09-10, logged as **QC #266** — `Database QC Log_9.11.26.xlsx`, sheet
   `GCC DB QC Log2`, **row 275**, page `Filtering`, raised by Carly, no image: *"They often need to
   sort by status. And the only way to do it right now is alpha order by status name. Is it possible
@@ -1806,7 +1806,7 @@ discovering the enum-name mismatch). Built and verified inside the revised figur
 
 ### CR-052 (raised 2026-09-16, **BUILT 2026-09-16 — Option A, all five surfaces; not yet deployed**) — Certificate PDF preview: view **all pages**, not just the first
 
-- **Period:** raised 2026-09-16; not started
+- **Period:** raised 2026-09-16; **built and verified 2026-09-16**; bundled and gated 2026-09-17 into **`GCCWebApp-deploy-20260917-1751.zip`** (DLL md5 `e0210ec00a134b31`, **339 entries**) — runbook `2026-09-17-deploy-runbook-20260917-1751.md`. Two intermediate bundles were cut and discarded the same day, both by gate failures: `20260917-1539` shipped five `appsettings.*.template.json` files, `20260917-1545` shipped a `.bak` file. **`1545` shares this bundle's DLL md5** — tell them apart by entry count, 340 vs 339. **Not uploaded** — deploy is Shawn's step. The earlier `20260917-0003` bundle (md5 `05bb58206cd39700`) is **SUPERSEDED and must not be uploaded**: it predates the CR-052 popup rework. (This bullet read "not started" until 2026-09-17, contradicting the header, the Status line and the build note below it.)
 - **Source:** the client, 2026-09-10, logged as **QC #267** — `Database QC Log_9.11.26.xlsx`, sheet
   `GCC DB QC Log2`, **row 276**, page `Cert PDF Preview Popup`, raised by Carly, Image 122: *"It
   appears to only allow one page to be viewed when uploading certificate. Is it low risk to add a
@@ -1988,3 +1988,336 @@ will click first.
 
 **Known limitation, stated not fixed:** an encrypted PDF still will not display (DEF-400, `23-0971`).
 The browser viewer will prompt or fail exactly as the thumbnail generator does.
+
+#### REWORKED 2026-09-17 — the control moved INSIDE the preview popup, and the duplicate outside it was removed
+
+**How this surfaced.** Shawn opened `21-0117` on dev, saw page 1 and reported *"I don't see a way to
+see the second page."* She was in the **preview popup**, and the popup had no control: the 2026-09-16
+build put "All pages" in the action row *outside* `#imageZoomModal`. Re-read the client's words —
+*"add a toggle to view multiple pages **under the Preview popup**"* — and the first build satisfied
+"view multiple pages" while missing the one place they named. The control was reachable; it was not
+where anyone looking at page 1 would look.
+
+**Nothing was wrong with the file or the route, which is worth recording so this is not re-diagnosed.**
+Read straight off disk, bypassing the app: `21-0117_20260814_214543.pdf` is **2 pages** (595x842
+each), **195,071 bytes**, and the endpoint served **195,071 bytes** — byte-for-byte the whole file,
+nothing truncated. (It is also itself *encrypted* — `is_encrypted: True` with an empty password, so
+it reads fine. Not the DEF-400 class, which cannot be read at all.)
+
+**Change.**
+
+| Surface | Before | After |
+|---|---|---|
+| `Edit.cshtml` | "All pages" button in the green *Current PDF* bar | **removed**; control now in the popup |
+| `CertificateInternalView` | icon in the action row | icon kept **and** control added in the popup |
+| `CertificateExternalView` | icon in the action row | icon kept **and** control added in the popup |
+| `CertificateSingleView` | icon in the action row | icon kept **and** control added in the popup |
+| `Create.cshtml` | blob-URL link beside the filename | **unchanged** — Create has no preview to open, so it has no popup to put a control in |
+
+The Edit removal was **Shawn's call, 2026-09-17** (*"the button next to the preview shouldn't be
+there right?"*). Rationale recorded: on Edit the green "View" button opens the popup, so the bar
+would have carried a second copy of a control one click away. The detail views keep their action-row
+icon because it is a peer of zoom and download in an established icon row, and it is one click rather
+than two.
+
+Styling is shared: `.zoom-allpages` / `.zoom-allpages-link` in `wwwroot/css/main.css`, added beside
+`.zoom-caption` so all four views draw from one rule rather than four inline copies.
+
+**One implementation detail that would have been a bug.** `#imageZoomModal` carries
+`onclick="closeImageZoom()"` on the container, so *any* click inside it closes the popup. The new
+anchor therefore calls `event.stopPropagation()`; without it the popup would shut underneath the new
+tab, and the user would return to a closed modal. This is asserted, not assumed — see E3 below.
+
+**Copy corrected as a consequence:** the caption read *"Click anywhere to close"*, which stopped
+being true the moment the popup contained something deliberately non-closing. Now *"Click outside to
+close"*, in all four views. `Create.cshtml` still says "anywhere" and is correct — its popup has no
+button.
+
+**Verification — `Scripts/smoke-prod/verify-cr052-popup.js`, 6/6 PASS** (localhost:5101,
+`GCCDatabase_Dev`, clean build, 0 errors):
+
+| Id | Assertion | Result |
+|---|---|---|
+| login | admin.uat actually reached an authenticated page | PASS |
+| E1 | the old green-bar button is **gone** from `.current-pdf-info` | PASS (0 links, with the bar itself asserted present) |
+| E2 | the link is inside `#imageZoomModal` on Edit | PASS (`/Certificate/ViewCertificateFile/1488`) |
+| E3 | clicking it does **not** close the popup | PASS (modal still displayed) |
+| I1 | same, `CertificateInternalView` | PASS |
+| P1 | same, `CertificateSingleView`, **anonymously** | PASS |
+
+**`CertificateExternalView` was NOT executed** and this is stated rather than glossed: it shares the
+identical Razor block and the identical `FileAccessAllowed`-gated route as the three surfaces above,
+and its action-row icon was proven for an External session in the 2026-09-16 run (B3/B4), but no
+External session was driven through the *popup* here. **Do that on TEST after deploy.**
+
+**A false PASS the hardened harness caught, recorded because it is the more useful finding.** The
+first run reported `E1 old green-bar button removed — 0 found` while the login had silently failed:
+0 buttons because the browser was sitting on the login page. An assertion that something is *absent*
+passes trivially on the wrong page. The harness now (a) aborts when login fails rather than
+continuing, and (b) asserts `.current-pdf-info` is present *before* concluding the button inside it
+is gone. **Every "absent" assertion needs a positive control on the same page.**
+
+**Estimate:** ~45 min for the rework (4 views, 1 shared CSS rule, caption copy, harness). Inside the
+~30-45 min quoted.
+
+#### REWORKED AGAIN 2026-09-17 (#2) — the duplicate icon in the action row removed; the popup control stays
+
+**Direction from Shawn, 2026-09-17, after speaking to the client:** *"I think the button on the popup
+can stay, but the button on the tile view should be removed."*
+
+**What "the tile view" meant, resolved before touching anything.** The tile *listing* pages
+(`CertificateTileView.cshtml`, `CertificateTileViewExternal.cshtml`, `CertificateTileViewInternal.cshtml`)
+were checked first and carry **no all-pages control at all** — CR-052 never touched them. The only
+control outside a popup was the third `action-icon` in the `.certificate-download-action` row on the
+three detail views, which are the pages reached *from* the tile view. That is what was removed.
+
+| Surface | Before | After |
+|---|---|---|
+| `CertificateInternalView` | popup control **+** action-row icon | **popup control only** |
+| `CertificateExternalView` | popup control **+** action-row icon | **popup control only** |
+| `CertificateSingleView` | popup control **+** action-row icon | **popup control only** |
+| `Edit.cshtml` | popup control only (green-bar button removed in rework #1) | unchanged |
+| `Create.cshtml` | blob-URL link beside the filename | unchanged — no popup exists pre-save |
+| `CertificateTileView*` | nothing | nothing — verified, not assumed |
+
+This finishes what rework #1 started: the green-bar button came off Edit for exactly this reason, and
+the detail views kept their icon on the argument that it was *"a peer of zoom and download … one click
+rather than two."* The client has now settled that argument the other way. **One control, in the popup.**
+
+The `else` branch that rendered a greyed-out disabled icon when a certificate had no PDF is gone with
+it, so a file-less certificate now shows two icons in that row rather than three.
+
+**Verification — `Scripts/smoke-prod/verify-cr052-popup.js`, extended, 8/8 PASS** (localhost:5101,
+`GCCDatabase_Dev`, clean build **0 errors**):
+
+| Id | Assertion | Result |
+|---|---|---|
+| login | admin.uat actually reached an authenticated page | PASS |
+| E1 | old green-bar button still gone from `.current-pdf-info` | PASS |
+| E2 / E3 | popup link present on Edit; clicking does not close the popup | PASS |
+| I1 | popup link present, `CertificateInternalView` | PASS |
+| **I2** | **action-row icon gone, `CertificateInternalView`** | **PASS** — 0 icons, with `.certificate-download-action` asserted present |
+| P1 | popup link present, `CertificateSingleView`, **anonymously** | PASS |
+| **P2** | **action-row icon gone, `CertificateSingleView`, anonymously** | **PASS** — same positive control |
+
+**I2 and P2 both carry a positive control**, because this is the second "prove something is absent"
+assertion in this CR and the first one produced a false PASS on the login page. The row itself must
+be present before its emptiness means anything.
+
+**`CertificateExternalView` is again not driven by an External session** — stated, not glossed. It is
+the same Razor block, removed by the same scripted edit, and the file was re-read afterwards to
+confirm zero `action-icon.*View all pages` matches remain in any of the three views. But no External
+browser session was run. **Do it on TEST.**
+
+**Estimate:** ~30 min (three view edits, two new harness assertions, rebuild, re-run). No CSS, no
+controller and no route change — `ViewCertificateFile` is still reached from every popup.
+
+---
+
+### CR-053 (raised 2026-09-17, **BUILT 2026-09-17 — Option C; not yet deployed**) — Page **through** the certificate PDF inside the preview popup (a real pager, not a link out)
+
+- **Status:** **APPROVED and BUILT 2026-09-17 — not yet deployed.** Estimate-before-build gate honoured: ~6-9 hr quoted before any code existed, Shawn approved that figure the same day (*"approve the 6-9 hr for the pager, build it"*) and re-confirmed the approval 2026-09-18 (*"yes CR-053 was approved"*). Actual ~5 hr. Option C — on-demand rendering, **no schema, no migration, no backfill**, so nothing here needs a database change. Goes in the single final bundle. **Verified by TWO scripts — function 14/14 and scoping 10/10.** (1) Function: `Scripts/smoke-prod/verify-cr053-pager.js`, 14/14 on localhost:5101 against `GCCDatabase_Dev`, cert `21-0117` (a real 2-page PDF), including A5 which proves a page turn by comparing image BYTES rather than the `src` attribute; screenshots in `Scripts/smoke-prod/_results/cr053/`. (2) Cross-company scoping: `Scripts/smoke-prod/_security/verify-cr053-rbac.js`, **10/10, run 2026-09-18**, output in `Scripts/smoke-prod/_results/cr053-review/rbac-2026-09-18.txt`. **Until 2026-09-18 this line read "Verified 14/14" and cited only the pager script — the scoping script existed but had never been executed, so the only evidence of cross-company denial was a code reading.** Gate 3 caught that overstatement. CR-052 rework #2 verified 8/8 separately.
+- **Period:** raised, priced, approved and **built 2026-09-17**. The estimate-before-build gate in
+  `docs/governance/change-request-process.md` was honoured in order: the entry below was written
+  and the ~6-9 hr quoted *before* any code existed; Shawn approved that figure the same day
+  (*"approve the 6-9 hr for the pager, build it"*); the build followed. **Not deployed** — it goes
+  in the single final bundle (see the decision box below).
+  **Actual: ~5 hr**, inside the estimate. See the build note at the end of this entry.
+- **Source:** Shawn, 2026-09-17, re-reading the client's **QC #267** wording — *"is the ability to
+  have a toggle on the snapshot to see both pages too difficult to give the user the ability to page
+  through… Example: 26-0621"*. This is the **open question CR-052 deliberately left unanswered**:
+  *"is a native browser PDF view acceptable, or do they want the pages inside the GCC-styled
+  modal?"*
+- **Relationship to CR-052 — read this first.** CR-052 is **built and bundled, not yet uploaded**
+  (`GCCWebApp-deploy-20260917-1751.zip`, DLL md5 `e0210ec00a134b31`, 339 entries). It delivers a
+  **"View all pages" link inside the preview popup** that opens the stored PDF in the browser's own
+  viewer — every page, plus zoom, search and print. It does **not** deliver a pager: there is still
+  exactly one rendered image, and clicking leaves the popup for a new tab. CR-053 is the difference
+  between those two things and nothing else.
+- **Why CR, not a defect:** CR-052 satisfies the client's literal request ("view multiple pages")
+  and was accepted as the approved Option A. Paging *within* our own modal chrome is additional
+  capability. Nothing in CR-052 is broken.
+
+> #### ANSWERED BY THE CLIENT, 2026-09-17 — they want paging, not the button
+>
+> Shawn spoke to the client the same day this entry was written. **They were thinking paging in the
+> popup, and they do not want the button we built.** That closes the question CR-052 left open and
+> it closes it against Option A: the browser's own PDF viewer in a new tab is *not* what QC #267
+> asked for. The entry above was written with a hold on it — *"do not build until the client has
+> used the 1751 build"* — and **that hold is lifted**, because the answer arrived without needing
+> the deploy.
+>
+> **This does not make CR-052 wasted work.** The endpoint it activated, the gate it proved (B3/B4,
+> an External session refused another company's PDF) and the popup plumbing it added are all
+> reused by the pager. What changes is which control is *primary*.
+>
+> **Both decisions were made by Shawn the same day, and both went against my recommendation.**
+>
+> 1. **`20260917-1751` does NOT go up. One final build carries everything.** I recommended shipping
+>    it unchanged so CR-051 and DEF-418 would not wait. Shawn's call: *"I want a final build to
+>    include everything when we are done."* **That bundle and its runbook are now HELD, not
+>    superseded-by-defect** — nothing in it is wrong, it is simply no longer the delivery vehicle.
+>    Anything built between now and the final cut rides in the same bundle, so Gate 0B's
+>    resolved-but-unshipped list will keep growing on purpose. Do not read that growth as drift.
+> 2. **The popup button STAYS. The duplicate icon in the action row is REMOVED** — *"the button on
+>    the popup can stay, but the button on the tile view should be removed."* Done 2026-09-17; see
+>    **CR-052 rework #2** above. So the fallback the pager needs is already in place and this CR
+>    does not have to preserve anything: it adds prev/next inside a popup that already has the
+>    link sitting under it.
+
+**What stands in the way — the same constraint CR-052 recorded, restated because it drives the price.**
+
+- `Services/FileUploadService.cs:553-591` renders **page 0 only** (`docReader.GetPageReader(0)`) into
+  a single PNG.
+- That one path lives in **`Certificate.CertificateImagePath`**, a single `nvarchar(500)` column.
+  There is nowhere to put page 2.
+- `CertificateController.ViewCertificateImage(int id)` (`:2416`) takes **no page parameter**.
+- There is **no `PageCount`** anywhere on the model, and **no pdf.js** in the application.
+
+So a pager needs pages that have never been rendered, and a way to count them.
+
+**Option C — render on demand (RECOMMENDED if this is built at all).**
+
+Add `int page = 0` to `ViewCertificateImage`, expose a page count through the same gate, and put
+prev / next + "Page *n* of *m*" inside `#imageZoomModal`. Docnet is already referenced; the sizing
+and BGRA→RGBA logic already exists and would be refactored to take a page index instead of the
+literal `0`.
+
+- **No schema change, no migration, and critically no backfill** across ~5,700 certificates. TEST
+  auto-migrate has been **OFF** since 2026-09-04, so avoiding a migration avoids a manual step.
+- **Security is inherited, but the new parameter must be gated with it.** `FileAccessAllowed`
+  (`:2454`, DEF-204/208) already protects the endpoint. The `page` value must be bounds-checked
+  against the real page count — an unchecked index is the one genuinely new attack surface here, and
+  it must be proven for an **External** session, not assumed.
+- **Keyed on the integer `Id`, never the number** — `26-0621` would 404, and 137 certificate numbers
+  span multiple rows.
+- **Must degrade, not error — and this is why the CR-052 link cannot simply be deleted.** Encrypted
+  PDFs still cannot be rendered (DEF-400, `23-0971`, the only one in the store), and a certificate
+  whose file is missing from disk falls back to a placeholder image. In both cases there is nothing
+  to page through. The build therefore **shows the pager when pages can be rendered and falls back
+  to the "View all pages" link when they cannot** — so the client gets paging as the normal
+  experience and never gets a dead popup. If Shawn wants the link gone unconditionally, say so
+  explicitly and the fallback becomes a plain "this document cannot be previewed" message instead;
+  that is a copy change, not a cost change.
+- **Perf is measured, not argued.** Each page is a live Docnet render at request time rather than a
+  cached PNG. Output caching keyed on id + page + the existing `UploadCacheBusting.VersionToken`
+  is in scope, and the timing is taken on TEST — not reasoned about.
+- **Estimate: ~6-9 hr.** Build ~4-6 (controller + render refactor + page-count route + pager UI in
+  four views + shared CSS + keyboard handling), verification ~2-3 (extend
+  `Scripts/smoke-prod/verify-cr052-popup.js`, five viewports, an External-session RBAC pass on the
+  `page` parameter, and a timing measurement). **It lands at the high end if caching proves
+  necessary.** CR-052 was first quoted 1.5-2.5 hr and took 3-4; that pattern is priced in here.
+
+**Option B (carried forward from CR-052, still not recommended) — pre-render and store every page.**
+
+Loop `0..GetPageCount()` at upload, store one PNG per page. Needs a `CertificatePreviewPage` table or
+a JSON path list, **plus a migration applied by hand on TEST**, **plus a backfill across ~5,700
+certificates**, plus uploads-store growth. Enumerated from the dev store: **1,336 certificates
+(24.4%) are multi-page**, up to 11 pages, so the backfill writes roughly 1,600 extra images.
+
+- **Estimate: ~8-12 hr** build, plus a backfill run and its verification.
+
+**Recommendation — build Option C, on Shawn's approval of the estimate.** The client has asked for
+paging, so the only remaining question is which way to build it. Option C reaches the same outcome as
+Option B for roughly two-thirds the cost, adds no schema, no migration and no backfill, and keeps the
+CR-052 link as the degraded-case fallback. Option B is only justified if page rendering proves too
+slow on TEST to do live — which is a measurement, and it has not been taken. **Nothing starts until
+the ~6-9 hr is approved.**
+
+#### BUILT 2026-09-17 — Option C, on-demand rendering. No schema, no migration, no backfill.
+
+Built on localhost:5101 against `GCCDatabase_Dev`. **Clean build, 0 errors.** Not deployed.
+
+**What was added**
+
+| Layer | File | Change |
+|---|---|---|
+| Service | `Services/FileUploadService.cs` | `GetPdfPageCount(path)` and `RenderPdfPageAsync(path, pageIndex)` — Docnet + ImageSharp, PNG bytes, nothing written to disk |
+| Controller | `Controllers/CertificateController.cs` | `ViewCertificateImage(int id, **int page = 0**)` and a new `CertificatePageCount(int id)` JSON route |
+| Script | `wwwroot/js/certificate-preview-pager.js` | **new, shared** — builds the pager, swaps pages, keyboard arrows |
+| Styles | `wwwroot/css/main.css` | `.zoom-pager*` beside the existing `.zoom-allpages` rules |
+| Views | `Edit`, `CertificateInternalView`, `CertificateExternalView`, `CertificateSingleView` | one `data-certificate-id` attribute and one `<script>` tag each |
+
+**Page 0 is deliberately untouched.** A request with no `page` (or `page=0`) serves the **stored
+thumbnail** exactly as before — no PDF is opened at all. Only an explicit `page>=1` renders. Opening
+a preview therefore costs precisely what it always did, and the feature is paid for only by the
+people who use it.
+
+**The page count is fetched when the popup OPENS, not when the page renders.** Counting pages means
+opening the PDF; the great majority of page views never open the preview. Detail pages pay nothing.
+
+**Four decisions worth keeping, each of which would have been a defect the other way.**
+
+1. **One shared script, not four inline copies.** CR-052 had to be reworked across four views twice.
+   The markup is generated at runtime from one file; a view contributes only its certificate Id.
+2. **A MutationObserver on the modal, not a wrapper around `openImageZoom()`.** Each view declares
+   that function in its own inline `<script>`; a function *declaration* is assigned when that block
+   runs, so wrapping it from an external file works or is silently clobbered depending on load
+   order — which would have worked on three views and failed on the fourth.
+3. **Every control calls `stopPropagation()`.** `#imageZoomModal` closes on any click reaching the
+   container. Without this the popup would shut the instant you tried to turn a page. Same trap
+   CR-052's link hit; asserted here, not assumed (A6).
+4. **The renders are serialised behind a semaphore.** `DocLib.Instance` is a process-wide P/Invoke
+   singleton over pdfium and is not safe for concurrent readers. Thumbnailing never exposed this
+   because it happens once, on upload; paging happens on demand from every open browser.
+
+**Degradation is the fallback, and it is why the CR-052 link stays.** An unreadable document
+(encrypted — DEF-400 `23-0971` — missing from disk, not a PDF, or URL-backed) reports **0 pages**
+rather than an error. The pager hides itself on 0 or 1 pages and **"View all pages" carries on**, so
+no certificate ends with a dead popup. A single-page certificate shows no pager at all.
+
+**Verification — `Scripts/smoke-prod/verify-cr053-pager.js`, 14/14 PASS** (localhost:5101,
+`GCCDatabase_Dev`, cert `21-0117` = Id 1488, a real 2-page PDF):
+
+| Id | Assertion | Result |
+|---|---|---|
+| login | admin.uat actually reached an authenticated page | PASS |
+| A1 | the view publishes the integer Id to the pager | PASS (`data-certificate-id="1488"`) |
+| A2 | the page-count route reports a multi-page document, **and how fast** | PASS (`pages=2`; 423/87/33 ms warm) |
+| A3 | the pager is visible, labelled "Page 1 of 2" | PASS — appeared in **48 ms**, with the "View all pages" link on the same popup as positive control |
+| A4 | prev is disabled on page 1 | PASS |
+| **A5** | **next actually turns the page — compared by BYTES, not by src** | **PASS** (`f74c3b21eeae462f` -> `d7fa58dccd70294b`) |
+| A6 | the popup stays open through a page turn | PASS |
+| A7 | prev returns to the *same* page 1 image | PASS (hash matches exactly) |
+| **A8** | **out-of-range pages rejected** | **PASS** (`page=2` 404, `page=9999` 404, `page=-1` 200 -> stored thumbnail) |
+| A9 | render timing **measured, not reasoned about** | PASS — **159/137/159 ms**, worst 159 ms against a 5 s budget |
+| P1 | an anonymous caller can count pages of a public certificate | PASS |
+| P2 | pager matches the document and the link survives either way | PASS — 1-page cert: pager hidden, link present |
+| **P3** | **the page parameter opens no door the image did not** | **PASS** — a certificate denied for the image is denied identically for `page=1` and for the count route (404/404) |
+| R1 | pager fits, 16px minimum, no horizontal overflow, 5 viewports | PASS — 5 viewports (1400/1024/768/390/375): pager fully inside the viewport, 16px label, no horizontal page overflow |
+
+**A5 is the assertion this CR exists for and it is the one most easily faked.** Comparing `img.src`
+would pass on a URL change with no new image behind it, which is exactly the class of false PASS the
+CR-052 harness produced three times. The image is refetched inside the page session and hashed.
+
+**A9 settles the caching question empirically.** The plan allowed for output caching *if* rendering
+proved slow. At 137-159 ms per page it does not, so **no cache was added** — less code, no
+invalidation to get wrong, and nothing to leak between callers. Re-measure on TEST before assuming
+this holds there.
+
+**Two limits, stated rather than implied.**
+
+- **`CertificateExternalView` was again not driven by an External browser session.** It carries the
+  identical attribute and script and is gated by the same `FileAccessAllowed` call, and P3 proves
+  the parameter adds no reachability for a denied caller — but no External session paged a document
+  in a browser. **Do it on TEST**, along with the External popup check CR-052 also deferred.
+- **`26-0621`, the client's own example, still cannot be exercised locally** — no PDF in the dev
+  uploads store. Proven against `21-0117` instead. **It is the first thing to click on TEST.**
+
+**Estimate: ~6-9 hr quoted and approved; ~5 hr actual.** Under, for once, because CR-052 had already
+paid for the popup plumbing, the gate and the harness scaffolding this CR reuses.
+
+---
+
+**The client's example must be checked on TEST, not localhost.** **`26-0621` has no PDF in the dev
+uploads store** (recorded under CR-052). Whatever is built here is proven against 26-0621 on the test
+environment, because that is the certificate the client will open first.
+
+**~~Decision needed from the client~~ — ANSWERED 2026-09-17: prev / next inside the GCC popup.** The
+question was whether the browser's own PDF view was acceptable or whether they wanted paging in our
+modal. It is the latter. **Refined the same day:** the client does not want a *second* control
+outside the popup — the one **inside** the popup is welcome to stay, and it now stands alone
+(rework #2). The remaining decision is Shawn's and it is commercial, not technical: **approve
+~6-9 hr for Option C** so it makes the final build, or leave QC #267 answered by the popup link and
+tell the client paging is priced but not scheduled. **Because there is now only one bundle, this
+decision has a deadline: the final cut.**

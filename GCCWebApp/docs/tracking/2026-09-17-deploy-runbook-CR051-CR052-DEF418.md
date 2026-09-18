@@ -1,7 +1,19 @@
 # Deploy runbook — `GCCWebApp-deploy-20260917-0003.zip`
 
+> # ⛔ SUPERSEDED 2026-09-17 — DO NOT UPLOAD THIS BUNDLE
+>
+> Replaced by **`GCCWebApp-deploy-20260917-1545.zip`** (DLL md5 `e0210ec00a134b31`) — see
+> `2026-09-17-deploy-runbook-20260917-1545.md`.
+>
+> **Why:** this bundle carries the pre-rework CR-052, whose "All pages" control sits *outside* the
+> preview popup. The client opened the popup, saw page 1 and reported no way to reach page 2 — so
+> uploading this zip would ship the exact placement that report rejected. The zip is kept, not
+> deleted: it is the only way to marker-check what this build contained.
+>
+> Everything below is accurate for `20260917-0003` and is retained as the record.
+
 **Target:** gccwebapp.com (the pre-launch TEST environment)
-**Status:** **BUILT AND GATED 2026-09-17. NOT UPLOADED.** Upload is Shawn's step.
+**Status:** **SUPERSEDED — NOT UPLOADED, AND NOT TO BE UPLOADED.**
 
 | | |
 |---|---|

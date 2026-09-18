@@ -1,0 +1,72 @@
+[
+  {
+    "id": "login-admin",
+    "pass": true,
+    "detail": "admin.uat -> http://localhost:5101/Certificate/CertificateTileViewInternal"
+  },
+  {
+    "id": "A1 view publishes the certificate Id",
+    "pass": true,
+    "detail": "data-certificate-id=\"1488\""
+  },
+  {
+    "id": "A2 page count endpoint (value AND latency)",
+    "pass": true,
+    "detail": "pages=2, 1364ms, 153ms, 81ms (worst 1364ms)"
+  },
+  {
+    "id": "A3 pager visible on a multi-page certificate",
+    "pass": true,
+    "detail": "pager=1 after 51ms, \"View all pages\" link on same popup=1 (positive control), label=\"Page 1 of 2\""
+  },
+  {
+    "id": "A4 prev disabled on page 1",
+    "pass": true,
+    "detail": "disabled=true"
+  },
+  {
+    "id": "A5 next turns the page (compared by BYTES, not src)",
+    "pass": true,
+    "detail": "page1=f74c3b21eeae462f page2=d7fa58dccd70294b label=\"Page 2 of 2\""
+  },
+  {
+    "id": "A6 popup stays open through a page turn",
+    "pass": true,
+    "detail": "modal displayed=true"
+  },
+  {
+    "id": "A7 prev returns to the same page 1 image",
+    "pass": true,
+    "detail": "page1=f74c3b21eeae462f back=f74c3b21eeae462f"
+  },
+  {
+    "id": "A8 out-of-range page rejected",
+    "pass": true,
+    "detail": "page=2:404 (404) page=9999:404 (404) page=-1:200 (200, falls back to the stored thumbnail)"
+  },
+  {
+    "id": "A9 render timing measured",
+    "pass": true,
+    "detail": "229ms, 342ms, 382ms (worst 382ms, budget 5000ms)"
+  },
+  {
+    "id": "P1 anonymous caller can count pages of a PUBLIC certificate",
+    "pass": true,
+    "detail": "id=4562 pages=1"
+  },
+  {
+    "id": "P2 pager matches the document, and the link survives either way",
+    "pass": true,
+    "detail": "pages=1 => pager=0 (expected 0), \"View all pages\" link=1"
+  },
+  {
+    "id": "P3 page parameter opens no door the image did not",
+    "pass": true,
+    "detail": "cert 1: image=404, page=1 -> 404, count -> 404"
+  },
+  {
+    "id": "R1 pager fits, 16px minimum, no horizontal overflow (5 viewports)",
+    "pass": true,
+    "detail": "desktop:0-1400/1400 16px | tablet-land:0-1024/1024 16px | tablet-port:0-768/768 16px | mobile-iph12:0-390/390 16px | mobile-iphse:0-375/375 16px"
+  }
+]

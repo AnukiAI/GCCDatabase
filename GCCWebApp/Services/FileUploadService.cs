@@ -25,6 +25,25 @@ namespace GCCWebApp.Services
         Task<string> CalculateFileHashAsync(Stream stream);
         Task<bool> ScanFileForVirusesAsync(string filePath); // Placeholder for virus scanning
         Task<string?> GeneratePdfThumbnailAsync(string pdfFilePath, string certificateNumber);
+
+        // CR-053 (QC #267): the preview popup pages through the PDF. The stored thumbnail is page 0
+        // only and there is nowhere to put a second page, so pages 1..n-1 are rendered on demand
+        // from the same PDF rather than generated and stored (that was Option B, ~8-12 hr plus a
+        // backfill across ~5,700 certificates; this reaches the same outcome with no schema change).
+
+        /// <summary>
+        /// CR-053: page count for a stored PDF, or 0 when it cannot be read (missing file,
+        /// encrypted - DEF-400 cert 23-0971 - or not a PDF at all). Callers treat 0 as
+        /// "no pager", never as an error.
+        /// </summary>
+        int GetPdfPageCount(string pdfFilePath);
+
+        /// <summary>
+        /// CR-053: render one page of a stored PDF to PNG bytes, without writing to disk.
+        /// Returns null when the page cannot be produced, for any reason. Bounds-checking the
+        /// index is the CALLER's job as well as this method's - see CertificateController.
+        /// </summary>
+        Task<byte[]?> RenderPdfPageAsync(string pdfFilePath, int pageIndex);
     }
 
     public class FileUploadService : IFileUploadService
@@ -464,6 +483,141 @@ namespace GCCWebApp.Services
 
             _logger.LogInformation("Virus scan performed on file: {FilePath} (placeholder implementation)", filePath);
             return true;
+        }
+
+        // CR-053 (QC #267) --- on-demand rendering of pages 2..n for the preview popup pager.
+        //
+        // WHY A LOCK. Docnet is a P/Invoke wrapper over pdfium and DocLib.Instance is a process-wide
+        // singleton; concurrent GetDocReader calls against it are not safe. Thumbnail generation
+        // never hit this because it happens once, on upload. Paging happens on demand, from however
+        // many browsers are open at once, so the renders are serialised here. The practical cost is
+        // that two simultaneous page turns queue rather than race - measured well inside the
+        // response budget for a single page, and correctness is not negotiable against it.
+        private static readonly SemaphoreSlim PdfRenderLock = new SemaphoreSlim(1, 1);
+
+        // Page renders are larger than the 600px stored thumbnail because this one is what the user
+        // actually reads in the zoom modal. It matches the 1200px render pass used below.
+        private const int PageRenderLongSide = 1200;
+
+        /// <inheritdoc />
+        public int GetPdfPageCount(string pdfFilePath)
+        {
+            if (string.IsNullOrWhiteSpace(pdfFilePath)) return 0;
+
+            // A URL-backed certificate has no local file to page through.
+            if (pdfFilePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return 0;
+
+            try
+            {
+                var fullPdfPath = ResolvePhysicalUploadPath(pdfFilePath);
+                if (!File.Exists(fullPdfPath)) return 0;
+
+                // Not a PDF (the store also holds images) - nothing to page.
+                if (!string.Equals(Path.GetExtension(fullPdfPath), ".pdf", StringComparison.OrdinalIgnoreCase))
+                    return 0;
+
+                PdfRenderLock.Wait();
+                try
+                {
+                    using var reader = DocLib.Instance.GetDocReader(fullPdfPath, new PageDimensions(100, 100));
+                    return reader.GetPageCount();
+                }
+                finally
+                {
+                    PdfRenderLock.Release();
+                }
+            }
+            catch (Exception ex)
+            {
+                // DEF-400: an encrypted PDF throws here. That is a known, permanent state for at
+                // least one certificate and it is NOT an error condition for the caller - the pager
+                // simply does not appear and the "View all pages" link carries on.
+                _logger.LogInformation(ex, "CR-053: page count unavailable for {PdfPath} - pager suppressed", pdfFilePath);
+                return 0;
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task<byte[]?> RenderPdfPageAsync(string pdfFilePath, int pageIndex)
+        {
+            if (pageIndex < 0) return null;
+            if (string.IsNullOrWhiteSpace(pdfFilePath)) return null;
+            if (pdfFilePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return null;
+
+            try
+            {
+                var fullPdfPath = ResolvePhysicalUploadPath(pdfFilePath);
+                if (!File.Exists(fullPdfPath)) return null;
+                if (!string.Equals(Path.GetExtension(fullPdfPath), ".pdf", StringComparison.OrdinalIgnoreCase))
+                    return null;
+
+                await PdfRenderLock.WaitAsync();
+                try
+                {
+                    // Pass 1 - this page's own aspect ratio. Pages in one PDF are not necessarily
+                    // the same shape (a landscape annexe behind a portrait certificate is common),
+                    // so the ratio is read per page rather than assumed from page 0.
+                    int renderWidth, renderHeight;
+                    using (var detectReader = DocLib.Instance.GetDocReader(fullPdfPath, new PageDimensions(100, 100)))
+                    {
+                        if (pageIndex >= detectReader.GetPageCount()) return null;
+
+                        using var detectPage = detectReader.GetPageReader(pageIndex);
+                        var pageW = detectPage.GetPageWidth();
+                        var pageH = detectPage.GetPageHeight();
+
+                        if (pageW >= pageH && pageH > 0)
+                        {
+                            renderWidth = PageRenderLongSide;
+                            renderHeight = Math.Max(100, (int)((double)PageRenderLongSide * pageH / pageW));
+                        }
+                        else if (pageW > 0)
+                        {
+                            renderHeight = PageRenderLongSide;
+                            renderWidth = Math.Max(100, (int)((double)PageRenderLongSide * pageW / pageH));
+                        }
+                        else
+                        {
+                            renderWidth = 1240;
+                            renderHeight = 1754; // A4 portrait fallback, as in the thumbnail path
+                        }
+                    }
+
+                    // Pass 2 - render. Docnet requires the smaller dimension first.
+                    var dimSmall = Math.Min(renderWidth, renderHeight);
+                    var dimLarge = Math.Max(renderWidth, renderHeight);
+
+                    using var docReader = DocLib.Instance.GetDocReader(fullPdfPath, new PageDimensions(dimSmall, dimLarge));
+                    using var pageReader = docReader.GetPageReader(pageIndex);
+
+                    var width = pageReader.GetPageWidth();
+                    var height = pageReader.GetPageHeight();
+                    var rawBytes = pageReader.GetImage();
+                    if (rawBytes == null || rawBytes.Length == 0) return null;
+
+                    // Docnet hands back BGRA; ImageSharp wants RGBA. Same swap as the thumbnail path.
+                    for (int i = 0; i + 2 < rawBytes.Length; i += 4)
+                    {
+                        var temp = rawBytes[i];
+                        rawBytes[i] = rawBytes[i + 2];
+                        rawBytes[i + 2] = temp;
+                    }
+
+                    using var image = Image.LoadPixelData<Rgba32>(rawBytes, width, height);
+                    using var ms = new MemoryStream();
+                    await image.SaveAsPngAsync(ms);
+                    return ms.ToArray();
+                }
+                finally
+                {
+                    PdfRenderLock.Release();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "CR-053: failed to render page {Page} of {PdfPath}", pageIndex, pdfFilePath);
+                return null;
+            }
         }
 
         /// <summary>

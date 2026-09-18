@@ -3093,4 +3093,45 @@ body.table-view-active .tile-view-content {
     }
 }
 
+/* DEF-430: failed-load panel for the internal and external tile views (both load this file).
+   Takes the place of the results when a load fails, so the page can never sit on "Loading…"
+   over the previous filter's tiles. `grid-column: 1 / -1` makes it span the tile grid; it is
+   inert in the list view, where it is appended to #gridBody. */
+.tile-load-error {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-color, #333);
+}
+
+.tile-load-error i {
+    font-size: 40px;
+    color: var(--admin-danger, #FF5252);
+    margin-bottom: var(--space-md, 16px);
+}
+
+.tile-load-error p {
+    font-size: 16px;
+    margin-bottom: var(--space-lg, 24px);
+}
+
+.tile-load-error-retry {
+    padding: 10px 24px;
+    font-size: 16px;
+    color: #fff;
+    background: var(--gcc-green-secondary, #447638);
+    border: none;
+    border-radius: var(--border-radius-md, 8px);
+    cursor: pointer;
+    transition: background-color var(--transition-fast, 0.15s ease);
+}
+
+.tile-load-error-retry:hover {
+    background: var(--gcc-green-primary, #92C83E);
+}
+
 

@@ -390,22 +390,13 @@
                                 <i class="fas fa-eye"></i> View
                             </button>
                         }
-                        @* CR-052 (QC #267): the "View" button above opens the single generated
-                           image — page 1 only. This opens the stored PDF itself in the browser's
-                           viewer, which shows every page. Guarded on Model.Id > 0 because
-                           ViewCertificateFile takes the integer Id: on Create there is no saved
-                           certificate yet, which is why that surface uses a blob URL instead of
-                           this route. *@
-                        @if (Model.Id > 0)
-                        {
-                            <a class="btn btn-sm"
-                               style="background-color: #00AEEF; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer; text-decoration: none;"
-                               href="@Url.Action("ViewCertificateFile", "Certificate", new { id = Model.Id })"
-                               target="_blank" rel="noopener"
-                               title="Open the PDF to view all pages">
-                                <i class="fas fa-external-link-alt" aria-hidden="true"></i> All pages
-                            </a>
-                        }
+                        @* CR-052 (QC #267): an "All pages" button sat here until 2026-09-17. It was
+                           REMOVED, not lost — the control now lives inside the preview popup
+                           (#imageZoomModal below), which is where the client asked for it and where
+                           a redundant second copy in this bar would only add clutter. The "View"
+                           button above opens that popup. Create keeps its own link outside a popup
+                           because it has no generated preview to open: no saved Id, no thumbnail,
+                           so it uses a blob URL (see certificate-create.js). *@
                         <button type="button" onclick="window.CertificateEdit.confirmRemovePdf(@Model.Id)"
                                 class="btn btn-sm"
                                 style="background-color: #FF5252; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;"
@@ -504,10 +495,32 @@
 </div>
 
 <!-- Image Zoom Modal - Uses CSS from main.css for consistent styling -->
-<div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()">
+@* CR-053 (QC #267) --- data-certificate-id is how certificate-preview-pager.js knows which
+   certificate to page through. It is the INTEGER Id, never the certificate number: the render and
+   page-count routes take an int, and numbers are not unique (137 span several rows). A view that
+   omits this attribute simply gets no pager - the popup and its "View all pages" link still work. *@
+<div id="imageZoomModal" class="image-zoom-modal" data-certificate-id="@Model.Id" onclick="closeImageZoom()">
     <span class="zoom-close">&times;</span>
     <img class="zoom-modal-content" id="zoomedImage" alt="Certificate Preview">
-    <div class="zoom-caption" id="imageCaption">Certificate Preview - Click anywhere to close</div>
+    <div class="zoom-caption" id="imageCaption">Certificate Preview - Click outside to close</div>
+    @* CR-052 (QC #267) follow-up, 2026-09-17 — the client's words were "add a toggle to view
+       multiple pages under the Preview popup". The first build put the control only in the action
+       row OUTSIDE this modal, so anyone who opened the popup saw page 1 with no way forward, which
+       is exactly how it was reported back. Same anchor, same already-gated route.
+       event.stopPropagation() is required: the modal closes on any click (see the onclick above),
+       so without it the popup would shut underneath the new tab. *@
+    @if (Model.Id > 0 && !string.IsNullOrEmpty(Model.CertificateImagePath))
+    {
+        <div class="zoom-allpages">
+            <a class="zoom-allpages-link"
+               href="@Url.Action("ViewCertificateFile", "Certificate", new { id = Model.Id })"
+               target="_blank" rel="noopener"
+               onclick="event.stopPropagation();"
+               aria-label="View all pages of certificate @Model.Number as a PDF">
+                <i class="fas fa-external-link-alt" aria-hidden="true"></i> View all pages
+            </a>
+        </div>
+    }
 </div>
 
 @section Scripts {
@@ -628,7 +641,7 @@
 
             modal.style.display = 'block';
             modalImg.src = imageSrc;
-            caption.innerHTML = 'Certificate @Model.Number - Click anywhere to close';
+            caption.innerHTML = 'Certificate @Model.Number - Click outside to close';
 
             // Prevent body scroll when modal is open
             document.body.style.overflow = 'hidden';
@@ -1320,3 +1333,7 @@
         });
     </script>
 }
+
+@* CR-053 (QC #267) --- the pager is one shared script for all four popup-bearing views rather than
+   four inline copies. CR-052 had to be reworked in four places twice; this cannot drift that way. *@
+<script src="~/js/certificate-preview-pager.js" asp-append-version="true"></script>

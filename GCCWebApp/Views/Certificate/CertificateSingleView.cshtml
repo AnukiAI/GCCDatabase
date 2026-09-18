@@ -251,31 +251,16 @@
                                 <i class="fas fa-download"></i>
                             </div>
                         }
-                        @* CR-052 (QC #267) — "View all pages". See the long note in
-                           CertificateInternalView.cshtml.
+                    @* CR-052 (QC #267) — the action-row "View all pages" icon was REMOVED here
+                       2026-09-17 at Shawn's direction, after the client confirmed she wants paging
+                       inside the preview popup and does not want a second control outside it. The
+                       equivalent removal was already made on Edit.cshtml's green PDF bar on
+                       2026-09-17 for the same reason; this completes it on the detail views.
 
-                           SECURITY, and it is the reason this is safe on the PUBLIC page:
-                           ViewCertificateFile enforces FileAccessAllowed, the SAME gate the
-                           ViewCertificateImage call above already passes to render page 1. For an
-                           anonymous caller that means PublicStatuses, non-expired, and on/after the
-                           EffectiveDate (DEF-358). And for exactly those certificates the COMPLETE
-                           PDF is already obtainable anonymously through DownloadByNumber — so page 2
-                           is not newly exposed here, it was merely harder to reach than page 1. *@
-                        @if (hasFile)
-                        {
-                            <a class="action-icon" title="View all pages (opens the PDF)"
-                               aria-label="View all pages of certificate @GetFormattedCertificateNumber() as a PDF"
-                               href="@Url.Action("ViewCertificateFile", "Certificate", new { id = Model.Certificate.Id })"
-                               target="_blank" rel="noopener">
-                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-                            </a>
-                        }
-                        else
-                        {
-                            <div class="action-icon disabled" title="No PDF available">
-                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-                            </div>
-                        }
+                       THE CONTROL STILL EXISTS — inside #imageZoomModal at the bottom of this file,
+                       which is the one place the client named ("under the Preview popup"). Do not
+                       re-add an icon here: two entry points to the same PDF is exactly what was
+                       rejected. See CR-052 (rework #2) and CR-053 in the change-request register. *@
                     </div>
                 </div>
             </div>
@@ -285,10 +270,32 @@
 </div>
 
 <!-- Image Zoom Modal -->
-<div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()">
+@* CR-053 (QC #267) --- data-certificate-id is how certificate-preview-pager.js knows which
+   certificate to page through. It is the INTEGER Id, never the certificate number: the render and
+   page-count routes take an int, and numbers are not unique (137 span several rows). A view that
+   omits this attribute simply gets no pager - the popup and its "View all pages" link still work. *@
+<div id="imageZoomModal" class="image-zoom-modal" data-certificate-id="@Model.Certificate.Id" onclick="closeImageZoom()">
     <span class="zoom-close">&times;</span>
     <img class="zoom-modal-content" id="zoomedImage">
     <div class="zoom-caption" id="imageCaption">Certificate Preview</div>
+    @* CR-052 (QC #267) follow-up, 2026-09-17 — the client's words were "add a toggle to view
+       multiple pages under the Preview popup". The first build put the control only in the action
+       row OUTSIDE this modal, so anyone who opened the popup saw page 1 with no way forward, which
+       is exactly how it was reported back. Same anchor, same already-gated route.
+       event.stopPropagation() is required: the modal closes on any click (see the onclick above),
+       so without it the popup would shut underneath the new tab. *@
+    @if (!string.IsNullOrEmpty(Model.Certificate?.CertificateFile))
+    {
+        <div class="zoom-allpages">
+            <a class="zoom-allpages-link"
+               href="@Url.Action("ViewCertificateFile", "Certificate", new { id = Model.Certificate.Id })"
+               target="_blank" rel="noopener"
+               onclick="event.stopPropagation();"
+               aria-label="View all pages of certificate @GetFormattedCertificateNumber() as a PDF">
+                <i class="fas fa-external-link-alt" aria-hidden="true"></i> View all pages
+            </a>
+        </div>
+    }
 </div>
 
 <script>
@@ -352,7 +359,7 @@
 
         modal.style.display = 'block';
         modalImg.src = imageSrc;
-        caption.innerHTML = 'Certificate @GetFormattedCertificateNumber() - Click anywhere to close';
+        caption.innerHTML = 'Certificate @GetFormattedCertificateNumber() - Click outside to close';
 
         // Prevent body scroll when modal is open
         document.body.style.overflow = 'hidden';
@@ -373,3 +380,7 @@
         }
     });
 </script>
+
+@* CR-053 (QC #267) --- the pager is one shared script for all four popup-bearing views rather than
+   four inline copies. CR-052 had to be reworked in four places twice; this cannot drift that way. *@
+<script src="~/js/certificate-preview-pager.js" asp-append-version="true"></script>

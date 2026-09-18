@@ -783,7 +783,8 @@ action says it does, but the original intent is worth having on record.
 ## 2026-09-16 — Filter by status, see every page of a certificate, and import instructions that answer the question
 
 **Built, not yet deployed.** Three items from the 9/11 QC log. **None of the changes described below
-is on the test environment yet** — they go out with the next bundle.
+is on the test environment yet.** They will go out in a **single final release** rather than a series
+of smaller ones — so everything below arrives together, with whatever else is finished by then.
 
 Two related pieces *are* already live, from the 15 September release, and are noted where they
 matter: the separate import page's corrected wording, and the two template columns being read on
@@ -809,12 +810,18 @@ signature pages — could not be reached from the application at all.
 **This affects about a quarter of the library.** We counted every certificate document on file:
 **1,336 of 5,474 (24.4%) run to more than one page**, and a handful reach eleven.
 
-A new control next to the existing zoom and download buttons opens the certificate document itself,
-so you get every page, plus search, zoom and print from your browser. It appears everywhere a
-certificate preview does — the certificate detail pages, the edit screen, and the public database —
-and each one keeps exactly the access rules it already had, so nobody sees a document they could not
-see before. On the upload screen it works on the file you have just chosen, before you save, so an
-analyst can check a multi-page certificate is the right one first.
+**"View all pages" sits inside the preview popup**, directly under the picture — which is where you
+asked for it (*"a toggle to view multiple pages under the Preview popup"*). Open the preview as you
+do now and the button is there. It opens the certificate document itself, so you get every page, plus
+search, zoom and print from your browser.
+
+It appears everywhere a certificate preview does — the certificate detail pages, the edit screen and
+the public database — and **only inside the preview**, in the one place you asked for it. An earlier
+version of this work also put a separate icon in the row beside zoom and download; **that has been
+taken out** at your request, so there is one control rather than two. Each one keeps exactly the
+access rules it already had, so nobody sees a document they could not see before. On the upload
+screen it works on the file you have just chosen, before you save, so an analyst can check a
+multi-page certificate is the right one first.
 
 ### Fixed
 
@@ -865,4 +872,49 @@ close once she has seen this on the test environment — not ours.
 **One check is deferred to the test environment.** The certificate the client named as her example
 (26-0621) has no document attached in our development copy, so "view all pages" was proven against
 other multi-page certificates instead. It should be clicked on 26-0621 once this is deployed, since
-that is the one she will try first.
+that is the one she will try first — **from inside the preview popup**, which is where the control
+now lives.
+
+### Paging inside the preview popup — BUILT (CR-053)
+
+**You told us what you were picturing was paging inside the popup itself — next and previous,
+page 2 of 3 — rather than a button that opens the document in a new browser tab. That has now been
+built.** It will reach the test environment with everything else, in the single release described
+above.
+
+**What you will see.** Open the preview on a certificate with more than one page and a small bar
+appears under it: **< Page 1 of 2 >**. Click the arrows, or use the left and right arrow keys, and the
+pages turn over in place. The popup stays open throughout. **View all pages** is still there
+underneath if you would rather have the whole document in your browser's PDF viewer, with search and
+print.
+
+**On a single-page certificate nothing changes at all** — no arrows, no page counter. Roughly a
+quarter of the library has more than one page (**1,336 of 5,474**, up to eleven), so most certificates
+will look exactly as they do today.
+
+**Why this took a change rather than a setting.** The preview has never been a PDF viewer. When a
+certificate is uploaded the system takes a single picture of **page one** and stores that one image —
+there was no page two anywhere in the system to turn to. The later pages are now produced from the
+stored document at the moment you ask for them. Nothing was re-processed and no existing certificate
+was touched.
+
+**Nobody can see anything they could not see before.** Turning a page goes through exactly the same
+permission check as opening the preview in the first place, and asking for a page that does not exist
+simply returns nothing. Measured while building: a page appears in **about a tenth to a quarter of a
+second**.
+
+**One deliberate exception.** A small number of documents cannot be displayed as images at all — one
+certificate is password-protected (23-0971), and any certificate whose file is missing would be the
+same. For those the arrows do not appear and the popup keeps offering **View all pages** instead of
+showing you an empty window. Everywhere else, paging is the normal behaviour.
+
+**One change already made in response.** You said the control inside the preview can stay but you did
+not want a second one sitting outside it. The separate icon beside zoom and download **has been
+removed** — there is now one way to reach the document, and it is inside the preview.
+
+**Still to be checked on the test environment: your own example, 26-0621.** That certificate has no
+document attached in our development copy, so paging was proven against other multi-page certificates
+instead. It is the first thing to click once this is deployed.
+
+**No action needed from you.** Everything described on this page will reach the test environment
+together, in one release.

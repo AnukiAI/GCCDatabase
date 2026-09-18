@@ -5,6 +5,18 @@
   "bundle": "GCCWebApp-deploy-20260916-1023.zip",
   "note": "Deployed and verified on gccwebapp.com 2026-09-16 (DEF-426 partner-API IsActive). Cross-surface Gate 4B FAIL->PASS; feed 212 certs / 20,312 associations / 16,078 distinct.",
   "count": 285,
+  "_known_open_note": "BEING IN 'ids' DOES NOT MEAN FIXED. The 9 ids below are listed as shipped above and are, by their own register status, still OPEN - never fixed, so there is no code for a bundle to carry. Audited 2026-09-18 against the registers. HOW THEY GOT IN: resolved-not-shipped.py reads status only from a bullet line (STATUS = ^\\s*[-*]\\s*\\*\\*Status:?\\*\\*), so the 7 marked 'inline-status' below - which declare status in the entry's '**Date:** ... | **Status:** ... | **Severity:** ...' header row instead - parse as NO-STATUS, which is a BLOCKING kind, and a baseline write absorbs every blocking id. The gate never read the word 'Open'. PARSER FIXED 2026-09-18: resolved-not-shipped.py now also reads the inline header form (STATUS_INLINE + INLINE_HEADER), so these entries classify NOT-A-FIX on their own and cannot be absorbed by a future baseline write. Measured effect on the same registers: 33 entries moved out of BASELINED (23 to DEPLOYED, 10 to NOT-A-FIX), PENDING unchanged at 8, total unchanged at 392 - so nothing new started blocking. DEF-244/DEF-245 needed a second fix, in the register rather than the gate: their bullet status read 'Open - backlog. NOT in the 2026-06-04 deploy bundle', which trips the PENDING pattern 'not in the ... deploy' before the NOT-A-FIX patterns are tested, so an open backlog item read as a fix awaiting upload. Reworded 2026-09-18 to 'Open - backlog. No code change made, so there is nothing for a bundle to carry' - meaning unchanged, and both now classify NOT-A-FIX. The PENDING pattern was deliberately NOT weakened; it catches real waiting fixes. RESULT: all 9 ids here now classify on their own evidence (BASELINED 285 -> 250, NOT-A-FIX 33 -> 45, DEPLOYED 65 -> 88, PENDING unchanged at 8, total 392), so none of them can be absorbed by a future baseline write. This block stays as the record of how they were absorbed once. Do NOT delete these ids from 'ids' to 'correct' the file - they would come straight back as NO-STATUS noise. Re-read this list before treating the baseline as a list of delivered fixes.",
+  "known_open": {
+    "DEF-244": "bullet-status 'Open - backlog. NOT in the 2026-06-04 deploy bundle.' Pre-existing; no fix was ever written.",
+    "DEF-245": "bullet-status 'Open - backlog. NOT in the 2026-06-04 deploy bundle.' Pre-existing; no fix was ever written.",
+    "DEF-321": "inline-status 'Open - not fixed.' Major: under-reports partner associations. Found while validating DEF-316.",
+    "DEF-335": "inline-status 'Open - documentation defect, not a code defect.' Trivial.",
+    "DEF-348": "inline-status 'Open - found during the go-live migration transform build; not fixed.' Major.",
+    "DEF-350": "inline-status 'Open. Worked around for the dev rehearsal by deferring the sweep. No code fix.' Major, intermittent - and it GREW on 2026-09-17: the same expiration-sweep contention was measured on a READ path (internal tile list, 109s in the app's own slow log), with dev sweeping every 60s vs daily on production. Still no code fix.",
+    "DEF-351": "inline-status 'Open. Worked around for the dev rehearsal by loading through the JSON bulk endpoint instead. No code fix.'",
+    "DEF-352": "inline-status 'Open - behaviour is by design (CR-171 Model A); the defect is that nothing warns on import.'",
+    "DEF-364": "inline-status 'OPEN - not fixed. Latent: not reachable on test or dev as they stand today.' Medium."
+  },
   "ids": [
     "CR-001",
     "CR-005",

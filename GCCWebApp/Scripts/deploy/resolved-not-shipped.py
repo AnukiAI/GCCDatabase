@@ -77,6 +77,21 @@ BASELINED = set(x.upper() for x in baseline.get("ids", []))
 HEADING = re.compile(r"^#{2,5}\s+((?:DEF|CR)-\d+)\b(.*)$", re.I)
 STATUS = re.compile(r"^\s*[-*]\s*\*\*Status:?\*\*:?\s*(.+)$", re.I)
 
+# The registers carry TWO status formats. Most entries use the bullet above; entries written from
+# 2026-07 onward often use an inline header row instead:
+#     **Date:** 2026-08-13 | **Status:** Open. Worked around ... | **Severity:** Major | **QC Ref:** none
+# Until 2026-09-18 only the bullet was read, so every inline entry classified NO-STATUS - a BLOCKING
+# kind - and a baseline write then absorbed it as shipped. That is how nine defects whose status says
+# "Open" in as many words came to sit in deploy-baseline.json's ids (see its known_open block). The
+# gate did not misjudge them; it never saw the line.
+#
+# Recognised by the pipe-separated header it always appears in, so a stray "**Status:**" in prose, a
+# table cell or a quoted client email is not mistaken for the entry's own status. The value is cut at
+# the next " | **" so Severity/QC prose cannot leak into the classified text - "Severity: Major - no
+# data is live yet" would otherwise be read as part of the status.
+STATUS_INLINE = re.compile(r"\*\*Status:?\*\*:?\s*(.+?)(?=\s*\|\s*\*\*|\s*$)", re.I)
+INLINE_HEADER = re.compile(r"\*\*(?:Date|Severity|QC\s*Ref)\b", re.I)
+
 # Order matters. Every NEGATIVE pattern is tested before any positive one, because most of the
 # not-deployed phrasings contain the word "deployed".
 PENDING = [
@@ -84,11 +99,27 @@ PENDING = [
     r"awaiting\s+(?:deploy|upload)", r"not\s+uploaded", r"not\s+in\s+the\b.*\bdeploy",
     r"fixed\s+locally(?!\s*\((?:deployed|shipped))", r"built,?\s+(?:but\s+)?not\s+deployed",
     r"bundled\s+for\s+deploy", r"ready\s+to\s+deploy", r"needs\s+deploy",
+    # Added 2026-09-18: "awaiting bundle" is how DEF-430/431 were written and it classified as
+    # UNCLASSIFIED — a resolved fix that no reconciliation could see. Unambiguously pending, so this
+    # widens what the gate recognises rather than weakening what it blocks on.
+    r"awaiting\s+bundle", r"awaiting\s+the\s+bundle", r"not\s+yet\s+bundled",
 ]
 DEPLOYED = [
     r"\bdeployed\b", r"\bshipped\b", r"\blive\b", r"verified\s+on\s+gccwebapp",
     r"in\s+production", r"released",
 ]
+# Added 2026-09-17 (DEF-429). A fix can be genuinely COMPLETE and still never appear in a deploy
+# bundle, because it lives in the repo rather than the published output: a publish profile, the
+# gate scripts themselves, .gitignore, a CI file. Before this bucket existed the only honest
+# classifications were PENDING (false - nothing is waiting on a deploy) or UNCLASSIFIED (true but
+# blocking forever). Deliberately NARROW: it requires the author to say explicitly that the change
+# does not ship, so it cannot be used to quietly excuse a fix that really is waiting on an upload.
+REPO_ONLY = [
+    r"repo[- ]only",
+    r"does\s+not\s+ship\s+in\s+a?\s*bundle",
+    r"not\s+part\s+of\s+the\s+deploy(?:ed)?\s+output",
+]
+
 NOT_A_FIX = [
     r"\bopen\b", r"\braised\b", r"not\s+fixed", r"\bbacklog\b", r"\bdeferred\b",
     r"\bwad\b", r"working\s+as\s+designed", r"\bretracted\b", r"no\s+code\s+change",
@@ -99,6 +130,11 @@ NOT_A_FIX = [
 
 def classify(status):
     s = status.lower()
+    # Tested first: a repo-only change is not waiting on anything, and its prose often
+    # mentions bundles or deploys while describing what it deliberately is NOT.
+    for p in REPO_ONLY:
+        if re.search(p, s):
+            return "REPO-ONLY"
     for p in PENDING:
         if re.search(p, s):
             return "PENDING"
@@ -138,6 +174,9 @@ for kind, path in REGISTERS:
             continue
         if current and not seen_status:
             m = STATUS.match(ln)
+            # Bullet first: where an entry has both, the bullet is the one an author maintains.
+            if not m and "|" in ln and INLINE_HEADER.search(ln):
+                m = STATUS_INLINE.search(ln)
             if m:
                 st = strip_md(m.group(1))
                 rows.append((current, strip_md(title)[:70], classify(st), st[:90]))
@@ -189,11 +228,21 @@ if WRITE_BASELINE:
         "count": len(ids),
         "ids": ids,
     }
+    # Carry forward the hand-written caveat about ids that are baselined but NOT actually fixed.
+    # Added 2026-09-18: this block is the only thing in the file that says "shipped" is an
+    # assumption for 9 specific ids, and a rewrite that dropped it would restore the exact
+    # misreading it exists to prevent - silently, because a rewrite prints only bundle and count.
+    for carried in ("_known_open_note", "known_open"):
+        if baseline.get(carried):
+            payload[carried] = baseline[carried]
     io.open(BASELINE_PATH, "w", encoding="utf-8").write(
         json.dumps(payload, indent=2) + "\n")
     print("wrote baseline: %s" % BASELINE_PATH)
     print("  bundle : %s" % bundle)
     print("  ids    : %d" % len(ids))
+    if payload.get("known_open"):
+        print("  carried forward: known_open (%d ids listed as shipped that are NOT fixed) - "
+              "re-check it, entries may have moved on" % len(payload["known_open"]))
     print("\nRe-run without --write-baseline to see the post-baseline picture.")
     sys.exit(0)
 
@@ -207,8 +256,16 @@ if BASELINED:
           % (baseline.get("bundle"), baseline.get("baselined_at"), len(BASELINED)))
     if baseline.get("note"):
         print("            %s" % baseline["note"])
+    # The baseline's ids read as "delivered" unless something says otherwise. This does.
+    if baseline.get("known_open"):
+        ko = baseline["known_open"]
+        print("            !! %d of those ids are NOT fixed (open in the register): %s"
+              % (len(ko), ", ".join(sorted(ko))))
+        print("               see deploy-baseline.json -> known_open before quoting the baseline "
+              "as a list of delivered fixes")
     print()
-for name in ("PENDING", "UNCLASSIFIED", "NO-STATUS", "BASELINED", "DEPLOYED", "NOT-A-FIX"):
+for name in ("PENDING", "UNCLASSIFIED", "NO-STATUS", "BASELINED", "DEPLOYED", "NOT-A-FIX",
+             "REPO-ONLY"):
     if name == "BASELINED" and not BASELINED:
         continue
     print("  %-14s %d" % (name, len(buckets.get(name, []))))
@@ -252,7 +309,7 @@ for label, key, note in (
         print()
 
 if FULL:
-    for key in ("DEPLOYED", "NOT-A-FIX"):
+    for key in ("DEPLOYED", "NOT-A-FIX", "REPO-ONLY"):
         print("-" * 100)
         print("  %s" % key)
         print("-" * 100)

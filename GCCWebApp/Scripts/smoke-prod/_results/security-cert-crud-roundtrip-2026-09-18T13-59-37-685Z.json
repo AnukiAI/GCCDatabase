@@ -1,0 +1,67 @@
+{
+  "specId": "cert-crud-roundtrip",
+  "base": "http://localhost:5101",
+  "url": null,
+  "pass": 9,
+  "fail": 0,
+  "warn": 0,
+  "blocked": 0,
+  "total": 9,
+  "results": [
+    {
+      "id": "crud.pre",
+      "name": "clonable combo + count snapshot",
+      "status": "PASS",
+      "notes": "company=340 product=3665 cat=1 type=- sub=- certType=3 | products=3633 certs=6019"
+    },
+    {
+      "id": "crud.C1.create-302",
+      "name": "analyst Create POST redirects on success",
+      "status": "PASS",
+      "notes": "HTTP 302, redirect=\"/Certificate/CertificateInternalView/26-0659\", number=26-0659"
+    },
+    {
+      "id": "crud.C2.create-persisted",
+      "name": "created cert exists in DB with marker",
+      "status": "PASS",
+      "notes": "db Location=\"ZZ_SmokeFixture_CRUD_2026-09-18_mu70x9es\" expected=\"ZZ_SmokeFixture_CRUD_2026-09-18_mu70x9es\""
+    },
+    {
+      "id": "crud.U1.edit-302",
+      "name": "analyst Edit POST redirects on success",
+      "status": "PASS",
+      "notes": "HTTP 302 (id=6087)"
+    },
+    {
+      "id": "crud.U2.edit-persisted",
+      "name": "edited value persisted in DB",
+      "status": "PASS",
+      "notes": "db Location=\"ZZ_SmokeFixture_CRUD_2026-09-18_mu70x9es_EDITED\" expected=\"ZZ_SmokeFixture_CRUD_2026-09-18_mu70x9es_EDITED\""
+    },
+    {
+      "id": "crud.D1.delete-ok",
+      "name": "admin Delete POST accepted",
+      "status": "PASS",
+      "notes": "HTTP 200"
+    },
+    {
+      "id": "crud.D2.delete-removed",
+      "name": "cert row removed from DB",
+      "status": "PASS",
+      "notes": "gone"
+    },
+    {
+      "id": "crud.INV.products",
+      "name": "Products count unchanged (no find-or-create pollution)",
+      "status": "PASS",
+      "notes": "before=3633 after=3633"
+    },
+    {
+      "id": "crud.INV.certs",
+      "name": "Certificates count net-zero after round-trip",
+      "status": "PASS",
+      "notes": "before=6019 after=6019"
+    }
+  ],
+  "finishedAt": "2026-09-18T13:59:37.687Z"
+}

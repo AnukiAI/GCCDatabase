@@ -432,6 +432,19 @@ namespace GCCWebApp.Data
                 entity.HasIndex(e => new { e.CertificateId, e.IsActive });
                 entity.HasIndex(e => new { e.Status, e.IsActive, e.CreatedAt });
 
+                // DEF-431: a covering index on (CertificateId, ProductIdType, IsActive) INCLUDE
+                // (ProductIdValue) was added here 2026-09-17 and REMOVED again 2026-09-18. It is
+                // deliberately NOT restored. The tile hydrate's three correlated
+                // `SELECT TOP(1) ProductIdValue ... ProductIdType = N'ISBN'/'SKU'/'MPN' ...
+                // IsActive = 1` subqueries cost 33,321 logical reads on dev and looked like a
+                // missing index. They were not: the test environment runs the same query at 441
+                // reads with exactly the index set above. On dev, `UPDATE STATISTICS
+                // CertificateProductIds WITH FULLSCAN` alone took it from 33,321 to 441 - the same
+                // figure, no new index. The cause was stale statistics; the existing
+                // (CertificateId, ProductIdType) index was always sufficient and with current
+                // statistics beats the wider covering index (441 vs 517 reads). Read DEF-431 before
+                // re-proposing it.
+
                 // Relationships
                 entity.HasOne(e => e.Certificate)
                     .WithMany(c => c.ProductIds)

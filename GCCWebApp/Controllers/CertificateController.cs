@@ -2413,7 +2413,7 @@ namespace GCCWebApp.Controllers
         /// bypass the gate.
         /// </summary>
         [AllowAnonymous]
-        public async Task<IActionResult> ViewCertificateImage(int id)
+        public async Task<IActionResult> ViewCertificateImage(int id, int page = 0)
         {
             try
             {
@@ -2426,6 +2426,34 @@ namespace GCCWebApp.Controllers
                 {
                     _logger.LogWarning("Image view denied for cert {Id}: {Reason}", id, denyReason);
                     return NotFound();
+                }
+
+                // CR-053 (QC #267): page > 0 is the popup pager asking for a page that was never
+                // rendered at upload time. Page 0 deliberately keeps the old path untouched - it
+                // serves the STORED thumbnail, so the overwhelmingly common request (open a preview)
+                // costs exactly what it always did and no PDF is opened at all.
+                //
+                // SECURITY: this sits AFTER the FileAccessAllowed gate above, so the page parameter
+                // reaches nothing the caller could not already see. The bound below is what stops
+                // the parameter itself being interesting: an out-of-range index is a 404, never an
+                // exception page and never another certificate's content. Note the count comes from
+                // THIS certificate's own file, so there is no way to index across certificates.
+                if (page > 0)
+                {
+                    if (string.IsNullOrEmpty(certificate.CertificateFile)) return NotFound();
+
+                    var pageCount = _fileUploadService.GetPdfPageCount(certificate.CertificateFile);
+                    if (pageCount <= 0 || page >= pageCount)
+                    {
+                        // Out of range, or a PDF we cannot read (DEF-400 encrypted, missing file).
+                        // 404 rather than an error: the client JS treats it as "no more pages".
+                        return NotFound();
+                    }
+
+                    var pageBytes = await _fileUploadService.RenderPdfPageAsync(certificate.CertificateFile, page);
+                    if (pageBytes == null || pageBytes.Length == 0) return NotFound();
+
+                    return File(pageBytes, "image/png");
                 }
 
                 if (string.IsNullOrEmpty(certificate.CertificateImagePath))
@@ -2447,6 +2475,55 @@ namespace GCCWebApp.Controllers
             {
                 _logger.LogError(ex, "Error viewing certificate image for ID: {Id}", id);
                 return BadRequest("Failed to load certificate image");
+            }
+        }
+
+        /// <summary>
+        /// CR-053 (QC #267): how many pages the preview popup can page through for this
+        /// certificate. Behind the SAME FileAccessAllowed gate as the image itself, so it cannot
+        /// be used to probe the existence of a certificate the caller may not see - a denied
+        /// caller gets 404, exactly as they do for the image.
+        ///
+        /// Called lazily, when the popup OPENS, not when the page renders. That matters: opening a
+        /// PDF to count its pages costs real work, and the great majority of page views never open
+        /// the preview at all. Detail pages therefore pay nothing for this feature.
+        ///
+        /// Returns 0 pages rather than an error whenever the document cannot be read (encrypted -
+        /// DEF-400, missing from disk, or not a PDF). The pager hides itself on 0 or 1 and the
+        /// "View all pages" link carries on, so a certificate never ends up with a dead popup.
+        /// </summary>
+        [AllowAnonymous]
+        public async Task<IActionResult> CertificatePageCount(int id)
+        {
+            try
+            {
+                var certificate = await _certificateRepository.GetByIdAsync(id);
+                if (certificate == null) return NotFound();
+
+                if (!FileAccessAllowed(certificate, out var denyReason))
+                {
+                    _logger.LogWarning("Page count denied for cert {Id}: {Reason}", id, denyReason);
+                    return NotFound();
+                }
+
+                var pages = string.IsNullOrEmpty(certificate.CertificateFile)
+                    ? 0
+                    : _fileUploadService.GetPdfPageCount(certificate.CertificateFile);
+
+                // DEF-432: this response is ROLE-DEPENDENT — the same URL returns {"pages":N} to a
+                // caller the gate allows and 404 to everyone else. Without these headers it leaves
+                // with no Cache-Control and no `private`, so heuristic freshness lets a shared cache
+                // store it and later replay the 200 to a caller who should be refused. That is the
+                // exact hazard DEF-310 added this helper for, and both sibling actions
+                // (ViewCertificateImage, ViewCertificateFile) already call it; this one was missed.
+                SetUploadRevalidationHeaders();
+
+                return Json(new { pages });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error counting certificate pages for ID: {Id}", id);
+                return Json(new { pages = 0 });
             }
         }
 

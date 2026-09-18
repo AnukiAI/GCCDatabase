@@ -1093,7 +1093,13 @@ Notably, `CertificateRepository.cs` confirms the suspected pattern: only `GetAdv
 
 - **Date:** 2026-06-04
 - **Severity:** Low (information exposure of non-sensitive reference data — product *category names* only, no company/cert/business records; read-only GET; no mutation path). Not a cross-company business-data leak.
-- **Status:** **Open — backlog. NOT in the 2026-06-04 deploy bundle.** Pre-existing; not introduced by DEF-243 or CR-184. No code change made.
+- **Status:** **Open — backlog. No code change made**, so there is nothing for a bundle to carry; left out of the 2026-06-04 release deliberately. Pre-existing; not introduced by DEF-243 or CR-184.
+  <!-- Reworded 2026-09-18. The original said "NOT in the 2026-06-04 deploy bundle", which trips
+       resolved-not-shipped.py's PENDING pattern `not\s+in\s+the\b.*\bdeploy` — tested before the
+       NOT-A-FIX patterns — so an open backlog item classified as a fix waiting on an upload, and a
+       baseline write then absorbed it as shipped. Meaning unchanged; say "no code change made"
+       rather than "not in the bundle" when nothing was written. -->
+
 - **QC Ref:** internal — pre-deploy **Gate 3** (data-scoping) audit, 2026-06-04 (security-specialist). Flagged as an out-of-scope NIT during the DEF-243/CR-184 gate sweep.
 - **Bucket:** Bug (authorization — reference endpoint not gated to internal roles)
 - **Reporter:** security-specialist agent (Gate 3), 2026-06-04
@@ -1105,7 +1111,11 @@ Notably, `CertificateRepository.cs` confirms the suspected pattern: only `GetAdv
 
 - **Date:** 2026-06-04
 - **Severity:** Low–Medium (WCAG 2.1 AA gaps affecting screen-reader + low-vision users; no functional/security impact). Several are Critical *per axe* but all are **pre-existing** and none block current workflows.
-- **Status:** **Open — backlog. NOT in the 2026-06-04 deploy bundle.** Pre-existing; **zero new violations introduced** by DEF-243/CR-184 (the changed surfaces — new export button, dropdown cascade, inline-add guard — are not the source of any finding). No code change made.
+- **Status:** **Open — backlog. No code change made**, so there is nothing for a bundle to carry; left out of the 2026-06-04 release deliberately. Pre-existing; **zero new violations introduced** by DEF-243/CR-184 (the changed surfaces — new export button, dropdown cascade, inline-add guard — are not the source of any finding).
+  <!-- Reworded 2026-09-18, same reason as DEF-245: "NOT in the ... deploy bundle" matched
+       resolved-not-shipped.py's PENDING pattern and made an open backlog item look like a fix
+       awaiting upload. Meaning unchanged. -->
+
 - **QC Ref:** internal — pre-deploy **Gate 2** (cross-role + responsive / AxeCore) audit, 2026-06-04 (accessibility-validator). Full results: `Scripts/smoke-prod/_results/gate2-cr184-def243-2026-06-04T22-09-06.json`.
 - **Bucket:** UX (accessibility / WCAG 2.1 AA)
 - **Reporter:** accessibility-validator agent (Gate 2), 2026-06-04
@@ -9421,6 +9431,46 @@ The same content failing then passing ruled out both row count and row content, 
 
 **Options:** (a) documented go-live runbook step — disable the sweep for the load window, re-enable after (cheapest, and it is what the rehearsal did); (b) raise the importer's `CommandTimeout` — treats the symptom, and a starved import that takes minutes is still bad; (c) have the sweep back off while an import batch is active. **(a) is the go-live answer; (c) is the real fix.**
 
+#### 2026-09-17 — the same contention hits a READ path, not just the importer, and dev sweeps every 60 seconds
+
+Shawn reported the internal certificate list taking "a while" to load on dev as admin. Measured
+rather than reasoned about, on localhost:5101 against `GCCDatabase_Dev` (6,019 certificates):
+
+| Observation | Value |
+|---|---|
+| App's own slow-operation log | `GET /api/certificate-tiles-internal returned 200 in **109,105.9ms**` |
+| Same endpoint, three browser loads | count settled at **1.5s / 12.6s / 1.5s** |
+| HTML shell | 75-162ms every time (so the delay is entirely in the XHR, not the page) |
+| `Jobs:CertificateExpiration:IntervalMinutes` on **dev** | **1** (`appsettings.Development.json:44`) |
+| Same key on **production** | **omitted — daily at 00:00 UTC** (`appsettings.Production.json:34`) |
+
+**The intervention was then run, and it did NOT clear the symptom — so the sweep is not the whole
+cause here.** Restarting with `Jobs__CertificateExpiration__StartupDelaySeconds=86400` (the exact
+lever that fixed the importer case above) the same endpoint returned in **1,966ms** and in-page
+fetches in 1.6-4.0s. But the **same session then logged 13 further
+`SqlException: Connection Timeout Expired` with the sweep still deferred**, including one that failed
+a login. So deferring the sweep helps and is worth doing, but something else on this box also
+saturates SQL Server — candidates not yet separated: the dev machine's own load, and the repeated
+full-population queries these harnesses run. **Do not close this defect on the strength of the
+sweep alone**, and do not repeat the earlier framing that the sweep is the single cause.
+
+The honest state: the 109s read is real (the app's own stopwatch), the sweep interval on dev is
+pathological relative to production, deferring it measurably helps, and it is **not sufficient**.
+
+**Two things this changes about the entry above.**
+
+1. **The blast radius is wider than the importer.** This defect was written as an import-window
+   problem with a go-live runbook workaround. A 109-second read on the main internal list is the
+   same root cause on a path users sit in front of all day, which strengthens the case for option
+   **(c) — have the sweep back off** — over option (a).
+2. **Dev is configured 1,440x more aggressively than production.** The 1-minute interval is a dev
+   convenience for exercising the sweep, and it means **dev will over-report this symptom relative
+   to the client's environment**. Do not quote dev timings to the client, and do not conclude from a
+   slow dev list that the test environment is slow — check there before saying so.
+
+**Not a new defect number.** Same root cause, new surface; logged here rather than duplicated.
+
+
 ---
 
 > ### ⚠️ DIAGNOSIS CORRECTED 2026-08-13 — the sweep was NOT proven to be the cause
@@ -15113,6 +15163,13 @@ suite **configurable** and its misuse **loud**; it does not port the suite to de
   - **Gate 0B note:** this id already appears in the 2026-09-15 baseline, so the gate will treat
     DEF-418 as shipped. It is **partly** shipped. The baseline is explicitly "accepted, not verified —
     re-raise anything that surfaces"; this is that re-raise. Do not let the baseline entry close it.
+  - **Carried in the final bundle, confirmed by marker 2026-09-18.** `GCCWebApp-deploy-20260918-1020.zip`
+    (DLL md5 `411f2a28a674c676`) contains **both** surfaces: `marker-check-20260918.py` now asserts a
+    phrase unique to each — `the column names the importer expects` (modal) and `the column names
+    described on this page` (page) — and passes **18/18** against that zip. The two views compile into
+    one DLL, so a shared phrase would have let the modal pass on the page's bytes, which is the exact
+    substitution that created this defect. The runbook's "What it carries" now names DEF-418 as the
+    sixth item Gate 0B cannot see.
   - DEF-418's own sequencing note (the two DEF-421 columns) is also discharged here — **DEF-421 itself
     is in the 2026-09-15 baseline**, so those columns are already read on TEST; only their
     documentation was missing. See the reopen note at the end.
@@ -16049,3 +16106,818 @@ pre-fix, because those ASINs also sit on other page-1 certificates; only the ass
 **The FAIL→PASS transition is the evidence, not the PASS.** Gate 4B returned `FAIL — 1 certificate(s)
 differ` against the unfixed code, naming `26-0439` and all 68 values, before returning PASS here. A
 gate that has only ever passed proves nothing.
+
+---
+
+### DEF-427 — The Edit page labels the generated thumbnail as "Current PDF", so the filename it shows is never the PDF's
+
+- **Date raised:** 2026-09-17
+- **Severity:** **Minor** — cosmetic, but actively misleading: it names a `.png` where the user is
+  told a PDF is attached, and an analyst checking "did the right document upload?" is reading the
+  wrong filename. No data is wrong and nothing is lost.
+- **Status:** **Open — not fixed.** Surfaced on localhost:5101 while screenshotting CR-052.
+- **Reporter:** Shawn, 2026-09-17, from the CR-052 screenshot.
+- **QC log ID:** none — internal, not client-reported.
+
+**Symptom.** `/Certificate/Edit/21-0117` renders:
+
+```
+Current PDF:  21-0117_thumb_20260814_214543.png
+```
+
+**Cause — the field the view needs is never projected.** `Views/Certificate/Edit.cshtml:376` gates
+the whole PDF block on `Model.CertificateImagePath`, and `:382` prints
+`Path.GetFileName(Model.CertificateImagePath)` — that is the **generated preview thumbnail**, not the
+stored document. `CertificateEditViewModel` (`Models/CertificateEditViewModel.cs:85`) exposes
+`CertificateImagePath` and **nothing for the PDF itself**: `Certificate.CertificateFile` is never
+carried to this view. So this is the "column exists but is never projected" pattern, not a label
+typo — **the field has to be added to the view model and populated in the controller before the
+right value can be shown.** Anyone quoting this as a one-line change will be wrong.
+
+**A second consequence of the same line, worth recording while it is in view.** Because the block is
+keyed on the thumbnail rather than the document, every control inside it — View, the new CR-052
+"All pages" link, and Remove — appears whenever a *thumbnail* exists, whether or not the PDF is still
+on disk. That is the same shape as the placeholder-PNG finding already recorded under CR-052 (a
+missing PDF returns `wwwroot/img/certpreview.png` at HTTP 200), and it is why that finding is a
+pre-existing condition rather than something CR-052 introduced.
+
+**Not caused by CR-052, and this needs saying in the register.** The mislabel predates it; the new
+"All pages" button simply sits inches away in the same green bar, so QC retesting CR-052 will very
+likely report the two together. They are independent.
+
+**Fix options.**
+
+- **(a) Project the real path.** Add `CertificateFile` to `CertificateEditViewModel`, populate it in
+  the Edit GET, print that under the "Current PDF" label, and keep the thumbnail for the preview
+  `<img>` only. Correct, and it makes the PDF-vs-thumbnail distinction explicit in the model.
+- **(b) Relabel to "Current preview".** Cheaper, but it makes the wording honest by conceding the
+  page cannot name the document — and it leaves the block still gated on the thumbnail.
+
+**(a) is the fix.** **Estimate ~30-45 min**, including a check that Remove still targets the
+document (it passes `Model.Id`, so it should be unaffected) and a look at whether Create's
+equivalent label has the same problem.
+
+---
+
+### DEF-428 — A database connection failure is reported to the user as "Invalid email or password."
+
+- **Date raised:** 2026-09-17
+- **Severity:** **Major.** Nothing is corrupted, but the message sends the user to the wrong
+  recovery path: they will retry, then reset a password that was never wrong, while the actual fault
+  is that the app cannot reach SQL Server. It also wastes support time, because the report that
+  arrives is "my login is broken", not "the site is down".
+- **Status:** **Open — not fixed.** Found on localhost:5101 while verifying the CR-052 rework.
+- **Reporter:** Anuki (internal), 2026-09-17.
+- **QC log ID:** none — internal.
+
+**How it presented.** A Playwright login as `admin.uat` with the correct password returned
+*"Invalid email or password."* twice. The credentials were fine. The database row was fine, and was
+checked rather than assumed: `active`, `IsActive=1`, `IsDeleted=0`, `FailedLoginAttempts=0`,
+`LockedUntil=NULL`, BCrypt hash intact at 60 chars.
+
+**The tell was the counter that did not move.** `AccountController.cs:1316` increments
+`FailedLoginAttempts` on a failed password check. After two "invalid password" responses the counter
+was still **0** — so execution never reached the password comparison. That ruled out a wrong
+password, and ruled out the DEF-210 lockout path and the DEF-326 inactive-status path (both of which
+log distinctly, and neither warning appeared).
+
+**Cause.** `ValidateUserDetailed` (`AccountController.cs:1255-1353`) wraps the whole lookup in
+`try { … } catch (Exception ex) { LogError; return GenericLoginError; }`. The server log shows what
+the user was not told:
+
+```
+fail: GCCWebApp.Controllers.AccountController[0]
+      Error validating user admin.uat
+      Microsoft.Data.SqlClient.SqlException: Connection Timeout Expired. The timeout period elapsed
+      while attempting to consume the pre-login handshake acknowledgement...
+      at GCCWebApp.Controllers.AccountController.ValidateUserDetailed(...) line 1260
+warn: Login failed for admin.uat: Invalid email or password.
+```
+
+**This is not the same thing as the deliberate generic message, and the distinction is the whole
+defect.** `GenericLoginError` exists on purpose (`:1248-1253`): user-not-found, wrong-password and
+inactive-account must be indistinguishable or the form becomes an email-enumeration oracle. That
+reasoning is sound and must not be undone. But it applies to *outcomes of a successful check*. An
+**infrastructure exception is not an authentication outcome** — telling the user their password is
+wrong when the database is unreachable leaks nothing and informs nothing.
+
+**Fix.** Catch the data-access failure separately from the authentication outcomes: let
+`SqlException` / `DbException` (and a cancelled/timed-out query) fall through to a distinct
+"temporarily unavailable, please try again" message, with the generic credential error reserved for
+the three enumeration-sensitive cases. Do **not** surface the exception text. Same treatment belongs
+in `CheckRequirePasswordReset` (`:1358`) and anywhere else a broad `catch` returns a
+user-facing verdict — worth a grep for `catch (Exception` in `AccountController.cs` rather than
+fixing this one site.
+
+- **Estimate:** ~1-1.5 hr including a test that forces the failure (point the connection string at a
+  dead host) and asserts the message differs, plus a check that no exception detail reaches the page.
+
+**Related.** [[DEF-350]] is the reason the timeout happened here (SQL saturation on dev); this defect
+is about how that failure was *reported*. They are independent: fixing DEF-350 makes this rarer, not
+correct. Same family as DEF-392 (a harness reporting a timeout as a fabricated HTTP status) and
+DEF-387 (a 401 arriving as login HTML at HTTP 200) — an infrastructure fault wearing an application
+answer's clothes.
+
+---
+
+### DEF-429 — The publish profile that decides what ships is **not in git**, so the exclusions that protect the live uploads store exist only on one machine
+
+- **Date raised:** 2026-09-17
+- **Severity:** **Major**, and latent rather than live. Nothing is broken today. But `.gitignore:187`
+  ignores `*.pubxml`, and `PleskTestEnvironment.pubxml` is the file carrying
+  `<Content Remove="wwwroot\uploads\**" />` and `<Content Remove="App_Data\uploads\**" />` — the two
+  exclusions written specifically because publishing once **wiped the production PDF store**
+  (2026-04-23, and a contributor to the 2026-06-15 all-PDFs-missing incident). A fresh clone gets no
+  publish profile at all; whoever recreates it recreates those guards from memory, or does not.
+- **Status:** **FIXED AND VERIFIED 2026-09-17 — repo-only; it does not ship in a bundle.** Staged,
+  not committed (Shawn commits). Both halves done: the profiles are tracked, **and** the gate now
+  asserts their contents — proven against three injected faults and by a publish from a clean clone.
+  The changed files (`.gitignore`, the two `*.pubxml`, `Scripts/deploy/*.py`) are all excluded from
+  the publish by design, so there is nothing here for a deploy to carry.
+
+> **Gate 0B flagged this entry's own status as UNCLASSIFIED before that wording existed**, and it was
+> right to: *"FIXED AND VERIFIED"* says the work is done and says nothing about where it lives, which
+> is the exact ambiguity the gate exists to surface. The gate had no bucket for a fix that is complete
+> and never deploys — PENDING would have been false, UNCLASSIFIED blocks forever. A **REPO-ONLY**
+> classification was added rather than a pattern that quietly matched my phrasing; it requires the
+> author to state explicitly that the change does not ship, so it cannot excuse something really
+> waiting on an upload.
+>
+> **Known precedence limitation, found while testing it.** REPO-ONLY is checked *before* PENDING,
+> because a repo-only status often mentions bundles while describing what it deliberately is not. A
+> consequence: a status containing **both** *"bundled for deploy"* and *"repo-only"* classifies as
+> REPO-ONLY and would no longer block. Verified by probe, not assumed. Such a status is
+> self-contradictory and none exists today, but the masking is possible — so do not write both
+> phrases in one status line. `.gitignore` keeps the stock `*.pubxml` rule and adds a scoped negation,
+  `!GCCWebApp/Properties/PublishProfiles/*.pubxml`, with a comment recording why the stock warning
+  does not apply and instructing that a profile which ever gains a real credential comes back **out**
+  of git rather than the pattern being re-broadened. `*.pubxml.user` is now ignored explicitly.
+  Found while fixing Gate 10 on the `20260917-1545` bundle.
+- **Reporter:** Anuki (internal).
+- **QC log ID:** none.
+
+**How it surfaced.** The Gate 10 fix for the shipping `appsettings.*.template.json` files was made in
+`PleskTestEnvironment.pubxml`. `git status` did not list the file afterwards. It is not tracked:
+
+```
+$ git check-ignore -v Properties/PublishProfiles/PleskTestEnvironment.pubxml
+.gitignore:187:*.pubxml   Properties/PublishProfiles/PleskTestEnvironment.pubxml
+```
+
+So **today's fix is not in version control either**, and neither is `AccuWebProduction.pubxml`.
+
+**Why the pattern is there and why it no longer fits.** `*.pubxml` is ignored by convention because a
+publish profile can carry a `<Password>` for a web-deploy target. Neither of ours does — both are
+`FileSystem` publishes with no credential. What they carry instead is **deploy safety policy**: the
+uploads exclusions, the dev-config exclusions, `EnvironmentName=Production` (without which the
+deployed app loads placeholder config and breaks its DB and B2C wiring), and now the template
+exclusion.
+
+**What makes this recoverable rather than urgent.** `Scripts/deploy/verify-bundle.py` **is** tracked
+and its uploads, dev-config and (since today) template predicates are **fatal**. A lost pubxml would
+therefore produce a bundle the gate refuses, rather than a silent upload wipe — provided the gate is
+run. That is the whole mitigation, and it depends on a human step.
+
+**Fix.** Track both profiles: either narrow the ignore to `*.User.pubxml` / `*.pubxml.user`, or
+`git add -f` the two files and comment `.gitignore:187` with why they are exceptions. Then assert in
+the gate that the profile is present and still carries the four exclusions, so the policy is checked
+rather than trusted.
+
+- **Estimate:** ~30 min, plus a `dotnet publish` from a clean clone to prove a fresh checkout produces
+  a compliant bundle. That last step is the only one that actually tests the claim.
+
+#### Fix applied 2026-09-17 — audited before tracking, because tracking is not undoable
+
+Committing a file publishes it inside the repo, so both profiles were read in full first rather than
+pattern-matched:
+
+| Check | Result |
+|---|---|
+| `<Password>` / `<UserName>` / msdeploy credential elements | **none** — both are `FileSystem` publishes |
+| connection string (the stock warning's actual concern) | **none** in either file |
+| real hostnames / IPs / mailboxes | **none.** `AccuWebProduction.pubxml` declares only build properties and `<Content Remove=...>` globs; its one URL-ish element is an empty `<SiteUrlToLaunchAfterPublish />` |
+| my own Gate 10 comment | **scrubbed first.** It had named the SMTP host and the server IP while explaining the template exclusion. Rewritten to point at this defect and the runbook instead, so tracking the file does not create a fresh copy of those identifiers |
+
+Staged, deliberately not committed: `.gitignore`,
+`Properties/PublishProfiles/PleskTestEnvironment.pubxml`,
+`Properties/PublishProfiles/AccuWebProduction.pubxml` — 143 insertions, 0 deletions.
+
+#### Second half done 2026-09-17 — the policy is now CHECKED, not just present
+
+**(a) Gate assertion.** `verify-bundle.py` gained a `PUBLISH PROFILE POLICY` section that reads the
+profile **from the tree**, not the zip — a bundle cannot show what its own build was permitted to
+include. It asserts all five protections (`wwwroot\uploads`, `App_Data\uploads`,
+`appsettings.Development.json`, `appsettings.*.template.json`, `EnvironmentName=Production`), and
+**treats a missing profile as a FAIL** in its own right, since that is the pre-fix fresh-clone state.
+
+Substring checks rather than regex, deliberately: the patterns contain Windows path separators, and
+an escaping mistake in a gate is worse than no gate — it fails open and reads as a pass. (Two such
+mistakes were made while writing this, both caught by the negative controls below.)
+
+**Proven to fail, against temp copies rather than the real profile:**
+
+| Injected fault | Result |
+|---|---|
+| `wwwroot\uploads` exclusion deleted — the 2026-04-23 wipe condition | FAIL |
+| `EnvironmentName` switched to `Test` — breaks DB + B2C on the server | FAIL |
+| profile absent entirely — the pre-DEF-429 state | FAIL |
+
+**(b) Clean-clone publish — run, not asserted.** The staged tree was extracted fresh and published
+with the deploy script's own profile and configuration: **exit 0, 334 files, 0 hygiene failures.** No
+DataProtection keys, no dev config, no `*.template.json`, no uploads tree, no `Scripts/`/`docs/`/
+`docs2/`/test projects; DLL, `web.config` and `appsettings.json` all present.
+
+**One expected absence, recorded so it is never misread as a gap:** `appsettings.Production.json` is
+**not** in a clean clone — it is gitignored (`.gitignore:48`) and holds a real DB password and
+signing key, so it must stay out of git. A fresh clone therefore builds a complete *application* but
+not a deployable *bundle*; the production config is operator-supplied by design.
+
+**Method note worth keeping.** The first clean-clone publish failed with eight
+`MSB3030 Could not copy` errors and looked like a repo defect. It was a **288-character scratch
+path**, past Windows' 260-char `MAX_PATH` — `ls` could see the files, `os.path.exists` could not.
+Short path, published first time. *A build failure on a long temp path is an artifact until proven
+otherwise.*
+
+**It also found a second, unrelated leak.** Diffing the clean publish against the bundle surfaced
+`wwwroot/css/certificate-create.css.bak` shipping — an untracked 2025-11-10 leftover the SDK's
+content glob picks up. Harmless on the server (`.bak` has no content type, so it 404s) but it meant
+**the bundle was not reproducible from git**. Excluded in the pubxml (`**\*.bak`, `**\*.orig`,
+`**\*~`) and added as a fatal gate predicate, proven firing 1-against-`1545` / 0-against-`1751`.
+The finding is the method, not the file: *a clean-clone diff is the only check that can see what a
+bundle contains but a clone cannot produce.*
+
+**Related.** [[incident_prod_all_pdfs_missing_2026-06-15]], DEF-286 (upload path resolver),
+`feedback_never_bundle_devkeys_and_devconfig`.
+
+---
+
+### DEF-430 — A failed certificate load leaves the tile views stuck on "Loading…" over the previous filter's results, so a failure is indistinguishable from a filter that did nothing
+
+- **Date raised:** 2026-09-17
+- **Severity:** **Major.** No data is wrong and nothing is lost, but the user is shown a screen that
+  contradicts itself indefinitely: the results count says `Loading…`, the ticked filters say one
+  thing, and the rows underneath are the *previous* filter's answer. There is no error, no timeout
+  and no way to tell a slow request from a dead one. It was reported as *"the status filtering is
+  not working"* — which is the point: the page cannot distinguish the two, so neither can the user.
+- **Status:** **FIXED AND VERIFIED on localhost 2026-09-17 — not yet deployed.** Not committed
+  (Shawn commits). Front-end only: `certificate-tile-view-internal.js`,
+  `certificate-tile-view-external.js`, `certificatetileview.css`.
+- **Reporter:** Shawn, direct. Internal tile view, `/Certificate/CertificateTileViewInternal`.
+- **QC log ID:** none — not client-reported.
+
+**How it surfaced.** *"I had expired. sorted on expired, but when I changed the filter it just says
+loading."* Unticking one status and ticking another left the count on `Loading…` and the list
+unchanged.
+
+**Root cause.** `loadCertificates()` in both logged-in tile views blanks the results count to
+`Loading…` on every fresh load (DEF-302) and then handles **only** `if (response.ok)`. There is no
+`else` and no request timeout. So a 500, a 504, an auth expiry or a request that simply never lands
+falls through every branch: the count is never restored, the stale rows are never cleared, and
+`finally` quietly drops the spinner. The failure is completely silent — nothing is logged to the
+user, and the DOM keeps asserting a load is in progress that has already ended.
+
+**The public view already did this correctly.** `certificate-tile-view.js` has had a 30s
+`AbortSignal.timeout`, a 5xx retry with exponential backoff, an error branch and a retry button
+since DEF-381. The internal and external views are copies that never received it. This is a
+consistency gap against an existing reference implementation, not new design.
+
+**Fix.** Port the public view's failure handling into both logged-in views:
+
+| | Behaviour |
+|---|---|
+| Timeout | `AbortSignal.timeout(30000)` on the fetch |
+| 5xx | retry ×3 with 1s/2s/4s backoff, progress shown in the results line |
+| 4xx | no retry — report and stop (retrying an auth expiry cannot help) |
+| Exhausted / non-retryable | inline `.tile-load-error` panel **replaces** the results, stale rows cleared, count reads *"Could not load certificates"*, **Retry** button restarts the load |
+| Infinite-scroll append | rows already on screen are still correct for the current filter, so they are kept and only a notification is raised |
+
+**Two deliberate departures from the public view**, both found while testing rather than reasoned
+about:
+
+1. **No notification per retry attempt.** `AdminCore.showNotification` routes *every* notification to
+   a centered modal (`admin-core.js:120`), so three retries stack three blocking `alertdialog`
+   overlays — and they intercept pointer events on the Retry button underneath. Caught because the
+   Playwright check on the Retry button failed with *"<div role=alertdialog …> intercepts pointer
+   events"*. Retry progress now goes in the results line; the failure is reported once, inline.
+2. **The Retry button is wired by listener, not inline `onclick`.** The external view exports its
+   public object under the name `window.certificateTileViewInternal` (a copy-paste artifact left
+   alone as out of scope), so an inline handler naming that global would be ambiguous between the
+   two files.
+
+**Verification — 13/13, both views, on localhost against the dev database.** The failure path is
+forced by Playwright route interception rather than waited for, so it is deterministic:
+
+| Check | internal | external |
+|---|---|---|
+| initial load resolves off `Loading…` | PASS | PASS |
+| a filter change still changes the count (no regression) | PASS `6019 → 4854` | n/a |
+| forced 500 → failure panel replaces the results | PASS | PASS |
+| count stops saying `Loading…` | PASS *"Could not load certificates"* | PASS |
+| stale rows cleared | PASS 0 left | PASS 0 left |
+| retried before giving up | PASS 4 attempts | PASS 4 attempts |
+| **Retry** recovers the list | PASS `Showing 20 of 129` | PASS `Showing 1 of 1` |
+
+Screenshots at 5 viewports (1440/1280/1024/768/390): `Scripts/smoke-prod/_results/def430/`.
+
+**What this defect is NOT, recorded so it is not re-diagnosed.** The status filter itself is correct.
+All 8 statuses were requested directly against `/api/certificate-tiles-internal` and returned
+distinct, plausible counts — Draft 129, Client Approved - Confidential 40, Client Approved - Paid
+996, Expired 4,854, and **0** for Client Approved - Not Paid, Hold, Republished and Expired - No
+Annual Verification. **Those four are empty in the dev dataset**, so ticking one correctly empties
+the list and looks identical to a broken filter. Rule that out before raising a filter defect, and
+confirm the row mix separately on TEST.
+
+**Open, not fixed here — first-call latency.** On a cold SQL cache this box served the *unfiltered*
+list in **81.9 s** and `status=Expired` in **42.9 s**, warm 0.1–1.3 s. The EF log shows a 20-row
+hydrate query taking 38.9 s and one run hitting the 120 s command timeout, after which even
+pre-login handshakes to ANUKI01 timed out — i.e. the local SQL Server folding, not a query defect
+(6,019 certificates, 18,104 product identifiers, both heavily indexed). **Do not quote those numbers
+as a product finding; they measure a laptop.** One thing worth a look on its own ticket: the hydrate
+query re-applies every filter although the page's IDs are already known, so it can seek 20 rows by
+primary key but is free to choose a plan driven off `Status` instead. That would be a candidate
+explanation for the plan flip, and it is a separate, measurable change.
+
+Note that the 30 s timeout means a genuinely cold 43 s response now fails and retries — and the
+retry lands on a warm cache and returns in under a second, which is a better outcome than a 43 s
+blank spinner. That is behaviour to keep in mind, not a regression to fix.
+
+**Related.** DEF-302 (the `Loading…` placeholder this makes resolvable), DEF-381 (the public view's
+retry handling this ports), DEF-309 (the load-sequence token that the retry path respects), CR-051
+(the status filter being exercised).
+
+---
+
+### DEF-431 — The tile hydrate query re-applied filters the page's ids had already satisfied; fixing that changed nothing measurable, and the measurement found where the cost actually is
+
+- **Date raised:** 2026-09-17
+- **Severity:** **Low as a defect, high as a finding.** Nothing was ever wrong in the output. The
+  change is a simplification; the value delivered is the **measurement**, which locates ~99% of this
+  endpoint's I/O in a place nobody was looking.
+- **Status:** **Hydrate code change DONE AND VERIFIED on localhost 2026-09-17 — not yet deployed. The covering-index migration was REVERTED 2026-09-18 and no longer exists in the repo — nothing in this entry touches any database.**
+  commits). `CertificateTileInternalApiController.cs`, `CertificateTileExternalApiController.cs`.
+- **Reporter:** Anuki (internal), while investigating the latency behind DEF-430.
+- **QC log ID:** none.
+
+**What was changed.** DEF-250 pages down to 20 ids on a thin id-only query, then hydrates them. Both
+tile controllers hydrated off the *same* `query` object that carried every filter, so the SQL read
+`WHERE [Status] IN (OPENJSON(@statuses)) AND [Id] IN (OPENJSON(@pagedIds))`. Those predicates cannot
+remove a row — the ids came from that exact filtered set. The hydrate now runs off a base query:
+
+- **Internal** (`[Authorize(Policy = "AnalystOrAdmin")]`, no row scoping — verified: every
+  `query = query.Where(...)` in it is a user-supplied filter) hydrates from `certificatesBase`,
+  filtered by primary key alone.
+- **External** hydrates from `scoped` = base + role scoping + visibility, and nothing the caller
+  typed. The CR-043 BadgeableStatuses / in-force predicate **moved up** to sit with the role scoping:
+  it is AND'd either way so rows are unchanged, but it belongs to "what this caller may see" rather
+  than "what they asked for", and `scoped` has to carry the whole visibility envelope. `scoped` is
+  *captured*, never rebuilt — a second copy of partner/company isolation rules is how one path
+  silently drifts narrower than the other.
+
+**The performance theory was wrong, and this is the part worth reading.** The change was made
+believing the spent predicate let the optimizer drive off `IX_Certificates_Status` — pulling 4,854
+rows through 11 joins to keep 20 — instead of seeking on the primary key. Measured properly, it does
+not:
+
+| Hydrate shape (same 20 ids, plan cache cleared before each run) | Logical reads |
+|---|---|
+| **OLD** — `WHERE Status IN (OPENJSON(@statuses)) AND Id IN (OPENJSON(@pagedIds))` | **33,321** |
+| **NEW** — `WHERE Id IN (OPENJSON(@pagedIds))` | **33,321** |
+
+Same plan, same work, no gain. **The change stands as a simplification and as defence in depth on
+the external path — not as a speed-up, and the code comments say so** so the next person does not
+re-optimize this WHERE clause expecting a win.
+
+**Wall-clock timing on this machine is worthless and must not be quoted.** A cold-plan A/B produced
+2.83s then 142.99s for the *no-filter control* — a case whose SQL is byte-identical in both builds.
+Logical reads were used precisely because they are independent of machine load; that is the
+technique to reuse here, not another stopwatch.
+
+**What the measurement DID find — the real cost, and it is not the WHERE clause.** Stripping the
+three correlated subqueries from the projection, leaving everything else identical:
+
+| Query | Logical reads |
+|---|---|
+| Hydrate as it stands | **33,321** |
+| Same hydrate minus the 3 `CertificateProductIds` subqueries | **321** |
+
+Those three are:
+
+```sql
+COALESCE((SELECT TOP(1) [c2].[ProductIdValue] FROM [CertificateProductIds] AS [c2]
+          WHERE [c].[Id] = [c2].[CertificateId] AND [c2].[ProductIdType] = N'ISBN'
+            AND [c2].[IsActive] = CAST(1 AS bit)), N'')   -- and the same again for SKU and MPN
+```
+
+**~99% of this endpoint's I/O, spent fetching three strings for 20 rows.** `Scan count 3` says SQL
+Server is resolving them as three passes over `CertificateProductIds` (18,104 rows, wide) rather than
+60 index seeks. ASIN/UPC/GTIN cost nothing by comparison — they are plain columns on `Certificates`.
+No index covers the predicate: there is `IX_..._CertificateId_ProductIdType` and
+`IX_..._CertificateId_IsActive`, but none on `(CertificateId, ProductIdType, IsActive)` including
+`ProductIdValue`.
+
+**Size the prize honestly before anyone schedules it.** Warm, over two runs each:
+
+| | logical reads | CPU | elapsed |
+|---|---|---|---|
+| Hydrate as it stands | 33,321 | 172–250 ms | 252 ms |
+| Minus the 3 subqueries | 321 | 0–16 ms | 5–6 ms |
+
+So this is worth roughly **a quarter-second per page load**, consistently, and it removes work that
+grows with `CertificateProductIds` — not the tens of seconds seen on a cold cache. **It is not the
+cold-start explanation.** In the cold run the same query reported 250 ms CPU against 29,890 ms
+elapsed: almost all of that is waiting, not work, and `physical reads 1 / read-ahead 548` says it is
+not reading 33,000 pages from disk either. Whatever produces the 40–95 s first call on this hardware
+is still unidentified, and fixing these subqueries should not be sold as fixing it.
+
+**Two candidate fixes were priced. Option 1 was approved and is now BUILT (below); option 2 remains
+available if the pattern is ever worth removing rather than indexing around.**
+
+1. ~~Covering index~~ **DONE** — see *Fix applied* below.
+2. Fetch the three values for the page's 20 ids in one grouped query and stitch in memory, the same
+   shape as the existing tag/country semi-join fixes (DEF-366, DEF-402). ~2-3 hr, no schema change.
+   Not needed now; the index recovered the whole win.
+
+> # ⛔ CORRECTION 2026-09-17 — THE INDEX BELOW IS NOT THE FIX. DO NOT SHIP IT.
+>
+> **The cause was stale statistics on the DEV database, not a missing index.** Found while preparing
+> to apply the migration to TEST: TEST has the **identical index set** to dev and was already costing
+> **441 logical reads / `Scan count 60`** — it never had the problem. That made the "the `IsActive`
+> leg is not seekable" reasoning below impossible, so it was tested directly on dev:
+>
+> | dev, same 20-row hydrate | total logical reads | `CertificateProductIds` |
+> |---|---|---|
+> | With the new covering index | 517 | Scan count 60, 196 reads |
+> | Index dropped, statistics untouched | **33,321** | Scan count 3, **33,000 reads** |
+> | Index dropped, after `UPDATE STATISTICS … WITH FULLSCAN` | **441** | Scan count 60, **120 reads** |
+>
+> The existing `(CertificateId, ProductIdType)` index was always sufficient. With current statistics
+> it beats the new index (441 vs 517 reads), because the covering index is wider. **The migration
+> buys nothing on any real environment and costs write amplification on a table that takes bulk ASIN
+> loads** (1,870 rows in the batch-2 import alone).
+>
+> **REVERTED 2026-09-18 — the migration is gone and no database was altered.** Shawn: *"we can't
+> modify the data in gccwebapp environment."* Confirmed by query that neither test database was ever
+> touched: `__EFMigrationsHistory` still **39 rows on both**, the index **absent**, **15 indexes** on
+> `CertificateProductIds` as before, row counts intact (6,045 / 20,430 and 6,040 / 19,191). Every
+> statement run against `gccwebap_certificates` / `gccwebap_test` this session was a read-only
+> `SELECT`, and the measurement script had its `CLEAR PROCEDURE_CACHE` line removed before it was
+> pointed at either of them.
+>
+> **What was undone:** dev rolled back via `database update <previous>`; both migration files
+> deleted; the `ApplicationDbContext` index declaration removed; the model snapshot confirmed
+> **byte-identical to HEAD** and `Migrations/` clean. A generated drift probe emitted `DropIndex`
+> first — proving the model really had changed rather than trusting an empty probe, which is the
+> trap that hid an earlier stale-assembly mistake. Dev now carries the same 15 indexes as TEST.
+> The dev remedy is `UPDATE STATISTICS CertificateProductIds WITH FULLSCAN`, already applied.
+>
+> **The hydrate code change (DEF-431 proper) is untouched by this** — C# only, no schema, and its
+> 19/19 output-identical verification still stands.
+>
+> **The lesson is the measurement, not the index.** A 75x reads difference looked like a missing
+> index and was a stale-statistics plan flip. *Before adding an index, check whether the environment
+> that does NOT have the problem has different indexes or different statistics.* Comparing the two
+> would have answered it in one query, before a migration existed.
+
+#### Fix attempted 2026-09-17 — covering index, via migration `20260918025106_AddCertificateProductIdCoveringIndexDef431` (SUPERSEDED — see correction above)
+
+`CertificateProductIds (CertificateId, ProductIdType, IsActive) INCLUDE (ProductIdValue)`, declared
+in `ApplicationDbContext.OnModelCreating` and generated as a migration (never hand-written SQL).
+`IsActive` is the third **key** column — that is the whole point: the two existing composites stop at
+`(CertificateId, ProductIdType)` and `(CertificateId, ProductIdType, ProductIdValue)`, so the
+`IsActive = 1` leg was not seekable and SQL Server resolved the three lookups as three passes over
+the table.
+
+**Measured, same 20-row hydrate, plan cache cleared before every run:**
+
+| | total logical reads | `CertificateProductIds` | CPU |
+|---|---|---|---|
+| Before | 33,321 | Scan count 3, **33,000 reads** | 234 ms |
+| After | **489–518** | Scan count 60, **168–193 reads** | 0–16 ms |
+
+`Scan count 60` is 20 rows × 3 subqueries — exactly the seeks that should have been happening. This
+lands within noise of deleting the three subqueries outright (321 reads), so the index buys the
+entire win with no change to the projection.
+
+**Correctness: 19/19 cases still byte-identical** against the pre-change baseline — same totals, same
+ordered ids, every field of every row.
+
+> ⚠️ **That comparison could NOT have caught the one risk this change carries, and the reason is
+> worth knowing.** `SELECT TOP(1) … ` with no `ORDER BY` is not deterministic: which row it returns
+> depends on the access path, so a new index *can* change a displayed value. It did not here —
+> because **`CertificateProductIds` on dev is 18,104 rows and every one of them is an ASIN.** There
+> are **zero ISBN, SKU and MPN rows**, active or not. The three subqueries return empty on this data,
+> so there was no value that *could* have changed.
+>
+> Which also restates the finding: the endpoint was spending 33,000 logical reads per page looking
+> up three identifier types **that do not exist in the dataset at all**.
+>
+> **Pre-deploy check on TEST, before this ships** — if any certificate has more than one *active* row
+> of the same type, the value shown could change with the access path:
+>
+> ```sql
+> SELECT CertificateId, ProductIdType, COUNT(*)
+> FROM CertificateProductIds
+> WHERE IsActive = 1 AND ProductIdType IN (N'ISBN', N'SKU', N'MPN')
+> GROUP BY CertificateId, ProductIdType HAVING COUNT(*) > 1;
+> ```
+>
+> Zero rows (as on dev) ⇒ no risk, ship it. Any rows ⇒ add a deterministic tiebreak to the three
+> subqueries first (`.OrderBy(x => x.Id)`), the same `.ThenBy(c => c.Id)` discipline DEF-166/234/425
+> established for paging. Minutes of work, but it must be decided with the data in front of you.
+
+##### Pre-deploy check RUN against the test server, 2026-09-17 — **PASS, clear to ship**
+
+Run read-only against **both** GCC databases on `68.71.129.120,1533`, because the server hosts two
+(`gccwebap_certificates` — the one `appsettings.Production.json` actually points at — and
+`gccwebap_test`), and the answer should not depend on which one someone meant:
+
+| | `gccwebap_certificates` | `gccwebap_test` |
+|---|---|---|
+| Certificates with >1 **active** row of the same type, for ISBN/SKU/MPN | **0** | **0** |
+| Same, widened to **every** type | 176 | 171 |
+| `ProductIdType` census | **ASIN only** — 20,362 active, 68 inactive | **ASIN only** — 19,123 active, 68 inactive |
+
+**Ship it — no tiebreak needed.** ISBN, SKU and MPN do not exist on TEST either, so the three
+`TOP(1)` subqueries cannot return a row, cannot change a displayed value, and the index is a pure
+saving. TEST carries *more* ASIN rows than dev (20,362 vs 18,104), so the measured win is if anything
+larger there.
+
+The 176/171 are entirely expected and are **not** a finding: ASIN is the only type present, and a
+certificate legitimately covers many ASINs (DEF-250 records a big-seller cert with ~1,000). Nothing
+reads ASIN through an unordered `TOP(1)` — the tile projection takes it from the `Certificates.Asin`
+column, and the ASIN sort uses `.Min()`, which is deterministic.
+
+> **Two live databases, one of them unexplained.** The deployed app uses `gccwebap_certificates`;
+> `gccwebap_test` holds a similar but smaller dataset (19,123 vs 20,362 active ASIN rows) and is not
+> referenced by any config in the repo. Not touched, not investigated here — but worth knowing it
+> exists before someone points a migration or a data script at the wrong one.
+
+**Deploy note — TEST does not auto-migrate** (switched off 2026-09-04). This migration must be
+applied by hand on TEST; it will not run itself on first request. `Down` drops the index cleanly, so
+it is reversible.
+
+**Not done, deliberately:** `IX_..._CertificateId_ProductIdType` is now a strict prefix of the new
+index and is arguably redundant, as is part of `IX_..._CertificateId_IsActive`. Dropping an index
+changes every other query's plan options, so that is its own decision with its own measurement — not
+a free rider on this one.
+
+**Verification — 19/19 cases byte-identical, both controllers.** Responses were captured before and
+after the change and compared on `totalCount`, the **ordered** id list, and **every field of every
+row** (a dropped projection column has to fail this; equal counts alone would not):
+
+internal — no filter · Expired · Draft · Client Approved - Paid · Client Approved - Confidential ·
+multi-status · status+company-az sort · status page 3 · search · search+status · country · ASIN sort
+· cert-number sort · pageSize=100. external (as a company-scoped user) — default · company-az ·
+search · page 2 · pageSize=100. **19/19 identical.**
+
+**Related.** DEF-250 (the id-paging step this completes), DEF-430 (the investigation that led here),
+DEF-166 (the AsSplitQuery rationale), DEF-366 / DEF-402 (the semi-join pattern option 2 would
+follow), CR-043 (the visibility predicate that moved).
+
+---
+
+### DEF-432 — `CertificatePageCount` returns role-dependent JSON with no cache headers, while both its siblings set them
+
+- **Date raised:** 2026-09-18
+- **Severity:** **Low, and latent.** Nothing is wrong today. It becomes real the moment any shared
+  cache sits in front of the app.
+- **Status:** **FIXED AND VERIFIED 2026-09-18 — not yet deployed.** In the re-cut bundle
+  `GCCWebApp-deploy-20260918-1200.zip` (DLL md5 `e1e6d6d03527e0b8`). Originally deferred, then folded
+  in when DEF-436 forced a re-cut and this became nearly free. Verified at runtime: `/Certificate/CertificatePageCount/1488` now returns `Cache-Control: private, no-cache, must-revalidate`, identical to its sibling `ViewCertificateImage`. **No in-zip marker is possible** — it is a method call that compiles to IL with no string literal — so the runtime check IS the evidence, and the marker script says so rather than asserting something weak.
+- **Reporter:** Gate 3 review of CR-053, run before the 2026-09-18 upload.
+- **QC log ID:** none — internal.
+
+**What it is.** `CertificatePageCount` (`Controllers/CertificateController.cs:2496`) does not call
+`SetUploadRevalidationHeaders()`. Its two siblings do: `ViewCertificateImage` (`:2420`) and
+`ViewCertificateFile` (`:2336`). There is no global `Cache-Control` for MVC responses — the only ones
+set anywhere are for static files and the test gate — so the JSON leaves with no `Cache-Control` and
+no `private`, and heuristic freshness lets a shared cache store it.
+
+**Why it matters.** The same URL returns `{"pages":2}` to the owning company and **404** to everyone
+else. That is exactly the role-dependent response DEF-310 exists to stop a shared cache holding —
+its own comment says *"a shared cache could otherwise serve an Analyst's copy to an anonymous
+caller"*. Put a CDN or reverse proxy in front of Plesk and a cached 200 replays to a caller who
+should be refused.
+
+**Fix.** One line: call `SetUploadRevalidationHeaders()` in `CertificatePageCount`, as the siblings
+do. **Estimate: ~15 min including a re-run of `verify-cr053-rbac.js`.**
+
+**Why it was deferred rather than folded in.** The bundle was already built and gated. Re-cutting for
+a latent one-liner means re-running the whole gate sequence, and nothing can reach these routes while
+`TestEnvironmentGate:Enabled = true` — verified live 2026-09-18, gccwebapp.com 302s to `/__gate`.
+
+**Related.** DEF-310 (the header helper and the reason it exists), CR-053, DEF-433.
+
+---
+
+### DEF-433 — The anonymous PDF-render routes are unthrottled and serialise on a blocking, timeout-free lock — a cutover blocker
+
+- **Date raised:** 2026-09-18
+- **Severity:** **High at public cutover. Medium today**, only because the test-environment gate is
+  still on. This is a whole-site availability risk, not a preview one.
+- **Status:** **RAISED, not fixed. MUST be resolved before `TestEnvironmentGate` is turned off.**
+  Not in `GCCWebApp-deploy-20260918-1020.zip`. It is a pre-existing property of CR-053 as built, not
+  a regression introduced by that bundle.
+- **Reporter:** Gate 3 review of CR-053, run before the 2026-09-18 upload.
+- **QC log ID:** none — internal.
+
+**Three facts, each verified independently rather than taken from the review:**
+
+1. `Services/FileUploadService.cs:496` declares a **process-wide** `SemaphoreSlim(1,1)`, and
+   `GetPdfPageCount` takes it at `:519` with **synchronous `Wait()` and no timeout**.
+   (`RenderPdfPageAsync` correctly uses `WaitAsync`.)
+2. That synchronous call is reached from `CertificatePageCount`, which is **`[AllowAnonymous]`**.
+3. **Every** `IpRateLimiting` rule in `appsettings.Production.json` is scoped to `*/api/*` — the five
+   configured endpoints are `*/api/*` ×3 and `*/api/*/auth/login` ×2. `/Certificate/...` are MVC
+   routes and match none of them, so **nothing throttles these two routes.**
+
+**Concrete failure scenario.** An anonymous caller issues ~100 concurrent
+`GET /Certificate/CertificatePageCount/<id>`. Each enters the async action and then blocks a
+thread-pool thread on a lock with no timeout while one PDF open proceeds at a time. Thread-pool
+injection is ~1-2 threads/sec, so the queue outruns it and **the whole site stops responding — login,
+tile views and the Amazon partner API — not just previews.** The project's own CR-053 measurement
+records page-count latency of 423/87/33 ms on a warm local box; a shared Plesk host is slower.
+
+**Amplifier, worth fixing on its own.** One page turn opens the same PDF **three times** under that
+lock — the controller's bounds check, the aspect-detect pass, then the render. The paged response is
+`private, no-cache, must-revalidate` with **no ETag and no Last-Modified**, so a revalidation can
+never be answered with a 304 and every reopen re-renders. Ordinary multi-user browsing pays three
+PDF opens per page turn, permanently.
+
+**Today's mitigation, and its expiry.** `TestEnvironmentGate:Enabled = true` puts the whole site
+behind a shared-password cookie gate — verified live 2026-09-18 (gccwebapp.com → 302 `/__gate`).
+**That is the only thing standing between these routes and an open anonymous render loop, and it
+disappears at cutover.**
+
+**Fix, before the gate comes off.**
+1. `IpRateLimiting` rules for `*/Certificate/CertificatePageCount*` and `*/Certificate/ViewCertificateImage*`.
+2. Make `GetPdfPageCount` async and use `WaitAsync(TimeSpan)` so the queue fails fast instead of
+   holding threads.
+3. Return the page count from the render call to drop the redundant third open, and add an ETag so
+   revalidation can produce a 304.
+4. **Add the missing test (F3 from the same review):** no assertion covers the "not yet effective"
+   window on either new route. The gate itself is correct — effective-date is checked before any file
+   is touched — but a later simplification would not fire a test. The X-SENSE fixture
+   (`26-0441`/`26-0442`, effective **2026-10-21**) is the only one that can prove it, and only until
+   that date.
+
+**Estimate: ~3-4 hr** for all four, plus a load check that actually drives concurrency — a
+single-request timing run cannot see this class of fault.
+
+**Related.** CR-053, DEF-432, [[project_test_env_access_gate]], and the go-live checklist.
+
+---
+
+### DEF-434 — The preview pager swallows Left/Right arrow keys from form fields on the Edit page
+
+- **Date raised:** 2026-09-18
+- **Severity:** **Medium.** Labelled HIGH by the Gate 1 review as a keyboard regression, and it is a
+  genuine one — but the practical exposure is narrow (see below), and nothing is corrupted or lost.
+- **Status:** **FIXED AND VERIFIED 2026-09-18 — not yet deployed.** In
+  `GCCWebApp-deploy-20260918-1200.zip`. Fix: `onKey` now returns early when `e.target` is an
+  `input`, `select`, `textarea` or `contenteditable` (`isTextEntry`). **Both halves verified, because
+  fixing this by simply unbinding the listener would also have 'passed' a one-sided test:** (a) with
+  a writable field focused behind the overlay, ArrowLeft moved the caret **29 -> 28** and the page did
+  NOT turn; (b) with focus outside any field, ArrowRight still turned the page **1 -> 2**.
+- **Reporter:** Gate 1 (UI / design-guide compliance) review of CR-053, run before the 2026-09-18
+  upload. **Independently reproduced before raising.**
+- **QC log ID:** none — internal.
+
+**What it is.** `wwwroot/js/certificate-preview-pager.js:142-147` binds `onKey` to `document` and
+calls `e.preventDefault()` on ArrowLeft/ArrowRight whenever the modal is open, with **no check on
+`e.target`**. Any focused form field behind the overlay loses those two keys to the pager.
+
+**Reproduced 2026-09-18 on `/Certificate/Edit/21-0117`** (independent run, not the reviewer's):
+
+```
+BEFORE ArrowLeft: {"name":"Number","value":"21-0117","caret":7,"page":"Page 2 of 2"}
+AFTER  ArrowLeft: {"caret":7,"page":"Page 1 of 2"}
+```
+
+The caret did not move and the popup turned the page instead.
+
+**Scope.** `Edit` is the only host view with form fields, so it is the only one affected. Only Left
+and Right are bound — ArrowDown on a `<select>` still works.
+
+**Why Medium rather than High, stated so the downgrade is arguable rather than silent.** To hit this
+a user must have the preview popup open — a 95%-opaque full-screen overlay — and then press an arrow
+key expecting to move a caret in a field they cannot see. The caret simply refuses to move; no data
+changes. It is a real WCAG 2.1.1 irritant and a regression that did not exist before CR-053, and the
+client's analysts do live on the Edit page, which is why it is worth fixing promptly rather than
+never. It is not worth re-cutting a gated bundle for.
+
+**Fix.** ~2 lines: bail out of `onKey` when `e.target` is an `input`, `select`, `textarea` or
+`contenteditable` — or, better, fix DEF-435's focus handling and scope the listener to the modal,
+which makes this moot. **Estimate: ~20 min including a re-run of `verify-cr053-pager.js`.**
+
+**Related.** CR-053, DEF-435 (the focus-management gap this is a symptom of), DEF-432 (the other
+next-build one-liner).
+
+---
+
+### DEF-435 — Preview popup accessibility backlog: no focus management, missing `alt`, and three smaller gaps
+
+- **Date raised:** 2026-09-18
+- **Severity:** **Low-to-Medium, and mostly PRE-EXISTING.** None of these were introduced by CR-053;
+  CR-053 made the popup worth auditing properly and amplified the first one.
+- **Status:** **RAISED, not fixed.** Not in `GCCWebApp-deploy-20260918-1020.zip`. Grouped
+  deliberately: these are one afternoon's work in the same four files, and splitting them into five
+  register rows would cost more tracking than fixing.
+- **Reporter:** Gate 1 review of CR-053, 2026-09-18.
+- **QC log ID:** none — internal.
+
+| Ref | Finding | Evidence |
+|---|---|---|
+| **M-1** | **Focus is never moved into the modal and background controls stay tabbable.** No `role="dialog"`, no `aria-modal`, no focus trap on `#imageZoomModal`. | After opening, `document.activeElement` is still `BODY`. On Edit: **59 focusable elements, the pager's Next button is #57 — 36 Tab presses** to reach the first control inside the open modal, all intervening controls invisible behind the overlay. WCAG 2.4.3. Pre-existing (CR-052 had it too); CR-053 triples the stranded controls. **Fixing this makes DEF-434 moot.** |
+| **M-3** | **The preview image has no `alt`** on three of four hosts (`CertificateExternalView.cshtml:344`, `CertificateInternalView.cshtml:464`, `CertificateSingleView.cshtml:279`); `Edit.cshtml:504` has one but it never updates with the page. | Pre-existing, but CR-053 makes the image's content change under the user. The `aria-live` label announcing "Page N of M" partly covers it. Fix: `alt="Certificate preview, page N of M"`, updated in `go()`. |
+| **W-1** | **Pager falls below the fold at 320px.** | Measured 320×568: bar bottom 620 vs viewport 568, needs a scroll inside the modal. 390×844 and 768×1024 are fine. Narrow case (old SE / folded devices); the client reads on a tablet. |
+| **W-2** | **A page that fails to render makes the whole pager silently vanish**, and it stays gone until the page is reloaded because the count promise is memoised. | Code read of `certificate-preview-pager.js:124-131`; **the error path was never triggered**, so this is unobserved. Fix belongs in the existing `aria-live` label — *not* an AdminCore notification, which would stack a blocking modal inside an open modal. |
+| **W-3** | **The caption contradicts the controls.** It reads *"Click outside to close"* while the pager and the View-all-pages button now sit in that same outside region. | They do work (verified by real clicks), so this is copy, not behaviour. Suggest "Press Esc or click the image surround to close". |
+
+**Estimate: ~3 hr** for all five, most of it M-1 done properly (move focus in on open, trap it,
+restore on close).
+
+**Related.** CR-052, CR-053, DEF-434, DEF-432.
+
+---
+
+### DEF-436 — Paging to page 2 appears to zoom in: page 1 is the stored thumbnail, pages 2+ are rendered 2x larger
+
+- **Date raised:** 2026-09-18
+- **Severity:** **Medium.** Cosmetic — no data is wrong and nothing fails — but it is the first thing
+  a user notices when they use the feature, and it reads as a bug rather than a design choice.
+- **Status:** **FIXED AND VERIFIED 2026-09-18 — not yet deployed.** Option 1 chosen by Shawn
+  (*"option 1, fold in 432 and 434 too, recut"*). In the re-cut bundle
+  `GCCWebApp-deploy-20260918-1200.zip` (DLL md5 `e1e6d6d03527e0b8`).
+- **Reporter:** **Shawn, 2026-09-18**, testing the built bundle's feature on dev before uploading:
+  *"21-0117 - 1 of 2 shows, when I click to see page two in zooms in and shows page 2 bigger"*.
+- **QC log ID:** none — internal.
+
+**Measured on `21-0117` (Id 1488), internal view, 1440x900:**
+
+| | source | natural | displayed |
+|---|---|---|---|
+| Page 1 | `/Certificate/ViewCertificateImage/1488` — the **stored thumbnail** | 425x600 | **445x620** |
+| Page 2 | `/Certificate/ViewCertificateImage?id=1488&page=1` — **rendered on demand** | 840x1187 | **547x765** |
+
+Computed style on `#zoomedImage`: `max-width:90%`, `max-height:765px`, `object-fit:contain`.
+
+**Root cause.** Page 0 deliberately serves the pre-stored 600px thumbnail so that opening a preview
+costs no PDF work (a CR-053 design decision, and a good one — see DEF-433 for why render load
+matters). Pages 1+ are rendered fresh at roughly double that resolution. The modal scales each image
+to fit its box independently, so the thumbnail settles at 620px tall while the on-demand render hits
+the 765px cap — **a 23% jump the user reads as a zoom.**
+
+**Why neither review gate caught it.** Gate 1 asserted that the page *turned*, by comparing image
+BYTES and the `src`, and measured fonts, targets and contrast. Nothing compared the **rendered
+dimensions of one page against another** — the assertion "the image changed" is satisfied by an
+image of any size. Gate 3 was scoping-only. *A page-turn test should assert the new page is the same
+size as the old one, not merely different content.*
+
+**Three fixes, priced:**
+
+1. **Cap every page at the thumbnail's natural height (~620px) — one CSS rule.** Both pages then
+   display identically; page 2's extra resolution simply gives a crisper downscale, and nothing is
+   upscaled, so no blur is introduced. No server cost. **~20 min.** **Recommended.**
+2. **Fix the box instead (`height:765px; object-fit:contain`).** Also consistent, but it *upscales*
+   the 600px thumbnail to 765px, trading a size mismatch for a sharpness mismatch. ~20 min.
+3. **Render page 0 on demand too**, at the same resolution as the rest. Fixes size *and* sharpness
+   and is the most correct, but it makes every preview open pay a PDF render — directly against
+   CR-053's "page 0 costs nothing" design and it worsens DEF-433's load exposure. **~1 hr, and it
+   should not be done before DEF-433.**
+
+**Related.** CR-053, DEF-433 (why option 3 is unattractive), DEF-435 (the other popup polish batch).
+
+#### Fix applied 2026-09-18 — option 1, one CSS rule
+
+`.zoom-modal-content` `max-height` went from a flat `85vh` to **`min(85vh, 620px)`**
+(`wwwroot/css/main.css`). 620px = 600px of image plus the 10px padding each side under `border-box`,
+so the stored thumbnail is shown **1:1 and never upscaled**, and the 1200px on-demand renders
+downscale into the same box — which makes them crisper, not blurrier. `min()` keeps 85vh as the
+ceiling on short viewports, where it is the smaller of the two.
+
+**Measured before and after on `21-0117`, internal view, 1440x900:**
+
+| | natural | displayed BEFORE | displayed AFTER |
+|---|---|---|---|
+| Page 1 (stored thumbnail) | 425x600 | 445x620 | **445x620** |
+| Page 2 (on-demand render) | 840x1187 | 547x765 | **445x620** |
+
+The 23% jump is gone; both pages now occupy an identical box.
+
+**Why option 3 was rejected even though it is the most correct.** Rendering page 0 on demand would
+fix size *and* sharpness, but it makes every preview open pay a PDF render — against CR-053's
+deliberate "page 0 costs nothing" design, and it worsens DEF-433, whose whole problem is unthrottled
+render load. Option 2 (fixing the box at 765px) was rejected because it upscales the thumbnail,
+trading a size mismatch for a sharpness one.
+
+**The test gap this exposed, which matters more than the defect.** Gate 1 asserted the page *turned*
+by comparing image BYTES and the `src`; nothing compared the **rendered dimensions of one page
+against another**, and "the image changed" is satisfied by an image of any size. Shawn found this by
+using the feature. *A page-turn assertion must require the new page to be the same SIZE as the old
+one, not merely different content.*
+
+**Re-verified after the fix:** `verify-cr053-pager.js` 14/14, `_security/verify-cr053-rbac.js` 10/10,
+`verify-def430-load-failure.js` 13/13, Gate 8 CRUD 39P/0F, Gate 9 static 0F (selftest 9 ok), Gate 4B
+cross-surface PASS with 0 mismatches.
+

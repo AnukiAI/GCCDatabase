@@ -1,0 +1,18 @@
+  PASS  anon.count.public — CONTROL — anonymous CAN count a publicly-visible cert :: HTTP 200 {
+  "pages": 1
+}
+  PASS  anon.count.nonpublic — anonymous page COUNT for a NON-public cert is refused :: HTTP 404 
+  PASS  anon.page.nonpublic — anonymous PAGE IMAGE for a NON-public cert is refused :: HTTP 404
+  PASS  ext.count.own — CONTROL — external CAN count pages of its own cert :: HTTP 200 {
+  "pages": 2
+}
+  PASS  ext.page.own — CONTROL — external CAN render page 1 of its own cert :: HTTP 200 PNG 105414B
+  PASS  ext.count.other — external CANNOT count pages of ANOTHER company's cert :: HTTP 404 
+  PASS  ext.page.other — external CANNOT render a page of ANOTHER company's cert :: HTTP 404
+  PASS  ext.page.oob — out-of-range page index is refused, not a 500 :: HTTP 404
+  PASS  ext.page.negative — negative page index does not error :: HTTP 200
+  PASS  admin.count.other — CONTROL — admin CAN count pages of any cert :: HTTP 200 {
+  "pages": 1
+}
+
+10/10 passed

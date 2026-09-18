@@ -2000,7 +2000,16 @@ body.theme-option4 .certificate-single-card .card-body {
     margin: auto;
     display: block;
     max-width: 90%;
-    max-height: 85vh;
+    /* DEF-436: cap the box at the STORED THUMBNAIL's natural size so every page of a document
+       displays at the same size. Page 0 serves the 600px thumbnail (FileUploadService.cs:734)
+       while pages 1+ are rendered at 1200px (PageRenderLongSide), so with the old flat 85vh the
+       thumbnail settled at 600px tall and an on-demand page hit the cap — a 23% jump the user
+       reads as the popup zooming in when they turn the page.
+       620px = 600px of image + the 10px padding on each side (border-box), so the thumbnail is
+       shown 1:1 and never upscaled; the higher-resolution pages simply downscale into the same
+       box, which makes them crisper rather than blurrier. min() keeps 85vh as the ceiling on
+       short viewports, where 85vh is the smaller of the two. */
+    max-height: min(85vh, 620px);
     width: auto;
     height: auto;
     object-fit: contain;
@@ -2021,6 +2030,111 @@ body.theme-option4 .certificate-single-card .card-body {
     padding: 16px;
     font-size: 18px;
     font-weight: 500;
+}
+
+/* CR-052 (QC #267) — "View all pages" inside the preview popup. The client asked for the control
+   "under the Preview popup"; the first build put it only in the action row outside, so opening the
+   popup showed page 1 with no way forward. Shared by all four views that host #imageZoomModal. */
+.zoom-allpages {
+    text-align: center;
+    padding: 0 16px 24px;
+}
+
+.zoom-allpages-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--blue-primary, #00AEEF);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: filter 0.2s ease;
+}
+
+.zoom-allpages-link:hover,
+.zoom-allpages-link:focus {
+    color: #fff;
+    text-decoration: none;
+    filter: brightness(1.1);
+}
+
+.zoom-allpages-link:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+}
+
+/* CR-053 (QC #267) --- the pager itself. Built at runtime by certificate-preview-pager.js and
+   inserted directly ABOVE .zoom-allpages, so the popup reads: page, then pager, then the way out
+   to the full document. Hidden entirely for a single-page or unreadable PDF - see the JS. */
+.zoom-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 16px 8px;
+}
+
+.zoom-pager[hidden] {
+    display: none;
+}
+
+.zoom-pager-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* 44px is the touch-target minimum; these are the controls most likely to be used on a
+       tablet, which is where the client reads certificates. */
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--blue-primary, #00AEEF);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+}
+
+.zoom-pager-btn:hover:not(:disabled) {
+    filter: brightness(1.1);
+}
+
+.zoom-pager-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.zoom-pager-btn:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+}
+
+.zoom-pager-label {
+    color: #fff;
+    font-size: 16px;  /* project minimum - do not reduce to fit a narrow viewport */
+    font-weight: 600;
+    min-width: 120px;
+    text-align: center;
+}
+
+/* The swap between pages is a new network request; without this a slow page turn looks like
+   nothing happened at all. */
+#zoomedImage.zoom-page-loading {
+    opacity: 0.45;
+    transition: opacity 0.15s ease;
+}
+
+@media (max-width: 480px) {
+    .zoom-pager {
+        gap: 10px;
+    }
+
+    .zoom-pager-label {
+        min-width: 96px;
+    }
 }
 
 .zoom-close {

@@ -26,7 +26,12 @@
         debounceTimer: null,
         currentView: 'tile', // Track current view: 'tile' or 'list'
         initialized: false,
-        loadSeq: 0 // Monotonic token: only the latest fresh (sort/filter/search) load renders.
+        loadSeq: 0, // Monotonic token: only the latest fresh (sort/filter/search) load renders.
+        // DEF-430: retry budget for a failed load. Same names/values as the public view
+        // (certificate-tile-view.js) so the three tile views behave identically on failure.
+        retryCount: 0,
+        maxRetries: 3,
+        retryDelay: 1000 // first backoff step; doubles per attempt
     };
 
     // Set on pagehide so fetches aborted by navigation don't log noise.
@@ -280,7 +285,13 @@
 
         try {
             const params = buildApiParams();
-            const response = await fetch(`/api/CertificateTileExternal?${params}`);
+            // DEF-430: a fetch with no timeout waits as long as the browser will, and the branch
+            // below only handled `response.ok` — so a slow or failed request left "Loading…" on
+            // screen indefinitely over the PREVIOUS filter's tiles, which reads as "the filter
+            // didn't work" rather than "the request failed".
+            const response = await fetch(`/api/CertificateTileExternal?${params}`, {
+                signal: AbortSignal.timeout(30000)
+            });
 
             // A newer fresh load started while this one was in flight — discard this stale
             // result so it can't overwrite the newer sort/filter the user actually wants.
@@ -310,14 +321,50 @@
                 state.hasMore = data.hasMore;
                 state._lastNewCount = newCertCount;
 
+                state.retryCount = 0; // a good response clears the budget for the next failure
+
                 renderCertificates(append);
                 updateResultsCount();
+            } else if (response.status >= 500) {
+                // Server-side failure — retryable, so hand it to the catch below.
+                throw new Error(`Server error: ${response.status}`);
+            } else {
+                // 4xx: retrying will not help (auth expired, bad request). Say so and stop.
+                console.error('API response not OK:', response.status, response.statusText);
+                showLoadFailed(append, `Failed to load certificates (${response.status}).`);
             }
         } catch (error) {
             if (pageUnloading) return; // fetch was aborted by navigation, not a real failure
             if (seq !== state.loadSeq) return; // superseded — let the newer load own the UI/errors
             console.error('Error loading certificates:', error);
-            showError('Failed to load certificates. Please try again.');
+
+            // Retry network errors, timeouts and 5xx with exponential backoff, mirroring the
+            // public view. AbortError here is our own 30s timeout, not a navigation abort —
+            // pageUnloading is checked above.
+            const retryable = error.name === 'TypeError' || error.name === 'AbortError' ||
+                error.name === 'TimeoutError' || error.message.includes('Server error');
+            if (retryable && state.retryCount < state.maxRetries) {
+                state.retryCount++;
+                const delay = state.retryDelay * Math.pow(2, state.retryCount - 1);
+                // Progress goes in the results line, NOT through showError: AdminCore routes every
+                // notification to a centered modal (admin-core.js:120), so one per retry would
+                // stack three blocking dialogs over the page — and over the Retry button we are
+                // about to offer. The failure is reported once, inline, by showLoadFailed().
+                const resultsCount = document.getElementById('resultsCount');
+                if (resultsCount) {
+                    resultsCount.textContent = `Retrying… (${state.retryCount}/${state.maxRetries})`;
+                }
+                setTimeout(() => {
+                    // Only retry if nothing newer has taken over in the meantime.
+                    if (seq !== state.loadSeq) return;
+                    state.isLoading = false;
+                    loadCertificates(append);
+                }, delay);
+                return; // leave the spinner up; the retry owns the loading state
+            }
+
+            state.retryCount = 0;
+            showLoadFailed(append, 'Failed to load certificates. Please try again.');
         } finally {
             // Only the latest load clears the flag/spinner — a superseded load must leave them
             // in place so the still-running newer load keeps ownership of the loading state.
@@ -2176,6 +2223,67 @@
         showToast(message, 'error');
     }
 
+    // DEF-430: end a failed load in a state the user can read and act on.
+    //
+    // A fresh load has already blanked the results count to "Loading…" and the grid still holds the
+    // PREVIOUS filter's tiles. Leaving both in place is what made a failure indistinguishable from
+    // "the filter didn't work" — stale rows under a spinner that never resolves. So on a fresh load
+    // we clear the stale rows and put the retry panel where the results were; on an infinite-scroll
+    // append we keep what is already loaded and only toast, because the rows on screen are still
+    // the correct answer for the current filter.
+    function showLoadFailed(append, message) {
+        if (append) {
+            // Nothing is replaced on an append, so this is the one case that needs a notification.
+            showError(message);
+            hideLoadingIndicator();
+            return;
+        }
+
+        state.certificates = [];
+        state._lastNewCount = 0;
+
+        const resultsCount = document.getElementById('resultsCount');
+        if (resultsCount) resultsCount.textContent = 'Could not load certificates';
+
+        const tableResultsCount = document.getElementById('tableResultsCount');
+        if (tableResultsCount) tableResultsCount.textContent = 'Could not load certificates';
+
+        removeSkeleton();
+
+        const panel = document.createElement('div');
+        panel.className = 'tile-load-error';
+        panel.setAttribute('role', 'alert');
+        panel.innerHTML = `
+            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+            <p>${escapeHtml(message)}</p>
+            <button type="button" class="tile-load-error-retry">Retry</button>
+        `;
+        // Wired by listener, not inline onclick: this file and the internal view both export the
+        // global name `certificateTileViewInternal`, so an inline handler would be ambiguous.
+        panel.querySelector('.tile-load-error-retry')
+            .addEventListener('click', () => retryLoad(false));
+
+        const target = state.currentView === 'list'
+            ? document.getElementById('gridBody')
+            : document.getElementById('certificatesGrid');
+        if (target) {
+            target.innerHTML = '';
+            target.appendChild(panel);
+        }
+    }
+
+    function retryLoad(append) {
+        state.retryCount = 0;
+        const panel = document.querySelector('.tile-load-error');
+        if (panel) panel.remove();
+        if (!append) {
+            state.currentPage = 1;
+            state.certificates = [];
+        }
+        state.isLoading = false;
+        loadCertificates(append);
+    }
+
     // Copy product IDs to clipboard as newline-separated values (excel-friendly column)
     function copyIdsToClipboard(idsString, idType) {
         if (!idsString) return;
@@ -2210,7 +2318,8 @@
         editCertificate: editCertificate,
         downloadCertificate: downloadCertificate,
         clearAllFilters: clearAllFilters,
-        populateTableView: populateTableView
+        populateTableView: populateTableView,
+        retryLoad: retryLoad // DEF-430
     };
 
     // Initialize the app when DOM is ready (single initialization only)

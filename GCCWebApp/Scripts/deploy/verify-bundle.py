@@ -18,6 +18,8 @@ Usage:  python Scripts/deploy/verify-bundle.py <path-to-zip> [--no-migrations=<H
         script is otherwise FATAL, and should stay that way.
 Exit:   0 = clean, 1 = a hygiene failure or a missing expected marker.
 """
+import io
+import os
 import re
 import sys
 import zipfile
@@ -42,10 +44,70 @@ HYGIENE = [
     ("Scripts/ tree", lambda n: n.startswith("scripts/"), True),
     ("docs/ tree", lambda n: n.startswith("docs/"), True),
     ("docs2/ tree", lambda n: "docs2/" in n, True),
+    # Added 2026-09-17: the 20260917-1539 build shipped five *.template.json files. The pubxml
+    # had excluded only Production's. They are dev aids the server never reads, and their prose
+    # names an SMTP host, a server IP and a live DB host:port. FATAL because the whole point of
+    # the exclusion is that it cannot be re-earned by hand each release.
+    ("appsettings.*.template.json", lambda n: re.search(r"appsettings\..*template\.json$", n) is not None, True),
+    # Added 2026-09-17: wwwroot/css/certificate-create.css.bak was found shipping. Editor
+    # leftovers are untracked, so their presence also means the zip is not reproducible
+    # from a fresh clone.
+    ("editor/backup leftovers", lambda n: n.endswith((".bak", ".orig", "~")), True),
     (".pdb symbols", lambda n: n.endswith(".pdb"), False),
 ]
 
 REQUIRED = ["gccwebapp.dll", "web.config", "appsettings.json", "appsettings.production.json"]
+
+# --- publish-profile policy (DEF-429) ---------------------------------------
+# The pubxml decides what ships. Until 2026-09-17 it was gitignored, so these exclusions lived on
+# one machine and a fresh clone got none of them. Tracking the file makes the policy PRESENT; this
+# section makes it CHECKED. Each entry is here because its absence has cost, or nearly cost, data:
+#   wwwroot/uploads + App_Data/uploads -> publishing once WIPED the production PDF store
+#                                         (2026-04-23; a factor in the 2026-06-15 incident)
+#   appsettings.Development.json       -> carries the dev DB password
+#   appsettings.*.template.json        -> prose naming live host/port/mailbox details (2026-09-17)
+#   EnvironmentName=Production         -> without it the deployed app loads placeholder config
+#                                         and its DB + B2C wiring breaks
+#
+# Substring checks, deliberately not regex: the patterns contain Windows path separators, and an
+# escaping mistake in a gate is worse than no gate - it fails open and reads as a pass.
+PROFILE = os.path.join("Properties", "PublishProfiles", "PleskTestEnvironment.pubxml")
+_BS = chr(92)
+PROFILE_POLICY = [
+    ("wwwroot/uploads excluded",
+     'Content Remove="wwwroot' + _BS + 'uploads' + _BS + '**"'),
+    ("App_Data/uploads excluded",
+     'Content Remove="App_Data' + _BS + 'uploads' + _BS + '**"'),
+    ("dev config excluded", 'Content Remove="appsettings.Development.json"'),
+    ("template config excluded", 'Content Remove="appsettings.*.template.json"'),
+    ("EnvironmentName is Production", "<EnvironmentName>Production</EnvironmentName>"),
+]
+
+
+def check_profile(repo_root):
+    """Assert the publish profile exists and still carries every exclusion that protects live data.
+
+    A MISSING profile is itself a failure: that is the state a fresh clone was in before DEF-429,
+    and it is invisible from the bundle alone - a zip cannot show what its build was allowed to
+    include.
+    """
+    print("")
+    print("=== PUBLISH PROFILE POLICY (DEF-429) ===")
+    path = os.path.join(repo_root, PROFILE)
+    if not os.path.isfile(path):
+        print("  [FAIL] profile not found: %s" % path)
+        print("         A fresh clone with no pubxml can publish a bundle that ships the uploads")
+        print("         tree and clobbers the live PDF store. Restore it from git before building.")
+        return 1
+    text = io.open(path, encoding="utf-8", errors="replace").read()
+    failures = 0
+    for label, needle in PROFILE_POLICY:
+        ok = needle in text
+        print("  [%s] %s" % ("PASS" if ok else "FAIL", label))
+        if not ok:
+            failures += 1
+    return failures
+
 
 
 def main(path, no_migrations_highwater=None):
@@ -399,6 +461,11 @@ def main(path, no_migrations_highwater=None):
         print("         --no-migrations=<AlreadyAppliedHighWaterMigrationName> to declare that")
         print("         explicitly. Do NOT ignore this line.")
         failures += 1
+
+    # Checked from the TREE, not the zip: a bundle cannot show what its own build was allowed
+    # to include. This script lives at <repo>/Scripts/deploy/, so go up two levels.
+    failures += check_profile(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
     print("\nfailures: %d" % failures)
     return 1 if failures else 0

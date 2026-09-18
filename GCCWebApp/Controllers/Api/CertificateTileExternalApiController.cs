@@ -146,6 +146,26 @@ namespace GCCWebApp.Controllers.Api
                 }
                 // Admin/Analyst see all (no filtering needed - they have full access)
 
+                // CR-043: in-force certificates for this logged-in owner surface - Confidential
+                // included. This controller is Partner + External + Admin/Analyst only; it is never
+                // reachable anonymously ([Authorize(Policy = "ExternalAccess")], no [AllowAnonymous]),
+                // which is what makes BadgeableStatuses correct here and wrong on the public tiles.
+                //
+                // DEF-431: MOVED UP from below the user-supplied filters to sit with the role
+                // scoping above. These are AND'd predicates, so the rows returned are identical
+                // wherever it sits — but it belongs to "what this caller may see" rather than "what
+                // this caller asked for", and `scoped` (captured immediately below) has to carry the
+                // whole visibility envelope for the hydrate step to be safe.
+                query = query.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday));
+
+                // DEF-431: `scoped` = base + role scoping + visibility, and NOTHING the caller typed.
+                // The hydrate step at the end selects from this by primary key instead of from the
+                // fully-filtered `query` (see the comment there for why). Capturing it here rather
+                // than rebuilding the predicates keeps ONE copy of the isolation rules — a second
+                // copy is exactly how a partner scoping filter drifts narrower on one path than the
+                // other.
+                var scoped = query;
+
                 // Apply additional partner filter if specified (for Partner role users to narrow results)
                 if (!string.IsNullOrWhiteSpace(partner) && userRole == "Partner")
                 {
@@ -256,11 +276,8 @@ namespace GCCWebApp.Controllers.Api
                     query = query.Where(c => c.Tags.Any(t => tagsList.Contains(t.Name) && t.TagType == "external"));
                 }
 
-                // CR-043: in-force certificates for this logged-in owner surface - Confidential
-                // included. This controller is Partner + External + Admin/Analyst only; it is never
-                // reachable anonymously ([Authorize(Policy = "ExternalAccess")], no [AllowAnonymous]),
-                // which is what makes BadgeableStatuses correct here and wrong on the public tiles.
-                query = query.Where(c => CertificateStatusHelper.BadgeableStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday));
+                // (The CR-043 BadgeableStatuses / in-force filter that used to sit here moved up to
+                // the role-scoping block — DEF-431. It is a visibility rule, not a user filter.)
 
                 // Apply sorting
                 var sortedQuery = ApplySorting(query, sortBy);
@@ -276,8 +293,20 @@ namespace GCCWebApp.Controllers.Api
                 var pagedIds = await SearchRanking.PageIdsAsync(
                     query, q => ApplySorting(q, sortBy), rankQuery, (page - 1) * pageSize, pageSize);
 
-                // Apply pagination - first fetch raw data
-                var rawCertificates = await query
+                // Apply pagination - first fetch raw data.
+                //
+                // DEF-431: hydrate from `scoped` (base + role scoping + visibility), NOT from
+                // `query`. The ids were just selected FROM `query`, so re-applying the caller's own
+                // filters here cannot remove a row. The isolation predicates stay on this path
+                // deliberately — they are cheap next to a primary-key seek, and they mean a future
+                // change to how ids are paged can never turn this into a leak.
+                //
+                // Measured, so it is not mistaken for a speed-up: the equivalent change on the
+                // internal controller left logical reads unchanged (33,321 both ways, same plan).
+                // The value here is that the hydrate no longer depends on spent predicates and
+                // that what remains on it is exactly the isolation envelope. Verified output-
+                // identical across 5 external cases as a company-scoped user.
+                var rawCertificates = await scoped
                     .Where(c => pagedIds.Contains(c.Id))
                     .Select(c => new
                     {

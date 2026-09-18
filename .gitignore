@@ -185,6 +185,18 @@ publish/
 # Note: Comment the next line if you want to checkin your web deploy settings,
 # but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
+# DEF-429, 2026-09-17: our two publish profiles ARE checked in, deliberately. The stock warning
+# above is about profiles that embed a connection string or a web-deploy <Password>. Ours embed
+# neither - both are FileSystem publishes with no credential, verified by grep before tracking.
+# What they DO carry is deploy safety policy that was previously on one machine only:
+#   <Content Remove="wwwroot\uploads\**" /> and App_Data\uploads\** - written after a publish
+#   wiped the production PDF store (2026-04-23, and a factor in 2026-06-15);
+#   the dev-config and appsettings.*.template.json exclusions;
+#   EnvironmentName=Production, without which the deployed app loads placeholder config.
+# A fresh clone used to get none of that. If a profile ever gains a real credential, pull it back
+# out of git rather than re-broadening this pattern.
+!GCCWebApp/Properties/PublishProfiles/*.pubxml
+*.pubxml.user
 *.publishproj
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to

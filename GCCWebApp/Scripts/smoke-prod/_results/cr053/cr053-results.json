@@ -12,12 +12,12 @@
   {
     "id": "A2 page count endpoint (value AND latency)",
     "pass": true,
-    "detail": "pages=2, 1364ms, 153ms, 81ms (worst 1364ms)"
+    "detail": "pages=2, 375ms, 39ms, 56ms (worst 375ms)"
   },
   {
     "id": "A3 pager visible on a multi-page certificate",
     "pass": true,
-    "detail": "pager=1 after 51ms, \"View all pages\" link on same popup=1 (positive control), label=\"Page 1 of 2\""
+    "detail": "pager=1 after 38ms, \"View all pages\" link on same popup=1 (positive control), label=\"Page 1 of 2\""
   },
   {
     "id": "A4 prev disabled on page 1",
@@ -25,9 +25,24 @@
     "detail": "disabled=true"
   },
   {
+    "id": "A4b page 1 is upgraded to a full-resolution render (DEF-438)",
+    "pass": true,
+    "detail": "naturalWidth=840px after 1338ms (stored thumbnail is 425px; a render is ~840px)"
+  },
+  {
     "id": "A5 next turns the page (compared by BYTES, not src)",
     "pass": true,
-    "detail": "page1=f74c3b21eeae462f page2=d7fa58dccd70294b label=\"Page 2 of 2\""
+    "detail": "page1=ebdba9471aba83c2 page2=d7fa58dccd70294b label=\"Page 2 of 2\""
+  },
+  {
+    "id": "A5b page 2 renders at the SAME SIZE as page 1 (DEF-436)",
+    "pass": true,
+    "detail": "page1=900x1264 page2=900x1264"
+  },
+  {
+    "id": "A5c the page is large enough to read (DEF-438)",
+    "pass": true,
+    "detail": "displayed height is 1.2x a physical Letter page (floor 0.8x)"
   },
   {
     "id": "A6 popup stays open through a page turn",
@@ -35,9 +50,14 @@
     "detail": "modal displayed=true"
   },
   {
-    "id": "A7 prev returns to the same page 1 image",
+    "id": "A7 prev returns to the same page 1 image, same size",
     "pass": true,
-    "detail": "page1=f74c3b21eeae462f back=f74c3b21eeae462f"
+    "detail": "page1=ebdba9471aba83c2@900x1264 back=ebdba9471aba83c2@900x1264"
+  },
+  {
+    "id": "A7b pager and \"View all pages\" stay on screen when scrolled to the bottom (DEF-438)",
+    "pass": true,
+    "detail": "bar.bottom=768 link=698-744 pager=630-698 viewportH=768"
   },
   {
     "id": "A8 out-of-range page rejected",
@@ -47,7 +67,7 @@
   {
     "id": "A9 render timing measured",
     "pass": true,
-    "detail": "229ms, 342ms, 382ms (worst 382ms, budget 5000ms)"
+    "detail": "1257ms, 652ms, 454ms (worst 1257ms, budget 5000ms)"
   },
   {
     "id": "P1 anonymous caller can count pages of a PUBLIC certificate",

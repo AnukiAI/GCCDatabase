@@ -16921,3 +16921,404 @@ one, not merely different content.*
 `verify-def430-load-failure.js` 13/13, Gate 8 CRUD 39P/0F, Gate 9 static 0F (selftest 9 ok), Gate 4B
 cross-surface PASS with 0 mismatches.
 
+
+---
+
+### DEF-437 — CSV edit-import strips ALL tags (internal + external) off every certificate it touches, even when the file carries no tag column
+
+- **Date raised:** 2026-09-18 as a DEF. **But first identified 2026-06-25** — see *Root cause* below.
+- **Severity:** **High.** Data loss on business records, on the documented happy path. It is the
+  DEF-355 bug still live in the one field DEF-355 did not cover, and `UndoImportBatchAsync` cannot
+  reverse it — its own docstring (`:1056-1059`) warns collections are not restored by undo.
+- **Status:** **FIXED AND VERIFIED 2026-09-20 on localhost — not yet deployed / not in any bundle.**
+  See *Verification* at the end of this entry.
+- **Reporter:** Re-found 2026-09-18 while answering Shawn's question about the import help text
+  (*"Does this mean they should delete out the columns with no changes?"*) — the answer is yes, and
+  checking the code to confirm it surfaced this as the exception to the rule the help text states.
+  **This is a re-discovery, not a discovery.**
+- **QC log ID:** none — internal.
+
+**The claim in the UI help text that this breaks.** The Import page tells the analyst:
+
+> To edit an existing certificate: enter its Certificate #. Only the columns present in your file
+> are changed — any column you leave out is left untouched.
+
+True for every field except tags.
+
+**Root cause — TWO causes, and neither is a missed requirement.**
+
+**(1) Process, and this is the primary one: we found it on 2026-06-25 and never opened a DEF.**
+While tracing the *other* DEF-300 (the import-overwrite modal dead-end, `:7647`), both halves of
+this defect were identified, described accurately, and written down **twice** on the same day:
+
+> `defect-register.md:7660-7661` — DEF-300 "Follow-ups observed while tracing":
+> 1. *Identical re-imports are flagged "Modified" when a cert has internal tags…*
+> 2. ***An applied overwrite drops internal tags.** `UpdateCertificateAsync` does `Tags.Clear()`
+>    then re-adds external tags only, so overwriting silently removes internal tags.*
+>    **"Both (1) and (2) warrant their own DEF once confirmed."**
+
+> `ways-to-improve.md`, 2026-06-25 item 3 — *Round-trip imports silently mutate data via tag
+> handling… Import change-detection and apply must treat the internal+external tag sets
+> symmetrically — **track and fix separately.***
+
+Correct method, correct mechanism, correct fix direction, and an explicit instruction to raise it.
+**No DEF was ever opened.** It sat inside another defect's entry for ~3 months, invisible to every
+process that works off the register: it was not in Gate 0B, not in any bundle reconciliation, not in
+any triage list. *A follow-up noted inside another defect's entry has no mechanism to become a DEF.
+That is the defect in the process, and it is the reason this one survived.*
+
+**(2) Design: DEF-355's gate is an enumerated allow-list, so it fails open.**
+`BuildProvidedColumns` (`:177-201`) protects exactly the 11 fields someone thought to list. The
+default for anything *not* listed is still "overwrite" — so a field that is overlooked, or added
+later, is unprotected until a human remembers to add it. DEF-355 (2026-09) was scoped to the fields
+proven lost on cert 23-0753; tags were already known-broken three months earlier but were not in that
+evidence set, so they were not swept up. **A safe design would invert this**: every writable field
+declares its provenance, and anything undeclared is refused rather than silently overwritten.
+
+**Was a requirement missed?** No. The rule is clear, agreed, stated in the UI help text, and
+implemented — just not universally. This is not a requirements-gathering failure; it is a
+tracking failure on top of a fail-open implementation.
+
+**Mechanism — the DEF-355 gate was never extended to tags.**
+
+`BuildProvidedColumns` (`Services/Import/CertificateImportService.cs:177-201`) registers 11 logical
+fields. **`TagsColumns` and `InternalTagsColumns` are not among them**, though both mapping arrays
+exist at `:128` and `:130`. The apply is therefore unconditional (`:2286-2295`):
+
+```csharp
+// Update tags - clear and re-add
+certificate.Tags.Clear();
+if (tagIds.Any()) { ... }
+```
+
+Contrast the sibling collection eleven lines below it, `CertificationTypeSubcategories` (`:2301`),
+which **is** gated — and whose DEF-421 comment describes this exact defect without realising it was
+describing live code:
+
+> *Unconditional clearing here would be the DEF-355 data-loss bug all over again: every re-import
+> from a file without the column would strip the subcategories off every certificate it touched.*
+
+**Internal tags are collateral.** External and internal tag ids are merged into one list before the
+call (`:924-940`, *"external + internal both land in the same Tags M2M"*), so `Tags.Clear()` wipes
+both. Internal tags are invisible to External users by design, so their loss is the least likely to
+be noticed and the least likely to be reported back.
+
+**It is self-igniting — the detection forces the destructive path.** `DetectChanges:1987-1999`
+compares the certificate's **full** tag set (internal + external) against the CSV's **external-only**
+column, ungated:
+
+```csharp
+var existingTagNames = existing.Tags?.Select(t => t.Name)...;   // internal + external
+var newTagNames = newData.TagNames...;                          // external only
+if (!existingTagNames.SequenceEqual(newTagNames, ...)) { ...Modified... }
+```
+
+So a tagged certificate re-imported from a file with no tag column is **guaranteed** to be marked
+Modified — which is what calls `UpdateCertificateAsync`, which is what clears the tags. The row
+cannot be skipped as unchanged. This is the mechanism behind the symptom recorded as DEF-300
+follow-up 1 (*clean re-imports of tagged certs always show "Modified"*) — **that annoyance and this
+data loss are the same two lines of code**, which is very likely why the pair was filed together as
+low-priority noise rather than split, with the data-loss half raised on its own merits.
+
+**What the analyst sees.** The preview *does* list a `Tags` change with old → new, so this is not
+fully silent — but it reads as the familiar DEF-300 noise, and because `NewValue` is external-only
+the row understates the loss: internal tags appear in `OldValue`, vanish from `NewValue`, and are
+labelled only "Tags".
+
+**Repro.** Take any certificate with at least one tag. Export it, delete the `External Tag` and
+`Internal Tag` columns from the CSV, change one unrelated field (e.g. Location), re-import. The
+certificate's tags are gone; undo does not bring them back.
+
+**Fix sketch — not a one-liner.** A single `Provided()` flag is wrong here, because the two columns
+are independent: a file carrying `External Tag` but not `Internal Tag` must rewrite the external set
+and leave the internal set alone.
+
+1. Register both keys in `BuildProvidedColumns` (`:177`) — separate keys, not one.
+2. Replace the blanket `Tags.Clear()` (`:2287`) with a **partitioned** clear: remove only the
+   external tags when the external column was provided, only the internal tags when the internal
+   column was provided. Requires `Tags` to be loaded with `TagType` available at that point.
+3. Stop merging the two id lists at `:924-940` before the call, or pass the partition alongside.
+4. Fix `DetectChanges:1987` to compare external-vs-external and internal-vs-internal, each gated by
+   its own column — which closes DEF-300 as a side effect.
+5. `CreateCertificateAsync:2079` is unaffected (nothing to preserve on a new record).
+
+**Estimate:** ~2-3 hr including a regression test that asserts a tagged cert survives a
+no-tag-column edit-import with both tag sets intact.
+
+**Related.** DEF-355 (the parent rule), DEF-421 (the sibling collection that got it right),
+DEF-300 import entry `:7647` (**where this was first written down, 2026-06-25, and lost**),
+CR-023 (import undo, which cannot recover this).
+
+**Process action this defect owes, independent of the code fix.** The register has no route from
+"follow-up observed while tracing another defect" to "raised". Two candidates, both cheap:
+sweep every `Follow-ups observed` / `warrant their own DEF` / `track and fix separately` block in
+`defect-register.md` and `ways-to-improve.md` now and raise what is still live (**this should be
+done before the next bundle — there may be more of these**), and stop recording follow-ups anywhere
+except as their own register rows.
+
+#### Fix applied and verified 2026-09-20
+
+**Four changes, all in `Services/Import/CertificateImportService.cs`:**
+
+1. `BuildProvidedColumns` registers **two** tag keys — `Tags` (external) and `InternalTags`. Two,
+   not one, because the columns are independent.
+2. The merged `allTagIds` list at the apply loop is split into `externalTagIds` / `internalTagIds`.
+   `CreateCertificateAsync` still receives the concatenation (nothing to preserve on a new record);
+   `UpdateCertificateAsync` now takes both lists separately.
+3. The unconditional `certificate.Tags.Clear()` becomes a **TagType-partitioned** remove-and-re-add:
+   each side is touched only if its own column appeared in the header, with a guard against
+   re-adding a tag the removal deliberately kept (the `:1750` cross-type name case).
+4. `DetectChanges` compares external-vs-external and internal-vs-internal, each gated by its own
+   column. **This closes the DEF-300 follow-up 1 symptom as a side effect** — it was the same code.
+
+**Verification — `Scripts/smoke-prod/verify-def437-import-tag-preservation.js`, 23/23 PASS.**
+Run against the real import API on localhost with a synthetic fixture cert (`98-9437`), reading
+results back **from SQL rather than through the application**, so the assertion does not depend on
+the projection layer the fix touches.
+
+The same script was run against the **pre-fix binary first** — it is a genuine repro, not a
+fix-shaped test written after the fact:
+
+| Phase | Pre-fix | Post-fix |
+|---|---|---|
+| 2 — edit with **no tag column at all** | external `[]`, internal `[]` — **both wiped** | both preserved |
+| 3 — **External Tag** column only | internal `[]` — wiped by a column not about it | internal preserved, external replaced as instructed |
+| 4 — **Internal Tag** column only, blank | external `[]` — same in reverse | external preserved, internal cleared as instructed |
+| 2 — preview change list | `{"fieldName":"Tags","oldValue":"ZZ_CI_EXT_437A, ZZ_CI_INT_437A","newValue":""}` | no tag entry |
+
+That pre-fix preview row is the whole defect in one line: both tag types in `oldValue`, empty
+`newValue`, labelled only "Tags" — the detector announcing the loss it was about to cause, with the
+internal tag folded invisibly into an external-tag label.
+
+**Three false-negative traps hit while building this test, all fixed in it — worth more than the
+defect.**
+1. The first cut scanned `preview.rows` for a tag change. The API returns changes at
+   `modifiedRows[].changes` (`CertificateImportController.cs:315-326`), so the scan found nothing
+   and **passed against the unfixed binary**. It now asserts the modified row is present *before*
+   scanning it.
+2. Phases inherited each other's damage — phase 2 wiped the tags, so phases 3 and 4 asserted against
+   an already-empty certificate. Each phase now re-seeds.
+3. **The precondition failed silently and looked exactly like the defect.** On one run PHASE 1 was
+   aborted server-side (*"the safety backup … could not be created"*, see the note below), the
+   fixture was never seeded, and PHASE 2 then reported the tags had not survived — *when there had
+   been no tags to lose*. There is now a hard abort if seeding does not produce both tag types.
+   **A test that asserts "X survived" is worthless unless it first proves X was there.**
+
+**Adjacent issue found, NOT part of this fix and not yet raised.** An import that overwrites existing
+certificates takes a pre-import safety snapshot via `ExportCertificatesByIdsAsync`, and that export
+is pathologically slow on this box — a **single-certificate** export exceeded 60s repeatedly, and
+twice the snapshot timed out and **aborted the whole import** with *"Import aborted: the safety
+backup of the certificates that would be overwritten could not be created"*. It fails safe (nothing
+is written), but on the client's data it presents as an import that mysteriously refuses to run.
+Needs its own DEF; related to the DEF-399/DEF-431 export/search performance work.
+
+
+---
+
+### DEF-438 — Preview popup is consistent but unreadable: every page capped at 620px (0.59x a physical page), and the pager falls below the fold once it is not
+
+- **Date raised:** 2026-09-18
+- **Severity:** **Medium-High.** Nothing is wrong with the data and nothing fails, but the popup is
+  the primary way a certificate is read and the text in it cannot be read. The controls falling off
+  screen is a second, separate fault in the same feature.
+- **Status:** **FIXED AND VERIFIED 2026-09-18 — not yet deployed.** Option 2 chosen by Shawn
+  (render page 0 on demand). Rides the held final build.
+- **Reporter:** **Shawn, 2026-09-18**, using the feature: *"the experience with the page toggling
+  preview is off. The text is not legible. And when going to page 2 the image gets bigger and
+  pushes content off screen... On mobile it does not jump around but in desktop and tablet sizes
+  it does."*
+- **QC log ID:** none — internal.
+
+**FIRST, THE PART OF THE REPORT THAT WAS NOT A LIVE DEFECT.** "Page 2 gets bigger" is DEF-436, and
+DEF-436's fix was already deployed when it was reported — `min(85vh, 620px)` was live in
+`/css/main.css` at `last-modified: Fri, 18 Sep 2026 17:34:24 GMT`, verified by probing the test
+environment through the gate, with the pager JS matching the working tree byte-for-byte. The client
+was seeing a **cached** stylesheet. That is **DEF-439**, raised below, and it is the more important
+of the two: without it no CSS fix reaches anyone.
+
+Shawn's own aside is what proved it. *"On mobile it does not jump around"* is the signature of a
+**vh-based** cap — the old `max-height: 85vh`, under which a short viewport clamps both pages
+equally so no jump is possible. The shipped rule is px-based and cannot produce that pattern. The
+symptom identified which build she was on.
+
+**What WAS live and wrong.** Measured on localhost, cert `21-0117`, page 1 vs page 2:
+
+| viewport | displayed (both pages) | jump | scale vs a physical Letter page | controls on screen? |
+|---|---|---|---|---|
+| 1440x900 | 445x620 | 0.0% | 0.59 | yes |
+| 1920x1080 | 445x620 | 0.0% | 0.59 | yes |
+| **1366x768** | 445x620 | 0.0% | 0.59 | **NO — last control at 878px vs 768px** |
+| **1024x768** | 445x620 | 0.0% | 0.59 | **NO — 110px below the fold** |
+| 768x1024 | 445x620 | 0.0% | 0.59 | yes |
+| 390x844 | 351x487 | 0.2% | 0.46 | yes |
+
+Two distinct faults:
+1. **0.59x.** A certificate displayed at 59% of physical size; body text lands near 6pt equivalent.
+   On a 1440x900 screen a 445x620 box sits in a 1440x900 black field — most of the screen unused.
+2. **The controls fall below the fold on the two commonest laptop heights.** Nobody reported this;
+   it was found only because the measurement asked "is the last control inside the viewport?",
+   which no prior gate had asked.
+
+**Root cause, and why DEF-436's fix led straight here.** Page 0 served the stored **600px**
+thumbnail; pages 1+ render at **1200px** (`PageRenderLongSide`). DEF-436 removed the resulting size
+jump by capping *every* page at the thumbnail's natural height. That is consistent and it is
+unreadable — it fixed the jump by making everything as small as the smallest thing. The real
+constraint was never the box, it was that **page 0 was a different resolution from every other
+page**, and until that was addressed any larger box would either blur page 1 or re-create the jump.
+
+**Fix applied — option 2 of the three priced.**
+
+1. **`ViewCertificateImage(int id, int? page = null)`** (`CertificateController.cs`). An explicitly
+   requested page — **0 included** — is now rendered on demand. `page` ABSENT still serves the
+   stored thumbnail, which is what the four detail views request for their inline preview, so
+   **detail pages pay no render**; a NEGATIVE page also still serves the thumbnail, preserving the
+   CR-053 A8 bounds contract (`page=-1` => 200).
+2. **`certificate-preview-pager.js`** — `upgradePageZero()` swaps the inline thumbnail for a
+   full-resolution render when the popup opens, through a probe image so a 404 (encrypted DEF-400,
+   missing file) silently leaves the thumbnail on screen. Deliberately **not** gated on the document
+   being multi-page: 4,236 of 5,575 certificates are single-page, get no pager, and the popup is
+   their only view of the document.
+3. **`.zoom-modal-content`** (`main.css`) — sized by WIDTH (`min(92vw, 900px)`) instead of a height
+   cap, so the document may run taller than the viewport and scroll.
+4. **`.zoom-controls`** — the pager and the CR-052 "View all pages" button are wrapped at runtime
+   and `position: sticky; bottom: 0`, so they stay reachable however far you scroll. Without this,
+   fix 3 would have made fault 2 permanent.
+
+**Measured after the fix, same six viewports:**
+
+| viewport | displayed (both pages) | jump | scale | controls on screen? |
+|---|---|---|---|---|
+| 1440x900 | 900x1264 | 0.2% | **1.20** | yes |
+| 1920x1080 | 900x1264 | 0.0% | **1.20** | yes |
+| 1366x768 | 900x1264 | 0.0% | **1.20** | **yes** |
+| 1024x768 | 900x1264 | 0.0% | **1.20** | **yes** |
+| 768x1024 | 707x990 | 0.0% | 0.94 | yes |
+| 390x844 | 359x499 | 0.0% | 0.47 | yes |
+
+Mobile is unchanged at 0.47 because 92vw on a 390px screen is 359px — inherent to the device, and
+the viewport Shawn reported as already behaving.
+
+**COST, STATED PLAINLY — this makes DEF-433 worse, not better.** Every preview open now pays one
+PDF render where it previously paid none. Measured on localhost: stored thumbnail **12-13ms**,
+page-0 render **138-153ms** — roughly **+130ms and ~10x the work per popup open**, and because
+these responses are `private, no-cache, must-revalidate` with no validator, nothing is reused
+between opens. Time from popup-open to the page sharpening: **162ms** warm, **1,338ms** on a
+cold-started server. DEF-433's throttling work is still required before public cutover and this
+adds to its exposure. Option 3 (regenerate the stored thumbnails at 1200px, ~2-3 hr plus a batch
+job) would have avoided the runtime cost entirely and was the recommendation; option 2 was chosen
+for cost and no-batch-job reasons, knowingly.
+
+**Test gaps closed — this is the part worth keeping.** `verify-cr053-pager.js` went from 14 to 18
+assertions:
+- **A5b** — page 2 must render at the **same displayed size** as page 1. This is DEF-436's stated
+  lesson finally written down as an assertion; the old bytes-only check was satisfied by an image
+  of any size.
+- **A5c** — the page must be **at least 0.8x a physical Letter page**. DEF-436 satisfied "same
+  size" by capping at 0.59x, so consistency alone was demonstrably not enough.
+- **A7b** — the pager and "View all pages" must be **on screen after scrolling the popup to the
+  bottom** at 1024x768. A control that only survives at `scrollTop 0` is lucky, not pinned.
+- **A4b** — page 1 must actually reach full resolution, recorded with the wait rather than a blind
+  sleep, so "the upgrade never landed" cannot pass.
+- **A7** was rewritten: it asserted "prev restores the ORIGINAL stored thumbnail", whose premise
+  this defect deletes. It now asserts same image AND same size.
+
+**Re-verified:** `verify-cr053-pager.js` **18/18**, `_security/verify-cr053-rbac.js` **10/10**
+(including `ext.page.negative` and `ext.page.oob`, confirming the nullable parameter opened
+nothing), clean rebuild 0 errors.
+
+**Related.** DEF-436 (the fix this supersedes), DEF-439 (why the client could not see DEF-436),
+DEF-433 (made worse by this), DEF-400 (the one PDF that cannot render at all), CR-052, CR-053.
+
+---
+
+### DEF-439 — No project stylesheet is cache-busted, so a deployed CSS fix is invisible to returning users for up to 7 days
+
+- **Date raised:** 2026-09-18
+- **Severity:** **High, and it is a process defect as much as a code one.** It does not break a
+  page; it breaks the ability to *ship a CSS fix at all*, silently, and it makes deploy verification
+  lie — the asset on the server is correct while every returning user sees the old one.
+- **Status:** **FIXED AND VERIFIED 2026-09-18 — not yet deployed.** Rides the held final build.
+- **Reporter:** Found 2026-09-18 while investigating why Shawn reported DEF-436 behaviour that was
+  already deployed. **Nobody reported this defect; it was the explanation for another one.**
+- **QC log ID:** none — internal.
+
+**The evidence.** In `_Layout.cshtml`, **every `<script>` carried `asp-append-version="true"` and
+not one project `<link rel="stylesheet">` did.** Confirmed against the HTML actually served by
+gccwebapp.com: `main.css`, `admin-tables.css`, `admin/admin-core.css`, `admin/admin-modals.css`,
+`unified-components.css` and `accessibility-enhancements-low-priority.css` all came back
+**unversioned**, while every JS file and `certificatetileview.css` (versioned in its own view)
+came back `?v=...`.
+
+Static files are served `Cache-Control: public,max-age=604800` — **7 days, no revalidation**
+(`Program.cs`). The `ETag` set alongside it is `DateTime.UtcNow.Ticks`, **different on every
+response**, so it can never validate anything either; it is decorative.
+
+**The consequence, which actually happened.** The DEF-436 popup fix went live 2026-09-18 17:34 UTC.
+The pager JS reached the client immediately (versioned). `main.css` did not (cached). She was
+running **new JS against a week-old stylesheet** — the worst of the two states, and the reason a
+fixed defect was reported as still broken. The comment in `Program.cs` beside the cache header
+reads *"asp-append-version will handle cache busting when files change"*. For CSS it never did.
+
+**Fix applied.** `asp-append-version="true"` on all six stylesheet links in `_Layout.cshtml`, with a
+comment saying why they must not be removed. Verified against the running app — all seven
+stylesheets now emit `?v=<hash>`.
+
+**What this costs if forgotten again:** any CSS-only fix in any future bundle. It is worth a line in
+the pre-deploy checklist: *a CSS-only change is not verifiable by probing the server; probe the
+emitted HTML for `?v=` too.*
+
+**Related.** DEF-436 and DEF-438 (the popup fixes this hid), and
+`feedback_verify_deployed_asset_not_symptom` — the deployed asset was right and the symptom was
+still real, which is the inverse of the usual trap and just as expensive.
+
+---
+
+### DEF-440 — An overwrite-import can abort outright because its mandatory safety backup times out: a SINGLE-certificate export exceeds 60s
+
+- **Date raised:** 2026-09-20
+- **Severity:** **High.** It denies a documented, client-facing operation — editing certificates by
+  CSV — and the failure is non-deterministic, so it will present as "the import sometimes doesn't
+  work". It **fails safe** (the guard aborts before anything is written), which is the one piece of
+  good news here and the reason this is not Critical.
+- **Status:** **RAISED — not fixed.** Not in any bundle.
+- **Reporter:** Found 2026-09-20 while building the DEF-437 verification harness on localhost.
+  Not client-reported.
+- **QC log ID:** none — internal.
+
+**Symptom.** Applying an import that overwrites existing certificates returns:
+
+> `Import aborted: the safety backup of the certificates that would be overwritten could not be
+> created (Snapshot of the certificates that would be overwritten could not be generated)`
+
+Observed **twice** in one afternoon on localhost against `GCCDatabase_Dev`, on a one-row import
+overwriting **one** certificate. Not reproducible on demand — the same import succeeded on other
+runs, which is what makes it dangerous to triage from a user report.
+
+**Mechanism.** `ApplyImportAsync:629-675` (CR-023 R5) takes a pre-import CSV snapshot of every
+certificate that would be overwritten, and **deliberately aborts the entire import if the snapshot
+fails** — correct design, since the snapshot is the only thing making an overwrite reversible. The
+snapshot calls `ExportCertificatesByIdsAsync(overwriteIds, includeInternalTags: true)`.
+
+**That export is the problem, and it is not specific to the backup path.** Measured on this box
+during DEF-437 work: `GET /Certificate/ExportCertificates?format=csv&ids=5796` — a **single
+certificate by id** — **exceeded a 60 second client timeout**, repeatedly. A single-row export
+should be milliseconds. So the cost is not proportional to the rows being exported, which points at
+per-call fixed work (lookup/reference loading, or the same plan-quality problem as DEF-431) rather
+than at the row count.
+
+**Blast radius is wider than the backup.** The same export backs the analyst's own "export selected"
+action, so this is also a slow/failing export in ordinary use; the backup path is merely where it
+turns into a hard abort. `?search=` on the internal tiles API showed the same >60s behaviour in the
+same session.
+
+**Not yet done — what this needs before a fix is designed.** Per
+`feedback_measure_perf_with_logical_reads` and `feedback_stale_stats_look_like_missing_index`:
+measure `ExportCertificatesByIdsAsync` for a single id in **logical reads**, not seconds (wall-clock
+on this box swung 2.83s → 142.99s for identical SQL under DEF-431), and compare the dev database's
+indexes **and statistics** against the test environment's before concluding anything is missing.
+**It is not yet known whether this reproduces on the test environment or is local-only** — that is
+the first question to answer, and it decides the severity.
+
+**Related.** DEF-431 and DEF-399 (export/search performance; likely the same root cause),
+CR-023 (the backup/undo design that turns a slow export into a blocked import),
+DEF-437 (found while verifying it).

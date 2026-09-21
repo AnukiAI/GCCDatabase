@@ -730,3 +730,152 @@ From the fresh-clone setup work. Three habits:
    The reported symptom was missing seed data; the cause was a committed connection string pointing
    at another machine. Check whether the file is tracked *before* concluding it was never committed -
    `git ls-files <path>` answers it in one call and stops the search going the wrong direction.
+
+## 2026-09-18 — A finding parked inside another defect's entry is a finding you have thrown away (DEF-437)
+**What happened:** Answering a question about the import help text surfaced that CSV edit-import
+clears all tags even when the file carries no tag column — real data loss, unrecoverable by import
+undo. Raised as DEF-437. It then turned out **we had already found it on 2026-06-25**, while tracing
+the import-overwrite DEF-300, and written it down twice with the correct method, the correct
+mechanism and the correct fix direction: `defect-register.md:7661` (*"warrant their own DEF once
+confirmed"*) and `ways-to-improve.md:96` (*"track and fix separately"*). Neither ever became a DEF.
+It survived ~3 months and at least two later passes over the same file (DEF-355, DEF-421) because
+nothing that works off the register could see it.
+**Improve:**
+1. **A follow-up observation is either a register row or it does not exist.** Prose inside another
+   defect's entry is invisible to Gate 0B, to bundle reconciliation, and to every triage sweep. Stop
+   writing "logged for triage" / "warrants its own DEF" anywhere except as its own numbered row —
+   raise it immediately, even as a one-line stub with `Status: RAISED — unconfirmed`. A stub costs a
+   number; the alternative cost three months and a re-discovery.
+2. **Sweeping for orphans found exactly two, and the second is older and larger.** `grep -niE
+   "warrant(s)? (its|their) own DEF|track and fix separately|logged for triage|follow-ups observed"`
+   over the register and this file is the whole check. Run it before each bundle. The second orphan:
+   `AdminCore.showNotification(...,'success')` renders a blocking modal at **63 sites across ~20
+   files** while the project standard says success = toast — first noted at `:6095`, quantified and
+   parked at `:9083` (DEF-338), re-encountered a third time as DEF-430, still with no row of its own.
+   **That one is blocked on a decision, not on engineering** — which is its own lesson: an
+   unanswered question parks just as silently as an unraised defect, and needs an owner and a date.
+3. **A protection gate built as an enumerated allow-list fails open, and will keep doing so.**
+   DEF-355 protects the 11 fields someone thought to list (`BuildProvidedColumns:177-201`); anything
+   not listed is still overwritten by default. Tags predate the list, were known-broken, and were not
+   in the evidence set that drove the fix, so they were not swept up. When fixing a class of bug,
+   fix it by inverting the default — every writable field must declare provenance or be refused —
+   not by enumerating the instances the current evidence happens to show.
+4. **"Did we miss a requirement?" is worth asking on every defect, because the answer changes what
+   you fix.** Here it was no: the rule was clear, agreed, stated in the UI, and implemented — just
+   not universally. Had the answer been yes, the fix would be a requirements conversation, not code.
+   Answering it took two greps and turned a code defect into a process defect with a broader fix.
+
+
+---
+
+### 2026-09-18 — from the user-guide coverage analysis
+
+5. **A document with no source is not documentation, it is a liability with a nice font.**
+   `GCC_USER_GUIDE.html` is the most complete description of the product we have and it is
+   hand-written HTML: no `.md`, no `.docx`, no screenshots, no version, no audience line. Its
+   content is current, which is exactly what made the problem invisible — a staleness check passes.
+   The test is not "is it accurate", it is **"can I rebuild it"**. Anything that fails that test
+   should be ported into the pipeline or deleted, never patched.
+
+6. **Measure documentation depth per audience, not per feature.** A feature checklist showed this
+   app as well documented. Splitting the same inventory by *who reads it* showed the External user —
+   plausibly the largest audience at cutover — sitting on 212 words and no deliverable, while
+   analyst certificate work ran to 2,188 words in one section. The coverage number was hiding the
+   distribution. Same lesson as enumerating rows instead of trusting a tally.
+
+7. **When a how-to gets written twice, the second copy always carries something unique.** User
+   management and partner API keys each live in a client guide *and* an internal note, and each
+   internal note holds real content the deliverable lacks (bulk CSV user import, lockout recovery).
+   So "delete the duplicate" is the wrong instinct — the right move is to merge the unique part into
+   the one home and leave a pointer. Deleting first loses the very content that justified the second
+   copy.
+
+8. **Ask which of two readings of a request you are building, before you build either.** "A skill
+   for Data Validations" reads equally as data-set reconciliation and as form-field validation
+   rules. One question settled it. The general shape: when a request's noun has two established
+   meanings *inside this project*, that is not ambiguity to resolve with judgement — it is the
+   cheapest possible question to ask.
+
+
+9. **A screenshot script must assert its own effect, or it photographs the feature not working.**
+   Four separate silent failures in one capture run: a search term typed into a box next to an
+   unchanged result count; a "changed" assertion satisfied by the transient "Loading..."; two
+   selectors that matched nothing because the rows are onclick `div`s with no anchors; and a row
+   click that captured the list because the handler opens a new tab. **Every one produced a
+   plausible-looking PNG.** The rule: before each shutter, assert the state you are there to
+   photograph — and when a selector misses twice, stop guessing and probe the live DOM.
+
+10. **A text grep cannot see a leak in an image.** The built guide passed 15 leak patterns on both
+    the HTML and the DOCX while every screenshot carried the internal account name in the page
+    header. Redaction for an illustrated document has to happen in the browser before the shutter,
+    and be verified by *looking* — crop the region and read it. Greppable checks give false comfort
+    exactly where the deliverable is pixels.
+
+11. **Documentation is a verification pass, and it finds things tests do not.** Writing this guide
+    surfaced that product identifiers are displayed but searchable nowhere, that a Share control
+    exists in markup but not for the role that needs it, and that a code comment describing an
+    authorization rule contradicts the code beneath it. None of those had a failing test; two would
+    have become wrong instructions to a client. Budget guide-writing as a review activity, not only
+    as a writing one.
+
+
+12. **A role-gating CSS class is not a role check.** A capture guard built on `.role-admin-show`
+    rejected six of seven pages, because most elements carrying it also carry `.role-analyst-show`
+    and are shown to both. Worse, two views hardcode `ViewData["BodyClass"] = "role-admin"`, so an
+    analyst's `<body>` carries the admin class on those pages — any check reading the body class
+    would have been wrong too. When asserting "this page was seen as role X", assert on an
+    ACTIONABLE control that only X can reach, and confirm the route's authorization policy before
+    concluding the markup is a leak.
+
+13. **A gate that has never rejected anything is an untested assertion — so make it reject
+    something on purpose.** The analyst capture now signs in as an admin at the end of the run and
+    requires its own role guard to fire; if it does not, the run declares every clean shot
+    worthless. Cost: one extra login. It converts "no problems reported" from an absence of evidence
+    into evidence.
+
+## 2026-09-20 — A test that asserts "X survived" must first prove X was there (DEF-437 verification)
+**What happened:** Verifying DEF-437 took four runs, and only one of the four failures was the code.
+The other three were the test lying in three different ways. The worst: PHASE 1's fixture-seeding
+import was aborted server-side by an unrelated timeout, so PHASE 2 asserted "the tag survived" on a
+certificate that had never been given one — and reported failure. That reads as *the fix does not
+work*. The inverse also happened: an assertion scanning `preview.rows` for a tag change found
+nothing because the API returns them at `modifiedRows[].changes`, so it **passed against the unfixed
+binary**.
+**Improve:**
+1. **Assert the precondition, and hard-abort on it.** Any test shaped "X is still there after Y" is
+   two claims, and the first one is the one nobody checks. Prove the setup produced X before
+   exercising Y; fail loudly and differently when setup fails, so a broken fixture can never be read
+   as a broken fix.
+2. **Run the test against the unfixed code FIRST, every time.** It is the only thing that
+   distinguishes a real repro from a fix-shaped assertion that was always going to pass. `git stash`
+   the fix, build, run, confirm it fails *in the specific place you expect*, restore. Two of the
+   three traps above were caught only because this was done.
+3. **Read the response shape before asserting on it.** Scanning a field that does not exist returns
+   "no match", which is indistinguishable from "no problem". Assert the container is non-empty in
+   the same breath as scanning it.
+4. **Phases in a sequential test must re-establish state, not inherit it.** Phase 2 destroyed what
+   phases 3 and 4 needed; they then reported on an empty certificate.
+5. **Never hand a secret to a child process without handling the failure path.** `execFileSync` puts
+   the whole argv — including `-P <password>` — into its exception message, so a failed sqlcmd call
+   printed the dev DB credential into a log. Catch, and rethrow only the tool's own stdout/stderr.
+6. **Read FK column names, don't infer them.** Two of the eight tables referencing `Certificates`
+   use EF's `CertificatesId` convention and six use `CertificateId`; assuming the tag join was the
+   only exception failed a transactional delete. `sys.foreign_key_columns` answers it in one query.
+
+
+14. **Source tells you what exists; only the running app tells you how it is arranged.** Reading
+    `_Layout.cshtml` gave every Administration leaf action and none of the grouping — the real menu
+    nests them under Configuration/Settings, API Management and Data Management. A guide organised
+    from the markup would have described a flat menu that does not exist. Where a document describes
+    navigation, build that section from a screenshot of the navigation.
+
+15. **"Nobody wrote down what this page is for" is often because it does not work.** Two admin pages
+    were undocumented, and the plan assumed the gap was writing effort. It was not: one binds every
+    record it creates to an arbitrary parent, and the other writes rows that no surface anywhere
+    reads and is linked from no page. Budget discovery for undocumented features as *investigation*,
+    not as writing — and expect the answer to sometimes be a defect rather than a section.
+
+16. **An unreferenced admin page is worth grepping for its own key.** The fastest test of whether a
+    configuration page does anything: take the value it writes (here `TagType == "csf"`) and grep
+    the whole codebase. Five hits, all inside the page's own CRUD, is a closed loop — the page
+    manages data that nothing consumes.

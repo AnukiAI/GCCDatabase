@@ -128,6 +128,17 @@ namespace GCCWebApp.Services.Import
         private static readonly string[] TagsColumns = { "External Tag", "ExternalTag", "EXTERNAL_TAG", "TAGS", "Tags", "tags" };
         // Internal Tag column — ingested as TagType="internal" (parallel to external tags).
         private static readonly string[] InternalTagsColumns = { "Internal Tag", "Internal Tags", "InternalTag", "INTERNAL_TAG" };
+
+        // DEF-437: internal tags live in the SAME Certificate.Tags M2M as external ones, partitioned
+        // only by TagType, so there is no `Certificate.InternalTags` property to nameof(). This is the
+        // provenance key for the Internal Tag column in ProvidedColumns.
+        private const string InternalTagsKey = "InternalTags";
+
+        // DEF-437: the app-wide idiom for the partition (CertificateService.cs:794,
+        // CertificateTileInternalApiController.cs:331 and others) is TagType == "internal";
+        // anything else — including the empty default — counts as external.
+        private static bool IsInternalTag(Tag tag) =>
+            string.Equals(tag.TagType, "internal", StringComparison.OrdinalIgnoreCase);
         private static readonly string[] AsinColumns = { "ASIN", "Asin", "asin" };
         private static readonly string[] UpcColumns = { "UPC", "Upc", "upc" };
         private static readonly string[] GtinColumns = { "GTIN", "Gtin", "gtin" };
@@ -192,6 +203,12 @@ namespace GCCWebApp.Services.Import
             Check(nameof(Certificate.ProductSubcategoryId), ProductSubcategoryColumns);
             Check(nameof(Certificate.CertificationTypeSubcategories), CertSubcategoriesColumns);
             Check(nameof(Certificate.CertificationResults), CertificationResultsColumns);
+            // DEF-437: tags were the one writable field the DEF-355 rule never reached — an
+            // edit-import cleared them even when the file carried no tag column at all. TWO keys,
+            // not one: the columns are independent, so a file carrying "External Tag" but not
+            // "Internal Tag" must rewrite the external set and leave the internal set untouched.
+            Check(nameof(Certificate.Tags), TagsColumns);
+            Check(InternalTagsKey, InternalTagsColumns);
             Check(nameof(Certificate.Partner), PartnerColumns, prefix: true);
             Check(nameof(Certificate.Asin), AsinColumns);
             Check(nameof(Certificate.Upc), UpcColumns);
@@ -921,32 +938,40 @@ namespace GCCWebApp.Services.Import
                         if (row.ProductId.HasValue)
                             row.ProductId = await ResolveProductForImportAsync(row.ProductId.Value, row.ProductTypeId, row.ProductSubcategoryId, row.ProductCategoryId);
 
-                        // Resolve tag IDs (external + internal both land in the same Tags M2M)
-                        var allTagIds = new List<int>(row.TagIds);
+                        // Resolve tag IDs (external + internal both land in the same Tags M2M).
+                        //
+                        // DEF-437: kept as TWO lists rather than one merged list. On an UPDATE the
+                        // two sets are cleared independently — only the side whose column the file
+                        // actually carried — so merging them here would throw away the very
+                        // distinction UpdateCertificateAsync needs. CREATE has nothing to preserve,
+                        // so it still takes the concatenation.
+                        var externalTagIds = new List<int>(row.TagIds);
                         foreach (var tagName in row.TagsToCreate)
                         {
                             if (createdTags.TryGetValue(tagName, out var tId))
-                                allTagIds.Add(tId);
+                                externalTagIds.Add(tId);
                         }
-                        allTagIds.AddRange(row.InternalTagIds);
+
+                        var internalTagIds = new List<int>(row.InternalTagIds);
                         foreach (var tagName in row.InternalTagsToCreate)
                         {
                             // Prefer the internally-created tag; fall back to an external creation
                             // when the same new name was reconciled to the external set (unique names).
                             if (createdInternalTags.TryGetValue(tagName, out var tId))
-                                allTagIds.Add(tId);
+                                internalTagIds.Add(tId);
                             else if (createdTags.TryGetValue(tagName, out var tId2))
-                                allTagIds.Add(tId2);
+                                internalTagIds.Add(tId2);
                         }
 
                         if (row.RowStatus == ImportRowStatus.New)
                         {
+                            var allTagIds = externalTagIds.Concat(internalTagIds).Distinct().ToList();
                             await CreateCertificateAsync(row, allTagIds, userId, username, reason, importBatchId);
                             result.CertificatesCreated++;
                         }
                         else if (row.RowStatus == ImportRowStatus.Modified)
                         {
-                            await UpdateCertificateAsync(row, allTagIds, userId, username, reason, importBatchId);
+                            await UpdateCertificateAsync(row, externalTagIds, internalTagIds, userId, username, reason, importBatchId);
                             result.CertificatesUpdated++;
                         }
                     }
@@ -1984,18 +2009,53 @@ namespace GCCWebApp.Services.Import
                     NewValue = newData.CertificationResults
                 });
 
-            // Tags change detection
-            var existingTagNames = existing.Tags?.Select(t => t.Name).OrderBy(n => n).ToList() ?? new List<string>();
-            var newTagNames = newData.TagNames.OrderBy(n => n).ToList();
+            // === DEF-437: tag change detection, gated and SYMMETRIC ===
+            //
+            // This compared the certificate's FULL tag set (internal + external) against the CSV's
+            // external-only column, ungated. Two consequences, both fixed here:
+            //   • Any cert carrying an internal tag was ALWAYS reported Modified on a clean
+            //     round-trip, because its internal tags could never appear on the external side of
+            //     the comparison — the long-standing "re-import of unchanged data still prompts to
+            //     overwrite" noise first recorded in DEF-300 follow-up 1.
+            //   • That false Modified is what CALLED UpdateCertificateAsync, which is what cleared
+            //     the tags. The detector was igniting the data loss it failed to describe.
+            //
+            // Each side is now compared against its own column and only when that column was
+            // supplied, matching what the apply above will actually do.
+            var existingTags = existing.Tags ?? new List<Tag>();
 
-            if (!existingTagNames.SequenceEqual(newTagNames, StringComparer.OrdinalIgnoreCase))
+            if (Provided(nameof(Certificate.Tags)))
             {
-                changes.Add(new FieldChange
+                var existingExternal = existingTags.Where(t => !IsInternalTag(t))
+                    .Select(t => t.Name).OrderBy(n => n).ToList();
+                var newExternal = newData.TagNames.OrderBy(n => n).ToList();
+
+                if (!existingExternal.SequenceEqual(newExternal, StringComparer.OrdinalIgnoreCase))
                 {
-                    FieldName = "Tags",
-                    OldValue = string.Join(", ", existingTagNames),
-                    NewValue = string.Join(", ", newTagNames)
-                });
+                    changes.Add(new FieldChange
+                    {
+                        FieldName = "Tags",
+                        OldValue = string.Join(", ", existingExternal),
+                        NewValue = string.Join(", ", newExternal)
+                    });
+                }
+            }
+
+            if (Provided(InternalTagsKey))
+            {
+                var existingInternal = existingTags.Where(IsInternalTag)
+                    .Select(t => t.Name).OrderBy(n => n).ToList();
+                var newInternal = newData.InternalTagNames.OrderBy(n => n).ToList();
+
+                if (!existingInternal.SequenceEqual(newInternal, StringComparer.OrdinalIgnoreCase))
+                {
+                    changes.Add(new FieldChange
+                    {
+                        FieldName = "Internal Tags",
+                        OldValue = string.Join(", ", existingInternal),
+                        NewValue = string.Join(", ", newInternal)
+                    });
+                }
             }
 
             return changes;
@@ -2181,7 +2241,10 @@ namespace GCCWebApp.Services.Import
 
         private async Task UpdateCertificateAsync(
             CertificateImportRow row,
-            List<int> tagIds,
+            // DEF-437: the external and internal sets arrive separately and are applied
+            // independently — see the tag block below for why a merged list cannot work here.
+            List<int> externalTagIds,
+            List<int> internalTagIds,
             int userId,
             string username,
             string? reason,
@@ -2283,14 +2346,51 @@ namespace GCCWebApp.Services.Import
             certificate.UpdatedBy = userId;
             certificate.UpdatedAt = DateTime.UtcNow;
 
-            // Update tags - clear and re-add
-            certificate.Tags.Clear();
-            if (tagIds.Any())
+            // === DEF-437: tags obey the DEF-355 rule, PARTITIONED by type ===
+            //
+            // This used to be an unconditional `certificate.Tags.Clear()` followed by a re-add, so
+            // an edit-import stripped every tag off every certificate it touched even when the file
+            // carried no tag column at all — the DEF-355 data-loss bug, still live in the one field
+            // DEF-355 never reached. It was found on 2026-06-25 (DEF-300 follow-ups) and not raised
+            // for three months. Import undo cannot restore collections, so the loss was permanent.
+            //
+            // A single Provided() flag is NOT sufficient here: external and internal tags share one
+            // M2M but come from two independent columns. A file carrying "External Tag" and not
+            // "Internal Tag" must rewrite the external set and leave the internal set alone — so the
+            // removal is filtered by TagType, and each side is touched only if its own column
+            // appeared in the header.
+            bool externalTagsProvided = Provided(nameof(Certificate.Tags));
+            bool internalTagsProvided = Provided(InternalTagsKey);
+
+            if (externalTagsProvided || internalTagsProvided)
             {
-                var tagsToAdd = await _context.Tags.Where(t => tagIds.Contains(t.Id)).ToListAsync();
-                foreach (var tag in tagsToAdd)
+                // Remove only the side(s) the file spoke for. ToList() first — removing from the
+                // collection being enumerated would throw.
+                var tagsToRemove = certificate.Tags
+                    .Where(t => IsInternalTag(t) ? internalTagsProvided : externalTagsProvided)
+                    .ToList();
+                foreach (var tag in tagsToRemove)
                 {
-                    certificate.Tags.Add(tag);
+                    certificate.Tags.Remove(tag);
+                }
+
+                // Re-add only the side(s) the file supplied, for the same reason.
+                var idsToAdd = new List<int>();
+                if (externalTagsProvided) idsToAdd.AddRange(externalTagIds);
+                if (internalTagsProvided) idsToAdd.AddRange(internalTagIds);
+                idsToAdd = idsToAdd.Distinct().ToList();
+
+                if (idsToAdd.Any())
+                {
+                    var tagsToAdd = await _context.Tags.Where(t => idsToAdd.Contains(t.Id)).ToListAsync();
+                    foreach (var tag in tagsToAdd)
+                    {
+                        // Guard against re-adding a tag the removal above deliberately kept: a name
+                        // resolved to an existing tag of the OTHER type (the :1750 warning case)
+                        // could otherwise be attached twice and collide on the join-table key.
+                        if (!certificate.Tags.Any(t => t.Id == tag.Id))
+                            certificate.Tags.Add(tag);
+                    }
                 }
             }
 

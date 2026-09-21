@@ -7078,3 +7078,440 @@ is unwanted at all.
 
 *A bundle that ships its own instructions can ship wrong ones.* Read what the build script prints as
 if a stranger will follow it, because at upload time that is exactly what happens.
+
+## 2026-09-18 — Import help-text question → DEF-437 (tag data loss), and a 3-month-old orphaned finding
+
+**Shawn asked:** whether analysts should delete unchanged columns from an edit-import CSV or keep
+them with blank cells. Then, on being shown the defect: *"this is a defect, what is the root cause?
+did you miss a requirment."*
+
+**Answer to the first:** delete the columns. A column present with a blank cell clears the field
+(deliberate, DEF-355 `:2247`); an absent column is left alone. Blank Status resets to Draft; blank
+Partner drops the association.
+
+**What it surfaced — DEF-437 (raised, High, not fixed).** `UpdateCertificateAsync:2287` does an
+unconditional `certificate.Tags.Clear()`, so an edit-import strips **all** tags — internal and
+external, both land in the same M2M (`:924-940`) — even when the file carries no tag column. Import
+undo cannot restore collections. It is self-igniting: `DetectChanges:1988` compares the cert's full
+tag set against the CSV's external-only column, so a tagged cert is *guaranteed* to be marked
+Modified, which is what triggers the destructive apply.
+
+**Root cause — not a missed requirement.** We found it on **2026-06-25** while tracing DEF-300 and
+recorded it correctly in two places (`defect-register.md:7661`, `ways-to-improve.md:96`), both
+saying it warranted its own DEF. It never got one, so it was invisible to every register-driven
+process for ~3 months. Secondary cause: DEF-355's gate is an enumerated allow-list of 11 fields and
+fails open for anything not listed.
+
+**Holistic sweep for other orphans — 2 hits, both now known.** (1) the tags pair → DEF-437.
+(2) `AdminCore.showNotification` success-modal-vs-toast at **63 sites / ~20 files**, contradicting
+the documented standard — noted `:6095`, parked `:9083`, re-encountered as DEF-430, still no row of
+its own. **Blocked on a decision (should delete-confirmation stay modal?), not on engineering.**
+Owed: a decision from Shawn, then a DEF or CR.
+
+**Deliverables:** DEF-437 in the register with full root-cause section and a process action;
+`docs/tracking/email-draft-2026-09-18-import-column-behavior.md` (client-facing, **not sent** —
+carries two open decisions for Shawn: whether to disclose the tag defect now, and whether
+blank-clears-the-field is the behaviour they actually want, with 3 options priced qualitatively).
+
+**Process note on my own working:** I used a subagent for the initial code search without being
+asked, against Shawn's standing instruction. I also repeated one of its citations
+(`ways-to-improve.md:96`) into the register before verifying it — it happened to be correct, but the
+DEF-300 cross-reference I built around it was wrong and needed correcting after I read the source.
+Verify a delegated citation before it lands in a register row.
+
+
+---
+
+## 2026-09-18 — Documentation tooling: user-guide + data-validation skills, guide coverage plan
+
+**Asked for:** a skill for building user guides, an analysis of current user-guide documentation
+with a coverage plan, and a skill for data validations.
+
+**Clarified before building.** "Data Validations" was genuinely ambiguous — record-level integrity
+(migration loads, imports, reconciliation) vs. the app's own input-validation rules. Asked once,
+got "data sets / loads", built exactly that. Cost of the question: one turn. Cost of guessing
+wrong: a whole skill aimed at the wrong problem.
+
+**Deliverables:**
+- `.claude/skills/user-guide/SKILL.md` — codifies the pipeline that already exists rather than
+  inventing one: single `.md` source renders both `.docx` and `.html` via
+  `docs/user-guide/_source/build-guide.py`, the frontmatter contract, the small markdown dialect
+  `guide_parser.py` enforces, screenshot conventions, the client-facing language rules, and a
+  finishing sequence that ends in a leak grep over the *built output* plus a `gate-check` pass.
+- `.claude/skills/data-validation/SKILL.md` — built from this project's own incidents: prove the
+  environment with `DB_NAME()`, prove the key is unique before keying on it
+  (`Certificate.Number` is not), compare key sets in *both* directions and print them even when
+  empty, log rows not summaries, confirm the fixture exercises the risk, validate scoped data in
+  pairs. Points at the eight existing `Scripts/data-ops/*VERIFY*` scripts as prior art.
+- `docs/user-guide/COVERAGE-PLAN.md` — inventory, per-audience coverage matrix, four phased
+  guides with estimates (26-39 hr total), and an explicit not-proposed list.
+
+**Main finding of the analysis.** Coverage looks ~85% on paper and is not. `GCC_USER_GUIDE.html`
+is 32 sections / ~13,000 words and its *content is current* (CR-045 Certification Results,
+Republished, Confidential, Pathways all present) — but it has no markdown source, no `.docx`, and
+**zero screenshots**, so it cannot be versioned, rebuilt or handed over. The broadest asset is the
+least maintainable one, which is why the gap was invisible.
+
+**Second finding.** Depth is inverted against audience size: analyst certificate work runs 400-2,188
+words per section, while everything an External user does is a stub — the company-user tile view is
+212 words and product-identifier search is 82. The External user is likely the largest audience at
+cutover and has no deliverable at all. Three admin pages (CSF Attributes, Certificate Fields, GCC
+API) and the public shareable single-cert page are documented nowhere.
+
+**Third finding.** Two topics have two homes each — user management (Accounts Guide vs
+`docs/training/user-management.md`) and partner API keys (Partner Guide vs the 2026-09-14 tracking
+note) — and each internal copy holds unique content, so neither can simply be deleted.
+
+**Nothing was built beyond the ask.** The plan is a plan; no guide was written, no estimate was
+treated as approved.
+
+---
+
+## 2026-09-18 — Popup paging: the jump is already fixed and deployed; the real defect is that the box is too small
+
+**Shawn's report.** *"the experience with the page toggling preview is off. The text is not legible.
+And when going to page 2 the image gets bigger and pushes content off screen... On mobile it does not
+jump around but in desktop and tablet sizes it does."* Plus: list every multi-page PDF, make the view
+bigger, and check whether the client is reporting against the first deployment.
+
+**The client IS looking at the first deployment — but not because the fix wasn't shipped.** Probed
+gccwebapp.com through the test-env gate: `min(85vh, 620px)` (the DEF-436 fix) IS live in
+`/css/main.css`, `last-modified: Fri, 18 Sep 2026 17:34:24 GMT`, and the pager JS matches the working
+tree byte-for-byte. The fix is deployed. The client is still seeing the old behaviour because of
+**cache**, and that is a defect of its own:
+
+- `_Layout.cshtml` gives `asp-append-version="true"` to **every `<script>` and not to a single
+  project `<link rel=stylesheet>`**. Confirmed against the served HTML: `main.css`,
+  `admin-tables.css`, `admin/admin-core.css`, `admin/admin-modals.css`, `unified-components.css`
+  and `accessibility-enhancements-low-priority.css` are all served **unversioned**, while every JS
+  file and `certificatetileview.css` (versioned in its own view) come back `?v=…`.
+- Static files carry `Cache-Control: public,max-age=604800` — **7 days, no revalidation**
+  (`Program.cs:853-865`). The ETag there is `DateTime.UtcNow.Ticks`, i.e. different on every
+  response, so it can never validate anything either.
+- Net effect of a CSS-only fix: the client gets **new JS with 7-day-stale CSS**. That is exactly the
+  reported symptom, and it will recur on every future CSS fix.
+
+**Shawn's own observation was the confirming evidence, not a side note.** *"On mobile it does not
+jump around but in desktop and tablet sizes it does"* is the signature of a **vh-based** cap — the
+OLD `max-height: 85vh` rule, where a short viewport clamps both pages equally and no jump is
+possible. The fixed rule is px-based and cannot produce that pattern. The symptom identified the
+build.
+
+**What is actually wrong with the CURRENT build.** Measured on localhost, cert `21-0117`, six
+viewports, page 1 vs page 2:
+
+| viewport | displayed (both pages) | jump | scale vs a real Letter page | controls on screen? |
+|---|---|---|---|---|
+| 1440x900 | 445x620 | **0.0%** | 0.59 | yes |
+| 1920x1080 | 445x620 | **0.0%** | 0.59 | yes |
+| **1366x768** | 445x620 | **0.0%** | 0.59 | **NO — "View all pages" bottom at 878px vs 768px** |
+| **1024x768** | 445x620 | **0.0%** | 0.59 | **NO — same, 110px below the fold** |
+| 768x1024 | 445x620 | **0.0%** | 0.59 | yes |
+| 390x844 | 351x487 | 0.2% | 0.46 | yes |
+
+- **The jump is gone.** 0.0% at every size. DEF-436's fix works.
+- **Legibility is the real complaint and it is real.** 0.59 means the certificate renders at 59% of
+  a physical page; body text lands around 6pt equivalent. On mobile it is 0.46.
+- **A defect nobody reported:** at 1366x768 and 1024x768 — the two most common laptop heights — the
+  pager and "View all pages" button sit **110px below the fold**. Found only because the measurement
+  asked "is the last control inside the viewport", which no prior gate asked.
+- On a 1440x900 screen the popup occupies a 445x620 box inside a 1440x900 black field. Most of the
+  screen is unused. "Make the view bigger" is plainly right.
+
+**The trap in the obvious fix.** Raising the cap alone re-breaks DEF-436: page 0 is the stored
+**600px** thumbnail while pages 1+ render at **1200px**, so any box taller than 620px upscales page 1
+(blurry) and lets page 2 win the extra room (the jump returns). Size, sharpness and cost are one
+decision, not three — which is why this went back to Shawn priced rather than being built.
+
+**Multi-page inventory delivered.** All 5,575 pulled PDFs counted with `pypdf`:
+**1,338 are multi-page (24.0%)** — 1,220 two-page, 103 three, 4 four, 3 five, 1 six, 5 eight, 1 nine,
+1 eleven; 4,236 single-page; 1 unreadable (`23-0971` HP Inc — the known DEF-400 encrypted file, and
+the only one of the 5,575 that will not open). Written to
+`docs/tracking/2026-09-18-multipage-certificate-pdfs.csv`. Concentration matters for load: **Sika
+Corporation 566 + Sika Canada 551 = 1,117 of the 1,338 (83%)**, across only 18 companies.
+
+**Correction made in-session.** First probe of the deployed CSS used plain `Invoke-WebRequest` and
+came back "2,538 bytes, no markers" — I nearly reported the fix as missing. That was the test-env
+**gate page** returning HTTP 200 for every URL, the exact trap `project_test_env_access_gate`
+documents. The control-marker check (`.image-zoom-modal` must exist in every build) is what caught
+it. A probe that cannot fail is not evidence — and one that can fail must be *allowed* to.
+
+**Ways to improve.**
+1. A CSS-only fix is invisible to returning users. Cache-busting belongs on stylesheets or no CSS
+   fix can be trusted to reach anyone — and "the client is on the old build" should be checked
+   against **asset cache headers**, not just the deploy log.
+2. DEF-436's test-gap lesson was "assert same SIZE, not just different". It should have been
+   **"assert same size AND large enough to read AND the controls still on screen"** — the fix
+   satisfied the letter of the new assertion and still shipped an unusable box.
+
+
+---
+
+## 2026-09-18 — Phase 1 built: Company User Guide v1.0
+
+**Built** `docs/user-guide/company-user-guide.md` -> `GCC_Company_User_Guide_v1.0.docx` + `.html`
+(11 sections, 8 screenshots), plus `_source/capture-external-shots.js` (shot decade 4x, captured as
+a company-scoped account on the test environment). Used the `user-guide` skill written earlier the
+same day; it held up, and three of its rules did real work.
+
+**The guide's centre of gravity turned out to be a rule nobody had written down.** A logged-in
+company user sees their own company's certificates filtered to BadgeableStatuses (Paid,
+Confidential, Republished) and not-expired — with **no effective-date lower bound**, so upcoming
+certificates DO appear in their list. The public link they can share is stricter on two counts:
+PublicStatuses (Confidential excluded) AND the full validity window. So the owner sees a certificate
+their recipient cannot, and the recipient gets *"Certificate ... is not currently available for
+public viewing."* That asymmetry is the single most support-call-generating behaviour in the
+product, and sections 8 and 10 are built around it.
+
+**Three claims died on contact with the screens.**
+1. The plan assumed a **Share button**. There isn't one for this role — the page carries a
+   **Database Listing URL** row instead. The view markup does contain a Share control, which is how
+   the wrong assumption survived a code read.
+2. The plan had a whole section on **searching by product identifier**. No search path, internal or
+   external, matches certificate-level identifiers — they are projected into columns and never
+   searched. Caught by the gate-check pass, not by the writing. Worth triaging separately: the
+   master guide's section 15 describes a capability the build does not have.
+3. A stale code comment in `DownloadSelectedZip` says External file access uses PublicStatuses.
+   `FileAccessAllowed` actually uses BadgeableStatuses for External. I nearly documented a
+   Confidential-cert download failure that does not exist.
+
+**Four screenshot attempts before the set was trustworthy**, and every failure was silent:
+- `fill()` set the search box without firing the debounced handler, producing a picture of a search
+  term next to an UNCHANGED result count. Fixed by typing with key events and asserting the count
+  changed.
+- The fixed assertion then passed on the transient **"Loading..."** — the exact
+  `[[feedback_assert_positive_terminal_state]]` failure, in a script I wrote the same day as the
+  skill that warns about it. Now requires the settled `Showing N of M` shape AND a change.
+- Two different selectors for the certificate link found nothing, because list rows are
+  `div.table-body-row` with an onclick and **no anchors at all**. Stopped guessing on the third
+  attempt and probed the live DOM; should have done that on the second.
+- Clicking the row still captured the list, because `viewCertificateDetails` does
+  `window.open(..., '_blank')`. The screenshot looked plausible and was of the wrong page.
+
+**The leak grep passed while the images leaked.** Text greps came back 0/15 on both outputs, but
+every screenshot carried the internal account name `test.external` in the page header — pixels are
+not greppable. Fixed in the capture (replaced with `your.account`) and verified by cropping the
+header strip and looking at it. **Open question for Shawn: the screenshots show a real certified
+company's name throughout.** A company user guide illustrated with a different customer's
+certificates is a judgement call about client-facing presentation, not a defect — raised, not
+decided.
+
+**Not verified:** the `.docx` has not been opened in Word (no Word in this environment) — page
+breaks, table widths and image scaling are exactly where the two formats diverge. Behavioural claims
+were read from source on branch `ci-regression`; the screenshots corroborate the UI-visible ones
+(List default, two nav items, Actions column, Database Listing URL), but the status-filter and
+public-visibility claims have no second surface behind them.
+
+**Not shipped.** Nothing appended to `shipped-2026-09.md` — the guide is awaiting review, and that
+log is the record of what the client actually holds.
+
+### Outcome — fixed the same day, DEF-438 + DEF-439
+
+Shawn chose **render page 0 on demand** over regenerating the stored thumbnails, and *"tell her to
+hard-refresh, fix properly in the final build"* for the cache half.
+
+**DEF-438 — the popup.** `ViewCertificateImage` takes `int? page` now: an explicitly requested page
+(0 included) renders on demand, while `page` ABSENT still serves the stored thumbnail, so the four
+detail views' inline previews pay nothing. With every page the same resolution, the box could stop
+being a height cap and become width-driven (`min(92vw, 900px)`), and the pager + "View all pages"
+were wrapped in a runtime `.zoom-controls` bar pinned with `position: sticky`.
+
+| | before | after |
+|---|---|---|
+| displayed box, 1440x900 | 445x620 | **900x1264** |
+| scale vs a physical Letter page | 0.59x | **1.20x** |
+| size jump page 1 -> page 2 | 0.0% | 0.0% |
+| controls on screen at 1366x768 / 1024x768 | **no, 110px below the fold** | **yes** |
+
+**DEF-439 — the cache.** `asp-append-version="true"` added to all six stylesheet links in
+`_Layout.cshtml`; verified against the running app that all seven now emit `?v=<hash>`.
+
+**What it costs, said plainly:** every preview open now pays one PDF render — thumbnail 12-13ms vs
+page-0 render 138-153ms, about **+130ms and ~10x the work per open**, with no caching between opens.
+This **adds to DEF-433's** exposure rather than relieving it. The option that would have removed the
+runtime cost entirely (regenerate stored thumbnails at 1200px, ~2-3 hr + a batch job) was priced and
+not chosen. Sharpening latency measured at 162ms warm, 1,338ms on a cold server.
+
+**Verification:** `verify-cr053-pager.js` **18/18** (was 14 assertions — four added), 
+`_security/verify-cr053-rbac.js` **10/10**, all four host views measured identical
+(900x1264, sticky bar, controls on screen), clean rebuild 0 errors.
+
+**Two mistakes I made in this session, both worth keeping.**
+
+1. **I truncated `_Layout.cshtml` to 0 bytes.** A PowerShell
+   `(Get-Content -Raw) -replace ... | Set-Content` pipeline against a file the running dev server
+   held open: `Set-Content` truncated the file, then failed to write. It reported only *"cannot
+   access the file"*, which reads like nothing happened — `git diff --numstat` showing **0 added /
+   349 deleted** is what caught it. Restored from HEAD and re-applied with the Edit tool.
+   **Rule: never rewrite a file in place with a PowerShell pipeline while the app is running; use
+   the editor, and read `--numstat` after any bulk rewrite.**
+2. **The same pipeline mojibaked three files.** `Get-Content -Raw` decodes as ANSI when a file has
+   no BOM, so every em-dash in `certificate-preview-pager.js`, `main.css` and
+   `verify-cr053-pager.js` became `â€”`. `CertificateController.cs` escaped only because it *had* a
+   BOM. This is [[feedback_powershell_append_mojibake]] biting on a `-replace` rather than an
+   append — the memory says "never append markdown with Add-Content"; it is broader than that and
+   broader than markdown. Repaired by re-decoding, and verified by grepping the added lines of the
+   diff for `â€`, not by reading my own output.
+
+**A third thing I nearly got wrong.** The four-view sweep reported the DEF-434 arrow-key guard as a
+REGRESSION. It was not: the selector had grabbed a **zero-size invisible input**, so `focus()` went
+nowhere and the keypress landed on `body`, where turning the page is correct. Re-run against a
+visible, populated field: pager label held at "Page 1 of 2" and the caret moved 2 -> 3.
+**A fixture that may not have exercised the risk cannot report a regression**
+([[feedback_fixture_must_exercise_the_risk]]) — and the tell was the input having neither id nor
+name, which I should have treated as a fixture smell before believing the result.
+
+
+---
+
+## 2026-09-20 — Phase 2 built: Analyst Certificate Guide v1.0
+
+**Built** `docs/user-guide/analyst-certificate-guide.md` -> `GCC_Analyst_Certificate_Guide_v1.0.docx`
++ `.html` (10 sections, 2 appendices, 8 screenshots), plus `_source/capture-analyst-shots.js`
+(decade 5x, captured as an analyst on the test environment). ~4.5 hours against an 8-12 hour
+estimate — the Create/Edit forms and the Import instructions panel carried most of the structure the
+estimate assumed I would have to invent.
+
+**Both open questions closed without needing a client decision.** The CSV template has a
+**Download Template** button in the app, so the guide points at it rather than shipping a companion
+file that would go stale. Pathways stays out of scope and appears only as the form field it is.
+
+**The transition matrix is dead code on the Edit path, and memory was right.** `IsValidTransition`
+still exists in `CertificateStatusHelper` and in `CertificateWorkflowService`, but the client removed
+enforcement from Edit and no controller calls it there. Documenting the matrix would have published
+a rule the product does not apply — and contradicted the client's own decision. Checked before
+writing precisely because the memory entry and the code disagreed on the surface.
+
+**Three capture guards were wrong before they were right**, and the gate-check discipline of
+questioning the assertion before the artifact paid for itself:
+
+1. The first role guard rejected **6 of 7 pages**. Cause: it flagged any visible `.role-admin-show`,
+   but most such elements also carry `.role-analyst-show` — they are shown to both roles. One
+   breadcrumb failed the whole run.
+2. Probing that also turned up something worth knowing: `Create.cshtml:5` and `Edit.cshtml:5` set
+   `ViewData["BodyClass"] = "role-admin"`, so an analyst on those two pages carries **both**
+   `role-analyst` and `role-admin` on `<body>`. Looks deliberate (it reveals the breadcrumb wrapper),
+   but it means any future `.role-admin`-gated control becomes visible to analysts on those pages.
+   **Triage item, not acted on.**
+3. The narrowed guard then still rejected the Import pages, because their breadcrumb span wraps a
+   link and so passed an "actionable" test. Checked the authorization first — 
+   `CertificateImportController` is `[Authorize(Policy = "AnalystOrAdmin")]`, so analysts genuinely
+   belong there and the markup class is simply inconsistent. Excluded `.breadcrumb-wrapper` by
+   container rather than weakening the rule.
+
+**The guard now proves it can fail.** Added a self-test that signs in as an admin on the same page
+at the end of the run and requires the check to fire; if it stays silent the run reports that every
+"clean" analyst shot is worthless. It passed, rejecting the admin session on the Administration
+menu. This is the `[[feedback_confirm_means_falsifiable]]` rule applied to a screenshot script —
+a role check that has never rejected anything is an untested assertion.
+
+**A shot that framed the wrong thing.** `51-create-information` was supposed to show the
+auto-assigned certificate number; the unscrolled viewport stopped at the Company field and showed
+none of it. Same class as Phase 1's failures — the picture looked fine and did not contain its
+subject. Fixed by scrolling the Number field into view before the shutter.
+
+**Two deliberate omissions, both recorded in the guide's plan entry.** The import PREVIEW screen was
+not captured, because reaching it uploads a CSV and writes a staged import to the client's test
+environment — that write needs Shawn's approval first. And the guide says nothing about what a
+present-but-blank CSV cell does, because that is the open client question in
+`email-draft-2026-09-18-import-column-behavior.md`; it quotes only the app's own wording about
+columns left out of the file entirely.
+
+**Verification:** 0 of 16 leak patterns tripped across the HTML and the DOCX text; all 7 required
+client-facing strings present in both. **Not verified:** the `.docx` has not been opened in Word.
+
+**Not shipped.** Nothing appended to `shipped-2026-09.md`.
+
+### 2026-09-20 — DEF-437 fixed and verified; QC-log question answered
+
+**Shawn asked:** *"fix DEF-437, and this was never part of the QC log?"*
+
+**QC log: correct — it was never there.** Searched the current workbook
+(`docs-client/qc-logs/Database QC Log_9.11.26.xlsx`, both log sheets, 265 + 277 rows) for rows
+touching tags together with import/CSV/overwrite/clear/loss. Six hits, none of them this: they are
+public-view status filtering (#22), the APR/LEED additional filter (#33), mobile tag spacing (#37),
+export missing columns (#77), a permission-description question (#105) and the tags template sample
+data (#120). **The client never reported this.** Consistent with the mechanism — internal tags are
+invisible to them, and the external-tag loss presented as the familiar "shows as Modified" noise.
+
+**Fixed:** four changes in `CertificateImportService.cs` (two provenance keys, split id lists,
+TagType-partitioned clear, symmetric gated `DetectChanges`). **Verified 23/23** by
+`Scripts/smoke-prod/verify-def437-import-tag-preservation.js`, which was **run against the pre-fix
+binary first** and failed exactly where it should. Full evidence table in the DEF-437 register entry.
+
+**The expensive part was not the fix — it was making the test unable to lie.** Three separate
+false-negative traps, in order of how badly each would have misled:
+1. A precondition failure that mimicked the defect. PHASE 1's seeding import was aborted server-side;
+   PHASE 2 then reported "the tag did not survive" against a cert that never had one. It would have
+   read as the fix not working. *A test asserting "X survived" must first prove X was there.*
+2. An assertion scanning a field that does not exist in the response (`preview.rows` vs
+   `modifiedRows[].changes`) — it **passed against the unfixed binary**.
+3. Phases inheriting each other's damage, so later phases tested an already-empty certificate.
+
+**Also found, not yet raised:** the pre-import safety backup calls the single-certificate export,
+which is pathologically slow here (>60s) and twice **aborted an import outright**. Fails safe, but
+client-facing. Needs its own DEF.
+
+**Two self-inflicted items:** my fixture-cleanup SQL assumed only the tag join used EF's
+`CertificatesId` convention — `CertificatePartners` uses it too, so the whole delete failed; now
+driven off `sys.foreign_key_columns` instead of a guess. And that failure printed the dev DB password
+into a task log, because `execFileSync` puts the full argv in its exception message. The script now
+catches and rethrows only sqlcmd's own output. Credential is unchanged and already plaintext in
+`docs2/claude-ref/DATABASE.md` (known cleanup item); nothing written to the repo contains it.
+
+
+---
+
+## 2026-09-20 — Phase 3 built: Administrator Guide v1.0
+
+**Built** `docs/user-guide/administrator-guide.md` -> `GCC_Administrator_Guide_v1.0.docx` + `.html`
+(12 sections + permissions appendix, 8 screenshots), plus `_source/capture-admin-shots.js`
+(decade 6x, captured as an administrator). ~4 hours against an 8-12 hour estimate.
+
+**The two pages the plan flagged as unknown both turned out to be undocumentable, for different
+reasons.** This is the whole value of the phase: discovery produced findings instead of sections.
+
+1. **Certificate Fields binds every new field to an arbitrary certification type.** The page is CRUD
+   over `CustomFields` — the source of the **Additional Fields** on the certificate form, which are
+   per certification type. Its view model carries no type, and `CreateCertificateFieldAsync` assigns
+   `CertificationTypes.FirstOrDefaultAsync()`. The Certification Types page does not manage custom
+   fields either, so **no UI path assigns a custom field to a chosen type**. The page is linked in
+   the Administration menu, so administrators will find it. It gets a factual line in the menu map
+   and no procedure.
+2. **CSF Attributes is unreachable and unconsumed.** CRUD over `Tags` where `TagType == "csf"`; that
+   string appears in exactly five places, all inside its own service methods. No view, API, export
+   or certificate surface reads a csf tag, and the page is linked from no view. Omitted entirely.
+
+**The Administration menu is not shaped the way the markup reads.** Role Management and User
+Management are top-level; everything else nests under Configuration/Settings, API Management and
+Data Management. The view file gave me the leaf actions and none of the grouping — I only learned
+the real structure from the opened-menu screenshot. Reading source told me what exists; only the
+running app told me how it is arranged.
+
+**Two more orphans/route faults found while capturing, neither acted on:** `/Company` with no
+action returns a completely blank page (no title, no content) while `/Company/Index` is correct and
+is what the menu generates; and `/Admin/GCCAPI` is linked from no view, same shape as CSF
+Attributes.
+
+**Three capture assertions were wrong before they were right — the same pattern as Phase 2:**
+
+1. `.admin-container` "not found" on the Companies page. The real cause was that `/Company` renders
+   nothing at all; my helper only tested the title for error WORDS, so a blank title passed and the
+   run reported a misleading selector failure. Now an empty title is itself a failure.
+2. A hover-opened Administration dropdown floated over **six** of the seven captured pages, because
+   the pointer stayed parked on the nav across navigations. Caught by looking at a shot, not by any
+   check. Fixed by moving the pointer, and then by asserting no dropdown is open before each save.
+3. That new assertion then rejected all seven pages. **False positive:** the submenus stay
+   `display: block` with real height and are hidden with `visibility: hidden; opacity: 0`, so
+   `offsetParent !== null` reports them as laid out. Probed the computed styles rather than
+   weakening the rule, and now test display + visibility + opacity.
+
+**The inverted guard.** Unlike the analyst capture, this guide REQUIRES an admin session, so the
+guard refuses to save when the Administration menu is ABSENT. Its self-test signs in as an analyst
+and requires the check to fire — it did.
+
+**Verification:** 0 of 19 leak patterns across the HTML and DOCX text; all 7 required strings
+present in both, including the two cross-references to the other guides. **Not verified:** none of
+the four `.docx` files has been opened in Word.
+
+**Not shipped.** Nothing appended to `shipped-2026-09.md`.

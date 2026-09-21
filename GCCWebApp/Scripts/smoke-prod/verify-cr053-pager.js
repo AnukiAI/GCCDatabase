@@ -182,8 +182,31 @@ async function statusOf(page, url) {
   const prevDisabled = await page.$eval(PAGER_PREV, el => el.disabled).catch(() => null);
   rec('A4 prev disabled on page 1', prevDisabled === true, `disabled=${prevDisabled}`);
 
+  /* DEF-438: page 1 no longer starts as the stored 600px thumbnail — it is upgraded in place to a
+     full-resolution render as soon as that render lands (~160ms on a dev box). Hashing before that
+     upgrade captures the THUMBNAIL, and then A7's "did we come back to the same image" compares a
+     thumbnail against a render and fails for a reason that has nothing to do with paging.
+     So wait for the upgrade to settle, and record that the wait happened rather than sleeping
+     blindly — a fixed sleep here would hide a regression where the upgrade never lands at all. */
+  const upgrade = await page.evaluate(async () => {
+    const img = document.getElementById('zoomedImage');
+    const t0 = performance.now();
+    for (let i = 0; i < 200; i++) {
+      if (img.naturalWidth > 700) return { ok: true, ms: Math.round(performance.now() - t0), w: img.naturalWidth };
+      await new Promise(r => setTimeout(r, 50));
+    }
+    return { ok: false, ms: Math.round(performance.now() - t0), w: img.naturalWidth };
+  });
+  rec('A4b page 1 is upgraded to a full-resolution render (DEF-438)',
+      upgrade.ok === true,
+      `naturalWidth=${upgrade.w}px after ${upgrade.ms}ms (stored thumbnail is 425px; a render is ~840px)`);
+
   // A5 -- THE ASSERTION THIS CR EXISTS FOR: next actually changes the displayed page, by bytes.
   const hash1 = await shownImageHash(page);
+  const size1 = await page.$eval('#zoomedImage', el => {
+    const r = el.getBoundingClientRect();
+    return Math.round(r.width) + 'x' + Math.round(r.height);
+  });
   await page.click(PAGER_NEXT);
   await page.waitForFunction(() => {
     const l = document.getElementById('zoomPagerLabel');
@@ -196,6 +219,24 @@ async function statusOf(page, url) {
       !!hash1 && !!hash2 && hash1 !== hash2,
       `page1=${hash1} page2=${hash2} label="${label2}"`);
 
+  /* DEF-436's lesson, made into an assertion: "the image changed" is satisfied by an image of ANY
+     size, so a page turn that silently zooms passes a bytes-only check. The client reported that
+     zoom; nothing in this file could have caught it. Same displayed box on both pages, or fail. */
+  const size2 = await page.$eval('#zoomedImage', el => {
+    const r = el.getBoundingClientRect();
+    return Math.round(r.width) + 'x' + Math.round(r.height);
+  });
+  rec('A5b page 2 renders at the SAME SIZE as page 1 (DEF-436)',
+      size1 === size2, `page1=${size1} page2=${size2}`);
+
+  /* DEF-438's own lesson: consistent AND legible are different properties. DEF-436 satisfied the
+     first by capping every page at 620px, which is 0.59x of a physical page — consistent and
+     unreadable. 1056px is a US-Letter page at 96dpi; require at least 0.8x of it on a desktop
+     viewport so "fixed the jump" can never again ship an unusable box. */
+  const legible = await page.$eval('#zoomedImage', el => +(el.getBoundingClientRect().height / 1056).toFixed(2));
+  rec('A5c the page is large enough to read (DEF-438)',
+      legible >= 0.8, `displayed height is ${legible}x a physical Letter page (floor 0.8x)`);
+
   await page.screenshot({ path: path.join(OUT, 'cr053-page2.png') });
 
   // A6 -- the popup did NOT close when the pager was clicked. #imageZoomModal closes on any click
@@ -203,11 +244,49 @@ async function statusOf(page, url) {
   const stillOpen = await page.$eval('#imageZoomModal', el => getComputedStyle(el).display !== 'none');
   rec('A6 popup stays open through a page turn', stillOpen === true, `modal displayed=${stillOpen}`);
 
-  // A7 -- back to page 1 restores the ORIGINAL stored thumbnail, not a re-render.
+  /* A7 -- paging back lands on the same page 1 you left.
+     BEFORE DEF-438 this asserted "restores the ORIGINAL stored thumbnail, not a re-render", which
+     was true of a design where page 0 alone came from the stored 600px file. That design is what
+     forced the popup to be too small to read, so it is gone: every page, page 1 included, is now
+     the same on-demand render. The assertion that survives — and the one that was always the point
+     — is that going forward and back returns you to the same image at the same size. */
   await page.click(PAGER_PREV);
   await page.waitForTimeout(1200);
   const hash1b = await shownImageHash(page);
-  rec('A7 prev returns to the same page 1 image', !!hash1b && hash1b === hash1, `page1=${hash1} back=${hash1b}`);
+  const size1b = await page.$eval('#zoomedImage', el => {
+    const r = el.getBoundingClientRect();
+    return Math.round(r.width) + 'x' + Math.round(r.height);
+  });
+  rec('A7 prev returns to the same page 1 image, same size',
+      !!hash1b && hash1b === hash1 && size1b === size1,
+      `page1=${hash1}@${size1} back=${hash1b}@${size1b}`);
+
+  /* A7b -- DEF-438's other half, and the one nobody reported: once the image is big enough to
+     read it is routinely taller than the viewport, and the controls used to flow off the bottom
+     with it (measured 110px below the fold at 1366x768 and 1024x768). They are pinned now, so
+     assert they are actually ON SCREEN at a short viewport rather than merely present in the DOM.
+     Scroll the popup to the bottom first: a control that only survives at scrollTop 0 is not
+     pinned, it is just lucky. */
+  const ctlVp = await page.viewportSize();
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.evaluate(() => { document.getElementById('imageZoomModal').scrollTop = 99999; });
+  await page.waitForTimeout(400);
+  const onScreen = await page.evaluate(() => {
+    const bar = document.querySelector('#imageZoomModal .zoom-controls');
+    const link = document.querySelector('#imageZoomModal a.zoom-allpages-link');
+    const pager = document.getElementById('zoomPager');
+    if (!bar || !link || !pager) return { ok: false, why: 'controls not found' };
+    const b = bar.getBoundingClientRect(), l = link.getBoundingClientRect(), p = pager.getBoundingClientRect();
+    return {
+      ok: b.bottom <= window.innerHeight + 1 && l.bottom <= window.innerHeight + 1 && p.bottom <= window.innerHeight + 1
+          && l.top >= 0 && p.top >= 0,
+      why: `bar.bottom=${Math.round(b.bottom)} link=${Math.round(l.top)}-${Math.round(l.bottom)} ` +
+           `pager=${Math.round(p.top)}-${Math.round(p.bottom)} viewportH=${window.innerHeight}`,
+    };
+  });
+  rec('A7b pager and "View all pages" stay on screen when scrolled to the bottom (DEF-438)',
+      onScreen.ok === true, onScreen.why);
+  if (ctlVp) await page.setViewportSize(ctlVp);
 
   // A8 -- BOUNDS. An out-of-range page is a 404, not an exception and not another page.
   const pages = countJson ? countJson.pages : 2;

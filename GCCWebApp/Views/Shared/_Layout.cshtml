@@ -42,21 +42,33 @@
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
 
+    @*  DEF-439 — asp-append-version on EVERY stylesheet below.
+        Static files are served `Cache-Control: public,max-age=604800` (Program.cs, 7 days) and the
+        ETag there is DateTime.UtcNow.Ticks, i.e. different on every response, so it can never
+        validate anything. Until 2026-09-18 every <script> in this file carried
+        asp-append-version="true" and not one project stylesheet did — so a deployed JS fix reached
+        users immediately while a deployed CSS fix was invisible to anyone who had loaded the site
+        in the previous week.
+        That is not hypothetical: the DEF-436 popup fix went live 2026-09-18 17:34 UTC and the
+        client still reported the old behaviour, because her browser held the pre-fix main.css and
+        had been served the new pager JS. New JS + stale CSS is the worst of the two states.
+        Do not remove these. A CSS-only fix cannot be trusted to reach anyone without them.  *@
+
     <!-- Unified CSS -->
-    <link href="~/css/main.css" rel="stylesheet" />
+    <link href="~/css/main.css" rel="stylesheet" asp-append-version="true" />
 
     <!-- Admin Tables - Unified styling for all admin page tables -->
-    <link href="~/css/admin-tables.css" rel="stylesheet" />
+    <link href="~/css/admin-tables.css" rel="stylesheet" asp-append-version="true" />
 
     <!-- Admin Core & Modals - Required for AdminCore notifications -->
-    <link href="~/css/admin/admin-core.css" rel="stylesheet" />
-    <link href="~/css/admin/admin-modals.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-core.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/admin/admin-modals.css" rel="stylesheet" asp-append-version="true" />
 
     <!-- Unified Component System (standardized buttons, modals, layouts) -->
-    <link href="~/css/unified-components.css" rel="stylesheet" />
+    <link href="~/css/unified-components.css" rel="stylesheet" asp-append-version="true" />
 
     <!-- Accessibility Enhancements - Low Priority Fixes (WCAG 2.1 Level AA) -->
-    <link href="~/css/accessibility-enhancements-low-priority.css" rel="stylesheet" />
+    <link href="~/css/accessibility-enhancements-low-priority.css" rel="stylesheet" asp-append-version="true" />
 
     <!-- Component-specific CSS loaded per page -->
     @RenderSection("Styles", required: false)

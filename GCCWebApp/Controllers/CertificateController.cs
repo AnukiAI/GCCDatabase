@@ -2413,7 +2413,7 @@ namespace GCCWebApp.Controllers
         /// bypass the gate.
         /// </summary>
         [AllowAnonymous]
-        public async Task<IActionResult> ViewCertificateImage(int id, int page = 0)
+        public async Task<IActionResult> ViewCertificateImage(int id, int? page = null)
         {
             try
             {
@@ -2428,29 +2428,46 @@ namespace GCCWebApp.Controllers
                     return NotFound();
                 }
 
-                // CR-053 (QC #267): page > 0 is the popup pager asking for a page that was never
-                // rendered at upload time. Page 0 deliberately keeps the old path untouched - it
-                // serves the STORED thumbnail, so the overwhelmingly common request (open a preview)
-                // costs exactly what it always did and no PDF is opened at all.
+                // CR-053 (QC #267): an explicitly-requested page is the popup pager asking for a
+                // page that was never rendered at upload time, so it is rendered on demand at
+                // PageRenderLongSide.
+                //
+                // DEF-438: page 0 is now rendered on demand TOO. It used to fall through to the
+                // stored 600px thumbnail, which is why the popup could only ever be 620px tall —
+                // anything larger upscaled page 1 into a blur while pages 2+ stayed sharp, which
+                // is the size jump DEF-436 had to cap away. Rendering every page the same way is
+                // what lets the popup be big enough to READ (the DEF-438 complaint). It is also
+                // why the parameter had to become nullable: ABSENT still means "the stored
+                // thumbnail", which is what the four detail views request for their inline
+                // preview, so those pay no render and are untouched. A NEGATIVE page is likewise
+                // still the thumbnail, preserving the CR-053 A8 bounds contract (page=-1 => 200).
+                //
+                // COST, STATED PLAINLY: opening any preview now costs one PDF render where it
+                // previously cost none, and these responses are `no-cache, must-revalidate` with
+                // no validator, so nothing is reused between opens. That is a deliberate trade
+                // (Shawn, 2026-09-18) and it ADDS to the DEF-433 render-load exposure rather than
+                // relieving it — DEF-433's throttling work is still required before public cutover.
                 //
                 // SECURITY: this sits AFTER the FileAccessAllowed gate above, so the page parameter
                 // reaches nothing the caller could not already see. The bound below is what stops
                 // the parameter itself being interesting: an out-of-range index is a 404, never an
                 // exception page and never another certificate's content. Note the count comes from
                 // THIS certificate's own file, so there is no way to index across certificates.
-                if (page > 0)
+                if (page.HasValue && page.Value >= 0)
                 {
                     if (string.IsNullOrEmpty(certificate.CertificateFile)) return NotFound();
 
                     var pageCount = _fileUploadService.GetPdfPageCount(certificate.CertificateFile);
-                    if (pageCount <= 0 || page >= pageCount)
+                    if (pageCount <= 0 || page.Value >= pageCount)
                     {
                         // Out of range, or a PDF we cannot read (DEF-400 encrypted, missing file).
                         // 404 rather than an error: the client JS treats it as "no more pages".
+                        // For page 0 this is also the signal that keeps the stored thumbnail on
+                        // screen instead of a broken image — see certificate-preview-pager.js.
                         return NotFound();
                     }
 
-                    var pageBytes = await _fileUploadService.RenderPdfPageAsync(certificate.CertificateFile, page);
+                    var pageBytes = await _fileUploadService.RenderPdfPageAsync(certificate.CertificateFile, page.Value);
                     if (pageBytes == null || pageBytes.Length == 0) return NotFound();
 
                     return File(pageBytes, "image/png");

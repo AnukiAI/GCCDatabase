@@ -1,4 +1,4 @@
-﻿/* main.css - Unified Master Styles - Mobile & Tablet Layout Fixed */
+/* main.css - Unified Master Styles - Mobile & Tablet Layout Fixed */
 
 /* 
 Use the following 4 breakpoints for 95% of projects:
@@ -1999,20 +1999,25 @@ body.theme-option4 .certificate-single-card .card-body {
 .zoom-modal-content {
     margin: auto;
     display: block;
-    max-width: 90%;
-    /* DEF-436: cap the box at the STORED THUMBNAIL's natural size so every page of a document
-       displays at the same size. Page 0 serves the 600px thumbnail (FileUploadService.cs:734)
-       while pages 1+ are rendered at 1200px (PageRenderLongSide), so with the old flat 85vh the
-       thumbnail settled at 600px tall and an on-demand page hit the cap — a 23% jump the user
-       reads as the popup zooming in when they turn the page.
-       620px = 600px of image + the 10px padding on each side (border-box), so the thumbnail is
-       shown 1:1 and never upscaled; the higher-resolution pages simply downscale into the same
-       box, which makes them crisper rather than blurrier. min() keeps 85vh as the ceiling on
-       short viewports, where 85vh is the smaller of the two. */
-    max-height: min(85vh, 620px);
-    width: auto;
+    /* DEF-438 — SIZED FOR READING, NOT FOR FITTING.
+       History matters here, because the obvious rule is the wrong one twice over:
+         * A flat `max-height: 85vh` (the original) let the 1200px on-demand renders fill the box
+           while the stored 600px thumbnail on page 0 settled short — the 23% size jump on a page
+           turn that the client reported (DEF-436).
+         * `min(85vh, 620px)` (the DEF-436 fix) removed the jump by capping EVERY page at the
+           thumbnail's natural height. Measured: both pages 445x620, jump 0.0% — and a certificate
+           displayed at 0.59x of a physical page, which the client could not read.
+       The real constraint was never the box, it was that page 0 was a different resolution from
+       every other page. With page 0 now rendered on demand too (DEF-438, see
+       certificate-preview-pager.js) all pages are identical 1200px renders, so the box is free to
+       be driven by WIDTH and to let the document run taller than the viewport and scroll — which
+       is how anyone actually reads a page-sized document on a landscape screen.
+       900px wide puts a US-Letter portrait page at ~1.1x physical size. The controls stay
+       reachable during that scroll because .zoom-controls below is sticky — without that this
+       rule would simply push them off screen, which is the DEF-438 half nobody reported. */
+    width: min(92vw, 900px);
+    max-width: 92vw;
     height: auto;
-    object-fit: contain;
     background: white;
     padding: 10px;
     border-radius: 4px;
@@ -2035,6 +2040,22 @@ body.theme-option4 .certificate-single-card .card-body {
 /* CR-052 (QC #267) — "View all pages" inside the preview popup. The client asked for the control
    "under the Preview popup"; the first build put it only in the action row outside, so opening the
    popup showed page 1 with no way forward. Shared by all four views that host #imageZoomModal. */
+/* DEF-438: the pager and the "View all pages" button are wrapped in this bar at runtime
+   (certificate-preview-pager.js → buildControls) and pinned to the bottom of the viewport.
+   Before this they were loose siblings that flowed after the image, so once the image was big
+   enough to read they sat below the fold — measured 110px off screen at 1366x768 and 1024x768,
+   the two commonest laptop heights, on the build that shipped. A control you have to scroll to
+   find is the same defect as a control that is not there. */
+.zoom-controls {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: 16px;
+    /* Opaque enough that certificate text scrolling underneath never competes with the controls. */
+    background: rgba(0, 0, 0, 0.92);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .zoom-allpages {
     text-align: center;
     padding: 0 16px 24px;

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Security.Cryptography;
 using GCCWebApp.Models;
@@ -36,7 +36,7 @@ namespace GCCWebApp.Services
         /// encrypted - DEF-400 cert 23-0971 - or not a PDF at all). Callers treat 0 as
         /// "no pager", never as an error.
         /// </summary>
-        int GetPdfPageCount(string pdfFilePath);
+        Task<int> GetPdfPageCountAsync(string pdfFilePath, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CR-053: render one page of a stored PDF to PNG bytes, without writing to disk.
@@ -495,12 +495,35 @@ namespace GCCWebApp.Services
         // response budget for a single page, and correctness is not negotiable against it.
         private static readonly SemaphoreSlim PdfRenderLock = new SemaphoreSlim(1, 1);
 
+        // DEF-433 --- the lock above must never be waited on without a bound.
+        //
+        // Both routes that reach it are [AllowAnonymous] and NEITHER is rate limited: every
+        // IpRateLimiting rule is scoped to */api/*, and these are MVC routes. Before this change
+        // GetPdfPageCount took the lock with a synchronous, TIMEOUT-FREE Wait(). ~100 concurrent
+        // anonymous requests therefore each parked a thread-pool thread indefinitely while one PDF
+        // open proceeded at a time; thread-pool injection is ~1-2 threads/sec, so the queue outruns
+        // it and the WHOLE SITE stops responding - login, tile views and the Amazon partner API,
+        // not just previews. The test-environment gate was the only thing containing this, and it
+        // comes off at public cutover.
+        //
+        // Two properties matter and they are separate:
+        //   * async acquisition, so a waiter yields its thread instead of holding it;
+        //   * a TIMEOUT, so a queue sheds load instead of growing without bound.
+        // Async alone would still let an unbounded queue build; a timeout alone would still burn
+        // threads while waiting. Both, or neither is worth much.
+        //
+        // On timeout the caller degrades rather than errors: the page count comes back 0 (pager
+        // suppressed, "View all pages" link unaffected) and a render comes back null (404, which
+        // the pager JS already treats as "no more pages"). A slow box under load loses the pager,
+        // not the site.
+        private static readonly TimeSpan PdfLockTimeout = TimeSpan.FromSeconds(5);
+
         // Page renders are larger than the 600px stored thumbnail because this one is what the user
         // actually reads in the zoom modal. It matches the 1200px render pass used below.
         private const int PageRenderLongSide = 1200;
 
         /// <inheritdoc />
-        public int GetPdfPageCount(string pdfFilePath)
+        public async Task<int> GetPdfPageCountAsync(string pdfFilePath, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(pdfFilePath)) return 0;
 
@@ -516,7 +539,16 @@ namespace GCCWebApp.Services
                 if (!string.Equals(Path.GetExtension(fullPdfPath), ".pdf", StringComparison.OrdinalIgnoreCase))
                     return 0;
 
-                PdfRenderLock.Wait();
+                // DEF-433: was PdfRenderLock.Wait() - synchronous and unbounded. See PdfLockTimeout.
+                if (!await PdfRenderLock.WaitAsync(PdfLockTimeout, cancellationToken))
+                {
+                    _logger.LogWarning(
+                        "DEF-433: PDF lock not acquired within {Timeout}s counting pages of {PdfPath} - " +
+                        "returning 0 so the pager is suppressed rather than queueing behind the lock",
+                        PdfLockTimeout.TotalSeconds, pdfFilePath);
+                    return 0;
+                }
+
                 try
                 {
                     using var reader = DocLib.Instance.GetDocReader(fullPdfPath, new PageDimensions(100, 100));
@@ -526,6 +558,11 @@ namespace GCCWebApp.Services
                 {
                     PdfRenderLock.Release();
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // The caller disconnected. Not an error, and not worth a log line at warning.
+                return 0;
             }
             catch (Exception ex)
             {
@@ -551,7 +588,17 @@ namespace GCCWebApp.Services
                 if (!string.Equals(Path.GetExtension(fullPdfPath), ".pdf", StringComparison.OrdinalIgnoreCase))
                     return null;
 
-                await PdfRenderLock.WaitAsync();
+                // DEF-433: bounded, for the same reason as GetPdfPageCountAsync. This one was
+                // already async - it was the queue depth that was unbounded, not the thread use.
+                if (!await PdfRenderLock.WaitAsync(PdfLockTimeout))
+                {
+                    _logger.LogWarning(
+                        "DEF-433: PDF lock not acquired within {Timeout}s rendering page {Page} of {PdfPath} - " +
+                        "returning null so the caller 404s rather than queueing behind the lock",
+                        PdfLockTimeout.TotalSeconds, pageIndex, pdfFilePath);
+                    return null;
+                }
+
                 try
                 {
                     // Pass 1 - this page's own aspect ratio. Pages in one PDF are not necessarily

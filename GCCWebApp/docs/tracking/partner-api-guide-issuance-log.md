@@ -216,3 +216,49 @@ which is the state the earlier warning was asking for.
 **All four artifacts are now v1.2 and consistent:** the HTML source, the generic `TEMPLATE.docx`, and
 the two issued `…_2026-09-15.docx` guides. The `…_2026-09-14.docx` pair stays at v1.1 untouched as the
 record of what Amazon actually holds.
+
+---
+
+## Re-issue — 2026-09-24 — v1.3: production host is `db.`, not `database.`, and it is live now
+
+**Why.** The go-live decision of 2026-09-21 made `db.greencirclecertified.com` the canonical host, so
+that links already in circulation keep working. `database.` now **301-redirects** to `db.`, including
+`/api/*`; verified live 2026-09-24: `database.…/api/v1/certificates` → 301 → `db.…`, and `db.…` → 401
+without a key. A partner following v1.2 would call a redirect, and many HTTP clients drop the
+`X-API-Key` header when they follow a redirect to another host. Shawn decided on 2026-09-24 that the
+guides say production is **live now** (not "at go-live").
+
+**What changed, in every artifact:** the host `database.` → `db.` in the Base URL row, the curl
+example, the §-Base URL line, the example response `id`, and the "Reading the two id fields" note.
+The version went 1.2 → 1.3 (header + footer). Wording changes:
+- The Base URL box (Amazon, MASTER): *"Available at go-live. This hostname is not serving this API
+  yet…"* → *"Live now — use this address for production. Keep using the Test base URL below for
+  integration testing."*
+- The "production host is…" note (HTML source, TEMPLATE, MASTER) gains: *links already in circulation
+  keep working; database. forwards web visitors, but an API client should not rely on a redirect.*
+- MASTER's *"NOT YET LIVE…"* instruction → *"LIVE — the production API is served from db. now…"*
+
+| File | Result | Backup / predecessor kept |
+|---|---|---|
+| `docs2/exports/PARTNER_API_INTEGRATION_GUIDE.html` (source) | v1.3. Diff vs backup = exactly the intended lines | `…v1.2-backup-20260924-100442.html` |
+| `docs2/exports/GCC_Partner_API_Integration_Guide_TEMPLATE.docx` | v1.3, in place (source lineage) | `…v1.2-backup-20260924-*.docx` |
+| `docs/tracking/api-samples/GCC_Partner_API_Integration_Guide_Amazon_2026-09-24.docx` | **new**, v1.3 | `…_2026-09-15.docx` unchanged (what Amazon holds) |
+| `docs/tracking/api-samples/GCC_Partner_API_Integration_Guide_MASTER_2026-09-24.docx` | **new**, v1.3 | `…_2026-09-15.docx` unchanged |
+| `docs/user-guide/GCC_Partner_Setup_Guide_v1.1.docx` + `.html` | rebuilt from `partner-api-setup-guide.md` (v1.0 → v1.1) | `…_v1.0.docx/.html` unchanged |
+
+**Verified, every file:** `database.` survives only inside the forwarding note (0 in the Amazon guide,
+which has no issuer box); 0 "Available at go-live" / "NOT YET LIVE" / "not live yet"; 0 `v1.2`,
+2 × `v1.3`; paragraph/table counts unchanged (223/13); no `DEF-`/`CR-0`/`localhost`/`PublicStatuses`
+/*Client Approved*/`CertificatesController`; no live-looking `gcc_partner_` key. Runs were edited
+in place, so the monospace code styling was kept, and no paragraph needed a whole-text fallback.
+One slip caught by the check: the first pass missed the footer `v1.2` (no word boundary between `v`
+and `1`), and it was fixed before recording.
+
+**Not yet done:**
+- **Not issued.** When the Amazon v1.3 goes out, add a row to the Log table above and say plainly in
+  the cover note that the production host changed.
+- **Test URL fixed 2026-09-24 (same unissued v1.3):** the HTML source and `TEMPLATE.docx` said
+  `https://gccwebapp.com/api/v1` for the *Test base URL* row and the "two id fields" note. `gccwebapp.com`
+  now serves **production**, so both now say `https://dbtest.greencirclecertified.com/api/v1`, matching the
+  Amazon/MASTER guides. 2 replacements in each file; diff = exactly those 2 lines; 0 `gccwebapp` left;
+  223/13 paragraphs/tables unchanged. Backups: `…v1.3-pre-testurl-backup-*.html/.docx`.

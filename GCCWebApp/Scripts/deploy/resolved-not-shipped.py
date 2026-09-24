@@ -61,6 +61,21 @@ REGISTERS = [
 FULL = "--full" in sys.argv
 SHOW_BASELINED = "--show-baselined" in sys.argv
 WRITE_BASELINE = "--write-baseline" in sys.argv
+
+
+def _arg_value(flag):
+    """--flag=value or --flag value."""
+    for i, a in enumerate(sys.argv):
+        if a == flag and i + 1 < len(sys.argv):
+            return sys.argv[i + 1]
+        if a.startswith(flag + "="):
+            return a.split("=", 1)[1]
+    return None
+
+
+# Path to write the waiting set to, for verify-bundle.py to consume. See the block at the
+# bottom of this file for why this exists.
+EMIT_WAITING = _arg_value("--emit-waiting")
 BASELINE_PATH = os.path.join(ROOT, "docs", "tracking", "deploy-baseline.json")
 
 baseline = {"ids": [], "bundle": None, "date": None, "note": None}
@@ -316,6 +331,32 @@ if FULL:
         for ident, title, _, st in buckets.get(key, []):
             print("  %-9s %-70s %s" % (ident, title, st[:60]))
         print()
+
+# --- hand the waiting set to the bundle verifier -----------------------------------------
+# Added 2026-09-22. This gate knows WHAT must be in the build; verify-bundle.py knows how to
+# PROVE something is in the zip. Nothing joined them, so verify-bundle's 50 hand-written markers
+# silently stopped covering the register at DEF-429 and reported "failures: 0" for a bundle whose
+# 11 items it asserted nothing about. Emitting the set here keeps ONE classifier - the alternative
+# was reimplementing classify() in the verifier, which would drift for exactly the same reason.
+if EMIT_WAITING:
+    payload = {
+        "generated": dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "baseline_bundle": baseline.get("bundle"),
+        "waiting": [
+            {"id": ident, "kind": ident.split("-")[0], "title": title, "status": st}
+            for ident, title, _, st in buckets.get("PENDING", [])
+        ],
+        "unclassifiable": [
+            {"id": ident, "kind": ident.split("-")[0], "title": title, "status": st}
+            for k in ("UNCLASSIFIED", "NO-STATUS")
+            for ident, title, _, st in buckets.get(k, [])
+        ],
+    }
+    with io.open(EMIT_WAITING, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(payload, indent=2, ensure_ascii=False))
+    print("  waiting set written to: %s  (%d waiting, %d unclassifiable)"
+          % (EMIT_WAITING, len(payload["waiting"]), len(payload["unclassifiable"])))
+    print()
 
 print("=" * 100)
 if blocking:

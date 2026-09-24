@@ -217,3 +217,11 @@ If none of these explains it, contact your GreenCircle representative with the c
 | **Expired - No Annual Verification** | Lapsed because the annual verification was not completed |
 
 The status of each certificate is shown in the **Status** column of the list, and on each tile.
+
+<!-- pagebreak -->
+
+<!-- include: devices.md -->
+
+<!-- include: glossary.md -->
+
+<!-- include: getting-help.md -->

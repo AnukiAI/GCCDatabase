@@ -7515,3 +7515,1050 @@ present in both, including the two cross-references to the other guides. **Not v
 the four `.docx` files has been opened in Word.
 
 **Not shipped.** Nothing appended to `shipped-2026-09.md`.
+
+---
+
+## 2026-09-21 — Go-live plan written; the hostname decision resolved the audit's hardest open question
+
+**Asked for:** a go-live plan, what is remaining, the DNS changes, and a schedule to share with the
+client.
+
+**Decision captured (Shawn):** retire/rename `database.` and `db.` to point at the app, and make the
+app always display as `db.greencirclecertified.com`. That single answer closed **four** of the eight
+open questions in `database.greencirclecertified.com-audit.md` — the target hostname (Q1), whether
+`db.` is staying (Q4), and, indirectly, the alias-vs-second-site question (Q3).
+
+**Why Q3 fell out of it.** Audit §7/§8 could not decide alias vs. second site because the test gate
+and `robots.txt` are single-file, single-process state and cannot differ across two hostnames on one
+site. Shawn's model resolves it without a new decision: the existing `gccwebapp.com` site **becomes
+production** (gate off, robots open, `db.`/`database.` as aliases), and CR-050's
+`test.gccwebapp.com` **becomes the test environment** (own site, own DB, own key ring, gate on).
+
+**The dependency that was not obvious, and is now the plan's biggest under-appreciated risk:**
+**CR-050 must be finished before the gate comes off**, or the project has no gated test environment
+at all. That is a sequencing constraint nobody had written down.
+
+**The conflict I had to raise rather than absorb.** Shawn answered "legacy site: separate, but
+scheduled in the same document", while also asking for `db.` to point at the app. Those pull against
+each other: the moment `db.` DNS moves, the legacy site is unreachable by that name — there is no
+partial version of a DNS change. So the deep-link redirect map moved from audit §10's "out of scope"
+to **on the critical path**. The mitigating fact is that the mapping data is already complete
+(`GCCPortalPull\manifest.csv`, 6,000 rows, 6,000 distinct `record_id`, zero blanks, and the
+`record_id -> certificate_number` direction is total) — so it is build work, not discovery. ~0.5-1 day.
+
+**Verified live rather than read from the docs (four of five statements changed as a result):**
+
+| Host | Result |
+|---|---|
+| `db.greencirclecertified.com` | `76.76.21.123` (Vercel), HTTP 200 — legacy still live |
+| `database.greencirclecertified.com` | `70.32.82.212`, 302 to `db.` — matches the audit |
+| `gccwebapp.com` | `64.27.52.66`, 302 to `/__gate` — the gate is still on |
+| `test.gccwebapp.com` | `64.27.52.66`, **HTTP 200, Plesk "Domain Default page"** |
+| `greencirclecertified.com` NS | `ns1/ns2.hostmonster.com` — confirms the zone is the client's |
+
+**New finding from that probe.** CR-050 is further along than its register entry implies — DNS and
+TLS are both done — but the **app is not deployed** (`/api/v1/certificates` and
+`/Certificate/CertificateTileView` both 404), and the site answers **200 with no gate**. Harmless
+while it serves a placeholder; it must be confirmed gated **before** the app is deployed there, or
+finishing CR-050 creates a second ungated copy at the exact moment the gate comes off the first.
+
+**Date proposed: Tue 2026-10-13**, fallback Tue 2026-10-20. A non-obvious argument for the earlier
+date: the X-SENSE fixture (`26-0441`/`26-0442`) is the only account that can prove the future-dated
+carve-out, and it stops being able to on **2026-10-21** when those certs become effective.
+
+**Deliverables:** `docs/cutover/go-live-plan-2026-09-21.md` (internal master) and
+`docs/tracking/2026-09-21-client-golive-schedule.md` (client-facing, no DEF numbers, no dev URLs).
+
+**Not done, stated so it is not mistaken for a cleared gate:** nothing was deployed; the live server
+was probed only for hostname/TLS/gate state, not for what build it is running; no `.docx` was
+produced; and every date is a proposal contingent on the seven client decisions landing by Fri 26 Sep.
+
+---
+
+## 2026-09-21 (later) — `test.gccwebapp.com` stood up; two wrong first guesses, both corrected by one request
+
+**Outcome:** the separate test site is live, gated, and running against `gccwebap_test`. CR-050's
+infrastructure steps are done. Eight isolation items remain, and one of them is live exposure.
+
+**The 403 was not `web.config`, and I nearly agreed that it was.** Shawn's read was "guessing the web
+config" and it is the natural one. The response pattern said otherwise: `403` on `/` and `404` on
+*everything* else, as plain IIS pages. One request settled it — ask for a path that exists **only if
+the publish folder is the document root** (`/GCCWebApp.deps.json`, `/wwwroot/css/main.css`). All 404
+⇒ IIS is serving a different folder. **A genuine `web.config` fault gives 500.19, not a clean
+403/404 pair.** Had those paths returned **200**, the answer would have been the opposite and far
+worse: files in place, module disengaged, secrets public.
+
+**My own wrong first answer, same session.** Checking whether the startup banner shipped, I searched
+the in-zip DLL for the ASCII bytes `DB catalog` and reported it **ABSENT from every bundle**. .NET
+stores string literals in the metadata `#US` heap as **UTF-16**. Re-run with
+`'DB catalog'.encode('utf-16-le')`: present in **every bundle from 2026-09-15 onward**. A
+single-encoding grep over a compiled assembly is an unfalsifiable absence claim — it cannot
+distinguish "not there" from "not there *in that encoding*". Search both, or search neither.
+
+**The trap that did not fire, and why.** Seeding the new site by copying the live site's `httpdocs`
+brings **production's `appsettings.Secrets.json`** with it — registered last, therefore winning, and
+it is the file that decides which database the site talks to. Left alone, the "test" site is
+production wearing a different hostname, with every page loading and the data looking right because
+it *is* the real data. **The CR-050 startup banner is what cleared it**: Shawn read
+`DB catalog : gccwebap_test`. That banner was built on 2026-09-14 specifically for a failure that was
+otherwise unobservable from the logs, and seven days later it did exactly that job. Worth noting
+because the value of that kind of work is usually invisible.
+
+**Verified externally, and it matches the documented healthy pattern rather than my assumption:**
+`/robots.txt` → 200 while `/appsettings.Production.json`, `/appsettings.Secrets.json` and
+`/GCCWebApp.dll` all → **302 to the gate**. `web.config:55-78` records the same four-point control
+from DEF-363, including *why* `fileExtensions`/`hiddenSegments` must not be added back on this Plesk
+box (the site returns an empty 500 on every path — proven twice).
+
+**The live item.** Partner API keys came across in the database copy and **the gate skips `/api/*` by
+design** — confirmed by `/api/v1/certificates` returning **401 rather than a 302**. A live Amazon key
+authenticates against `test.gccwebapp.com` today and gets a week-old copy of client data. This was
+runbook decision #1 "decide later"; it stopped being later the moment the site came up.
+
+**What the banner does NOT prove:** `Jwt:Key`, `DataProtection:ApplicationName` and
+`SmtpSettings:FromName`. If production's secrets file was edited in place rather than replaced with
+the template, all three are still production's — and a shared `Jwt:Key` means a token minted on test
+validates on `gccwebapp.com`.
+
+**Tracking updated:** CR-050 heading → *STOOD UP AND VERIFIED 2026-09-21*, with a verified-evidence
+table and an 8-row "Still outstanding" table; the runbook → status EXECUTED plus a Troubleshooting
+section carrying the 403 discriminator and the copy-from-production trap; `docs/cutover/README.md`
+row updated.
+
+**Not updated — file was locked:** `docs/cutover/go-live-plan-2026-09-21.md` §B still shows the test
+site as *not deployed*. The corrected section is written to
+`go-live-plan-2026-09-21.md.tmp` and needs to be moved over once the file is closed.
+
+---
+
+## 2026-09-21 (later still) — Legacy deep-link map built; two wrong assumptions caught by making the build prove them
+
+**Delivered.** `rewritemaps.config` — **5,999 entries**, `record_id` → certificate number — plus the
+two IIS rules, the `configSource` reference, the csproj metadata, a generator and a three-mode
+verifier. Phase 2 precondition #1 of the cutover runbook is structurally complete.
+
+**Why this exists at all:** Shawn's 2026-09-21 hostname decision points `db.` at the app. DNS has no
+partial state, so at the instant that record moves, every printed, emailed and bookmarked link to
+the legacy site dies unless the map ships with it. It moved from audit §10's "out of scope, recorded
+so it is not re-derived" to critical path in the same conversation that declared it out of scope.
+
+**Assumption 1 — my regex was stricter than the router.** I validated certificate numbers against
+`^[0-9]{2}-[0-9A-Za-z]+$` because that is what they look like, and the generator silently dropped
+**three real ASSA ABLOY certificates** — `6H3-5692`, `6H3-7120`, `6H3-6301`. Checking the actual
+route showed `CertificateSingleView(string id, …)` takes a bare string off the default route with
+**no constraint at all**; the `^[0-9]+-[0-9A-Za-z]+$` constraint in `Program.cs` applies to
+`Certificate/Edit` and `Certificate/Delete`, which this map never targets. *Validate against the
+router, not against the pattern you expect the data to follow.* The count only moved 5,996 → 5,999,
+which is exactly why it would have shipped unnoticed.
+
+**Assumption 2 — `Content Include` vs `Update`.** I wrote a csproj comment asserting that a sibling
+`.config` at the project root "is not Content by default" and added an `Include`. The Web SDK
+**already globs it**, so the build failed outright with `NETSDK1022: Duplicate 'Content' items`. The
+fix is `Content Update`, which only sets metadata on the item the SDK already created. **The failure
+was loud, which is the good case** — and it only surfaced because I ran a real `dotnet publish`
+rather than reasoning that the file would be there. Both the comment and the code now say the true
+thing.
+
+**The failure mode being guarded against.** If `rewritemaps.config` is ever absent from the publish
+output, IIS cannot resolve the `configSource` and returns **500 on every path** — not just
+redirects. That is the DEF-363 total-outage shape, which this box has already produced twice from a
+`web.config` construct. Hence `CopyToPublishDirectory="Always"` plus a bundle assertion, rather than
+trusting it.
+
+**The verifier was proved in both directions, not just the passing one:**
+
+| Test | Result |
+|---|---|
+| `--bundle` against `GCCWebApp-deploy-20260921-0805.zip` (predates this work) | **FAIL, exit 1** — correctly detects absence |
+| `--bundle` against a zip of a fresh publish | **ALL CHECKS PASSED, exit 0** — 5,999 entries, all four markers |
+
+A check that has only ever been seen to pass has not been shown to be capable of failing.
+
+**Deliberately NOT mapped**, per audit §10: the legacy unauthenticated `/api/certificates` list and
+`/api/trpc/*`. Redirecting those converts a working unauthenticated integration into a 401, which is
+worse than a clean 404 with a message. Only `/api/certificates/{id}/download` is redirected.
+
+**One row cannot be mapped and will 404:** `record_id` 4386 (Interface, Closed Loop Product,
+Expired) has no certificate number in the source — its pull was `skipped`. Recorded rather than
+quietly dropped. Ids also run 1–6076 with 76 gaps, which simply never existed.
+
+**Still owed before this can be relied on:** the map's certificate numbers have **not** been checked
+against the live system. A map entry pointing at a number the database does not hold sends a visitor
+to a 404 that reads like the cutover lost their certificate. `--targets` does that comparison in
+**both** directions; it needs an export of live certificate numbers. `--live` proves the rules
+actually fire, and can only run once a bundle carrying them is deployed.
+
+---
+
+## 2026-09-21 (later still ×2) — The HostMonster zone, seen at last: nothing wrong, but a 4-hour TTL nobody had accounted for
+
+Shawn sent a screenshot of the `greencirclecertified.com` zone editor and asked *"why is this
+happening on bluehost… Create new records? unable to modify existing?"* — four records visible,
+none of them previously documented at the record level.
+
+**The answer to the question as asked is boring, and that is the finding.** Nothing was wrong.
+Every record had a known origin: `database.` A → `70.32.82.212` is the nginx shim the inventory
+already described; `www.database.` is the `www.` companion cPanel auto-creates for any subdomain
+built through *Domains → Subdomains*; the `zk3j73e…` CNAME is Squarespace's ownership token for the
+marketing site; `_cpanel-dcv-test-record` is AutoSSL's validation probe. The action is **Edit the
+existing record**, never create a second one — layering a second A record round-robins traffic and
+half of it keeps landing on the old host.
+
+**What the screenshot actually surfaced was a scheduling defect in our own runbook.** Every record
+is on **TTL 14400 — four hours**. Both the runbook (step 1) and the go-live plan (§2.1) said
+"TTL 300" as an attribute of the record change, as though setting it were instantaneous. It is not:
+
+> **A TTL reduction is not honoured by resolvers until the previously-cached TTL expires.**
+
+So lowering the TTL and flipping the value in the same visit yields a "300" that is a fiction for
+the first four hours. On Phase 2 that lands precisely where it hurts — the cutover takes four hours
+to propagate **and so does the rollback**, on the one day the rollback matters. Phase 2's step 7b
+did say "24 h ahead", which is correct by accident; it never said *why*, so it reads like padding
+and would be the first thing compressed on a slipping schedule.
+
+**Fixed by splitting the step in two**, which is the only way to encode the dependency: `1a` lowers
+the TTL alone and waits out the old one; `1b` changes the value. 7b now carries the mechanism and
+states 4 h as the hard minimum behind the 24 h margin. §2.1 of the plan of record got a matching
+bullet so the two documents cannot drift.
+
+**Also closed a gap the runbook simply did not know about:** `www.database` was never mentioned in
+any cutover document. Recommended **delete** — nothing links to it, and repointing it silently adds
+two obligations (a second Plesk alias, a second SAN on the Let's Encrypt certificate) or it serves a
+certificate error on a hostname nobody asked for. A record that costs work in either direction
+should be decided deliberately, not discovered at step 4.
+
+**The hard blocker is partly settled:** the Edit buttons render, so that login holds zone rights.
+Recorded with its limit — it settles the question for *that account*, not for the general "who can
+edit DNS" ownership question.
+
+**Evidence discipline.** The zone table added to the runbook is attributed to *a screenshot,
+scrolled, on 2026-09-21* — not to a DNS probe. `db.` was **not** in the captured portion, so whether
+it is an A record or a CNAME to Vercel is still unknown, and those need different step 8s (a CNAME
+must be deleted, not edited). Writing "partial" into the document is the difference between a
+reader confirming one record and a reader assuming the list is complete.
+
+**The lesson worth carrying:** the inventory recorded *what `database.` resolved to*. It never
+recorded *what else shares the zone, or on what TTL* — and the TTL, not the value, was the thing
+that would have cost four hours on go-live day. An inventory that answers "where does it point"
+without answering "how fast can I change it" is half an inventory.
+
+---
+
+## 2026-09-21 (later still ×3) — `db.` is a CNAME to Vercel, not an A record. The rollback plan would have failed.
+
+Asked for the repointing steps, I resolved the zone live before writing them instead of transcribing
+the runbook. The runbook was wrong on the single most important record.
+
+| | Every document said | Authoritative reality (`1.1.1.1` + `8.8.8.8`, 2026-09-21) |
+|---|---|---|
+| `db.greencirclecertified.com` | **A** record → `76.76.21.123` | **CNAME** → `cname.vercel-dns.com`, TTL 14400 |
+| behind it | — | `66.33.60.67`, `76.76.21.98` — Vercel anycast, **TTL 300, rotating** |
+
+Wrong twice: wrong record *type*, and an IP address that is not one of the two Vercel currently
+serves this hostname from. `76.76.21.123` appears to have been recorded once and propagated into
+four documents by copy.
+
+**The forward step was merely wrong; the rollback was dangerous.** Step 8 said "flip the A record,
+replacing `76.76.21.123`" — there is no A record to flip, and a CNAME cannot coexist with one, so
+the real step is **delete the CNAME, then create the A record**, with a hostname that NXDOMAINs in
+between. Annoying, but you would discover it in the zone editor within a minute.
+
+The rollback row said `db` A → `76.76.21.123`. That one you would *not* discover, because it
+completes successfully:
+
+> Pointing an A record at a **stale Vercel anycast IP** is a rollback that reports done, propagates
+> cleanly, and serves nothing. It would have been executed under exactly the conditions where
+> nobody has spare attention to debug why the fallback is also down.
+
+Rollback is now **recreate the CNAME**, with an explicit instruction in step 8 to *write the CNAME
+target down before deleting it* — once deleted, the zone editor no longer shows what it was, and the
+rollback value is gone at the moment it is needed.
+
+**A second consequence of the CNAME, flagged but not yet proven.** Step 7a takes TLS off the
+critical path with a DNS-01 challenge, which needs a TXT at `_acme-challenge.db…`. RFC 1034 forbids
+other data at a CNAME node and cPanel enforces that inconsistently, so the zone editor may refuse
+the record — which would delete 7a and force the HTTP-01 fallback, with a ~10-minute untrusted
+certificate window on a public site. Marked **test at D-2, do not assume**. Recorded as a risk
+rather than a fact because I have not tried it.
+
+**Why this was found:** the only reason was declining to write steps from a document. Four documents
+agreed with each other, which is not evidence — it is one unverified observation with three copies.
+The zone had never actually been queried for `db`; the earlier screenshot did not include it, and I
+had already written "confirm whether it is an A record or a CNAME" into the runbook as a to-do. It
+took one command.
+
+**Carry forward:** before any DNS cutover step is executed, resolve every record in scope
+authoritatively and record **type, value and TTL**. A rollback target that has never been resolved
+is not a rollback plan. And when a document states an IP for a service on managed anycast — Vercel,
+Cloudflare, Fastly, any CDN — the IP is a snapshot, not an address; roll back to the *name*.
+
+---
+
+## 2026-09-21 (later still ×4) — The zone editor won't save anything, and the record blocking it is one cPanel created itself
+
+Shawn's first attempted zone edit failed. The read *"I think it is a permission issue"* was the
+natural one — it is a client-owned zone and the ownership question was already an open blocker in
+the runbook. It was not permissions.
+
+> **Error:** greencirclecertified.com's "TXT" records have mismatched TTL values (14400 and 3600).
+> Records of the same name and type must always have the same TTL value.
+
+Resolved authoritatively against `ns1.hostmonster.com`:
+
+| Name | Type | TTL |
+|---|---|---|
+| `greencirclecertified.com` | TXT ×4 — root SPF, `MS=`, `apple-domain-verification`, `google-site-verification` | 3600 |
+| `_dmarc.greencirclecertified.com` | TXT | 14400 |
+| `_cpanel-dcv-test-record.greencirclecertified.com` | TXT | 14400 |
+
+**The error message is wrong on its own terms.** Those are three *different* names, and each name is
+internally consistent — four apex records all at 3600, one record each at the two `_`-prefixed
+names. RFC 2181 §5.2 governs an RRset: same name, same type, same class. There is no violation.
+cPanel is grouping TXT records **by type across the whole zone and ignoring the name** — and one of
+the two records it trips over is the AutoSSL DCV probe **cPanel wrote itself**.
+
+Fix is two TTL-only edits, deliberately **downward** to 3600 so the four apex records are never
+touched — one of them is the root SPF at five of ten permitted lookups, the single record that can
+break mail for the whole domain including the client's Microsoft 365.
+
+**The find that matters is the one nobody asked about.** Chasing this, I mapped every A and CNAME TTL
+in the zone: **all thirteen are uniformly 14400.** Which means if the same by-type validation applies
+to A records, then **step 1a — lower `database` to 300 — throws the identical error**, because it
+would be the only A record not at 14400.
+
+That is not a Phase 1 problem; `database.` serves nothing but a redirect, so four hours is fine.
+**It is a Phase 2 problem, and a serious one:**
+
+> Step 7b's whole purpose is a five-minute rollback on go-live day. If the validator will not let a
+> single A record sit at 300, that guarantee does not exist — and the fallbacks both need lead time:
+> normalising *all* A records to 300 touches the Squarespace apex and the mail hostnames, so it needs
+> the client's consent, and going beneath the validator means a HostMonster support ticket.
+
+So step 0 now ends by telling whoever runs it to **attempt 1a deliberately and early**, on the
+harmless hostname, purely as a probe of whether Phase 2's rollback is achievable at all. A four-hour
+rollback window discovered at D-0 is discovered too late to do anything but accept it.
+
+**Honesty about the diagnosis.** A zone cannot be enumerated from outside, so a competing
+explanation survives — a same-name TXT pair invisible externally. The fix is identical either way,
+so I wrote the caveat into step 0 along with how to settle it from the UI (filter to TXT, read the
+TTL column, look for one *name* with two TTLs) rather than presenting the inference as fact.
+
+**Carry forward:** an error message from a hosting control panel is a claim, not a diagnosis. This
+one named the right record type, the right two TTL values, and the wrong reason — and the wrong
+reason is what would have sent someone hunting through the apex records, next to the SPF, which is
+the one thing in this zone that must not be touched.
+
+---
+
+## 2026-09-21 (later ×5) — The step 0 fix we wrote could never have worked, in any order
+
+Shawn came back with *"had issues deleting."* The deletion was **step 0b — remove
+`_cpanel-dcv-test-record`** from the HostMonster zone. It was rejected, and the worry underneath the
+message was that something had been broken on a client-owned production zone.
+
+**First finding, and the one that mattered most to say first: nothing was broken.** Resolved
+authoritatively from `ns1.hostmonster.com` — `db.` still `CNAME → cname.vercel-dns.com`, `database.`
+still `70.32.82.212`, `dbtest.` still `64.27.52.66`, and **both** `_`-prefixed TXT records still
+present at 14400. The rejected save changed nothing. A failed edit on a production zone reads exactly
+like a damaged one, and the cheapest possible reassurance is a probe, not an argument.
+
+**Second finding: our own remediation was impossible.** Yesterday's entry diagnosed the validator
+correctly and then prescribed *"two TTL-only edits, 0a then 0b."* That prescription was never
+executable. The validator refuses a save while two TTLs exist among TXT records, and cPanel commits
+**one record per transaction**, so every available single-record save still leaves a mismatch behind:
+
+| Attempt | Leaves | Verdict |
+|---|---|---|
+| Delete `_cpanel-dcv` | `3600×4` + `_dmarc 14400` | rejected |
+| `_dmarc` → 3600 | `3600×5` + `_dcv 14400` | rejected |
+| `_dcv` → 3600 | `3600×5` + `_dmarc 14400` | rejected |
+| Any apex → 14400 | `3600×3` + `14400×3` | rejected — and forbidden, it is the SPF |
+
+The zone needs **two** changes to become consistent and the UI grants **one**. There is no ordering
+that works. We shipped a two-step procedure with a zero percent success rate and Shawn spent the
+attempt discovering it on a live client zone.
+
+**What replaced it** (`docs/cutover/STEP-0-DEADLOCK-2026-09-21.md`, to be merged into the runbook —
+the runbook file was locked by another process at the time): a 2-minute **probe** that distinguishes
+the two worlds without risking a record (edit `_dmarc`'s TTL, not delete anything), a check for a
+**whole-zone editor** that would commit both changes in one transaction, and a **pre-written
+HostMonster support ticket** as the escape hatch. The ticket is the point — it is the only route with
+lead time, step 0 blocks every DNS step in both phases, and a support queue measured in days does not
+fit inside the D-7 pre-stage window. It has to be raised the day the deadlock is suspected, not the
+day Phase 1 is otherwise ready.
+
+**Honesty about the diagnosis, again.** The TTLs are measured. That cPanel validates the *resulting*
+whole-zone state is inferred from the error text plus the fact that a *delete* was refused. It fits
+everything observed and it is still not proven, which is exactly why the recommendation leads with a
+two-minute probe instead of a support ticket.
+
+**Carry forward:** yesterday's lesson was *an error message from a hosting control panel is a claim,
+not a diagnosis.* Today's is the other half — **a fix derived from that claim is a hypothesis too.**
+Before writing a remediation as an ordered list of steps, walk the state machine and check that every
+*intermediate* state is legal, not just the destination. A procedure whose first step cannot be
+performed is worse than no procedure: it looks actionable, so it gets attempted, and it gets attempted
+against production.
+
+---
+
+## 2026-09-22 — Probe rejected: the zone is unmodifiable through the UI, and step 0 is now the top blocker
+
+The 2-minute probe from yesterday returned the identical error. A **TTL-only edit**, on a record
+whose own name holds exactly one TXT entry, changing nothing but a number, was refused:
+
+> greencirclecertified.com's "TXT" records have mismatched TTL values (14400 and 3600).
+
+**Yesterday's inference is today's observation.** cPanel validates TXT records by type across the
+whole zone, ignores the name, and rejects any save leaving two TTLs present. No single-record save
+reaches a consistent state, so the zone cannot be edited through the UI at all. The probe was worth
+running precisely because it cost two minutes and converted a hypothesis into a fact before anyone
+spent days on the wrong remedy.
+
+**The schedule has reordered itself.** Step 0 gates every DNS step in both phases, so it is now ahead
+of DEF-433 on the critical path — and unlike DEF-433, which is ours to fix in 3–4 hours, this one is
+not ours to fix at all.
+
+**The dependency that actually costs the schedule is ownership, not the validator.** A HostMonster
+support ticket generally requires the account holder, and the account is the client's. So the
+escalation is not "open a ticket" — it is "ask the client to open a ticket, or to grant the access to
+open it," and that ask had to go out today. The go-live plan has carried *"who edits DNS at
+HostMonster?"* as §5 item 1 since it was written, treated as a scheduling question to be answered by
+Fri 26 Sep. It stopped being a scheduling question the moment the zone became unmodifiable. **An open
+question about access converts into lost days the instant something needs doing through that access**
+— and the conversion is silent, because nothing in the plan changes state when it happens.
+
+**A second problem surfaced from the same finding.** Runbook step 7b needs `db.`'s TTL lowered to 300
+before go-live so the cutover and its rollback propagate in minutes. Every A and CNAME in the zone is
+uniformly 14400. If the by-type validator applies to A records the way it demonstrably applies to TXT
+records, **step 7b is impossible too, and the five-minute rollback guarantee on go-live day does not
+exist.** That is a materially worse fact than the blocked delete: it means the cutover's stated
+rollback plan may be fiction. It has been added to the escalation doc rather than left as an
+inference, because the fix for both problems is the same one — and it needs lead time.
+
+**Which is why Cloudflare went to the client in the same message rather than being held as a
+fallback.** Moving the zone gives unrestricted TTL control and fixes step 0 and step 7b permanently.
+It is not free of risk — every record must be replicated exactly, and this zone carries the client's
+Microsoft 365 MX, a root SPF at five of ten lookups, and the Squarespace apex for their marketing
+site — so it is a client decision, it needs a record-by-record diff afterwards, and it must not be
+attempted inside the go-live window. All the more reason it cannot wait for the support ticket to
+fail first.
+
+**Carry forward:** when a blocker turns out to need someone else's credentials, **escalate the access
+question on the same day, not the blocker.** The instinct is to keep working the technical problem —
+try another edit, find another menu — and that instinct spends the one resource that cannot be
+recovered, which is lead time on somebody else's queue. Also: **when one control surface is proven
+broken, immediately ask what else was assumed to work through it.** The blocked TXT edit was an
+irritation; the same validator applied to A records quietly invalidates the rollback plan, and nobody
+would have gone looking for that.
+
+### Correction, same day — the ownership blocker was never real
+
+Shawn has **full access to the DNS**. The entry above spent several paragraphs on the HostMonster
+account being the client's, called it the dependency that would cost the schedule, and routed the
+support ticket through a client email. **All of that is withdrawn.** She can raise the ticket
+herself, tonight, and go-live plan §5 item 1 comes off the client letter entirely.
+
+I inferred the ownership constraint from the runbook's standing note that the zone is client-owned,
+and never asked. It was the single most load-bearing assumption in the escalation — it set the owner,
+the route and the estimated delay — and it was wrong. **An assumption that determines who does the
+work is worth one question before it becomes the plan.**
+
+**The second thing worth recording is the shape of the question she asked.** *"I'm concerned I will
+take their site down."* The worry was real and correctly cautious, and it was aimed at the wrong
+system: TXT records cannot affect site availability, which rides on A and CNAME records. The actual
+exposure is the client's **email** — specifically the apex SPF record, under a domain publishing
+DMARC `p=quarantine`. The two `_`-prefixed records she proposed deleting are the safe ones.
+
+**Carry forward:** when someone states a risk before acting, check whether the risk they named is the
+risk they face. Answering only the literal question — "yes, that's safe" or "no, don't" — leaves the
+real hazard unnamed and the person no better calibrated for the next decision. Here the honest answer
+was *the site was never at risk, and here is what is.*
+
+---
+
+## 2026-09-22 (later) — DEF-433: two harness defects found and fixed, and neither was the cause
+
+Picked up DEF-433 expecting to write a fix. The code fixes (1–3) were already in the working tree
+and correct on inspection; the open item was the one the register is blunt about — **the load check
+passes on code known to be broken, so it is not a gate.** That is the whole job: make the check
+capable of failing.
+
+**Two real defects in the harness, both found by reading it rather than running it.** The storm
+threads were created and started in a Python loop, each building its `urllib` request *after*
+starting, so the requests trickled in and the server drained them as they arrived — the load
+generator was the bottleneck and true concurrency was never reached. And the control sampler was
+started *after* that loop, so on a fast box it could begin measuring after the peak and record the
+recovery rather than the outage. Both are now fixed — a `threading.Barrier` releases every worker in
+one instant, and the sampler starts first and runs through the storm.
+
+**Both fixes were hypotheses, and both were wrong about the cause.** The negative control still
+passed. Capping the thread pool to 2/8 on a 14-core box — the third escalation — also changed
+nothing. Three attempts, three failures to reproduce.
+
+**The finding that actually matters came from the logs, not the timings.** Across all three runs,
+`grep 'PDF lock not acquired'` returns **zero** — and in the fixed build that warning fires whenever
+the 5-second bound is hit. So the lock was never contended for 5 seconds *in any run, including the
+one I called PASS*. The storm saturates the **render** route (60–100 of 200 requests hit the client
+timeout) while the **count** route — the blocking one, the actual defect — answers promptly
+throughout. A storm that never builds a lock queue cannot reproduce a lock-queue defect. That single
+grep explains why raising concurrency and capping the pool both did nothing, and it was available
+from the first run. **I ran two more experiments before reading the evidence the first one already
+produced.**
+
+**What I would not let stand.** Run 3 assumed the `ThreadPool.MaxThreads` cap took effect; I verified
+the value on disk, never in the running process, so run 3 is weaker evidence than runs 1–2 and the
+register now says so rather than counting three failures where there are two and a half. Related
+trap, worth its own line: **an incremental `dotnet build` does not regenerate
+`bin/Debug/net8.0/GCCWebApp.runtimeconfig.json`.** My edit survived a rebuild and would have silently
+throttled every later local run on this machine. It had to be stripped by hand and verified by grep.
+
+**The one durable improvement:** `--expect pass|fail` makes the two-run protocol explicit, and a
+negative control that fails to reproduce now **exits non-zero and says the harness does not
+discriminate**, instead of printing a green PASS that means nothing. The script can no longer be
+mistaken for a gate it has not earned. DEF-433 stays fixed-in-principle, not verified under load —
+which is where it was, but now the check says so itself instead of claiming otherwise.
+
+**Carry forward:** *when an experiment fails to reproduce, read what the run already logged before
+designing the next experiment.* The instinct is to turn the dial up — more concurrency, fewer
+threads — and each turn costs a rebuild, a restart and a 20-second storm. The log line that
+explained all three failures existed after the first one. Ask "what did this run tell me that I did
+not look at?" before asking "what should I change?"
+
+---
+
+## 2026-09-21 (later still ×5) — Probed six TXT records, there were eight. The fix I gave would have failed on live mail DNS.
+
+Correcting the previous entry. Having diagnosed the zone editor's mismatched-TTL error, I wrote a
+step-by-step for Shawn: delete `_cpanel-dcv-test-record`, drop `_dmarc` to 3600, done. She asked a
+one-line question — *"what six have to agree?"* — and enumerating to answer it broke the fix.
+
+**There are eight TXT records, split 4/4, not six split 4/2:**
+
+| TTL | Records |
+|---|---|
+| 3600 | four at the bare apex — root SPF, `MS=ms49326145`, apple-domain-verification, google-site-verification |
+| 14400 | `_dmarc`, `_cpanel-dcv-test-record`, **`_acme-challenge`**, **`www`** (a cPanel default-template SPF) |
+
+`_acme-challenge` and `www` were missed because I **probed likely names rather than enumerating** —
+apex, `_dmarc`, the DCV record, and a couple of guessed DKIM selectors. A zone cannot be enumerated
+from outside without AXFR, and I treated a sample as a census.
+
+**The cost, had she followed it:** three edits on the client's live mail DNS — including deleting a
+record and re-adding DMARC by hand — ending in the **identical error**, because `_acme-challenge`
+and `www` would still have been at 14400. Two of those three operations touch records that carry
+mail policy for a domain running the client's Microsoft 365.
+
+**The correction also inverts the recommendation.** At 4-vs-4 the DIY path needs four operations,
+permanently removes an SPF record, briefly removes DMARC, and rests on an assumption I never
+verified — that deletes bypass the validator. Against that: a five-minute support ticket asking
+HostMonster to set all TXT records to one TTL at the zone-file level. Step 0 now says ticket, and
+says **14400** rather than 3600, because 14400 is what AutoSSL writes when it recreates the DCV
+record — so the problem does not come back — and it leaves the four apex records, root SPF included,
+untouched.
+
+**Two incidental findings that reduce risk elsewhere.** `www` carries a **CNAME and a TXT record
+simultaneously** — the exact RFC 1034 "no other data at a CNAME node" case I had flagged as a threat
+to step 7a's DNS-01 pre-issuance. This zone already does it and cPanel tolerates it. And
+`_acme-challenge` at the apex proves DNS-01 has been run on this domain before. Neither is proof
+that `_acme-challenge.db` will be accepted, but both make 7a more likely to work than its warning
+assumes. Recorded as evidence, not as a resolution.
+
+**Carry forward — this is the project's recurring failure in a new costume:** *enumerate
+populations, don't sample.* The tell was there and I walked past it. I had already written into the
+runbook, the previous day, a caveat that the zone "cannot be enumerated from outside" — then built a
+four-step remediation on top of a partial list anyway, and only discovered it because the user
+questioned a number in passing.
+
+**Secondary, process:** the file was locked mid-correction by a Notepad window I had launched myself
+when she said "open the file". Three writes failed with EPERM before I isolated it — folder
+writable, file held. Opening a file for a user takes a lock; either open it read-only or expect to
+ask them to close it before the next edit.
+
+---
+
+## 2026-09-22 — Three wrong diagnoses in a row, all from trusting DNS queries over the control panel. The fix is one edit.
+
+Shawn asked me to write the HostMonster support ticket and attached a screenshot of the full zone —
+53 records, every TTL visible. The ticket was not needed. **cPanel's error message had been correct
+and literal the entire time, and I had called it wrong on its own terms.**
+
+| TTL | Apex TXT record |
+|---|---|
+| 14400 | root SPF |
+| 14400 | `MS=ms49326145` |
+| 14400 | `google-site-verification=…` |
+| **3600** | **`apple-domain-verification=OC6SuW8PHizJzPcP`** — the only non-14400 record in all 53 |
+
+Same name, same type, mixed TTL. A textbook RFC 2181 §5.2 violation in a single RRset. **Fix: raise
+that one record to 14400.** No ticket, no deletes, nothing touched on SPF or DMARC, and the save is
+legal on its own because it resolves the mismatch in the operation that makes it.
+
+### Why every external query lied, consistently
+
+`Resolve-DnsName` against `ns1.hostmonster.com` returned **all four apex TXT records at 3600**.
+
+> **RFC 2181 §5.2 requires an authoritative server to serve every record in an RRset with one TTL —
+> the lowest present.** BIND collapsed the apex set to 3600 because `apple` is 3600. The three 14400
+> records were served *as* 3600. **A within-RRset TTL mismatch is invisible from outside the zone.**
+
+So the data was not merely incomplete, it was **inverted**: it showed the apex as the consistent
+part and the `_`-prefixed names as the anomalies, which is the exact opposite of the truth. Three
+successive diagnoses were built on it —
+
+1. *"two stray records, two TTL-only edits"* — wrong, missed two records;
+2. *"eight records split 4/4, no legal single save exists"* — wrong, wrong count and wrong rule;
+3. *"raise a HostMonster support ticket"* — unnecessary work on a client-owned zone.
+
+— and each one was more confident than the last, because each was a refinement of the same bad
+input rather than a new look at it. The escalation to "get support to edit the zone file beneath the
+validator" is the tell: when a fix starts requiring privileged access to work around a tool that is
+reporting an error *accurately*, the diagnosis is the thing to re-examine.
+
+### The good news it also produced
+
+The rule is per-RRset — same name **and** type — not per-type across the zone, which is what I had
+asserted. So the warnings I had written into steps 0, 1a and 7b are void: `database` A, `dbtest` A
+and `db` CNAME are each **single-record RRsets**, and lowering any of their TTLs to 300 is legal.
+**Phase 2's five-minute rollback guarantee holds** — it had been marked "may not be possible at
+all", which would have forced either a client-consent conversation about renumbering every A record
+or a support ticket, both on the critical path. The only multi-record RRset in scope is the apex A
+set (four Squarespace addresses), which this cutover never touches.
+
+### Carry forward
+
+**For TTL questions, read the control panel. Never infer TTL from a query.** More generally: a DNS
+resolver answers *what it will serve*, not *what is in the zone file*, and the two differ by design
+in at least this one documented way. When a tool with direct access to the source reports an error
+that contradicts a remote observation, the remote observation is the suspect.
+
+**And the error message was evidence, not noise.** It said "records of the same name and type" — the
+precise, correct rule. I read it as sloppy wording because it disagreed with my data, and built
+three plans on the assumption that cPanel was buggy. It was right.
+
+---
+
+## 2026-09-22 (later) — "But I added `dbtest` and got no error" — the counter-example that refined the model
+
+Having landed on the correct diagnosis (one apex TXT record at 3600 in an otherwise-14400 RRset),
+Shawn immediately produced the fact that did not fit: **she added `dbtest.greencirclecertified.com`
+to this zone days earlier and it saved without complaint** — with the `apple` fault presumably
+already present.
+
+My explanation had been "cPanel validates the whole zone on every save." That cannot be right as
+stated, or the `dbtest` add would have failed too.
+
+**The refinement:** not every operation runs the validation. **Add Record** appends through a simple
+endpoint; **Edit** submits through `mass_edit_dns_zone_records`, which validates RRset TTL
+consistency across the whole submitted set. Only the edit path looks. This is inferred from observed
+behaviour — one successful add, several refused edits — not from cPanel's source, and it is recorded
+as such. The only competing explanation is that the `apple` record's TTL changed between the two
+attempts, which is unverifiable (DNS carries no timestamps) and requires an unexplained event.
+
+It also retro-explains the earlier guess that deletes seemed to bypass the validator: same cause.
+
+**It converts an unknown into a fallback.** If the one-record fix is itself refused, the answer is
+not to escalate to a support ticket — it is to **switch paths**: delete `database` and re-add it,
+using the same Add route that demonstrably works in this zone. Written into step 0, with the
+warning that this must not be used on `db` at D-0, where the gap between delete and add is a real
+outage on a live hostname rather than a harmless pause on a redirect.
+
+**Worth noting how it surfaced.** This is the second time in two days that a one-line question from
+the user — *"what six have to agree?"*, *"but I didn't get the error when I added dbtest?"* — has
+found a defect in my reasoning that I had not tested myself. Both were cases of me holding a model
+that explained the evidence I had gone looking for, while the user held evidence I had never asked
+about. **Ask what has already been tried in the system before theorising about how it behaves.**
+
+### DEF-433, count-only storm — two more harness defects, still no reproduction, and the number that ended it
+
+Shawn said try the count-only storm, so I did. It found two more real defects in the harness and
+still did not reproduce the fault.
+
+The 50/50 route mix was itself a defect. `ViewCertificateImage` *renders*; it is an order of
+magnitude slower per request, so it monopolised the storm while the cheap count requests — the
+blocking path, the actual defect — sailed through between renders. And the fixture guard rejected
+`pages == 1` unconditionally, which was actively harmful: `CertificatePageCount` opens the PDF and
+takes the lock regardless of page count, so the guard was **rejecting the largest PDF in the dev
+store** (Id 672, 2.34 MB) as unsuitable for exactly the test it suited best.
+
+Both fixed. Neither reproduced the fault. Five runs now, and `PDF lock not acquired` — which fires
+on every 5-second bound hit in the fixed build — has returned **zero** every single time. Mixed and
+count-only, 200 and 400 concurrent, default and capped thread pool, a 4-page file and one 78 times
+larger. The lock has never once been contended for five seconds.
+
+**The number that ended it:** runs 4 and 5 both returned **exactly 300 HTTP 200s and 100 client
+timeouts**, on fixtures differing by two orders of magnitude, both "finishing" at 20.1 s — precisely
+the client timeout. A split that does not move when the workload changes that much is not the
+application. It is a ceiling in the load generator or the transport. **Every run so far has been
+measuring my harness, not the app.**
+
+**What I got wrong, and it is the same mistake twice.** After the first three failures I wrote a
+carry-forward about reading what a run already logged before designing the next experiment. I then
+designed two more experiments — a route filter and a bigger fixture — without first asking the prior
+question: *can this instrument detect lock starvation at all?* The zero-warning count was already
+five-for-five. I treated it as "the storm isn't big enough" when it equally supported "the storm
+never reaches the lock," and those call for opposite next moves.
+
+So the revised plan leads with the falsifier that should have been first: hold the lock artificially
+for ~30 s behind a test-only flag and confirm the check FAILS. If it cannot see a lock deliberately
+held open, no amount of concurrency tuning was ever going to work.
+
+**Carry forward:** *before tuning an instrument to detect a subtle signal, prove it detects an
+obvious one.* A negative result from an uncalibrated instrument is not evidence about the system —
+it is evidence about the instrument, and it is indistinguishable from success. Five runs cost a
+rebuild, a restart and a 20-second storm each; the calibration check costs one and would have
+redirected all five.
+
+
+---
+
+## 2026-09-22 — Phase 4 complete: consolidation, shared includes, orphan retired
+
+**The user-guide set is finished.** Five pipeline-built guides, one markdown source each, `.docx`
+and `.html` from the same source, screenshots, versioned front matter. ~3.5 hours against a 4-6
+hour estimate; ~17 hours for all four phases against an estimate of 26-39.
+
+**The orphan master guide is deleted — after an audit, not instead of one.** 35 sections mapped:
+33 covered, 0 missing, 2 deliberate. The audit ran against the BUILT guides rather than their
+sources, because the deliverables are what a reader gets. Record kept in
+`docs/user-guide/2026-09-22-master-guide-disposition.md`; the file is recoverable from git.
+
+**One section was deliberately not ported, and it is a live question.** The old guide stated a clean
+notification rule — green toast for success, confirmation modal before irreversible actions. The
+build does not consistently do that: success is raised as a blocking modal in a large number of
+places, contradicting the documented standard. Publishing the rule would have been wrong for much
+of the application, so **notifications are now documented nowhere** until the inconsistency is
+resolved. That is a deliberate hole, recorded rather than quietly left.
+
+**Shared includes now make divergence structurally impossible.** `guide_parser.py` gained
+`<!-- include: name.md -->`, splicing `_shared/*.md` into the line list BEFORE parsing — so an
+included file goes through exactly the same dialect and the same code path as inline text, and
+there is no second renderer to keep in step. A missing include file raises rather than rendering an
+empty section. Verified after building: the glossary appears in four guides as **one distinct
+rendering**, not four near-copies.
+
+**The mobile section was re-measured rather than copied**, and the old document turned out to be
+right — but only checking could establish that. Measured at 1440/1024/768/390 px: the collapsed
+"Show Filters & Search" control is absent at 1440 and present at 1024 and below, matching the
+claimed breakpoint, with no horizontal scrolling at any width.
+
+**My assertion was wrong a fourth time, in the same way.** The first version tested `#filterSidebar`
+visibility and reported the sidebar as "expanded" on a phone — because the element keeps its size
+at every width and is repositioned rather than removed. The screenshot showed a perfectly correct
+collapsed layout. The honest signal was already in my own measurements: `#mobileFilterToggle` was
+false at 1440 and true everywhere below. **Four times across four phases the artifact was right and
+the check was wrong** — that ratio is now the thing to expect, not the surprise.
+
+**De-duplication found real content in both "duplicate" files**, which is the Phase 1 lesson
+repeating:
+
+- Bulk CSV user import -> now section 10 of the Accounts Guide v1.1.
+- **The training note's lockout advice was simply wrong** — it claimed toggling a user Inactive and
+  back resets the failed-attempt counter. Lockout is time-based (five failures set a timestamp
+  fifteen minutes out; `User.IsLockedOut` compares it to now). Toggling status does nothing.
+  Corrected in place rather than ported.
+- ⚠️ **A pre-launch security item lived in that file and nowhere else** — the seed accounts
+  (`admin`, `analyst`, `external`, shared default password) must be removed or re-passworded before
+  public launch. Confirmed **absent** from `pre-deploy-agent-checklist.md`. Preserved in the reduced
+  note and raised for Shawn; adding a deploy gate is a governance change, not mine to make.
+  **Had I reduced that file to a pointer without reading it, the only written record of a launch
+  security requirement would have gone with it.**
+
+**The Accounts Guide became v1.1, not an edit.** It was delivered to the client in the August
+release, so the slug carries the new version and the v1.0 files remain untouched on disk — an
+issued document is the record of what the recipient holds.
+
+**Verification:** all five guides rebuilt; 0 leak patterns across HTML and DOCX text. One apparent
+hit on the Partner guide resolved to `dbtest.greencirclecertified.com` — the partner's own base
+URL, required content rather than a leak.
+
+**Still not done, and it is the same gap as in every phase:** no `.docx` has been opened in Word.
+Nothing has been sent; `shipped-2026-09.md` is untouched.
+
+
+---
+
+## 2026-09-22 — Gate 13 added: test fixture accounts must be gone before public launch
+
+Shawn approved the governance change raised at the end of Phase 4, so the seed-account requirement
+is now **Gate 13** in `docs/tracking/pre-deploy-agent-checklist.md`.
+
+**Scoped to public launch, deliberately NOT to every deploy.** The fixture accounts are what the
+test environment is tested *with*. A gate that has to be waived on every routine deploy is a gate
+nobody reads by the third one, so Gate 13 states its trigger in its title and the checklist header
+now carries an explicit exception to its own "run top-to-bottom" instruction.
+
+**Widened from three accounts to sixteen.** The training note named `admin`, `analyst`, `external`.
+Enumerating what is actually documented found **sixteen** fixture accounts across Admin, Analyst,
+External, Partner and the CI partner set — three of them Admin-role. Writing the gate from the note
+would have shipped a check that misses thirteen accounts, including `test.admin`.
+
+**No plaintext password was added.** The checklist had zero before this change and has zero after —
+verified by grep. The gate names the accounts and points at the credentials section rather than
+reprinting passwords, because the committed-credentials problem is already an open cleanup item and
+a deploy checklist is not the place to widen it.
+
+**The gate's main check tests the risk, not the record.** Enumerating `Users` proves what the rows
+say; the load-bearing step is attempting one sign-in per documented default password against the
+public host and requiring every attempt to fail. A row can look correct while the hash is unchanged.
+One attempt per account, because five consecutive failures lock an account for fifteen minutes.
+
+**Header index corrected while I was there.** It read "Gates 0–10 run before the upload. Gate 11
+runs after it" — already stale, because Gate 12 existed and runs after the upload too. An index that
+does not list the new gate makes the new gate invisible, which is the failure mode that produced
+this whole item in the first place.
+
+## 2026-09-22 — Popup PDF button relabelled "View PDF"; how to turn the gate off and on
+
+**Request (Shawn):** the button should read "View PDF" instead of "all pages", because most
+certificates have only one page. Also asked for the steps to turn the login gate off for production
+and back on, since the test environment will stay.
+
+**Done:** the label now reads "View PDF" in all five places it appears: the popup on Edit,
+SingleView, InternalView and ExternalView, plus the Create-mode link in `certificate-create.js`.
+The aria-labels were updated to match. `verify-cr052-all-pages.js` checked for the old literal and
+was updated too; no other script or user guide depends on the text. **Not yet checked on localhost.**
+This is a copy change from the client and still needs a CR number in the register (absorbed, ~0.25 hr).
+
+**Gate on/off:** the answer is the `TestEnvironmentGate` block in each site's
+`appsettings.Production.json`, followed by an app-pool recycle. The go-live plan already covers this
+as A5 / step 7. Turning the gate off on production still depends on CR-050 (the separate
+`test.gccwebapp.com` site, which keeps its own gate on) and on DEF-433.
+
+**Follow-up, same day:** the "View PDF" change was verified on localhost, 6/6 surfaces passing (DOM
+assertions; the screenshots are blank because dev has no PDF files). It is logged as **CR-054**
+(absorbed, ~0.25 hr), and Gate 0B lists it as RESOLVED AND WAITING for the final build.
+
+---
+
+## 2026-09-22 (later still) — Step 0 cleared, TTLs pre-staged, and three separate ways DNS verification lies
+
+Shawn cleared step 0 (apex `apple-domain-verification` TXT raised 3600 → 14400) and pre-staged the
+TTLs. `database` and `db` are both at **300**, verified authoritatively. Phase 1's value change can
+follow the 4-hour expiry; `db` keeps pointing at Vercel until Phase 2.
+
+**She also corrected the runbook's structure by asking a question:** *"for db that needs to be part
+of this not phase 2?"* Right, and the runbook had it wrong. Lowering `db`'s TTL is **not** part of
+the cutover — the record goes on pointing at `cname.vercel-dns.com` and the legacy site serves
+exactly as before; only the cache lifetime changes. Parking it at step 7b (D-1) put a 4-hour
+honouring delay in a race with the go-live slot for no reason. It is now **step 1d, done weeks
+early**, and 7b is a confirmation rather than an action.
+
+### Three distinct verification failures, all in one sitting
+
+**1. The edit landed on the adjacent row.** A TTL-300 edit intended for `database` went to
+`www.database` — neighbouring rows in the editor. Caught in seconds by querying `ns1` directly.
+Happened **twice**.
+
+**2. A public resolver reported success that had not happened.** `1.1.1.1` returned `database` at
+TTL **300** while the zone file still held **14400**. Not a stale cache in the usual sense — **a
+caching resolver serves the *remaining* lifetime of its copy, counting down.** A 14400 record cached
+four hours earlier reports ~300 and is indistinguishable from a freshly-set 300. **A public resolver
+cannot verify a TTL change at all**, and will confirm one that never occurred.
+
+**3. The authoritative side is anycast and disagreed with itself.** Three consecutive queries to
+`ns2.hostmonster.com` (`162.159.25.186`, Cloudflare) for one record returned **14400, 300, 14400**,
+while ns1 was consistently 300. **The SOA serials on ns1 and ns2 were identical**, so the standard
+serial-comparison check does not detect it either.
+
+Each of the three would, alone, have produced a confident wrong answer — one false negative and two
+false positives.
+
+**The operational consequence is a real one, not a curiosity.** A resolver that hit a stale node
+cached the *old* TTL and holds it for its full 4 hours. **So the waiting period before a value
+change starts at convergence, not at save.** The same applies to step 8 at D-0: the cutover is not
+propagated when one query says so, it is propagated when repeated queries to both nameservers all
+agree. Written into step 0 with a polling snippet.
+
+**Carry forward:** *verify authoritatively, on every nameserver, repeatedly.* One query against one
+server is not a verification of a DNS change — it is one sample from a distributed system that is
+permitted to disagree with itself during convergence.
+
+---
+
+## 2026-09-22 — Phase 1 split: alias proceeds, DNS held, because the redirect rule was never deployed
+
+**Decision (Shawn):** *"do the alias now, hold the DNS change."*
+
+Caught while verifying an unrelated claim. Advising against Plesk's built-in alias redirect — it
+drops the path, the same fault as the nginx shim this cutover replaces — I checked that the app's
+own rule really does preserve path and query. It does: `Canonical host - database subdomain`,
+`enabled="true"`, `{R:1}` for the path, `appendQueryString="true"`, `redirectType="Permanent"`.
+
+Then the follow-up question that mattered: **is it deployed?**
+
+```
+git show HEAD:web.config | grep -c "Canonical host - database subdomain"   →  0
+```
+
+**Not in the committed HEAD.** It lives only in the working tree, so no built bundle carries it, and
+`20260917-1751` is held under the one-final-build policy. Had the DNS flip gone ahead on schedule:
+the alias would serve, steps 3–5 would all pass, and **step 6 would fail** — `database.` would land
+on the **test gate** rather than redirecting to `db.`. Today that hostname 302s to the live legacy
+site, so it would have been a real, if small, regression on a hostname whose circulation (printed
+certificates, email signatures, partner bookmarks) nobody has established.
+
+**The split now recorded in Phase 1:**
+
+| Step | State |
+|---|---|
+| 0 · apex TXT TTL fix | ✅ done |
+| 1a · `database` TTL → 300 | ✅ done |
+| 1d · `db` TTL → 300 | ✅ done |
+| **3 · Plesk domain alias** | ▶️ proceed — costs nothing, reversible, the only step gated on neither the TTL clock nor a deploy |
+| **1b · `database` A → `64.27.52.66`** | ⏸ **HELD** pending a deployed build with the rule |
+| 4–6 · TLS, verification | follow 1b |
+
+The pre-staged TTLs keep their value regardless; the 4-hour clock simply is not running yet.
+
+**Why it nearly slipped through.** Every Phase 1 step was individually correct and the runbook's own
+verification (step 6) would have caught it — *after* the DNS change, in front of whatever traffic
+that hostname carries. The dependency was invisible because it crosses a boundary the runbook does
+not model: **a DNS/infrastructure runbook silently assuming application behaviour that ships in a
+build.** Steps 1–5 are infrastructure; step 6 is the only one that needs code, and nothing marked it
+as such.
+
+**Carry forward:** when a runbook step asserts application behaviour — a redirect, a header, a
+route, a gate — **confirm the behaviour is in a deployed build before scheduling the step that
+depends on it.** `git show HEAD:<file>` against the working tree is a two-second check and the
+working tree is not what is running. This is the same class as *"a fix that lives only in a
+generated file"*, one layer up.
+
+**Bundle, same day:** CR-054 was added to `shipped-2026-09.md`, and the four current-tense "View all
+pages" mentions there were changed to "View PDF". Built `GCCWebApp-deploy-20260922-1706.zip` (DLL md5
+`ae50f49df5e7e622`, 341 entries). It carries all 12 Gate 0B items, plus the DEF-433 code (still
+unverified under load) and the A6/A7 rewrite rules; the gccwebapp retirement rule is disabled. The
+verifier found 0 failures and the redirect map passed. Nothing would be undone relative to
+`20260921-2047`. **Lesson:** a DLL string search first read 0/0 for both labels because it decoded
+UTF-16 at an odd offset. Only a known-present control literal showed that the search was broken.
+Record: `docs/tracking/predeploy-record-2026-09-22-bundle.md`. Not uploaded.
+
+### 2026-09-22 — Outbound email Step 1 stalled: `db` missing from Plesk Mail Settings
+
+Shawn asked how to do the DKIM part of Step 2 in `docs/cutover/outbound-email-client-domain.md`, then
+sent a screenshot showing that `db` is not listed under Plesk → Mail Settings. Three findings: (B1)
+`db.` is a **domain alias**, and aliases never appear in Mail Settings, so the old Step 1 ("add the
+mail domain") could not be done. (B2) `db.` is still a **CNAME to Vercel**, so the SPF TXT and MX
+cannot exist until the go-live A-record flip. (B3) `default._domainkey.gccwebapp.com` does not exist,
+so DKIM has never been proven on the `accumail3` sending host. The doc now has a *Blockers* section, a
+new Step 1a (prove DKIM on `gccwebapp.com` first), Step 1b (enable mail on the alias) and a CNAME
+precondition on Step 2. Nothing was changed in Plesk or DNS for email. It stays Phase 2, after
+go-live. Shawn is holding the web repoint until the TTL has been lowered for 4 hours.
+**Lesson:** the email procedure was written before the alias decision in the web runbook. When one
+cutover doc changes how a hostname is modelled, re-read the companion docs that use the same name.
+
+**Post-deploy, same day:** Shawn deployed `20260922-1706` to gccwebapp.com. Verified on the live site:
+- **New build confirmed:** static-file md5 matches the zip, `?v=` is present, and Edit and
+  InternalView render View PDF.
+- **Client's example 26-0621:** it pages as Page 1 of 2.
+- **FINDING:** the gccwebapp.com gate is **OFF** and `robots.txt` is `Allow: /`. Both were changed
+  on the server, not by the bundle, and DNS has not been cut over. test.gccwebapp.com is still gated
+  but runs the older build.
+
+Raised with Shawn, and nothing was changed. **Lesson:** verification scripts that abort when the
+gate is missing would have stopped at the most important finding. Make them report "open" and
+carry on.
+
+### 2026-09-22 (evening) — Go-live DNS brought forward from 13 Oct to tonight
+
+Shawn: *"we are going live now."* Before the switch I flagged four items: certificate-number seeding
+with a final load and change freeze, DEF-433 unproven under load, client sign-off plus Amazon notice,
+and a ~10 minute certificate-warning window. Shawn: *"open items are not are issue right now. it is
+getting dns done."* Accepted as her decision; the items are still open and not verified. Checked
+before the switch: the `database` → `db` 301 is live with path and query kept; as `db`, the app
+serves 200 with no gate and `/api/v1/certificates` returns 401; `database` and `db` are both at TTL
+300 on ns1 and ns2. Rollback value: `db` CNAME → `cname.vercel-dns.com`.
+**Went live about 20:56 EDT (00:56 UTC 23 Sep).** `db` changed from a CNAME to an A record pointing
+at 64.27.52.66, and `database` was repointed to the same address. `www.database` was repointed and
+then deleted; `www.db` A was added. The first Let's Encrypt reissue (20:44) left out both aliases.
+The second (20:56, expires 2026-12-21) covers db, www.db, database, dbtest, gccwebapp.com and
+www.gccwebapp.com. Verified from outside: every name has a valid certificate; `db/` 200; tile view
+and single view 200; `/api/v1/certificates` 401 anonymously; http → https 301; `database/…?q=1` 301
+to `db` with path and query kept; legacy `/certificate` and `/api/certificates/{id}/download` 301 to
+the app. **Lesson:** Plesk's "www" checkbox applies to the domain and every alias, so a missing
+`www.<alias>` DNS record makes the whole certificate fail. Add `www.<alias>` in DNS before reissuing.
+
+**Close-out, same day:** Shawn confirmed that turning the gccwebapp.com gate off was deliberate. It
+is recorded in go-live plan A5 and in DEF-433, which is now protected only by its own unverified
+code. All 12 items are closed as deployed: 8 DEFs via close-out.js, 4 CRs by hand. Gate 0B now shows
+0 pending. The shipped log gained a "Released 22 September" note.
+
+**Gap:** close-out.js never touches `change-request-register.md`, so CRs have to be closed by hand.
+It also produced a self-contradicting DEF-437 status ("deployed / not in any bundle").
+
+**Email not arriving after go-live, cause found (same night).** The startup banner in the live stdout
+log reads `Email: LIVE … as admin@gccwebapp.com, from noreply@db.greencirclecertified.com`, and the
+reset shows `Email sent successfully`. So SMTP works, but `FromEmail` was overridden **on the server**
+(the repo `appsettings.Production.json` still has `admin@gccwebapp.com`) to the client-domain
+address. That domain has no SPF or DKIM, and the parent's DMARC is `p=quarantine`, so Gmail
+quarantines or drops the mail while the app logs success. The last email Shawn remembers is from
+2026-09-14, which is probably when the override went in; not confirmed. Fix: set `FromEmail` back to
+`admin@gccwebapp.com` on the server and recycle the app pool. **Lessons:** (1) a Gmail search on the
+*expected* sender misses mail from a changed sender, so search on the sender the log actually names.
+(2) The first log Shawn opened was from 18 Aug. Check a log's date (the next-sweep timestamp or
+certificate count) before reading anything from it.
+**Correction and resolution:** the `noreply@db` sender was Shawn's deliberate change, not a mistake,
+so we kept it and fixed DNS instead of reverting. Added TXT at `db`:
+`v=spf1 ip4:72.18.135.96 ip4:64.27.52.66 -all`, verified on ns1, ns2 (three times) and 8.8.8.8. A
+test reset at 23:06 **arrived in the Gmail inbox**. SPF is aligned because MailKit uses the From
+address as the envelope sender, and that alone passes DMARC. DKIM is still open. **Lesson:** ask
+whether an unexpected setting was deliberate before recommending that it be reverted.
+**Repo updated to match (same night):** `FromEmail` is now `noreply@db.greencirclecertified.com` in
+`appsettings.Production.json` and `.template.json`. It was already set by the `web.config` env var
+`SmtpSettings__FromEmail`, which I missed when I wrote *"not in the repo"*, so that claim was wrong
+and has been corrected in the email doc. The `web.config` rollback comment now says that deleting
+the env line is no longer enough. The Secrets templates, the cutover README, the go-live plan, the
+runbook status and the QA email test case are updated. All configs parse (JSONC through node; the
+PowerShell 5.1 parser rejects `//` comments, which is not a real error). Not deployed, not
+committed. **Lesson:** grep the whole repo for a config key, env-var form (`Section__Key`)
+included, before claiming where a value is or is not set.
+
+### 2026-09-22 23:24 EDT — Admin password reset directly on the live DB (Shawn's request)
+
+Shawn asked for her admin password and then asked to set a new one. She interrupted the reset-email
+route and chose a direct change. `gccwebap_certificates`, `Users` Id 1 (`admin`,
+`swest@anukiconsulting.com`), exactly one row matched. Before-values were saved locally first: hash
+`$2a$11$iiMY8…` (the full hash is in `%TEMP%\gcc-user1-before.txt`, which is the rollback),
+PasswordChangedAt 2026-08-20, FailedLoginAttempts 1. The new hash was made with the app's own
+BCrypt.Net-Next 4.0.3 (`$2a$11`, verified before writing) and written in a transaction guarded on Id
+**and** Email, committed only if exactly 1 row changed. PasswordChangedAt and UpdatedAt were set,
+FailedLoginAttempts reset to 0. **Verified:** a live login on db.greencirclecertified.com accepted the
+password and went on to the 2FA page (as expected for an untrusted device). **No audit row**: a
+direct SQL write skips AuditService. The password itself is not recorded here. It was typed in chat,
+so it should be rotated through the app's UI later.
+
+## 2026-09-23 — gccwebapp.com → db. redirect enabled (runbook step 11)
+- Ask: client email reported gccwebapp.com still serving the live site with no gate; Shawn asked to set up the gccwebapp.com → db.greencirclecertified.com redirect.
+- Done (repo): `web.config` rule "Canonical host - gccwebapp retirement" flipped to enabled="true"; covers gccwebapp.com + www.; **/api/* excluded** because the 2026-08-14 Amazon host-change note promised gccwebapp.com/api/v1 keeps working. Server copy must be flipped by hand in Plesk (web.config is republished each deploy, so the repo change keeps it on).
+- Open risk spotted: partner guide gives Amazon's production base URL as `database.greencirclecertified.com/api/v1`, and rule 1 already 301s all of database.* (incl. /api) to db. — check Amazon calls still succeed.
+- Client also questioned db. vs database. as the visible address; reply drafted offering to flip. Any flip = CR.
+- Follow-up same day: client tested legacy links (DuPont, cert 26-0330 = legacy record 5815). `/api/certificates/5815/download` worked; `/certificate/5815` 404'd; `/certificate?company.name=dupont` lost its filter. Added two web.config rules: `/certificate/{record_id}` → CertificateSingleView via the existing LegacyCertIds map, and `company.name=X` → `CertificateTileView?search=X` (search, not ?company=, because stored name is "DuPont™ Performance Building Solutions"). Verified live that search=dupont returns 26-0330 first. Rules can't be exercised locally (Kestrel doesn't run IIS rewrite) — verify with curl after the Plesk paste.
+- Client Q: would switching canonical to database. break old links? No — they all use db., which stays an alias; only rule targets change.
+- Verified live after Shawn's Plesk paste: /certificate/5815 → 301 SingleView/26-0330; company.name=dupont → 301 search=dupont; download link still 301s to 26-0330; unknown id 404s cleanly; gccwebapp.com → 301 db. (www./http take 2 hops via Plesk's own redirect first, final 200 on db.); gccwebapp.com/api/v1 still 401 (not redirected); test.gccwebapp.com still gated; appsettings.Production.json 404.
+- Lesson: audit §10's legacy-URL inventory (read from JS chunks) MISSED `/certificate/{id}` and the `?company.name=` filter param — the client found both by clicking real links. An inventory of what a site exposes is not an inventory of what is in circulation.
+- Legacy link inventory COMPLETED 2026-09-23 without touching DNS: the old Vercel site is still reachable with `curl --resolve db.greencirclecertified.com:443:76.76.21.21` (Vercel routes by Host header). Its _buildManifest lists public routes `/`, `/certificate`, `/certificate/[id]`, `/api/certificates/:id/download`, `/api/v1/certificates/:id/generate-certificate`, plus staff-only `/portal/*`. The /certificate page reads exactly 8 URL params: certificateNumber, company.name, product.name, product.productType.name, certificateType.name, location, effectiveDate, expirationDate. New public search verified to match number, product, cert type, product type, location — so 6 of 8 map to ?search=; the two dates have no equivalent.
+- Shawn proposed pointing DNS back to the old site to crawl it — not needed; the --resolve trick reaches it with zero production risk.
+- Added 7 more legacy rules to web.config (repo): generate-certificate by record id (suffix-anchored, cannot touch Amazon /api/v1/certificates), filters certificateNumber / product.name / product.productType.name / certificateType.name / location → ?search= (priority order most-specific first), and /portal/* → /Account/Login. Offline simulation of 15 sample URLs matched as intended, incl. api/v1/certificates and api/v1/certificates/26-0330 falling through untouched. Awaiting Shawn's Plesk paste; then live-verify.
+- LIVE-VERIFIED after Shawn's 2nd Plesk paste: all 13 legacy link shapes 301 as designed (preview, download, generate-certificate incl. /en/, 6 filters incl. multi-filter priority, date filter → plain listing, /portal → login); each search target returns results (1/2/40/92/18). Amazon API untouched: /api/v1/certificates and /api/v1/certificates/26-0330 → 401 on db., gccwebapp.com/api/v1 → 401; test.gccwebapp.com still gated.
+- ⚠ Finding 2026-09-23 while fact-checking the client email: of the 5,821 distinct certificate numbers the legacy map redirects to, only **962 are publicly visible** on the new site today (set-compare against all 1,004 rows / 992 distinct from /api/certificate-tiles, paged at 200). The other **4,859** (mostly 19-xx…25-xx, i.e. expired) forward correctly but land on a bare plain-text 404: "Certificate NN-NNNN is not currently available for public viewing." By design (public visibility = validity window, DEF-358) — but the old site showed them, so "any old link lands in the right place" was FALSE. Calibration note: first 30-sample reported 0/30 because my text detector false-flagged 200 pages; re-checked against 26-0330 before trusting it. Tile API caps pageSize at 200 silently — first full pull returned 200 of 1,004.
+- Triage (not acted on): the not-public page is unstyled plain text, no site chrome/link back to search. Doesn't block; ~1 hr; client decision whether expired certs should display instead.
+- CORRECTION same day: the old site's public list (/api/certificates, 983 records) contained ZERO expired certs — it also showed current-only, and 21-0664 was not listed. The real difference is narrower: old DIRECT download links still served the PDF for expired certs (old id 892 / 21-0664 → 307 to S3 PDF), whereas the new site shows "not currently available for public viewing". Email paragraph rewritten to say that, not "the old site showed expired certificates". Lesson: I asserted old-site behaviour from memory of our rules without checking the old site — checked only when Shawn pushed to validate.
+- Shawn can't view the old site since the DNS move; proposed moving DNS back. Not needed: hosts-file entry `76.76.21.21 db.greencirclecertified.com` on her machine only.
+- FULL legacy-link verification 2026-09-23 (scratchpad/verify_legacy_links.py, pinned to 64.27.52.66, with canaries): all 983 old public certificates × 2 link forms = 1,966 links. 1,928 OK (301 to the right number, page displays). 38 failed = 19 certs issued on the old site AFTER the August portal pull (old ids 6077–6128) — not in the map. Old feed vs August manifest: 964 overlapping ids, 0 disagreements.
+  - Run 1 was INVALID: Shawn's hosts-file entry (to view the old site) made the script hit Vercel; canaries all reported NOT REDIRECTED, which exposed it. Lesson: pin the IP in any verification script run while someone is doing hosts-file work — and always include canaries.
+  - Fix: combined manifest `C:\Users\swest\GCCPortalPull\manifest-plus-2026-09-23.csv` (6,000 portal rows + 19 from the old public feed), regenerated rewritemaps.config via the generator → 6,018 entries; diff vs previous = +19 entries, 0 changed. All 19 targets display live. Needs Plesk upload of rewritemaps.config, then re-run the script.
+  - Residual: old ids > 6076 that were NOT public on the old site (up to ~33 of 6077–6128) are still unmapped — no public link to them could have circulated.
+- ✅ LIVE 2026-09-23 after re-upload + site restart: **1,966 / 1,966 legacy public certificate links OK** (983 certs × preview + download; 301 to the right number, page displays; canaries still flagged). Spot checks all green: 6128→26-0643, filters, generate-certificate, /portal→login, Amazon API 401 on db. and gccwebapp.com, test.gccwebapp.com gated, appsettings.Production.json 404.
+  - Deploy lesson: uploading rewritemaps.config alone did NOT take effect, and re-saving web.config did not either. It took a re-upload plus a site restart. Unknown which one mattered (first upload may not have landed). For any configSource file change: upload, confirm a known new key inside it in File Manager, restart the site, then probe a NEW entry.
+  - Evidence: docs/cutover/evidence/2026-09-23-legacy-link-results.csv; script saved as Scripts/cutover/verify-legacy-links.py (reads legacy-public-certificates.json next to it — re-pull from the old site via --resolve 76.76.21.21 before reuse).
+- DEF-441 raised + fixed on localhost 2026-09-23: friendly 404 page (`/Home/NotFound` never existed although web.config pointed at it; cert page returned bare text). Shawn chose hotfix (a). 13-case matrix + screenshots pass. Deploy caution: touched files also hold other uncommitted DEF changes — Gate 0B before bundling. Also noticed Views/Home/Error.cshtml is empty (not touched).
+- ⛔ GATE CAUGHT 2026-09-23 (DEF-441 hotfix bundle): the built zip would have put the public site back into TEST mode. `wwwroot/robots.txt` = `Disallow: /` (live = public Allow) and `appsettings.Production.json` gate `Enabled: true` (live = off). Both were hand-edited on the server on 9/22 and the repo never caught up, so EVERY full bundle from this repo reverts them. Found by asking "what would this bundle undo" and diffing live robots + gate config against the zip, not by any existing check (verify-bundle.py passed it). Shipped a hotfix zip with those two files removed (339 entries, testzip clean, DLL 3aa8acaf2c8d6127, 89/89 live assets identical). Original renamed DO-NOT-UPLOAD. Follow-up: reconcile repo config with production before the next full bundle.
+- Also: my first zip-rewrite corrupted the archive (copied ZipInfo headers from the source); caught only because I read it back. Always testzip() a rewritten zip.
+- 2026-09-23 21:41: Shawn asked for a clean full rebuild, gates skipped ("the hotfix is missing something"). Built GCCWebApp-deploy-20260923-2141.zip: 339 files, DLL md5 3aa8acaf2c8d6127 = IDENTICAL to the hotfix zip, so the hotfix was missing only robots.txt + appsettings.Production.json. The full zip still carries robots `Disallow: /` and gate `Enabled: true`; warned Shawn before upload.
+- 2026-09-23 22:02: repo `wwwroot/robots.txt` set to the live public version (was test `Disallow: /`) at Shawn's request; rebuilt full bundle GCCWebApp-deploy-20260923-2202.zip. Previous full zip renamed DO-NOT-UPLOAD. Gate `Enabled: true` in appsettings.Production.json still unresolved in the repo. NOTE: test.gccwebapp.com deploys now need their own Disallow robots.txt.
+- 2026-09-23 22:11: repo appsettings.Production.json TestEnvironmentGate set Enabled:false + ShowBanner:false (matches live) at Shawn's request. Full bundle GCCWebApp-deploy-20260923-2211.zip — robots.txt == live, gate off. First rebuild attempt (2208) failed at compression (file lock, as on 9/22), retry clean. 2202 zip renamed DO-NOT-UPLOAD-gate-on. The repo now describes PRODUCTION; test.gccwebapp.com needs its own gate-on config + Disallow robots on its next deploy.
+- ✅ CLOSED 2026-09-23: DEF-441 deployed (full bundle GCCWebApp-deploy-20260923-2211.zip) and post-deploy verified, incl. Gate 12 (Shawn confirmed reset email from noreply@db). Gate 0B → PENDING 0. Shipped log `shipped-2026-09.md` appended (23 Sep: legacy links, gccwebapp.com redirect, not-found page).
+  - Client reported `?company.name=assa+abloy` "goes to the full listing"; live it returns 135 ASSA ABLOY certs of 1,004. Most likely cause: the browser cached the OLD permanent (301) redirect that dropped the query. Lesson: a 301 that turns out wrong is sticky in every browser that saw it; use 302 for rules still being tuned, and only switch to 301 once they're confirmed.
+  - Correction to my own earlier check: "DuPont appears on the page" didn't prove the search was applied (a full listing contains DuPont too). The real check is the count (135 vs 1,004) plus the API call carrying ?search=.
+- 2026-09-24: Integration guides updated for `db.` instead of `database.` (Shawn: keep the designated links already in circulation). Shawn decided the guides say production is LIVE NOW. v1.3: HTML source + TEMPLATE (in place, backed up), new Amazon/MASTER _2026-09-24.docx (09-15 kept), Setup Guide v1.1 rebuilt from md (v1.0 kept). All verified; logged in partner-api-guide-issuance-log.md. Not issued yet. Found: HTML source's test URL is still gccwebapp.com (now production) — flagged, not changed.
+  - Risk noted: database./api/* 301s to db. — any partner already coded against database. may drop X-API-Key on redirect. Amazon was told database. in v1.0–v1.2; confirm which host they actually call.
+- 2026-09-24: template test URL fixed (Shawn): gccwebapp.com/api/v1 → dbtest.greencirclecertified.com/api/v1 in the HTML source + TEMPLATE.docx (2 spots each, the Test base URL row + the id-fields note). Still v1.3 (not issued). Issuance log updated.

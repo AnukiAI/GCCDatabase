@@ -291,7 +291,7 @@
                     <a class="btn btn-sm" href="${currentPdfObjectUrl}" target="_blank" rel="noopener"
                        style="background-color: #00AEEF; color: white; padding: 4px 12px; border-radius: 4px; text-decoration: none; font-size: 16px; white-space: nowrap;"
                        title="Open this PDF to check every page before saving">
-                        <i class="fas fa-external-link-alt" aria-hidden="true"></i> All pages
+                        <i class="fas fa-external-link-alt" aria-hidden="true"></i> View PDF
                     </a>
                     <button type="button" class="remove-btn" onclick="window.CertificateCreate.removePdfPreview()" style="background: none; border: none; color: #FF5252; cursor: pointer; font-size: 18px; padding: 4px 8px; border-radius: 4px; transition: var(--transition);" title="Remove PDF"><i class="fas fa-trash-alt"></i></button>
                 </div>

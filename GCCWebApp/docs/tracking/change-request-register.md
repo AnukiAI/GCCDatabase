@@ -1518,7 +1518,7 @@ operation. ~30 min, not built.
 
 ---
 
-### CR-050 (raised 2026-09-14, **repo-side BUILT 2026-09-14 — infrastructure in progress**) — `test.gccwebapp.com` as a separate test site
+### CR-050 (raised 2026-09-14, **STOOD UP AND VERIFIED 2026-09-21 — three isolation items still outstanding**) — `test.gccwebapp.com` as a separate test site
 
 - **Period:** raised 2026-09-14
 - **Source:** Shawn, 2026-09-14 — *"I want to setup test.gccwebapp.com as the test site on the same
@@ -1575,11 +1575,60 @@ Found while writing the template — none are obvious, and two are silent:
    `test.gccwebapp.com` and returns data, and the test gate does **not** cover it — the gate skips
    `/api/*` by design. Rotate or disable partner keys inside `gccwebap_test`.
 
-#### Still to do (needs Plesk / AccuWeb access)
+#### Stood up 2026-09-21 — what is verified, and how
 
-DNS `test A 64.27.52.66` in a zone **we control** (AccuWeb NS — no client involvement); Plesk
-**subdomain, not a domain alias**; Let's Encrypt; deploy the same zip; place the overlay; copy
-uploads; verify the banner and a write-isolation check. Full detail in the runbook.
+Shawn built the site; the verification below was run externally the same day. **The four
+infrastructure steps are done: DNS, TLS, deploy, overlay.**
+
+| Check | Result | Evidence |
+|---|---|---|
+| DNS `test A 64.27.52.66` | ✅ | `nslookup` → `64.27.52.66` |
+| TLS | ✅ | `curl` validates the chain (`ssl_verify_result=0`) |
+| App deployed and running | ✅ | the app answers; it previously served Plesk's default page |
+| **`DB catalog : gccwebap_test`** | ✅ | **the startup banner, read by Shawn.** The single non-negotiable check, and it passed |
+| Test gate inherited and active | ✅ | `/`, `/Certificate/CertificateTileView` and `/Account/Login` all 302 → `/__gate` |
+| `robots.txt` = `Disallow: /` | ✅ | 200, content read — correct for a test host, left alone |
+| Handler mapped, config not served raw | ✅ | `/appsettings.Production.json`, `/appsettings.Secrets.json` and `/GCCWebApp.dll` all **302 to the gate**, while `/robots.txt` returns **200**. That is exactly the healthy pattern `web.config:55-78` documents from DEF-363 |
+| Partner API reachable, 401 anonymous | ✅ — **and see item 1 below** | `/api/v1/certificates` → 401, **not** a gate 302 |
+
+#### Still outstanding — do not read the table above as "CR-050 complete"
+
+The banner proves the **connection string** and nothing else. If production's
+`appsettings.Secrets.json` was edited in place rather than replaced with
+`appsettings.Secrets.test-site.template.json`, the other three keys are still production's.
+
+| # | Item | Why it matters | State |
+|---|---|---|---|
+| 1 | **Rotate or disable the partner API keys inside `gccwebap_test`** (9 `PartnerApiKeys` + 3 `ApiKeys` came across in the copy) | **The live one.** The gate skips `/api/*` **by design** — confirmed above by the 401 rather than a 302 — so a live Amazon key authenticates against `test.gccwebapp.com` today and returns a week-old copy of client data | **open** |
+| 2 | **`Jwt:Key`** distinct from production's | A shared signing key means a token minted on test validates on `gccwebapp.com`. Not isolated at the token layer until this differs | **unverified** |
+| 3 | **`DataProtection:ApplicationName = GCC-Test`**, and delete the `DataProtectionKeys/` folder that came across in the copy | Guarantees the two key rings can never merge | **unverified** |
+| 4 | `SmtpSettings:FromName = GCC Database - TEST` | Both sites send from the same mailbox; without this a reset mail from test is indistinguishable from a real one in an inbox | **unverified** |
+| 5 | **Uploads present?** Sign in, open a certificate, confirm the PDF renders | `gccwebap_test` references ~5,700 PDFs and the store is per-site. Copying the whole `httpdocs` may have brought them across for free | **unverified** |
+| 6 | **Write-isolation check** — write on test, confirm it does **not** appear on `gccwebapp.com` | Now safe to run, since the banner reads `gccwebap_test`. Two sites that agree prove nothing; a write that stays put is the only real evidence | **not run** |
+| 7 | `Database:AutoMigrateOnStartup` → `true` in the **test** overlay | Its reason for being false — the site ran against production data — is gone for this site. Leave it false on `gccwebapp.com` | **open** |
+| 8 | Repoint the ~3,600 `gccwebapp.com` references in `Scripts/smoke-prod/` and `qc*-live-check/` | **Promoted from "separate mechanical change" to pre-go-live work by the 2026-09-21 go-live plan:** once `gccwebapp.com` 301s to `db.greencirclecertified.com`, every smoke script follows the redirect into production | **open** |
+
+#### Two things that went wrong standing it up, both worth keeping
+
+1. **A 403 that was not `web.config`.** The site returned `403 Forbidden` on `/` and `404` on
+   everything else. The instinct was a handler or `web.config` fault; it was a **document-root
+   mismatch** — IIS was serving a folder the files were not in. The discriminator: request a path
+   that would exist **only if the publish folder were the doc root** (`/GCCWebApp.deps.json`,
+   `/wwwroot/css/main.css`). All 404 ⇒ wrong folder. Had they returned **200**, the files would have
+   been in the right place with the module disengaged — a live secrets exposure. A genuine
+   `web.config` fault gives **500.19**, not a clean 403/404 pair.
+2. **Copying from the live site's `httpdocs` brings production's `appsettings.Secrets.json` with
+   it** — the one file that decides which database the site talks to, registered last so it wins. It
+   survives a later deploy because extracting a zip adds and overwrites but never deletes. This is
+   precisely the trap the startup banner was built for, and this time the banner is what cleared it.
+
+#### Superseded note
+
+`gccwebapp.com` is **no longer** "left alone, decided later" — the 2026-09-21 go-live plan makes it
+**production** (gate off, `db.`/`database.` as aliases) and makes **this site the permanent test
+environment**. Consequence: **CR-050 must be complete before `TestEnvironmentGate:Enabled` goes
+false**, or there is no gated test environment anywhere. See
+`docs/cutover/go-live-plan-2026-09-21.md`.
 
 #### Prerequisite already met
 
@@ -1588,7 +1637,9 @@ remove first. Shawn created the database copy `gccwebap_test` the same day.
 
 ---
 
-### CR-051 (raised 2026-09-16, **BUILT 2026-09-16 — not yet deployed**) — Certificate **Status** filter on the internal listing (Admin / Analyst only)
+### CR-051 (raised 2026-09-16, **BUILT 2026-09-16 — DEPLOYED 2026-09-22**) — Certificate **Status** filter on the internal listing (Admin / Analyst only)
+
+- **Bundle marker:** none | reason | Status-filter now compares stored display strings rather than enum names; no new symbol. Evidence is the filter smoke in the CR-051 entry.
 
 - **Period:** raised 2026-09-16; **built and verified 2026-09-16**; bundled and gated 2026-09-17 into **`GCCWebApp-deploy-20260917-1751.zip`** (DLL md5 `e0210ec00a134b31`, **339 entries**) — runbook `2026-09-17-deploy-runbook-20260917-1751.md`. Two intermediate bundles were cut and discarded the same day, both by gate failures: `20260917-1539` shipped five `appsettings.*.template.json` files, `20260917-1545` shipped a `.bak` file. **`1545` shares this bundle's DLL md5** — tell them apart by entry count, 340 vs 339. **Not uploaded** — deploy is Shawn's step. The earlier `20260917-0003` bundle (md5 `05bb58206cd39700`) is **SUPERSEDED and must not be uploaded**: it predates the CR-052 popup rework. (This bullet read "not started" until 2026-09-17, contradicting the header, the Status line and the build note below it.)
 - **Source:** the client, 2026-09-10, logged as **QC #266** — `Database QC Log_9.11.26.xlsx`, sheet
@@ -1602,7 +1653,7 @@ remove first. Shawn created the database copy `gccwebap_test` the same day.
   already accepted. **Classified as a CR by Shawn, 2026-09-16**, after the build-state evidence below
   was put in front of her — the alternative reading (absorb as a defect) was raised, considered and
   declined. Recorded so the basis is auditable rather than assumed.
-- **Status:** **BUILT 2026-09-16, not yet deployed.** Approved as a CR and built the same day;
+- **Status:** **BUILT 2026-09-16, deployed 2026-09-22 in `GCCWebApp-deploy-20260922-1706.zip`.** Approved as a CR and built the same day;
   estimate was recorded before the build per the gate (`docs/governance/change-request-process.md`).
   See the build note at the end of this entry — planning found a mismatch that would have shipped a
   filter returning zero rows for four of the eight statuses.
@@ -1804,7 +1855,9 @@ discovering the enum-name mismatch). Built and verified inside the revised figur
 
 ---
 
-### CR-052 (raised 2026-09-16, **BUILT 2026-09-16 — Option A, all five surfaces; not yet deployed**) — Certificate PDF preview: view **all pages**, not just the first
+### CR-052 (raised 2026-09-16, **BUILT 2026-09-16 — Option A, all five surfaces; DEPLOYED 2026-09-22**) — Certificate PDF preview: view **all pages**, not just the first
+
+- **Bundle marker:** none | reason | View-only change across five surfaces; Razor compiles into the DLL with no distinctive literal.
 
 - **Period:** raised 2026-09-16; **built and verified 2026-09-16**; bundled and gated 2026-09-17 into **`GCCWebApp-deploy-20260917-1751.zip`** (DLL md5 `e0210ec00a134b31`, **339 entries**) — runbook `2026-09-17-deploy-runbook-20260917-1751.md`. Two intermediate bundles were cut and discarded the same day, both by gate failures: `20260917-1539` shipped five `appsettings.*.template.json` files, `20260917-1545` shipped a `.bak` file. **`1545` shares this bundle's DLL md5** — tell them apart by entry count, 340 vs 339. **Not uploaded** — deploy is Shawn's step. The earlier `20260917-0003` bundle (md5 `05bb58206cd39700`) is **SUPERSEDED and must not be uploaded**: it predates the CR-052 popup rework. (This bullet read "not started" until 2026-09-17, contradicting the header, the Status line and the build note below it.)
 - **Source:** the client, 2026-09-10, logged as **QC #267** — `Database QC Log_9.11.26.xlsx`, sheet
@@ -1814,7 +1867,7 @@ discovering the enum-name mismatch). Built and verified inside the revised figur
 - **Why CR, not a defect:** single-page preview is the behaviour as designed and as built — the
   generator deliberately renders page 0 into a single thumbnail. Showing every page is new
   capability. This one is a genuine CR, unlike CR-051 above.
-- **Status:** **BUILT 2026-09-16 (Option A), not yet deployed.** Both options were priced first and
+- **Status:** **BUILT 2026-09-16 (Option A), deployed 2026-09-22 in `GCCWebApp-deploy-20260922-1706.zip`.** Both options were priced first and
   Shawn chose **Option A across all five preview surfaces**, 2026-09-16. Option B is retained below
   unbuilt, as the record of what was declined and why. See the build note at the end of this entry.
 
@@ -2114,9 +2167,11 @@ controller and no route change — `ViewCertificateFile` is still reached from e
 
 ---
 
-### CR-053 (raised 2026-09-17, **BUILT 2026-09-17 — Option C; not yet deployed**) — Page **through** the certificate PDF inside the preview popup (a real pager, not a link out)
+### CR-053 (raised 2026-09-17, **BUILT 2026-09-17 — Option C; DEPLOYED 2026-09-22**) — Page **through** the certificate PDF inside the preview popup (a real pager, not a link out)
 
-- **Status:** **APPROVED and BUILT 2026-09-17 — not yet deployed.** Estimate-before-build gate honoured: ~6-9 hr quoted before any code existed, Shawn approved that figure the same day (*"approve the 6-9 hr for the pager, build it"*) and re-confirmed the approval 2026-09-18 (*"yes CR-053 was approved"*). Actual ~5 hr. Option C — on-demand rendering, **no schema, no migration, no backfill**, so nothing here needs a database change. Goes in the single final bundle. **Verified by TWO scripts — function 14/14 and scoping 10/10.** (1) Function: `Scripts/smoke-prod/verify-cr053-pager.js`, 14/14 on localhost:5101 against `GCCDatabase_Dev`, cert `21-0117` (a real 2-page PDF), including A5 which proves a page turn by comparing image BYTES rather than the `src` attribute; screenshots in `Scripts/smoke-prod/_results/cr053/`. (2) Cross-company scoping: `Scripts/smoke-prod/_security/verify-cr053-rbac.js`, **10/10, run 2026-09-18**, output in `Scripts/smoke-prod/_results/cr053-review/rbac-2026-09-18.txt`. **Until 2026-09-18 this line read "Verified 14/14" and cited only the pager script — the scoping script existed but had never been executed, so the only evidence of cross-company denial was a code reading.** Gate 3 caught that overstatement. CR-052 rework #2 verified 8/8 separately.
+- **Bundle marker:** dll | contains | CertificatePageCount
+
+- **Status:** **APPROVED and BUILT 2026-09-17 — deployed 2026-09-22 in `GCCWebApp-deploy-20260922-1706.zip`; client example 26-0621 pages live (Page 1 of 2).** Estimate-before-build gate honoured: ~6-9 hr quoted before any code existed, Shawn approved that figure the same day (*"approve the 6-9 hr for the pager, build it"*) and re-confirmed the approval 2026-09-18 (*"yes CR-053 was approved"*). Actual ~5 hr. Option C — on-demand rendering, **no schema, no migration, no backfill**, so nothing here needs a database change. Goes in the single final bundle. **Verified by TWO scripts — function 14/14 and scoping 10/10.** (1) Function: `Scripts/smoke-prod/verify-cr053-pager.js`, 14/14 on localhost:5101 against `GCCDatabase_Dev`, cert `21-0117` (a real 2-page PDF), including A5 which proves a page turn by comparing image BYTES rather than the `src` attribute; screenshots in `Scripts/smoke-prod/_results/cr053/`. (2) Cross-company scoping: `Scripts/smoke-prod/_security/verify-cr053-rbac.js`, **10/10, run 2026-09-18**, output in `Scripts/smoke-prod/_results/cr053-review/rbac-2026-09-18.txt`. **Until 2026-09-18 this line read "Verified 14/14" and cited only the pager script — the scoping script existed but had never been executed, so the only evidence of cross-company denial was a code reading.** Gate 3 caught that overstatement. CR-052 rework #2 verified 8/8 separately.
 - **Period:** raised, priced, approved and **built 2026-09-17**. The estimate-before-build gate in
   `docs/governance/change-request-process.md` was honoured in order: the entry below was written
   and the ~6-9 hr quoted *before* any code existed; Shawn approved that figure the same day
@@ -2321,3 +2376,19 @@ outside the popup — the one **inside** the popup is welcome to stay, and it no
 ~6-9 hr for Option C** so it makes the final build, or leave QC #267 answered by the popup link and
 tell the client paging is priced but not scheduled. **Because there is now only one bundle, this
 decision has a deadline: the final cut.**
+
+---
+
+### CR-054 (raised 2026-09-22, **BUILT 2026-09-22 — DEPLOYED 2026-09-22**) — Rename the preview-popup PDF button from "View all pages" / "All pages" to **"View PDF"**
+
+- **Bundle marker:** wwwroot/js/certificate-create.js | contains | </i> View PDF
+
+- **Status:** **BUILT AND VERIFIED on localhost 2026-09-22 — deployed 2026-09-22 and verified live on gccwebapp.com (Edit, InternalView, public SingleView, Create). Bundle `GCCWebApp-deploy-20260922-1706.zip` (DLL md5 `ae50f49df5e7e622`, see `predeploy-record-2026-09-22-bundle.md`).** Absorbed, **~0.25 hr** (priced even though absorbed). Copy-only change: no schema, no migration, no data. It goes in the single final bundle with CR-052/053.
+- **Source:** Shawn, 2026-09-22: *"Can the button read 'View PDF' (instead of 'all pages' since most will only have 1 page)"*. This refines the label from CR-052 (QC #267). The button's behaviour, route and access checks are unchanged.
+- **Why CR, not a defect:** the label CR-052 shipped was the one approved at the time. Changing the wording is new client direction, not a fault.
+- **Changed (5 surfaces + 1 test):**
+  - `Views/Certificate/Edit.cshtml`, `CertificateSingleView.cshtml`, `CertificateInternalView.cshtml`, `CertificateExternalView.cshtml`: the popup link text now reads **View PDF**. The aria-label changed from *"View all pages of certificate X as a PDF"* to *"View certificate X as a PDF"*.
+  - `wwwroot/js/certificate-create.js`: the Create-mode link (backed by a blob URL, before the certificate is saved) changed from **All pages** to **View PDF**. Its tooltip still reads *"Open this PDF to check every page before saving"*, which is still accurate.
+  - `Scripts/smoke-prod/verify-cr052-all-pages.js`: its A-Create assertion checked for the literal `All pages` and would have failed falsely. It now checks for `View PDF`.
+  - Out of scope, deliberately: the Razor/JS **comments** that say "View all pages" describe CR-052's history and were left alone. No user guide mentions the old label (grep of `docs/user-guide/*.md`, 0 hits).
+- **Verification (localhost:5101, `GCCDatabase_Dev`, 2026-09-22), 6/6 PASS.** A headless Playwright run signed in as `admin.uat` and aborts if login fails. It covered Edit, InternalView and ExternalView for `21-0117`, the anonymous public SingleView for `26-0481`, and Create after choosing a PDF (the blob link appeared after 923 ms). On each surface it asserted three things: the visible text is exactly `View PDF`; the aria-label matches `View certificate … as a PDF`; and the old label does not appear anywhere in the rendered markup outside comments. Limitation: the screenshots are not useful evidence, because the dev certificates have no files on disk, so the popup image is blank. The proof is the DOM assertions. Script: session scratchpad `verify-view-pdf.js` (not checked in).

@@ -100,6 +100,9 @@ h2{break-after:avoid}figure{break-inside:avoid;box-shadow:none}.note{break-insid
 <li><a href='#troubleshooting'>Troubleshooting</a></li>
 <li><a href='#appendix-a-create-and-edit-field-reference'>Appendix A — Create and Edit field reference</a></li>
 <li><a href='#appendix-b-import-columns'>Appendix B — Import columns</a></li>
+<li><a href='#what-each-role-can-see'>What each role can see</a></li>
+<li><a href='#glossary'>Glossary</a></li>
+<li><a href='#getting-help'>Getting help</a></li>
 </ol></nav>
 <h2 id='what-you-can-do'><span style='color:var(--accent)'>1</span>&nbsp; What you can do</h2>
 <p>Analysts and administrators share the certificate screens. Signing in takes you to the internal certificate list, and the menu gives you <strong>Certificates</strong>, <strong>Dashboard</strong>, and <strong>Companies &amp; Products</strong>. Administrators additionally get <strong>Administration</strong>; everything in this guide is available to both roles.</p>
@@ -239,4 +242,56 @@ h2{break-after:avoid}figure{break-inside:avoid;box-shadow:none}.note{break-insid
 <tr><td>External Tag · Internal Tag</td><td>Created if new</td></tr>
 <tr><td>ASIN · UPC · GTIN · EAN</td><td></td></tr>
 </tbody></table></div>
+<div class='pb'></div>
+<h2 id='what-each-role-can-see'>What each role can see</h2>
+<div class='scroll'><table><thead><tr><th></th><th>Admin</th><th>Analyst</th><th>Partner</th><th>Company</th><th>Public</th></tr></thead><tbody>
+<tr><td>All certificates, every status</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
+<tr><td>Own company's in-force certificates</td><td>Yes</td><td>Yes</td><td>—</td><td>Yes</td><td>No</td></tr>
+<tr><td>Partner's associated certificates</td><td>Yes</td><td>Yes</td><td>Yes</td><td>—</td><td>No</td></tr>
+<tr><td>Public directory</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Create and edit certificates</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
+<tr><td>Bulk import, and undo an import</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
+<tr><td>Internal tags</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
+<tr><td>Administration menu</td><td>Yes</td><td>No</td><td>No</td><td>No</td><td>No</td></tr>
+<tr><td>Dashboard</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
+</tbody></table></div>
+<p>Confidential certificates are visible to Admin, Analyst, the owning company and that company's associated partners. They are withheld from the public directory only.</p>
+<p>A certificate that has not reached its effective date behaves differently by audience: the owning company sees it in their own list straight away, while the public directory and the partner feed wait for the effective date to arrive.</p>
+<h2 id='glossary'>Glossary</h2>
+<div class='scroll'><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><strong>Admin</strong></td><td>Internal role with full access, including the Administration menu. Administrator accounts cannot be deleted</td></tr>
+<tr><td><strong>Analyst</strong></td><td>Internal role that operates the certificate work day to day — create, edit, import, export. No Administration menu</td></tr>
+<tr><td><strong>ASIN</strong></td><td>Amazon Standard Identification Number, the identifier Amazon uses for a product</td></tr>
+<tr><td><strong>Badgeable</strong></td><td>A certificate that is commercially in force: Client Approved - Paid, Client Approved - Confidential, or Republished, inside its certification period</td></tr>
+<tr><td><strong>Certification #</strong></td><td>The number identifying a certificate. Assigned by the system when the certificate is saved, never typed</td></tr>
+<tr><td><strong>Certification period</strong></td><td>The span from the effective date to the expiration date, inclusive of both</td></tr>
+<tr><td><strong>Certification Results</strong></td><td>Free text recorded against a certificate, shown exactly as it was entered. Required for Amazon CPF certificates</td></tr>
+<tr><td><strong>Client Approved - Confidential</strong></td><td>In force and badgeable, but deliberately withheld from the public database. An embargo, not a pause</td></tr>
+<tr><td><strong>Client Approved - Paid</strong></td><td>In force and listed publicly</td></tr>
+<tr><td><strong>Company user</strong></td><td>A person from a certified company, signing in to see their own company's certificates. The role is named <strong>External</strong></td></tr>
+<tr><td><strong>CPF</strong></td><td>Amazon's Climate Pledge Friendly programme</td></tr>
+<tr><td><strong>Database Listing URL</strong></td><td>The public address of a single certificate, for sharing with someone who has no account</td></tr>
+<tr><td><strong>Effective date</strong></td><td>The first day a certificate is in force. It is live <strong>on</strong> this date</td></tr>
+<tr><td><strong>Expiration date</strong></td><td>The last day a certificate is in force. It is live <strong>through</strong> this date and expires the day after</td></tr>
+<tr><td><strong>External tag</strong></td><td>A tag visible to company and partner accounts and on public surfaces</td></tr>
+<tr><td><strong>GTIN · EAN · UPC</strong></td><td>Product identifiers recorded against a certificate alongside ASIN</td></tr>
+<tr><td><strong>Internal tag</strong></td><td>A tag visible only to GreenCircle staff. Never shown to a company or partner account</td></tr>
+<tr><td><strong>Partner</strong></td><td>A role for a partner organisation, scoped to the certificates associated with that partner</td></tr>
+<tr><td><strong>Pathway</strong></td><td>An optional certification pathway on a certificate, used for Amazon CPF</td></tr>
+<tr><td><strong>Product category · type · subcategory</strong></td><td>The three levels of the product hierarchy. The category must exist before a product can use it</td></tr>
+<tr><td><strong>Public</strong></td><td>The anonymous public directory. No account is needed</td></tr>
+<tr><td><strong>Republished</strong></td><td>A certificate re-issued with a fresh certification period. In force and listed publicly</td></tr>
+</tbody></table></div>
+<h2 id='getting-help'>Getting help</h2>
+<p>Before contacting anyone, three things resolve most problems on their own.</p>
+<ol class='steps'><li><strong>Check this guide's contents.</strong> The answer is often in another section — the troubleshooting table in particular lists the symptoms that have actually been reported.</li><li><strong>Sign out and sign back in.</strong> This clears anything left over from an interrupted session.</li><li><strong>Reload the page.</strong> If the site has been updated recently, a reload picks up the new version.</li></ol>
+<p>If the problem persists, report it with these five details. They are what makes a problem reproducible rather than a description of a feeling.</p>
+<div class='scroll'><table><thead><tr><th>Include</th><th>Example</th></tr></thead><tbody>
+<tr><td>What you were trying to do</td><td>"Upload a certificate for a new product"</td></tr>
+<tr><td>What happened instead</td><td>The exact wording of any message on screen</td></tr>
+<tr><td>The certificate number</td><td>If the problem concerns a particular certificate</td></tr>
+<tr><td>Browser and device</td><td>"Chrome on Windows 11", "Safari on an iPad"</td></tr>
+<tr><td>Roughly when</td><td>The date and approximate time, so the event can be found</td></tr>
+</tbody></table></div>
+<p>A screenshot of the whole browser window, including the address bar, is worth all five.</p>
 <footer class='end'><p>GreenCircle Certified Database — Analyst Certificate Guide, version 1.0. Prepared by Anuki Consulting, September 2026. Screenshots taken from the test environment; the live site may differ in minor visual detail. For anything not covered here, contact your system administrator.</p></footer></div>

@@ -791,7 +791,7 @@ else
 // QC #71: Handle 400/401/403 status codes gracefully instead of showing "This page isn't working"
 // For browser requests, redirect expired/unauthorized sessions to the login page.
 // API requests already return JSON via cookie event handlers above.
-app.UseStatusCodePages(context =>
+app.UseStatusCodePages(async context =>
 {
     var response = context.HttpContext.Response;
     var request = context.HttpContext.Request;
@@ -800,16 +800,43 @@ app.UseStatusCodePages(context =>
     if (request.Path.StartsWithSegments("/api") ||
         request.Headers["X-Requested-With"] == "XMLHttpRequest")
     {
-        return Task.CompletedTask;
+        return;
     }
 
     // For 400/401/403 on browser page requests, redirect to login with session_expired message
     if (response.StatusCode == 400 || response.StatusCode == 401 || response.StatusCode == 403)
     {
         response.Redirect("/Account/Login?error=session_expired");
+        return;
     }
 
-    return Task.CompletedTask;
+    // DEF-441: a bodiless 404 on a browser PAGE request re-executes /Home/NotFound, so the
+    // visitor gets the site's styled page (status stays 404) instead of the browser's generic
+    // error. Only page navigations qualify: GET, Accept includes text/html, and no file
+    // extension — a missing .js/.css/image or a fetch() keeps its bare 404. Same mechanics as
+    // UseStatusCodePagesWithReExecute, which cannot be used here because this lambda already
+    // owns the status-code-pages slot.
+    if (response.StatusCode == 404
+        && HttpMethods.IsGet(request.Method)
+        && request.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase)
+        && !Path.HasExtension(request.Path.Value))
+    {
+        var originalPath = request.Path;
+        var originalQuery = request.QueryString;
+        context.HttpContext.SetEndpoint(null);
+        context.HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IRouteValuesFeature>()?.RouteValues?.Clear();
+        request.Path = "/Home/NotFound";
+        request.QueryString = QueryString.Empty;
+        try
+        {
+            await context.Next(context.HttpContext);
+        }
+        finally
+        {
+            request.Path = originalPath;
+            request.QueryString = originalQuery;
+        }
+    }
 });
 
 // HTTPS redirection - skip in Test environment to avoid "Failed to determine https port" errors
@@ -847,6 +874,68 @@ app.Use(async (context, next) =>
         return;
     }
     await next();
+});
+
+// DEF-433 / go-live cutover: robots.txt follows the test gate instead of being a file someone
+// has to remember to edit.
+//
+// wwwroot/robots.txt ships as `Disallow: /`, which is correct for a gated host and WRONG for the
+// public certificate directory — the directory is the product. Both sites deploy from the same
+// zip, so a single static file cannot be right for production AND for test.gccwebapp.com.
+//
+// Keying it to TestEnvironmentGate:Enabled makes it self-correcting, because that flag is already
+// the thing that differs per site (it is set in each site's own appsettings.Secrets.json):
+//     gate ON  -> this passes through -> the static Disallow file is served
+//     gate OFF -> this serves the public robots
+//
+// It runs BEFORE UseStaticFiles so it can win, and it only ever overrides in the OPEN direction.
+// Any failure — bad config, missing section, an exception — falls through to the restrictive file
+// on disk. The safe state is the default, which is the right way round: accidentally blocking
+// crawlers is a bad afternoon, accidentally exposing a pre-launch site is not.
+//
+// Cutover: nothing to do. Turning the gate off at runbook step 10 flips this at the same moment,
+// which is exactly when the site becomes public. See docs/cutover/…-runbook.md.
+app.Use(async (context, next) =>
+{
+    if (!context.Request.Path.Equals("/robots.txt", StringComparison.OrdinalIgnoreCase))
+    {
+        await next();
+        return;
+    }
+
+    bool gateOn;
+    try
+    {
+        gateOn = context.RequestServices
+            .GetRequiredService<IConfiguration>()
+            .GetValue("TestEnvironmentGate:Enabled", true);   // absent => assume gated
+    }
+    catch
+    {
+        await next();   // fall through to the restrictive file on disk
+        return;
+    }
+
+    if (gateOn)
+    {
+        await next();
+        return;
+    }
+
+    context.Response.ContentType = "text/plain; charset=utf-8";
+    await context.Response.WriteAsync(
+        "# GCC Certificate Database — public certificate directory\n" +
+        "User-agent: *\n" +
+        "Allow: /\n" +
+        "\n" +
+        "# Nothing below is public data: these either require sign-in or are per-user.\n" +
+        "Disallow: /Account/\n" +
+        "Disallow: /Admin/\n" +
+        "Disallow: /api/\n" +
+        "Disallow: /Dashboard\n");
+    // No Sitemap: directive — the application does not generate a sitemap.xml and there is no
+    // static one in wwwroot (checked 2026-09-21). Advertising one that 404s is worse than
+    // advertising none. If a sitemap is added later, add the directive with it.
 });
 
 // Static files with cache control headers

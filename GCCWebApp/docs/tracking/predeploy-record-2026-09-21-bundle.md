@@ -107,11 +107,48 @@ deploy. That has not been checked — see *Not checked* below.
 6. **Close the loop:** update the 11 register statuses to deployed, append to
    `docs/tracking/shipped-2026-09.md`.
 
+## What is live on gccwebapp.com — PROBED 2026-09-22 (read-only GETs)
+
+**The server is in a SPLIT state: `wwwroot` is current, the DLL is not.**
+
+| Probe | Result |
+|---|---|
+| `/css/main.css` | live md5 `cc59bd94149a2c21` == working tree — **DEF-436/438 CSS is already live** |
+| `/js/certificate-preview-pager.js` | live md5 `711065e8c70c4e7c` == working tree — **CR-053/DEF-434 client half is already live** |
+| `/css/admin-tables.css` (control) | same |
+| DEF-439 `?v=` on emitted stylesheet links | **ABSENT** — `/css/main.css`, `/css/auth.css` served bare |
+| DEF-337 batch (DocumentController routes) | GONE → that August batch is deployed |
+
+`asp-append-version` is a Razor tag helper in `_Layout.cshtml`, which compiles into
+`GCCWebApp.dll`. Its effect is absent from the emitted HTML, so **the live DLL predates DEF-439
+(2026-09-18)** and therefore also predates DEF-437 (2026-09-20). This matches the DEF-439 entry's own
+account: the DEF-436 fix went live 2026-09-18 17:34 UTC while the client still saw the old
+behaviour — because the CSS reached her and the cache-busting never did.
+
+### ⚠️ This contradicts the registers, and Gate 0B inherits the error
+
+DEF-434, DEF-436, DEF-438 and CR-053 are all recorded as *"not yet deployed"*. Their **static halves
+are demonstrably live**. `resolved-not-shipped.py` reads those status lines, so its "11 resolved and
+waiting" is correct about *code not yet shipped in a DLL* but wrong as a description of the server.
+**Do not quote it as "none of this is live".** The statuses should be corrected to name which half
+shipped — that is a register-hygiene fix, not a code one.
+
+### What this means for the deploy
+
+Extracting this bundle is still the right move — it makes the DLL current and ends the split — but
+the risk profile is the reverse of the usual one: the static assets it carries are **already** what
+is on the server (byte-identical), so the only real change is the DLL. The first thing to verify
+after the app pool recycles is therefore **DEF-439's `?v=`**, because it is the one symptom that
+proves the DLL actually moved.
+
 ## Not checked — stated so it is not mistaken for a cleared gate
 
-- **What is currently live on gccwebapp.com was not probed.** No `whats-deployed.js` run, no md5
-  comparison against the server. So "what this bundle would undo" is answered only against the
-  previous *bundle*, not against the *server*.
+- **Only three assets were md5-compared.** `whats-deployed.js` checks nine others (all SAME), but
+  **none of the eleven it checks is a file this batch changes** — its summary line *"live wwwroot
+  matches the working tree exactly"* is scoped to its own nine files, not to this bundle. The three
+  above were probed separately for that reason.
+- **No DLL-side marker for DEF-430/431/432/437 was probed.** Those need an authenticated session;
+  the `?v=` absence already establishes the DLL is older than all of them, so it was not pursued.
 - **No smoke suite was run against this build.** DEF-437's own verification (23/23) ran against the
   same code on localhost, but the other ten items were verified by their own sessions, not re-run here.
 - **Nothing was deployed.** The zip has not left this machine.

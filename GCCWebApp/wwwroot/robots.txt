@@ -1,3 +1,9 @@
-# Test environment — block all crawlers/indexers
+# GCC Certificate Database — public certificate directory
 User-agent: *
-Disallow: /
+Allow: /
+
+# Nothing below is public data: these either require sign-in or are per-user.
+Disallow: /Account/
+Disallow: /Admin/
+Disallow: /api/
+Disallow: /Dashboard

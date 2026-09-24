@@ -11,6 +11,23 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
+  <!-- Legacy deep-link rewrite map, consumed by web.config via
+       <rewriteMaps configSource="rewritemaps.config" />.
+
+       Content **Update**, not Include: the Web SDK already globs .config files at the project
+       root into Content, so an Include here is a DUPLICATE and fails the build outright with
+       NETSDK1022. (Verified 2026-09-21 - the first version of this block used Include and the
+       publish would not run. The failure was loud, which is the good case.) Update only sets
+       the metadata on the item the SDK already created.
+
+       CopyToPublishDirectory is pinned to Always so the file cannot be dropped from a publish.
+       If it ever is, IIS cannot resolve the configSource and returns 500 on EVERY path - the
+       DEF-363 total-outage shape. Scripts/cutover/verify-redirect-map.py asserts it is in the
+       bundle; run it before any deploy that carries the cutover rules. -->
+  <ItemGroup>
+    <Content Update="rewritemaps.config" CopyToPublishDirectory="Always" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Remove="publish-deploy\**" />
     <Content Remove="publish-deploy\**" />

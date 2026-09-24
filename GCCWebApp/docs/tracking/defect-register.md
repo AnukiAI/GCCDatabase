@@ -16353,13 +16353,15 @@ bundle contains but a clone cannot produce.*
 
 ### DEF-430 — A failed certificate load leaves the tile views stuck on "Loading…" over the previous filter's results, so a failure is indistinguishable from a filter that did nothing
 
+- **Bundle marker:** wwwroot/js/certificate-tile-view-internal.js | contains | function retryLoad
+
 - **Date raised:** 2026-09-17
 - **Severity:** **Major.** No data is wrong and nothing is lost, but the user is shown a screen that
   contradicts itself indefinitely: the results count says `Loading…`, the ticked filters say one
   thing, and the rows underneath are the *previous* filter's answer. There is no error, no timeout
   and no way to tell a slow request from a dead one. It was reported as *"the status filtering is
   not working"* — which is the point: the page cannot distinguish the two, so neither can the user.
-- **Status:** **FIXED AND VERIFIED on localhost 2026-09-17 — not yet deployed.** Not committed
+- **Status:** **FIXED AND VERIFIED on localhost 2026-09-17 — deployed 2026-09-22.** Not committed
   (Shawn commits). Front-end only: `certificate-tile-view-internal.js`,
   `certificate-tile-view-external.js`, `certificatetileview.css`.
 - **Reporter:** Shawn, direct. Internal tile view, `/Certificate/CertificateTileViewInternal`.
@@ -16449,11 +16451,13 @@ retry handling this ports), DEF-309 (the load-sequence token that the retry path
 
 ### DEF-431 — The tile hydrate query re-applied filters the page's ids had already satisfied; fixing that changed nothing measurable, and the measurement found where the cost actually is
 
+- **Bundle marker:** none | reason | Query-shape change (hydrate from the unfiltered base). No new symbol or literal; a marker would pass against the unfixed build too. Evidence is the runtime SQL/perf check in the DEF-431 entry.
+
 - **Date raised:** 2026-09-17
 - **Severity:** **Low as a defect, high as a finding.** Nothing was ever wrong in the output. The
   change is a simplification; the value delivered is the **measurement**, which locates ~99% of this
   endpoint's I/O in a place nobody was looking.
-- **Status:** **Hydrate code change DONE AND VERIFIED on localhost 2026-09-17 — not yet deployed. The covering-index migration was REVERTED 2026-09-18 and no longer exists in the repo — nothing in this entry touches any database.**
+- **Status:** **Hydrate code change DONE AND VERIFIED on localhost 2026-09-17 — deployed 2026-09-22. The covering-index migration was REVERTED 2026-09-18 and no longer exists in the repo — nothing in this entry touches any database.**
   commits). `CertificateTileInternalApiController.cs`, `CertificateTileExternalApiController.cs`.
 - **Reporter:** Anuki (internal), while investigating the latency behind DEF-430.
 - **QC log ID:** none.
@@ -16678,10 +16682,12 @@ follow), CR-043 (the visibility predicate that moved).
 
 ### DEF-432 — `CertificatePageCount` returns role-dependent JSON with no cache headers, while both its siblings set them
 
+- **Bundle marker:** none | reason | An added CALL to the existing SetUploadRevalidationHeaders(); compiles to IL with no literal. The entry states the runtime Cache-Control probe on /Certificate/CertificatePageCount IS the evidence.
+
 - **Date raised:** 2026-09-18
 - **Severity:** **Low, and latent.** Nothing is wrong today. It becomes real the moment any shared
   cache sits in front of the app.
-- **Status:** **FIXED AND VERIFIED 2026-09-18 — not yet deployed.** In the re-cut bundle
+- **Status:** **FIXED AND VERIFIED 2026-09-18 — deployed 2026-09-22.** In the re-cut bundle
   `GCCWebApp-deploy-20260918-1200.zip` (DLL md5 `e1e6d6d03527e0b8`). Originally deferred, then folded
   in when DEF-436 forced a re-cut and this became nearly free. Verified at runtime: `/Certificate/CertificatePageCount/1488` now returns `Cache-Control: private, no-cache, must-revalidate`, identical to its sibling `ViewCertificateImage`. **No in-zip marker is possible** — it is a method call that compiles to IL with no string literal — so the runtime check IS the evidence, and the marker script says so rather than asserting something weak.
 - **Reporter:** Gate 3 review of CR-053, run before the 2026-09-18 upload.
@@ -16715,9 +16721,151 @@ a latent one-liner means re-running the whole gate sequence, and nothing can rea
 - **Date raised:** 2026-09-18
 - **Severity:** **High at public cutover. Medium today**, only because the test-environment gate is
   still on. This is a whole-site availability risk, not a preview one.
-- **Status:** **RAISED, not fixed. MUST be resolved before `TestEnvironmentGate` is turned off.**
-  Not in `GCCWebApp-deploy-20260918-1020.zip`. It is a pre-existing property of CR-053 as built, not
-  a regression introduced by that bundle.
+- **2026-09-22 — the gate is OFF on gccwebapp.com, deliberately (Shawn).** The premise above, *"Medium today, only because the test-environment gate is still on"*, no longer holds for that host. Its four code fixes went live the same day in `GCCWebApp-deploy-20260922-1706.zip`, so they are now the only protection. They are still **not verified under load**. `test.gccwebapp.com` remains gated.
+- **Status:** ⏸ **PARKED 2026-09-22 by Shawn, after five failed reproduction attempts.**
+  **CODE FIXED 2026-09-21 — NOT VERIFIED UNDER LOAD. Still MUST be treated as open until it is.**
+  All four fixes are in the working tree and build clean; none is in any bundle yet.
+  It is a pre-existing property of CR-053 as built, not a regression introduced by a bundle.
+
+  > **What parking this costs, stated plainly.** The test-environment gate is the *only* thing
+  > standing between these two `[AllowAnonymous]` routes and an open anonymous render loop, and the
+  > gate comes off at public cutover (runbook step 10). **So DEF-433 parked means the gate cannot
+  > come off** — go-live plan §A2 lists it as a hard blocker, and nothing learned on 2026-09-22
+  > changes that. What was disproved is the *verification*, not the risk.
+  >
+  > The code fixes are correct **on inspection** — bounded `WaitAsync` on both paths, the redundant
+  > third PDF open gone, ETag matched before rendering, rate-limit rules present in
+  > `appsettings.Production.json`. That is a reasonable basis for shipping them in the bundle. It is
+  > **not** a basis for claiming the defect is verified, and the two must not be conflated when the
+  > cutover checklist is signed.
+
+  **Resume here — one cheap falsifier, ~20 min, before any further tuning:**
+  hold `PdfRenderLock` open for ~30 s behind a test-only flag and confirm
+  `verify-def433-render-concurrency.py` **FAILS**. If the check cannot detect a lock deliberately
+  held open, the harness is the defect and no concurrency tuning would ever have worked. Only if
+  that passes is it worth replacing the load generator (400 Python threads over `urllib` is the
+  prime suspect for the 300/100 ceiling — see Update (2)).
+
+  **Uncommitted work:** `Scripts/smoke-prod/verify-def433-render-concurrency.py` is untracked and
+  carries all the harness fixes (barrier release, control-sampler ordering, `--routes`, relaxed
+  fixture guard, `--expect pass|fail`). **It is the only artifact of this work — do not lose it.**
+
+  | Fix | State |
+  |---|---|
+  | 1. `IpRateLimiting` rules for `*/Certificate/CertificatePageCount*` and `*/Certificate/ViewCertificateImage*` | done — config validated, 9 general rules |
+  | 2. `GetPdfPageCount` → `GetPdfPageCountAsync` with `WaitAsync(5s, ct)`; the render wait bounded too | done |
+  | 3. Redundant third PDF open removed (the controller's pre-count was already covered inside `RenderPdfPageAsync`); **ETag added and matched BEFORE rendering**, so a revalidation costs no render | done |
+  | 4. Test for the "not yet effective" window on both new routes | **NOT done** — needs the X-SENSE fixture, unprovable after **2026-10-21** |
+
+  **⚠ The load check does not yet discriminate, so it is not a gate.**
+  `Scripts/smoke-prod/verify-def433-render-concurrency.py` was written, and run twice on localhost
+  against cert Id 615 (`25-8380`, 4 pages, publicly visible — the fixture requirement is real: most
+  dev certs have no readable PDF and never reach the lock at all):
+
+  - **fixed code:** PASS — 100 concurrent, control p95 0.027s vs 0.035s baseline
+  - **pre-fix code, blocking `Wait()` restored as a negative control:** **also PASS** — control p95
+    0.034s vs 0.030s baseline
+
+  A check that passes on the broken code proves nothing about the fixed code. The local box is too
+  fast to reproduce the fault at this scale: a 4-page PDF opens in ~30 ms warm, so the queue drains
+  faster than it builds and no thread starvation occurs. Reproducing it needs materially higher
+  concurrency, a slower/larger document, or a constrained thread pool — and the defect's own
+  measurements (423/87/33 ms, "a shared Plesk host is slower") say the target environment is where
+  it bites. **Until the check fails on pre-fix code, DEF-433 is fixed-in-principle only.**
+
+  **Update 2026-09-22 — three reproduction attempts, all negative. Still not a gate.**
+  The harness was rebuilt and the negative control re-run properly (blocking `Wait()` restored in
+  `GetPdfPageCountAsync`, full rebuild, 0 errors, code restored and hash-verified afterwards).
+  Two harness defects were found and fixed, and **neither was the cause**:
+
+  1. *The load generator was the bottleneck.* Storm threads were created and started in a Python
+     loop, each building its `urllib` request **after** starting, so requests trickled in and the
+     server drained them as they landed — true concurrency was never reached. Now every worker
+     builds its request, blocks on a `threading.Barrier`, and all are released in one instant.
+  2. *The control sampler started too late.* It was started after the loop that starts every storm
+     thread, so it could begin sampling after the peak and measure the recovery rather than the
+     outage. It now starts first and samples continuously through the storm.
+
+  | # | Condition | Concurrency | Control p95 vs baseline | Result |
+  |---|---|---|---|---|
+  | 1 | **fixed** code | 200, barrier-released | 0.034s vs 0.030s (**1.1×**) | PASS (as wanted) |
+  | 2 | **pre-fix** code (blocking `Wait()`) | 200, barrier-released | 0.031s vs 0.047s (**0.6×**) | **still PASS — no discrimination** |
+  | 3 | **pre-fix** code, thread pool capped `Min 2 / Max 8` on a 14-core box | 200, barrier-released | 0.031s vs 0.032s (**1.0×**) | **still PASS — no discrimination** |
+
+  **The decisive observation is from the logs, not the timings.** Across *all three* runs,
+  `grep 'PDF lock not acquired'` returns **0**. In the fixed build that warning fires whenever the
+  5 s bound is hit — so **the lock was never contended for 5 s in any run, including the fixed one.**
+  The storm is not reaching the lock hard enough to queue; what actually saturates is the *render*
+  route (60–100 of 200 requests hit the client's 20 s timeout) while the *count* route returns 200
+  promptly throughout. A storm that never builds a lock queue cannot reproduce a lock-queue defect,
+  which is why raising concurrency and capping the thread pool both changed nothing.
+
+  **Unverified assumption, called out rather than carried:** it was not confirmed that the
+  `System.Threading.ThreadPool.MaxThreads` runtimeconfig cap actually took effect in run 3 — the
+  value was verified on disk, not in the running process. Run 3 is therefore weaker evidence than
+  runs 1–2. *(Separately: an incremental `dotnet build` does **not** regenerate
+  `bin/Debug/net8.0/GCCWebApp.runtimeconfig.json`, so that edit survived a rebuild and had to be
+  stripped by hand. Anyone repeating this must remove it explicitly or every later local run is
+  silently throttled.)*
+
+  **What the harness now does right:** `--expect pass|fail` makes the two-run protocol explicit and
+  a negative-control run that fails to reproduce **exits non-zero and says so**, instead of the old
+  behaviour of printing a green PASS that meant nothing. The script can no longer be mistaken for a
+  gate it has not earned.
+
+  **Next step, and it is a change of approach rather than more tuning.** Three environmental
+  escalations have now failed. The remaining options, cheapest first:
+  - drive **only** `CertificatePageCount` (drop the render route from the mix) so the storm builds a
+    queue on the *blocking* path instead of saturating the async one;
+  - hold the lock artificially long under a test-only flag, to prove the harness detects starvation
+    at all before asking it to detect this starvation;
+  - accept that this box cannot reproduce it and run the check against a **constrained environment
+    that resembles the shared Plesk host**, which the defect's own 423/87/33 ms measurements point to.
+
+  **Status unchanged: fixed-in-principle, not verified under load.** The code fixes 1–3 are in and
+  correct on inspection; what is missing is still a check that can fail.
+
+  **Update 2026-09-22 (2) — count-only storm tried. Did not reproduce either. Two more harness
+  defects fixed; the conclusion has changed from "tune it" to "this box cannot do it".**
+
+  Added `--routes count|image|both`. A 50/50 mix was itself a defect: `ViewCertificateImage`
+  *renders* and is an order of magnitude slower per request, so it monopolises the storm while the
+  cheap count requests sail through between renders — the lock queue never builds. Also relaxed the
+  fixture guard, which rejected `pages == 1` unconditionally; `CertificatePageCount` opens the PDF
+  and takes the lock regardless of page count, so a single-page document is a valid count-only
+  fixture. That guard was actively harmful: it rejected the **largest PDF in the dev store**.
+
+  | # | Fixture | Routes | Conc. | Control p95 vs base | `PDF lock not acquired` | Result |
+  |---|---|---|---|---|---|---|
+  | 4 | Id 615 — 4 pages, small | count | 400 | 0.081s vs 0.065s (1.2×) | **0** | PASS — no repro |
+  | 5 | Id 672 — **2.34 MB**, 1 page | count | 400 | 0.052s vs 0.032s (1.7×) | **0** | PASS — no repro |
+
+  **Five runs, zero lock-timeout warnings.** In the fixed build that line fires on every 5 s bound
+  hit, so across every configuration tried — mixed and count-only, 200 and 400 concurrent, default
+  and capped thread pool, a 4-page file and one **78× larger** — *the lock was never contended for
+  five seconds.* The storm is queueing somewhere ahead of the lock.
+
+  **The tell that ends the tuning.** Runs 4 and 5 both returned **exactly 300 × HTTP 200 and 100
+  client timeouts**, on fixtures differing by two orders of magnitude in size, with the storm
+  "finishing" at 20.1 s — precisely the client timeout — in both. A split that does not move when
+  the workload changes that much is not lock behaviour; it is a **ceiling in the load generator or
+  the transport** (400 Python threads over `urllib`, Windows socket limits, or a Kestrel connection
+  cap). Runs 1–5 therefore measured the harness, not the application.
+
+  **Revised next step — stop tuning the storm, and first prove the harness can see starvation at
+  all.** Ordered:
+  1. **Falsify the harness itself:** hold `PdfRenderLock` artificially for ~30 s behind a test-only
+     flag and confirm the check FAILS. If it cannot detect a lock deliberately held open, no amount
+     of concurrency tuning was ever going to work, and the harness — not the box — is the defect.
+  2. **Replace the load generator** if step 1 passes but real load still will not queue: 400 Python
+     threads is the suspect. Use an async client (`aiohttp`/`httpx`) or a purpose-built tool so the
+     client is provably not the ceiling.
+  3. **Only then** consider a constrained environment resembling the shared Plesk host, which the
+     defect's own 423/87/33 ms measurements point to.
+
+  **Cost note:** five reproduction attempts have now been spent. Step 1 is the cheap falsifier that
+  should have come first — it asks "can this instrument detect the thing at all?" before asking it
+  to detect a subtle instance of the thing.
 - **Reporter:** Gate 3 review of CR-053, run before the 2026-09-18 upload.
 - **QC log ID:** none — internal.
 
@@ -16770,10 +16918,12 @@ single-request timing run cannot see this class of fault.
 
 ### DEF-434 — The preview pager swallows Left/Right arrow keys from form fields on the Edit page
 
+- **Bundle marker:** wwwroot/js/certificate-preview-pager.js | contains | isContentEditable
+
 - **Date raised:** 2026-09-18
 - **Severity:** **Medium.** Labelled HIGH by the Gate 1 review as a keyboard regression, and it is a
   genuine one — but the practical exposure is narrow (see below), and nothing is corrupted or lost.
-- **Status:** **FIXED AND VERIFIED 2026-09-18 — not yet deployed.** In
+- **Status:** **FIXED AND VERIFIED 2026-09-18 — deployed 2026-09-22.** In
   `GCCWebApp-deploy-20260918-1200.zip`. Fix: `onKey` now returns early when `e.target` is an
   `input`, `select`, `textarea` or `contenteditable` (`isTextEntry`). **Both halves verified, because
   fixing this by simply unbinding the listener would also have 'passed' a one-sided test:** (a) with
@@ -16843,10 +16993,12 @@ restore on close).
 
 ### DEF-436 — Paging to page 2 appears to zoom in: page 1 is the stored thumbnail, pages 2+ are rendered 2x larger
 
+- **Bundle marker:** none | reason | Superseded by DEF-438, which replaced this fix's 620px cap. Asserting the old rule would now fail; DEF-438's marker covers the shipped state.
+
 - **Date raised:** 2026-09-18
 - **Severity:** **Medium.** Cosmetic — no data is wrong and nothing fails — but it is the first thing
   a user notices when they use the feature, and it reads as a bug rather than a design choice.
-- **Status:** **FIXED AND VERIFIED 2026-09-18 — not yet deployed.** Option 1 chosen by Shawn
+- **Status:** **FIXED AND VERIFIED 2026-09-18 — deployed 2026-09-22.** Option 1 chosen by Shawn
   (*"option 1, fold in 432 and 434 too, recut"*). In the re-cut bundle
   `GCCWebApp-deploy-20260918-1200.zip` (DLL md5 `e1e6d6d03527e0b8`).
 - **Reporter:** **Shawn, 2026-09-18**, testing the built bundle's feature on dev before uploading:
@@ -16926,11 +17078,13 @@ cross-surface PASS with 0 mismatches.
 
 ### DEF-437 — CSV edit-import strips ALL tags (internal + external) off every certificate it touches, even when the file carries no tag column
 
+- **Bundle marker:** dll | contains | IsInternalTag
+
 - **Date raised:** 2026-09-18 as a DEF. **But first identified 2026-06-25** — see *Root cause* below.
 - **Severity:** **High.** Data loss on business records, on the documented happy path. It is the
   DEF-355 bug still live in the one field DEF-355 did not cover, and `UndoImportBatchAsync` cannot
   reverse it — its own docstring (`:1056-1059`) warns collections are not restored by undo.
-- **Status:** **FIXED AND VERIFIED 2026-09-20 on localhost — not yet deployed / not in any bundle.**
+- **Status:** **FIXED AND VERIFIED 2026-09-20 on localhost — deployed 2026-09-22 in `GCCWebApp-deploy-20260922-1706.zip`.**
   See *Verification* at the end of this entry.
 - **Reporter:** Re-found 2026-09-18 while answering Shawn's question about the import help text
   (*"Does this mean they should delete out the columns with no changes?"*) — the answer is yes, and
@@ -17117,11 +17271,13 @@ Needs its own DEF; related to the DEF-399/DEF-431 export/search performance work
 
 ### DEF-438 — Preview popup is consistent but unreadable: every page capped at 620px (0.59x a physical page), and the pager falls below the fold once it is not
 
+- **Bundle marker:** wwwroot/css/main.css | absent | max-height: min(85vh, 620px)
+
 - **Date raised:** 2026-09-18
 - **Severity:** **Medium-High.** Nothing is wrong with the data and nothing fails, but the popup is
   the primary way a certificate is read and the text in it cannot be read. The controls falling off
   screen is a second, separate fault in the same feature.
-- **Status:** **FIXED AND VERIFIED 2026-09-18 — not yet deployed.** Option 2 chosen by Shawn
+- **Status:** **FIXED AND VERIFIED 2026-09-18 — deployed 2026-09-22.** Option 2 chosen by Shawn
   (render page 0 on demand). Rides the held final build.
 - **Reporter:** **Shawn, 2026-09-18**, using the feature: *"the experience with the page toggling
   preview is off. The text is not legible. And when going to page 2 the image gets bigger and
@@ -17233,11 +17389,13 @@ DEF-433 (made worse by this), DEF-400 (the one PDF that cannot render at all), C
 
 ### DEF-439 — No project stylesheet is cache-busted, so a deployed CSS fix is invisible to returning users for up to 7 days
 
+- **Bundle marker:** none | reason | `AppendVersion`/`LinkTagHelper` are ALREADY in the pre-fix DLL (script tags used them), so every candidate needle passes against a build without this fix - falsified against GCCWebApp-deploy-20260916-1023.zip. Evidence is the runtime probe: the emitted HTML must carry `?v=` on stylesheet links.
+
 - **Date raised:** 2026-09-18
 - **Severity:** **High, and it is a process defect as much as a code one.** It does not break a
   page; it breaks the ability to *ship a CSS fix at all*, silently, and it makes deploy verification
   lie — the asset on the server is correct while every returning user sees the old one.
-- **Status:** **FIXED AND VERIFIED 2026-09-18 — not yet deployed.** Rides the held final build.
+- **Status:** **FIXED AND VERIFIED 2026-09-18 — deployed 2026-09-22.** Rides the held final build.
 - **Reporter:** Found 2026-09-18 while investigating why Shawn reported DEF-436 behaviour that was
   already deployed. **Nobody reported this defect; it was the explanation for another one.**
 - **QC log ID:** none — internal.
@@ -17322,3 +17480,54 @@ the first question to answer, and it decides the severity.
 **Related.** DEF-431 and DEF-399 (export/search performance; likely the same root cause),
 CR-023 (the backup/undo design that turns a slow export into a blocked import),
 DEF-437 (found while verifying it).
+
+### DEF-441 — Missing pages show the browser's generic error, and "certificate not available" is a bare line of text: `/Home/NotFound` never existed
+
+- **Date raised:** 2026-09-23
+- **Severity:** **Medium.** No data exposure and nothing broken for signed-in work, but it is the page
+  every visitor following an **old legacy link to an expired certificate** now lands on (the 2026-09-23
+  legacy-link work routes them there), and it offers no way back into the site.
+- **Status:** **DEPLOYED to gccwebapp.com 2026-09-23 (by Shawn) — post-deploy verified.** Shipped in
+  the full bundle `GCCWebApp-deploy-20260923-2211.zip` (DLL md5 `3aa8acaf2c8d6127`), NOT the
+  `-HOTFIX-keep-server-config` zip first proposed (see `docs/tracking/predeploy-record-2026-09-23-hotfix.md`).
+  Live checks 2026-09-23: missing page / legacy unknown id / unknown cert / non-public cert → styled 404
+  page; public cert + tile view 200; missing .js bare 404; partner API 401; gate still off; robots public;
+  1,966/1,966 legacy links OK; Gate 12 reset email to `2fatest` arrived from noreply@db (Shawn confirmed).
+- **Reporter:** Found 2026-09-23 while fact-checking a client email about legacy links. The client
+  email flagged the related legacy-link gaps; this page was not itself client-reported.
+- **QC log ID:** none — internal.
+
+**Symptom (live, 2026-09-23).** Any missing page (`/anything`, `/certificate/99999999`) → HTTP 404 with
+an **empty body**, so the browser shows its own generic error. `/Certificate/CertificateSingleView/{n}`
+→ 404 `text/plain`: *"Certificate 99-9999 not found"* or *"Certificate 21-0664 is not currently
+available for public viewing."* — one unstyled line, no layout, no navigation.
+
+**Cause.** `web.config` `<httpErrors>` has always pointed 404 at `/Home/NotFound`, but `HomeController`
+had no such action (`/Home/NotFound` itself returned 404), and the ASP.NET Core app returns bodiless
+404s that IIS passes straight through. `CertificateSingleView` returned `NotFound(string)`, i.e. raw text.
+
+**Fix.**
+- `HomeController.PageNotFound` (`[ActionName("NotFound")]`, `[AllowAnonymous]` because of the global
+  `AuthorizeFilter`) + new `Views/Home/NotFound.cshtml`: site layout, message, search box, "Browse all
+  certificates". Always HTTP 404.
+- `Program.cs` `UseStatusCodePages` lambda: a bodiless 404 is re-executed to `/Home/NotFound` **only**
+  for GET + `Accept: text/html` + no file extension, and never for `/api/*` or `X-Requested-With`.
+  Missing `.js`/`.css`/images, `fetch()` calls and the partner API keep their bare responses.
+- `CertificateController.CertificateSingleView`: the three `NotFound(text)` returns now render the same
+  page via `CertificateNotFoundPage(heading, message)`. **Message text unchanged** because the Company
+  User Guide quotes it verbatim (`company-user-guide.md:165,197`). Status still 404.
+
+**Verified on localhost (2026-09-23).** 13-case matrix: browser 404s (missing page, legacy missing id,
+missing cert number, non-public cert, `/Home/NotFound`) → 404 `text/html` styled page with search box;
+public cert 26-0330 → 200 unchanged; tile view 200 unchanged; no-`Accept: html`, AJAX header, missing
+`.js`, `/api/v1/does-not-exist`, POST → bare 404 as before; `/api/v1/certificates` → 401 unchanged.
+Playwright screenshots desktop 1440 + mobile 390; search box submits to `/?search=dupont`, which applies
+the search and lists DuPont certificates.
+
+**Deploy note.** `Program.cs`, `CertificateController.cs` and `FileUploadService.cs` also carry OTHER
+uncommitted changes (DEF-208/400/432/433/438, CR-053, csproj DEF-363). Run **Gate 0B** +
+`whats-deployed.js` before bundling to confirm those are what is already live, so the hotfix neither
+ships something unreviewed nor rolls something back.
+
+**Out of scope, noted.** `Views/Home/Error.cshtml` is also empty (500s render a blank page), and
+`HomeController.Error` lacks `[AllowAnonymous]`. Not changed; raise separately if wanted.

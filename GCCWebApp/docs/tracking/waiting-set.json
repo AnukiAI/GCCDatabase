@@ -1,0 +1,73 @@
+{
+  "generated": "2026-09-22T19:41:22Z",
+  "baseline_bundle": "GCCWebApp-deploy-20260916-1023.zip",
+  "waiting": [
+    {
+      "id": "CR-051",
+      "kind": "CR",
+      "title": "(raised 2026-09-16, BUILT 2026-09-16 — not yet deployed) — Certificate",
+      "status": "BUILT 2026-09-16, not yet deployed. Approved as a CR and built the same day;"
+    },
+    {
+      "id": "CR-052",
+      "kind": "CR",
+      "title": "(raised 2026-09-16, BUILT 2026-09-16 — Option A, all five surfaces; no",
+      "status": "BUILT 2026-09-16 (Option A), not yet deployed. Both options were priced first and"
+    },
+    {
+      "id": "CR-053",
+      "kind": "CR",
+      "title": "(raised 2026-09-17, BUILT 2026-09-17 — Option C; not yet deployed) — P",
+      "status": "APPROVED and BUILT 2026-09-17 — not yet deployed. Estimate-before-build gate honoured: 6-9"
+    },
+    {
+      "id": "DEF-430",
+      "kind": "DEF",
+      "title": "— A failed certificate load leaves the tile views stuck on \"Loading…\" ",
+      "status": "FIXED AND VERIFIED on localhost 2026-09-17 — not yet deployed. Not committed"
+    },
+    {
+      "id": "DEF-431",
+      "kind": "DEF",
+      "title": "— The tile hydrate query re-applied filters the page's ids had already",
+      "status": "Hydrate code change DONE AND VERIFIED on localhost 2026-09-17 — not yet deployed. The cove"
+    },
+    {
+      "id": "DEF-432",
+      "kind": "DEF",
+      "title": "— CertificatePageCount returns role-dependent JSON with no cache heade",
+      "status": "FIXED AND VERIFIED 2026-09-18 — not yet deployed. In the re-cut bundle"
+    },
+    {
+      "id": "DEF-434",
+      "kind": "DEF",
+      "title": "— The preview pager swallows Left/Right arrow keys from form fields on",
+      "status": "FIXED AND VERIFIED 2026-09-18 — not yet deployed. In"
+    },
+    {
+      "id": "DEF-436",
+      "kind": "DEF",
+      "title": "— Paging to page 2 appears to zoom in: page 1 is the stored thumbnail,",
+      "status": "FIXED AND VERIFIED 2026-09-18 — not yet deployed. Option 1 chosen by Shawn"
+    },
+    {
+      "id": "DEF-437",
+      "kind": "DEF",
+      "title": "— CSV edit-import strips ALL tags (internal + external) off every cert",
+      "status": "FIXED AND VERIFIED 2026-09-20 on localhost — not yet deployed / not in any bundle."
+    },
+    {
+      "id": "DEF-438",
+      "kind": "DEF",
+      "title": "— Preview popup is consistent but unreadable: every page capped at 620",
+      "status": "FIXED AND VERIFIED 2026-09-18 — not yet deployed. Option 2 chosen by Shawn"
+    },
+    {
+      "id": "DEF-439",
+      "kind": "DEF",
+      "title": "— No project stylesheet is cache-busted, so a deployed CSS fix is invi",
+      "status": "FIXED AND VERIFIED 2026-09-18 — not yet deployed. Rides the held final build."
+    }
+  ],
+  "unclassifiable": []
+}

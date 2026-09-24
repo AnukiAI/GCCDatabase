@@ -27,6 +27,11 @@ rather than a silently mis-rendered document:
 
     <!-- pagebreak -->        -> page break (Word); print-only break (web)
 
+    <!-- include: name.md --> -> splices in _shared/name.md at this point, parsed with the same
+                                 rules. For material that must read identically in several guides
+                                 (the glossary, the permissions matrix), so a shared table cannot
+                                 say different things in different documents. Includes do not nest.
+
 Anything unrecognised raises, rather than being dropped — a guide that silently loses a paragraph
 is worse than one that fails to build.
 """
@@ -71,10 +76,44 @@ def _table_widths(headers, rows, total=6.0, min_w=0.8):
     return [round(min_w + w * scale, 2) for w in weight]
 
 
+SHARED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_shared")
+_INCLUDE_RE = re.compile(r"^<!--\s*include:\s*([A-Za-z0-9_.-]+)\s*-->$")
+
+
+def _expand_includes(lines, source_path, depth=0):
+    """Splice `<!-- include: name.md -->` with the contents of _shared/name.md.
+
+    Runs on the raw line list BEFORE parsing, so an included file uses exactly the same markdown
+    dialect and produces exactly the same blocks as inline text — there is no second code path to
+    keep in step. A missing file raises rather than rendering an empty section: a guide silently
+    missing its glossary is precisely the failure this parser exists to prevent.
+    """
+    out = []
+    for n, line in enumerate(lines):
+        m = _INCLUDE_RE.match(line.strip())
+        if not m:
+            out.append(line)
+            continue
+        if depth:
+            raise GuideError(f"{source_path} line {n+1}: includes do not nest")
+        target = os.path.join(SHARED, m.group(1))
+        if not os.path.exists(target):
+            raise GuideError(f"{source_path} line {n+1}: include not found — {target}")
+        with open(target, encoding="utf-8") as fh:
+            body = fh.read().replace("\r\n", "\n").split("\n")
+        if body and body[0].strip() == "---":
+            raise GuideError(f"{target}: a shared include must not carry front matter")
+        out.extend(_expand_includes(body, target, depth + 1))
+        out.append("")
+    return out
+
+
 def parse(path):
     raw = open(path, encoding="utf-8").read().replace("\r\n", "\n")
     lines = raw.split("\n")
     meta, i = _front_matter(lines)
+    # Expanded AFTER the front matter is consumed, so `i` still indexes the original list.
+    lines = lines[:i] + _expand_includes(lines[i:], path)
 
     blocks = []
     para_buf = []

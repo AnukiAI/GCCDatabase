@@ -810,7 +810,7 @@ signature pages — could not be reached from the application at all.
 **This affects about a quarter of the library.** We counted every certificate document on file:
 **1,336 of 5,474 (24.4%) run to more than one page**, and a handful reach eleven.
 
-**"View all pages" sits inside the preview popup**, directly under the picture — which is where you
+**"View PDF" sits inside the preview popup**, directly under the picture — which is where you
 asked for it (*"a toggle to view multiple pages under the Preview popup"*). Open the preview as you
 do now and the button is there. It opens the certificate document itself, so you get every page, plus
 search, zoom and print from your browser.
@@ -860,7 +860,7 @@ something else is not picked by mistake.
 ### Known follow-ups
 
 **A certificate whose document is password-protected still cannot be displayed.** One certificate is
-in this state (23-0971). "View all pages" will fail on it the same way the preview image always has.
+in this state (23-0971). "View PDF" will fail on it the same way the preview image always has.
 
 **On a tablet held sideways, the import window now needs a short scroll** to reach the file-chooser,
 because the instructions above it are longer. Accepted deliberately: the complaint was that the
@@ -884,7 +884,7 @@ above.
 
 **What you will see.** Open the preview on a certificate with more than one page and a small bar
 appears under it: **< Page 1 of 2 >**. Click the arrows, or use the left and right arrow keys, and the
-pages turn over in place. The popup stays open throughout. **View all pages** is still there
+pages turn over in place. The popup stays open throughout. **View PDF** is still there
 underneath if you would rather have the whole document in your browser's PDF viewer, with search and
 print.
 
@@ -905,7 +905,7 @@ second**.
 
 **One deliberate exception.** A small number of documents cannot be displayed as images at all — one
 certificate is password-protected (23-0971), and any certificate whose file is missing would be the
-same. For those the arrows do not appear and the popup keeps offering **View all pages** instead of
+same. For those the arrows do not appear and the popup keeps offering **View PDF** instead of
 showing you an empty window. Everywhere else, paging is the normal behaviour.
 
 **One change already made in response.** You said the control inside the preview can stay but you did
@@ -918,3 +918,49 @@ instead. It is the first thing to click once this is deployed.
 
 **No action needed from you.** Everything described on this page will reach the test environment
 together, in one release.
+
+### The preview button now reads "View PDF" (CR-054)
+
+**You asked for the button in the preview popup to say "View PDF" rather than "View all pages",
+because most certificates have only one page.** Done. The same button in the same place does the
+same thing, which is open the certificate document in your browser, and it now says so plainly. It
+changed everywhere it appears: the certificate detail pages, the edit screen, the public database,
+and the upload screen, where it opens the file you've just chosen before you save. The wording on
+this page has been updated to match.
+
+### Released — 22 September 2026
+
+**Everything described in this section is now live**, in one release. That covers the status
+filter, the preview popup's **View PDF** button, paging through multi-page certificates inside the
+popup, and the fixes delivered with them. We checked it on the live site after release, including
+your own example, **26-0621**, which now shows **Page 1 of 2** in the preview and turns to page two.
+
+### Released — 23 September 2026: old links, the main address, and a proper "not found" page
+
+**Links from the old database now land in the new one.** Every kind of link the old public site
+created now forwards to the matching place in the new database:
+
+- **Certificate preview and PDF links** open that certificate's page. We tested every certificate
+  link from the old site, **all 1,966 of them** (the preview link and the PDF link for each of the
+  983 certificates it listed publicly), and every one lands on the correct certificate.
+- **Filtered links** (company, product, product type, certification type, certificate number and
+  location) open the database with a matching search. For example, an old ASSA ABLOY link now shows
+  the 135 ASSA ABLOY group certificates. Links filtered by effective or expiration date open the
+  database without that filter, because the new database has no date filter.
+- **Old staff bookmarks** for the previous admin area go to the sign-in page.
+
+**gccwebapp.com now forwards to db.greencirclecertified.com**, so everyone ends up on the main
+address. The separate, password-protected test site is **test.gccwebapp.com**.
+
+**Missing pages now show a proper page.** Previously, a mistyped address or an unavailable
+certificate showed a blank browser error or a single line of text. Now there's a page in the
+database's normal layout with a search box and a link to browse all certificates. The message for a
+certificate that isn't currently public is unchanged: *"Certificate … is not currently available for
+public viewing."*
+
+**Worth knowing:** if you opened an old filtered link *before* today, your browser may remember the
+old forwarding and show the full list. A private/incognito window, or clearing the browser cache,
+fixes that. People opening the link for the first time aren't affected.
+
+We checked all of this on the live site after release. Password-reset emails continue to arrive from
+noreply@db.greencirclecertified.com.

@@ -41,13 +41,13 @@
 > When writing a defect, shipped-log or deploy note, say **"test environment"** or
 > **"gccwebapp.com"**. Reserve "production" for the environment that does not exist yet.
 
-> **Gates 0–10 run before the upload. Gate 11 runs after it, and is not optional.** For most of this document's life there was no post-upload step at all, so "Pending deploy" was a state the process could enter and never leave — 54 shipped defects were still recorded as undelivered on 2026-08-04. The deploy is not finished when the zip is up; it is finished when the record says so.
+> **Gates 0–10 run before the upload. Gates 11 and 12 run after it, and are not optional. Gate 13 runs only at public launch.** For most of this document's life there was no post-upload step at all, so "Pending deploy" was a state the process could enter and never leave — 54 shipped defects were still recorded as undelivered on 2026-08-04. The deploy is not finished when the zip is up; it is finished when the record says so.
 
 **How to run a gate:** launch the named agent via the Task tool with the changed files as scope. Gates 1–4 are independent — fire them in parallel in a single message, then read the results. Gate 5 (governance) runs last because it audits the *outcome* of the others. **Gates 4, 6, and 8 also have deterministic script steps that need the app running on `localhost:5101`** (Gate 4 = `amazon-contract-diff.js` Amazon-shape diff; Gate 6 = cold-start timing; Gate 8 = the write-path/security/contract script bundle) — start the app first, then run those alongside the agent reviews.
 
 **One-command deterministic gate:** with the app on `localhost:5101` and `sqlcmd` on PATH, run **`node Scripts/smoke-prod/deploy-gate.js`**. It runs the three deterministic script suites in sequence — **security** (`_security/run-all.js`: isolation/RBAC/IDOR/detail scoping), **crud** (`_crud/run-all.js`: cert/tag/company/product/user write paths), and **contract** (`amazon-contract-diff.js`) — and exits `0` only if all pass (`2` = app/sqlcmd not ready, `1` = a gate failed). This is the mechanical backbone of Gates 3, 4, and 8 in one shot (and the intended CI entrypoint). The agent-driven gates below still cover what a script can't (visual/design, WCAG, traceability, EF perf, migrations).
 
-**Scope trigger:** run the full list before any `dotnet publish` to gccwebapp.com / greencirclecertified.com. For a hotfix touching one surface, run only the gates whose "Fires when" matches — but Gates 5, 9 and 10 always run, and Gate 11 always runs after the upload.
+**Scope trigger:** run the full list before any `dotnet publish` to gccwebapp.com / greencirclecertified.com. For a hotfix touching one surface, run only the gates whose "Fires when" matches — but Gates 5, 9 and 10 always run, and Gates 11 and 12 always run after the upload. **Gate 13 is the exception to "run top-to-bottom": it fires only when the app goes public, and is deliberately not part of a routine test deploy.**
 
 ---
 
@@ -368,6 +368,70 @@ So nothing surfaces until a real person cannot get into their account. Worse tha
 **Do not move the credential into `appsettings.Production.json` or `web.config` "for tidiness".** Both ship in the zip, so both are overwritten on every deploy — that is the exact failure this design removes, and the checklist warned about it (Deploy record 2026-08-17) before it was fixed. `appsettings.Production.json` is also the file that was **publicly downloadable** during DEF-363; IIS serves `.json` raw whenever the AspNetCore handler is unmapped.
 
 > Justifies this gate: DEF-263 Finding 2. Outbound email was a no-op on the test environment from 2026-06-12 to 2026-08-19 — over two months — and was found by *reading `Program.cs`*, not by anything failing. During that window every password-reset link and 2FA code was generated, logged, and dropped, while the UI reported success each time.
+
+---
+
+## Gate 13 — Test fixture accounts are gone  ·  manual + DB  ·  **PUBLIC LAUNCH ONLY**
+
+**Fires when:** the app is cut over to a public hostname, or the certificate directory is opened to
+anonymous visitors. **It does NOT fire on a routine deploy to the test environment** — the fixture
+accounts are what the test environment is tested *with*, and a gate that has to be waived every time
+is a gate nobody reads by the third deploy.
+
+**What this guards.** The test environment carries **sixteen** accounts created for testing. They
+share a small number of documented passwords, most have 2FA **off**, and at least two of them —
+`admin` and `admin.uat` — hold the **Admin** role. The passwords are written down in the project
+credentials notes, which are committed to this repository. On a private test host that is an
+accepted trade-off. On a public host it is a published administrator credential.
+
+**The accounts, by name** (passwords deliberately not repeated here — see the credentials section of
+the project notes; this file currently contains no plaintext password and should stay that way):
+
+| Group | Accounts |
+|---|---|
+| Admin | `admin`, `admin.uat`, `test.admin` |
+| Analyst | `analyst`, `test.analyst`, `2fatest` |
+| External / company | `external`, `test.external`, `test.external2`, the X-SENSE email-login account |
+| Partner | `test.amazon`, `test.novi` |
+| CI partner fixtures | `partner@amazon.com`, `perry.novi@example.com`, `pam.wayfair@example.com`, `pip.other@example.com`, `pru.multi@example.com` |
+
+- [ ] **Enumerate every account on the production database and account for each one.** Not a spot
+      check of the list above — that list is what was known on 2026-09-22 and new fixtures get added
+      without anyone updating a document:
+      ```sql
+      SELECT Id, Username, Email, Role, IsActive, TwoFactorEnabled, LastLoginAt
+      FROM Users ORDER BY Role, Username;
+      ```
+      Every row must be a real person or a deliberate service account. Anything else is a fixture.
+- [ ] **Each fixture is deleted, or disabled AND re-passworded.** Disabling alone is not enough: an
+      `IsActive = 0` account with a published password is one admin mistake away from live. If a
+      fixture must survive cutover, it needs a fresh unique password and 2FA on.
+- [ ] **Prove it by failing to sign in.** For every documented default password, attempt one sign-in
+      against the **public host** and require it to fail. This is the only check here that tests the
+      risk rather than the record — a row can look right while the hash is unchanged.
+      One attempt per account: five consecutive failures lock an account for fifteen minutes
+      (Gate 12's neighbours in `AccountController`), so do not loop.
+- [ ] **`admin.uat` specifically.** It is an Admin, it is still on the shared default password, and
+      it is the account several verification scripts default to — so it is the one most likely to be
+      left behind on the grounds that something depends on it. Something does; repoint the scripts.
+- [ ] **Confirm 2FA on every surviving privileged account**, and confirm the mailbox behind it can
+      actually receive mail. An administrator with 2FA enabled on an address that does not deliver
+      is locked out, not secured.
+
+> **Justifies this gate:** this requirement was written down in exactly one place — an internal
+> training note (`docs/training/user-management.md`) last touched in May 2026 — and was in **no**
+> gate, no runbook and no cutover checklist. It surfaced on 2026-09-22 only because that note was
+> being reduced to a pointer during the user-guide consolidation, and reading it before deleting it
+> was what caught it. Had the file been reduced unread, the only written record of a launch security
+> requirement would have gone with it.
+>
+> Related, and deliberately **not** folded in here: the project notes and
+> `docs2/claude-ref/DATABASE.md` carry plaintext credentials in the repository, and the Amazon
+> partner key sits in plaintext in a delivered PDF. Those are their own cleanup items in
+> `docs/tracking/ways-to-improve.md`; this gate only covers the sign-in accounts.
+
+Cross-reference: the cutover runbooks in `docs/cutover/` describe the DNS and hosting side of going
+public. This gate is the account side of the same event and should be worked at the same time.
 
 ---
 

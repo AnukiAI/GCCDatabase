@@ -22,6 +22,7 @@ import io
 import os
 import re
 import sys
+import json
 import zipfile
 
 BACKSLASH = chr(92)
@@ -110,7 +111,115 @@ def check_profile(repo_root):
 
 
 
-def main(path, no_migrations_highwater=None):
+BUNDLE_MARKER = re.compile(
+    r"^\s*[-*]\s*\*\*Bundle marker:\*\*\s*(?P<file>[^|]+?)\s*\|\s*(?P<mode>contains|absent|reason)\s*\|\s*(?P<needle>.+?)\s*$",
+    re.IGNORECASE)
+REG_HEADING = re.compile(r"^#{2,5}\s+((?:DEF|CR)-\d+)\b\s*(?:[-—:]\s*)?(.*)$", re.IGNORECASE)
+
+
+def load_register_markers(repo_root):
+    """Collect `- **Bundle marker:** <file> | contains|absent | <needle>` lines per id.
+
+    The register is the single source of truth on purpose. A separate markers file would be a
+    second place to forget, which is the same drift that let coverage stop at DEF-429.
+    """
+    markers = {}
+    for name in ("defect-register.md", "change-request-register.md"):
+        path = os.path.join(repo_root, "docs", "tracking", name)
+        if not os.path.exists(path):
+            continue
+        current = None
+        for ln in io.open(path, encoding="utf-8", errors="replace").read().splitlines():
+            h = REG_HEADING.match(ln)
+            if h:
+                current = h.group(1).upper()
+                continue
+            m = BUNDLE_MARKER.match(ln)
+            if m and current:
+                markers.setdefault(current, []).append(
+                    (m.group("file").strip(), m.group("mode").lower(), m.group("needle")))
+    return markers
+
+
+def check_register_coverage(repo_root, waiting_path, z, names, normed, contains):
+    """Every resolved-but-unshipped item must PROVE it is in this zip.
+
+    Added 2026-09-22. The 50 markers above are hand-maintained and had silently stopped covering
+    the register at DEF-429 - so a bundle carrying 11 unshipped items reported "failures: 0"
+    while asserting nothing about any of them. A green gate read as "everything shipped".
+    Coverage is now derived from the register itself rather than curated by hand.
+
+    DEF without a marker FAILS the build; CR without one WARNS (Shawn's call, 2026-09-22).
+    """
+    print("\n=== REGISTER COVERAGE (resolved-but-unshipped must prove it shipped) ===")
+    try:
+        waiting = json.load(io.open(waiting_path, encoding="utf-8"))
+    except Exception as exc:
+        print("  [FAIL] could not read waiting set %s (%s)" % (waiting_path, exc))
+        print("         Run: python Scripts/deploy/resolved-not-shipped.py --emit-waiting <path>")
+        return 1
+
+    items = waiting.get("waiting", [])
+    if not items:
+        print("  [PASS] nothing resolved is waiting - no coverage required")
+        return 0
+
+    markers = load_register_markers(repo_root)
+    failures = 0
+    unmarked_def, unmarked_cr = [], []
+
+    def blob_for(spec):
+        spec = spec.strip().lower()
+        suffix = "gccwebapp.dll" if spec == "dll" else spec
+        for n, nn in zip(names, normed):
+            if nn.endswith(suffix):
+                return z.read(n)
+        return None
+
+    for item in items:
+        ident, kind = item["id"], item["kind"].upper()
+        defined = markers.get(ident, [])
+        if not defined:
+            (unmarked_def if kind == "DEF" else unmarked_cr).append(ident)
+            continue
+        for spec, mode, needle in defined:
+            # `none | reason | <why>` — an explicit, recorded opt-out. Some real fixes genuinely
+            # have no in-artifact marker: DEF-432 is an added CALL to an existing method, which
+            # compiles to IL with no new symbol or literal, so any marker would pass against the
+            # unfixed build too. Forcing a marker there would produce a fake one, which is worse
+            # than none. The opt-out is deliberately noisy and names its evidence instead.
+            if mode == "reason":
+                print("  [NOTE] %-8s no in-zip marker by design: %s" % (ident, needle[:70]))
+                continue
+            data = blob_for(spec)
+            if data is None:
+                print("  [FAIL] %-8s %s -> file not in zip" % (ident, spec))
+                failures += 1
+                continue
+            present = contains(data, needle)
+            ok = present if mode == "contains" else (not present)
+            print("  [%s] %-8s %s | %s | %s"
+                  % ("PASS" if ok else "FAIL", ident, spec, mode, needle[:58]))
+            if not ok:
+                failures += 1
+
+    if unmarked_cr:
+        print("  [WARN] %d CR(s) resolved-but-unshipped with NO bundle marker: %s"
+              % (len(unmarked_cr), ", ".join(unmarked_cr)))
+        print("         Nothing proves these are in the zip. Add a `- **Bundle marker:**` line.")
+    if unmarked_def:
+        print("  [FAIL] %d DEF(s) resolved-but-unshipped with NO bundle marker: %s"
+              % (len(unmarked_def), ", ".join(unmarked_def)))
+        print("         A fix that cannot be proven present is indistinguishable from one that")
+        print("         was never built. Add to each register entry, e.g.:")
+        print("           - **Bundle marker:** dll | contains | SomeCompiledSymbolOrLiteral")
+        print("           - **Bundle marker:** wwwroot/css/main.css | absent | <old rule>")
+        failures += len(unmarked_def)
+
+    return failures
+
+
+def main(path, no_migrations_highwater=None, waiting_path=None):
     z = zipfile.ZipFile(path)
     names = z.namelist()
     normed = [norm(n) for n in names]
@@ -464,8 +573,11 @@ def main(path, no_migrations_highwater=None):
 
     # Checked from the TREE, not the zip: a bundle cannot show what its own build was allowed
     # to include. This script lives at <repo>/Scripts/deploy/, so go up two levels.
-    failures += check_profile(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    failures += check_profile(repo_root)
+
+    if waiting_path:
+        failures += check_register_coverage(repo_root, waiting_path, z, names, normed, contains)
 
     print("\nfailures: %d" % failures)
     return 1 if failures else 0
@@ -475,14 +587,28 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     zip_path = None
     highwater = None
-    for a in args:
+    waiting = None
+    skip = False
+    for i, a in enumerate(args):
+        if skip:
+            skip = False
+            continue
         if a.startswith("--no-migrations="):
             highwater = a.split("=", 1)[1]
         elif a == "--no-migrations":
             sys.exit("--no-migrations requires the already-applied high-water migration name, "
                      "e.g. --no-migrations=CR037_MultiCountryCertificates")
+        elif a.startswith("--waiting="):
+            waiting = a.split("=", 1)[1]
+        elif a == "--waiting":
+            if i + 1 >= len(args):
+                sys.exit("--waiting requires a path to the waiting-set JSON emitted by "
+                         "resolved-not-shipped.py --emit-waiting")
+            waiting = args[i + 1]
+            skip = True
         else:
             zip_path = a
     if not zip_path:
-        sys.exit("usage: verify-bundle.py <zip> [--no-migrations=<HighWaterMigrationName>]")
-    sys.exit(main(zip_path, highwater))
+        sys.exit("usage: verify-bundle.py <zip> [--no-migrations=<HighWaterMigrationName>] "
+                 "[--waiting=<waiting-set.json>]")
+    sys.exit(main(zip_path, highwater, waiting))

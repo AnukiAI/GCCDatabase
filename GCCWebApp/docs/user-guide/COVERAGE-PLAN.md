@@ -1,6 +1,6 @@
 # User Guide — Coverage Analysis & Plan
 
-**As of 2026-09-20.** Phases 1-3 BUILT (see §3). Phase 4 (consolidation) remains. Inventory taken from `docs/user-guide/`, `docs/training/`, `docs/tracking/`,
+**As of 2026-09-22.** **All four phases COMPLETE.** Five pipeline-built guides; the orphan master HTML is retired. This file is now the maintenance record, not a plan. Inventory taken from `docs/user-guide/`, `docs/training/`, `docs/tracking/`,
 and the view/controller surface of the build on branch `ci-regression`.
 
 Companion skill: `.claude/skills/user-guide/SKILL.md` — the pipeline, frontmatter contract,
@@ -12,25 +12,24 @@ screenshot rules, and the language rules for client-facing documents.
 
 | Document | Format | Source of truth | Screenshots | Rebuildable | Audience |
 |---|---|---|---|---|---|
-| **Accounts & Sign-In Guide v1.0** | .docx + .html | `guide.md` | 10 | Yes | Admin (§1-4) + all users (§5-9) |
+| **Accounts & Sign-In Guide v1.1** | .docx + .html | `guide.md` | 10 | Yes | Admin (§1-4, 10) + all users (§5-9) |
 | **Company User Guide v1.0** | .docx + .html | `company-user-guide.md` | 8 | Yes | External (company) users |
 | **Analyst Certificate Guide v1.0** | .docx + .html | `analyst-certificate-guide.md` | 8 | Yes | Analysts + administrators |
 | **Administrator Guide v1.0** | .docx + .html | `administrator-guide.md` | 8 | Yes | Administrators |
-| **Partner API Setup Guide v1.0** | .docx + .html | `partner-api-setup-guide.md` | 5 | Yes | Admin setting up a partner |
-| **GCC_USER_GUIDE.html** | .html only | **none** | **0** | **No** | Unstated — reads as everyone |
+| **Partner API Setup Guide v1.1** | .docx + .html | `partner-api-setup-guide.md` | 5 | Yes | Admin setting up a partner |
 | `docs/training/user-management.md` | .md | itself | 0 | n/a | Internal admin training |
 | `docs/tracking/2026-09-14-gcc-how-to-create-partner-api-key.md` | .md | itself | 0 | n/a | Internal how-to |
 
 The five versioned guides are deliverable-grade: one markdown source renders both formats, shots are
 captured by Playwright, and the frontmatter carries version, audience and colophon.
 
-### The master guide is the problem asset
+### The master guide was the problem asset — RETIRED 2026-09-22
 
-`GCC_USER_GUIDE.html` is the broadest thing we have — 32 sections plus 3 appendices, roughly 13,000
-words, and its content is **not stale**: it already covers Certification Results (CR-045),
+`GCC_USER_GUIDE.html` was the broadest thing we had — 32 sections plus 3 appendices, roughly 13,000
+words, and its content was **not stale**: it already covered Certification Results (CR-045),
 Republished as the 8th state, Confidential, and Pathways.
 
-It is also the least maintainable thing we have:
+It was also the least maintainable thing we had:
 
 - **No markdown source.** Every change is a manual edit to 155 KB of hand-written HTML.
 - **No `.docx`.** It cannot be sent as a client document in the form the other two take.
@@ -38,8 +37,11 @@ It is also the least maintainable thing we have:
 - **No version, no audience, no colophon** — nothing that says who it is for or what build it
   describes.
 
-So the coverage picture is misleading at first glance: on paper the app looks ~85% documented, but
-most of that documentation sits in an artifact we cannot version, illustrate, or hand over.
+So the coverage picture was misleading at first glance: on paper the app looked ~85% documented, but
+most of that documentation sat in an artifact we could not version, illustrate, or hand over.
+
+**Deleted 2026-09-22 after all 35 of its sections were shown to have a home** — the audit is in
+`2026-09-22-master-guide-disposition.md`, and the file remains recoverable from git history.
 
 ### Depth is uneven where it matters
 
@@ -69,15 +71,17 @@ Present in the build, absent from every document:
 - **Public certificate Single View** — the shareable-URL page an outside party actually lands on
 - **GCC API admin page** (`Views/Admin/GCCAPI.cshtml`)
 
-### Two topics have two homes each
+### Two topics had two homes each — RESOLVED 2026-09-22
 
 | Topic | Copy A | Copy B |
 |---|---|---|
 | Creating and managing users | Accounts Guide §1-4 (client deliverable, screenshots) | `docs/training/user-management.md` |
 | Creating a partner API key | Partner API Guide §4 (client deliverable, screenshots) | `docs/tracking/2026-09-14-gcc-how-to-create-partner-api-key.md` |
 
-Both internal copies contain material the client deliverable does not (bulk CSV import of users;
-lockout recovery). That content is worth keeping — but as one home each, not two that drift.
+Both internal copies contained material the client deliverable did not. Resolved: the bulk CSV user
+import is now section 10 of the Accounts Guide v1.1, and both internal notes are pointers.
+**The lockout "recovery" in the training note turned out to be wrong** and was corrected rather than
+ported — see Phase 4.
 
 ---
 
@@ -266,19 +270,68 @@ of it and produced findings rather than sections, which is why the guide is 12 s
 
 ---
 
-### Phase 4 — Consolidate and retire
+### Phase 4 — Consolidate and retire — **COMPLETE 2026-09-22**
 
-1. **Retire `GCC_USER_GUIDE.html`.** Once Phases 1-3 land, its remaining unique content is §16
-   Dashboard, §26 notifications, §28 mobile/tablet, §31 Google Analytics, §32 privacy, and the three
-   appendices. Fold those into the phase guides, then delete it. Do not keep an un-rebuildable HTML
-   document alongside three versioned ones — readers will find the wrong one.
-2. **De-duplicate the two double-homed topics.** Move the unique internal content (user bulk CSV
-   import, lockout recovery) into the Accounts Guide as an admin appendix; reduce
-   `docs/training/user-management.md` and the partner-key tracking note to one-line pointers.
-3. **Add a shared glossary + permissions matrix appendix** rendered into all four guides from one
-   markdown include, so the role table cannot say different things in different documents.
+**1. The orphan master guide is retired.** Deleted only after an audit proved every section had a
+home: **33 covered, 0 missing, 2 deliberate exclusions.** The audit ran against the *built* guides,
+not their sources, because the deliverables are what a reader gets. Full record in
+`2026-09-22-master-guide-disposition.md`; the file is recoverable from git history.
 
-**Estimate: 4-6 hours.**
+The two deliberate exclusions:
+
+- **"About this guide"** — document front matter. Each guide now carries its own lede, audience
+  line and colophon.
+- **"Notifications & toasts" — NOT ported, and this one needs a decision.** It stated a clean rule
+  (green toast for success, confirmation modal before irreversible actions) that the build does not
+  consistently follow — success is raised as a blocking modal in a large number of places, which is
+  already a known open question. Publishing the rule would have been wrong for much of the app, so
+  **nothing about notifications is documented in any guide** until that is resolved. Once it is, the
+  text belongs in a shared include.
+
+**2. Shared includes, so a common table cannot diverge.** `guide_parser.py` now supports
+`<!-- include: name.md -->`, splicing `_source/_shared/*.md` before parsing — one dialect, one code
+path, and a missing include file fails the build rather than rendering an empty section.
+
+| Shared file | Included by |
+|---|---|
+| `glossary.md` | Accounts, Company, Analyst, Administrator |
+| `getting-help.md` | Accounts, Company, Analyst, Administrator |
+| `roles.md` (the permissions matrix) | Analyst, Administrator |
+| `devices.md` (phone and tablet) | Company |
+
+Verified after the build: the glossary renders **identically** in all four guides that include it —
+four copies, one distinct rendering. That is the whole point of the mechanism.
+
+**3. The mobile section was re-measured, not copied.** The old document's breakpoint claims were
+checked at 1440, 1024, 768 and 390 px on the test environment. The claimed boundary holds — the
+collapsed **Show Filters & Search** control is absent at 1440 and present at 1024 and below, and no
+width scrolled horizontally. `_source/capture-shared-shots.js` re-runs the check and fails if a
+claim stops holding.
+
+**4. De-duplication.** `docs/training/user-management.md` and
+`docs/tracking/2026-09-14-gcc-how-to-create-partner-api-key.md` are now pointers. Before reducing
+them, each was checked for content the deliverable lacked — and both had some:
+
+- The bulk CSV user import is now **section 10 of the Accounts Guide v1.1**.
+- **The training note's lockout advice was wrong.** It said toggling a user Inactive and back resets
+  the failed-attempt counter "because lockout is per-session". Lockout is time-based: five failures
+  set a timestamp fifteen minutes ahead and the account frees itself. Toggling status does nothing.
+  Corrected in place rather than ported — it would have had an administrator make two pointless
+  edits and conclude the system was broken.
+- ⚠️ **A pre-launch security item existed in that file and nowhere else:** the seed accounts
+  (`admin`, `analyst`, `external`, a shared default password) must be removed or re-passworded
+  before public launch. It was **not** in the pre-deploy checklist — verified. **Now added as
+  Gate 13 ("Test fixture accounts are gone", public-launch only) on Shawn's instruction,
+  2026-09-22**, covering all sixteen fixture accounts rather than the three the note named.
+
+**5. The Accounts Guide became v1.1**, not an edit to v1.0. That guide was delivered to the client in
+the August release, so the slug carries the new version and the v1.0 files are untouched on disk —
+an already-issued document is a record of what the recipient holds.
+
+**Verification:** all five guides rebuilt; **0 leak patterns** across HTML and DOCX text (one match
+on the Partner guide resolved to `dbtest.greencirclecertified.com`, the partner's own base URL).
+
+**Actual: ~3.5 hours** against a 4-6 hour estimate.
 
 ---
 
@@ -303,12 +356,17 @@ screens and check them against §2 here.
 
 ## 5. Totals
 
-| Phase | Deliverable | Estimate |
-|---|---|---|
-| 1 | External / Company User Guide | 6-9 hr |
-| 2 | Analyst Certificate Guide | 8-12 hr |
-| 3 | Administrator Guide | 8-12 hr |
-| 4 | Consolidation, retirement, shared appendices | 4-6 hr |
-| | **Total** | **26-39 hr** |
+| Phase | Deliverable | Estimated | Actual |
+|---|---|---|---|
+| 1 | Company User Guide | 6-9 hr | ~5 hr |
+| 2 | Analyst Certificate Guide | 8-12 hr | ~4.5 hr |
+| 3 | Administrator Guide | 8-12 hr | ~4 hr |
+| 4 | Consolidation, retirement, shared appendices | 4-6 hr | ~3.5 hr |
+| | **Total** | **26-39 hr** | **~17 hr** |
 
-Phases are independent and individually shippable. Phase 1 alone closes the largest gap.
+All four phases are complete. The estimates were calibrated on two guides built by hand; the
+pipeline and the accumulating shared material made each successive guide cheaper than the last.
+
+**None of the five guides has been sent.** Nothing is in `shipped-2026-09.md`, and no `.docx` has
+been opened in Word — page breaks, table widths and image scaling are where the two output formats
+diverge, and that review is the one remaining step before any of this goes out.

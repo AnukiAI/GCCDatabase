@@ -1,13 +1,14 @@
 ---
 org: GreenCircle Certified Database
 title: Accounts & Sign-In Guide
+slug: GCC_Accounts_SignIn_Guide_v1.1
 lede: How to create and manage user accounts, set up two-factor authentication, and reset a password.
-version: 1.0
-issued: August 2026
+version: 1.1
+issued: September 2026
 applies_to: Test environment
 prepared_by: Anuki Consulting
-audience: Sections 1–4 administrators · sections 5–9 all users
-colophon: GreenCircle Certified Database — Accounts & Sign-In Guide, version 1.0. Prepared by Anuki Consulting, August 2026. Screenshots taken from the test environment; the live site may differ in minor visual detail. For anything not covered here, contact your system administrator.
+audience: Sections 1–4 and 10 administrators · sections 5–9 all users
+colophon: GreenCircle Certified Database — Accounts & Sign-In Guide, version 1.1. Prepared by Anuki Consulting, September 2026. Screenshots taken from the test environment; the live site may differ in minor visual detail. For anything not covered here, contact your system administrator.
 ---
 
 > [!WARNING] Screenshots come from the test environment
@@ -175,3 +176,29 @@ An Administrator can set a password directly through Edit User, without email. T
 | No email arrives | Check spam first. If it is genuinely missing, contact your administrator — the address on the account may not be the one you are watching |
 | An external user signs in but sees no certificates | Their **Company Access** is almost certainly empty. An administrator can add it through Edit User |
 | Lost the phone with the authenticator | Use a recovery code if you saved one. Otherwise an administrator must use **Reset 2FA**, after which you can enrol a new device |
+| **Access Denied** after signing in successfully | The account signed in, but the page belongs to a role it does not have. This is not a sign-in fault — check the account's role with an administrator |
+
+# 10. Importing users in bulk
+
+**User Management** can create many accounts at once from a CSV, which is worth using from about a dozen people upwards.
+
+1. Click **Download Template** to get the empty file.
+2. Fill in the columns: **Name**, **Email**, **Role**, **Status**, **User Company**.
+3. Click **Import** and choose your file.
+4. Read the result. Rows that could not be created are listed with the reason.
+
+**User Company** accepts several company names separated by semicolons, or the single word `All`.
+
+> [!IMPORTANT] Imported accounts have no password you can pass on
+> There is deliberately **no password column** — a spreadsheet is not a safe place for one. Each imported account gets a long random password that is never displayed, and is marked as needing a reset. The only way in is the **Forgot password** link, so every imported person must be able to receive email at the address you entered.
+
+If someone must be given access immediately and cannot wait for email, create that one account with **Add New User** instead and hand them the password directly.
+
+> [!NOTE] Giving an existing user a known password
+> Open the account in **Edit User**, type a new password, and save. Leaving the password field blank keeps the current one. Tick **Require password reset on next login** so they replace it straight away.
+
+<!-- pagebreak -->
+
+<!-- include: glossary.md -->
+
+<!-- include: getting-help.md -->

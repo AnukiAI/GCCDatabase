@@ -168,7 +168,7 @@ async function listCerts(sess, path, params, attempts = 3) {
     // The Create surface builds its link in JS from a blob (no cert Id exists pre-save).
     const createJs = await (await admin.get('/js/certificate-create.js')).text();
     assert('A-Create', 'certificate-create.js builds a blob-backed All-pages link and revokes it',
-        createJs.includes('createObjectURL') && createJs.includes('All pages') && createJs.includes('revokeObjectURL'),
+        createJs.includes('createObjectURL') && createJs.includes('View PDF') &&createJs.includes('revokeObjectURL'),
         `createObjectURL=${createJs.includes('createObjectURL')}, revoke=${createJs.includes('revokeObjectURL')}`);
 
     // ============ B. the gate. This is the section that matters. ============

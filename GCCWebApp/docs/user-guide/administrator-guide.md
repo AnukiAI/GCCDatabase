@@ -160,6 +160,8 @@ The one rule worth repeating here: **a partner sees only the certificates associ
 
 This affects only visitor analytics. It does not change what any account can see, and it does not touch certificate data.
 
+The site also serves a **Privacy Policy** page, linked from the footer. It is maintained as a single document outside the running application and is not editable from these screens — to change its wording, contact whoever maintains the site.
+
 # 11. The Dashboard
 
 **Dashboard** summarises the certificate population.
@@ -187,18 +189,10 @@ Beneath it, the same population is broken down by certification type, by company
 | The Dashboard total is higher than the public database | Confidential and not-yet-effective certificates are in force but not public | Expected — see section 11 |
 | A company user cannot see an internal tag | Internal tags are never shown externally | Expected. Use an external tag if they should see it |
 
-# Appendix A — What each role can see
+<!-- pagebreak -->
 
-| | Admin | Analyst | Partner | External | Public |
-|---|---|---|---|---|---|
-| All certificates, every status | Yes | Yes | No | No | No |
-| Own company's in-force certificates | Yes | Yes | — | Yes | No |
-| Partner's associated certificates | Yes | Yes | Yes | — | No |
-| Public directory | Yes | Yes | Yes | Yes | Yes |
-| Create and edit certificates | Yes | Yes | No | No | No |
-| Bulk import and undo | Yes | Yes | No | No | No |
-| Internal tags | Yes | Yes | No | No | No |
-| Administration menu | Yes | No | No | No | No |
-| Dashboard | Yes | Yes | No | No | No |
+<!-- include: roles.md -->
 
-Confidential certificates are visible to Admin, Analyst, the owning company and its associated partners — and withheld from the public directory only.
+<!-- include: glossary.md -->
+
+<!-- include: getting-help.md -->

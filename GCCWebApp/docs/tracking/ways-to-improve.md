@@ -879,3 +879,260 @@ binary**.
     configuration page does anything: take the value it writes (here `TagType == "csf"`) and grep
     the whole codebase. Five hits, all inside the page's own CRUD, is a closed loop — the page
     manages data that nothing consumes.
+
+---
+
+## 2026-09-21 — A "scope" answer and a "topology" answer can contradict each other, and only one of them is enforced by physics
+
+Shawn answered two questions in the same breath: point `db.` at the app, **and** treat retiring the
+legacy site as a separate phase. Both are reasonable in isolation. Together they are not fully
+compatible, because **DNS has no partial state** — the instant `db.` resolves elsewhere, the legacy
+site is gone by that name, whatever the project plan says about phases.
+
+**The improvement:** when a decision names a *hostname*, work out what that decision forces on
+everything else *before* accepting the accompanying scope answer. A scope boundary drawn in a
+document can be ignored by a DNS record. Here it promoted the deep-link redirect map from "out of
+scope, recorded so it is not re-derived later" to a critical-path item in the same conversation that
+declared it out of scope.
+
+**Cheap because the homework was already done.** The mapping data existed
+(`GCCPortalPull\manifest.csv`, complete and unambiguous in the direction a redirect needs) because a
+prior session recorded it *even while declaring it out of scope*. That habit — write down what you
+learned about the thing you are not doing — turned a week of discovery into half a day of build.
+Keep doing it.
+
+## 2026-09-21 — Probe the hosts before writing dates against them
+
+Five hostnames, checked in one command before any of the plan was written. Four of the five
+statements I would otherwise have carried forward from the docs were stale or incomplete, and one was
+a new finding: `test.gccwebapp.com` has DNS and TLS (its register entry says "infrastructure in
+progress") but no app, and answers **200 with no gate**.
+
+**The improvement:** a cutover plan's first tool call should be `nslookup` + `curl -o /dev/null -w
+"%{http_code} %{redirect_url}"` across every hostname in scope. It costs one command and it is the
+difference between a schedule built on the estate as it is and one built on the estate as last
+documented. The register is a photograph; DNS is the thing itself.
+
+## 2026-09-21 — Name the sequencing constraint nobody wrote down
+
+The plan's largest hidden risk was not a defect. It was that **CR-050 must be complete before the
+test gate comes off production**, because the gate is the only thing making `gccwebapp.com` private,
+and CR-050's site is what replaces it as the safe place to test. Neither the CR-050 entry, the audit,
+nor the runbook says so — each was individually correct and the constraint lived only in the gap
+between them.
+
+**The improvement:** when two in-flight items touch the same piece of single-process state (here: one
+`Enabled` flag and one `robots.txt`), write the ordering constraint into **both** entries, not into a
+new third document that neither of them links to.
+
+---
+
+## 2026-09-21 — Validate against the router, not against the pattern you expect
+
+The redirect-map generator rejected certificate numbers that failed `^[0-9]{2}-[0-9A-Za-z]+$`,
+because that is what a GCC certificate number looks like. It silently dropped three real ASSA ABLOY
+certificates whose numbers begin `6H3-`. The app serves them perfectly well: the action is
+`CertificateSingleView(string id, …)` on the default route with **no constraint**, and the
+`^[0-9]+-[0-9A-Za-z]+$` constraint in `Program.cs` belongs to `Certificate/Edit` and
+`Certificate/Delete`, which the map never targets.
+
+**The improvement:** when a script decides what a downstream system will accept, read that system's
+actual acceptance rule rather than encoding the shape the data usually has. And note the tell — the
+count moved by **3 in 6,000**. A validator that quietly discards a fraction of a percent produces a
+number that still looks right, which is precisely how it ships.
+
+## 2026-09-21 — A comment asserting a build behaviour is a claim; make the build adjudicate it
+
+I wrote, in the csproj, that a sibling `.config` file at the project root "is not Content by
+default" and added `<Content Include>` on the strength of it. The Web SDK already globs those files,
+so the build failed with `NETSDK1022: Duplicate 'Content' items`. The correct verb is
+`<Content Update>`, which sets metadata on the item the SDK created rather than creating a second.
+
+**The improvement:** a confident sentence in a comment is not evidence. This one only got caught
+because the next step was a real `dotnet publish` to a temp directory to see whether the file landed
+— an assumption the whole redirect map depended on, since a missing `configSource` target makes IIS
+return **500 on every path**. *When a claim about tooling gates something with a total-outage
+failure mode, spend the two minutes to have the tool answer it.*
+
+## 2026-09-21 — Prove a new check can fail before trusting that it passes
+
+The redirect-map verifier was run twice on purpose: against the previous bundle, which predates the
+work and **correctly failed with exit 1**, and against a zip of a fresh publish, which passed all
+six assertions. Only the pair is evidence. A check that has only ever been observed passing has not
+been shown to be capable of failing — and a gate that cannot fail is worse than no gate, because it
+is believed.
+
+---
+
+## 2026-09-21 — The negative control is the experiment; the passing run is just a run
+
+DEF-433's concurrency check passed on the fixed code: 100 concurrent requests, control route p95
+0.027s against a 0.035s baseline. It looked like proof. Then the same check was run against the
+**pre-fix code** — the original blocking, timeout-free `Wait()` restored deliberately — and it
+**passed too**, at 0.034s against 0.030s.
+
+So the check cannot see the fault, and the first result was worth nothing. Had the negative control
+been skipped, a defect described in its own register entry as a **cutover blocker** would have been
+marked verified on the strength of a test that passes on the broken code.
+
+**The improvement:** for any check written to prove a *fix*, the run that matters is the one against
+the **unfixed** code. Budget for it — here it cost one file restore, one rebuild and one run, about
+eight minutes, against a defect that can take the whole site down including the partner API.
+
+**The second lesson, about environment.** The check does not fail pre-fix because this box is too
+fast: a 4-page PDF opens in ~30 ms warm, so the lock queue drains faster than it fills and no thread
+starvation develops. The defect's own measurements (423/87/33 ms, and *"a shared Plesk host is
+slower"*) say the fault lives in the **target** environment's timing, not in the logic alone. A
+concurrency test calibrated on a fast developer machine will report health that the deployed system
+does not have. Either drive concurrency far harder, constrain the thread pool deliberately, or run
+it where the latency is real.
+
+## 2026-09-21 — Find the store before editing the file
+
+Setting up the DEF-433 fixture, a multi-page PDF was copied over
+`wwwroot/uploads/certificates/26-0147_…pdf` — and the app went on reporting one page, because dev
+sets `FileStorage:StoragePath` to `C:\GCCData\uploads` in `appsettings.Development.json`. The
+wwwroot copy is a legacy fallback the resolver never reached. The real store already held **5,476**
+PDFs, 29 of them multi-page and unencrypted, so **no fixture needed creating at all**.
+
+Two costs, both avoidable by reading the config first: an unnecessary edit to a tracked file (backed
+up and reverted, but still), and a stretch of debugging spent on a file the application was not
+reading.
+
+**Related and worth keeping:** a first pass counted PDF pages by grepping for `/Type /Page`, which
+reported six multi-page files in that directory. `pypdf` put the real figure at **zero of 41**.
+Object streams and compressed cross-reference tables make a regex over PDF bytes unreliable in both
+directions — use a parser.
+
+## 2026-09-21 — Inventory the TTL, not just the value
+
+The cutover inventory recorded what `database.greencirclecertified.com` resolved to. It never
+recorded the **TTL**, and the whole zone sits on **14400 — four hours**.
+
+Both the runbook and the go-live plan wrote "TTL 300" as an attribute of the record change, which
+reads as though setting it takes effect on save. It does not: a TTL reduction is not honoured until
+the previously-cached TTL expires. Lower it and flip the value in one visit and the 300 is a
+fiction for four hours — so on go-live day the cutover propagates in four hours **and so does the
+rollback**, which is the only number that matters when something is wrong.
+
+This was invisible until the client sent a screenshot of the zone editor. Nothing was broken; the
+record list simply contained a fact nobody had asked for.
+
+**The improvement:** when inventorying anything you intend to change under time pressure, capture
+what governs *how fast you can change it back*, not just its current value. For DNS that is the
+TTL. The same shape elsewhere on this project — cached config read once at construction (the test
+gate needs an app-pool recycle), and certificate issuance needing DNS to resolve first — is the
+same class of mistake: recording the state and not the latency of changing it.
+
+Fixed by splitting the step in two (`1a` lowers the TTL and waits; `1b` changes the value), because
+a dependency between two actions only survives if they are two rows.
+
+## 2026-09-21 — Four documents agreeing is one observation with three copies
+
+Every cutover document said `db.greencirclecertified.com` was an **A record at `76.76.21.123`**. It
+is a **CNAME to `cname.vercel-dns.com`**. One unverified reading had been copied into the runbook,
+the go-live plan (twice), and the observations log, and the agreement between them read as
+corroboration.
+
+The forward step being wrong was survivable — you find that out in the zone editor. The **rollback**
+being wrong was not: it said "point `db` A at `76.76.21.123`", which propagates cleanly and serves
+nothing, because Vercel answers this host from rotating anycast IPs (`66.33.60.67` / `76.76.21.98`
+that day). A rollback that reports success and fails silently, executed at the one moment nobody has
+attention to spare.
+
+**Two rules out of it:**
+
+1. **Resolve every record in scope — type, value *and* TTL — immediately before executing a DNS
+   step.** Not from the runbook. The runbook is where the stale value lives. This cost one command.
+2. **For anything on managed anycast (Vercel, Cloudflare, Fastly, any CDN), roll back to the *name*,
+   never to an IP.** An IP for such a service is a snapshot with an expiry nobody tells you about.
+   Corollary now in step 8: *write the CNAME target down before you delete it* — the zone editor
+   stops showing it the moment it is gone, which is precisely when you need it.
+
+The tell was available and ignored: I had already written "confirm whether it is an A record or a
+CNAME" into the runbook as an open to-do, then nearly wrote the steps without doing it.
+
+## 2026-09-21 — I wrote "cannot be enumerated from outside" and then sampled anyway
+
+Diagnosing why the cPanel zone editor refused every save, I identified a TXT TTL mismatch and issued
+a step-by-step fix: two records to change. **There were four.** `_acme-challenge` and `www` were
+also at 14400 and I never found them, because I probed a handful of likely names — apex, `_dmarc`,
+the DCV record, two guessed DKIM selectors — instead of enumerating.
+
+Following that fix would have meant three edits on the client's live mail DNS, including deleting
+and hand-retyping the DMARC record on a domain running their Microsoft 365, and ending in exactly
+the same error. It surfaced only because Shawn asked a passing question — *"what six have to
+agree?"* — and answering it honestly required counting.
+
+**What makes this worth writing down is that I had already identified the risk.** The previous day I
+put a caveat into the runbook saying the zone could not be enumerated from outside and the TTL
+column should be read in the UI. Then I built a four-step remediation on a partial list regardless.
+Naming a limitation is not the same as respecting it.
+
+**Two rules:**
+
+1. **Before instructing anyone to change records on a live system, enumerate the set — or state in
+   the instruction that the list is partial and must be checked against the UI first.** A remediation
+   built on a sample is not a remediation; it is a guess with a step count.
+2. **When the enumeration is impossible from where you are, that is the finding.** The right output
+   was "read the TTL column and tell me every TXT record that isn't 3600," not a confident
+   three-step procedure.
+
+**It also inverted the answer.** At four-vs-four the DIY route needs four operations, permanently
+deletes an SPF record, briefly removes DMARC, and depends on an unverified assumption about which
+cPanel operations skip validation — against a five-minute support ticket. The correct recommendation
+was only visible once the real count was.
+
+## 2026-09-22 — The error message was right; I spent three rounds assuming it was buggy
+
+cPanel refused every zone save with *"records of the same name and type must always have the same
+TTL value."* That sentence is the precise, correct rule, and it named the precise, correct problem:
+the apex TXT RRset held three records at 14400 and one — `apple-domain-verification` — at 3600. One
+edit fixes it.
+
+Instead I produced three escalating diagnoses over two days, ending in "raise a support ticket so
+HostMonster can edit the zone file beneath the validator." All three were wrong, because all three
+rested on `Resolve-DnsName` output which **cannot show this class of fault**: RFC 2181 §5.2 makes an
+authoritative server serve every record in an RRset with the lowest TTL present, so BIND reported
+all four apex records as 3600 and hid the mismatch. The query didn't just omit information, it
+**inverted** the picture — showing the apex as consistent and the other names as anomalous.
+
+**Three rules:**
+
+1. **A resolver tells you what a server will serve, not what is in the zone file.** For TTLs —
+   and specifically for TTL *consistency* — read the control panel's TTL column. There is no remote
+   query that can answer the question.
+2. **When a tool with direct access to the source reports an error that contradicts your remote
+   observation, your observation is the suspect.** I inverted that, twice, and wrote "cPanel is
+   comparing by type across the zone and ignoring the name" into a runbook as fact.
+3. **Escalating privilege to work around a tool is a signal to re-examine the diagnosis.** The
+   moment the recommended fix became "get support to bypass the validator", the validator deserved
+   the benefit of the doubt rather than less of it.
+
+**What it cost and what it nearly cost:** two days of a blocked cutover step, and a recommendation
+that would have had the client's host make unnecessary changes to their production DNS. The earlier
+plan would also have deleted an SPF record and hand-retyped DMARC on a live Microsoft 365 domain.
+
+**It also had a hidden upside that only the correct diagnosis revealed.** Because the rule is
+per-RRset, single-record RRsets — `database` A, `db` CNAME — can take a 300 TTL freely. I had marked
+Phase 2's five-minute rollback as "may not be possible at all", which would have put a client-consent
+conversation on the critical path. The wrong diagnosis was manufacturing work in both directions.
+
+
+17. **Before deleting a document, prove every part of it has a home — and run the proof against the
+    REPLACEMENTS AS BUILT, not their sources.** Retiring a 35-section guide came down to one table:
+    33 covered, 0 missing, 2 deliberate. The audit is cheap, it is the artifact that makes the
+    deletion defensible later, and it found the two sections that genuinely had nowhere to go. A
+    deletion without one is an assertion that nothing was lost.
+
+18. **When a "duplicate" file is reduced, read it first — the duplicate is rarely a pure subset.**
+    Both de-duplicated notes carried something the deliverable did not. One was a procedure worth
+    promoting, one was an instruction that was flatly wrong, and one was **the only written record
+    of a pre-launch security requirement**. Reducing that file unread would have deleted a launch
+    gate nobody else had written down.
+
+19. **A deliberate documentation hole should be recorded as loudly as a written section.** The
+    notification-behaviour section was not ported because the build contradicts the rule it states.
+    That decision is now in the disposition record and the coverage plan with the reason — otherwise
+    the next person finds no notification documentation and assumes it was an oversight, and writes
+    the wrong rule back in.

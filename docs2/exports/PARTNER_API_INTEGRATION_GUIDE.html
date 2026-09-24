@@ -55,7 +55,7 @@ pre code { background: none; padding: 0; }
     <h1>GCC Database Partner API</h1>
     <p class="subtitle">Partner Integration Guide</p>
     <div class="doc-meta">
-        <div><strong>Version:</strong> 1.2</div>
+        <div><strong>Version:</strong> 1.3</div>
         <div><strong>Date:</strong> <span class="fill">[MONTH YEAR]</span></div>
         <div><strong>Prepared for:</strong> <span class="fill">[PARTNER NAME] Integration Team</span></div>
         <div><strong>Prepared by:</strong> GreenCircle Certified</div>
@@ -90,8 +90,11 @@ pre code { background: none; padding: 0; }
     to know whose copy became wrong.
     <br><br>
     <strong>The base URL is not a placeholder.</strong> The production host is
-    <code>database.greencirclecertified.com</code> &mdash; a dedicated subdomain, because the application
-    cannot be hosted on the same server as the main website. The former
+    <code>db.greencirclecertified.com</code> &mdash; a dedicated subdomain, because the application
+    cannot be hosted on the same server as the main website. It is the address the certificate database
+    has always used, so links already in circulation keep working. Call it directly:
+    <code>database.greencirclecertified.com</code> forwards web visitors to it, but an API client should
+    not rely on a redirect. The former
     <code>greencirclecertified.com/database</code> path is retired and was never activated. It is the same
     for every partner; only the key, rate limit, scope and expiry vary.
 </div>
@@ -122,12 +125,12 @@ API behaves for every partner; anything that differs between partners is here, a
     <tbody>
         <tr>
             <td>Base URL</td>
-            <td><code>https://database.greencirclecertified.com/api/v1</code><br>
+            <td><code>https://db.greencirclecertified.com/api/v1</code><br>
             <span style="font-size:8.5pt;color:#555;">The GCC certificate database is served from its own subdomain, not from a path under the main <code>greencirclecertified.com</code> website. This host is the same for every partner.</span></td>
         </tr>
         <tr>
             <td>Test base URL</td>
-            <td><code>https://gccwebapp.com/api/v1</code> &mdash; <span class="fill">[issued on request; see &sect;10 step 3]</span></td>
+            <td><code>https://dbtest.greencirclecertified.com/api/v1</code> &mdash; <span class="fill">[issued on request; see &sect;10 step 3]</span></td>
         </tr>
         <tr>
             <td>API key</td>
@@ -164,7 +167,7 @@ API behaves for every partner; anything that differs between partners is here, a
 
 <p><span class="step-num">2</span> Make your first request:</p>
 
-<pre><code>curl -X GET "https://database.greencirclecertified.com/api/v1/certificates/gs1" \
+<pre><code>curl -X GET "https://db.greencirclecertified.com/api/v1/certificates/gs1" \
   -H "X-API-Key: YOUR_API_KEY" \
   -H "Accept: application/json"</code></pre>
 
@@ -231,7 +234,7 @@ retrying into the limit.</p>
 
 <h2 id="endpoints">3. API Endpoints</h2>
 
-<p>Base URL: <code>https://database.greencirclecertified.com/api/v1</code></p>
+<p>Base URL: <code>https://db.greencirclecertified.com/api/v1</code></p>
 
 <p>Every path below is relative to that base URL and is identical in the test environment &mdash; only the
 host differs. Point your client at the correct host and nothing else in your integration changes.</p>
@@ -399,7 +402,7 @@ X-API-Key: YOUR_API_KEY</code></pre>
 <pre><code>{
   "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
   "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
-  "id": "https://database.greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+  "id": "https://db.greencirclecertified.com/api/v1/certificates/gs1/24-0366",
   "type": "CertificationReport",
   "issueDate": "2024-01-15",
   "issuer": "GreenCircle Certified",
@@ -433,8 +436,8 @@ X-API-Key: YOUR_API_KEY</code></pre>
 <div class="callout callout-info">
     <strong>Reading the two <code>id</code> fields.</strong> The report-level <code>id</code> is built from
     the host you called, so the same certificate returns
-    <code>https://database.greencirclecertified.com/api/v1/&hellip;</code> from production and
-    <code>https://gccwebapp.com/api/v1/&hellip;</code> from test. The product-level <code>id</code> is a
+    <code>https://db.greencirclecertified.com/api/v1/&hellip;</code> from production and
+    <code>https://dbtest.greencirclecertified.com/api/v1/&hellip;</code> from test. The product-level <code>id</code> is a
     canonical <code>id.gs1.org</code> URI when the product has a GTIN, and falls back to a GCC-hosted
     <code>&hellip;/product</code> URI when it does not. Both are JSON-LD identifiers, not endpoints to
     fetch &mdash; use them to key records, not as links to follow.
@@ -733,7 +736,7 @@ no partner endpoint projects them.</p>
 <span class="fill">[GCC support contact]</span></p>
 
 <div class="doc-footer">
-    GCC Database Partner API &mdash; Partner Integration Guide &mdash; v1.2 &mdash;
+    GCC Database Partner API &mdash; Partner Integration Guide &mdash; v1.3 &mdash;
     <span class="fill">[MONTH YEAR]</span><br>
     &copy; <span class="fill">[YEAR]</span> GreenCircle Certified. All rights reserved.
 </div>

@@ -52,7 +52,7 @@ know the password was different *before*. Step 1 establishes that.
 |---|---|---|
 | 1 | Sign in as `test.analyst` / `GccTest2026!`, then sign out | Sign-in succeeds — the "before" state is now known |
 | 2 | `/Account/ForgotPassword`, enter **shawnmwest+analyst@gmail.com**, submit | Confirmation page. **Identical wording regardless of whether the address exists** — this is deliberate (anti-enumeration), so it is *not* evidence of delivery |
-| 3 | Open Gmail | Email *"Password Reset - GCC Database"* from `admin@gccwebapp.com`, arriving within ~1 min |
+| 3 | Open Gmail | Email *"Password Reset - GCC Database"* from `noreply@db.greencirclecertified.com` (was `admin@gccwebapp.com` before 2026-09-22), arriving **in the Inbox, not Spam** within ~1 min |
 | 4 | Click the link, set the password to `NewPass2026!` | Success confirmation |
 | 5 | Sign in with **`NewPass2026!`** | Succeeds |
 | 6 | Sign out. Try signing in with the **old** `GccTest2026!` | **Rejected.** This is the load-bearing step — without it, step 5 could pass with the reset having done nothing |

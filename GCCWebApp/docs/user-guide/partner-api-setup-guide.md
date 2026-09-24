@@ -1,14 +1,14 @@
 ---
 org: GreenCircle Certified Database
 title: Setting Up a Partner with API Access
-slug: GCC_Partner_Setup_Guide_v1.0
+slug: GCC_Partner_Setup_Guide_v1.1
 lede: How to create a partner, tag the certificates they should receive, generate their API key, and prove it works before you hand it over.
-version: 1.0
+version: 1.1
 issued: September 2026
 applies_to: Test environment
 prepared_by: Anuki Consulting
 audience: Administrators
-colophon: GreenCircle Certified Database — Setting Up a Partner with API Access, version 1.0. Prepared by Anuki Consulting, September 2026. Every behaviour described here was verified against the running application in September 2026. For anything not covered here, contact your system administrator.
+colophon: GreenCircle Certified Database — Setting Up a Partner with API Access, version 1.1. Prepared by Anuki Consulting, September 2026. Every behaviour described here was verified against the running application in September 2026. For anything not covered here, contact your system administrator.
 ---
 
 > [!NOTE] About the screenshots
@@ -136,14 +136,15 @@ key's expiry date.
 | Environment | Base URL | Status |
 |---|---|---|
 | Test | `https://dbtest.greencirclecertified.com/api/v1` | Live now — use for all integration work |
-| Production | `https://database.greencirclecertified.com/api/v1` | At go-live only |
+| Production | `https://db.greencirclecertified.com/api/v1` | Live now — use for production |
 
-Partners should build against the test address and change the hostname at go-live. Nothing else
+Partners build and test against the test address, then change the hostname to go live. Nothing else
 changes — the paths, the `X-API-Key` header and the response are identical.
 
-> [!WARNING] The production address is not live yet
-> `database.greencirclecertified.com` still serves the previous certificate database. Do not give it
-> to a partner as a working address before cutover is confirmed.
+> [!NOTE] Give partners `db.`, not `database.`
+> `db.greencirclecertified.com` is the address the certificate database has always used, so links
+> already in circulation keep working. `database.greencirclecertified.com` forwards web visitors to it,
+> but always give a partner the `db.` address: an API client should not rely on a redirect.
 
 # 6. Test the key before you hand it over
 
@@ -254,7 +255,7 @@ cannot be configured per key at all — there is no field for them anywhere in t
 | Partner name | The Partner record you created in section 2 — spelled exactly as stored | **Yes** |
 | API key | The Generate Key dialog, section 4 | **Yes** |
 | Key expiration | The Expiration Date field in that dialog; blank means never | **Yes** |
-| Base URL | Fixed. `https://database.greencirclecertified.com/api/v1`, at go-live | No |
+| Base URL | Fixed. `https://db.greencirclecertified.com/api/v1`, live now | No |
 | Test base URL | Fixed. `https://dbtest.greencirclecertified.com/api/v1`, live now | No |
 | Rate limit | **System-wide: 200 requests per hour.** No per-key field exists | No |
 | Endpoints permitted | **All endpoints.** Keys are not scoped to a subset | No |

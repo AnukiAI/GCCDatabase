@@ -212,6 +212,18 @@ An unstated gap reads as a cleared gate. Name it, or it does not exist.
 
 - [ ] **Ask what the bundle would UNDO.** A bundle is a full overwrite, so it ships the whole tree —
       including work you did not intend to send, and *excluding* anything newer on the server.
+- [ ] **Diff every server-owned setting in the zip against what is LIVE, not against the repo.**
+      At minimum `wwwroot/robots.txt` (fetch it live) and the `TestEnvironmentGate` block in
+      `appsettings.Production.json` (probe `/`). Anything changed by hand on the server is reverted
+      by the next full-overwrite bundle, and `verify-bundle.py` cannot see it: it checks the zip
+      against the repo, and here the repo was the stale side.
+
+      > 2026-09-23: the DEF-441 hotfix zip carried `robots.txt` = `Disallow: /` and the gate
+      > `Enabled: true` while the live public site had both opened by hand on 9/22. Extracting it
+      > would have deindexed the public site and put the password gate back on. `verify-bundle.py`
+      > reported `failures: 0`. Caught only by fetching the live `robots.txt` and asking what the
+      > bundle would undo.
+
 - [ ] **Everything riding along is accounted for.** List it. If something has no defect/CR reference,
       say so rather than inventing one.
 - [ ] **Uploads/user data backed up before extracting.**

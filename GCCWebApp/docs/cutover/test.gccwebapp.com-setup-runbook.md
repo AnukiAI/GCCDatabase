@@ -1,7 +1,34 @@
 # Runbook — stand up `test.gccwebapp.com` as a separate test site
 
-**Opened:** 2026-09-14 · **Owner:** Anuki Consulting · **Status:** in progress
+**Opened:** 2026-09-14 · **Owner:** Anuki Consulting
+**Status: EXECUTED 2026-09-21 — steps 1-5 and 7 done and externally verified. Items 1-8 in CR-050's
+"Still outstanding" table remain, and one of them is live.**
 **CR:** CR-050 · **Shape:** two independent Plesk sites on one AccuWeb platform
+
+> ## ✅ What happened on 2026-09-21
+>
+> Shawn stood the site up. Verified externally the same day:
+>
+> | Step | Result |
+> |---|---|
+> | 1. DNS `test A 64.27.52.66` | ✅ resolves |
+> | 2. Plesk subdomain, own app pool | ✅ |
+> | 3. Let's Encrypt | ✅ chain validates |
+> | 4. Deploy | ✅ the app answers |
+> | 5. Overlay | ✅ **banner reads `DB catalog : gccwebap_test`** — the non-negotiable check, passed |
+> | 6. Uploads | ⬜ unverified — sign in and open a certificate |
+> | 7. Verify | ✅ gate active, `robots.txt` correct, handler mapped, API 401 anonymous |
+>
+> **Still outstanding, and #1 is live right now:** rotate or disable the partner API keys inside
+> `gccwebap_test`; confirm `Jwt:Key`, `DataProtection:ApplicationName` and `SmtpSettings:FromName`
+> are the test values and not production's; delete the copied `DataProtectionKeys/`; run the
+> write-isolation check; set `AutoMigrateOnStartup` true here only; repoint the smoke harness.
+> Full table with reasons: **CR-050 in `docs/tracking/change-request-register.md`.**
+>
+> **This site is now the PERMANENT test environment** (2026-09-21 go-live plan), not a convenience.
+> `gccwebapp.com` becomes production, so **CR-050 must be complete before the test gate is switched
+> off there** — otherwise there is no gated test environment anywhere.
+> See `go-live-plan-2026-09-21.md`.
 
 ## What was decided (Shawn, 2026-09-14)
 
@@ -145,6 +172,11 @@ dealt with.
 
 ## Decide, then record
 
+> **Superseded 2026-09-21.** Items 1 and 2 below are now decided: **rotate/disable the partner
+> keys** (the gate skips `/api/*`, so this is live exposure) and **set `AutoMigrateOnStartup`
+> true in the test overlay only**. Item 3 is promoted to pre-go-live work. The current list,
+> with state per item, is the **"Still outstanding" table in CR-050**.
+
 1. **Partner API keys came across in the copy.** A live Amazon key will authenticate against
    `test.gccwebapp.com` and return data. The gate does **not** cover this — it skips `/api/*` by
    design. Decide whether to rotate or disable the partner keys inside `gccwebap_test`.
@@ -157,8 +189,78 @@ dealt with.
    is a separate mechanical change, not part of standing the site up.
 4. **How `gccwebap_test` gets refreshed** from production, and by whom.
 
-## Not done here
+## Historical note — the original closing paragraph
 
-No DNS record created, no Plesk change made, no deploy run, nothing executed against any server.
-The repo-side work is the `Program.cs` banner and the overlay template; everything above needs
-Plesk and AccuWeb access.
+Until 2026-09-21 this runbook ended with *"No DNS record created, no Plesk change made, no deploy
+run, nothing executed against any server."* That is no longer true: everything above was executed on
+2026-09-21. Kept so the change of state is visible rather than silently overwritten.
+
+---
+
+## Troubleshooting — what actually went wrong on 2026-09-21
+
+### `403 Forbidden` on `/`, `404` on everything else — this is NOT `web.config`
+
+**Symptom.** Root returns `403 - Forbidden: Access is denied.`, every other path returns
+`404 - File or directory not found`, both as plain IIS error pages with
+`Server: Microsoft-IIS/10.0` and no sign of Kestrel.
+
+**Cause: document-root mismatch.** IIS is serving a folder the published files are not in — Plesk's
+subdomain root is typically `...\vhosts\gccwebapp.com\test.gccwebapp.com\httpdocs`, and the easy slip
+is extracting one level up into `...\test.gccwebapp.com\`. An empty folder with no default document
+is IIS 403.14; everything under it is a genuine 404.
+
+**The discriminator — one request tells you which fault it is.** Ask for a path that would exist
+**only if the publish folder were the document root**:
+
+```
+/GCCWebApp.deps.json      /wwwroot/css/main.css      /GCCWebApp.dll
+```
+
+| Response | Meaning | Action |
+|---|---|---|
+| **404** | Wrong folder. The files are elsewhere | Fix the document root, or move the files into it |
+| **200** | Files are right, **the ASP.NET Core Module is disengaged** | **Stop the site.** Config and binaries are being served raw |
+| **500.19** | A real `web.config` / module fault | Read the substatus |
+
+A clean 403-then-404 pair is never a broken `web.config` — a broken one gives **500.19**.
+
+**Do not "fix" it by adding `fileExtensions` / `hiddenSegments` to `web.config`.** This Plesk box
+rejects them and the site returns an empty HTTP 500 on every path. Proven twice — see the comment at
+`web.config:55-78` (DEF-363).
+
+### Confirming the handler is healthy, from outside
+
+Four requests, and the pattern matters more than any one of them:
+
+| Path | Healthy on a gated site | Healthy on an ungated site |
+|---|---|---|
+| `/robots.txt` | **200** (the gate allow-lists it) | **200** |
+| `/appsettings.Production.json` | **302 → `/__gate`** | **404** |
+| `/GCCWebApp.dll` | **302 → `/__gate`** | **404** |
+| `/api/v1/certificates` | **401** — the gate skips `/api/*` by design | **401** |
+
+If static assets work while binaries and config also return content, that is inverted — the handler
+is unmapped and secrets are public. Stop the site.
+
+### The copy-from-production trap
+
+Copying the live site's `httpdocs` to seed the new site brings **production's
+`appsettings.Secrets.json`** with it. That file is registered last (`Program.cs:41`) so it wins over
+everything, and it is what decides which database the site talks to. It also survives every future
+deploy, because extracting a zip adds and overwrites but never deletes.
+
+Left in place, the "test" site is production with a different hostname — every page loads and the
+data looks right, because it *is* the real data.
+
+Three other things ride along in that copy and each needs a decision:
+
+| Rode along | Do |
+|---|---|
+| `DataProtectionKeys/` | **Delete it.** `ApplicationName: GCC-Test` isolates the rings anyway, but leave no ambiguity about which is in use |
+| `App_Data/uploads` | Keep it — it satisfies step 6 for free (~3.5-4 GB). Confirm by opening a certificate |
+| `logs/` | Clear it, so the first startup banner is the only thing in there |
+
+**The banner is the control, and on 2026-09-21 it is what cleared this** — it read `gccwebap_test`,
+which is the only evidence that distinguishes a correctly-pointed test site from production wearing
+a different hostname.

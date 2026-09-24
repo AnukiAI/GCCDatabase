@@ -1,6 +1,29 @@
 # Cutover step — sending application email from the client's domain
 
-**Status: PREPARED, NOT EXECUTED.** Compiled 2026-09-15; every DNS value below resolved live.
+> ### ✅ LIVE 2026-09-22 (go-live night) — sender is `noreply@db.greencirclecertified.com`, SPF only
+>
+> - `FromEmail` is `noreply@db.greencirclecertified.com`, set in **two** places in the repo:
+>   `web.config` env var `SmtpSettings__FromEmail` (wins — env vars load last) and, since 2026-09-22,
+>   `appsettings.Production.json` (+ `.template.json`). SMTP login stays `admin@gccwebapp.com` in the
+>   server-only Secrets overlay. Until SPF existed this sent "successfully" per the log and was
+>   dropped by Gmail under the parent's DMARC `p=quarantine`.
+> - Blocker B2 cleared at go-live (`db` is now an A record). Published at HostMonster, Name `db`:
+>   `TXT v=spf1 ip4:72.18.135.96 ip4:64.27.52.66 -all` (TTL 300) — verified on ns1, ns2 ×3 and 8.8.8.8.
+> - The app sets no separate envelope sender (`EmailService.cs`), so MAIL FROM = From = `db.` →
+>   SPF passes **and aligns**, which alone satisfies DMARC. Test reset 23:06 → **arrived in Inbox**.
+> - **Still open:** DKIM (B3, unproven on `accumail3` — Steps 1a/1b), and no MX, so bounces/replies to
+>   `noreply@` are lost. Neither blocks delivery. Header check (`Show original`) not yet recorded.
+> - **Rollback:** set `SmtpSettings__FromEmail` in the server's `web.config` to `admin@gccwebapp.com`
+>   and recycle. Deleting that line is **not** enough — `appsettings.Production.json` now also says
+>   `noreply@db`. **Never delete the `db` SPF TXT while this sender is in use.**
+> - The test site (`test.gccwebapp.com`) gets the same `web.config`, so it also sends as `noreply@db`
+>   — covered by the same SPF record (same sending host).
+>
+> Everything below is the original plan, kept for the DKIM follow-up.
+
+**Status (original, superseded above): PREPARED, NOT EXECUTED — BLOCKED until go-live.** Compiled 2026-09-15; every DNS value below resolved live.
+**Revised 2026-09-22** after a first attempt stalled at Step 1 — see *"Blockers found 2026-09-22"* below.
+Scheduled as **Phase 2 (late Oct – Nov)** in `go-live-plan-2026-09-21.md`; nothing here gates cutover.
 **Goal:** move the app's outbound mail from `admin@gccwebapp.com` to an address on
 `greencirclecertified.com`, without touching the client's production Microsoft 365 mail.
 **Companion to:** `database.greencirclecertified.com-runbook.md` (the web-hostname cutover).
@@ -61,6 +84,23 @@ SPF headroom, and buys only cosmetics.
 
 ---
 
+## Blockers found 2026-09-22
+
+The original Step 1 and Step 2 were written before `db.` became a Plesk **domain alias** (runbook
+step 3b) and assumed DNS we do not yet control. A first attempt stalled at Step 1: `db` does not
+appear under Plesk → Mail → Mail Settings. Three findings, all checked live that day:
+
+| # | Finding | Evidence | Consequence |
+|---|---|---|---|
+| B1 | `db.greencirclecertified.com` is a **domain alias** of the `gccwebapp.com` subscription, not a domain | Plesk Mail Settings lists only `gccwebapp.com` and `test.gccwebapp.com`; Plesk's resolve warning names `db.` as a hosted name | Aliases are never listed in Mail Settings, and Plesk will not accept `db.` as a separate mail domain while it is an alias. The old Step 1 ("add the mail domain") **cannot be done**. |
+| B2 | `db.greencirclecertified.com` is currently a **CNAME to Vercel** | `Resolve-DnsName db.greencirclecertified.com -Type TXT` returns a CNAME | DNS forbids any other record at a CNAME name, so the **SPF TXT and MX in Step 2 cannot be published until the go-live A-record flip** replaces the CNAME. The DKIM record is at a different name (`default._domainkey.db…`) and is not blocked by this. |
+| B3 | **DKIM has never been live on this mail setup** — not even for `gccwebapp.com` | `default._domainkey.gccwebapp.com` → *does not exist*; only the Plesk placeholder `_domainkey.gccwebapp.com TXT "o=-"` | The app sends via `accumail3` (`72.18.135.96`), a different host from the web server (`64.27.52.66`). It is **unproven** that the Plesk DKIM toggle makes that host sign. Prove it on `gccwebapp.com` (Step 1a) before building on it. |
+
+**Resume only after go-live**, when B2 clears itself. Do Step 0 and Step 1a first; if either fails,
+fall back to *The cheap alternative* at the end of this document.
+
+---
+
 ## Step 0 — the ten-minute test that may end this whole exercise
 
 **Do this before touching DNS or Plesk.**
@@ -85,7 +125,25 @@ either, no amount of DNS work will help and the answer is "keep the gccwebapp se
 
 ---
 
-## Step 1 — Plesk: create the mailbox
+## Step 1a — prove Plesk DKIM signs at all (on `gccwebapp.com`)
+
+Blocker B3. ~15 min, and it de-risks everything after it.
+
+1. Plesk → **Mail** → **Mail Settings** → click **`gccwebapp.com`** → tick **"Use DKIM spam protection
+   system to sign outgoing email messages"** → OK.
+2. Plesk shows the DNS record it expects (name `default._domainkey.gccwebapp.com`, value
+   `v=DKIM1; k=rsa; p=…`). Publish it wherever the **`gccwebapp.com`** zone is hosted.
+3. Send a real password reset to `shawnmwest@gmail.com` → *Show original* → require
+   `dkim=pass header.d=gccwebapp.com`.
+
+| Outcome | Meaning |
+|---|---|
+| `dkim=pass` | `accumail3` signs with the Plesk key. Continue to Step 1b. |
+| No `DKIM-Signature` header at all | The sending host does not use Plesk's key. **Stop** — raise an AccuWeb ticket or take the cheap alternative. |
+
+This is also an improvement in its own right: `gccwebapp.com` mail currently goes out unsigned.
+
+## Step 1b — Plesk: enable mail on the `db.` alias
 
 The address has to exist before anything points at it. **Verified 2026-08-19 by SMTP RCPT probe:
 `admin@gccwebapp.com` is the only mailbox on this server** — `noreply@`, `no-reply@`, `support@` and
@@ -93,12 +151,21 @@ The address has to exist before anything points at it. **Verified 2026-08-19 by 
 server does real per-user validation. Setting `FromEmail` to an address that does not exist invites
 rejection at the server and bounced replies.
 
-1. Plesk → **Mail** → add the mail domain for `db.greencirclecertified.com`.
-   **Uncheck DNS zone management** — the zone is at HostMonster, not Plesk.
-2. Create the mailbox `noreply@db.greencirclecertified.com` (a real mailbox, not a forward-only
-   alias, so SMTP AUTH can use it if you later switch the app to authenticate as it).
-3. Plesk → **Mail Settings** → enable **DKIM signing** for that mail domain. Plesk generates the key
-   pair and shows the public key to publish in Step 2.
+`db.` is a domain alias (blocker B1), so it has **no mailboxes of its own** — an alias with mail
+enabled maps `anything@db.greencirclecertified.com` onto the primary domain's mailbox of the same
+name. Do **not** try to add `db.` as a separate mail domain or a second site; that would break the
+alias the web cutover depends on.
+
+1. Plesk → **Mail** → **Email Addresses** → create `noreply@gccwebapp.com` (a real mailbox, not a
+   forward-only alias, so SMTP AUTH can use it if you later switch the app to authenticate as it).
+   Via the alias, this is what receives `noreply@db.greencirclecertified.com`.
+2. Plesk → **Websites & Domains** → `gccwebapp.com` → **Domain Aliases** → `db.greencirclecertified.com`
+   → tick **Mail service** → OK. **Leave Web service ticked** — the cutover needs it.
+3. Plesk → **Mail Settings** → confirm DKIM signing is on for `gccwebapp.com` (Step 1a). Find the DKIM
+   record Plesk expects **for the alias** — `default._domainkey.db.greencirclecertified.com`.
+   **Unverified:** whether this Plesk version signs alias mail with `d=db.greencirclecertified.com` or
+   shows a separate record for it. If Plesk offers no DKIM record for the alias, stop and check with
+   AccuWeb before publishing anything — a record for a key nothing signs with achieves nothing.
 
 > **Decide now: can people reply?** A send-only subdomain with no MX means every reply hard-bounces.
 > Either publish an MX and monitor the mailbox, or accept it — but note the application has **no
@@ -111,11 +178,31 @@ rejection at the server and bounced replies.
 
 All records are on the **subdomain**. The root `greencirclecertified.com` zone is not modified.
 
-| Host | Type | Value | Why |
-|---|---|---|---|
-| `db.greencirclecertified.com` | TXT | `v=spf1 ip4:72.18.135.96 -all` | Authorises the sending server. `ip4:` costs **zero** DNS lookups |
-| `default._domainkey.db.greencirclecertified.com` | TXT | *(the public key Plesk generated)* | DKIM — required, because DMARC is `p=quarantine` |
-| `db.greencirclecertified.com` | MX | `10 mail.gccwebapp.com` | **Only if replies must be received.** Omit for send-only |
+> **Precondition — blocker B2.** `db.` must already be an **A record** (the go-live flip), not the
+> current CNAME to Vercel. Check before starting:
+> `Resolve-DnsName db.greencirclecertified.com -Type A -Server 8.8.8.8` → must return an A record,
+> not a CNAME. While it is a CNAME the zone editor will reject the SPF TXT and the MX outright.
+
+| Host | Type | Value | Why | Blocked by CNAME? |
+|---|---|---|---|---|
+| `db.greencirclecertified.com` | TXT | `v=spf1 ip4:72.18.135.96 -all` | Authorises the sending server. `ip4:` costs **zero** DNS lookups | **Yes** |
+| `default._domainkey.db.greencirclecertified.com` | TXT | *(the public key from Step 1b)* | DKIM — required, because DMARC is `p=quarantine` | No |
+| `db.greencirclecertified.com` | MX | `10 mail.gccwebapp.com` | **Only if replies must be received.** Omit for send-only | **Yes** |
+
+**Entering them in the HostMonster zone editor** (cPanel → Zone Editor → Manage
+`greencirclecertified.com` → + Add Record):
+
+- **Name** is relative — type `default._domainkey.db`, and cPanel appends the zone. If you type the
+  full name, end it with a dot (`default._domainkey.db.greencirclecertified.com.`).
+- **TTL** `3600`.
+- **Value** is `v=DKIM1; k=rsa; p=…` on **one line, no quotes**. If Plesk shows the key split into
+  several quoted `"…" "…"` pieces, join them. A line break copied out of the browser breaks the key.
+- The selector must be **`default`** — the one Plesk signs with.
+- If the editor refuses to save with a TTL/validation error, that is the zone-editor deadlock in
+  `STEP-0-DEADLOCK-2026-09-21.md`, not a DKIM problem.
+
+Check each record from outside once saved:
+`nslookup -type=TXT default._domainkey.db.greencirclecertified.com 8.8.8.8`
 
 `72.18.135.96` is the sending host: `accumail3.accuwebhosting.com` and `mail.gccwebapp.com` both
 resolve to it (verified 2026-09-15).
@@ -204,9 +291,11 @@ spending the rest.
 | Step | Estimate |
 |---|---|
 | 0 — cross-domain `From` test | ~15 min, and may end the exercise |
-| 1 — Plesk mail domain, mailbox, DKIM | ~30 min |
-| 2 — HostMonster DNS (client-held login) | ~15 min plus their turnaround |
+| 1a — prove DKIM on `gccwebapp.com` | ~15 min, and may end the exercise |
+| 1b — mailbox + mail on the `db.` alias | ~15 min |
+| 2 — HostMonster DNS (Shawn has DNS access as of 2026-09-22) | ~15 min, **after** the go-live A-record flip |
 | 3 — config + deploy | within an existing deploy |
 | 4 — header verification | ~15 min |
 
-**Not started. No DNS, Plesk or config changes have been made.**
+**Not started. No DNS, Plesk or config changes have been made for email.** (2026-09-22: Step 1 was
+attempted in Plesk and stopped at blocker B1 before anything was changed.)

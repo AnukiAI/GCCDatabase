@@ -231,3 +231,11 @@ The template carries these headers, in this order. Certificate #, and everything
 | Country | Separate several with commas |
 | External Tag · Internal Tag | Created if new |
 | ASIN · UPC · GTIN · EAN | |
+
+<!-- pagebreak -->
+
+<!-- include: roles.md -->
+
+<!-- include: glossary.md -->
+
+<!-- include: getting-help.md -->

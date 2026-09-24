@@ -1,0 +1,43 @@
+@*
+    DEF-441: friendly "not found" page, shown with HTTP 404.
+    Rendered by HomeController.PageNotFound (any missing page) and by
+    CertificateController.CertificateSingleView (certificate missing / not public), which
+    supplies NotFoundHeading + NotFoundMessage. The certificate message text is quoted
+    verbatim in the Company User Guide, so it is passed through unchanged.
+*@
+@{
+    var heading = ViewData["NotFoundHeading"] as string ?? "Page not found";
+    var message = ViewData["NotFoundMessage"] as string
+        ?? "The page you were looking for doesn't exist or may have moved. You can search the certificate database below.";
+    ViewData["Title"] = heading;
+    ViewData["BodyClass"] = "not-found-page";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4 text-muted" aria-hidden="true">
+                        <i class="fas fa-search fa-4x"></i>
+                    </div>
+                    @* No heading here: _Layout already renders ViewData["Title"] as the page heading. *@
+                    <p class="mb-4">@message</p>
+
+                    <form method="get" action="@Url.Action("CertificateTileView", "Certificate")" class="mb-4" role="search">
+                        <label for="notFoundSearch" class="visually-hidden">Search certificates</label>
+                        <div class="input-group">
+                            <input id="notFoundSearch" type="search" name="search" class="form-control"
+                                   placeholder="Search certificates" />
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </div>
+                    </form>
+
+                    <a href="@Url.Action("CertificateTileView", "Certificate")" class="btn btn-outline-secondary">
+                        Browse all certificates
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

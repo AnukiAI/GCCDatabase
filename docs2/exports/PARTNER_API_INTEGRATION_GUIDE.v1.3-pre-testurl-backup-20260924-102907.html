@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCC Database Partner API - Partner Integration Guide</title>
+<style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 14pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 32px; margin-bottom: 12px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 18px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 14px; margin-bottom: 5px; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0 16px 0; font-size: 9pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 8px; font-size: 8.5pt; }
+td { padding: 5px 8px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 14px; overflow-x: auto; font-size: 8.5pt; line-height: 1.45; margin: 8px 0 16px 0; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 12px 0; font-size: 9pt; page-break-inside: avoid; border-radius: 0 4px 4px 0; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.callout-success { border-color: #2e7d32; background: #f0f8e8; }
+.tbd { border: 2px dashed #b71c1c; background: #ffebee; padding: 10px 14px; margin: 12px 0; font-size: 9pt; border-radius: 4px; page-break-inside: avoid; }
+.tbd .tbd-label { display: inline-block; background: #b71c1c; color: #fff; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; padding: 1px 8px; border-radius: 3px; margin-right: 8px; letter-spacing: 0.5px; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; text-transform: uppercase; }
+.tag-rec { background: #e8f5e1; color: #2e7d32; }
+.tag-get { background: #e3f2fd; color: #1565c0; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 14px 18px; margin: 14px 0 24px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 8px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.confidential { background: #fff3e0; border: 2px solid #e65100; padding: 8px 14px; border-radius: 4px; font-size: 9pt; margin: 10px 0; text-align: center; font-weight: 600; color: #e65100; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+.endpoint-card { border: 1px solid #e0e0e0; border-radius: 6px; margin: 12px 0; page-break-inside: avoid; }
+.endpoint-header { background: #f0f4ff; padding: 8px 12px; border-bottom: 1px solid #e0e0e0; border-radius: 6px 6px 0 0; }
+.endpoint-header code { font-size: 10pt; font-weight: 600; background: none; }
+.endpoint-body { padding: 10px 12px; }
+.step-num { display: inline-block; background: #002B76; color: #fff; border-radius: 50%; width: 22px; height: 22px; line-height: 22px; text-align: center; font-size: 9pt; font-weight: 700; margin-right: 8px; }
+.fill { background: #fffde7; border-bottom: 1px dotted #f9a825; padding: 0 3px; }
+@media print { body { padding: 0; } }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+    <h1>GCC Database Partner API</h1>
+    <p class="subtitle">Partner Integration Guide</p>
+    <div class="doc-meta">
+        <div><strong>Version:</strong> 1.3</div>
+        <div><strong>Date:</strong> <span class="fill">[MONTH YEAR]</span></div>
+        <div><strong>Prepared for:</strong> <span class="fill">[PARTNER NAME] Integration Team</span></div>
+        <div><strong>Prepared by:</strong> GreenCircle Certified</div>
+    </div>
+</div>
+
+<div class="confidential">CONFIDENTIAL &mdash; For authorized <span class="fill">[PARTNER NAME]</span> integration personnel only</div>
+
+<div class="tbd">
+    <span class="tbd-label">How to use this template &mdash; delete this box before issuing</span>
+    This is the generic partner guide. It is complete except for the values that differ per partner.
+    Before sending it to a partner:
+    <br><br>
+    <strong>1. Fill every <span class="fill">[HIGHLIGHTED PLACEHOLDER]</span>.</strong> These are the
+    partner name, and the seven rows of the <em>Your Connection</em> panel in &sect;2 &mdash; rate limit,
+    permitted endpoints, key expiry and so on. Check each value against the API key actually issued to
+    that partner rather than copying it from a previous partner's guide: a key restricted to a subset of
+    endpoints returns <code>403</code> on the others, and &sect;3 documents the full set.
+    <br><br>
+    <strong>2. Confirm the &sect;4 validity model suits their use case.</strong> The API reports validity
+    by whether a certificate is returned at all, not by a status value. That works for badging
+    &mdash; displaying a current certification &mdash; but may not be sufficient for claim validation,
+    where a partner needs to distinguish "expired" from "never existed". &sect;4 states this plainly; make
+    sure the partner has read it before they build against it.
+    <br><br>
+    <strong>3. Never paste a live API key into this document.</strong> Keys are delivered separately by
+    secure channel (see &sect;2). This document is circulated by email and forwarded internally by
+    partners; a key printed in it is a key you will have to rotate.
+    <br><br>
+    <strong>4. Record the issue in the internal issuance log</strong>, including the rate limit and
+    endpoint scope this partner's copy states. If that behaviour later changes, the log is the only way
+    to know whose copy became wrong.
+    <br><br>
+    <strong>The base URL is not a placeholder.</strong> The production host is
+    <code>db.greencirclecertified.com</code> &mdash; a dedicated subdomain, because the application
+    cannot be hosted on the same server as the main website. It is the address the certificate database
+    has always used, so links already in circulation keep working. Call it directly:
+    <code>database.greencirclecertified.com</code> forwards web visitors to it, but an API client should
+    not rely on a redirect. The former
+    <code>greencirclecertified.com/database</code> path is retired and was never activated. It is the same
+    for every partner; only the key, rate limit, scope and expiry vary.
+</div>
+
+<div class="toc">
+    <div class="toc-title">Contents</div>
+    <a href="#quickstart">1. Quick Start (Get Running in 5 Minutes)</a>
+    <a href="#auth">2. Authentication</a>
+    <a href="#endpoints">3. API Endpoints</a>
+    <a href="#data-model">4. Response Data Model</a>
+    <a href="#examples">5. Request/Response Examples</a>
+    <a href="#errors">6. Error Handling</a>
+    <a href="#pagination">7. Pagination</a>
+    <a href="#security">8. Security &amp; Access Scope</a>
+    <a href="#reference">9. Field Reference</a>
+    <a href="#onboarding">10. Onboarding Checklist</a>
+</div>
+
+<h2 id="your-connection" style="margin-top:24px;">Your Connection</h2>
+
+<p>These values are specific to the key issued to you. Everything else in this guide describes how the
+API behaves for every partner; anything that differs between partners is here, and here only.</p>
+
+<table>
+    <thead>
+        <tr><th style="width:32%;">Setting</th><th>Your value</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Base URL</td>
+            <td><code>https://db.greencirclecertified.com/api/v1</code><br>
+            <span style="font-size:8.5pt;color:#555;">The GCC certificate database is served from its own subdomain, not from a path under the main <code>greencirclecertified.com</code> website. This host is the same for every partner.</span></td>
+        </tr>
+        <tr>
+            <td>Test base URL</td>
+            <td><code>https://gccwebapp.com/api/v1</code> &mdash; <span class="fill">[issued on request; see &sect;10 step 3]</span></td>
+        </tr>
+        <tr>
+            <td>API key</td>
+            <td><code>gcc_partner_</code> + 64-character hash, delivered separately by secure channel &mdash; never in this document</td>
+        </tr>
+        <tr>
+            <td>Rate limit</td>
+            <td><span class="fill">[N]</span> requests per hour &mdash; see &sect;2 for how to read the limit headers</td>
+        </tr>
+        <tr>
+            <td>Certificate status mode</td>
+            <td><span class="fill">[Presence &mdash; the feed contains only currently-certified records]</span> &mdash; see &sect;4</td>
+        </tr>
+        <tr>
+            <td>Endpoints permitted</td>
+            <td><span class="fill">[All endpoints in &sect;3]</span> &mdash; a key may be scoped to a subset; a path outside your scope returns <code>403</code></td>
+        </tr>
+        <tr>
+            <td>Product identifier scope</td>
+            <td>Identifiers not tagged to any partner, plus those tagged to your account &mdash; see &sect;8</td>
+        </tr>
+        <tr>
+            <td>Key expiration</td>
+            <td><span class="fill">[None &mdash; or the agreed expiry date]</span></td>
+        </tr>
+    </tbody>
+</table>
+
+<h2 id="quickstart">1. Quick Start</h2>
+
+<p>Three steps to get your first data:</p>
+
+<p><span class="step-num">1</span> Get your API key from GreenCircle Certified (format: <code>gcc_partner_[64-character hash]</code>).</p>
+
+<p><span class="step-num">2</span> Make your first request:</p>
+
+<pre><code>curl -X GET "https://db.greencirclecertified.com/api/v1/certificates/gs1" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Accept: application/json"</code></pre>
+
+<p><span class="step-num">3</span> You'll receive a JSON response containing the certificates tagged to your partner
+account &mdash; including product identifiers (GTIN, MPN, UPC, EAN, SKU), certification details, and PDF
+download links.</p>
+
+<div class="callout callout-info">
+    <strong>Integration model:</strong> You <strong>pull</strong> data from GCC. GCC does not push to you.
+    Call the API on your own schedule &mdash; continuously, nightly, or weekly &mdash; to retrieve current
+    certification data. Each call returns the full certificate set visible to your account. Your system is
+    responsible for determining what is new, changed, or removed since your last pull.
+</div>
+
+<h2 id="auth">2. Authentication</h2>
+
+<p>Every request requires the <code>X-API-Key</code> header:</p>
+
+<pre><code>X-API-Key: gcc_partner_<span class="fill">[your key &mdash; delivered separately]</span></code></pre>
+
+<div class="callout callout-warning">
+    <strong>Key handling.</strong> Your API key is a bearer credential &mdash; anyone holding it can read your
+    certificate data. Store it in a secrets manager or environment variable, never in source control, ticket
+    text, or email bodies. GCC delivers keys by secure channel only and never embeds them in documentation.
+    If a key is exposed, contact GCC immediately for rotation.
+</div>
+
+<table>
+    <thead><tr><th style="width:15%">Response Code</th><th style="width:35%">Meaning</th><th>Action</th></tr></thead>
+    <tbody>
+        <tr><td>200</td><td>Success</td><td>Process the response</td></tr>
+        <tr><td>401</td><td>Invalid or missing API key</td><td>Check your key in the <code>X-API-Key</code> header</td></tr>
+        <tr><td>403</td><td>Endpoint not permitted</td><td>Contact GCC support</td></tr>
+        <tr><td>404</td><td>Resource not found</td><td>Verify certificate number or product ID</td></tr>
+        <tr><td>429</td><td>Rate limit exceeded</td><td>Wait and retry with exponential backoff</td></tr>
+        <tr><td>500</td><td>Server error</td><td>Contact GCC support with request details</td></tr>
+    </tbody>
+</table>
+
+<h3>Rate Limit</h3>
+
+<p>Your hourly request limit is set per key and is stated under <a href="#your-connection">Your
+Connection</a> above. Each request returns up to 100 certificates, so a full pull of the certificate
+database costs one request per 100 records &mdash; budget from that, not from the number of
+certificates.</p>
+
+<p>Every response carries the current state of your allowance:</p>
+
+<table>
+    <thead>
+        <tr><th>Header</th><th>Meaning</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>X-RateLimit-Limit</code></td><td>Your ceiling for the current window (200)</td></tr>
+        <tr><td><code>X-RateLimit-Remaining</code></td><td>Requests left in the current window</td></tr>
+        <tr><td><code>X-RateLimit-Reset</code></td><td>Unix timestamp when the window resets</td></tr>
+    </tbody>
+</table>
+
+<p>The window is a fixed clock hour (UTC), not a rolling window &mdash; the allowance resets on the hour
+rather than 60 minutes after your first call. Exceeding the limit returns <code>429</code> with a
+<code>Retry-After</code> header. Read <code>X-RateLimit-Remaining</code> and pace accordingly rather than
+retrying into the limit.</p>
+
+<h2 id="endpoints">3. API Endpoints</h2>
+
+<p>Base URL: <code>https://db.greencirclecertified.com/api/v1</code></p>
+
+<p>Every path below is relative to that base URL and is identical in the test environment &mdash; only the
+host differs. Point your client at the correct host and nothing else in your integration changes.</p>
+
+<p>The endpoints below are the full set. <strong>An individual key may be scoped to a subset of
+them</strong> &mdash; a request to a path outside your scope returns <code>403</code> rather than
+<code>404</code>, so a 403 on a documented endpoint means a permissions question for GCC, not a wrong
+URL. Your scope is stated under <a href="#your-connection">Your Connection</a>.</p>
+
+<div class="endpoint-card">
+    <div class="endpoint-header"><span class="tag tag-get">GET</span> <code>/certificates/gs1</code> <span class="tag tag-rec">Recommended</span></div>
+    <div class="endpoint-body">
+        List all certificates in <strong>GS1 JSON-LD</strong> format, following the GS1 US Certification Data
+        Model. Product identifiers are always included; GTIN is promoted to a top-level field and other
+        identifier types appear under <code>additionalTradeItemId</code>.<br>
+        <strong>Parameters:</strong> <code>pageNumber</code> (default 1), <code>pageSize</code> (default and
+        maximum 100), <code>searchTerm</code>, <code>sortBy</code>
+    </div>
+</div>
+
+<div class="endpoint-card">
+    <div class="endpoint-header"><span class="tag tag-get">GET</span> <code>/certificates/gs1/{certNumber}</code></div>
+    <div class="endpoint-body">
+        Get a single certificate by certificate number in GS1 format.<br>
+        <strong>Example:</strong> <code>/certificates/gs1/24-0366</code>
+    </div>
+</div>
+
+<div class="endpoint-card">
+    <div class="endpoint-header"><span class="tag tag-get">GET</span> <code>/certificates</code></div>
+    <div class="endpoint-body">
+        List all certificates in standard JSON format.<br>
+        <strong>Parameters:</strong> <code>pageNumber</code>, <code>pageSize</code>, <code>searchTerm</code>,
+        <code>sortBy</code>, <code>sortDescending</code>,
+        <code>includeProductIds</code> (boolean &mdash; set <code>true</code> to include product identifiers)
+    </div>
+</div>
+
+<div class="endpoint-card">
+    <div class="endpoint-header"><span class="tag tag-get">GET</span> <code>/certificates/number/{certNumber}</code></div>
+    <div class="endpoint-body">
+        Get a single certificate by certificate number in standard JSON format. Use this to validate a
+        brand-provided certificate or license number against the GCC ledger.
+    </div>
+</div>
+
+<div class="endpoint-card">
+    <div class="endpoint-header"><span class="tag tag-get">GET</span> <code>/certificates/search/productid</code></div>
+    <div class="endpoint-body">
+        Find certificates by product identifier.<br>
+        <strong>Parameters:</strong> <code>productId</code> (required), <code>type</code> (optional &mdash;
+        GTIN, UPC, EAN, MPN, SKU, ASIN, ISBN; omit to search all types)<br>
+        <strong>Example:</strong> <code>/certificates/search/productid?productId=00012345678901&amp;type=GTIN</code>
+    </div>
+</div>
+
+<div class="endpoint-card">
+    <div class="endpoint-header"><span class="tag tag-get">GET</span> <code>/certificates/{certNumber}/download</code></div>
+    <div class="endpoint-body">
+        Download the certificate PDF document. Returns <code>application/pdf</code>.
+    </div>
+</div>
+
+<h2 id="data-model">4. Response Data Model</h2>
+
+<h3>Certificate Fields</h3>
+
+<table>
+    <thead><tr><th style="width:22%">Field</th><th style="width:12%">Type</th><th style="width:33%">Description</th><th>Example</th></tr></thead>
+    <tbody>
+        <tr><td><code>certificateNumber</code></td><td>string</td><td>Unique certificate identifier</td><td>24-0366</td></tr>
+        <tr><td><code>status</code></td><td>string</td><td>Depends on the status mode under <a href="#your-connection">Your Connection</a>. In presence mode &mdash; the default &mdash; always the literal <code>"Active"</code>. See <em>Certificate Status and Validity</em> below</td><td>Active</td></tr>
+        <tr><td><code>issueDate</code></td><td>datetime</td><td>Certificate effective date</td><td>2024-01-15T00:00:00Z</td></tr>
+        <tr><td><code>expirationDate</code></td><td>datetime</td><td>Certificate expiration date</td><td>2025-01-15T00:00:00Z</td></tr>
+        <tr><td><code>company</code></td><td>string</td><td>Certified company / brand name</td><td>EcoProduct Co</td></tr>
+        <tr><td><code>productName</code></td><td>string</td><td>Certified product name</td><td>Energy-Efficient LED Bulb</td></tr>
+        <tr><td><code>certificationType</code></td><td>string</td><td>Certification standard granted</td><td>Sustainable Energy Practices</td></tr>
+        <tr><td><code>certificationResults</code></td><td>string</td><td>Result or threshold achieved, where applicable*</td><td>32%</td></tr>
+        <tr><td><code>pathway</code></td><td>string</td><td>Certification pathway*</td><td>Energy usage reduction</td></tr>
+        <tr><td><code>issuer</code></td><td>string</td><td>Certifying body</td><td>GreenCircle Certified</td></tr>
+        <tr><td><code>certificationCountries</code></td><td>string</td><td>Applicable countries**</td><td>All</td></tr>
+        <tr><td><code>partner</code></td><td>string</td><td>Your partner association on this certificate</td><td><span class="fill">[PARTNER NAME]</span></td></tr>
+        <tr><td><code>amazonCode</code></td><td>string</td><td>Standardized certification code used by retail channel partners. Present in the payload for all partners; may be blank where not applicable to your program.</td><td>greencircle_sustainable_energy_practices</td></tr>
+        <tr><td><code>pdfDownloadUrl</code></td><td>string</td><td>Relative URL to download the certificate PDF</td><td>/api/v1/certificates/24-0366/download</td></tr>
+    </tbody>
+</table>
+
+<p style="font-size:8.5pt;color:#555;">
+* <code>certificationResults</code> and <code>pathway</code> are not applicable to every certification type and
+are left blank where not relevant.<br>
+** Certificates are not restricted by geography; <code>certificationCountries</code> is returned as
+<code>All</code> for partner accounts.
+</p>
+
+<h3>Certificate Status and Validity</h3>
+
+<p><strong>The API expresses validity by presence, not by a status value.</strong> The
+<code>status</code> field is always the literal string <code>"Active"</code> on every certificate you
+receive. It is not a variable to branch on &mdash; it never carries any other value for a partner key.</p>
+
+<p>What varies is <em>whether the certificate appears at all</em>. GCC tracks an internal certificate
+lifecycle, and only the states that mean "currently certified" are exposed to partners. Everything else
+is filtered out of list responses and returns <code>404</code> on single-certificate lookups.</p>
+
+<table>
+    <thead>
+        <tr><th>What you receive</th><th>What it means</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Certificate present, <code>status: "Active"</code></td><td>Currently certified. Safe to badge, or to confirm a brand's claim.</td></tr>
+        <tr><td>Certificate absent from the list / <code>404</code> on lookup</td><td>Not currently certified &mdash; <strong>or</strong> not associated with your partner account.</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-warning">
+    <strong>Absence does not tell you why.</strong> A certificate you cannot see may have expired, may be
+    on hold, may be withheld as confidential, may still be in draft, may never have existed, or may simply
+    not be linked to your partner account. These cases are deliberately indistinguishable: collapsing them
+    prevents your key from being used to enumerate certificates outside your scope. If you need to know
+    <em>why</em> a specific certificate is not visible, ask GCC &mdash; do not infer it from the response.
+</div>
+
+<p><strong>There is no "revoked" state.</strong> GCC's lifecycle has no revocation status, so a revoked
+certificate can never be reported as revoked. Withdrawal of certification is expressed the only way the
+contract allows: the certificate stops appearing. Treat disappearance as authoritative.</p>
+
+<p><strong>Expiry.</strong> <code>expirationDate</code> is returned on every certificate, so you can see
+an upcoming expiry in advance. But note the asymmetry &mdash; once a certificate actually moves to an
+expired state it leaves the API entirely rather than appearing with an expired status. Do not wait to
+observe a status change that will never arrive; re-pull on your schedule and treat anything that has
+dropped out as no longer certified.</p>
+
+
+<h3>Product Identifier Fields (within <code>productIds[]</code>)</h3>
+
+<table>
+    <thead><tr><th style="width:20%">Field</th><th style="width:12%">Type</th><th style="width:38%">Description</th><th>Example</th></tr></thead>
+    <tbody>
+        <tr><td><code>type</code></td><td>string</td><td>GTIN, UPC, EAN, MPN, SKU, ASIN, ISBN</td><td>GTIN</td></tr>
+        <tr><td><code>value</code></td><td>string</td><td>The product identifier value</td><td>00012345678901</td></tr>
+        <tr><td><code>status</code></td><td>string</td><td>Product identifier status</td><td>Active</td></tr>
+        <tr><td><code>partner</code></td><td>string</td><td>Your partner association on this identifier</td><td><span class="fill">[PARTNER NAME]</span></td></tr>
+        <tr><td><code>productName</code></td><td>string</td><td>Product variant name</td><td>LED Bulb &mdash; 4 Pack</td></tr>
+        <tr><td><code>productSku</code></td><td>string</td><td>Company SKU</td><td>LED-4PK-ECO</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-info">
+    <strong>Product-level granularity.</strong> Where GCC holds certification data mapped to individual
+    product variants, those identifiers are returned in <code>productIds[]</code>. Where a certificate is
+    not mapped to specific variants, the certificate is still returned with its company, product name, and
+    certification details &mdash; functioning as a certificate ledger entry you can validate brand claims
+    against.
+</div>
+
+<h2 id="examples">5. Request/Response Examples</h2>
+
+<h3>5.1 List All Certificates (GS1 JSON-LD Format)</h3>
+
+<h4>Request</h4>
+<pre><code>GET /api/v1/certificates/gs1
+X-API-Key: YOUR_API_KEY</code></pre>
+
+<h4>Response</h4>
+<pre><code>{
+  "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+  "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+  "id": "https://db.greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+  "type": "CertificationReport",
+  "issueDate": "2024-01-15",
+  "issuer": "GreenCircle Certified",
+  "products": [
+    {
+      "id": "https://id.gs1.org/01/00012345678901",
+      "type": "Product",
+      "gtin": "00012345678901",
+      "name": "Energy-Efficient LED Bulb",
+      "additionalTradeItemId": [
+        { "type": "MPN", "value": "MPN-12345" },
+        { "type": "SKU", "value": "LED-BULB-001" }
+      ],
+      "certificationInfo": {
+        "type": "CertificationDetails",
+        "agency": "GreenCircle Certified",
+        "agencyURL": "https://www.greencirclecertified.com",
+        "program": "Sustainable Energy Practices",
+        "certificateId": "24-0366",
+        "status": "ACTIVE",
+        "value": "32%",
+        "startDate": "2024-01-15",
+        "endDate": "2025-01-15",
+        "targetCountries": ["All"],
+        "pathway": "Energy usage reduction"
+      }
+    }
+  ]
+}</code></pre>
+
+<div class="callout callout-info">
+    <strong>Reading the two <code>id</code> fields.</strong> The report-level <code>id</code> is built from
+    the host you called, so the same certificate returns
+    <code>https://db.greencirclecertified.com/api/v1/&hellip;</code> from production and
+    <code>https://gccwebapp.com/api/v1/&hellip;</code> from test. The product-level <code>id</code> is a
+    canonical <code>id.gs1.org</code> URI when the product has a GTIN, and falls back to a GCC-hosted
+    <code>&hellip;/product</code> URI when it does not. Both are JSON-LD identifiers, not endpoints to
+    fetch &mdash; use them to key records, not as links to follow.
+</div>
+
+<h3>5.2 List All Certificates (Standard JSON)</h3>
+
+<h4>Request</h4>
+<pre><code>GET /api/v1/certificates?includeProductIds=true
+X-API-Key: YOUR_API_KEY</code></pre>
+
+<h4>Response</h4>
+<pre><code>{
+  "success": true,
+  "pagination": {
+    "totalCount": 1,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  },
+  "data": [
+    {
+      "certificateNumber": "24-0366",
+      "status": "Active",
+      "issueDate": "2024-01-15T00:00:00Z",
+      "expirationDate": "2025-01-15T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "[PARTNER NAME]",
+      "certificationResults": "32%",
+      "pathway": "Energy usage reduction",
+      "company": "EcoProduct Co",
+      "productName": "Energy-Efficient LED Bulb",
+      "certificationType": "Sustainable Energy Practices",
+      "amazonCode": "greencircle_sustainable_energy_practices",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "GTIN",
+          "value": "00012345678901",
+          "status": "Active",
+          "partner": "[PARTNER NAME]",
+          "productName": "Energy-Efficient LED Bulb",
+          "productSku": "LED-BULB-001"
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/24-0366/download"
+    }
+  ]
+}</code></pre>
+
+<h3>5.3 Search by Product Identifier</h3>
+
+<h4>Request</h4>
+<pre><code>GET /api/v1/certificates/search/productid?productId=00012345678999&amp;type=GTIN
+X-API-Key: YOUR_API_KEY</code></pre>
+
+<h4>Response</h4>
+<pre><code>{
+  "success": true,
+  "data": [
+    {
+      "certificateNumber": "24-0512",
+      "status": "Active",
+      "certificationResults": "60% post-consumer recycled content verified",
+      "company": "CleanGreen Industries",
+      "productName": "Recycled Paper Towels",
+      "certificationType": "Recycled Content",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        { "type": "GTIN", "value": "00012345678901", "productName": "Paper Towels - 6 Pack" },
+        { "type": "GTIN", "value": "00012345678999", "productName": "Paper Towels - 12 Pack",
+          "isMatchedId": true },
+        { "type": "MPN",  "value": "RPT-24PK",       "productName": "Paper Towels - 24 Pack" }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/24-0512/download"
+    }
+  ]
+}</code></pre>
+
+<div class="callout callout-success">
+    Searching for one identifier returns the full certificate with <strong>all</strong> product identifiers
+    visible to your account, not just the one you searched. The <code>isMatchedId: true</code> flag marks
+    which identifier matched your query, and the matched identifier is sorted first.
+</div>
+
+<h3>5.4 Validate a Brand-Provided Certificate Number</h3>
+
+<h4>Request</h4>
+<pre><code>GET /api/v1/certificates/number/24-0366
+X-API-Key: YOUR_API_KEY</code></pre>
+
+<p>Returns the certificate record if it exists and is visible to your account; returns <code>404</code>
+otherwise.</p>
+
+<p><strong>Reading the result.</strong> A <code>200</code> confirms the brand's claim: that certificate
+number is currently certified and associated with your account. A <code>404</code> means the claim
+<em>cannot be confirmed</em> &mdash; which is not the same as the claim being false. It collapses several
+distinct cases: expired, on hold, confidential, draft, never issued, mistyped, or valid but not linked to
+your partner account. See <em>Certificate Status and Validity</em> in &sect;4 before deciding what action
+a <code>404</code> should trigger on your side; in particular, a <code>404</code> is <strong>not</strong>
+evidence of revocation.</p>
+
+<h3>5.5 Download a Certificate PDF</h3>
+
+<pre><code>GET /api/v1/certificates/24-0366/download
+X-API-Key: YOUR_API_KEY</code></pre>
+
+<p>Returns the PDF file with <code>Content-Type: application/pdf</code>.</p>
+
+<h2 id="errors">6. Error Handling</h2>
+
+<p>Errors return a consistent JSON structure:</p>
+
+<pre><code>{
+  "success": false,
+  "errors": [
+    {
+      "code": "RESOURCE_NOT_FOUND",
+      "message": "Certificate with number 24-9999 not found"
+    }
+  ]
+}</code></pre>
+
+<table>
+    <thead><tr><th style="width:10%">Code</th><th style="width:35%">Error</th><th>Resolution</th></tr></thead>
+    <tbody>
+        <tr><td>401</td><td>Missing or invalid API key</td><td>Ensure the <code>X-API-Key</code> header is present with a valid key</td></tr>
+        <tr><td>403</td><td>Insufficient permissions</td><td>Your key may not have access to this endpoint</td></tr>
+        <tr><td>404</td><td>Certificate or product ID not found</td><td>Verify the certificate number or product identifier exists and is visible to your account</td></tr>
+        <tr><td>429</td><td>Rate limit exceeded</td><td>Wait and retry with exponential backoff (see the rate limit in &sect;2)</td></tr>
+        <tr><td>500</td><td>Server error</td><td>Contact GCC support with the request details</td></tr>
+    </tbody>
+</table>
+
+<h2 id="pagination">7. Pagination</h2>
+
+<p>The API returns certificate data in pages of up to <strong>100 certificates</strong> per request. Use the
+<code>pagination</code> object in each response to determine whether more pages are available:</p>
+
+<pre><code>// Page 1
+GET /api/v1/certificates?includeProductIds=true&amp;pageNumber=1&amp;pageSize=100
+
+// Check response
+"pagination": {
+  "totalCount": 250,
+  "pageNumber": 1,
+  "pageSize": 100,
+  "totalPages": 3,
+  "hasNext": true,      // more pages available
+  "hasPrevious": false
+}
+
+// Page 2
+GET /api/v1/certificates?includeProductIds=true&amp;pageNumber=2&amp;pageSize=100</code></pre>
+
+<p>Loop until <code>hasNext</code> is <code>false</code>.</p>
+
+<h2 id="security">8. Security &amp; Access Scope</h2>
+
+<table>
+    <thead><tr><th style="width:25%">Control</th><th>Details</th></tr></thead>
+    <tbody>
+        <tr><td>Transport</td><td>HTTPS/TLS required for all requests</td></tr>
+        <tr><td>Authentication</td><td>API key via <code>X-API-Key</code> header</td></tr>
+        <tr><td>Data Isolation</td><td>Your key returns only certificates associated with your partner account. Data belonging to other partners is not accessible, including on certificates shared across multiple partners &mdash; co-partner names and their product identifiers are removed from your responses.</td></tr>
+        <tr><td>Status Filter</td><td>Only currently-certified certificates are returned; everything else is filtered out of lists and returns <code>404</code> on lookup. <code>status</code> is always <code>"Active"</code>. See &sect;4.</td></tr>
+        <tr><td>Rate Limiting</td><td>Per key &mdash; your limit is stated under <a href="#your-connection">Your Connection</a>; mechanics in &sect;2</td></tr>
+        <tr><td>Key Management</td><td>Keys are issued, rotated, and revoked by GCC administrators. Keys may be issued with an expiration date.</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-info">
+    <strong>You will never receive:</strong> other partners' data, internal notes, workflow history, draft
+    certificates, or GCC user information.
+</div>
+
+<h3>Supplier, Manufacturer and Parent-Company Data</h3>
+
+<p><strong>None is transmitted, because none is held.</strong> GCC records the certified entity as a
+single flat company name. There is no supplier field, no manufacturer-identity field, and no
+parent-company or corporate-hierarchy relationship anywhere in the certificate record &mdash; so there is
+nothing of that kind for the API to disclose, and no field-level restriction is required to keep it out.</p>
+
+<p>Specifically:</p>
+
+<table>
+    <thead>
+        <tr><th>Field</th><th>What it is &mdash; and is not</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>company</code></td>
+            <td>The name of the entity GCC certified &mdash; the brand holding the certification. A single
+            value with no hierarchy above or below it. It is not a manufacturer identity and carries no
+            parent-company reference.</td>
+        </tr>
+        <tr>
+            <td><code>productIds[].type = "MPN"</code></td>
+            <td>Manufacturer <em>Part</em> Number &mdash; a product code supplied by the brand, in the same
+            list as ASIN, UPC and GTIN. Despite the name it identifies <strong>a product, not a
+            manufacturer</strong>, and reveals no manufacturing entity.</td>
+        </tr>
+        <tr>
+            <td><code>productIds[].productSku</code></td>
+            <td>The certified company's own SKU for the item. Its own code, not a supplier's.</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>Company contact details, address, country and website are recorded by GCC for its own operations and
+are <strong>never included in any partner response</strong> &mdash; they are not part of the contract and
+no partner endpoint projects them.</p>
+
+<div class="callout callout-info">
+    If a partner's terms require a written assurance that manufacturer and parent-company information is
+    not shared onward, this section is that assurance: the data is not in the payload because it is not in
+    the system.
+</div>
+
+<h2 id="reference">9. Field Reference</h2>
+
+<h3>Standard JSON vs GS1 JSON-LD Field Mapping</h3>
+
+<table>
+    <thead><tr><th style="width:24%">Data</th><th style="width:38%">Standard JSON Path</th><th>GS1 JSON-LD Path</th></tr></thead>
+    <tbody>
+        <tr><td>Certificate Number</td><td><code>data[].certificateNumber</code></td><td><code>products[].certificationInfo.certificateId</code></td></tr>
+        <tr><td>Status</td><td><code>data[].status</code></td><td><code>certificationInfo.status</code></td></tr>
+        <tr><td>Issue Date</td><td><code>data[].issueDate</code> (ISO 8601 + time)</td><td><code>issueDate</code> (date only)</td></tr>
+        <tr><td>Expiration Date</td><td><code>data[].expirationDate</code></td><td><code>certificationInfo.endDate</code></td></tr>
+        <tr><td>Certification Results</td><td><code>data[].certificationResults</code></td><td><code>certificationInfo.value</code></td></tr>
+        <tr><td>Certification Type</td><td><code>data[].certificationType</code></td><td><code>certificationInfo.program</code></td></tr>
+        <tr><td>Issuer</td><td><code>data[].issuer</code></td><td><code>issuer</code> / <code>certificationInfo.agency</code></td></tr>
+        <tr><td>GTIN</td><td><code>data[].productIds[].value</code> (type GTIN/UPC/EAN)</td><td><code>products[].gtin</code> (14-digit, zero-padded)</td></tr>
+        <tr><td>MPN / SKU / other IDs</td><td><code>data[].productIds[].value</code></td><td><code>products[].additionalTradeItemId[].value</code></td></tr>
+        <tr><td>PDF Link</td><td><code>data[].pdfDownloadUrl</code></td><td>(use the standard JSON endpoint)</td></tr>
+    </tbody>
+</table>
+
+<h3>Product Identifier Types</h3>
+
+<table>
+    <thead><tr><th style="width:16%">Type</th><th style="width:40%">Format</th><th>Example</th></tr></thead>
+    <tbody>
+        <tr><td>GTIN</td><td>14 digits</td><td>00012345678901</td></tr>
+        <tr><td>UPC</td><td>12 digits</td><td>012345678901</td></tr>
+        <tr><td>EAN</td><td>13 digits</td><td>4006381333931</td></tr>
+        <tr><td>MPN</td><td>Variable</td><td>MPN-12345</td></tr>
+        <tr><td>SKU</td><td>Variable</td><td>RPT-12PK-ECO</td></tr>
+        <tr><td>ASIN</td><td>10 characters (alphanumeric)</td><td>B08XQRT456</td></tr>
+        <tr><td>ISBN</td><td>10 or 13 digits</td><td>9780306406157</td></tr>
+    </tbody>
+</table>
+
+<h3>Available Sort Fields</h3>
+
+<table>
+    <thead><tr><th style="width:30%"><code>sortBy</code> Value</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><code>certificatenumber</code></td><td>Sort by certificate number</td></tr>
+        <tr><td><code>issuedate</code></td><td>Sort by issue date</td></tr>
+        <tr><td><code>expirationdate</code></td><td>Sort by expiration date</td></tr>
+        <tr><td><code>productname</code></td><td>Sort by product name</td></tr>
+        <tr><td><code>companyname</code></td><td>Sort by company name</td></tr>
+    </tbody>
+</table>
+
+<p>Add <code>sortDescending=true</code> for descending order.</p>
+
+<h2 id="onboarding">10. Onboarding Checklist</h2>
+
+<table>
+    <thead><tr><th style="width:8%">Step</th><th style="width:46%">Action</th><th>Owner</th></tr></thead>
+    <tbody>
+        <tr><td>1</td><td>Confirm which certificates are in scope for this partner and tag them to the partner account in the GCC Database</td><td>GCC</td></tr>
+        <tr><td>2</td><td>Confirm the presence/absence validity model (&sect;4) is sufficient for this partner's use case &mdash; a claim-validation partner may need Valid / Expired / Revoked as distinct values, which is not part of the current contract. Confirm the rate limit stated in &sect;2 against the key being issued</td><td>GCC</td></tr>
+        <tr><td>3</td><td>Issue a test API key against the GCC test environment, with representative test data</td><td>GCC</td></tr>
+        <tr><td>4</td><td>Validate the integration end to end against test data &mdash; pull, paginate, parse, download PDFs</td><td>Partner</td></tr>
+        <tr><td>5</td><td>Confirm field mapping and any gaps against your internal data model</td><td>Partner</td></tr>
+        <tr><td>6</td><td>Issue the production API key by secure channel; revoke the test key</td><td>GCC</td></tr>
+        <tr><td>7</td><td>Agree the pull cadence and the support/escalation contact on both sides</td><td>Both</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-info">
+    <strong>Test environment.</strong> GCC can provide a separate test key and representative sample data so
+    you can validate your integration before any production data is exchanged. Request this through your GCC
+    contact.
+</div>
+
+<h2>Support</h2>
+
+<p>For API key requests, issues, or questions, contact GreenCircle Certified:
+<span class="fill">[GCC support contact]</span></p>
+
+<div class="doc-footer">
+    GCC Database Partner API &mdash; Partner Integration Guide &mdash; v1.3 &mdash;
+    <span class="fill">[MONTH YEAR]</span><br>
+    &copy; <span class="fill">[YEAR]</span> GreenCircle Certified. All rights reserved.
+</div>
+
+</body>
+</html>

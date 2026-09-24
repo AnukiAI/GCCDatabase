@@ -236,6 +236,19 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
+        /// DEF-441: the styled 404 page in place of a bare text body, which rendered as a line of
+        /// unstyled text with no way back into the site. Status stays 404 and the message text is
+        /// unchanged (the Company User Guide quotes it verbatim).
+        /// </summary>
+        private IActionResult CertificateNotFoundPage(string heading, string message)
+        {
+            Response.StatusCode = StatusCodes.Status404NotFound;
+            ViewData["NotFoundHeading"] = heading;
+            ViewData["NotFoundMessage"] = message;
+            return View("~/Views/Home/NotFound.cshtml");
+        }
+
+        /// <summary>
         /// Certificate single view by certificate number - Public access allowed
         /// GET: /Certificate/CertificateSingleView/24-0366
         /// </summary>
@@ -271,7 +284,7 @@ namespace GCCWebApp.Controllers
                         // cid must not quietly serve a different certificate — that is the exact
                         // failure this defect is about.
                         _logger.LogWarning("Certificate not found for number {CertificateNumber} with cid {Cid}", id, cid);
-                        return NotFound($"Certificate {id} not found");
+                        return CertificateNotFoundPage("Certificate not found", $"Certificate {id} not found");
                     }
                 }
                 else
@@ -283,7 +296,7 @@ namespace GCCWebApp.Controllers
                 if (certificate == null)
                 {
                     _logger.LogWarning("Certificate not found: {CertificateNumber}", id);
-                    return NotFound($"Certificate {id} not found");
+                    return CertificateNotFoundPage("Certificate not found", $"Certificate {id} not found");
                 }
 
                 // Block anonymous users from viewing non-public certificates via direct URL.
@@ -303,7 +316,7 @@ namespace GCCWebApp.Controllers
                     if (!isPublicStatus || isExpired || isNotYetEffective)
                     {
                         _logger.LogWarning("Anonymous access denied for non-public certificate: {CertificateNumber}, Status: {Status}, Expired: {Expired}, NotYetEffective: {NotYetEffective}", id, certificate.Status, isExpired, isNotYetEffective);
-                        return NotFound($"Certificate {id} is not currently available for public viewing.");
+                        return CertificateNotFoundPage("Certificate not available", $"Certificate {id} is not currently available for public viewing.");
                     }
                 }
 
@@ -2457,19 +2470,54 @@ namespace GCCWebApp.Controllers
                 {
                     if (string.IsNullOrEmpty(certificate.CertificateFile)) return NotFound();
 
-                    var pageCount = _fileUploadService.GetPdfPageCount(certificate.CertificateFile);
-                    if (pageCount <= 0 || page.Value >= pageCount)
+                    // DEF-433: this used to call GetPdfPageCount first, purely to bounds-check.
+                    // That made ONE page turn open the same PDF THREE times under the process-wide
+                    // render lock — the bounds check, the aspect-detect pass, then the render — and
+                    // every open is serialised against every other caller's.
+                    //
+                    // The pre-check was redundant: RenderPdfPageAsync already does
+                    // `if (pageIndex >= detectReader.GetPageCount()) return null`, and BOTH arms of
+                    // the old code returned exactly the same NotFound(). Dropping it takes a page
+                    // turn from three opens to two with no behaviour change — out of range still
+                    // 404s, an unreadable PDF (DEF-400 encrypted, missing file) still 404s, and the
+                    // client JS still reads 404 as "no more pages". For page 0 it remains the signal
+                    // that keeps the stored thumbnail on screen instead of a broken image
+                    // (certificate-preview-pager.js), and page=-1 never reaches here at all.
+                    // DEF-433: the validator is computed and matched BEFORE any rendering.
+                    //
+                    // SetUploadRevalidationHeaders sends `private, no-cache, must-revalidate`, which
+                    // requires a cache to revalidate before reuse — but with no ETag and no
+                    // Last-Modified there was nothing to revalidate AGAINST, so a 304 was impossible
+                    // and every reopen paid a full PDF render, permanently. Ordinary multi-user
+                    // browsing therefore generated render load in proportion to page VIEWS rather
+                    // than to distinct pages.
+                    //
+                    // The order here is the point: ComputePageETag costs a file stat, the render
+                    // costs a PDF open under the process-wide lock. Matching first means a
+                    // revalidating client costs neither. Deriving the tag from the source PDF's
+                    // length + mtime means replacing the PDF invalidates every page of it at once.
+                    var pageETag = ComputePageETag(certificate.CertificateFile, page.Value);
+                    if (pageETag != null)
                     {
-                        // Out of range, or a PDF we cannot read (DEF-400 encrypted, missing file).
-                        // 404 rather than an error: the client JS treats it as "no more pages".
-                        // For page 0 this is also the signal that keeps the stored thumbnail on
-                        // screen instead of a broken image — see certificate-preview-pager.js.
-                        return NotFound();
+                        Response.Headers.ETag = pageETag;
+                        if (Request.Headers.IfNoneMatch.Any(t => string.Equals(t, pageETag, StringComparison.Ordinal)))
+                        {
+                            SetUploadRevalidationHeaders();
+                            return StatusCode(StatusCodes.Status304NotModified);
+                        }
                     }
 
                     var pageBytes = await _fileUploadService.RenderPdfPageAsync(certificate.CertificateFile, page.Value);
-                    if (pageBytes == null || pageBytes.Length == 0) return NotFound();
+                    if (pageBytes == null || pageBytes.Length == 0)
+                    {
+                        // DEF-433: a null here can now also mean the render lock timed out under
+                        // load, not only "no such page". Both are a 404 to the pager, which is the
+                        // degradation this fix chooses: lose the page, never the site.
+                        Response.Headers.Remove("ETag");
+                        return NotFound();
+                    }
 
+                    SetUploadRevalidationHeaders();
                     return File(pageBytes, "image/png");
                 }
 
@@ -2523,9 +2571,14 @@ namespace GCCWebApp.Controllers
                     return NotFound();
                 }
 
+                // DEF-433: async + bounded. This action is [AllowAnonymous] and unthrottled, and
+                // the old synchronous GetPdfPageCount parked a thread-pool thread on a timeout-free
+                // lock, which is what let ~100 concurrent callers take the whole site down.
+                // HttpContext.RequestAborted means a caller who gives up stops holding a slot.
                 var pages = string.IsNullOrEmpty(certificate.CertificateFile)
                     ? 0
-                    : _fileUploadService.GetPdfPageCount(certificate.CertificateFile);
+                    : await _fileUploadService.GetPdfPageCountAsync(
+                        certificate.CertificateFile, HttpContext.RequestAborted);
 
                 // DEF-432: this response is ROLE-DEPENDENT — the same URL returns {"pages":N} to a
                 // caller the gate allows and 404 to everyone else. Without these headers it leaves
@@ -2739,6 +2792,42 @@ namespace GCCWebApp.Controllers
         private void SetUploadRevalidationHeaders()
         {
             Response.Headers.CacheControl = "private, no-cache, must-revalidate";
+        }
+
+        /// <summary>
+        /// DEF-433. A strong ETag for one on-demand-rendered PDF page.
+        ///
+        /// Derived from the SOURCE PDF's length and last-write time plus the page index — the same
+        /// ingredients <c>PhysicalFile</c> uses for its own ETags, which is why replacing a
+        /// certificate's PDF invalidates every page of it at once without any bookkeeping.
+        ///
+        /// Costs a file stat, never a PDF open, so it is safe to call before deciding whether to
+        /// render. Returns null when the file cannot be resolved or stat'd — the caller then simply
+        /// serves the page without a validator, exactly as it did before this change, rather than
+        /// failing.
+        ///
+        /// Quoted per RFC 9110, and NOT weak: the bytes for a given (file, mtime, length, page) are
+        /// deterministic, so a byte-range or equality comparison is legitimate.
+        /// </summary>
+        private string? ComputePageETag(string logicalPdfPath, int pageIndex)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(logicalPdfPath)) return null;
+                if (!_uploadPaths.TryResolveExisting(logicalPdfPath, out var physical)) return null;
+
+                var info = new FileInfo(physical);
+                if (!info.Exists) return null;
+
+                // Render geometry is part of the identity: DEF-438 changed what page 0 returns, and
+                // a stale cached page from before that change would otherwise still validate.
+                return $"\"pg{pageIndex}-{info.Length:x}-{info.LastWriteTimeUtc.Ticks:x}-v2\"";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "DEF-433: could not compute page ETag for {Path}", logicalPdfPath);
+                return null;
+            }
         }
 
         /// <summary>

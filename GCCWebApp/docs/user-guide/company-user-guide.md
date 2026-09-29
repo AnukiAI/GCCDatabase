@@ -127,7 +127,24 @@ Opening a certificate shows everything recorded against it, with the certificate
 
 Sections that do not apply to a certificate are not shown, so two certificates may have a different number of sections.
 
-Beneath the certificate image are two buttons: a magnifier to enlarge the image, and a download arrow to save the PDF.
+Beneath the certificate image are two buttons: a magnifier to open the preview, and a download arrow to save the PDF.
+
+## 6.1 The preview, and certificates with more than one page
+
+Click the magnifier, or the certificate image itself, to open the preview. It shows the certificate at a readable size over the page.
+
+![The preview on a two-page certificate, turned to page 2. The page counter and View PDF stay in view as you scroll.](48-preview-pager)
+
+If the certificate has more than one page, a bar under the preview reads **Page 1 of 2** (or however many pages there are). Use the **<** and **>** arrows, or the left and right arrow keys, to turn the pages. The preview stays open while you do.
+
+On a single-page certificate there are no arrows and no page counter. That is expected; there is nothing to turn to.
+
+**View PDF** opens the certificate document itself in a new browser tab, with every page and your browser's own search, zoom and print.
+
+To close the preview, click anywhere outside the certificate or the **×** in the corner.
+
+> [!NOTE] If the preview offers only View PDF
+> A small number of documents cannot be shown as a picture — for example, a PDF that is password-protected. For those the page arrows do not appear. Use the download arrow to save the file instead.
 
 # 7. Downloading certificates
 

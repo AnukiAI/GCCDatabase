@@ -8562,3 +8562,25 @@ so it should be rotated through the app's UI later.
 - 2026-09-24: Integration guides updated for `db.` instead of `database.` (Shawn: keep the designated links already in circulation). Shawn decided the guides say production is LIVE NOW. v1.3: HTML source + TEMPLATE (in place, backed up), new Amazon/MASTER _2026-09-24.docx (09-15 kept), Setup Guide v1.1 rebuilt from md (v1.0 kept). All verified; logged in partner-api-guide-issuance-log.md. Not issued yet. Found: HTML source's test URL is still gccwebapp.com (now production) — flagged, not changed.
   - Risk noted: database./api/* 301s to db. — any partner already coded against database. may drop X-API-Key on redirect. Amazon was told database. in v1.0–v1.2; confirm which host they actually call.
 - 2026-09-24: template test URL fixed (Shawn): gccwebapp.com/api/v1 → dbtest.greencirclecertified.com/api/v1 in the HTML source + TEMPLATE.docx (2 spots each, the Test base URL row + the id-fields note). Still v1.3 (not issued). Issuance log updated.
+
+## 2026-09-25 — User-guide gap review + handover
+- **Ask:** continue user guides; review plan, find what's undocumented, write a handover to prioritise generation, suggest additions.
+- **Finding:** all 5 guides were built 2026-09-22 13:52, *before* that afternoon's release, so 3 went stale on release day (View PDF + popup paging, Status filter, Sep 23 address move). The maintenance rule in COVERAGE-PLAN.md §4 existed but nothing enforced it.
+- **Improve:** add a pre-deploy check that flags a guide whenever a shipped-log entry names a screen that guide screenshots.
+- Handover written as a Claude Doc; P1+P2 (~4-5 hr) awaiting approval. No guide files edited.
+
+## 2026-09-25 — User guides P1 + P2 executed
+- **Ask:** "go ahead with P1 and P2".
+- **P1:** Company §6.1 (preview paging + View PDF), Analyst §1.1 (Status filter) + §4 (View PDF on upload). New shots 48/58, captured from db.greencirclecertified.com.
+- **Finding:** test.gccwebapp.com (the gated test site) runs an OLDER build than db.greencirclecertified.com, and its popup still says "View all pages". Screenshots taken there would have contradicted the guide. The capture script's own check caught it. All capture scripts now default to db.greencirclecertified.com.
+- **Finding (P2 Word review):** four builder defects that the HTML never showed: an empty contents page in every .docx; list numbering that never restarted (1..26); wrapped steps cut in two; `code`/*italic* printed raw. All were fixed in the builder, and the visible word streams before and after are identical in all five guides.
+- **Improve:** a pipeline with two outputs needs BOTH reviewed. Reviewing only the HTML is how four Word defects survived four phases. The contents fill-in is now automatic, so it can't be forgotten.
+- **Open:** Accounts/Partner shots still carry the red TEST ENVIRONMENT banner; not sent; shipped log deliberately not written.
+
+## 2026-09-28 — Accounts + Partner guide screenshots re-taken
+- **Ask:** "yes, re-take the Accounts and Partner screenshots".
+- **Done:** 8 of 9 Accounts shots and 5 of 5 Partner shots re-taken from db.greencirclecertified.com. The banner is gone, confirmed by a calibrated pixel scan (banner page 0.579 vs 0.05 threshold; all 42 shots in use are under it).
+- **Found:** the authenticator-setup shot carried a scannable QR code with a live TOTP secret for test.analyst, in a client guide. The only protection had been a console NOTE asking for SQL afterwards. The QR is now blurred before capture, and the script refuses to save if nothing gets blurred.
+- **Found:** my first account-name scrub matched bare "admin" and rewrote the Role badges. It was caught by looking at the image, not by any check. **Improve:** a text replacement on a screenshot needs an exact-account match, never a word that is also UI copy.
+- **Found:** the 04 shot had been captured mid-load; it now waits for rows. The 2fatest sign-in failed once and was not retried (lockout risk on the only mail-capable account). 03 was kept; SKIP_2FA=1 added.
+- **Open:** why 2fatest can't sign in on db.greencirclecertified.com; the optional test.analyst pending-secret SQL tidy-up (not run).

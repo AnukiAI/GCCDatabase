@@ -23,7 +23,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const BASE = process.env.BASE_URL || 'https://gccwebapp.com';
+const BASE = process.env.BASE_URL || 'https://db.greencirclecertified.com';
 const OUT = path.join(__dirname, 'shots');
 const GATE = {
   Authorization: 'Basic ' + Buffer.from(
@@ -161,6 +161,64 @@ async function login(page, u, p) {
   const certNumber = row ? await row.getAttribute('data-cert-number') : null;
   const certId = row ? await row.getAttribute('data-cert-id') : null;
   console.log(`     edit target: ${certNumber} (id ${certId})`);
+
+  // 1b. The Status filter (CR-051), with one status ticked so the shot shows it working: the
+  //     result line must change AND be non-empty, or the picture is of a checkbox that did nothing.
+  //     The first run used Hold, which had 0 certificates on the test environment — "Showing 0 of 0"
+  //     is technically a change and teaches nothing. Take the first working-state status that has
+  //     rows, from the app's own status list.
+  const statusBefore = await p.$eval('#resultsCount', e => e.textContent.trim()).catch(() => '');
+  const STATUS_TRY = ['Draft', 'Hold', 'Client Approved - Not Paid', 'Expired'];
+  let holdBox = null, statusPicked = null;
+  for (const s of STATUS_TRY) {
+    const box = await p.$(`#status-content input[name="status"][value="${s}"]`);
+    if (!box) continue;
+    await box.scrollIntoViewIfNeeded();
+    await box.click();
+    await p.waitForFunction(prev => {
+      const t = (document.querySelector('#resultsCount')?.textContent || '').trim();
+      return /^Showing\s+\d+\s+of\s+\d+/i.test(t) && t !== prev;
+    }, statusBefore, { timeout: 20000 }).catch(() => {});
+    const t = await p.$eval('#resultsCount', e => e.textContent.trim()).catch(() => '');
+    if (/^Showing\s+[1-9]\d*\s+of/i.test(t)) { holdBox = box; statusPicked = s; break; }
+    await box.click(); // untick, try the next
+    await p.waitForTimeout(2500);
+  }
+  if (holdBox) { await holdBox.click(); await p.waitForTimeout(2500); } // reset; the block below re-ticks and asserts
+  if (!holdBox) {
+    bad.push(`58-status-filter: none of ${STATUS_TRY.join(', ')} returned any certificates`);
+  } else {
+    console.log(`     status picked for the shot: ${statusPicked}`);
+    await holdBox.scrollIntoViewIfNeeded();
+    await holdBox.click();
+    const changed = await p.waitForFunction(prev => {
+      const t = (document.querySelector('#resultsCount')?.textContent || '').trim();
+      return /^Showing\s+\d+\s+of\s+\d+/i.test(t) && t !== prev;
+    }, statusBefore, { timeout: 20000 }).then(() => true).catch(() => false);
+    const statusAfter = await p.$eval('#resultsCount', e => e.textContent.trim()).catch(() => '');
+    if (!changed) bad.push(`58-status-filter: result line did not change ("${statusBefore}" -> "${statusAfter}")`);
+    else {
+      console.log(`     status filter: "${statusBefore}" -> "${statusAfter}"`);
+      // The guide says the filter shows as a tag and is kept in the address. Check both, don't assume.
+      const tag = await p.$eval('#activeFilterTags', e => e.textContent.trim()).catch(() => '');
+      if (!tag.includes(statusPicked)) bad.push(`58-status-filter: no "${statusPicked}" tag above results (got "${tag}")`);
+      if (!/status=/i.test(p.url())) bad.push(`58-status-filter: status not in page address (${p.url()})`);
+      await p.waitForTimeout(1000);
+      // clipTo measures in viewport coordinates but shoots the FULL page, and the filter sidebar
+      // scrolls independently of the page — two runs cropped the wrong region. Bring the panel
+      // into the viewport and clip the viewport itself, so both use the same coordinates.
+      const panel = await p.$('.filter-panel:has(#status-content)');
+      await panel.scrollIntoViewIfNeeded();
+      await p.waitForTimeout(500);
+      const pb = await panel.boundingBox();
+      await shot(p, '58-status-filter', {
+        fullPage: false,
+        clip: { x: Math.max(0, pb.x - 14), y: Math.max(0, pb.y - 14), width: pb.width + 28, height: Math.min(pb.height + 28, 900 - Math.max(0, pb.y - 14)) }
+      });
+    }
+    await holdBox.click().catch(() => {});
+    await p.waitForTimeout(2000);
+  }
 
   // 2-4. The Create form. NEVER SUBMITTED.
   await p.goto(`${BASE}/Certificate/Create`, { waitUntil: 'domcontentloaded' });

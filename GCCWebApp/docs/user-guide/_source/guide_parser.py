@@ -11,10 +11,15 @@ rather than a silently mis-rendered document:
 
     # 1. Section title        -> h1   (the TOC is derived from these; never written by hand)
     ## Sub-heading            -> h2
-    Plain paragraph text      -> p    (blank-line separated; **bold** works anywhere)
+    Plain paragraph text      -> p    (blank-line separated; **bold**, *italic* and `code`
+                                       work anywhere a paragraph, step, cell or callout does)
 
-    1. First step             -> steps  (any ordered list; numbering is re-generated)
-    2. Second step
+    1. First step             -> steps  (numbering starts at the first item's number and restarts
+    2. Second step                       per list; a wrapped line continues the item above it)
+
+    ```                       -> code   (verbatim, monospace)
+    curl ...
+    ```
 
     | A | B |                 -> table  (column widths are computed from content)
     |---|---|
@@ -182,14 +187,40 @@ def parse(path):
             blocks.append(("table", (headers, body, _table_widths(headers, body))))
             continue
 
-        # ordered list -> steps
+        # fenced code block:  ```  ...  ```
+        if stripped.startswith("```"):
+            flush()
+            code = []
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                code.append(lines[i].rstrip())
+                i += 1
+            if i >= len(lines):
+                raise GuideError("unterminated ``` code block")
+            i += 1  # closing fence
+            blocks.append(("code", "\n".join(code)))
+            continue
+
+        # ordered list -> steps, as (start, items).
+        # `start` is the number the author wrote on the first item, so a list that resumes after a
+        # figure ("3. Click Add") keeps counting from 3 in both formats instead of restarting.
+        # A line that does not begin a new item or a new block CONTINUES the current item — before
+        # 2026-09-25 a step wrapped onto a second source line was cut there, and the remainder was
+        # emitted as a stray paragraph ("pop-up dialog." on its own in the Partner guide).
         if re.match(r"^\d+[.)]\s+", stripped):
             flush()
+            start = int(re.match(r"^(\d+)", stripped).group(1))
             items = []
-            while i < len(lines) and re.match(r"^\d+[.)]\s+", lines[i].strip()):
-                items.append(re.sub(r"^\d+[.)]\s+", "", lines[i].strip()))
+            while i < len(lines):
+                s = lines[i].strip()
+                if re.match(r"^\d+[.)]\s+", s):
+                    items.append(re.sub(r"^\d+[.)]\s+", "", s))
+                elif s and items and not s.startswith(("|", ">", "#", "![", "<!--", "```", "- ", "* ")):
+                    items[-1] += " " + s
+                else:
+                    break
                 i += 1
-            blocks.append(("steps", items))
+            blocks.append(("steps", (start, items)))
             continue
 
         if stripped.startswith(("- ", "* ")):

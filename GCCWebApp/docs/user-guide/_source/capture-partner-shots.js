@@ -29,7 +29,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const BASE = process.env.BASE_URL || 'https://gccwebapp.com';
+const BASE = process.env.BASE_URL || 'https://db.greencirclecertified.com';
 const OUT = path.join(__dirname, 'shots');
 const GATE = {
   Authorization: 'Basic ' + Buffer.from(
@@ -68,10 +68,31 @@ const UNBLURRED_KEY = () => {
   });
 };
 
+/**
+ * Drop the test-environment banner and neutralise the signed-in account name before every shot.
+ * Added 2026-09-25: this script predated the clean-up the Company/Analyst scripts do, so this
+ * guide's shots carried a red "TEST ENVIRONMENT ... do not share this URL publicly" banner and the
+ * internal test account names into a client document. Pixels do not show up in a text leak-grep,
+ * so `shot()` also refuses to save if the banner is still visible afterwards.
+ */
+const CLEAN_CHROME = () => {
+  [...document.querySelectorAll('div, header, section, p')]
+    .filter(el => /TEST ENVIRONMENT/i.test(el.textContent || '') && el.textContent.length < 200)
+    .forEach(el => { el.style.display = 'none'; });
+  document.querySelectorAll('span, div, a, p, td, button').forEach(el => {
+    if (el.children.length) return;
+    if (/^\s*(test\.\w+|admin\.uat|2fatest)\s*$/i.test(el.textContent || '')) el.textContent = 'your.account';
+  });
+};
+const BANNER_VISIBLE = () => [...document.querySelectorAll('body *')].some(el =>
+  !el.children.length && /TEST ENVIRONMENT/i.test(el.textContent || '') && el.offsetParent !== null);
+
 async function shot(page, name, opts = {}) {
   const title = await page.title();
   if (/gate|restricted access/i.test(title)) { bad.push(`${name}: GATE PAGE — not saved`); return; }
   if (/log ?in|sign ?in/i.test(title))       { bad.push(`${name}: LOGIN PAGE — not saved`); return; }
+  await page.evaluate(CLEAN_CHROME);
+  if (await page.evaluate(BANNER_VISIBLE)) { bad.push(`${name}: TEST ENVIRONMENT banner still visible — refused to save`); return; }
   await page.evaluate(REDACT_KEYS);
   await page.waitForTimeout(400);
   if (await page.evaluate(UNBLURRED_KEY)) {

@@ -102,6 +102,8 @@ time, which is the point — the build fails rather than silently dropping conte
 | Figure | `![Caption text](04-user-management)` renders `shots/04-user-management.jpg` |
 | Callout | `> [!NOTE] Short label` then `> body lines` |
 | Table | standard pipe table |
+| Inline | `**bold**`, `*italic*`, `` `code` `` |
+| Code block | ```` ``` ```` fences, verbatim and monospace |
 
 Callout kinds: `NOTE`/`TIP` render as note · `WARNING`/`IMPORTANT` as warn · `CAUTION` as stop.
 A blockquote that does **not** open with `> [!KIND] Label` is a build error — there are no plain
@@ -174,8 +176,11 @@ The Partner guide's §10.2 exists because the same three questions arrived repea
 ## 7. Finishing
 
 1. Build both formats. A `GuideError` means malformed markdown — fix the source, never the output.
-2. Open the `.docx` in Word, not just the HTML. Page breaks, table widths and image scaling are
-   where the two formats diverge.
+   The build also hands the `.docx` to Word (`finalize-docx.ps1`) to fill in the contents page. If it
+   prints `!! WORD CONTENTS NOT FILLED`, page 2 of the Word file is a placeholder — do not send it.
+2. Open the `.docx` in Word, not just the HTML. Page breaks, table widths, image scaling and **list
+   numbering** are where the two formats diverge — the first Word review (2026-09-25) found four
+   builder defects that the HTML never showed.
 3. **Run the `gate-check` skill.** A guide is a document going to the client, which is squarely
    inside its trigger. The specific failure it catches here: internal notes leaking into a client
    Word document.

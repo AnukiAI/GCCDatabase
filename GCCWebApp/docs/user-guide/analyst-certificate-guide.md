@@ -22,6 +22,17 @@ Analysts and administrators share the certificate screens. Signing in takes you 
 
 The internal list differs from what a company or partner sees in one important way: **it shows every certificate in every status**, including Draft, Hold and Expired. The company's own view shows only certificates that are in force. Section 2 explains which is which.
 
+## 1.1 Filtering by status
+
+The last box in the filter panel, below **Additional**, is **Status**. It lists all eight statuses. Tick one to see only certificates in that status; tick several to see all of them together. The result count updates as you tick.
+
+![The Status filter with Draft ticked. The box scrolls to show the remaining statuses.](58-status-filter)
+
+The status filter works with everything else on the list. It shows as a tag above the results, it is kept in the page address so a link you share opens with the same filter, and **Export All to CSV** exports only what it is showing.
+
+> [!NOTE] Staff only
+> The Status filter appears only on the internal list. Company and partner accounts do not have it, because their lists already contain only certificates that are in force.
+
 # 2. The eight statuses
 
 Status is the single most consequential field on a certificate. It decides whether the certificate appears on the public database, whether it reaches a partner feed, and whether the certified company can see it at all.
@@ -81,7 +92,11 @@ A **PDF is required** to create a certificate. Drop it on the upload zone or bro
 > [!NOTE] The preview is blank until you save
 > The preview panel shows "Certificate Unavailable" while you are still filling the form. That is expected — the image is generated from the PDF after the certificate is saved, not while you are typing.
 
+**Check the file before you save.** Once you have chosen a PDF, its name appears under the upload zone with a **View PDF** button. That opens the file you have just chosen in a new browser tab, every page of it, so you can confirm it is the right document — especially a multi-page one — before anything is saved.
+
 To replace a file later, open the certificate in **Edit** and upload a new PDF over the old one.
+
+**On a saved certificate**, clicking the certificate image opens the preview. A certificate with more than one page shows **Page 1 of N** with arrows to turn the pages, and **View PDF** opens the whole document in a new tab. This is the same preview that companies see; the Company User Guide describes it in full.
 
 # 5. Tags, and product identifiers
 

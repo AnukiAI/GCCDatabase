@@ -964,3 +964,31 @@ fixes that. People opening the link for the first time aren't affected.
 
 We checked all of this on the live site after release. Password-reset emails continue to arrive from
 noreply@db.greencirclecertified.com.
+
+## 2026-09-28 — User guides: five guides, one for each kind of user
+
+**Five user guides are ready**, each in Word and as a web page that opens in any browser. Together
+they cover everything a person can do in the database, organised by who is doing it. They
+replace the single long guide from earlier in the project, which had no pictures and could not be
+kept up to date.
+
+| Guide | Version | For | Covers |
+|---|---|---|---|
+| Accounts & Sign-In | 1.1 | Administrators (§1–4, 10) and everyone (§5–9) | Creating users and giving them access, signing in, two-factor authentication, resetting a password, importing users in bulk |
+| Company User Guide | 1.0 | Certified companies' own staff | Finding, reading, downloading, sharing and exporting your company's certificates, and why a certificate might not be in your list |
+| Analyst Certificate Guide | 1.0 | Analysts and administrators | The eight statuses, creating and editing certificates, what the system changes on its own, importing and exporting |
+| Administrator Guide | 1.0 | Administrators | Companies, products, certification types, tags, pathways, roles, analytics and the Dashboard |
+| Setting Up a Partner with API Access | 1.1 | Administrators | Creating a partner, tagging their certificates, issuing and testing their API key, and answering the partner's usual questions |
+
+**What's new since the version you received in August.** Accounts & Sign-In moves to version 1.1 and
+adds a section on importing users in bulk. Version 1.0 is unchanged, so it still matches what you
+already have.
+
+**They describe the database as it is today.** The guides include the 22 September changes: the
+**Status** filter on the certificate list, the **View PDF** button, and turning pages in the
+certificate preview. Every step was checked against the live site before it was written down, and
+the screenshots were taken there. Email addresses and anything resembling a password or key are
+blurred.
+
+**Which file to use:** the Word version is best for printing or editing, and the web page for reading
+on screen. The two versions contain the same text.

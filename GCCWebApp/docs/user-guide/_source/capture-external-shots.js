@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const BASE = process.env.BASE_URL || 'https://gccwebapp.com';
+const BASE = process.env.BASE_URL || 'https://db.greencirclecertified.com';
 const OUT = path.join(__dirname, 'shots');
 const GATE = {
   Authorization: 'Basic ' + Buffer.from(
@@ -150,7 +150,9 @@ async function login(page, u, p) {
   await shot(p, '40-certificates-list', { fullPage: false });
 
   // 2. Filter sidebar on its own — the panels are the reader's main tool.
-  await clipTo(p, '#filterSidebar', '41-filters', 900);
+  // 535px = the first panel and the top of the second, cut on a row boundary. The full 900px crop rendered ~990px tall in the web guide and
+  // dwarfed every other screenshot (reported 2026-09-28).
+  await clipTo(p, '#filterSidebar', '41-filters', 535);
 
   // 3. Search. `fill()` sets the value without firing the key events the debounced handler listens
   //    for, so the first attempt at this shot showed a search term typed into the box next to an
@@ -248,6 +250,50 @@ async function login(page, u, p) {
     await d.close();
   }
 
+  // 6b. The preview popup, turned to page 2 (CR-052/053/054). Only about a quarter of certificates
+  //     have more than one page, and on a single-page one the pager is absent by design — so a shot
+  //     of the first row would usually show no pager and teach nothing. Ask the app's own page-count
+  //     route (the one the pager uses) for each loaded row until a multi-page certificate turns up.
+  const rows = await p.$$eval('#gridBody .table-body-row', els =>
+    els.map(e => ({ num: e.getAttribute('data-cert-number'), cid: e.getAttribute('data-cert-id') })));
+  let multi = null;
+  for (const r of rows.slice(0, 60)) {
+    const pages = await p.evaluate(async id => {
+      const res = await fetch(`/Certificate/CertificatePageCount?id=${encodeURIComponent(id)}`,
+        { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!res.ok) return 0;
+      const j = await res.json().catch(() => ({}));
+      return typeof j.pages === 'number' ? j.pages : 0;
+    }, r.cid).catch(() => 0);
+    if (pages >= 2) { multi = { ...r, pages }; break; }
+  }
+  if (!multi) {
+    bad.push(`48-preview-pager: none of the first ${Math.min(rows.length, 60)} rows is multi-page — pager cannot be shown`);
+  } else {
+    console.log(`     multi-page certificate: ${multi.num} (${multi.pages} pages)`);
+    const z = await c.newPage();
+    await z.goto(`${BASE}/Certificate/CertificateExternalView/${encodeURIComponent(multi.num)}?cid=${multi.cid}`,
+      { waitUntil: 'domcontentloaded' });
+    await z.waitForTimeout(2500);
+    await z.click('.fa-search-plus').catch(() => {});
+    // Wait for the pager's own label, then turn the page and wait for the label to say so. Saving
+    // on the first label alone would record page 1 — indistinguishable from the old popup.
+    const turned = await z.waitForFunction(() => /^Page 1 of \d+$/.test(
+      (document.getElementById('zoomPagerLabel')?.textContent || '').trim()), null, { timeout: 15000 })
+      .then(() => z.click('#zoomPagerNext'))
+      .then(() => z.waitForFunction(() => /^Page 2 of \d+$/.test(
+        (document.getElementById('zoomPagerLabel')?.textContent || '').trim()), null, { timeout: 15000 }))
+      .then(() => true).catch(() => false);
+    const hasViewPdf = await z.$eval('#imageZoomModal .zoom-allpages-link', a => /View PDF/.test(a.textContent)).catch(() => false);
+    if (!turned) bad.push(`48-preview-pager: pager did not reach "Page 2" on ${multi.num}`);
+    else if (!hasViewPdf) bad.push(`48-preview-pager: View PDF button missing in popup on ${multi.num}`);
+    else {
+      await z.waitForTimeout(1500); // let the page-2 image finish painting
+      await shot(z, '48-preview-pager', { fullPage: false });
+    }
+    await z.close();
+  }
+
   // 5. Tile view. Last, so the grid has the whole page to itself and every card has rendered —
   //    an earlier ordering caught the grid mid-render with 3 of 23 cards painted.
   await p.click('.toggle-btn[data-view="tile"]').catch(() => {});
@@ -261,7 +307,8 @@ async function login(page, u, p) {
   await p.waitForTimeout(1500);
   const cards = await p.$$eval('#certificatesGrid > *', els => els.length).catch(() => 0);
   console.log(`     tile cards rendered: ${cards}`);
-  if (cards < 4) bad.push(`44-tile-view: only ${cards} cards rendered — grid did not fill, shot would look broken`);
+  // 3 = one full row at 1440px, which is what the viewport shot shows; fewer means the grid failed.
+  if (cards < 3) bad.push(`44-tile-view: only ${cards} cards rendered — grid did not fill, shot would look broken`);
   await shot(p, '44-tile-view', { fullPage: false });
 
   // 8. Products page — External sees it WITHOUT the Actions column.

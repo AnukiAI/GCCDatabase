@@ -19,7 +19,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const BASE = process.env.BASE_URL || 'https://gccwebapp.com';
+const BASE = process.env.BASE_URL || 'https://db.greencirclecertified.com';
 const OUT = path.join(__dirname, 'shots');
 const GATE = {
   Authorization: 'Basic ' + Buffer.from(

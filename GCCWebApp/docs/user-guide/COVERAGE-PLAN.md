@@ -370,3 +370,68 @@ pipeline and the accumulating shared material made each successive guide cheaper
 **None of the five guides has been sent.** Nothing is in `shipped-2026-09.md`, and no `.docx` has
 been opened in Word — page breaks, table widths and image scaling are where the two output formats
 diverge, and that review is the one remaining step before any of this goes out.
+
+---
+
+## 6. Refresh after the 22 September release — P1 + P2, 2026-09-25
+
+All five guides were built at 13:52 on 22 September, hours before that afternoon's release changed
+screens two of them show. Gap review and priorities are in the handover doc of the same date.
+
+**P1 — content brought in line with the live site**
+
+| Guide | Change | Shot |
+|---|---|---|
+| Company | New §6.1: the preview popup, **Page 1 of N** paging, arrow keys, **View PDF**, and the no-arrows case for a document that cannot be pictured | `48-preview-pager` (new) |
+| Analyst | New §1.1: the **Status** filter — multi-select, tag above results, kept in the address, respected by CSV export, staff only | `58-status-filter` (new) |
+| Analyst | §4: **View PDF** on the upload screen checks the chosen file before save; preview paging on a saved certificate | — |
+
+Both capture scripts now refuse to save these shots unless the behaviour is visible: the pager must
+reach "Page 2", the popup must carry **View PDF**, the status filter must change the count to a
+non-zero result, add a tag, and put `status=` in the address.
+
+**Screenshots now come from `db.greencirclecertified.com`.** Every capture script's default moved
+there. `gccwebapp.com` only redirects since 23 September, and **`test.gccwebapp.com` runs an older
+build** — its popup still reads "View all pages" (observed 2026-09-25), so shots taken there would
+contradict the text. No guide text named an address, so the address sweep changed nothing in the
+guides themselves; `applies_to: Test environment` is kept until the cutover decision.
+
+**P2 — first Word review. Four defects, all in the builder, all fixed at the source:**
+
+1. **Empty contents page in every .docx.** The TOC is a Word field that shows *"Right-click and
+   choose Update Field"* until Word computes it. `build-guide.py` now calls the new
+   `_source/finalize-docx.ps1`, which has Word fill it in and fails loudly if it cannot.
+2. **Numbered lists never restarted in Word** — the Accounts guide ran 1…26. Each list now gets its
+   own numbering and starts at the number written on its first item, in both formats.
+3. **A step wrapped onto a second source line was cut in two**; the remainder became a stray
+   paragraph ("pop-up dialog." in the Partner guide). Continuation lines now join their step.
+4. **Only `**bold**` was understood.** `code`, *italic* and ``` fenced blocks printed their markers
+   — 31 lines of the Partner guide, in HTML as well as Word. All three are now rendered.
+
+Verified: visible word streams before/after identical in all five HTML outputs (so no text was
+lost or duplicated); Word's own list numbering read back for every list paragraph; leak and
+marker scan clean on all ten files, with the pattern shown to fire on a file known to contain IDs.
+
+**Still open, not done in this pass:**
+
+- ~~**Accounts and Partner screenshots still show the red "TEST ENVIRONMENT" banner.**~~ **DONE
+  2026-09-28.** Both re-captured from `db.greencirclecertified.com`, which does not render the banner.
+  Both scripts now hide it anyway and refuse to save if it is still visible (guard calibrated against
+  test.gccwebapp.com, where it fires). A pixel scan of all 42 shots in use finds no red banner band;
+  the same scan scores a real banner page at 0.579 against a 0.05 threshold.
+  - **Found while re-capturing: `07-setup-authenticator` had a scannable QR code** holding a live
+    authenticator secret for the test analyst account. It was already in the Accounts guide as built.
+    The QR is now blurred before capture, and the script refuses to save if it finds nothing to blur.
+    Visiting that page still writes a *pending* (not enabled) secret for that account on the test
+    database; the script prints an optional SQL tidy-up, not run.
+  - **`03-2fa-challenge` was NOT re-taken.** Signing in as the 2FA fixture returned to the login
+    page (once; not retried because failures count toward lockout on the only account that can
+    receive mail). The existing shot is a sign-in page and never carried the banner. `SKIP_2FA=1`
+    skips that step until the account is looked at.
+  - Also fixed: `04-user-management` had been captured mid-load (spinner, empty table) — it now
+    waits for rows; and the first version of the account-name scrub rewrote the **Role** badge
+    "Admin" to "your.account" — narrowed, then re-captured.
+- Cosmetic in Word: tables split across pages without repeating the header row; the cover details
+  table has an empty header row; screenshots of full pages are small because the site banner fills
+  ~40% of each.
+- **Logged in `shipped-2026-09.md` on 2026-09-28** at Shawn's instruction (entry "User guides: five guides, one for each kind of user").

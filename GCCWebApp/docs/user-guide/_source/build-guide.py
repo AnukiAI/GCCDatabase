@@ -72,9 +72,41 @@ CALLOUT = {                       # kind -> (word accent, word fill, css class)
 LABEL_COLOUR = {"note": "2F5527", "warn": "8A5410", "stop": "9C2B2B"}
 
 
-def split_bold(text):
-    """'a **b** c' -> [('a ',False), ('b',True), (' c',False)]"""
-    return [(part, i % 2 == 1) for i, part in enumerate(str(text).split("**")) if part]
+_ITALIC = re.compile(r"(?<![\w*])\*(?=\S)(.+?)(?<=\S)\*(?![\w*])")
+
+
+def spans(text):
+    """Inline formatting -> [(text, bold, italic, code)].
+
+    `code` is taken first and is verbatim; then **bold**; then *italic* inside what is left.
+    Before 2026-09-25 only **bold** was understood, so every `code` span and *italic* phrase was
+    printed with its markers — 31 lines of the Partner guide showed raw backticks in BOTH formats.
+    An odd number of backticks is treated as literal text rather than guessed at.
+    """
+    text = str(text)
+    out = []
+    chunks = text.split("`") if text.count("`") % 2 == 0 else [text]
+    for ci, chunk in enumerate(chunks):
+        if ci % 2 == 1:
+            if chunk: out.append((chunk, False, False, True))
+            continue
+        for bi, part in enumerate(chunk.split("**")):
+            bold, pos = bi % 2 == 1, 0
+            for m in _ITALIC.finditer(part):
+                if m.start() > pos: out.append((part[pos:m.start()], bold, False, False))
+                out.append((m.group(1), bold, True, False))
+                pos = m.end()
+            if pos < len(part): out.append((part[pos:], bold, False, False))
+    return [s for s in out if s[0]]
+
+
+def add_runs(p, text, size=None):
+    for tx, bo, it, co in spans(text):
+        r = p.add_run(tx); r.bold = bo; r.italic = it
+        if co:
+            r.font.name = "Consolas"; r.font.size = Pt((size or 11) - 1)
+        elif size:
+            r.font.size = Pt(size)
 
 
 def compress():
@@ -118,9 +150,30 @@ def render_docx():
         if after is not None: p.paragraph_format.space_after = Pt(after)
 
     def rich(text):
-        p = doc.add_paragraph()
-        for t, b in split_bold(text):
-            r = p.add_run(t); r.bold = b
+        add_runs(doc.add_paragraph(), text)
+
+    def code_block(text):
+        t = doc.add_table(rows=1, cols=1); t.alignment = WD_TABLE_ALIGNMENT.LEFT
+        c = t.cell(0, 0); shade(c, "F2F4F1"); c.width = Inches(6.0)
+        p = c.paragraphs[0]; p.paragraph_format.space_after = Pt(0)
+        for n, line in enumerate(text.split("\n")):
+            r = p.add_run(line); r.font.name = "Consolas"; r.font.size = Pt(9.5)
+            if n < text.count("\n"): r.add_break()
+        doc.add_paragraph().paragraph_format.space_after = Pt(4)
+
+    # Each numbered list gets its own w:num over the List Number abstract definition, with a
+    # startOverride. Sharing the style's single numId made Word count every list in the document as
+    # one — the Accounts guide's steps ran 1..26 and "Getting help" opened at step 24.
+    numbering = doc.part.numbering_part.element
+    ln_numid = doc.styles["List Number"].element.pPr.numPr.numId.val
+    ln_abs = next(n.abstractNumId.val for n in numbering.num_lst if n.numId == ln_numid)
+
+    def new_list(start):
+        num = numbering.add_num(ln_abs)
+        ov = OxmlElement("w:lvlOverride"); ov.set(qn("w:ilvl"), "0")
+        so = OxmlElement("w:startOverride"); so.set(qn("w:val"), str(start))
+        ov.append(so); num.append(ov)
+        return num.numId
 
     def table(headers, rows, widths=None, style="Light Grid Accent 3"):
         t = doc.add_table(rows=1, cols=len(headers)); t.style = style
@@ -131,9 +184,8 @@ def render_docx():
         for row in rows:
             cells = t.add_row().cells
             for i, val in enumerate(row):
-                cells[i].text = ""; p = cells[i].paragraphs[0]
-                for tx, bo in split_bold(val):
-                    rr = p.add_run(tx); rr.bold = bo; rr.font.size = Pt(9.5)
+                cells[i].text = ""
+                add_runs(cells[i].paragraphs[0], val, size=9.5)
         if widths:
             for row in t.rows:
                 for i, wv in enumerate(widths):
@@ -144,13 +196,12 @@ def render_docx():
         accent, fill, _ = CALLOUT[kind]
         t = doc.add_table(rows=1, cols=1); t.alignment = WD_TABLE_ALIGNMENT.LEFT
         c = t.cell(0, 0); shade(c, fill); edge(c, accent); c.width = Inches(6.0)
-        p = c.paragraphs[0]; r = p.add_run(label.upper())
+        p = c.paragraphs[0]; r = p.add_run(label.replace("`", "").upper())  # labels are small caps; no code styling
         r.bold = True; r.font.size = Pt(8)
         r.font.color.rgb = RGBColor.from_string(LABEL_COLOUR[kind])
         p.paragraph_format.space_after = Pt(2)
         p2 = c.add_paragraph()
-        for tx, bo in split_bold(text):
-            rr = p2.add_run(tx); rr.bold = bo; rr.font.size = Pt(10)
+        add_runs(p2, text, size=10)
         p2.paragraph_format.space_after = Pt(2)
         doc.add_paragraph().paragraph_format.space_after = Pt(4)
 
@@ -204,11 +255,16 @@ def render_docx():
         elif kind == "callout":callout(*payload)
         elif kind == "fig":    figure(*payload)
         elif kind == "pagebreak": doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+        elif kind == "code":   code_block(payload)
         elif kind == "steps":
-            for it in payload:
+            start, items = payload
+            nid = new_list(start)
+            for it in items:
                 p = doc.add_paragraph(style="List Number")
-                for tx, bo in split_bold(it):
-                    r = p.add_run(tx); r.bold = bo
+                numPr = p._p.get_or_add_pPr().get_or_add_numPr()
+                numPr.get_or_add_ilvl().val = 0
+                numPr.get_or_add_numId().val = nid
+                add_runs(p, it)
                 p.paragraph_format.space_after = Pt(4)
 
     para("")
@@ -307,6 +363,11 @@ color:var(--accent-ink);margin-bottom:.25rem}
 footer.end{margin-top:3.5rem;padding-top:1.3rem;border-top:1px solid var(--rule);
 font-size:.85rem;color:var(--ink-faint);max-width:66ch}
 a{color:var(--navy)}
+code{font-family:Consolas,"SFMono-Regular",Menlo,monospace;font-size:.9em;background:var(--rule-soft);
+padding:.05em .32em;border-radius:3px}
+pre.code{background:var(--rule-soft);border:1px solid var(--rule);border-radius:6px;padding:.8rem 1rem;
+overflow-x:auto;max-width:66ch;margin:1rem 0 1.4rem}
+pre.code code{background:none;padding:0;font-size:.88rem}
 .pb{display:none}
 @media print{body{background:#fff;font-size:10.5pt}nav.toc{break-after:page}
 h2{break-after:avoid}figure{break-inside:avoid;box-shadow:none}.note{break-inside:avoid}
@@ -320,7 +381,13 @@ def esc(t):
 
 
 def inline(text):
-    return "".join(f"<strong>{esc(t)}</strong>" if b else esc(t) for t, b in split_bold(text))
+    out = []
+    for t, b, i, c in spans(text):
+        h = f"<code>{esc(t)}</code>" if c else esc(t)
+        if i: h = f"<em>{h}</em>"
+        if b: h = f"<strong>{h}</strong>"
+        out.append(h)
+    return "".join(out)
 
 
 def slug(h):
@@ -356,11 +423,15 @@ def render_html():
         elif kind == "p":
             out.append(f"<p>{inline(payload)}</p>")
         elif kind == "steps":
-            out.append("<ol class='steps'>" +
-                       "".join(f"<li>{inline(i)}</li>" for i in payload) + "</ol>")
+            start, items = payload
+            reset = f" style='counter-reset:s {start - 1}'" if start != 1 else ""
+            out.append(f"<ol class='steps'{reset}>" +
+                       "".join(f"<li>{inline(i)}</li>" for i in items) + "</ol>")
+        elif kind == "code":
+            out.append(f"<pre class='code'><code>{esc(payload)}</code></pre>")
         elif kind == "callout":
             ck, lab, txt = payload
-            out.append(f"<div class='{CALLOUT[ck][2]}'><span class='lab'>{esc(lab)}</span>"
+            out.append(f"<div class='{CALLOUT[ck][2]}'><span class='lab'>{esc(lab.replace('`', ''))}</span>"
                        f"<p>{inline(txt)}</p></div>")
         elif kind == "pagebreak":
             out.append("<div class='pb'></div>")
@@ -378,7 +449,13 @@ def render_html():
                 print("  MISSING", name); continue
             fign[0] += 1
             b64 = base64.b64encode(open(path, "rb").read()).decode()
-            out.append(f"<figure><img src='data:image/jpeg;base64,{b64}' "
+            # Never show a shot larger than it was captured. `figure img` is width:100%, so a narrow
+            # crop (the 374px filter sidebar, the 390px phone view) was stretched to the full ~870px
+            # column — 2.3x its real size, and far bigger than every other screenshot (reported on the
+            # Company guide, 2026-09-28). Shots are captured at 1x, so natural width = on-screen width.
+            nat_w = Image.open(path).size[0]
+            cap = f" style='max-width:{nat_w + 2}px;margin-left:auto;margin-right:auto'" if nat_w < 900 else ""
+            out.append(f"<figure{cap}><img src='data:image/jpeg;base64,{b64}' "
                        f"alt='{esc(caption.split(chr(46))[0])}' loading='lazy'>"
                        f"<figcaption><b>Figure {fign[0]}</b>{esc(caption)}</figcaption></figure>")
 
@@ -392,4 +469,19 @@ if __name__ == "__main__":
     compress()
     render_docx()
     render_html()
+    # The .docx contents table is a Word field and stays a "Right-click and choose Update Field"
+    # placeholder until Word computes it — which is what the client would have seen on page 2 of
+    # every guide (caught 2026-09-25). Only Word can paginate, so hand the file to Word now rather
+    # than trusting someone to remember a second step.
+    import subprocess
+    fin = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finalize-docx.ps1")
+    try:
+        res = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", fin,
+                              "-Files", os.path.basename(DOCX)], capture_output=True, text=True, timeout=300)
+        print(res.stdout.rstrip() or res.stderr.rstrip())
+        if res.returncode != 0:
+            raise RuntimeError("finalize-docx.ps1 failed")
+    except Exception as e:
+        print(f"\n  !! WORD CONTENTS NOT FILLED ({e}). The .docx still shows a placeholder on page 2 —"
+              f"\n  !! run finalize-docx.ps1 on a machine with Word before sending it.")
     print(f"\n  Both formats rendered from {os.path.basename(SOURCE_MD)} — edit that file only.")

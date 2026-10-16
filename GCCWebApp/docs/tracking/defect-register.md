@@ -17531,3 +17531,122 @@ ships something unreviewed nor rolls something back.
 
 **Out of scope, noted.** `Views/Home/Error.cshtml` is also empty (500s render a blank page), and
 `HomeController.Error` lacks `[AllowAnonymous]`. Not changed; raise separately if wanted.
+
+---
+
+### DEF-442 — One failed database check at startup kills the process; repeated, IIS stops the app pool and the whole site returns 503
+
+- **Date raised:** 2026-09-29
+- **Severity:** **HIGH.** Full site outage (every URL 503) until someone manually restarts the app
+  pool. Trigger is on the hosting side (SQL unreachable), but the code converts a transient blip
+  into an outage that does not self-heal.
+- **Status:** **RESOLVED LOCALLY 2026-09-29 — NOT DEPLOYED.** Code in `Program.cs` (uncommitted),
+  verified on localhost (see "Local verification" below). **Built into
+  `GCCWebApp-deploy-20260929-1502.zip`** (DLL md5 `020c8cd1a1462049`). **Uploaded to production
+  (db.greencirclecertified.com) 2026-09-29 per Shawn; 9/9 external post-deploy checks PASS incl.
+  `/health/ready` Healthy. DLL-on-server confirmation (6,728,704 bytes) pending before close-out.** See
+  `docs/tracking/predeploy-record-2026-09-29-DEF442.md`. Hosting ticket open with the provider for
+  the SQL side.
+- **Reporter:** Shawn — "IIS keeps shutting down on the server", stdout log
+  `stdout_20260929171640_19112.log` (server time 2026-09-29 17:16:40).
+- **QC log ID:** none — internal / ops.
+
+**Evidence.** Startup log reaches "Application started successfully" and passes secure-config
+validation, then: `crit: CRITICAL: Production database connection failed!` →
+`InvalidOperationException: Production database is not accessible` at `Program.cs:1229`, rethrown at
+`Program.cs:1284` → unhandled → process exits. DB target `68.71.129.120,1533` / `gccwebap_certificates`.
+
+**Cause (code side).**
+- `Program.cs:1225` calls `context.Database.CanConnectAsync()` **once**. `CanConnectAsync` catches
+  the connection exception and returns `false`, so the `EnableRetryOnFailure` strategy
+  (`Program.cs:175`) never engages. A single SQL/network hiccup at the moment of a cold start = crash.
+- IIS/ANCM restarts the process; each restart hits the same check; after the Rapid-Fail Protection
+  threshold (IIS default 5 failures / 5 min) the pool is **stopped** → `503` from
+  `Microsoft-HTTPAPI/2.0` on every URL, persisting after SQL recovers.
+- Exposure is multiplied by cold starts: the pool was never set to AlwaysRunning (recommended at the
+  DEF for the expiration background service, "Plesk note", not actioned) and the 2026-08-12 hosting
+  request for "no idle timeout" is unconfirmed.
+
+**Prior occurrences, misattributed.** 2026-06-09 DEF-259 deploy 503 (attributed to locked DLL / no
+recycle — stdout log not checked); 2026-09-08 "503 on every URL… stopped app pool rather than a code
+fault" (`2026-09-08-deploy-runbook-DEF412.md:110`, pool restarted, root cause not investigated). Both
+match this signature; neither can now be confirmed.
+
+**Proposed fix (retry option — chosen 2026-09-29).** Replace the single `CanConnectAsync()` in the
+Production (and Staging) branch with a bounded retry: ~6 attempts, backoff 5→10→15→20→30s (~90s
+total, inside ANCM's default 120s `startupTimeLimit`), logging each attempt as `warn`; throw only
+after the last attempt. No change to auto-migrate, dev, or Testing paths. Also drop the DB user name
+from the stdout startup banner (low-risk hygiene; server/catalog kept for diagnosis).
+
+**Estimate:** **~2.5 hr** — code 1 hr; local verification 1 hr (point dev at an unreachable port →
+confirm N retries then clean exit; start with SQL stopped, start SQL mid-retry → confirm the app comes
+up and serves 200); register/shipped-log/Gate 0B 0.5 hr. Deploy rides the next bundle.
+
+**Ops actions (host-side, no code, recommended alongside):** app pool Start Mode = AlwaysRunning,
+Idle Time-out = 0, confirm/relax Rapid-Fail Protection; ask host whether SQL at `68.71.129.120:1533`
+was reachable at 2026-09-29 17:16:40 and request WAS event 5002 entries.
+
+**Out of scope, noted.** "Start degraded with a maintenance page instead of crashing" (~3–4 hr) —
+not chosen; revisit if outages continue after the retry ships.
+
+**As built (2026-09-29).** New local function `CanConnectWithRetryAsync` in `Program.cs`, used by the
+Production and Staging branches in place of the bare `CanConnectAsync()`. Backoff 5/10/15/20/30s,
+bounded by **elapsed time** (default **90s**, `Database:StartupConnectBudgetSeconds`), not attempt
+count — this runs before `app.Run()`, so ANCM's 120s `startupTimeLimit` is counting, and each attempt
+against a truly-down server can take ~15s on its own. Each attempt is also cancelled at the remaining
+budget. Every failed attempt logs `warn`; recovery after a failure logs `warn` with the attempt number;
+give-up logs `crit`, then the existing throw fires unchanged. Dev/Testing/unknown-env paths untouched.
+**Dropped from the proposal:** removing `DB user` from the stdout banner — that line is a deliberate
+wrong-database tripwire (comment at `Program.cs:~190–207`), printed without the password. Left as is.
+
+**Local verification (2026-09-29, built to a scratch folder, run as `Staging` on :5199).**
+| Case | Setup | Result |
+|---|---|---|
+| Give-up | DB at an unreachable port, budget 40s | 3 attempts, gave up at **36s** (inside budget), then same crit + throw + exit as before ✅ |
+| Recovery | Throwaway login `DEF442_Probe` created **disabled** on dev SQL, enabled after attempt 2 | Failed 1, failed 2, **"reachable on attempt 3 after 19s"** → connectivity verified → `/health/live` **200** at 26s ✅ |
+| Cleanup | — | `DEF442_Probe` user + login dropped; `sys.server_principals` count **0** ✅ |
+
+A first recovery attempt through a Node named-pipe relay was **invalid** (the relay itself cannot carry
+SQL's message-mode pipe — "The parameter is incorrect"); it is not evidence either way and was replaced
+by the login test. **Not exercised:** the Production branch at runtime (same helper, same call shape —
+running Production locally would load prod config and auto-migrate); SqlClient pool blocking-period
+behaviour against a *network* outage, as opposed to a login failure. Confirm on the next real incident
+via the stdout log: look for `DEF-442` lines.
+
+---
+
+### DEF-443 — The gated test site tells crawlers `Allow: /`: robots.txt falls through to a static file that has been the PUBLIC version since 2026-09-23
+
+- **Date raised:** 2026-09-29
+- **Severity:** **Low–Medium.** No content exposure found: every URL on test.gccwebapp.com 302s to
+  `/__gate`, which carries `<meta name="robots" content="noindex, nofollow">` and `no-store`. But the
+  site explicitly invites crawling, and the protection rests entirely on the gate page's meta tag.
+  Shawn: *"robots shouldn't be able to get to the test site."*
+- **Status:** **RAISED — NOT FIXED.** Estimate below.
+- **Reporter:** Found 2026-09-29 during DEF-442 post-deploy checks on test.gccwebapp.com.
+- **QC log ID:** none — internal.
+
+**Evidence (2026-09-29, unauthenticated).** `https://test.gccwebapp.com/robots.txt` → 200,
+`Allow: / … Disallow: /Account/` (the public text) while `/` → 302 → "GCC Test Environment" gate.
+
+**Cause.** The robots middleware (`Program.cs:~898`) only overrides in the OPEN direction: gate OFF →
+serves the public text from code; gate ON → falls through to the static `wwwroot/robots.txt`. Its
+design comment assumes that file "ships as `Disallow: /`". On 2026-09-23 the repo copy was changed to
+the public version so full bundles would stop reverting the main site (predeploy-record-2026-09-23),
+which silently removed the restrictive fallback for every gated host. **When** test received it is not
+known — the file is byte-identical in the 9/23 and 9/29 bundles.
+
+**Proposed fix (~1 hr incl. local test).**
+1. Gate ON → serve `User-agent: *` / `Disallow: /` **from code**, so neither host depends on the static
+   file. Keep the static file as the last-resort fallback for exceptions only, and make it restrictive
+   again (`Disallow: /`) — the main site never reads it while its gate is off.
+2. While the gate is ON, add `X-Robots-Tag: noindex, nofollow` to every response the gate middleware
+   emits, so protection no longer hangs on one `<meta>` tag.
+3. Fix the stale comment. Verify: gate ON → `Disallow: /` + header; gate OFF → public text unchanged
+   (main site robots must not move).
+
+**Related, not this defect.** `dbtest.greencirclecertified.com` (its own Plesk site, replacing
+test.gccwebapp.com under CR-055) currently has **no gate** and serves robots `Allow: /`. If it should be
+private, its `appsettings.Secrets.json` needs `TestEnvironmentGate:Enabled: true`, and with this fix it
+then serves `Disallow: /` automatically. (An earlier note here said dbtest was bound to the production
+site; that was wrong and is withdrawn — see CR-055.)

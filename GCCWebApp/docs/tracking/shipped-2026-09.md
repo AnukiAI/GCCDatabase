@@ -992,3 +992,6 @@ blurred.
 
 **Which file to use:** the Word version is best for printing or editing, and the web page for reading
 on screen. The two versions contain the same text.
+
+## 2026-09-30 — CR-056: missing certificate 26-0234 added
+Certificate **26-0234** (Sargent Manufacturing / ASSA ABLOY, 281 Series Closer, Certified Sustainability Facts, Aug 1 2026 – Jul 31 2029) was missed in the migration and has now been added to the live database with its certificate PDF. It's the renewal of 25-8076 and is publicly visible and downloadable. Verified live on db.greencirclecertified.com.

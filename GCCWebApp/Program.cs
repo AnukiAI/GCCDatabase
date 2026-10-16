@@ -1181,6 +1181,58 @@ logger.LogInformation("Application started successfully");
 await app.Services.ValidateSecureConfigurationAsync();
 
 // ===== DATABASE INITIALIZATION =====
+// DEF-442: the startup connectivity check used to be a single CanConnectAsync(). That call
+// swallows the SqlException and returns false, so EnableRetryOnFailure never engages — one
+// SQL/network blip during a cold start threw, the process exited, IIS restarted it into the same
+// failure, and Rapid-Fail Protection then STOPPED the app pool: 503 on every URL, persisting after
+// SQL recovered, until someone restarted the pool by hand.
+//
+// Retries are bounded by elapsed time, not attempt count. This runs before app.Run(), so ANCM's
+// startupTimeLimit (default 120s; web.config does not set it) is counting — and against a server
+// that is truly down each attempt can itself take ~15s (SqlClient Connect Timeout). The default
+// 90s budget leaves headroom under 120s. Override with Database:StartupConnectBudgetSeconds.
+async Task<bool> CanConnectWithRetryAsync(ApplicationDbContext db, ILogger log, string envName)
+{
+    var budget = TimeSpan.FromSeconds(app.Configuration.GetValue<int?>("Database:StartupConnectBudgetSeconds") ?? 90);
+    var delays = new[] { 5, 10, 15, 20, 30 };
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+    for (var attempt = 1; ; attempt++)
+    {
+        var remaining = budget - stopwatch.Elapsed;
+        using var cts = new CancellationTokenSource(remaining > TimeSpan.Zero ? remaining : TimeSpan.FromSeconds(1));
+        bool connected;
+        try
+        {
+            connected = await db.Database.CanConnectAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            connected = false;
+        }
+
+        if (connected)
+        {
+            if (attempt > 1)
+                log.LogWarning("{Environment} database reachable on attempt {Attempt} after {Elapsed:F0}s (DEF-442 startup retry)",
+                    envName, attempt, stopwatch.Elapsed.TotalSeconds);
+            return true;
+        }
+
+        var delay = TimeSpan.FromSeconds(delays[Math.Min(attempt - 1, delays.Length - 1)]);
+        if (stopwatch.Elapsed + delay >= budget)
+        {
+            log.LogCritical("{Environment} database unreachable after {Attempts} attempt(s) over {Elapsed:F0}s (budget {Budget:F0}s) — giving up (DEF-442)",
+                envName, attempt, stopwatch.Elapsed.TotalSeconds, budget.TotalSeconds);
+            return false;
+        }
+
+        log.LogWarning("{Environment} database unreachable on attempt {Attempt} ({Elapsed:F0}s elapsed) — retrying in {Delay:F0}s (DEF-442)",
+            envName, attempt, stopwatch.Elapsed.TotalSeconds, delay.TotalSeconds);
+        await Task.Delay(delay);
+    }
+}
+
 // Environment-specific database initialization strategies
 using (var scope = app.Services.CreateScope())
 {
@@ -1210,7 +1262,7 @@ using (var scope = app.Services.CreateScope())
             logger.LogInformation("🔧 Staging environment - skipping automatic migrations (manual migration management enabled)");
 
             // Validate database connectivity
-            var canConnect = await context.Database.CanConnectAsync();
+            var canConnect = await CanConnectWithRetryAsync(context, logger, "Staging");
             if (!canConnect)
             {
                 logger.LogCritical("🚨 CRITICAL: Staging database connection failed!");
@@ -1221,8 +1273,8 @@ using (var scope = app.Services.CreateScope())
         }
         else if (app.Environment.IsProduction())
         {
-            // Validate database connectivity first
-            var canConnect = await context.Database.CanConnectAsync();
+            // Validate database connectivity first (bounded retry — DEF-442)
+            var canConnect = await CanConnectWithRetryAsync(context, logger, "Production");
             if (!canConnect)
             {
                 logger.LogCritical("🚨 CRITICAL: Production database connection failed!");

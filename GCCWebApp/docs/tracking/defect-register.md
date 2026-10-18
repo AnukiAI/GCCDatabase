@@ -17650,3 +17650,67 @@ test.gccwebapp.com under CR-055) currently has **no gate** and serves robots `Al
 private, its `appsettings.Secrets.json` needs `TestEnvironmentGate:Enabled: true`, and with this fix it
 then serves `Disallow: /` automatically. (An earlier note here said dbtest was bound to the production
 site; that was wrong and is withdrawn — see CR-055.)
+
+### DEF-444 — Production app pool exceeds the host's 512 MB memory cap, recycles repeatedly, and Rapid-Fail Protection leaves it stopped
+
+- **Date raised:** 2026-10-18
+- **Severity:** **High.** Production (db.greencirclecertified.com, alias of the gccwebapp.com site/pool)
+  goes down until someone starts the pool by hand in Plesk. Seen 2026-10-15 and 2026-10-16.
+- **Status:** **FIXES 1 + 2 BUILT AND VERIFIED LOCALLY — NOT DEPLOYED.** Fix 3 proposed, not built.
+- **Reporter:** Shawn — "the app pool is not recycling. I have to turn it back on manually".
+- **QC log ID:** none — internal.
+
+**Evidence.**
+- AccuWeb ticket answer (2026-10-18): the 512 MB private-memory limit IS being exceeded and triggers the
+  recycles; Rapid-Fail Protection is ON, threshold 5 failures; no host-side action in the window.
+- Plesk pool settings (screenshot 2026-10-16): private memory 524,288 KB; CPU 20 % "Throttle Under
+  Load" (not a kill); idle timeout 5 min / Terminate; regular recycle 1740 min; pipeline **Classic**.
+- stdout logs 2026-10-16 19:43–20:00: four process starts. Each starts cleanly (DEF-442 check passes),
+  serves 30–66 requests, all 200, then stops in an orderly way. Each of the three completed processes
+  stopped right after Amazon `GET /api/v1/certificates` calls (33, 50 and 2 Amazon calls).
+- IIS log 2026-10-14: an Amazon page (`partner=Amazon&includeProductIds=true&pageSize=100`) is up to
+  **2.2 MB** on the wire.
+- Built `GCCWebApp.runtimeconfig.json`: `"System.GC.Server": true` (Web SDK default, nothing sets it).
+
+**Cause (memory, layered).**
+1. **Server GC** (the default for web apps) sizes heaps per CPU core and keeps memory longer. On a
+   shared multi-core host with a 512 MB cap it is the wrong mode.
+2. Each partner page is held several times over during a request: the result objects, the
+   `[ApiCache]` serialized JSON string (UTF-16, ~2× the byte size), and the
+   `RequestResponseLoggingMiddleware` MemoryStream copy of the whole body (it only ever uses ≤ 50 KB).
+3. `[ApiCache]` on `GET /api/v1/certificates` stores every distinct page for up to 5 min in an
+   `IMemoryCache` with **no SizeLimit**.
+
+Rate limits (60/min per IP, 200/hr per key) cap the NUMBER of requests, not the memory each one uses.
+
+**Fix 1 (built): Workstation GC.** `GCCWebApp.csproj` → `<ServerGarbageCollection>false</ServerGarbageCollection>`.
+No code change. **Note the name:** the first attempt used `ServerGarbageCollector`, which MSBuild accepts
+silently and ignores; the build still emitted `"System.GC.Server": true`. Caught by checking the output.
+**Verified locally 2026-10-18 (Release build):** runtimeconfig `"System.GC.Server": false`; `/health/live`,
+`/`, `/Certificate/CertificateTileView`, `/api/certificate-tiles/filters` → 200; `/api/v1/certificates`
+unauthenticated → 401 (expected). Not tested with a partner key. Idle private memory 62 MB. Rollback: remove the line, or set `"System.GC.Server": true` in the deployed
+`GCCWebApp.runtimeconfig.json` and restart the pool.
+
+**Fix 2 (built): stop buffering response bodies in `RequestResponseLoggingMiddleware`.** Reading the
+code showed the buffered body only fed a `responseData` object that was **never logged**; the log lines
+use status and duration only. Buffering, `responseData` and the now-unused `SanitizeResponseBody` are
+removed; responses stream straight out. Log output is unchanged.
+**Verified locally 2026-10-18 (Release build, dev DB):** admin login; fresh dev Amazon key; no key →
+401; Amazon pages 1–3 (`includeProductIds=true&pageSize=100`) all 200 with complete, parseable JSON —
+1,683,512 / 2,367,208 / 524,802 bytes, 217 items = totalCount 217; repeat of page 1 (cache path) complete.
+Private memory after the run 98 MB. Script: scratchpad `def444_partner_smoke.py` (the repo's
+`amazon-partner-api-local.js` needs Playwright, which is not installed). Side effect: one extra
+"LOCAL TEST KEY - DEF-444 smoke" Amazon key now exists in the DEV database.
+Seen, not changed: on a cache hit the `X-Cache` header reads `MISS, HIT` (the cached headers include
+MISS and the attribute appends HIT) — pre-existing, cosmetic.
+
+**Fix 3 (proposed, ~1–2 hr): bound the API response cache.** Give the cache a SizeLimit and size
+entries, or drop `[ApiCache]` on the partner list (the 10/16 timings, 0.5–0.9 s per call, suggest it
+was not hitting anyway; confirm with the 10/16 IIS log).
+
+**Hosting (Shawn's decision):** +512 MB from AccuWeb is $10/month. Switch pipeline to Integrated /
+No Managed Code at a quiet time (Microsoft guidance; not the cause).
+
+**Verify after deploy.** Zip's runtimeconfig shows `"System.GC.Server": false`; home, login and an
+Amazon-key API call return 200; worker memory stays well under 512 MB during an Amazon burst; no pool
+stops for 48 hours.

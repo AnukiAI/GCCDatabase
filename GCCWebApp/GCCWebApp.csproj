@@ -9,6 +9,12 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <!-- DEF-444: the host caps the app pool at 512 MB private memory. Server GC (the Web SDK
+         default) sizes heaps per CPU core and pushed the pool over the cap -> repeated recycles ->
+         Rapid-Fail Protection stopped the pool. Workstation GC keeps the footprint far lower. -->
+    <!-- Property name is ServerGarbageCollection (not ...Collector, which MSBuild silently ignores).
+         Verify: bin/.../GCCWebApp.runtimeconfig.json must show "System.GC.Server": false. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
   </PropertyGroup>
 
   <!-- Legacy deep-link rewrite map, consumed by web.config via

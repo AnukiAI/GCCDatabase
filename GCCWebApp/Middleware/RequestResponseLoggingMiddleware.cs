@@ -73,11 +73,12 @@ public class RequestResponseLoggingMiddleware
         // Log incoming request
         await LogRequestAsync(context, requestId, structuredLogger);
 
-        // Create response body logging stream
-        var originalResponseBodyStream = context.Response.Body;
-        using var responseBodyMemoryStream = new MemoryStream();
-        context.Response.Body = responseBodyMemoryStream;
-
+        // DEF-444: the response body is NOT buffered any more. This used to swap Response.Body for a
+        // MemoryStream and copy the whole response through it, so every API response existed twice in
+        // memory (an Amazon partner page is up to 2.2 MB). The buffered body was only read into a
+        // `responseData` object that was never logged; the log lines below use status and duration
+        // only. Under partner bursts this pushed the app pool over the host's 512 MB private-memory
+        // cap -> recycles -> Rapid-Fail Protection stopped the pool. Responses now stream straight out.
         try
         {
             await _next(context);
@@ -93,12 +94,7 @@ public class RequestResponseLoggingMiddleware
             stopwatch.Stop();
 
             // Log response
-            await LogResponseAsync(context, responseBodyMemoryStream, stopwatch.Elapsed, requestId, structuredLogger);
-
-            // Copy response body back to original stream
-            responseBodyMemoryStream.Position = 0;
-            await responseBodyMemoryStream.CopyToAsync(originalResponseBodyStream);
-            context.Response.Body = originalResponseBodyStream;
+            await LogResponseAsync(context, stopwatch.Elapsed, requestId, structuredLogger);
         }
     }
 
@@ -189,31 +185,13 @@ public class RequestResponseLoggingMiddleware
             context.User);
     }
 
-    private async Task LogResponseAsync(HttpContext context, MemoryStream responseBodyStream, 
+    private async Task LogResponseAsync(HttpContext context,
         TimeSpan duration, string requestId, IStructuredLoggingService structuredLogger)
     {
         var response = context.Response;
-        
-        string? responseBody = null;
-        if (responseBodyStream.Length > 0 && responseBodyStream.Length <= 1024 * 50) // 50KB limit
-        {
-            responseBodyStream.Position = 0;
-            responseBody = await new StreamReader(responseBodyStream).ReadToEndAsync();
-            responseBody = SanitizeResponseBody(responseBody, response.ContentType);
-        }
 
-        var responseData = new
-        {
-            RequestId = requestId,
-            StatusCode = response.StatusCode,
-            Headers = FilterHeaders(response.Headers),
-            ContentType = response.ContentType,
-            ContentLength = responseBodyStream.Length,
-            DurationMs = duration.TotalMilliseconds,
-            Timestamp = DateTime.UtcNow,
-            ResponseBody = responseBodyStream.Length <= 1024 * 10 ? responseBody : "[Response too large to log]"
-        };
-
+        // DEF-444: a `responseData` object holding the sanitized body used to be built here and was
+        // never passed to any logger. Removed together with the buffering that fed it.
         var logLevel = response.StatusCode >= 500 ? LogLevel.Error :
                       response.StatusCode >= 400 ? LogLevel.Warning :
                       LogLevel.Information;
@@ -318,20 +296,6 @@ public class RequestResponseLoggingMiddleware
         }
 
         return requestBody;
-    }
-
-    private string SanitizeResponseBody(string responseBody, string? contentType)
-    {
-        if (string.IsNullOrEmpty(responseBody) || string.IsNullOrEmpty(contentType))
-            return responseBody;
-
-        // For JSON responses, sanitize sensitive fields
-        if (contentType.Contains("application/json", StringComparison.OrdinalIgnoreCase))
-        {
-            return SanitizeJsonContent(responseBody);
-        }
-
-        return responseBody;
     }
 
     private string SanitizeJsonContent(string jsonContent)

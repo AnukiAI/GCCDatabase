@@ -20,8 +20,8 @@ ASP.NET Core 8.0 MVC · EF Core 9.0 · SQL Server · Bootstrap 5
 ## 2. Clone and build
 
 ```bash
-git clone https://github.com/AnukiAI/GCCWebApp.git
-cd GCCWebApp
+git clone https://github.com/AnukiAI/GCCDatabase.git
+cd GCCDatabase
 dotnet restore
 dotnet build
 ```

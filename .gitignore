@@ -455,3 +455,7 @@ appsettings.Secrets.json
 
 # dotnet run stderr capture from local dev
 _dev.log.err
+
+# Build/deploy archives - never commit (local copies stay on disk)
+*.tar.gz
+GCCWebApp-deploy-*.zip

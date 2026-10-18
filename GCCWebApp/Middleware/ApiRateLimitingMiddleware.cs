@@ -126,7 +126,7 @@ namespace GCCWebApp.Middleware
                 if (!string.IsNullOrEmpty(partnerId))
                 {
                     _logger.LogDebug("Using default partner API key limit: {Limit} requests/hour", _options.PartnerApiKeyLimit);
-                    return _options.PartnerApiKeyLimit; // Default: 2000/hour
+                    return _options.PartnerApiKeyLimit; // Default: 200/hour (set in Program.cs)
                 }
 
                 // Check for general API key authentication (non-partner)
@@ -143,7 +143,7 @@ namespace GCCWebApp.Middleware
                 }
 
                 // Authenticated users (cookie/JWT)
-                return _options.AuthenticatedLimit; // Default: 1000/hour
+                return _options.AuthenticatedLimit; // Default: 500/hour (set in Program.cs)
             }
 
             // Anonymous/unauthenticated users
